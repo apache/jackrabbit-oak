@@ -62,6 +62,7 @@
         * [UC2 - Find all assets which are having `status` as `published` sorted by last modified date](#uc2)
         * [UC3 - Find all assets where comment contains _december_](#uc3)
         * [UC4 - Find all assets which are created by David and refer to december](#uc4)
+        * [UC5 - Facets](#uc5)
 
 Oak supports Lucene based indexes to support both property constraint and full
 text constraints. Depending on the configuration a Lucene index can be used
@@ -1345,7 +1346,8 @@ Specific facet related features for Lucene property index can be configured in a
           - propertyIndex = true
 ```
 
-See [query-engine](query-engine.html#Facets) regarding how to query to evaluate facets alongwith.
+See [query-engine](query-engine.html#Facets) regarding how to query to evaluate facets alongwith. Also check out
+some examples of queries and required index definitions for faceting in [use case 5](#uc5).
 
 #### <a name="score-explanation"></a>Score Explanation
 
@@ -1782,6 +1784,109 @@ such fields
           - nodeScopeIndex = true
           - name = "jcr:content/metadata/jcr:title"
           - boost = 2.0
+```
+
+##### <a name="uc5"></a>UC5 - Facets
+
+Unconstrained queries for facets like
+```
+    SELECT [rep:facet(title)] FROM [app:Asset]
+or
+    //element(*, app:Asset)/(rep:facet(title))
+or
+    SELECT [rep:facet(title)], [rep:facet(tags)] FROM [app:Asset]
+or
+    //element(*, app:Asset)/(rep:facet(title) | rep:facet(tags))
+```
+would require an index on `app:Asset`  containing all nodes of the type. That, in
+turn, means that either the index needs to be a fulltext index or needs to be
+indexing `jcr:primaryType` property. All of the following definitions would work
+for such a case:
+```
+   + /oak:index/index1
+      - ...
+      + aggregates
+        + app:Asset
+          + include0
+            - path = "jcr:content"
+      + indexRules
+        + app:Asset
+          + properties
+            + title
+              - facets = true
+            + tags
+              - facets = true
+              - propertyIndex = true
+or
+   + /oak:index/index2
+      - ...
+      + indexRules
+        + app:Asset
+          + properties
+            + title
+              - facets = true
+              - nodeScopeIndex = true
+            + tags
+              - facets = true
+              - propertyIndex = true
+or
+   + /oak:index/index3
+      - ...
+      + indexRules
+        + app:Asset
+          + properties
+            + nodeType
+              - propertyIndex = true
+              - name = jcr:primaryType
+            + title
+              - facets = true
+            + tags
+              - facets = true
+```
+
+Another thing to note with facets is that facet counts are derived from lucene index.
+While not immediately obvious, that implies that any constraint on the query that do
+**not** get evaluated by the index are going to return incorrect facet counts as the other
+constraints would get filtered _after_ collecting counts from the index.
+
+So, following queries require correspondingly listed indexes:
+```
+SELECT rep:facet(title) FROM [app:Asset] WHERE ISDESCENDANTNODE(/some/path)
+
++ /oak:index/index2
+  - ...
+  - evaluatePathRestrictions = true
+  + indexRules
+    + app:Asset
+      + properties
+        + title
+          - facets = true
+          - propertyIndex = true
+```
+```
+SELECT rep:facet(title) FROM [app:Asset] WHERE CONTAINS(., 'foo')
+
++ /oak:index/index2
+  - ...
+  + indexRules
+    + app:Asset
+      + properties
+        + title
+          - facets = true
+          - propertyIndex = true
+          - nodeScopeIndex = true
+```
+```
+SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
+
++ /oak:index/index2
+  - ...
+  + indexRules
+    + app:Asset
+      + properties
+        + title
+          - facets = true
+          - propertyIndex = true
 ```
 
 [1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
