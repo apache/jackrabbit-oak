@@ -547,6 +547,18 @@ field in Lucene / Solr) using the following snippet:
 
 Nodes/Rows can still be retrieved from within the QueryResult object the usual way.
 
+Do note that retrieving facets don't affect the result set or query constraints. So, only those
+indexes which can resolve the query constraints would be considered for resolving the query.
+For lucene indexes the index must also index relevant properties for faceting to be considered
+for evaluating the query. So, a query like:
+
+    SELECT [rep:facet(jcr:title)] FROM [nt:unstructured]
+
+can only be resolved by an index which is indexing all `nt:unstructured` nodes. Following query is
+is what should be used to get facets from nodes which have existing faceted proeprty:
+
+    SELECT [rep:facet(jcr:title)] FROM [nt:unstructured] WHERE [jcr:title] IS NOT NULL 
+
 ### XPath to SQL-2 Transformation
 
 To support the XPath query language, such queries are internally converted to SQL-2.

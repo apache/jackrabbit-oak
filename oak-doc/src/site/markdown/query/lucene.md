@@ -1345,6 +1345,8 @@ Specific facet related features for Lucene property index can be configured in a
           - propertyIndex = true
 ```
 
+See [query-engine](query-engine.html#Facets) regarding how to query to evaluate facets alongwith.
+
 #### <a name="score-explanation"></a>Score Explanation
 
 `@since Oak 1.3.12`
