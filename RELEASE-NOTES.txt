@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.12
+Release Notes -- Apache Jackrabbit Oak -- Version 1.9.13
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.12 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.9.13 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other
 improvements. For production use we recommend the latest stable 1.8.x
 release.
@@ -15,57 +15,56 @@ release.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.12
+Changes in Oak 1.9.13
 --------------------
 
 Sub-task
 
-    [OAK-7898] - Facet queries with UNION should do trivial merge of
-    facets from sub-queries
+    [OAK-7930] - Add tape sampling
 
 Technical task
 
-    [OAK-6957] - Remove export for org.apache.jackrabbit.oak.security
-    [OAK-7894] - RDBDocumentStore: add perf logging for JDBC read
-    operations
-    [OAK-7896] - RDB*Store: update mysql driver reference to 8.0.13
+    [OAK-7942] - Fix covariant return type changes in ByteBuffer
 
 Bug
 
-    [OAK-7606] - Doing Faceting only on the resultset of one
-    constraints when query contain multiple constraint with OR
-    condition
-    [OAK-7889] - Test failure: Unable to start Docker container
-    [OAK-7901] - NodeTypeRegistryTest uses javax.annotation.Nonnull
-    [OAK-7903] - Corrupt index metric potentially reporting
-    corruptions on every index update
-    [OAK-7912] - ValidNamesTest: potential NPE in teardown
-    [OAK-7916] - Feature vectors similarity query is too selective
+    [OAK-7803] - IndexFormatVersion should be available in oak-lucene
+    [OAK-7869] - Commit queue stuck when input stream of blob blocks
+    [OAK-7923] - CompositeNodeBuilder#getPath() fails when it wraps a
+    ReadOnlyBuilder
+    [OAK-7929] - Incorrect Facet Count With Large Dataset and ACLs
+    [OAK-7935] - RDB*Store: createOrUpdate may fail on stale cache
+    when document was removed on different instance
 
 New Feature
 
-    [OAK-7900] - Allow to spot User.disable with a new, dedicated
-    UserAction
+    [OAK-7866] - Add tooling for recovering from an outdated journal
+    [OAK-7933] - Expose number of tar readers as metric
+    [OAK-7934] - Expose the number of segments as metric
 
 Improvement
 
-    [OAK-7323] - Log when trying to add "everyone" as member to other
-    groups or add user/groups to "everyone"
-    [OAK-7824] - Improve search by similar feature vectors with brute
-    force nearest neighbour
-    [OAK-7910] - Composite node store: Creating a new Lucene index;
-    reindex
+    [OAK-7918] - Extract checking logic from ConsistencyChecker
+    [OAK-7925] - OakUpgrade for RDBMK: user name and password must
+    match
+    [OAK-7928] - Avoid reference resolution for user query with scope
+    and declaredMembersOnly
+    [OAK-7940] - Index importer should warn if there is no index to
+    import
+
+Test
+
+    [OAK-7878] - Add unit test for LoggingHook
 
 Task
 
-    [OAK-7893] - Export DW Metrics for Lucene index size and document
-    counts
-    [OAK-7913] - Update failsafe and surefire versions to 2.22.1
+    [OAK-7915] - Update Oak trunk to Jackrabbit 2.17.7
+    [OAK-7931] - Don't allow for weak references between mounts
+    [OAK-7943] - Update Oak trunk to Jackrabbit 2.18.0
 
 Documentation
 
-    [OAK-7895] - RELEASE-NOTES: minor typo
-
+    [OAK-7945] - Document the recover-journal command
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.9.x release.
