@@ -92,6 +92,9 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +115,9 @@ public class QueryImpl implements Query {
     public final static int MAX_UNION = Integer.getInteger("oak.sql2MaxUnion", 1000);
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
-    
+
+    private static final String INDEX_UNAVAILABLE = "INDEX-UNAVAILABLE";
+
     private final QueryExecutionStats stats;
 
     private boolean potentiallySlowTraversalQueryLogged;
@@ -1082,7 +1087,19 @@ public class QueryImpl implements Query {
                 }
             }
         }
-        return new SelectorExecutionPlan(filter.getSelector(), bestIndex, 
+
+        if (potentiallySlowTraversalQuery || bestIndex == null) {
+            LOG.debug("no proper index was found for filter {}", filter);
+            StatisticsProvider statisticsProvider = getSettings().getStatisticsProvider();
+            if (statisticsProvider != null) {
+                HistogramStats histogram = statisticsProvider.getHistogram(INDEX_UNAVAILABLE, StatsOptions.METRICS_ONLY);
+                if (histogram != null) {
+                    histogram.update(1);
+                }
+            }
+        }
+
+        return new SelectorExecutionPlan(filter.getSelector(), bestIndex,
                 bestPlan, bestCost);
     }
     
