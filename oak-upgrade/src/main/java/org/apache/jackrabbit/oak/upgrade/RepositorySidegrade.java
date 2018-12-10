@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
@@ -520,7 +521,7 @@ public class RepositorySidegrade {
 
     private NodeState wrapNodeState(NodeState source, boolean tracePaths, boolean filterPaths) {
         NodeState wrapped = source;
-        if (migrateDocumentMetadata) {
+        if (migrateDocumentMetadata && source instanceof DocumentNodeState) {
             wrapped = MetadataExposingNodeState.wrap(wrapped);
         }
         if (!isCompleteMigration() && filterPaths) {

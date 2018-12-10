@@ -32,7 +32,7 @@ public class MigrationOptions {
 
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
-    private static final boolean ADD_SECONDARY_METADATA = Boolean.getBoolean("oak.upgrade.addSecondaryMetadata");
+    private static final String ADD_SECONDARY_METADATA_PROP = "oak.upgrade.addSecondaryMetadata";
 
     private final boolean copyBinaries;
 
@@ -94,6 +94,8 @@ public class MigrationOptions {
 
     private final Boolean srcExternalBlobs;
 
+    private final Boolean addSecondaryMetadata;
+
     public MigrationOptions(MigrationCliArguments args) throws CliArgumentException {
         this.disableMmap = args.hasOption(OptionParserFactory.DISABLE_MMAP);
         this.copyBinaries = args.hasOption(OptionParserFactory.COPY_BINARIES);
@@ -147,6 +149,12 @@ public class MigrationOptions {
             this.srcExternalBlobs = args.getBooleanOption(OptionParserFactory.SRC_EXTERNAL_BLOBS);
         } else {
             this.srcExternalBlobs = null;
+        }
+
+        if (System.getProperty(ADD_SECONDARY_METADATA_PROP) == null) {
+            this.addSecondaryMetadata = args.hasOption(OptionParserFactory.ADD_SECONDARY_METADATA);
+        } else {
+            this.addSecondaryMetadata = Boolean.getBoolean(ADD_SECONDARY_METADATA_PROP);
         }
     }
 
@@ -218,7 +226,7 @@ public class MigrationOptions {
         return forceCheckpoints;
     }
 
-    public boolean isAddSecondaryMetadata() { return ADD_SECONDARY_METADATA; }
+    public boolean isAddSecondaryMetadata() { return addSecondaryMetadata; }
 
     public String getSrcUser() {
         return srcUser;
@@ -357,7 +365,7 @@ public class MigrationOptions {
             log.info("Checkpoints will be migrated even with the custom paths specified");
         }
 
-        if (ADD_SECONDARY_METADATA) {
+        if (addSecondaryMetadata) {
             log.info("Secondary metadata will be added");
         }
 
