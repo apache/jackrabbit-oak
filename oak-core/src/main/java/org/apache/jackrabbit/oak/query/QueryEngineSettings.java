@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBeanImpl;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsReporter;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 /**
  * Settings of the query engine.
@@ -77,9 +78,19 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     private QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
 
+    /**
+     * StatisticsProvider used to record query side metrics.
+     */
+    private final StatisticsProvider statisticsProvider;
+
     public QueryEngineSettings() {
+        statisticsProvider = StatisticsProvider.NOOP;
     }
-    
+
+    public QueryEngineSettings(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
+    }
+
     @Override
     public long getLimitInMemory() {
         return limitInMemory;
@@ -139,6 +150,10 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     
     public QueryStatsReporter getQueryStatsReporter() {
         return queryStats;
+    }
+
+    StatisticsProvider getStatisticsProvider() {
+        return statisticsProvider;
     }
 
     @Override
