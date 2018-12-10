@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.upgrade.cli;
 import org.apache.jackrabbit.oak.upgrade.cli.container.JdbcNodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.NodeStoreContainer;
 import org.apache.jackrabbit.oak.upgrade.cli.container.SegmentNodeStoreContainer;
-import org.junit.BeforeClass;
 
 import java.io.IOException;
 
@@ -28,11 +27,6 @@ public class JdbcToSegmentWithMetadataTest extends AbstractOak2OakTest {
     private final NodeStoreContainer source;
 
     private final NodeStoreContainer destination;
-
-    @BeforeClass
-    public static void setMetadataProperty() throws IOException {
-        System.setProperty("oak.upgrade.addSecondaryMetadata", "true");
-    }
 
     public JdbcToSegmentWithMetadataTest() throws IOException {
         source = new JdbcNodeStoreContainer();
@@ -52,11 +46,16 @@ public class JdbcToSegmentWithMetadataTest extends AbstractOak2OakTest {
     @Override
     protected String[] getArgs() {
         return new String[] { "--src-user", "sa", "--src-password", "pwd", source.getDescription(),
-                destination.getDescription() };
+                destination.getDescription() , "--add-secondary-metadata"};
     }
 
     @Override
     protected boolean supportsCheckpointMigration() {
+        return true;
+    }
+
+    @Override
+    protected boolean supportsMetadataMigration() {
         return true;
     }
 }
