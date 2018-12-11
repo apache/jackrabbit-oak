@@ -160,7 +160,7 @@ interface Condition {
 
         private final List<Condition> conditions = new ArrayList<>();
 
-        public Compound(Condition condition1, Condition condition2) {
+        Compound(Condition condition1, Condition condition2) {
             conditions.add(condition1);
             conditions.add(condition2);
         }

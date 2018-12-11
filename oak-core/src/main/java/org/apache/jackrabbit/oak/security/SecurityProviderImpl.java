@@ -89,7 +89,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     /**
      * Default constructor used in OSGi environments.
      */
-    public SecurityProviderImpl() {
+    SecurityProviderImpl() {
         this(ConfigurationParameters.EMPTY);
     }
 
@@ -99,7 +99,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
      *
      * @param configuration security configuration
      */
-    public SecurityProviderImpl(@NotNull ConfigurationParameters configuration) {
+    private SecurityProviderImpl(@NotNull ConfigurationParameters configuration) {
         checkNotNull(configuration);
         this.configuration = configuration;
 
