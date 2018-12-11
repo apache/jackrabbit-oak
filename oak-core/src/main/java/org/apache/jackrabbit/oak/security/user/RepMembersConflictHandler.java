@@ -43,7 +43,7 @@ import com.google.common.collect.Sets;
  *     <li>{@code deleteChangedProperty}: {@code Resolution.OURS} removing the members property takes precedence.
  * </ul>
  */
-public class RepMembersConflictHandler implements ThreeWayConflictHandler {
+class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override

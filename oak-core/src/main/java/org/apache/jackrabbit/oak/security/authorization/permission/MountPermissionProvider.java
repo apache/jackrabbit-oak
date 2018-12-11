@@ -71,7 +71,7 @@ public class MountPermissionProvider extends PermissionProviderImpl {
 
         private final List<PermissionStoreImpl> stores;
 
-        public MountPermissionStore(List<PermissionStoreImpl> stores) {
+        MountPermissionStore(List<PermissionStoreImpl> stores) {
             this.stores = stores;
         }
 

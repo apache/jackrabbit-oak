@@ -99,7 +99,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
          * @return corresponding composition type, or {@code AND} if the
          *         provided type is {@code null}
          */
-        public static CompositionType fromString(@Nullable String type) {
+        static CompositionType fromString(@Nullable String type) {
             String or = OR.name();
             if (or.equals(type) || or.toLowerCase().equals(type)) {
                 return OR;

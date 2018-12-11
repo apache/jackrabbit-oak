@@ -236,8 +236,8 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
 
         private final CompositionType compositionType;
 
-        public CompositeRepositoryPermission(@NotNull AggregatedPermissionProvider[] pps,
-                @NotNull CompositionType compositionType) {
+        CompositeRepositoryPermission(@NotNull AggregatedPermissionProvider[] pps,
+                                      @NotNull CompositionType compositionType) {
             this.pps = pps;
             this.compositionType = compositionType;
         }

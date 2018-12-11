@@ -29,11 +29,11 @@ final class ReadStatus {
     private static final int THIS_PROPERTIES = THIS | PROPERTIES;
     private static final int ALL = THIS | PROPERTIES | CHILD_NODES;
 
-    static final ReadStatus ALLOW_THIS = new ReadStatus(THIS, true);
-    static final ReadStatus ALLOW_THIS_PROPERTIES = new ReadStatus(THIS_PROPERTIES, true);
+    private static final ReadStatus ALLOW_THIS = new ReadStatus(THIS, true);
+    private static final ReadStatus ALLOW_THIS_PROPERTIES = new ReadStatus(THIS_PROPERTIES, true);
     static final ReadStatus ALLOW_ALL = new ReadStatus(ALL, true);
     static final ReadStatus DENY_THIS = new ReadStatus(THIS, false);
-    static final ReadStatus DENY_THIS_PROPERTIES = new ReadStatus(THIS_PROPERTIES, false);
+    private static final ReadStatus DENY_THIS_PROPERTIES = new ReadStatus(THIS_PROPERTIES, false);
     static final ReadStatus DENY_ALL = new ReadStatus(ALL, false);
 
     private static final PrivilegeBits READ_BITS = PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ);

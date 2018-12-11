@@ -55,7 +55,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     }
 
     @Nullable
-    Tree getByContentID(@NotNull String contentId, @NotNull AuthorizableType authorizableType) {
+    private Tree getByContentID(@NotNull String contentId, @NotNull AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(contentId);
         if (UserUtil.isType(tree, authorizableType)) {
             return tree;

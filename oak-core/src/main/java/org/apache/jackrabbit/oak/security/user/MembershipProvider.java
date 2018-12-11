@@ -480,7 +480,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
          * @param groupTree A tree associated with a group
          * @see #getNextIterator(Tree)
          */
-        protected void remember(@NotNull Tree groupTree) {
+        void remember(@NotNull Tree groupTree) {
             if (groupTrees == null) {
                 groupTrees = new ArrayList<>();
             }

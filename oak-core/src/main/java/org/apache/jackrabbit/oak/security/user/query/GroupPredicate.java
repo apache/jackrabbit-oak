@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  */
 class GroupPredicate implements Predicate<Authorizable> {
 
-    static final Logger log = LoggerFactory.getLogger(GroupPredicate.class);
+    private static final Logger log = LoggerFactory.getLogger(GroupPredicate.class);
 
     private final Iterator<Authorizable> membersIterator;
     private final Set<String> memberIds = new HashSet<>();

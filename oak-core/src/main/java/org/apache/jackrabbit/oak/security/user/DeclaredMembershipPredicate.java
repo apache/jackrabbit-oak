@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
 
-    static final Logger log = LoggerFactory.getLogger(DeclaredMembershipPredicate.class);
+    private static final Logger log = LoggerFactory.getLogger(DeclaredMembershipPredicate.class);
 
     private final MembershipProvider membershipProvider;
     private final Iterator<String> contentIdIterator;

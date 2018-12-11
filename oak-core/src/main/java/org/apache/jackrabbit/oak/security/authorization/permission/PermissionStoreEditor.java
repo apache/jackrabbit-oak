@@ -293,7 +293,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             }
         }
 
-        protected PropertyState getPrivilegeBitsProperty() {
+        PropertyState getPrivilegeBitsProperty() {
             return privilegeBits.asPropertyState(REP_PRIVILEGE_BITS);
         }
 

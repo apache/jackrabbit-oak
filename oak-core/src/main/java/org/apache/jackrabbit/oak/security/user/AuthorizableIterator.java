@@ -88,7 +88,7 @@ final class AuthorizableIterator implements Iterator {
         private final UserManagerImpl userManager;
         private final Predicate predicate;
 
-        public PathToAuthorizable(UserManagerImpl userManager, AuthorizableType type) {
+        PathToAuthorizable(UserManagerImpl userManager, AuthorizableType type) {
             this.userManager = userManager;
             this.predicate = new AuthorizableTypePredicate(type);
         }
