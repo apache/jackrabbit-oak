@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.upgrade.cli;
 
 import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_LAST_REV;
+import static org.apache.jackrabbit.oak.plugins.document.secondary.DelegatingDocumentNodeState.PROP_REVISION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -46,6 +48,8 @@ import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -166,6 +170,9 @@ public abstract class AbstractOak2OakTest {
         if (supportsCheckpointMigration()) {
             verifyCheckpoint();
         }
+        if (supportsMetadataMigration()) {
+            verifyMetadata();
+        }
     }
 
     public static void verifyContent(Session session) throws RepositoryException {
@@ -236,6 +243,18 @@ public abstract class AbstractOak2OakTest {
         }
     }
 
+    private void verifyMetadata() {
+        NodeState root = destination.getRoot();
+        assertTrue(root.hasProperty(PROP_REVISION));
+        assertTrue(root.hasProperty(PROP_LAST_REV));
+        RevisionVector.fromString(root.getString(PROP_REVISION));
+        Revision.fromString(root.getString(PROP_LAST_REV));
+
+        NodeState appsNode = destination.getRoot().getChildNode("apps");
+        assertTrue(appsNode.hasProperty(PROP_LAST_REV));
+        Revision.fromString(appsNode.getString(PROP_LAST_REV));
+    }
+
     private static void assertSameRecord(NodeState ns1, NodeState ns2) {
         String recordId1 = getRecordId(ns1);
         String recordId2 = getRecordId(ns2);
@@ -256,6 +275,10 @@ public abstract class AbstractOak2OakTest {
     }
 
     protected boolean supportsCheckpointMigration() {
+        return false;
+    }
+
+    protected boolean supportsMetadataMigration() {
         return false;
     }
 }

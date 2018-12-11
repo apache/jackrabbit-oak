@@ -84,6 +84,8 @@ public class OptionParserFactory {
 
     public static final String FORCE_CHECKPOINTS = "force-checkpoints";
 
+    public static final String ADD_SECONDARY_METADATA = "add-secondary-metadata";
+
     public static OptionParser create() {
         OptionParser op = new OptionParser();
         addUsageOptions(op);
@@ -157,5 +159,6 @@ public class OptionParserFactory {
         op.accepts(ONLY_VERIFY, "Performs only --" + VERIFY + ", without copying content");
         op.accepts(SKIP_CHECKPOINTS, "Don't copy checkpoints on the full segment->segment migration");
         op.accepts(FORCE_CHECKPOINTS, "Copy checkpoints even if the --include,exclude,merge-paths option is specified");
+        op.accepts(ADD_SECONDARY_METADATA, "Adds the metadata required by secondary store");
     }
 }
