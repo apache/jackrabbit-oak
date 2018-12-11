@@ -85,10 +85,10 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Mark and sweep garbage collector.
- * 
+ *
  * Uses the file system to store internal state while in process to account for huge data.
  * This class is not thread safe.
- * 
+ *
  */
 public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
@@ -97,7 +97,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     public static final String TEMP_DIR = StandardSystemProperty.JAVA_IO_TMPDIR.value();
 
     public static final int DEFAULT_BATCH_COUNT = 1024;
-    
+
     public static final String DELIM = ",";
 
     private static final Function<String, String> transformer = new Function<String, String>() {
@@ -234,7 +234,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     /**
      * Returns the stats related to GC for all repos
-     * 
+     *
      * @return a list of GarbageCollectionRepoStats objects
      * @throws Exception
      */
@@ -394,7 +394,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     /**
      * Difference phase where the GC candidates are identified.
-     * 
+     *
      * @param fs the garbage collector file state
      * @throws IOException
      *             Signals that an I/O exception has occurred.
@@ -453,14 +453,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         long earliestRefAvailTime;
         // Merge all the blob references available from all the reference files in the data store meta store
         // Only go ahead if merge succeeded
-        try {
-            earliestRefAvailTime =
-                    GarbageCollectionType.get(blobStore).mergeAllMarkedReferences(blobStore, fs);
-            LOG.debug("Earliest reference available for timestamp [{}]", earliestRefAvailTime);
-            earliestRefAvailTime = (earliestRefAvailTime < markStart ? earliestRefAvailTime : markStart);
-        } catch (Exception e) {
-            return 0;
-        }
+        earliestRefAvailTime =
+          GarbageCollectionType.get(blobStore).mergeAllMarkedReferences(blobStore, fs);
+        LOG.debug("Earliest reference available for timestamp [{}]", earliestRefAvailTime);
+        earliestRefAvailTime = (earliestRefAvailTime < markStart ? earliestRefAvailTime : markStart);
 
         // Find all blob references after iterating over the whole repository
         (new BlobIdRetriever(fs, forceBlobRetrieve)).call();
@@ -469,7 +465,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         difference(fs);
         long count = 0;
         long deleted = 0;
-        
+
         long maxModifiedTime = getMaxModifiedTime(earliestRefAvailTime);
         LOG.debug("Starting sweep phase of the garbage collector");
         LOG.debug("Sweeping blobs with modified time > than the configured max deleted time ({}). ",
@@ -511,7 +507,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         BlobCollectionType.get(blobStore).handleRemoves(blobStore, fs.getGarbage(), fs.getMarkedRefs());
 
         if(count != deleted) {
-            LOG.warn("Deleted only [{}] blobs entries from the [{}] candidates identified. This may happen if blob " 
+            LOG.warn("Deleted only [{}] blobs entries from the [{}] candidates identified. This may happen if blob "
                          + "modified time is > "
                          + "than the max deleted time ({})", deleted, count,
                         timestampToString(maxModifiedTime));
@@ -643,10 +639,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             closeQuietly(writer);
         }
     }
-    
+
     /**
      * Checks for the DataStore consistency and reports the number of missing blobs still referenced.
-     * 
+     *
      * @return the missing blobs
      * @throws Exception
      */
@@ -661,12 +657,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         try {
             LOG.info("Starting blob consistency check");
-    
+
             // Find all blobs available in the blob store
             ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs,
                 true));
             executor.execute(blobIdRetriever);
-    
+
             // Mark all used blob references
             iterateNodeTree(fs, true);
             consistencyStatsCollector.updateMarkDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
@@ -678,7 +674,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 threw = false;
                 throw e;
             }
-            
+
             LOG.trace("Starting difference phase of the consistency check");
             FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
                 fs.getAvailableRefs(),
@@ -721,7 +717,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             this.fs = fs;
             this.forceRetrieve = forceBlobRetrieve;
         }
-    
+
         @Override
         public Integer call() throws Exception {
             if (!forceRetrieve) {
@@ -756,7 +752,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         SHARED {
             /**
              * Remove the maked references and the marked markers from the blob store root. Default NOOP.
-             * 
+             *
              * @param blobStore the blobStore instance
              */
             @Override
@@ -767,7 +763,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             /**
              * Merge all marked references available from all repositories and return the earliest time of the references.
-             * 
+             *
              * @param blobStore the blob store
              * @param fs the fs
              * @return the long the earliest time of the available references
@@ -798,7 +794,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     }
 
                     merge(files, fs.getMarkedRefs());
-                    
+
                     // Get the timestamp to indicate the earliest mark phase start
                     List<DataRecord> markerFiles =
                         ((SharedDataStore) blobStore).getAllMetadataRecords(
@@ -818,7 +814,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             /**
              * Adds the marked references to the blob store root. Default NOOP
-             * 
+             *
              * @param blobStore the blob store
              * @param fs the fs
              * @param repoId the repo id
@@ -839,7 +835,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 ((SharedDataStore) blobStore).addMetadataRecord(fs.getMarkedRefs(), SharedStoreRecordType.REFERENCES
                     .getNameFromIdPrefix(repoId, uniqueSuffix));
             }
-            
+
             @Override
             public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId,
                 String uniqueSuffix) {
@@ -875,7 +871,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             }
             return DEFAULT;
         }
-    
+
         public void addMarkedStartMarker(GarbageCollectableBlobStore blobStore, String repoId, String uniqueSuffix) {}
     }
 
