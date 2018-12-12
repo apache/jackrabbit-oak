@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -40,11 +39,13 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 // OAK-7956
-@Ignore("OAK-7956")
 public class CollisionCleanupTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(CollisionCleanupTest.class);
@@ -84,16 +85,83 @@ public class CollisionCleanupTest {
         executor.invokeAll(tasks);
 
         String id = Utils.getIdFromPath("/test");
+        ns1.addSplitCandidate(id);
+        ns1.runBackgroundOperations();
+        ns2.addSplitCandidate(id);
+        ns2.runBackgroundOperations();
+
         DocumentStore store = ns1.getDocumentStore();
-        store.invalidateCache(NODES, id);
         NodeDocument doc = store.find(NODES, id);
         assertNotNull(doc);
         assertThat(doc.getValueMap(COLLISIONS).keySet(), empty());
     }
 
+    @Test
+    public void batchCleanup() throws Exception {
+        Revision r = ns1.newRevision();
+        NodeBuilder b1 = ns1.getRoot().builder();
+        b1.child("test");
+        merge(ns1, b1);
+
+        String id = Utils.getIdFromPath("/test");
+        Revision other = new Revision(r.getTimestamp(), r.getCounter(), r.getClusterId() + 1);
+        // add lots of old collisions
+        UpdateOp op = new UpdateOp(id, false);
+        for (int i = 0; i < 5000; i++) {
+            NodeDocument.addCollision(op, r, other);
+            r = new Revision(r.getTimestamp() - 1, 0, r.getClusterId());
+        }
+        NodeDocument doc = ns1.getDocumentStore().findAndUpdate(NODES, op);
+        assertNotNull(doc);
+
+        for (int i = 1; i <= 5; i++) {
+            // each background operation run will clean up 1000 collision entries
+            ns1.addSplitCandidate(id);
+            ns1.runBackgroundOperations();
+
+            doc = ns1.getDocumentStore().find(NODES, id);
+            assertNotNull(doc);
+            assertEquals(5000 - i * 1000, doc.getLocalMap(COLLISIONS).size());
+        }
+    }
+
+    @Test
+    public void branchCollision() throws Exception {
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.child("conflict");
+        // trigger a branch commit
+        for (int i = 0; i < 200; i++) {
+            builder.child("n-" + i).setProperty("p", "v");
+        }
+
+        // this one wins and will create a collision marker
+        NodeBuilder b2 = ns1.getRoot().builder();
+        b2.child("conflict");
+        merge(ns1, b2);
+
+        NodeDocument doc = Utils.getRootDocument(ns1.getDocumentStore());
+        assertThat(doc.getLocalMap(COLLISIONS).keySet(), hasSize(1));
+
+        // must not clean up marker
+        ns1.addSplitCandidate(Utils.getIdFromPath("/"));
+        ns1.runBackgroundOperations();
+
+        doc = Utils.getRootDocument(ns1.getDocumentStore());
+        assertThat(doc.getLocalMap(COLLISIONS).keySet(), hasSize(1));
+
+        // must not be able to merge
+        try {
+            merge(ns1, builder);
+            fail("CommitFailedException expected");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+    }
+
     private DocumentNodeStore newDocumentNodeStore(int clusterId) {
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .setClusterId(clusterId).setAsyncDelay(0)
+                .setUpdateLimit(100)
                 .setDocumentStore(store).build();
         // do not retry on conflicts
         ns.setMaxBackOffMillis(0);
