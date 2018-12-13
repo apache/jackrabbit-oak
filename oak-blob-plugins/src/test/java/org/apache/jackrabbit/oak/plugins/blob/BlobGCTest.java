@@ -232,10 +232,11 @@ public class BlobGCTest {
         Sets.SetView<String> totalAdded =
             Sets.union(cluster.blobStoreState.blobsAdded, secondCluster.blobStoreState.blobsAdded);
 
+        // in the second cluster nothing should happen
         Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(0), false);
 
         assertEquals(totalAdded, existingAfterGC);
-        assertStats(secondCluster.statsProvider, 1, 0, 0, 0, NAME);
+        assertStats(secondCluster.statsProvider, 1, 1, 0, 0, NAME);
     }
 
     @Test
@@ -357,7 +358,11 @@ public class BlobGCTest {
 
     protected Set<String> executeGarbageCollection(Cluster cluster, MarkSweepGarbageCollector collector, boolean markOnly)
         throws Exception {
-        collector.collectGarbage(markOnly);
+        try {
+          collector.collectGarbage(markOnly);
+        } catch (IOException e) {
+          log.error("BlobGC threw exception", e);
+        }
 
         assertEquals(0, cluster.executor.getTaskCount());
         Set<String> existingAfterGC = iterate(cluster.blobStore);
