@@ -56,10 +56,12 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +74,9 @@ public class SharedBlobStoreGCTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     protected Cluster cluster1;
     protected Cluster cluster2;
@@ -190,6 +195,9 @@ public class SharedBlobStoreGCTest {
     @Test
     // GC should fail
     public void testOnly1ClusterMark() throws Exception {
+        exception.expect(IOException.class);
+        exception.expectMessage(CoreMatchers.containsString("Not all repositories have marked references available"));
+
         log.debug("Running testOnly1ClusterMark()");
 
         // Only run the mark phase on one cluster
@@ -197,12 +205,6 @@ public class SharedBlobStoreGCTest {
 
         // Execute the gc with sweep
         cluster1.gc.collectGarbage(false);
-
-        Set<String> existing = cluster1.getExistingBlobIds();
-        log.debug("Existing blobs {}", existing);
-        Assert.assertTrue((cluster1.getInitBlobs().size() + cluster2.getInitBlobs().size()) <= existing.size());
-        Assert.assertTrue(existing.containsAll(cluster2.getInitBlobs()));
-        Assert.assertTrue(existing.containsAll(cluster1.getInitBlobs()));
     }
 
     @Test
