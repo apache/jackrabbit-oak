@@ -130,7 +130,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         Set<Principal> principals = new HashSet<>();
         Tree tree = userProvider.getAuthorizable(userID);
-        if (tree != null && UserUtil.isType(tree, AuthorizableType.USER)) {
+        if (UserUtil.isType(tree, AuthorizableType.USER)) {
             Principal userPrincipal = createUserPrincipal(userID, tree);
             if (userPrincipal != null) {
                 principals.add(userPrincipal);
@@ -248,7 +248,7 @@ class UserPrincipalProvider implements PrincipalProvider {
             Iterator<String> groupPaths = membershipProvider.getMembership(authorizableTree, true);
             while (groupPaths.hasNext()) {
                 Tree groupTree = userProvider.getAuthorizableByPath(groupPaths.next());
-                if (groupTree != null && UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
+                if (UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
                     Principal gr = createGroupPrincipal(groupTree);
                     if (gr != null) {
                         groupPrincipals.add(gr);

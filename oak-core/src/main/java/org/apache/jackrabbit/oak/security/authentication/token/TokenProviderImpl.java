@@ -417,6 +417,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * new token node.
      *
      */
+    @NotNull
     private TokenInfo createTokenNode(@NotNull Tree parent, @NotNull String tokenName,
                                       long expTime, @NotNull String uuid,
                                       @NotNull String id, Map<String, ?> attributes)
@@ -617,7 +618,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             if (pos > -1) {
                 tk = tk.substring(pos + 1);
             }
-            if (key == null || !PasswordUtil.isSame(key, getKeyValue(tk, userId))) {
+            if (!PasswordUtil.isSame(key, getKeyValue(tk, userId))) {
                 return false;
             }
 
@@ -632,13 +633,12 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             // update set of informative attributes on the credentials
             // based on the properties present on the token node.
             Collection<String> attrNames = Arrays.asList(tokenCredentials.getAttributeNames());
-            for (Map.Entry<String,String> attr : publicAttributes.entrySet()) {
-                String name = attr.getKey();
+            publicAttributes.forEach((name, value) -> {
                 if (!attrNames.contains(name)) {
-                    tokenCredentials.setAttribute(name, attr.getValue());
+                    tokenCredentials.setAttribute(name, value);
 
                 }
-            }
+            });
             return true;
         }
 
