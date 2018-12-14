@@ -196,7 +196,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         private Set<ServiceReference> enablingRefs = new HashSet<>();
         private boolean isEnabled = false;
 
-        public SyncConfigTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {
+        private SyncConfigTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {
             super(context, SyncHandler.class.getName(), null);
             this.mappingTracker = mappingTracker;
         }
@@ -262,7 +262,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
         private Map<ServiceReference, String[]> referenceMap = new HashMap<>();
 
-        public SyncHandlerMappingTracker(@NotNull BundleContext context) {
+        private SyncHandlerMappingTracker(@NotNull BundleContext context) {
             super(context, SyncHandlerMapping.class.getName(), null);
         }
 

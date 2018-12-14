@@ -44,20 +44,20 @@ final class CugUtil implements CugConstants {
 
     private CugUtil(){}
 
-    public static boolean hasCug(@NotNull Tree tree) {
+    static boolean hasCug(@NotNull Tree tree) {
         return tree.exists() && tree.hasChild(REP_CUG_POLICY);
     }
 
-    public static boolean hasCug(@Nullable NodeState state) {
+    static boolean hasCug(@Nullable NodeState state) {
         return state != null && state.hasChildNode(REP_CUG_POLICY);
     }
 
-    public static boolean hasCug(@Nullable NodeBuilder builder) {
+    static boolean hasCug(@Nullable NodeBuilder builder) {
         return builder != null && builder.hasChildNode(REP_CUG_POLICY);
     }
 
     @Nullable
-    public static Tree getCug(@NotNull Tree tree) {
+    static Tree getCug(@NotNull Tree tree) {
         Tree cugTree = (CugUtil.hasCug(tree)) ? tree.getChild(REP_CUG_POLICY) : null;
         if (cugTree != null && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(cugTree))) {
             return cugTree;
@@ -66,23 +66,23 @@ final class CugUtil implements CugConstants {
         }
     }
 
-    public static boolean definesCug(@NotNull Tree tree) {
+    static boolean definesCug(@NotNull Tree tree) {
         return tree.exists() && REP_CUG_POLICY.equals(tree.getName()) && NT_REP_CUG_POLICY.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    public static boolean definesCug(@NotNull String name, @NotNull NodeState state) {
+    static boolean definesCug(@NotNull String name, @NotNull NodeState state) {
         return REP_CUG_POLICY.equals(name) && NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(state));
     }
 
-    public static boolean definesCug(@NotNull Tree tree, @NotNull PropertyState property) {
+    static boolean definesCug(@NotNull Tree tree, @NotNull PropertyState property) {
         return REP_PRINCIPAL_NAMES.equals(property.getName()) && definesCug(tree);
     }
 
-    public static boolean hasNestedCug(@NotNull Tree cugTree) {
+    static boolean hasNestedCug(@NotNull Tree cugTree) {
         return cugTree.hasProperty(CugConstants.HIDDEN_NESTED_CUGS);
     }
 
-    public static boolean isSupportedPath(@Nullable String oakPath, @NotNull Set<String> supportedPaths) {
+    static boolean isSupportedPath(@Nullable String oakPath, @NotNull Set<String> supportedPaths) {
         if (oakPath == null) {
             return false;
         } else {
@@ -95,7 +95,7 @@ final class CugUtil implements CugConstants {
         return false;
     }
 
-    public static Set<String> getSupportedPaths(@NotNull ConfigurationParameters params, @NotNull MountInfoProvider mountInfoProvider) {
+    static Set<String> getSupportedPaths(@NotNull ConfigurationParameters params, @NotNull MountInfoProvider mountInfoProvider) {
         Set<String> supportedPaths = params.getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
         if (!supportedPaths.isEmpty() && mountInfoProvider.hasNonDefaultMounts()) {
             for (Mount mount : mountInfoProvider.getNonDefaultMounts()) {
@@ -113,7 +113,7 @@ final class CugUtil implements CugConstants {
         return supportedPaths;
     }
 
-    public static int getImportBehavior(ConfigurationParameters config) {
+    static int getImportBehavior(ConfigurationParameters config) {
         String importBehaviorStr = config.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
         return ImportBehavior.valueFromString(importBehaviorStr);
     }

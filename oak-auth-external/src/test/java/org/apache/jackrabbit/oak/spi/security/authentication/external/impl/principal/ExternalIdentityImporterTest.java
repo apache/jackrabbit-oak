@@ -82,7 +82,7 @@ public class ExternalIdentityImporterTest {
     }
 
     private static void shutdown(Repository repo) {
-        if (repo != null && repo instanceof JackrabbitRepository) {
+        if (repo instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repo).shutdown();
         }
     }

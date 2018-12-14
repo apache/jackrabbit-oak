@@ -71,7 +71,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
     private final ConfigurationParameters config;
     private final PrincipalManager principalManager;
 
-    public CugAccessControlManager(@NotNull Root root,
+    CugAccessControlManager(@NotNull Root root,
                                    @NotNull NamePathMapper namePathMapper,
                                    @NotNull SecurityProvider securityProvider,
                                    @NotNull Set<String> supportedPaths) {
