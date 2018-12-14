@@ -106,7 +106,7 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
         Tree restrictionsTree = Mockito.mock(Tree.class);;
         when(restrictionsTree.getName()).thenReturn(REP_RESTRICTIONS);
         when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, Type.NAME));
-        List<PropertyState> properties = new ArrayList();
+        List<PropertyState> properties = new ArrayList<>();
         for (Restriction r : restrictions) {
             when(restrictionsTree.getProperty(r.getDefinition().getName())).thenReturn(r.getProperty());
             properties.add(r.getProperty());

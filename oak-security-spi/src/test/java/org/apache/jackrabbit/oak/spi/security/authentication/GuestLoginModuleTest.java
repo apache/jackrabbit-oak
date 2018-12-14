@@ -42,13 +42,13 @@ import static org.junit.Assert.assertTrue;
  */
 public class GuestLoginModuleTest {
 
+    private Subject subject = new Subject();
+    private Map<String, ?> sharedState = new HashMap<>();
     private LoginModule guestLoginModule = new GuestLoginModule();
 
     @Test
     public void testNullLogin() throws LoginException {
-        Subject subject = new Subject();
         CallbackHandler cbh = new TestCallbackHandler(null);
-        Map sharedState = new HashMap();
         guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
 
         assertTrue(guestLoginModule.login());
@@ -65,9 +65,7 @@ public class GuestLoginModuleTest {
 
     @Test
     public void testGuestCredentials() throws LoginException {
-        Subject subject = new Subject();
         CallbackHandler cbh = new TestCallbackHandler(new GuestCredentials());
-        Map sharedState = new HashMap();
         guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
 
         assertFalse(guestLoginModule.login());
@@ -82,9 +80,7 @@ public class GuestLoginModuleTest {
 
     @Test
     public void testSimpleCredentials() throws LoginException {
-        Subject subject = new Subject();
         CallbackHandler cbh = new TestCallbackHandler(new SimpleCredentials("test", new char[0]));
-        Map sharedState = new HashMap();
         guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
 
         assertFalse(guestLoginModule.login());
@@ -99,9 +95,7 @@ public class GuestLoginModuleTest {
 
     @Test
     public void testThrowingCallbackhandler() throws LoginException {
-        Subject subject = new Subject();
         CallbackHandler cbh = new ThrowingCallbackHandler(true);
-        Map sharedState = new HashMap();
         guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
 
         assertFalse(guestLoginModule.login());
@@ -115,9 +109,7 @@ public class GuestLoginModuleTest {
 
     @Test
     public void testThrowingCallbackhandler2() throws LoginException {
-        Subject subject = new Subject();
         CallbackHandler cbh = new ThrowingCallbackHandler(false);
-        Map sharedState = new HashMap();
         guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
 
         assertFalse(guestLoginModule.login());
@@ -159,5 +151,4 @@ public class GuestLoginModuleTest {
             }
         }
     }
-
 }

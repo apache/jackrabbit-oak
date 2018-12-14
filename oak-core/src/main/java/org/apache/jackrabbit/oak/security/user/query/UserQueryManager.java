@@ -330,7 +330,7 @@ public class UserQueryManager {
      */
     private static final class UniqueResultPredicate implements Predicate<Authorizable> {
 
-        private final Set<String> authorizableIds = new HashSet();
+        private final Set<String> authorizableIds = new HashSet<>();
 
         @Override
         public boolean apply(@Nullable Authorizable input) {

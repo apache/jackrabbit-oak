@@ -43,7 +43,7 @@ public class CompositeContextTest extends AbstractCompositeConfigurationTest {
 
     @Test
     public void testGetContext() throws Exception {
-        Class cls = Class.forName(CompositeConfiguration.class.getName() + "$CompositeContext");
+        Class<?> cls = Class.forName(CompositeConfiguration.class.getName() + "$CompositeContext");
         Field def = cls.getDeclaredField("defaultCtx");
         def.setAccessible(true);
 

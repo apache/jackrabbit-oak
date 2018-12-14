@@ -99,7 +99,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
         return new TestCredentials(USER_ID);
     }
 
-    protected CredentialsSupport getCredentialsSupport() {
+    CredentialsSupport getCredentialsSupport() {
         return (IDP) idp;
     }
 
@@ -114,7 +114,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
 
     static final class IDP implements ExternalIdentityProvider, CredentialsSupport {
 
-        private final Map attributes = Maps.newHashMap(ImmutableMap.of("a", "a"));
+        private final Map<String, Object> attributes = Maps.newHashMap(ImmutableMap.of("a", "a"));
 
         @NotNull
         @Override

@@ -218,8 +218,8 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     @Ignore("TODO: mock doesn't reflect property-changes on the registration.")
     @Test
     public void testModifySyncHandler() {
-        Dictionary<String, Object> enableProps =  new Hashtable(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
-        Dictionary<String, Object> disableProps =  new Hashtable(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
+        Dictionary<String, Object> enableProps =  new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        Dictionary<String, Object> disableProps =  new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
 
         DefaultSyncHandler sh = new DefaultSyncHandler();
         BundleContext bundleContext = context.bundleContext();
@@ -236,8 +236,8 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
     @Test
     public void testRemoveSyncHandler() {
-        Dictionary<String, Object> enableProps =  new Hashtable(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
-        Dictionary<String, Object> disableProps =  new Hashtable(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
+        Dictionary<String, Object> enableProps =  new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+        Dictionary<String, Object> disableProps =  new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
 
         DefaultSyncHandler sh = new DefaultSyncHandler();
         BundleContext bundleContext = context.bundleContext();

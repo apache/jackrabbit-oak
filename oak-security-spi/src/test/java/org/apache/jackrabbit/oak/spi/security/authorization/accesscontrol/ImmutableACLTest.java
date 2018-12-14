@@ -132,7 +132,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
 
     @Test
     public void testImmutable() throws Exception {
-        List<JackrabbitAccessControlEntry> entries = new ArrayList();
+        List<JackrabbitAccessControlEntry> entries = new ArrayList<>();
         entries.add(createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
         entries.add(createEntry(false, PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT));
 

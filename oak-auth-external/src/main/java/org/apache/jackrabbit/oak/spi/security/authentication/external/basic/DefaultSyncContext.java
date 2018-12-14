@@ -309,9 +309,7 @@ public class DefaultSyncContext implements SyncContext {
                 log.debug("sync({}) -> {} {}", id, ref.getString(), timer.getString());
             }
             return ret;
-        } catch (RepositoryException e) {
-            throw new SyncException(e);
-        } catch (ExternalIdentityException e) {
+        } catch (RepositoryException | ExternalIdentityException e) {
             throw new SyncException(e);
         }
     }

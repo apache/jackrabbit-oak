@@ -196,7 +196,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
             String sncName = osgiConfig.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
 
             SyncMBeanImpl bean = new SyncMBeanImpl(contentRepository, securityProvider, syncManager, sncName, idpManager, idpName);
-            Hashtable<String, String> table = new Hashtable();
+            Hashtable<String, String> table = new Hashtable<>();
             table.put("type", "UserManagement");
             table.put("name", "External Identity Synchronization Management");
             table.put("handler", ObjectName.quote(sncName));

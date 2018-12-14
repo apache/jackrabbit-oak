@@ -37,7 +37,7 @@ import static org.junit.Assert.fail;
  */
 public class RestrictionImplTest {
 
-    private final Type type = Type.NAME;
+    private final Type<String> type = Type.NAME;
     private final String name = "test:defName";
     private final String value = "value";
     private final boolean isMandatory = true;
@@ -49,7 +49,7 @@ public class RestrictionImplTest {
         restriction = new RestrictionImpl(property, isMandatory);
     }
 
-    private static PropertyState createProperty(String name, String value, Type type) {
+    private static PropertyState createProperty(String name, String value, Type<String> type) {
         return PropertyStates.createProperty(name, value, type);
     }
 
@@ -114,7 +114,7 @@ public class RestrictionImplTest {
 
     @Test
     public void testNotEqual() {
-        List<Restriction> rs = new ArrayList();
+        List<Restriction> rs = new ArrayList<>();
         // - different type
         rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), isMandatory));
         // - different multi-value status

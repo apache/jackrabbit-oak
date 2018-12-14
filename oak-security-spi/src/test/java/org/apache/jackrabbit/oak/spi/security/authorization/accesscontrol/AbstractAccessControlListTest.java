@@ -67,7 +67,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     protected RestrictionProvider getRestrictionProvider() {
-        Map<String, RestrictionDefinition> rDefs = new HashMap();
+        Map<String, RestrictionDefinition> rDefs = new HashMap<>();
         rDefs.put("r1", new RestrictionDefinitionImpl("r1", Type.STRING, true));
         rDefs.put("r2", new RestrictionDefinitionImpl("r2", Type.LONGS, false));
 
@@ -117,7 +117,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     protected List<JackrabbitAccessControlEntry> createTestEntries() throws RepositoryException {
-        List<JackrabbitAccessControlEntry> entries = new ArrayList(3);
+        List<JackrabbitAccessControlEntry> entries = new ArrayList<>(3);
         for (int i = 0; i < 3; i++) {
             entries.add(createEntry(
                     new PrincipalImpl("testPrincipal" + i), PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true));

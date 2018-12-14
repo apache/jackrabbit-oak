@@ -433,12 +433,11 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         tokenNode.setProperty(TOKEN_ATTRIBUTE_KEY, keyHash);
         setExpirationTime(tokenNode, expTime);
 
-        for (String name : attributes.keySet()) {
+        attributes.forEach((name, value) -> {
             if (!RESERVED_ATTRIBUTES.contains(name)) {
-                String attr = attributes.get(name).toString();
-                tokenNode.setProperty(name, attr);
+                tokenNode.setProperty(name, value.toString());
             }
-        }
+        });
         return new TokenInfoImpl(tokenNode, token, id, null);
     }
 
@@ -526,8 +525,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             expirationTime = getExpirationTime(tokenTree, Long.MIN_VALUE);
             key = TreeUtil.getString(tokenTree, TOKEN_ATTRIBUTE_KEY);
 
-            mandatoryAttributes = new HashMap();
-            publicAttributes = new HashMap();
+            mandatoryAttributes = new HashMap<>();
+            publicAttributes = new HashMap<>();
             for (PropertyState propertyState : tokenTree.getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue(STRING);

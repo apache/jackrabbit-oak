@@ -55,7 +55,7 @@ public class ExternalLoginModuleDynamicMembershipTest extends ExternalLoginModul
 
         // now register the sync-handler with the dynamic membership config
         // in order to enable dynamic membership with the external principal configuration
-        Map props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership());
+        Map<String, Boolean> props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, syncConfig.user().getDynamicMembership());
         context.registerService(SyncHandler.class, WhiteboardUtils.getService(whiteboard, SyncHandler.class), props);
     }
 
@@ -63,10 +63,10 @@ public class ExternalLoginModuleDynamicMembershipTest extends ExternalLoginModul
         Authorizable a = userMgr.getAuthorizable(id);
         assertNotNull(a);
 
-        Set<String> expected = new HashSet();
+        Set<String> expected = new HashSet<>();
         calcExpectedPrincipalNames(idp.getUser(id), syncConfig.user().getMembershipNestingDepth(), expected);
 
-        Set<String> extPrincNames = new HashSet();
+        Set<String> extPrincNames = new HashSet<>();
         for (Value v : a.getProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES)) {
             extPrincNames.add(v.getString());
         }

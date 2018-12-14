@@ -266,7 +266,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     private static final class Ranking {
 
-        private Map<SecurityConfiguration, Integer> m = new ConcurrentHashMap();
+        private Map<SecurityConfiguration, Integer> m = new ConcurrentHashMap<>();
 
         private int get(@NotNull SecurityConfiguration configuration) {
             Integer ranking = m.get(configuration);

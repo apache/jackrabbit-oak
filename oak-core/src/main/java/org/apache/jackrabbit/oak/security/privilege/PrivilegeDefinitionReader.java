@@ -47,7 +47,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
      */
     @NotNull
     Map<String, PrivilegeDefinition> readDefinitions() {
-        Map<String, PrivilegeDefinition> definitions = new HashMap();
+        Map<String, PrivilegeDefinition> definitions = new HashMap<>();
         for (Tree child : privilegesTree.getChildren()) {
             if (isPrivilegeDefinition(child)) {
                 PrivilegeDefinition def = PrivilegeUtil.readDefinition(child);

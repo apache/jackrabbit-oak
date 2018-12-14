@@ -243,9 +243,9 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         private final boolean isAllow;
 
         private Principal principal;
-        private List<Privilege> privileges = new ArrayList();
-        private Map<String, Value> restrictions = new HashMap();
-        private Map<String, Value[]> mvRestrictions = new HashMap();
+        private List<Privilege> privileges = new ArrayList<>();
+        private Map<String, Value> restrictions = new HashMap<>();
+        private Map<String, Value[]> mvRestrictions = new HashMap<>();
 
         private boolean ignore;
 

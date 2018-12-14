@@ -480,7 +480,7 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     @Test
     public void testSyncAllGroups() throws Exception {
         // first sync external users into the repo
-        Map<String, String> expected = new HashMap();
+        Map<String, String> expected = new HashMap<>();
         Iterator<ExternalGroup> grIt = idp.listGroups();
         while (grIt.hasNext()) {
             ExternalGroup eg = grIt.next();

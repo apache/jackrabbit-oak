@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 
 public abstract class AbstractCredentials implements Credentials {
 
-    protected final Map<String,Object> attributes = new HashMap();
+    protected final Map<String,Object> attributes = new HashMap<>();
     protected final String userId;
 
     public AbstractCredentials(@NotNull String userId) {

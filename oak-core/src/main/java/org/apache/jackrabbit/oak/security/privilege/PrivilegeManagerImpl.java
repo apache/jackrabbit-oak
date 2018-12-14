@@ -55,7 +55,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     //---------------------------------------------------< PrivilegeManager >---
     @Override
     public Privilege[] getRegisteredPrivileges() {
-        Set<Privilege> privileges = new HashSet();
+        Set<Privilege> privileges = new HashSet<>();
         for (PrivilegeDefinition def : getPrivilegeDefinitions()) {
             privileges.add(getPrivilege(def));
         }
@@ -102,7 +102,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         if (jcrNames == null || jcrNames.length == 0) {
             oakNames = Collections.emptySet();
         } else {
-            oakNames = new HashSet(jcrNames.length);
+            oakNames = new HashSet<>(jcrNames.length);
             for (String jcrName : jcrNames) {
                 String oakName = getOakName(jcrName);
                 oakNames.add(oakName);
@@ -176,7 +176,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         @Override
         public Privilege[] getDeclaredAggregatePrivileges() {
             Set<String> declaredAggregateNames = definition.getDeclaredAggregateNames();
-            Set<Privilege> declaredAggregates = new HashSet(declaredAggregateNames.size());
+            Set<Privilege> declaredAggregates = new HashSet<>(declaredAggregateNames.size());
             for (String oakName : declaredAggregateNames) {
                 if (oakName.equals(definition.getName())) {
                     log.warn("Found cyclic privilege aggregation -> ignore declared aggregate " + oakName);
@@ -194,7 +194,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
 
         @Override
         public Privilege[] getAggregatePrivileges() {
-            Set<Privilege> aggr = new HashSet();
+            Set<Privilege> aggr = new HashSet<>();
             for (Privilege decl : getDeclaredAggregatePrivileges()) {
                 aggr.add(decl);
                 if (decl.isAggregate()) {

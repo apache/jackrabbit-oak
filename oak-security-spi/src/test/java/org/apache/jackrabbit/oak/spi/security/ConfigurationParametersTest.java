@@ -328,16 +328,16 @@ public class ConfigurationParametersTest {
         Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
 
         // map of config value (key) and expected result set.
-        Map<Object, Set> configValues = new HashMap<>();
+        Map<Object, Set<?>> configValues = new HashMap<>();
         configValues.put("a", ImmutableSet.of("a"));
         configValues.put(stringArray, stringSet);
         configValues.put(stringSet, stringSet);
         configValues.put(testObjectArray, testObjectSet);
         configValues.put(testObjectSet, testObjectSet);
         configValues.put(new String[0], Collections.<String>emptySet());
-        configValues.put(new HashSet(), Collections.emptySet());
+        configValues.put(new HashSet<>(), Collections.emptySet());
         configValues.put(ImmutableSet.of(), Collections.emptySet());
-        configValues.put(new ArrayList(), Collections.emptySet());
+        configValues.put(new ArrayList<>(), Collections.emptySet());
         configValues.put(ConfigurationParameters.EMPTY, Collections.<String>emptySet());
 
         Set<String> defaultStrings = ImmutableSet.of("abc", "def", "ghi");
@@ -351,7 +351,7 @@ public class ConfigurationParametersTest {
                 config = ConfigurationParameters.of("key", value);
             }
 
-            Set expected = configValues.get(value);
+            Set<?> expected = configValues.get(value);
             assertEquals(expected, config.getConfigValue("key", Collections.emptySet()));
             assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet()));
             assertEquals(expected, config.getConfigValue("key", ImmutableSet.of()));
@@ -474,9 +474,9 @@ public class ConfigurationParametersTest {
         configValues.put(testObjectArray, stringArray);
         configValues.put(testObjectSet, stringArray);
         configValues.put(new String[0], new String[0]);
-        configValues.put(new HashSet(), new String[0]);
+        configValues.put(new HashSet<>(), new String[0]);
         configValues.put(ImmutableSet.of(), new String[0]);
-        configValues.put(new ArrayList(), new String[0]);
+        configValues.put(new ArrayList<>(), new String[0]);
         configValues.put(ConfigurationParameters.EMPTY, new String[0]);
 
         for (Object value : configValues.keySet()) {

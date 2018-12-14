@@ -415,7 +415,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         Map<String, Object> attributes = new HashMap<>();
         Object shared = sharedState.get(SHARED_KEY_ATTRIBUTES);
         if (shared instanceof Map) {
-            for (Map.Entry entry : ((Map<?,?>) shared).entrySet()) {
+            for (Map.Entry<?,?> entry : ((Map<?,?>) shared).entrySet()) {
                 attributes.put(entry.getKey().toString(), entry.getValue());
             }
         } else if (creds != null) {

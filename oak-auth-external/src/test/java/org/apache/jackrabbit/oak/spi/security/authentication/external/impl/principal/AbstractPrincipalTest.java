@@ -67,7 +67,7 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
     }
 
     @NotNull
-    PrincipalProvider createPrincipalProvider() {
+    private PrincipalProvider createPrincipalProvider() {
         Set<String> autoMembership = ImmutableSet.copyOf(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()));
         return new ExternalGroupPrincipalProvider(root, getSecurityProvider().getConfiguration(UserConfiguration.class),
                 NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), autoMembership.toArray(new String[0])));

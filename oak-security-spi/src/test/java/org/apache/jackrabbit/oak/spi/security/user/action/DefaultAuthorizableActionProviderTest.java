@@ -69,7 +69,7 @@ public class DefaultAuthorizableActionProviderTest {
 
     @Test
     public void testNullActionConfig() {
-        Map<String, String[]> m = new HashMap();
+        Map<String, String[]> m = new HashMap<>();
         m.put(DefaultAuthorizableActionProvider.ENABLED_ACTIONS, null);
 
         AuthorizableActionProvider actionProvider = new DefaultAuthorizableActionProvider(ConfigurationParameters.of(m));
