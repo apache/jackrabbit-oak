@@ -64,6 +64,8 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.junit.Assert.fail;
+
 /**
  * Test for gc in a shared data store among hetrogeneous oak node stores.
  */
@@ -162,15 +164,15 @@ public class SharedBlobStoreGCTest {
         // Only run the mark phase on both the clusters to get the stats
         cluster1.gc.collectGarbage(true);
         cluster2.gc.collectGarbage(true);
-    
+
         Set<String> actualRepoIds = Sets.newHashSet();
         actualRepoIds.add(cluster1.repoId);
         actualRepoIds.add(cluster2.repoId);
-    
+
         Set<Integer> actualNumBlobs = Sets.newHashSet();
         actualNumBlobs.add(cluster1.initBlobs.size());
         actualNumBlobs.add(cluster2.initBlobs.size());
-    
+
         List<GarbageCollectionRepoStats> statsList = cluster1.gc.getStats();
         Set<Integer> observedNumBlobs = Sets.newHashSet();
         Set<String> observedRepoIds = Sets.newHashSet();
@@ -182,7 +184,7 @@ public class SharedBlobStoreGCTest {
                 Assert.assertTrue(stat.isLocal());
             }
         }
-    
+
         Assert.assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
         Assert.assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
     }
@@ -196,7 +198,12 @@ public class SharedBlobStoreGCTest {
         cluster1.gc.collectGarbage(true);
 
         // Execute the gc with sweep
-        cluster1.gc.collectGarbage(false);
+        try {
+            cluster1.gc.collectGarbage(false);
+            fail("DSGC should fail");
+        } catch (IOException e) {
+            log.error("BlobGC threw exception", e);
+        }
 
         Set<String> existing = cluster1.getExistingBlobIds();
         log.debug("Existing blobs {}", existing);
@@ -260,7 +267,7 @@ public class SharedBlobStoreGCTest {
 
         /**
          * Creates the setup load with deletions.
-         * 
+         *
          * @throws Exception
          */
         public void init() throws Exception {
@@ -342,7 +349,7 @@ public class SharedBlobStoreGCTest {
         public Date getDate() {
             return startDate;
         }
-        
+
         public DocumentNodeStore getDocumentNodeStore() {
             return ds;
         }
