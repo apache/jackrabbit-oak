@@ -283,8 +283,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
             } else if (clazz == Set.class || Set.class.isAssignableFrom(clazz)) {
                 if (configProperty instanceof Set) {
                     return (T) configProperty;
-                } else if (configProperty instanceof Collection) {
-                    return (T) ImmutableSet.copyOf((Collection) configProperty);
+                } else if (configProperty instanceof Collection<?>) {
+                    return (T) ImmutableSet.copyOf((Collection<?>) configProperty);
                 } else if (configProperty.getClass().isArray()) {
                     return (T) ImmutableSet.copyOf((Object[]) configProperty);
                 } else {

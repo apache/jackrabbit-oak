@@ -66,14 +66,14 @@ import static org.junit.Assert.assertTrue;
 
 public class AbstractLoginModuleTest {
 
-    private static AbstractLoginModule initLoginModule(Class supportedCredentials, Map sharedState) {
+    private static AbstractLoginModule initLoginModule(Class<?> supportedCredentials, Map<String, ?> sharedState) {
         AbstractLoginModule lm = new TestLoginModule(supportedCredentials);
         lm.initialize(new Subject(), null, sharedState, null);
         return lm;
     }
 
 
-    private static AbstractLoginModule initLoginModule(Class supportedCredentials, CallbackHandler cbh) {
+    private static AbstractLoginModule initLoginModule(Class<?> supportedCredentials, CallbackHandler cbh) {
         AbstractLoginModule lm = new TestLoginModule(supportedCredentials);
         lm.initialize(new Subject(), cbh, Collections.<String, Object>emptyMap(), null);
         return lm;
@@ -133,7 +133,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetSharedLoginName() {
-        Map<String, String> sharedState = new HashMap();
+        Map<String, String> sharedState = new HashMap<>();
 
         sharedState.put(AbstractLoginModule.SHARED_KEY_LOGIN_NAME, "test");
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, sharedState);
@@ -146,7 +146,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetSharedCredentials() {
-        Map<String, Object> sharedState = new HashMap();
+        Map<String, Object> sharedState = new HashMap<>();
 
         sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TestCredentials());
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, sharedState);
@@ -170,7 +170,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetCredentialsFromSharedState() {
-        Map<String, Credentials> sharedState = new HashMap();
+        Map<String, Credentials> sharedState = new HashMap<>();
 
         sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TestCredentials());
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, sharedState);
@@ -254,7 +254,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetSharedPreAuthLogin() {
-        Map<String, PreAuthenticatedLogin> sharedState = new HashMap();
+        Map<String, PreAuthenticatedLogin> sharedState = new HashMap<>();
         AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, sharedState);
 
         PreAuthenticatedLogin preAuthenticatedLogin = new PreAuthenticatedLogin("userId");
@@ -265,7 +265,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetSharedPreAuthLoginWrongEntry() {
-        Map sharedState = new HashMap();
+        Map<String, String> sharedState = new HashMap<>();
         AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, sharedState);
 
         sharedState.put(AbstractLoginModule.SHARED_KEY_PRE_AUTH_LOGIN, "wrongType");

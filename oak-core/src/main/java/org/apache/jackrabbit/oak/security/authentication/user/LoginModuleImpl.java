@@ -266,9 +266,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         Map<String, Object> attributes = new HashMap<>();
         Object shared = sharedState.get(SHARED_KEY_ATTRIBUTES);
         if (shared instanceof Map) {
-            for (Object key : ((Map) shared).keySet()) {
-                attributes.put(key.toString(), ((Map) shared).get(key));
-            }
+            ((Map<?,?>) shared).forEach((key, value) -> attributes.put(key.toString(), value));
         } else if (creds instanceof SimpleCredentials) {
             SimpleCredentials sc = (SimpleCredentials) creds;
             for (String attrName : sc.getAttributeNames()) {

@@ -971,7 +971,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
         // create mapping that doesn't match to names in the external-properties
         // -> previously synced properties must be removed
-        Map<String, String> mapping = new HashMap();
+        Map<String, String> mapping = new HashMap<>();
         Map<String, ?> extProps = externalUser.getProperties();
         for (String propName : extProps.keySet()) {
             mapping.put(propName, "any");
@@ -992,7 +992,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
         // create mapping that doesn't match to names in the external-properties
         // -> previously synced properties must be removed
-        Map<String, String> mapping = new HashMap();
+        Map<String, String> mapping = new HashMap<>();
         Map<String, ?> extProps = externalUser.getProperties();
         for (String propName : extProps.keySet()) {
             mapping.put(propName, "\"any\"");
@@ -1015,7 +1015,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
         // mapping to '"' (i.e. name size = 1) which doesn't qualify as constant
         // -> same behavior expected as with 'testSyncPropertiesMappingRemovesExisting'
-        Map<String, String> mapping = new HashMap();
+        Map<String, String> mapping = new HashMap<>();
         Map<String, ?> extProps = externalUser.getProperties();
         for (String propName : extProps.keySet()) {
             mapping.put(propName, "\"");
@@ -1036,7 +1036,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
         // mapping to '"any', which doesn't qualify as constant
         // -> same behavior expected as with 'testSyncPropertiesMappingRemovesExisting'
-        Map<String, String> mapping = new HashMap();
+        Map<String, String> mapping = new HashMap<>();
         Map<String, ?> extProps = externalUser.getProperties();
         for (String propName : extProps.keySet()) {
             mapping.put(propName, "\"any");
@@ -1054,7 +1054,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         Authorizable a = syncCtx.createUser(externalUser);
 
         // create exact mapping
-        Map<String, String> mapping = new HashMap();
+        Map<String, String> mapping = new HashMap<>();
         Map<String, ?> extProps = externalUser.getProperties();
         for (String propName : extProps.keySet()) {
             mapping.put(propName, propName);
@@ -1083,7 +1083,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         Authorizable a = syncCtx.createUser(externalUser);
 
         // create exact mapping
-        Map<String, String> mapping = new HashMap();
+        Map<String, String> mapping = new HashMap<>();
         Map<String, ?> extProps = externalUser.getProperties();
         for (String propName : extProps.keySet()) {
             mapping.put("a/"+propName, propName);

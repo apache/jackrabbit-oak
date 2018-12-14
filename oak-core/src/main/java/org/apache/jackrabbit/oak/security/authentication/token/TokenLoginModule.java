@@ -167,15 +167,9 @@ public final class TokenLoginModule extends AbstractLoginModule {
                     TokenInfo ti = tokenProvider.createToken(shared);
                     if (ti != null) {
                         TokenCredentials tc = new TokenCredentials(ti.getToken());
-                        Map<String, String> attributes = ti.getPrivateAttributes();
-                        for (String name : attributes.keySet()) {
-                            tc.setAttribute(name, attributes.get(name));
-                        }
-                        attributes = ti.getPublicAttributes();
-                        for (String name : attributes.keySet()) {
-                            tc.setAttribute(name, attributes.get(name));
-                        }
-                        sharedState.put(SHARED_KEY_ATTRIBUTES, attributes);
+                        ti.getPrivateAttributes().forEach((key, value) -> tc.setAttribute(key, value));
+                        ti.getPublicAttributes().forEach((key, value) -> tc.setAttribute(key, value));
+                        sharedState.put(SHARED_KEY_ATTRIBUTES, ti.getPublicAttributes());
                         updateSubject(tc, null, null);
                     } else {
                         // failed to create token -> fail commit()
@@ -197,7 +191,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     @NotNull
     @Override
     protected Set<Class> getSupportedCredentials() {
-        return Collections.<Class>singleton(TokenCredentials.class);
+        return Collections.singleton(TokenCredentials.class);
     }
 
     @Override
@@ -230,9 +224,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
                 TokenProviderCallback tcCallback = new TokenProviderCallback();
                 callbackHandler.handle(new Callback[] {tcCallback});
                 provider = tcCallback.getTokenProvider();
-            } catch (IOException e) {
-                log.warn(e.getMessage());
-            } catch (UnsupportedCallbackException e) {
+            } catch (IOException | UnsupportedCallbackException e) {
                 log.warn(e.getMessage());
             }
         }
@@ -250,10 +242,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
     private static AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo, @NotNull Set<? extends Principal> principals) {
         if (tokenInfo != null) {
             Map<String, Object> attributes = new HashMap<>();
-            Map<String, String> publicAttributes = tokenInfo.getPublicAttributes();
-            for (String attrName : publicAttributes.keySet()) {
-                attributes.put(attrName, publicAttributes.get(attrName));
-            }
+            tokenInfo.getPublicAttributes().forEach((key, value) -> attributes.put(key, value));
             return new AuthInfoImpl(tokenInfo.getUserId(), attributes, principals);
         } else {
             return null;

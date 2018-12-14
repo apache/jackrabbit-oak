@@ -213,7 +213,7 @@ public class DelegateeTest extends AbstractJmxTest {
     public void testSyncExternalUsersSaveError() throws Exception {
         Root r = preventRootCommit(delegatee);;
 
-        List<String> externalIds = new ArrayList();
+        List<String> externalIds = new ArrayList<>();
         for (String id : TEST_IDS) {
                 externalIds.add(new ExternalIdentityRef(id, idp.getName()).getString());
         }

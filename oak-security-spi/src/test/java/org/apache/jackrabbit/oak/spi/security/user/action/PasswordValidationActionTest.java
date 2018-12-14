@@ -90,7 +90,7 @@ public class PasswordValidationActionTest {
 
     @Test
     public void testPasswordValidationActionValid() throws Exception {
-        List<String> valid = new ArrayList();
+        List<String> valid = new ArrayList<>();
         valid.add("abCDefGH");
         valid.add("Abbbbbbbbbbbb");
         valid.add("cDDDDDDDDDDDDDDDDD");

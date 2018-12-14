@@ -125,9 +125,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
                         log.warn("No configuration found for application {} though fetching JAAS " +
                                 "configuration from SPI {} is enabled.", appName, configSpiName);
                     }
-                } catch (NoSuchAlgorithmException e) {
-                    log.warn("Error fetching JAAS config from SPI {}", configSpiName, e);
-                } catch (NoSuchProviderException e) {
+                } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
                     log.warn("Error fetching JAAS config from SPI {}", configSpiName, e);
                 }
             }

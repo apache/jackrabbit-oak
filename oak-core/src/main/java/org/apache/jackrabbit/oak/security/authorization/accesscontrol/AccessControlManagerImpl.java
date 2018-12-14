@@ -244,8 +244,8 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
             // calculate single and mv restriction and drop the rep:nodePath restriction
             // present with the principal-based-entries.
-            Map<String, Value> restrictions = new HashMap();
-            Map<String, Value[]> mvRestrictions = new HashMap();
+            Map<String, Value> restrictions = new HashMap<>();
+            Map<String, Value[]> mvRestrictions = new HashMap<>();
             for (Restriction r : ace.getRestrictions()) {
                 String name = r.getDefinition().getName();
                 if (REP_NODE_PATH.equals(name)) {
@@ -466,7 +466,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             if (mixins == null) {
                 tree.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(mixinName), Type.NAMES);
             } else {
-                PropertyBuilder pb = PropertyBuilder.copy(Type.NAME, mixins);
+                PropertyBuilder<String> pb = PropertyBuilder.copy(Type.NAME, mixins);
                 pb.addValue(mixinName);
                 tree.setProperty(pb.getPropertyState());
             }
