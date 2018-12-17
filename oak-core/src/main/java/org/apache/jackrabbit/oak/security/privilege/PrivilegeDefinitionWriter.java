@@ -48,7 +48,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
 
     private PrivilegeBits next;
 
-    PrivilegeDefinitionWriter(Root root) {
+    PrivilegeDefinitionWriter(@NotNull Root root) {
         this.root = root;
         this.bitsMgr = new PrivilegeBitsProvider(root);
         Tree privilegesTree = bitsMgr.getPrivilegesTree();
@@ -65,7 +65,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
      * @param definition The new privilege definition.
      * @throws RepositoryException If the definition can't be written.
      */
-    void writeDefinition(PrivilegeDefinition definition) throws RepositoryException {
+    void writeDefinition(@NotNull PrivilegeDefinition definition) throws RepositoryException {
         writeDefinitions(Collections.singleton(definition));
     }
 
@@ -92,10 +92,10 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
     }
 
     /**
-     * @param definitions
-     * @throws RepositoryException
+     * @param definitions The privilege definitions to write to the repository.
+     * @throws RepositoryException If the privilege store is missing or if there is a privilege registered with the same name.
      */
-    private void writeDefinitions(Iterable<PrivilegeDefinition> definitions) throws RepositoryException {
+    private void writeDefinitions(@NotNull Iterable<PrivilegeDefinition> definitions) throws RepositoryException {
         try {
             // make sure the privileges path is defined
             Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
@@ -123,14 +123,14 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         }
     }
 
-    private void writePrivilegeNode(Tree privilegesTree, PrivilegeDefinition definition) throws RepositoryException {
+    private void writePrivilegeNode(@NotNull Tree privilegesTree, @NotNull PrivilegeDefinition definition) throws RepositoryException {
         String name = definition.getName();
         Tree privNode = TreeUtil.addChild(privilegesTree, name, NT_REP_PRIVILEGE);
         if (definition.isAbstract()) {
             privNode.setProperty(REP_IS_ABSTRACT, true);
         }
         Set<String> declAggrNames = definition.getDeclaredAggregateNames();
-        boolean isAggregate = declAggrNames.size() > 0;
+        boolean isAggregate = !declAggrNames.isEmpty();
         if (isAggregate) {
             privNode.setProperty(REP_AGGREGATES, declAggrNames, Type.NAMES);
         }
@@ -149,16 +149,17 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         bits.writeTo(privNode);
     }
 
+    @NotNull
     private static Collection<PrivilegeDefinition> getBuiltInDefinitions() {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<>();
-        for (String privilegeName : NON_AGGREGATE_PRIVILEGES) {
+        NON_AGGREGATE_PRIVILEGES.forEach((privilegeName) -> {
             PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, null);
             definitions.put(privilegeName, def);
-        }
-        for (String privilegeName : AGGREGATE_PRIVILEGES.keySet()) {
-            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, asList(AGGREGATE_PRIVILEGES.get(privilegeName)));
+        });
+        AGGREGATE_PRIVILEGES.forEach((privilegeName, aggregatedNames) -> {
+            PrivilegeDefinition def = new ImmutablePrivilegeDefinition(privilegeName, false, asList(aggregatedNames));
             definitions.put(privilegeName, def);
-        }
+        });
         PrivilegeDefinition all = new ImmutablePrivilegeDefinition(JCR_ALL, false, definitions.keySet());
         definitions.put(JCR_ALL, all);
         return definitions.values();

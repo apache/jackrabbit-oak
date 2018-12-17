@@ -165,7 +165,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     private void updateImpersonatorNames(@NotNull Tree userTree, @NotNull Set<String> principalNames) {
-        if (principalNames == null || principalNames.isEmpty()) {
+        if (principalNames.isEmpty()) {
             userTree.removeProperty(REP_IMPERSONATORS);
         } else {
             userTree.setProperty(REP_IMPERSONATORS, principalNames, Type.STRINGS);
