@@ -446,26 +446,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     //------------------------------------------------------------< private >---
     @NotNull
-    private IdentifierManager getIdentifierManager() {
-        if (identifierManager == null) {
-            identifierManager = new IdentifierManager(root);
-        }
-        return identifierManager;
-    }
-
-    @NotNull
-    private PrincipalManager getPrincipalManager() {
-        return userManager.getPrincipalManager();
-    }
-
-    @NotNull
     private Membership getMembership(@NotNull String authId) {
-        Membership membership = memberships.get(authId);
-        if (membership == null) {
-            membership = new Membership(authId);
-            memberships.put(authId, membership);
-        }
-        return membership;
+        return memberships.computeIfAbsent(authId, k -> new Membership(authId));
     }
 
     private void checkInitialized() {
@@ -648,6 +630,14 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 userManager.onGroupUpdate(gr, false, true, memberContentIds, failedContentIds);
             }
         }
+
+        @NotNull
+        private IdentifierManager getIdentifierManager() {
+            if (identifierManager == null) {
+                identifierManager = new IdentifierManager(root);
+            }
+            return identifierManager;
+        }
     }
 
     /**
@@ -727,6 +717,11 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 // names that are unknown to principal provider.
                 userTree.setProperty(REP_IMPERSONATORS, nonExisting, Type.STRINGS);
             }
+        }
+
+        @NotNull
+        private PrincipalManager getPrincipalManager() {
+            return userManager.getPrincipalManager();
         }
     }
 }
