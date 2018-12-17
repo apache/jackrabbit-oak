@@ -115,7 +115,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
             if (!index.hasChild("authorizableId")) {
                 Tree authorizableId = IndexUtils.createIndexDefinition(index, "authorizableId", true,
                         new String[]{REP_AUTHORIZABLE_ID},
-                        new String[]{NT_REP_AUTHORIZABLE});
+                        NT_REP_AUTHORIZABLE);
                 authorizableId.setProperty("info",
                         "Oak index used by the user management " + 
                         "to enforce uniqueness of rep:authorizableId property values.");
@@ -123,7 +123,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
             if (!index.hasChild("principalName")) {
                 Tree principalName = IndexUtils.createIndexDefinition(index, "principalName", true,
                         new String[]{REP_PRINCIPAL_NAME},
-                        new String[]{NT_REP_AUTHORIZABLE});
+                        NT_REP_AUTHORIZABLE);
                 principalName.setProperty("info",
                         "Oak index used by the user management " +
                         "to enforce uniqueness of rep:principalName property values, " +
@@ -132,7 +132,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants, QueryIndex
             if (!index.hasChild("repMembers")) {
                 Tree members = IndexUtils.createIndexDefinition(index, "repMembers", false,
                         new String[]{REP_MEMBERS},
-                        new String[]{NT_REP_MEMBER_REFERENCES});
+                        NT_REP_MEMBER_REFERENCES);
                 members.setProperty("info",
                         "Oak index used by the user management to lookup group membership.");
             }
