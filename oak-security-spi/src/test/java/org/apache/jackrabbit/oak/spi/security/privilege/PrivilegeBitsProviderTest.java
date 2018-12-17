@@ -86,7 +86,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetBitsEmptyArray() {
-        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits(new String[0]));
+        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits());
     }
 
     @Test
@@ -238,7 +238,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetAggregatedPrivilegeNamesEmptyArray() {
-        assertTrue(Iterables.isEmpty(bitsProvider.getAggregatedPrivilegeNames(new String[0])));
+        assertTrue(Iterables.isEmpty(bitsProvider.getAggregatedPrivilegeNames()));
     }
 
     @Test

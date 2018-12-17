@@ -271,7 +271,7 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
 
     @Test
     public void testCreateEmptyMvRestriction2() throws Exception {
-        Restriction r = restrictionProvider.createRestriction(testPath, REP_NT_NAMES, new Value[0]);
+        Restriction r = restrictionProvider.createRestriction(testPath, REP_NT_NAMES);
         assertNotNull(r);
         assertEquals(REP_NT_NAMES, r.getDefinition().getName());
         assertEquals(Type.NAMES, r.getDefinition().getRequiredType());
