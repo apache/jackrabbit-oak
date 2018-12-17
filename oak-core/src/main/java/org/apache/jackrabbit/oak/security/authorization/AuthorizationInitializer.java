@@ -46,7 +46,7 @@ class AuthorizationInitializer implements WorkspaceInitializer, AccessControlCon
 
     private final MountInfoProvider mountInfoProvider;
 
-    public AuthorizationInitializer(@NotNull MountInfoProvider mountInfoProvider) {
+    AuthorizationInitializer(@NotNull MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
     }
 

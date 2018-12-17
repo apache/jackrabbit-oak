@@ -43,14 +43,14 @@ final class Util implements AccessControlConstants {
      */
     private Util() {}
 
-    public static void checkValidPrincipal(@Nullable Principal principal,
-                                           @NotNull PrincipalManager principalManager) throws AccessControlException {
+    static void checkValidPrincipal(@Nullable Principal principal,
+                                    @NotNull PrincipalManager principalManager) throws AccessControlException {
         checkValidPrincipal(principal, principalManager, ImportBehavior.ABORT);
     }
 
-    public static boolean checkValidPrincipal(@Nullable Principal principal,
-                                              @NotNull PrincipalManager principalManager,
-                                              int importBehavior) throws AccessControlException {
+    static boolean checkValidPrincipal(@Nullable Principal principal,
+                                       @NotNull PrincipalManager principalManager,
+                                       int importBehavior) throws AccessControlException {
         String name = (principal == null) ? null : principal.getName();
         if (name == null || name.isEmpty()) {
             throw new AccessControlException("Invalid principal " + name);
@@ -73,8 +73,8 @@ final class Util implements AccessControlConstants {
         }
     }
 
-    public static void checkValidPrincipals(@Nullable Set<Principal> principals,
-                                            @NotNull PrincipalManager principalManager) throws AccessControlException {
+    static void checkValidPrincipals(@Nullable Set<Principal> principals,
+                                     @NotNull PrincipalManager principalManager) throws AccessControlException {
         if (principals == null) {
             throw new AccessControlException("Valid principals expected. Found null.");
         }
@@ -83,7 +83,7 @@ final class Util implements AccessControlConstants {
         }
     }
 
-    public static boolean isValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy) {
+    static boolean isValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy) {
         if (policy instanceof ACL) {
             String path = ((ACL) policy).getOakPath();
             return !((path == null && oakPath != null) || (path != null && !path.equals(oakPath)));
@@ -91,29 +91,29 @@ final class Util implements AccessControlConstants {
         return false;
     }
 
-    public static void checkValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy) throws AccessControlException {
+    static void checkValidPolicy(@Nullable String oakPath, @NotNull AccessControlPolicy policy) throws AccessControlException {
         if (!isValidPolicy(oakPath, policy)) {
             throw new AccessControlException("Invalid access control policy " + policy);
         }
     }
 
-    public static boolean isAccessControlled(@Nullable String oakPath, @NotNull Tree tree,
-                                             @NotNull ReadOnlyNodeTypeManager ntMgr) {
+    static boolean isAccessControlled(@Nullable String oakPath, @NotNull Tree tree,
+                                      @NotNull ReadOnlyNodeTypeManager ntMgr) {
         String mixinName = getMixinName(oakPath);
         return ntMgr.isNodeType(tree, mixinName);
     }
 
-    public static boolean isACE(@NotNull Tree tree, @NotNull ReadOnlyNodeTypeManager ntMgr) {
+    static boolean isACE(@NotNull Tree tree, @NotNull ReadOnlyNodeTypeManager ntMgr) {
         return tree.exists() && ntMgr.isNodeType(tree, NT_REP_ACE);
     }
 
     @NotNull
-    public static String getMixinName(@Nullable String oakPath) {
+    static String getMixinName(@Nullable String oakPath) {
         return (oakPath == null) ? MIX_REP_REPO_ACCESS_CONTROLLABLE : MIX_REP_ACCESS_CONTROLLABLE;
     }
 
     @NotNull
-    public static String getAclName(@Nullable String oakPath) {
+    static String getAclName(@Nullable String oakPath) {
         return (oakPath == null) ? REP_REPO_POLICY : REP_POLICY;
     }
 
@@ -125,7 +125,7 @@ final class Util implements AccessControlConstants {
      * @return the name of the ACE node.
      */
     @NotNull
-    public static String generateAceName(@NotNull ACE ace, int index) {
+    static String generateAceName(@NotNull ACE ace, int index) {
         String hint = (ace.isAllow()) ? "allow" : "deny";
         if (index == 0) {
             return hint;
@@ -134,7 +134,7 @@ final class Util implements AccessControlConstants {
         }
     }
 
-    public static int getImportBehavior(AuthorizationConfiguration config) {
+    static int getImportBehavior(AuthorizationConfiguration config) {
         String importBehaviorStr = config.getParameters().getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT);
         return ImportBehavior.valueFromString(importBehaviorStr);
     }
