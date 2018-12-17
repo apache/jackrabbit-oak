@@ -274,8 +274,8 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         private int hashCode = -1;
 
         AcEntry(@NotNull NodeState node, @NotNull String accessControlledPath, int index,
-                        boolean isAllow, @NotNull PrivilegeBits privilegeBits,
-                        @NotNull Set<Restriction> restrictions) {
+                boolean isAllow, @NotNull PrivilegeBits privilegeBits,
+                @NotNull Set<Restriction> restrictions) {
             this.accessControlledPath = accessControlledPath;
             this.index = index;
 
