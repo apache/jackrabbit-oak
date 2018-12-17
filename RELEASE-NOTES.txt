@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.9
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.10
 
 Introduction
 ------------
@@ -7,56 +7,67 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.9 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.10 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.9
+Changes in Oak 1.8.10
 ---------------------
+
+Sub-task
+
+    [OAK-7898] - Facet queries with UNION should do trivial merge of
+    facets from sub-queries
+    [OAK-7930] - Add tape sampling
 
 Technical task
 
-    [OAK-7729] - RDB*Store: update postgresql JDBC driver reference to
-    42.2.5
-    [OAK-7730] - RDB*Store: update Tomcat JDBC pool dependency to
-    8.5.33
-    [OAK-7748] - DocumentStore: test (and optionally optimize) bulk
-    update fallback logic
+    [OAK-7342] - RDBDocumentStore: missing rollback after delete
+    failures
 
 Bug
 
-    [OAK-7638] - Race condition when simultaneous request to stage
-    file for async upload
-    [OAK-7798] - Return stream for downloaded files rather than
-    directly from backend
-    [OAK-7837] - oak-run check crashes with SNFE
-    [OAK-7853] - SegmentBufferWriter not flushed after OnRC
-    [OAK-7855] - rdbmk: Invalid SplitDocType when run on non-upgraded
-    DB
-    [OAK-7858] - S3#getAllIdentifiers may trim listing when filtering
-    out metadata objects
+    [OAK-7605] - Giving multiple result when executing query (for a
+    constraints with OR condition) for Facetextraction
+    [OAK-7606] - Doing Faceting only on the resultset of one
+    constraints when query contain multiple constraint with OR
+    condition
+    [OAK-7608] - Throw exception if all properties name are given
+    wrong for faceting
+    [OAK-7613] - Taking more time for iterating row of query Result
+    which contain Facets
+    [OAK-7808] - Incorrect facet counts when some results are
+    inaccessible due to ACLs
+    [OAK-7929] - Incorrect Facet Count With Large Dataset and ACLs
+    [OAK-7935] - RDB*Store: createOrUpdate may fail on stale cache
+    when document was removed on different instance
+    [OAK-7950] - oak-run check crashes with
+    UncheckedExecutionException (caused by SNFE)
+    [OAK-7951] - Datastore GC stats not updated with failure when "Not
+    all repositories have marked references available"
+    [OAK-7953] - Test failure:
+    JdbcToSegmentWithMetadataTest.validateMigration()
 
 Improvement
 
-    [OAK-7832] - oak-run console export should handle exceptions such
-    as missing segments
-    [OAK-7854] - Add liveliness monitoring for FileStore background
-    operations
-    [OAK-7862] - Make PermissionEntryCache more resilient against OOME
-    (1.8)
+    [OAK-7709] - DocumentNodeStore dispose aborts when store was
+    disposed due to LeaseUpdate error
+    [OAK-7741] - Token LoginModule flag to skip refreshing the token
+    expiration
+    [OAK-7850] - Indexes that don't support facets being queried
+    should not participate in execution plan
+    [OAK-7925] - OakUpgrade for RDBMK: user name and password must
+    match
 
 Task
 
-    [OAK-7767] - Update tika dependency to 1.19
-    [OAK-7814] - Update tika dependency to 1.19.1
-    [OAK-7823] - examples: use project-wide logback version 1.2.3
-    instead of 1.1.7
-    [OAK-7829] - oak-examples: update Tomcat dependency to 7.0.91
-    [OAK-7836] - Update jackson dependencies to 2.9.7
-    [OAK-7847] - complete "Indexing tooling via oak-run" in 1.8
+    [OAK-7219] - Update Logback version to >= 1.2.0, SLF4J accordingly
+    [OAK-7669] - backport OAK-7511 (nullability annotations) to 1.8
+    [OAK-7876] - Backport OAK-7741 to 1.8 branch
+    [OAK-7908] - Backport and validate OAK-7867 to Oak 1.8
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.8.x release.
