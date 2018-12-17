@@ -232,11 +232,13 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
 
     private static void updateNumEntries(@NotNull String principalName, @NotNull NodeBuilder principalRoot, int cnt) {
         PropertyState ps = principalRoot.getProperty(REP_NUM_PERMISSIONS);
-        long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
         if (ps == null && !principalRoot.isNew()) {
             // existing principal root that doesn't have the rep:numEntries set
             return;
-        } else if  (numEntries < 0) {
+        }
+
+        long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
+        if  (numEntries < 0) {
             // numEntries unexpectedly turned negative
             log.error("NumEntries counter for principal '"+principalName+"' turned negative -> removing 'rep:numPermissions' property.");
             principalRoot.removeProperty(REP_NUM_PERMISSIONS);

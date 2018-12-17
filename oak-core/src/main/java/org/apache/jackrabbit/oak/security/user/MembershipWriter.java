@@ -49,7 +49,7 @@ public class MembershipWriter {
      */
     private int membershipSizeThreshold = DEFAULT_MEMBERSHIP_THRESHOLD;
 
-    public void setMembershipSizeThreshold(int membershipSizeThreshold) {
+    void setMembershipSizeThreshold(int membershipSizeThreshold) {
         this.membershipSizeThreshold = membershipSizeThreshold;
     }
 

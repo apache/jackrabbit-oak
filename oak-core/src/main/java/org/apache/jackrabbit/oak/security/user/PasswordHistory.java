@@ -42,7 +42,7 @@ final class PasswordHistory implements UserConstants {
     private final int maxSize;
     private final boolean isEnabled;
 
-    public PasswordHistory(@NotNull ConfigurationParameters config) {
+    PasswordHistory(@NotNull ConfigurationParameters config) {
         maxSize = Math.min(HISTORY_MAX_SIZE, config.getConfigValue(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE));
         isEnabled = maxSize > UserConstants.PASSWORD_HISTORY_DISABLED_SIZE;
     }
