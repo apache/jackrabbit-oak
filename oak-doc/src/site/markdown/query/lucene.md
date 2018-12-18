@@ -1323,19 +1323,88 @@ Lucene property indexes can also be used for retrieving facets, in order to do s
 
 Specific facet related features for Lucene property index can be configured in a separate _facets_ node below the
  index definition.
- By default ACL checks are always performed on facets by the Lucene property index however this can be avoided by setting
- the property _secure_ to _false_ in the _facets_ configuration node.
 `@since Oak 1.5.15` The no. of facets to be retrieved is configurable via the _topChildren_ property, which defaults to 10.
-
 ```
-/oak:index/lucene-with-unsecure-facets
+/oak:index/lucene-with-more-facets
   - jcr:primaryType = "oak:QueryIndexDefinition"
   - compatVersion = 2
   - type = "lucene"
   - async = "async"
   + facets
     - topChildren = 100
-    - secure = false
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + nt:base
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + tags
+          - facets = true
+          - propertyIndex = true
+```
+
+By default ACL checks are always performed on facets by the Lucene property index however there are a few configuration
+option to configure how ACL checks are done by configuring _secure_ property in the _facets_ configuration node.
+`@since Oak 1.6.16, 1.8.10, 1.9.13` `secure` property is a string with allowed values of `secure`, `statistical` and
+`insecure` - `secure` being the default value. Before that `secure` was a boolean property and to maintain compatibility
+`false` maps to `insecure` while `true` (default at the time) maps to `secure`.
+
+For `insecure` facets, the facet counts reported by lucene index are reported back as is.
+For `secure` configuration all results of a query are checked for access permissions and facets returned by index are
+updated accordingly. This can be very bad from performance point of view for large result set.
+As a trade off `statistical` configuration can be used to randomly sample some items (default `1000` configurable via
+`sampleSize`) and check ACL for the random samples. Facet counts returned via index are updated proportionally to the
+percentage of accessible samples that were checked for ACL.
+Do note that the [beauty of sampling](https://onlinecourses.science.psu.edu/stat100/node/16/) is that a sample size of
+`1000` would have 3% error rate with 95% confidence. But that's a theoretical limit for infinite number of experiments -
+in practice though, a low rate of accessible documents decreases chances to reach that average rate. To have a sense of
+expectation of error rate, here's how errors looked like in different scenarios of test runs with sample size of 1000
+with error averaged over 1000 random runs for each scenario.
+```
+|-----------------|-----------------------|------------------------|
+| Result set size | %age accessible nodes | Avg error in 1000 runs |
+|-----------------|-----------------------|------------------------|
+| 2000            |  5                    |  5.79                  |
+| 5000            |  5                    |  9.99                  |
+| 10000           |  5                    |  10.938                |
+| 100000          |  5                    |  11.13                 |
+|                 |                       |                        |
+| 2000            | 25                    | 2.4192004              |
+| 5000            | 25                    | 3.8087976              |
+| 10000           | 25                    | 4.096                  |
+| 100000          | 25                    | 4.3699985              |
+|                 |                       |                        |
+| 2000            | 50                    | 1.3990011              |
+| 5000            | 50                    | 2.2695997              |
+| 10000           | 50                    | 2.5303981              |
+| 100000          | 50                    | 2.594599               |
+|                 |                       |                        |
+| 2000            | 75                    | 0.80360085             |
+| 5000            | 75                    | 1.1929348              |
+| 10000           | 75                    | 1.4357346              |
+| 100000          | 75                    | 1.4272015              |
+|                 |                       |                        |
+| 2000            | 95                    | 0.30958                |
+| 5000            | 95                    | 0.52715933             |
+| 10000           | 95                    | 0.5109484              |
+| 100000          | 95                    | 0.5481065              |
+|-----------------|-----------------------|------------------------|
+```
+![error rate plot](../img/facets-statistical-error-rate-plot.png)
+
+Notice that error rate does increase with large result set sizes but it flattens after around 10000 results. Also, note
+that even with 50% results being accessible, error rate averages at less that 3%.
+
+So, in most cases, sampling size of 1000 should give fairly decent estimation of facet counts. On the off chance that
+the setup is such that error rates are intolerable, sample size can be configured with _sampleSize_ property under
+_facets_ configuration node. Error rates are generally inversely proportional to `√sample-size`. So, to reduce error
+rate by 1/2 sample size needs to increased 4 times.
+
+Canonical example of `statistical` configuration would look like:
+```
+/oak:index/lucene-with-statistical-facets
+  + facets
+    - secure = "statistical"
+    - sampleSize = 1500
   + indexRules
     - jcr:primaryType = "nt:unstructured"
     + nt:base
