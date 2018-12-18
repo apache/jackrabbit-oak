@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -188,6 +189,10 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         );
         acMgr.setPolicy("/content", acl);
         root.commit();
+    }
+
+    CugExclude getExclude() {
+        return new CugExclude.Default();
     }
 
     void createCug(@NotNull String absPath, @NotNull Principal principal) throws RepositoryException {

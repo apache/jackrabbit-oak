@@ -27,6 +27,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
@@ -46,22 +47,24 @@ class CugPolicyImpl implements CugPolicy {
     private final NamePathMapper namePathMapper;
     private final PrincipalManager principalManager;
     private final int importBehavior;
+    private final CugExclude cugExclude;
 
     private final Set<Principal> principals = new HashSet<>();
 
     CugPolicyImpl(@NotNull String oakPath, @NotNull NamePathMapper namePathMapper,
-                  @NotNull PrincipalManager principalManager, int importBehavior) {
-        this(oakPath, namePathMapper, principalManager, importBehavior, Collections.<Principal>emptySet());
+                  @NotNull PrincipalManager principalManager, int importBehavior, @NotNull CugExclude cugExclude) {
+        this(oakPath, namePathMapper, principalManager, importBehavior, cugExclude, Collections.<Principal>emptySet());
     }
 
     CugPolicyImpl(@NotNull String oakPath, @NotNull NamePathMapper namePathMapper,
                   @NotNull PrincipalManager principalManager, int importBehavior,
-                  @NotNull Set<Principal> principals) {
+                  @NotNull CugExclude cugExclude, @NotNull Set<Principal> principals) {
         ImportBehavior.nameFromValue(importBehavior);
         this.oakPath = oakPath;
         this.namePathMapper = namePathMapper;
         this.principalManager = principalManager;
         this.importBehavior = importBehavior;
+        this.cugExclude = cugExclude;
         this.principals.addAll(principals);
     }
 
@@ -128,6 +131,11 @@ class CugPolicyImpl implements CugPolicy {
             throw new AccessControlException("Invalid principal " + name);
         }
 
+        if (cugExclude.isExcluded(Collections.singleton(principal))) {
+            log.warn("Attempt to add excluded principal {} to CUG.", principal);
+            return false;
+        }
+
         boolean isValid = true;
         switch (importBehavior) {
             case ImportBehavior.ABORT:
@@ -137,7 +145,7 @@ class CugPolicyImpl implements CugPolicy {
                 break;
             case ImportBehavior.IGNORE:
                 if (!principalManager.hasPrincipal(name)) {
-                    log.debug("Ignoring unknown principal " + name);
+                    log.debug("Ignoring unknown principal {}", name);
                     isValid = false;
                 }
                 break;
