@@ -65,11 +65,11 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     public void before() throws Exception {
         super.before();
 
-        cugAccessControlManager = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS));
+        cugAccessControlManager = new CugAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude());
     }
 
     private CugPolicy createCug(@NotNull String path) {
-        return new CugPolicyImpl(path, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.ABORT);
+        return new CugPolicyImpl(path, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.ABORT, getExclude());
     }
 
     private CugPolicy getApplicableCug(@NotNull String path) throws RepositoryException {
@@ -224,7 +224,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(
                     CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS,
                     CugConstants.PARAM_CUG_ENABLED, false));
-        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, CugSecurityProvider.newTestSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS));
+        CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, CugSecurityProvider.newTestSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude());
         AccessControlPolicy[] policies = acMgr.getEffectivePolicies(SUPPORTED_PATH);
         assertEquals(0, policies.length);
 
@@ -313,7 +313,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         Tree supportedTree = root.getTree(SUPPORTED_PATH);
         new NodeUtil(supportedTree).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
-        cugAccessControlManager.setPolicy(SUPPORTED_PATH, new CugPolicyImpl(SUPPORTED_PATH, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.BESTEFFORT));
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, new CugPolicyImpl(SUPPORTED_PATH, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.BESTEFFORT, getExclude()));
     }
 
     @Test
@@ -380,7 +380,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         Tree supportedTree = root.getTree(SUPPORTED_PATH);
         new NodeUtil(supportedTree).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
-        cugAccessControlManager.removePolicy(SUPPORTED_PATH, new CugPolicyImpl(SUPPORTED_PATH, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.BESTEFFORT));
+        cugAccessControlManager.removePolicy(SUPPORTED_PATH, new CugPolicyImpl(SUPPORTED_PATH, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.BESTEFFORT, getExclude()));
     }
 
     @Test(expected = PathNotFoundException.class)
