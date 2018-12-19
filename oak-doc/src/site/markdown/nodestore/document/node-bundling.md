@@ -56,7 +56,7 @@ Bundling definitions are defined as content in the repository under `/jcr:system
 For example below content structure enables bundling for nodes of type `nt:file` and `app:Asset`
 
     + jcr:system
-      + documentstore
+      + rep:documentStore
         + bundlor
           + nt:file (oak:Unstructured)
             - pattern = ["jcr:content"]
@@ -149,7 +149,7 @@ This JCR node structure would be stored in MongoDB in 2 documents
 Now with bundling pattern like
 
     + jcr:system
-      + documentstore
+      + rep:documentStore
         + bundlor
           + nt:file (oak:Unstructured)
             - pattern = ["jcr:content"]
@@ -214,7 +214,7 @@ Such a structure can make use of Node Bundling to reduce this storage ratio.
 Lets define a bundling pattern like below
 
     + jcr:system
-      + documentstore
+      + rep:documentStore
         + bundlor
           + nt:file (oak:Unstructured)
             - pattern = ["jcr:content"]
