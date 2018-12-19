@@ -50,18 +50,22 @@ entries indexed.
 Bundling is enabled on per nodetype basis. 
 Bundling definitions are defined as content in the repository under `/jcr:system/rep:documentStore/bundlor`.
 
-    + < node type name >
-      - pattern - multi 
+~~~
++ < node type name >
+  - pattern - multi 
+~~~
       
 For example below content structure enables bundling for nodes of type `nt:file` and `app:Asset`
 
-    + jcr:system
-      + rep:documentStore
-        + bundlor
-          + nt:file (oak:Unstructured)
-            - pattern = ["jcr:content"]
-          + app:Asset
-            - pattern = ["jcr:content/metadata", "jcr:content/renditions", "jcr:content"]
+~~~
++ jcr:system
+  + rep:documentStore
+    + bundlor
+      + nt:file (oak:Unstructured)
+        - pattern = ["jcr:content"]
+      + app:Asset
+        - pattern = ["jcr:content/metadata", "jcr:content/renditions", "jcr:content"]
+~~~
 
 Once this is done any node of type `nt:file` created _after_ this will be stored
 in bundled format. Nodes created _before_ the configuration was added are not
@@ -106,15 +110,17 @@ paths 'jcr:content/renditions'
 
 Lets take an example of `nt:file` node like below
 
-    + /content/book.jpg 
-      - jcr:createdBy = "admin"
-      - jcr:primaryType = "nt:file"
-      + jcr:content
-         - jcr:data = < blob id >
-         - jcr:mimeType = "text/plain"
-         - jcr:uuid = "56befaee-f5fe-4252-87f8-0dcc8a624dd5"
-         - jcr:lastModifiedBy = "admin"
-         - jcr:primaryType = "nt:resource"
+~~~
++ /content/book.jpg 
+  - jcr:createdBy = "admin"
+  - jcr:primaryType = "nt:file"
+  + jcr:content
+     - jcr:data = < blob id >
+     - jcr:mimeType = "text/plain"
+     - jcr:uuid = "56befaee-f5fe-4252-87f8-0dcc8a624dd5"
+     - jcr:lastModifiedBy = "admin"
+     - jcr:primaryType = "nt:resource"
+~~~
          
 ![Bundling Nodes](node-bundling-file.png)
 
@@ -148,11 +154,13 @@ This JCR node structure would be stored in MongoDB in 2 documents
 
 Now with bundling pattern like
 
-    + jcr:system
-      + rep:documentStore
-        + bundlor
-          + nt:file (oak:Unstructured)
-            - pattern = ["jcr:content"]
+~~~
++ jcr:system
+  + rep:documentStore
+    + bundlor
+      + nt:file (oak:Unstructured)
+        - pattern = ["jcr:content"]
+~~~
 
 Would bundle the 2 nodes in nt:file node structure in same MongoDB Document
 
@@ -184,21 +192,23 @@ instead of 20M (without bundling)
   
 Lets take a more complex content structure. Assume a nodetype `app:Asset` having following content
  
-    /content/banner.png
-      - jcr:primaryType = "app:Asset"
-      + jcr:content
-        - jcr:primaryType = "app:AssetContent"
-        + metadata
-          - status = "published"
-          + xmp
-            + 1
-              - softwareAgent = "Adobe Photoshop"
-              - author = "David"
-        + renditions (nt:folder)
-          + original (nt:file)
-            + jcr:content
-              - jcr:data = ...
-        + comments (nt:folder)
+~~~
+/content/banner.png
+  - jcr:primaryType = "app:Asset"
+  + jcr:content
+    - jcr:primaryType = "app:AssetContent"
+    + metadata
+      - status = "published"
+      + xmp
+        + 1
+          - softwareAgent = "Adobe Photoshop"
+          - author = "David"
+    + renditions (nt:folder)
+      + original (nt:file)
+        + jcr:content
+          - jcr:data = ...
+    + comments (nt:folder)
+~~~
         
 Above structure has following characteristics
 
@@ -213,13 +223,15 @@ Such a structure can make use of Node Bundling to reduce this storage ratio.
 
 Lets define a bundling pattern like below
 
-    + jcr:system
-      + rep:documentStore
-        + bundlor
-          + nt:file (oak:Unstructured)
-            - pattern = ["jcr:content"]
-          + app:Asset
-            - pattern = ["jcr:content/metadata", "jcr:content/renditions/**", "jcr:content"]
+~~~
++ jcr:system
+  + rep:documentStore
+    + bundlor
+      + nt:file (oak:Unstructured)
+        - pattern = ["jcr:content"]
+      + app:Asset
+        - pattern = ["jcr:content/metadata", "jcr:content/renditions/**", "jcr:content"]
+~~~
             
 With this bundling pattern same app:Asset structure would be stored in 1 MongoDB Document excluding 'comments' and 'xmp'
 nodes
