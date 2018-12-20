@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.CompressingCodec;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
