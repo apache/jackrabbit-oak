@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,13 +208,26 @@ public class IndexTracker {
 
     @Nullable
     public LuceneIndexDefinition getIndexDefinition(String indexPath){
-        LuceneIndexNodeManager node = indices.get(indexPath);
-        if (node != null){
-            //Accessing the definition should not require
-            //locking as its immutable state
-            return node.getDefinition();
+        LuceneIndexNodeManager indexNodeManager = indices.get(indexPath);
+        if (indexNodeManager != null) {
+            // Accessing the definition should not require
+            // locking as its immutable state
+            return indexNodeManager.getDefinition();
         }
-        return null;
+        // fallback - create definition from scratch
+        NodeState node = NodeStateUtils.getNode(root, indexPath);
+        if (!node.exists()) {
+            return null;
+        }
+        // only if there exists a stored index definition
+        if (!node.hasChildNode(INDEX_DEFINITION_NODE)) {
+            return null;
+        }
+        if (!isLuceneIndexNode(node)) {
+            return null;
+        }
+        // this will internally use the stored index definition
+        return new LuceneIndexDefinition(root, node, indexPath);
     }
 
     public Set<String> getIndexNodePaths(){
