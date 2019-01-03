@@ -730,11 +730,13 @@ public class FulltextIndexPlanner {
     }
 
     private long estimatedEntryCount() {
-        int numOfDocs = getNumDocs();
         if (useActualEntryCount) {
-            return definition.isEntryCountDefined() ? definition.getEntryCount() : numOfDocs;
+            if (definition.isEntryCountDefined()) {
+                return definition.getEntryCount();
+            }
+            return  getNumDocs();
         } else {
-            return estimatedEntryCount_Compat(numOfDocs);
+            return estimatedEntryCount_Compat(getNumDocs());
         }
     }
 
