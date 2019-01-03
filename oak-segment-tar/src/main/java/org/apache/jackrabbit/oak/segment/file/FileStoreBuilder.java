@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.util.Set;
 
 import com.google.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
@@ -353,7 +352,7 @@ public class FileStoreBuilder {
         return this;
     }
 
-    public FileStoreBuilder withCustomPersistence(SegmentNodeStorePersistence persistence) throws IOException {
+    public FileStoreBuilder withCustomPersistence(SegmentNodeStorePersistence persistence) {
         this.persistence = persistence;
         return this;
     }

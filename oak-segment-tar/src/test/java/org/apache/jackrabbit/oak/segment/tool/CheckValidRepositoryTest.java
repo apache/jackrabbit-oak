@@ -47,7 +47,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckBinaries(true)
             .withCheckHead(true)
@@ -85,7 +84,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckBinaries(true)
             .withCheckHead(true)
@@ -120,7 +118,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckHead(true)
             .withCheckpoints(new HashSet<String>())
@@ -155,7 +152,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckHead(true)
             .withCheckpoints(new HashSet<String>())
@@ -188,7 +184,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckHead(true)
             .withCheckpoints(new HashSet<String>())
@@ -224,7 +219,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withFilterPaths(filterPaths)
             .withCheckBinaries(true)
@@ -259,7 +253,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withFilterPaths(filterPaths)
             .withCheckBinaries(true)
@@ -292,7 +285,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withFilterPaths(filterPaths)
             .withCheckBinaries(true)
@@ -328,7 +320,6 @@ public class CheckValidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withFilterPaths(filterPaths)
             .withCheckBinaries(true)

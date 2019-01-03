@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.LocalJournalFile;
+import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker;
 import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.ConsistencyCheckResult;
 import org.apache.jackrabbit.oak.segment.file.tooling.ConsistencyChecker.Revision;
@@ -67,7 +68,7 @@ public class Check {
 
         private File path;
 
-        private String journal;
+        private File journal;
 
         private long debugInterval = Long.MAX_VALUE;
 
@@ -102,12 +103,13 @@ public class Check {
 
         /**
          * The path to the journal of the segment store. This parameter is
-         * required.
+         * optional. If not provided, the journal in the default location is
+         * used.
          *
          * @param journal the path to the journal of the segment store.
          * @return this builder.
          */
-        public Builder withJournal(String journal) {
+        public Builder withJournal(File journal) {
             this.journal = checkNotNull(journal);
             return this;
         }
@@ -219,7 +221,6 @@ public class Check {
          */
         public Check build() {
             checkNotNull(path);
-            checkNotNull(journal);
             return new Check(this);
         }
 
@@ -244,7 +245,7 @@ public class Check {
 
     private final File path;
 
-    private final String journal;
+    private final File journal;
 
     private final long debugInterval;
 
@@ -270,7 +271,6 @@ public class Check {
 
     private Check(Builder builder) {
         this.path = builder.path;
-        this.journal = builder.journal;
         this.debugInterval = builder.debugInterval;
         this.checkHead = builder.checkHead;
         this.checkBinaries = builder.checkBinaries;
@@ -279,12 +279,21 @@ public class Check {
         this.ioStatistics = builder.ioStatistics;
         this.out = builder.outWriter;
         this.err = builder.errWriter;
+        this.journal = journalPath(builder.path, builder.journal);
+    }
+
+    private static File journalPath(File segmentStore, File journal) {
+        if (journal == null) {
+            return new File(segmentStore, "journal.log");
+        }
+        return journal;
     }
 
     public int run() {
         StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
 
-        FileStoreBuilder builder = fileStoreBuilder(path);
+        FileStoreBuilder builder = fileStoreBuilder(path)
+            .withCustomPersistence(new TarPersistence(this.path, this.journal));
 
         if (ioStatistics) {
             builder.withIOMonitor(ioMonitor);
@@ -292,7 +301,7 @@ public class Check {
 
         try (
             ReadOnlyFileStore store = builder.buildReadOnly();
-            JournalReader journal = new JournalReader(new LocalJournalFile(path, this.journal))
+            JournalReader journal = new JournalReader(new LocalJournalFile(this.journal))
         ) {
             run(store, journal);
 
