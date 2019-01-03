@@ -60,7 +60,6 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckHead(true)
             .withCheckpoints(checkpoints)
@@ -94,7 +93,6 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckBinaries(true)
             .withCheckHead(true)
@@ -128,7 +126,6 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckBinaries(true)
             .withCheckHead(true)
@@ -161,7 +158,6 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckBinaries(true)
             .withCheckHead(true)
@@ -199,7 +195,6 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(new File(temporaryFolder.getRoot().getAbsolutePath()))
-            .withJournal("journal.log")
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckBinaries(true)
             .withCheckpoints(cps)
@@ -240,7 +235,7 @@ public class CheckInvalidRepositoryTest extends CheckRepositoryTestBase {
 
         Check.builder()
             .withPath(segmentStoreFolder)
-            .withJournal("journal.log.large")
+            .withJournal(largeJournalFile)
             .withDebugInterval(Long.MAX_VALUE)
             .withCheckBinaries(true)
             .withCheckHead(true)
