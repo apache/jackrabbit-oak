@@ -1093,14 +1093,14 @@
       <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
       <!-- for instance:
         mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
-          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.72
+          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.77
        -->
       <id>rdb-db2</id>
       <dependencies>
         <dependency>
           <groupId>com.ibm.db2</groupId>
           <artifactId>db2</artifactId>
-          <version>4.19.72</version>
+          <version>4.19.77</version>
         </dependency>
       </dependencies>
     </profile>
