@@ -1131,6 +1131,8 @@ The feature would only delete blobs which have been deleted before a certain tim
 The task to actually purge blobs from datastore is performed by jmx operation. Jmx bean
 for the operation is `org.apache.jackrabbit.oak:name=Active lucene files collection,type=ActiveDeletedBlobCollector`
 and the operation is `startActiveCollection()`.
+To disable active deletion in a certain installation, set the system property `oak.active.deletion.disabled`.
+
 
 ### <a name="luke"></a>Analyzing created Lucene Index
 
