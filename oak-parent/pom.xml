@@ -1245,4 +1245,10 @@
       </build>
     </profile>
   </profiles>
+
+  <scm>
+    <connection>scm:svn:https://svn.apache.org/repos/asf/maven/pom/branches/1.10/oak-parent</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/pom/branches/1.10/oak-parent</developerConnection>
+    <url>https://svn.apache.org/viewvc/maven/pom/branches/1.10/oak-parent</url>
+  </scm>
 </project>
