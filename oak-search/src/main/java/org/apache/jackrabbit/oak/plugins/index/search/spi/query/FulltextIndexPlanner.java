@@ -105,6 +105,11 @@ public class FulltextIndexPlanner {
     }
 
     public IndexPlan getPlan() {
+        if (definition == null) {
+            log.debug("Index {} not loaded", indexPath);
+            return null;
+        }
+
         IndexPlan.Builder builder = getPlanBuilder();
 
         if (definition.isTestMode()){
