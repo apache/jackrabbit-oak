@@ -76,9 +76,9 @@
   </modules>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk</developerConnection>
-    <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.10</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.10</developerConnection>
+    <url>http://svn.apache.org/viewvc/jackrabbit/oak/branches/1.10</url>
   </scm>
 
   <build>
