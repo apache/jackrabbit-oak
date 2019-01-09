@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.13
+Release Notes -- Apache Jackrabbit Oak -- Version 1.10.0
 
 Introduction
 ------------
@@ -7,67 +7,18 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.13 is an unstable release cut directly from
-Jackrabbit Oak trunk, with a focus on new features and other
-improvements. For production use we recommend the latest stable 1.8.x
-release.
+Jackrabbit Oak 1.10.0 is a patch release that contains fixes and
+improvements over Oak 1.10. Jackrabbit Oak 1.10.x releases are
+considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.13
---------------------
-
-Sub-task
-
-    [OAK-7930] - Add tape sampling
-
-Technical task
-
-    [OAK-7942] - Fix covariant return type changes in ByteBuffer
-
-Bug
-
-    [OAK-7803] - IndexFormatVersion should be available in oak-lucene
-    [OAK-7869] - Commit queue stuck when input stream of blob blocks
-    [OAK-7923] - CompositeNodeBuilder#getPath() fails when it wraps a
-    ReadOnlyBuilder
-    [OAK-7929] - Incorrect Facet Count With Large Dataset and ACLs
-    [OAK-7935] - RDB*Store: createOrUpdate may fail on stale cache
-    when document was removed on different instance
-
-New Feature
-
-    [OAK-7866] - Add tooling for recovering from an outdated journal
-    [OAK-7933] - Expose number of tar readers as metric
-    [OAK-7934] - Expose the number of segments as metric
-
-Improvement
-
-    [OAK-7918] - Extract checking logic from ConsistencyChecker
-    [OAK-7925] - OakUpgrade for RDBMK: user name and password must
-    match
-    [OAK-7928] - Avoid reference resolution for user query with scope
-    and declaredMembersOnly
-    [OAK-7940] - Index importer should warn if there is no index to
-    import
-
-Test
-
-    [OAK-7878] - Add unit test for LoggingHook
-
-Task
-
-    [OAK-7915] - Update Oak trunk to Jackrabbit 2.17.7
-    [OAK-7931] - Don't allow for weak references between mounts
-    [OAK-7943] - Update Oak trunk to Jackrabbit 2.18.0
-
-Documentation
-
-    [OAK-7945] - Document the recover-journal command
+Changes in Oak 1.10.0
+---------------------
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.9.x release.
+all changes included up to the Apache Jackrabbit Oak 1.10.x release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
@@ -77,12 +28,14 @@ Oak releases, please see the Oak issue tracker at
 Release Contents
 ----------------
 
+
+
 This release consists of a single source archive packaged as a zip file.
 The archive can be unpacked with the jar tool from your JDK installation.
 See the README.md file for instructions on how to build this release.
 
-The source archive is accompanied by SHA1 and SHA512 checksums and a
-PGP signature that you can use to verify the authenticity of your
+The source archive is accompanied by a SHA512 checksums and a PGP
+signature that you can use to verify the authenticity of your
 download. The public key used for the PGP signature can be found at
 https://www.apache.org/dist/jackrabbit/KEYS.
 
