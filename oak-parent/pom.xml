@@ -1015,14 +1015,10 @@
     </profile>
     <profile>
       <id>guava-latest</id>
-      <dependencies>
-        <dependency>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-          <version>20.0</version>
-        </dependency>
-      </dependencies>
-    </profile>
+      <properties>
+        <guava.version>20.0</guava.version>
+      </properties>
+	  </profile>
     <profile>
       <id>rdb-derby</id>
       <dependencies>
