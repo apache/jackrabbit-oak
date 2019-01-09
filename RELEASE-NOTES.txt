@@ -18,9 +18,6 @@ Apache Jackrabbit is a project of the Apache Software Foundation.
 Changes in Oak 1.10.0
 ---------------------
 
-In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.10.x release.
-
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
 
