@@ -301,8 +301,17 @@ Bug
     SolrQueryIndex
     [OAK-7514] - Build Jackrabbit Oak #1462 failed
     [OAK-7520] - AzureArchiveManager#copyBlob() hangs indefinitely
-    [OAK-7521] - Command line params to modify quer fails when forced
-    journal push throws exception
+    [OAK-7521] - Command line params to modify query and read limits
+    don't work for large values
+    [OAK-7540] - Unique property index update fails in composite
+    NodeStore setup
+    [OAK-7543] - MissingLastRevSeekerTest fails on MongoDB with
+    secondary preferred
+    [OAK-7551] - The compaction deadline should be reset at each
+    execution
+    [OAK-7559] - CacheActionDispatcher not memory bound
+    [OAK-7564] - Commit fails when forced journal push throws
+    exception
     [OAK-7566] - Rename metrics for DataStore garbage collection
     [OAK-7567] - Migrating an unmodified checkpoint takes a long time
     [OAK-7588] - Build failure: unapproved license
@@ -320,14 +329,31 @@ Bug
     condition
     [OAK-7608] - Throw exception if all properties name are given
     wrong for faceting
-    [OAK-7610] - Active st directory update doesn't close
+    [OAK-7610] - Active blob deletion fails on composite setups
+    [OAK-7613] - Taking more time for iterating row of query Result
+    which contain Facets
+    [OAK-7630] - Suggest directory update doesn't close
     AnalyzingInfixSuggester after building
     [OAK-7638] - Race condition when simultaneous request to stage
     file for async upload
     [OAK-7652] - Node.getMixinNodeTypes can revive deleted node mixins
     (again)
     [OAK-7686] - Partial migration doesn't update Lucene indexing data
-    [OAK-7687] - :async cified
+    [OAK-7687] - :async node is being removed during the partial
+    migration
+    [OAK-7694] - Oak.OakDefaultComponents.INSTANCE is mutable
+    [OAK-7707] - DocumentNodeStoreServiceTest always connects to
+    localhost
+    [OAK-7710] - CompositeNodeStore does not dispatch external events
+    to observers
+    [OAK-7712] - Configuration property names to manage direct binary
+    access should be consistent
+    [OAK-7713] - Test failure:
+    SecurityProviderRegistrationTest.testRequiredUserAuthenticationFactoryNotAvailable()
+    [OAK-7715] - Fix logging for datastore command
+    [OAK-7717] - Documentation for direct binary access is unclear
+    [OAK-7719] - CheckCommand should consistently use an alternative
+    journal if specified
     [OAK-7721] - Records of specific size bring
     SegmentBufferWriter#flush to fail
     [OAK-7724] - BlobGCMbean not registered with
@@ -335,12 +361,45 @@ Bug
     [OAK-7728] - Oak run check command fails with SegmentNotFound
     exception
     [OAK-7749] - Fix random failures in S3 related tests
-    [OAK-7ite concern and read concern level not applied
+    [OAK-7751] - CopyOnReadDirectory#removeDeletedFiles asks
+    IndexCopier to check timestamp for (remote only) segments.gen
+    leading to failure to clean up local files
+    [OAK-7761] - SegmentTarWriter#readSegment does not check the
+    return value of FileChannel#read
+    [OAK-7765] - BlobGCMbean registered with SegmentNodeStoreFactory
+    even if customBlobStore is false
+    [OAK-7766] - RepositoryId not registered in the DataStore with
+    SegmentNodeStoreFactory
+    [OAK-7776] - Ignore copying of :clusterConfig in
+    InitialContentMigrator
+    [OAK-7777] - Fix getStats in GC to account also for duplicate
+    entries of references
+    [OAK-7778] - PasswordUtil#isPlainTextPassword doesn't validate
+    PBKDF2 scheme
+    [OAK-7783] - Default write concern and read concern level not
+    applied
     [OAK-7789] - javadoc link to JCR API not resolved anymore
     [OAK-7794] - Changes are not dispatched when the segment node
     store is used as the global store
-    [OAK-7798] - Return stream for downloStore not chaining exceptions
-    on upload completion
+    [OAK-7798] - Return stream for downloaded files rather than
+    directly from backend
+    [OAK-7799] - CompositeNodeStore hides Clusterable
+    [OAK-7800] - LuceneIndexConstants should extend
+    FulltextIndexConstants
+    [OAK-7801] - CompositeNodeStore.merge() may trigger conflicting
+    branches
+    [OAK-7802] - LuceneIndexHelper should extend IndexHelper
+    [OAK-7803] - IndexFormatVersion should be available in oak-lucene
+    [OAK-7805] - getBinaryReferences() may return null when using the
+    split persistence
+    [OAK-7807] - [S3DataStore] S3DataStore unit tests not deleting
+    buckets created during test
+    [OAK-7808] - Incorrect facet counts when some results are
+    inaccessible due to ACLs
+    [OAK-7812] - Error running OffRC on Azure because of incorrect
+    parsing
+    [OAK-7818] - [DirectBinaryAccess] AzureDataStore not chaining
+    exceptions on upload completion
     [OAK-7837] - oak-run check crashes with SNFE
     [OAK-7838] - oak-run check crashes JVM
     [OAK-7843] - oak-upgrade doesn't correctly pass segment cache size
@@ -352,15 +411,35 @@ Bug
     must be ignored for fullyLoaded flag
     [OAK-7858] - S3#getAllIdentifiers may trim listing when filtering
     out metadata objects
-    [OAKe may corrupt registry
+    [OAK-7867] - Flush thread gets stuck when input stream of binaries
+    block
+    [OAK-7869] - Commit queue stuck when input stream of blob blocks
+    [OAK-7871] - Broken headers in security documentation
+    [OAK-7877] - Avoid unnecessary operations when logging read
+    operations
+    [OAK-7882] - Inconsistent handling of cloud-prefix causes
+    segment-copy to fail
+    [OAK-7885] - Performance regression in FlatTreeUpdateTest
+    [OAK-7886] - Re-registering node type may corrupt registry
     [OAK-7889] - Test failure: Unable to start Docker container
     [OAK-7901] - NodeTypeRegistryTest uses javax.annotation.Nonnull
     [OAK-7903] - Corrupt index metric potentially reporting
     corruptions on every index update
     [OAK-7912] - ValidNamesTest: potential NPE in teardown
     [OAK-7916] - Feature vectors similarity query is too selective
-    [OAK-7923] - CompositeNodeBuilder#getPaxcluded principal to cug
-    policy
+    [OAK-7923] - CompositeNodeBuilder#getPath() fails when it wraps a
+    ReadOnlyBuilder
+    [OAK-7929] - Incorrect Facet Count With Large Dataset and ACLs
+    [OAK-7935] - RDB*Store: createOrUpdate may fail on stale cache
+    when document was removed on different instance
+    [OAK-7951] - Datastore GC stats not updated with failure when "Not
+    all repositories have marked references available"
+    [OAK-7953] - Test failure:
+    JdbcToSegmentWithMetadataTest.validateMigration()
+    [OAK-7956] - Conflict may leave behind _collisions entry
+    [OAK-7959] - MongoDocumentStore causes scan of entire nodes
+    collection on startup
+    [OAK-7966] - Avoid adding excluded principal to cug policy
     [OAK-7972] - [DirectBinaryAccess] Direct binary access docs not
     linked from primary documentation
     [OAK-7975] - Facet extraction fails while requesting multiple
@@ -376,8 +455,17 @@ New Feature
     [OAK-6584] - Add tooling API
     [OAK-6921] - Support pluggable segment storage
     [OAK-6922] - Azure support for the segment-tar
-    [OAK-7444] - Allow collection of IOTraces dric for
-    DocumentNodeStore lease update
+    [OAK-7444] - Allow collection of IOTraces during normal operation
+    [OAK-7522] - Enable collection of simple operation stats for
+    DataStore garbage collection
+    [OAK-7555] - Enable collection of simple operation stats for
+    Revision garbage collection
+    [OAK-7569] - Direct Binary Access
+    [OAK-7575] - Make it possible to index and search over similar
+    feature vectors
+    [OAK-7604] - Add FileStoreStatsMBean#getSegmentCount for
+    monitoring the number of segments
+    [OAK-7617] - Metric for DocumentNodeStore lease update
     [OAK-7623] - SegmentNodeStore - sidegrade support between
     TarPersistence and AzurePersistence
     [OAK-7649] - oak-run command to execute datastore garbage
@@ -391,7 +479,17 @@ New Feature
     [OAK-7773] - Implement monitoring for allocated byte buffers
     [OAK-7834] - Add a tool to identify super-root nodes
     [OAK-7849] - CommitHook for recording write operations to the
-    segmentnt store persistence
+    segment store
+    [OAK-7864] - Recording read operations to the segment store
+    [OAK-7866] - Add tooling for recovering from an outdated journal
+    [OAK-7900] - Allow to spot User.disable with a new, dedicated
+    UserAction
+    [OAK-7933] - Expose number of tar readers as metric
+    [OAK-7934] - Expose the number of segments as metric
+
+Story
+
+    [OAK-7735] - Split segment store persistence
 
 Improvement
 
@@ -401,15 +499,41 @@ Improvement
     skews) to go through
     [OAK-4857] - Support space chars common in CJK inside item names
     [OAK-6031] - Add TarFiles to the architecture diagram
-    [OAK-6087] - Avoid reads from M Users shouldn't be able to change
-    the number of retained generations
+    [OAK-6087] - Avoid reads from MongoDB primary
+    [OAK-6148] - Warning if there are many Lucene documents
+    [OAK-6373] - oak-run check should also check checkpoints
+    [OAK-6402] - SessionStats log access warning
+    [OAK-7057] - Segment.toString: Record table should include an
+    index into the hexdump
+    [OAK-7134] - DocumentNodeStore.newMergeCommit() base parameter is
+    always non-null
+    [OAK-7139] - Wrap MongoException when query fails
+    [OAK-7140] - Retry query on MongoException
+    [OAK-7153] - Avoid persistent cache read access when key is not
+    cached
+    [OAK-7157] - Minimize the amount of generations retained by the
+    Cold Standby
+    [OAK-7158] - Users shouldn't be able to change the number of
+    retained generations
     [OAK-7175] - Reduce cache misses on local diff-cache
     [OAK-7180] - The error message "postings highlighting failed"
     should be warn or debug
     [OAK-7195] - Node.getMixinNodeTypes() may check for child node
     named jcr:mixinTypes
     [OAK-7196] - ValidNamesTest improvements
-    [OAK-7213] - Avoid call for child node when bundle cons
+    [OAK-7213] - Avoid call for child node when bundle contains all
+    children
+    [OAK-7215] - Add configurable repository size cap to
+    SegmentOverflowExceptionIT
+    [OAK-7222] - Log a warn when CoW opens input from remote due to
+    size mismatch
+    [OAK-7231] - Remove PermissionEntryCache.getNumEntries
+    [OAK-7232] - MountPermissionProvider.load can return null
+    [OAK-7235] - Remove unused code from SegmentTarUtils
+    [OAK-7246] - Improve cleanup of locally copied index files
+    [OAK-7248] - Remove deprecated deep option from check command
+    [OAK-7251] - BinaryTextExtractor should not ignore parse exception
+    - they should at least be logged at DEBUG in all cases
     [OAK-7253] - Benchmarks: cleanup duplications in AC setup
     [OAK-7259] - Improve SegmentNodeStoreStats to include number of
     commits per thread and threads currently waiting on the semaphore
@@ -421,7 +545,13 @@ Improvement
     [OAK-7290] - Reindexing using --doc-traversal-mode should have
     configurable upper bound for mem usage
     [OAK-7298] - Remove debug logging to the console during tests
-age from tests
+    [OAK-7310] - Empty package-info.java causes unnecessary rebuild
+    [OAK-7316] - Greedy ClusterNodeInfo
+    [OAK-7323] - Log when trying to add "everyone" as member to other
+    groups or add user/groups to "everyone"
+    [OAK-7326] - Add a way to disable the SegmentCache
+    [OAK-7334] - Transform CacheWeightEstimator into a unit test
+    [OAK-7340] - Remove SecurityProviderImpl usage from tests
     [OAK-7343] - Improvements to PermissionEntryProviderImpl
     [OAK-7353] - oak-run tika extraction should support getting
     assistance from stored indexed data from a lucene index
@@ -439,14 +569,31 @@ age from tests
     from listBlobs() operation
     [OAK-7416] - Contribute a 'proc' subtree for the Segment Node
     Store
- as an OSGi config property
+    [OAK-7418] - SecurityProviderBuilder ignores configuration option
+    authorizationCompositionType
+    [OAK-7420] - Introduce SegmentNodeStoreMonitorService for exposing
+    writerGroups as an OSGi config property
     [OAK-7424] - SecurityProviderBuilder expects
     CompositeConfiguration
     [OAK-7433] - SecurityProviderHelper should be final and have
     private constructor
     [OAK-7434] - Refactor compactor implementations in independent
     components
-    [OAK-7436] - Refactory part of
+    [OAK-7436] - Refactor cleanup implementation in its own component
+    [OAK-7437] - SimpleExcerptProvider highlighting should be case
+    insensitive
+    [OAK-7440] - Refactor the estimation code to its own components
+    [OAK-7442] - Remove dependency to commons-codec
+    [OAK-7445] - Introduce a cleanup-first compaction strategy
+    [OAK-7459] - oak-run compact should support Azure Segment Store
+    [OAK-7464] - Allow to choose which instance should initialize the
+    default mount
+    [OAK-7465] - It should be possible for an Azure Segment Store to
+    wait until the lease if released
+    [OAK-7468] - RootProvider and TreeProvider should be marked as
+    provider type
+    [OAK-7469] - User membership synchronization could skip updating
+    groups the user is already part of
     [OAK-7470] - Remove Usage of ImmutableTree and AbstractTree in
     Security Code
     [OAK-7488] - VersionablePathHook should be located with
@@ -454,7 +601,22 @@ age from tests
     [OAK-7506] - Prevent user enumeration by exploiting time delay
     vulnerability
     [OAK-7510] - Run repository initializers with hooks
-    [OAK-7530] - PrivilegeI Update to MongoDB Java driver 3.8
+    [OAK-7530] - PrivilegeInitializer should not attempt to create
+    jcr:system node
+    [OAK-7550] - Make running cleanup before compaction the default
+    strategy
+    [OAK-7561] - Don't migrate the checkpoints in oak-store-composite
+    seed initialization
+    [OAK-7584] - Add stats for DataStore GC performance
+    [OAK-7601] - Exclude org.apache.jackrabbit.oak.plugins.value.jcr
+    from baseline check
+    [OAK-7615] - Speed up site generation
+    [OAK-7621] - Metric for background read lag
+    [OAK-7627] - Update the dependency on biz.aQute.bndlib
+    [OAK-7629] - Lucene index: hide the settings COR and COW
+    [OAK-7639] - Surface more DSGC operation stats
+    [OAK-7640] - Prevent commits in the past
+    [OAK-7645] - Update to MongoDB Java driver 3.8
     [OAK-7647] - Replace usage of deprecated junit.framework.Assert
     [OAK-7672] - Introduce oak-run segment-copy for moving around
     segments in different storages
@@ -466,8 +628,17 @@ age from tests
     disposed due to LeaseUpdate error
     [OAK-7716] - Enable datastore command for Azure segment store
     [OAK-7720] - Log hex dump of too big segments
-    [OAK-7722] - Support collectBlobReferences in Rellection of stats
-    for DataStore checkConsistency operation
+    [OAK-7722] - Support collectBlobReferences in ReadOnlyFileStore
+    [OAK-7727] - Aggregate references from repositories with same
+    repositoryId
+    [OAK-7733] - Skip setup when DocumentStorePerformanceTest is not
+    enabled
+    [OAK-7739] - Use an index only if a certain node or property
+    exists
+    [OAK-7741] - Token LoginModule flag to skip refreshing the token
+    expiration
+    [OAK-7753] - Enable collection of stats for DataStore
+    checkConsistency operation
     [OAK-7757] - CompositeNodeStore fixture on MongoDB
     [OAK-7758] - Non-blocking CompositeNodeStore merges
     [OAK-7760] - Use NIO in the implementation of
@@ -503,7 +674,15 @@ age from tests
     [OAK-7872] - Make LoggingHook private to o.a.j.o.segment
     [OAK-7873] - Delete o.a.j.o.segment.util.RoleUtils
     [OAK-7874] - Upgrade docker-junit-rule to version 2.2.2
- should warn if there is no index to import
+    [OAK-7910] - Composite node store: Creating a new Lucene index;
+    reindex
+    [OAK-7918] - Extract checking logic from ConsistencyChecker
+    [OAK-7925] - OakUpgrade for RDBMK: user name and password must
+    match
+    [OAK-7928] - Avoid reference resolution for user query with scope
+    and declaredMembersOnly
+    [OAK-7940] - Index importer should warn if there is no index to
+    import
     [OAK-7944] - Minor improvements to oak security code base
 
 Test
@@ -521,15 +700,34 @@ Test
     [OAK-7516] - DocumentMKBuilderProvider may try to dispose an
     uninitialised store
     [OAK-7620] - Update to Mockito 2.x
-    [OAK-7646] - UploadStagingCacheTest#testConcurrentSameAddmoval in
-    Java 12
+    [OAK-7646] - UploadStagingCacheTest#testConcurrentSameAddRequest
+    fails intermittently
+    [OAK-7878] - Add unit test for LoggingHook
+
+Task
+
+    [OAK-5922] - Utils.abortingIterable should implement Closeable
+    [OAK-6433] - Remove baseline plugin configuration referring to
+    oak-core after 1.8 release
+    [OAK-7024] - java.security.acl deprecated in Java 10, marked for
+    removal in Java 12
     [OAK-7075] - Document oak-run compact arguments and system
     properties
     [OAK-7126] - make RDBCacheConsistency2Test store-agnostic
     [OAK-7130] - Update README.md with Java 8 requirement
     [OAK-7143] - Run oak-jcr tests and ITs in parallel on travis-ci
     [OAK-7156] - CacheChangesTracker should implement Closeable
-    [OAK-7160] - Update commons-codec dependency to 1
+    [OAK-7160] - Update commons-codec dependency to 1.11
+    [OAK-7161] - LengthCachingDataStore's use of LineIterator.close()
+    [OAK-7163] - Upgrade commons-io dependency to 2.6
+    [OAK-7165] - Update baseline comparison version to latest stable
+    1.8.0
+    [OAK-7172] - Document TarMK specific MBeans
+    [OAK-7173] - Update documentation for oak-run check
+    [OAK-7189] - Improve code coverage for InitialContentMigrator
+    [OAK-7191] - update to surefire version compatible with jdk 10
+    [OAK-7216] - Remove support for binaries and documents in
+    persistent cache
     [OAK-7219] - Update Logback version to >= 1.2.0, SLF4J accordingly
     [OAK-7220] - add benchmark focused on string write performance
     [OAK-7240] - create announcement mail template for releases
@@ -544,8 +742,11 @@ Test
     for PostgreSQL
     [OAK-7275] - Update easymock test dependency to 3.4
     [OAK-7282] - RDB: enable default continuous revision GC
-    [OAK-7286] - DocumentNodeStoreBranch handlinpart of standard
-    deployment
+    [OAK-7286] - DocumentNodeStoreBranch handling of non-recoverable
+    DocumentStoreExceptions
+    [OAK-7295] - Print path of files with unapproved licences
+    [OAK-7297] - New fixture for the Azure Segment Store
+    [OAK-7304] - Deploy oak-pojosr as part of standard deployment
     [OAK-7314] - RDB*Store: use SDMAXREV column in RevisionGC query
     [OAK-7315] - Remove redundant JavaDoc link to Java 7 API
     [OAK-7320] - Upgrade surefire and failsafe plugins to 2.21.0
@@ -560,8 +761,12 @@ Test
     [OAK-7338] - Javadocs for the
     org.apache.jackrabbit.oak.segment.spi
     [OAK-7347] - Incorrect link to KEYS in release notes
-    [OAK-7350] - stop creating MD5 checksums for reK-7368] - update to
-    findbugs version compatible with jdk 10
+    [OAK-7350] - stop creating MD5 checksums for releases
+    [OAK-7355] - Move the pluggable storage interfaces to the SPI
+    package
+    [OAK-7364] - code coverage checks fail on Java 10
+    [OAK-7366] - update to mockito version compatible with jdk 10
+    [OAK-7368] - update to findbugs version compatible with jdk 10
     [OAK-7407] - oak-solr-core test failures with java 10
     [OAK-7421] - link Guava javadoc
     [OAK-7422] - Update jackson dependencies to 2.9.5
@@ -589,7 +794,16 @@ Test
     [OAK-7579] - remove obsolete findbugs reference from reactor pom
     [OAK-7581] - oak-examples: remove special case for failsafe plugin
     [OAK-7582] - Make the MountInfo constructor public
-    [0/4.5.6 (and declare the versions globally)
+    [OAK-7583] - oak-examples/webapp: update jetty-maven-plugin
+    dependency
+    [OAK-7585] - oak-examples/standalone: update spring boot version
+    [OAK-7586] - Update bundle plugin to 3.5.0
+    [OAK-7596] - define jackson version globally
+    [OAK-7607] - Update 7.0.* Tomcat dependencies once 7.0.90 is
+    released
+    [OAK-7609] - Update jackson dependencies to 2.9.6
+    [OAK-7622] - Update httpcomponent dependencies to 4.4.10/4.5.6
+    (and declare the versions globally)
     [OAK-7624] - Add "org.apache.jackrabbit.oak.plugins.document.spi"
     to package export filter
     [OAK-7641] - various internal APIs missing in package export
@@ -597,7 +811,19 @@ Test
     [OAK-7644] - Remove strategy to optimize secondary reads
     [OAK-7650] - upgrade to mockito version compatible with java 11
     [OAK-7651] - oak-solr-core test failures with java 11
-    [OAK-7653] -test case to be compatible with it
+    [OAK-7653] - upgrade to Jacoco version compatible with Java 11
+    [OAK-7658] - Allow to decide whether the composite node store
+    checks should be enabled
+    [OAK-7667] - Update Oak 1.8 to Jackrabbit 2.16.3
+    [OAK-7674] - Allow to specify the connection string for
+    AzureBlobStore
+    [OAK-7675] - oak-pojosr: replace mockito-all by mockito-core
+    [OAK-7677] - Announcement mail template lacks line feeds in front
+    of release notes
+    [OAK-7678] - Update to default mockito version (defined in
+    oak-parent)
+    [OAK-7679] - oak-core: update Mockito version and fix test case to
+    be compatible with it
     [OAK-7681] - enable baseline check for oak-search-mt
     [OAK-7682] - fix comparisonVersion for baseline check
     [OAK-7685] - Update easymock dependency to 3.6
@@ -607,8 +833,17 @@ Test
     [OAK-7745] - Clarify update semantics on deleted nodes
     [OAK-7767] - Update tika dependency to 1.19
     [OAK-7787] - oak-it: NoClassDefFoundError in log with Java 11
-    [OAK-7790] - AK-7828] - Log off heap access for segments when
-    creating FileStore
+    [OAK-7790] - fix Javadoc (11) errors
+    [OAK-7795] - Log a debug message when two or more indices have
+    same or very close cost amounts
+    [OAK-7814] - Update tika dependency to 1.19.1
+    [OAK-7823] - examples: use project-wide logback version 1.2.3
+    instead of 1.1.7
+    [OAK-7826] - examples: remove unused slf4f related vars from pom
+    [OAK-7827] - examples: update Spring dependencies to
+    1.5.16.RELEASE
+    [OAK-7828] - Log off heap access for segments when creating
+    FileStore
     [OAK-7829] - oak-examples: update Tomcat dependency to 7.0.91
     [OAK-7831] - examples: update htmlunit dependency to 2.33
     [OAK-7833] - oak-examples/webapp: update groovy dependency
@@ -619,8 +854,14 @@ Test
     dependency
     [OAK-7844] - oak-solr-core test failures with java 12
     [OAK-7848] - update maven-bundle-plugin to 3.5.1
-    [OAK-7892] - LogCustomizer should support slProvider to register
-    metrics for QueryEngine
+    [OAK-7892] - LogCustomizer should support slf4j log levels
+    [OAK-7893] - Export DW Metrics for Lucene index size and document
+    counts
+    [OAK-7913] - Update failsafe and surefire versions to 2.22.1
+    [OAK-7931] - Don't allow for weak references between mounts
+    [OAK-7943] - Update Oak trunk to Jackrabbit 2.18.0
+    [OAK-7948] - Make it possible to use StatisticsProvider to
+    register metrics for QueryEngine
     [OAK-7954] - Record when no index is used for a certain query
     [OAK-7962] - FV reranking should be enabled by default
     [OAK-7969] - Update tika dependency to 1.20
@@ -636,7 +877,15 @@ Documentation
     [OAK-6964] - Document tail compaction
     [OAK-7112] - Update documentation for cold standby
     [OAK-7148] - Document excerpt support (specially excerpts for
-    properties)mmand
+    properties)
+    [OAK-7233] - Improve rep:glob documentation
+    [OAK-7242] - OAK API overview documentation links NodeState from
+    spi
+    [OAK-7616] - Document metrics
+    [OAK-7705] - Document the requirement to reset repository id for
+    cloned systems
+    [OAK-7895] - RELEASE-NOTES: minor typo
+    [OAK-7945] - Document the recover-journal command
 
 
 This release consists of a single source archive packaged as a zip file.
