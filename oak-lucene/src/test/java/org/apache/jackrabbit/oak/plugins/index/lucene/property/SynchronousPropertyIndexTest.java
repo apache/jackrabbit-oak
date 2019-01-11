@@ -264,7 +264,6 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
         addIndex(indexPath, defnb);
         root.commit();
-        runAsyncIndex();
 
         createPath("/a").setProperty("foo", "bar");
         root.commit();
@@ -278,8 +277,8 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
         assertQuery("select * from [nt:base] where [foo] = 'bar'", asList("/a", "/b"));
 
-        // Do multiple runs which lead to path being returned from both property and lucene
-        // index. But the actual result should only contain unique paths
+        //Do multiple runs which lead to path being returned from both property and lucene
+        //index. But the actual result should only contain unique paths
         runAsyncIndex();
         runAsyncIndex();
 
@@ -327,13 +326,13 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
         addIndex(indexPath, defnb);
         root.commit();
-        runAsyncIndex();
 
         assertThat(explain("select * from [nt:base] where [jcr:content/foo] = 'bar'"),
                 containsString("sync:(foo[jcr:content/foo] bar)"));
         assertThat(explain("select * from [nt:base] where [foo] = 'bar'"),
                 containsString("sync:(foo bar)"));
     }
+
 
     @Test
     public void relativePropertyTransform() throws Exception{
@@ -342,7 +341,6 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
         addIndex(indexPath, defnb);
         root.commit();
-        runAsyncIndex();
 
         createPath("/a/jcr:content").setProperty("foo", "bar");
         createPath("/b").setProperty("foo", "bar");
@@ -362,7 +360,6 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         indexPath = "/content/oak:index/fooIndex";
         addIndex(indexPath, defnb);
         root.commit();
-        runAsyncIndex();
 
         createPath("/a").setProperty("foo", "bar");
         createPath("/content/a").setProperty("foo", "bar");
@@ -430,7 +427,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void nodeTypeIndexing() throws Exception{
-        registerTestNodeTypes();
+        registerTestNodTypes();
 
         defnb.async("async", "nrt");
         defnb.nodeTypeIndex();
@@ -438,7 +435,6 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
         addIndex(indexPath, defnb);
         root.commit();
-        runAsyncIndex();
 
         createPath("/a", "oak:TestSuperType");
         createPath("/b", "oak:TestTypeB");
@@ -452,7 +448,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void nodeType_mixins() throws Exception{
-        registerTestNodeTypes();
+        registerTestNodTypes();
 
         defnb.async("async", "nrt");
         defnb.nodeTypeIndex();
@@ -460,7 +456,6 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
         addIndex(indexPath, defnb);
         root.commit();
-        runAsyncIndex();
 
         createPath("/a", "oak:Unstructured", singletonList("oak:TestMixA"));
         createPath("/b", "oak:TestTypeB");
@@ -471,10 +466,10 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         assertQuery("select * from [oak:TestMixA]", asList("/a", "/b"));
     }
 
-    private void registerTestNodeTypes() throws IOException, CommitFailedException {
+    private void registerTestNodTypes() throws IOException, CommitFailedException {
         optionalEditorProvider.delegate = new TypeEditorProvider();
         NodeTypeRegistry.register(root, IOUtils.toInputStream(testNodeTypes, "utf-8"), "test nodeType");
-        // Flush the changes to nodetypes
+        //Flush the changes to nodetypes
         root.commit();
     }
 
