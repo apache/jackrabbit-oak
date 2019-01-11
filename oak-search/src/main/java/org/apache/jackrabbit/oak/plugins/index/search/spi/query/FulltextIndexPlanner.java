@@ -105,11 +105,6 @@ public class FulltextIndexPlanner {
     }
 
     public IndexPlan getPlan() {
-        if (definition == null) {
-            log.debug("Index {} not loaded", indexPath);
-            return null;
-        }
-
         IndexPlan.Builder builder = getPlanBuilder();
 
         if (definition.isTestMode()){
@@ -735,13 +730,11 @@ public class FulltextIndexPlanner {
     }
 
     private long estimatedEntryCount() {
+        int numOfDocs = getNumDocs();
         if (useActualEntryCount) {
-            if (definition.isEntryCountDefined()) {
-                return definition.getEntryCount();
-            }
-            return  getNumDocs();
+            return definition.isEntryCountDefined() ? definition.getEntryCount() : numOfDocs;
         } else {
-            return estimatedEntryCount_Compat(getNumDocs());
+            return estimatedEntryCount_Compat(numOfDocs);
         }
     }
 

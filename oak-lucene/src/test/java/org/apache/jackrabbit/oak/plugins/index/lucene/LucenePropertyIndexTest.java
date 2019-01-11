@@ -2491,13 +2491,13 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
         root.commit();
 
-        // force CoR
-        executeQuery("select * from [mix:title] where [jcr:title] = 'x'", SQL2);
+        //force CoR
+        executeQuery("SELECT * FROM [mix:title]", SQL2);
 
         assertNotNull(corDir);
         String localPathBeforeReindex = corDir;
 
-        // CoW with re-indexing
+        //CoW with re-indexing
         idx.setProperty("reindex", true);
         root.commit();
 
