@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.FacetsCollector;
 import org.apache.lucene.facet.FacetsConfig;
@@ -92,7 +93,7 @@ public class FacetHelper {
                 }
             }
             if (facetsMap.size() > 0) {
-                facets = new MultiFacets(facetsMap);
+                facets = new MultiFacets(facetsMap, NULL_FACETS);
             }
 
         }
@@ -103,4 +104,21 @@ public class FacetHelper {
     public static String parseFacetField(String columnName) {
         return columnName.substring(QueryImpl.REP_FACET.length() + 1, columnName.length() - 1);
     }
+
+    private static final Facets NULL_FACETS = new Facets() {
+        @Override
+        public FacetResult getTopChildren(int topN, String dim, String... path) {
+            return null;
+        }
+
+        @Override
+        public Number getSpecificValue(String dim, String... path) {
+            return null;
+        }
+
+        @Override
+        public List<FacetResult> getAllDims(int topN) {
+            return null;
+        }
+    };
 }

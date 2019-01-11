@@ -615,6 +615,41 @@ public class FacetTest extends AbstractQueryTest {
         assertFalse(rows.hasNext());
     }
 
+    // OAK-7975
+    public void testFacetWithNoIndexedValues() throws Exception {
+        Node content = testRootNode.addNode("absentDimFacets");
+
+        content.addNode("bar").setProperty("text", "lorem ipsum");
+
+        superuser.save();
+
+        String query;
+        FacetResult facetResult;
+        List<FacetResult.Facet> facets;
+
+        // test with single facet column which has no indexed value yet
+        query = "select [rep:facet(jc/text)] from [nt:base] where contains(*, 'ipsum')";
+
+        facetResult = new FacetResult(qm.createQuery(query, Query.JCR_SQL2).execute());
+
+        assertNotNull(facetResult);
+        assertTrue(facetResult.getDimensions().isEmpty());
+
+        // test with requesting multiple facet columns - one would get facets other won't
+        query = "select [rep:facet(text)], [rep:facet(jc/text)] from [nt:base] where contains(*, 'ipsum')";
+
+        facetResult = new FacetResult(qm.createQuery(query, Query.JCR_SQL2).execute());
+
+        assertNotNull(facetResult);
+        assertEquals(newHashSet("text"), facetResult.getDimensions());
+
+        facets = facetResult.getFacets("text");
+        assertEquals(1, facets.size());
+
+        assertEquals("lorem ipsum", facets.get(0).getLabel());
+        assertEquals(1, facets.get(0).getCount());
+    }
+
     public void testNoFacetsIfNoAccess() throws Exception {
         deny(testRootNode.addNode("test1")).setProperty("jcr:title", "test1");
         deny(testRootNode.addNode("test2")).addNode("child").setProperty("jcr:title", "test2");
