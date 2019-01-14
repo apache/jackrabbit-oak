@@ -319,7 +319,7 @@ public class DocumentNodeStoreTest {
                 .build();
         c.apply();
         // allow writer to continue
-        s.release();
+        s.release(10);
         writer.join();
         assertEquals("expected exception", 1, exceptions.size());
 

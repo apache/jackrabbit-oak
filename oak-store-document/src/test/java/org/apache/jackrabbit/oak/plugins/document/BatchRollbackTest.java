@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -39,7 +38,6 @@ public class BatchRollbackTest {
 
     private TestStore store = new TestStore();
 
-    @Ignore("OAK-7984")
     @Test
     public void batchRollback() throws Exception {
         DocumentNodeStore ns = builderProvider.newBuilder()
