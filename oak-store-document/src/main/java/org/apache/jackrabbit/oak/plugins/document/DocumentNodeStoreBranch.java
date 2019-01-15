@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.CountingDiff.count
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
@@ -165,7 +166,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         Set<Revision> conflictRevisions = new HashSet<Revision>();
         long time = System.currentTimeMillis();
         int numRetries = 0;
-        boolean suspended= false;
+        long suspendMillis = 0;
         for (long backoff = MIN_BACKOFF; backoff <= maximumBackoff; backoff *= 2) {
             if (ex != null) {
                 try {
@@ -177,12 +178,13 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                         // suspend until conflicting revision is visible
                         LOG.debug("Suspending until {} is visible. Current head {}.",
                                 conflictRevisions, store.getHeadRevision());
-                        suspended = true;
-                        store.suspendUntilAll(conflictRevisions);
+                        suspendMillis += store.suspendUntilAll(conflictRevisions);
                         conflictRevisions.clear();
                         LOG.debug("Resumed. Current head {}.", store.getHeadRevision());
                     } else {
-                        Thread.sleep(backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
+                        long sleepMillis = backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE));
+                        suspendMillis += sleepMillis;
+                        Thread.sleep(sleepMillis);
                     }
                     perfLogger.end(start, 1, "Merge - Retry attempt [{}]", numRetries);
                 } catch (InterruptedException e) {
@@ -193,7 +195,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             try {
                 NodeState result = branchState.merge(checkNotNull(hook),
                         checkNotNull(info), exclusive);
-                store.getStatsCollector().doneMerge(numRetries, System.currentTimeMillis() - time, suspended, exclusive);
+                store.getStatsCollector().doneMerge(numRetries, System.currentTimeMillis() - time, suspendMillis, exclusive);
                 return result;
             } catch (FailedWithConflictException e) {
                 ex = e;
@@ -212,7 +214,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         }
         // if we get here retrying failed
         time = System.currentTimeMillis() - time;
-        store.getStatsCollector().failedMerge(numRetries, time, suspended, exclusive);
+        store.getStatsCollector().failedMerge(numRetries, time, suspendMillis, exclusive);
         String msg = ex.getMessage() + " (retries " + numRetries + ", " + time + " ms)";
         throw new CommitFailedException(ex.getSource(), ex.getType(),
                 ex.getCode(), msg, ex.getCause());
@@ -230,7 +232,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     @Nullable
     private Lock acquireMergeLock(boolean exclusive)
             throws CommitFailedException {
-        final long start = perfLogger.start();
+        final long start = System.nanoTime();
         Lock lock;
         if (exclusive) {
             lock = mergeLock.writeLock();
@@ -251,6 +253,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             LOG.info("Time out while acquiring merge lock ({})", mode);
             lock = null;
         }
+        long micros = TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start);
+        store.getStatsCollector().doneMergeLockAcquired(micros);
         return lock;
     }
 
@@ -518,7 +522,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 boolean success = false;
                 NodeState previousHead = head;
                 try {
-                    NodeState toCommit = hook.processCommit(base, head, info);
+                    DocumentNodeStoreStatsCollector stats = store.getStatsCollector();
+                    NodeState toCommit = TimingHook.wrap(hook, (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
+                            .processCommit(base, head, info);
                     try {
                         NodeState newHead;
                         if (this != branchState) {
@@ -526,7 +532,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                             Persisted p = branchState.persist();
                             RevisionVector branchRev = p.getHead().getRootRevision();
                             newHead = store.getRoot(store.merge(branchRev, info));
-                            store.getStatsCollector().doneMergeBranch(p.numCommits);
+                            stats.doneMergeBranch(p.numCommits);
                         } else {
                             newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
                         }
@@ -637,12 +643,14 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 rebase();
                 previousHead = head;
                 checkForConflicts();
-                NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
+                DocumentNodeStoreStatsCollector stats = store.getStatsCollector();
+                NodeState toCommit = TimingHook.wrap(checkNotNull(hook), (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
+                        .processCommit(base, head, info);
                 persistTransientHead(toCommit);
                 DocumentNodeState newRoot = store.getRoot(store.merge(head.getRootRevision(), info));
                 success = true;
                 branchState = new Merged(base);
-                store.getStatsCollector().doneMergeBranch(numCommits);
+                stats.doneMergeBranch(numCommits);
                 return newRoot;
             } catch (CommitFailedException e) {
                 throw e;
