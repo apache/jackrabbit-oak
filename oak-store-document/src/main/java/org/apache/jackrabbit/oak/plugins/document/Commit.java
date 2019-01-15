@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -237,7 +238,7 @@ public class Commit {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
-            applyToDocumentStore(baseRevision);
+            applyToDocumentStoreWithTiming(baseRevision);
         }
     }
 
@@ -260,7 +261,27 @@ public class Commit {
      * Apply the changes to the document store.
      */
     void applyToDocumentStore() throws ConflictException, DocumentStoreException {
-        applyToDocumentStore(null);
+        applyToDocumentStoreWithTiming(null);
+    }
+
+    /**
+     * Apply the changes to the document store.
+     *
+     * @param baseBranchRevision the base revision of this commit. Currently only
+     *                     used for branch commits.
+     * @throws ConflictException if a conflict is detected with another commit.
+     * @throws DocumentStoreException if an error occurs while writing to the
+     *          underlying store.
+     */
+    private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision)
+            throws ConflictException, DocumentStoreException {
+        long start = System.nanoTime();
+        try {
+            applyToDocumentStore(baseBranchRevision);
+        } finally {
+            nodeStore.getStatsCollector().doneChangesApplied(
+                    TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start));
+        }
     }
 
     /**

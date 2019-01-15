@@ -658,6 +658,7 @@ public final class DocumentNodeStore
                 new PrefetchDispatcher(getRoot(), executor) :
                 new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this);
+        commitQueue.setStatisticsCollector(nodeStoreStatsCollector);
         batchCommitQueue = new BatchCommitQueue(store);
         // prepare background threads
         backgroundReadThread = new Thread(
@@ -1799,8 +1800,10 @@ public final class DocumentNodeStore
      * delay is set to 0.
      *
      * @param conflictRevisions the revision to become visible.
+     * @return the suspend time in milliseconds.
      */
-    void suspendUntilAll(@NotNull Set<Revision> conflictRevisions) {
+    long suspendUntilAll(@NotNull Set<Revision> conflictRevisions) {
+        long time = clock.getTime();
         // do not suspend if revision is from another cluster node
         // and background read is disabled
         if (getAsyncDelay() == 0) {
@@ -1814,6 +1817,7 @@ public final class DocumentNodeStore
         } else {
             commitQueue.suspendUntilAll(conflictRevisions);
         }
+        return clock.getTime() - time;
     }
 
     //------------------------< Observable >------------------------------------
