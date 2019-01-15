@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.isFinalCommitRootUpdate;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -54,20 +55,6 @@ public class CommitRootUpdateTest {
                     throw new RuntimeException("communication failure");
                 }
                 return doc;
-            }
-
-            private boolean isFinalCommitRootUpdate(UpdateOp update) {
-                boolean finalUpdate = true;
-                for (Map.Entry<Key, Operation> op : update.getChanges().entrySet()) {
-                    String name = op.getKey().getName();
-                    if (NodeDocument.isRevisionsEntry(name)
-                            || NodeDocument.MODIFIED_IN_SECS.equals(name)) {
-                        continue;
-                    }
-                    finalUpdate = false;
-                    break;
-                }
-                return finalUpdate;
             }
         };
 

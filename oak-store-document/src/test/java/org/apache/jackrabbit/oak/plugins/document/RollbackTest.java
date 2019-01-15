@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -74,7 +73,6 @@ public class RollbackTest {
         Revision.resetClockToDefault();
     }
 
-    @Ignore("OAK-7976")
     @Test
     public void nonBlocking() throws Exception {
         TestStore store = new TestStore();
@@ -119,6 +117,16 @@ public class RollbackTest {
         assertFalse(store.failCommitOnce.get());
         assertThat(t2 - t1,
                 greaterThanOrEqualTo(1000L));
+    }
+
+    @Test(expected = DocumentStoreException.class)
+    public void rollbackFailed() {
+        Rollback.FAILED.perform(new MemoryDocumentStore());
+    }
+
+    @Test
+    public void rollbackNone() {
+        Rollback.NONE.perform(new MemoryDocumentStore());
     }
 
     private class TestStore extends MemoryDocumentStore {

@@ -294,13 +294,15 @@ public class DocumentNodeStoreTest {
         Thread writer = new Thread(new Runnable() {
             @Override
             public void run() {
+                Commit c = new CommitBuilder(store, store.newRevision(), head)
+                        .addNode("/newConflictingNode")
+                        .addNode("/deletedNode")
+                        .updateProperty("/updateNode", "foo", "baz")
+                        .build();
                 try {
-                    new CommitBuilder(store, store.newRevision(), head)
-                            .addNode("/newConflictingNode")
-                            .addNode("/deletedNode")
-                            .updateProperty("/updateNode", "foo", "baz")
-                            .build().apply();
+                    c.apply();
                 } catch (Exception e) {
+                    c.rollback();
                     exceptions.add(e);
                 }
             }
