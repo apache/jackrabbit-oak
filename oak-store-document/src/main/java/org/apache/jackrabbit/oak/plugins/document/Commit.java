@@ -64,7 +64,7 @@ public class Commit {
     private final HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
     private final Set<Revision> collisions = new LinkedHashSet<Revision>();
     private Branch b;
-    private boolean rollbackFailed;
+    private Rollback rollback = Rollback.NONE;
 
     /**
      * List of all node paths which have been modified in this commit. In addition to the nodes
@@ -170,11 +170,21 @@ public class Commit {
     }
 
     /**
-     * @return {@code true} if this commit did not succeed and the rollback
-     *      was unable to revert all changes; otherwise {@code false}.
+     * Performs a rollback of this commit if necessary.
+     *
+     * @return {@code false} if a rollback was necessary and the rollback did
+     *         not complete successfully, {@code true} otherwise.
      */
-    boolean rollbackFailed() {
-        return rollbackFailed;
+    boolean rollback() {
+        boolean success = false;
+        try {
+            rollback.perform(this.nodeStore.getDocumentStore());
+            success = true;
+        } catch (Throwable t) {
+            // catch any exception caused by the rollback and log it
+            LOG.warn("Rollback failed", t);
+        }
+        return success;
     }
 
     /**
@@ -195,6 +205,7 @@ public class Commit {
                 success = true;
             } finally {
                 if (!success) {
+                    rollback();
                     Branch branch = getBranch();
                     if (branch != null) {
                         branch.removeCommit(rev.asBranchRevision());
@@ -263,10 +274,9 @@ public class Commit {
      */
     private void applyToDocumentStore(RevisionVector baseBranchRevision)
             throws ConflictException, DocumentStoreException {
-        // initially set the rollbackFailed flag to true
-        // the flag will be set to false at the end of the method
-        // when the commit succeeds
-        rollbackFailed = true;
+        // initially set the rollback to always fail until we have changes
+        // in an oplog list and a commit root.
+        rollback = Rollback.FAILED;
 
         // the value in _revisions.<revision> property of the commit root node
         // regular commits use "c", which makes the commit visible to
@@ -298,6 +308,8 @@ public class Commit {
                 }
             }
         }
+
+        rollback = new Rollback(revision, opLog, Utils.getIdFromPath(commitRootPath));
 
         for (String p : bundledNodes.keySet()){
             markChanged(p);
@@ -386,14 +398,6 @@ public class Commit {
             if (success) {
                 LOG.error("Exception occurred after commit. Rollback will be suppressed.", e);
             } else {
-                try {
-                    rollback(opLog, commitRoot);
-                    rollbackFailed = false;
-                } catch (Throwable ex) {
-                    // catch any exception caused by the rollback, log it
-                    // and throw the original exception
-                    LOG.warn("Rollback failed", ex);
-                }
                 if (e instanceof ConflictException) {
                     throw e;
                 } else {
@@ -402,7 +406,7 @@ public class Commit {
             }
         } finally {
             if (success) {
-                rollbackFailed = false;
+                rollback = Rollback.NONE;
             }
         }
     }
@@ -472,23 +476,6 @@ public class Commit {
             UpdateOp op = getUpdateOperationForNode(parentPath);
             NodeDocument.setChildrenFlag(op, true);
         }
-    }
-
-    private void rollback(List<UpdateOp> changed,
-                          UpdateOp commitRoot) {
-        DocumentStore store = nodeStore.getDocumentStore();
-        List<UpdateOp> reverseOps = new ArrayList<>();
-        for (UpdateOp op : changed) {
-            UpdateOp reverse = op.getReverseOperation();
-            if (op.isNew()) {
-                NodeDocument.setDeletedOnce(reverse);
-            }
-            // do not create document if it doesn't exist
-            reverse.setNew(false);
-            reverseOps.add(reverse);
-        }
-        store.createOrUpdate(NODES, reverseOps);
-        removeCollisionMarker(commitRoot.getId());
     }
 
     /**

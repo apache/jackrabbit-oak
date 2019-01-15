@@ -499,8 +499,8 @@ public final class DocumentNodeStore
      * is called and removed when the commit either:
      * <ul>
      *     <li>Succeeds with {@link #done(Commit, boolean, CommitInfo)}</li>
-     *     <li>Fails with {@link #canceled(Commit)} and the commit does *not*
-     *      have the {@link Commit#rollbackFailed()} flag set.</li>
+     *     <li>Fails with {@link #canceled(Commit)} and the commit was
+     *      successfully rolled back.</li>
      * </ul>
      * The {@link NodeDocumentSweeper} periodically goes through this set and
      * reverts changes done by commits in the set that are older than the
@@ -616,6 +616,7 @@ public final class DocumentNodeStore
             try {
                 commit.applyToDocumentStore();
             } catch (ConflictException e) {
+                commit.rollback();
                 throw new IllegalStateException("Conflict while creating root document", e);
             }
             unsavedLastRevisions.put("/", commitRev);
@@ -956,15 +957,17 @@ public final class DocumentNodeStore
     void canceled(Commit c) {
         if (commitQueue.contains(c.getRevision())) {
             try {
-                if (!c.rollbackFailed() || c.isEmpty()) {
+                commitQueue.canceled(c.getRevision());
+                if (c.rollback()) {
+                    // rollback was successful
                     inDoubtTrunkCommits.remove(c.getRevision());
                 }
-                commitQueue.canceled(c.getRevision());
             } finally {
                 backgroundOperationLock.readLock().unlock();
             }
         } else {
             try {
+                c.rollback();
                 Branch b = branches.getBranch(c.getBaseRevision());
                 if (b != null) {
                     b.removeCommit(c.getRevision().asBranchRevision());
