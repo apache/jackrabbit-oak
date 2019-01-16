@@ -115,9 +115,14 @@ DOCUMENT_NS_BGW_SWEEP | The time it takes to sweep documents in a background wri
 DOCUMENT_NS_BGW_TOTAL_TIME | The total time of a background write operation.
 DOCUMENT_NS_LEASE_UPDATE | The time it takes to update the lease.
 DOCUMENT_NS_MERGE_SUCCESS_TIME | The time it takes a successful merge to complete. This does not include merge attempts that failed.
+DOCUMENT_NS_HEAD_OF_QUEUE_WAIT_TIME | The time a merge had to wait in the commit queue until it was the head of the queue and could proceed.
+DOCUMENT_NS_MERGE_SUSPEND_TIME | The time a merge was suspended due to a conflicting write on another cluster node.
+DOCUMENT_NS_MERGE_LOCK_TIME | The time it took to acquire the merge lock.
+DOCUMENT_NS_MERGE_COMMIT_HOOK_TIME | The time it took to run the commit hook on the changes to merge.
+DOCUMENT_NS_MERGE_CHANGES_APPLIED_TIME | The time it took to apply the changes to the DocumentStore.
 
-> Note: Oak tracks the duration for above timers at millisecond accuracy, but
-tools may translate the duration percentiles to different units.
+> Note: Oak tracks the duration for above timers at millisecond or microsecond
+accuracy, but tools may translate the duration percentiles to different units.
 
 If a `DocumentNodeStore` is configured with persistent caches, then the
 following Meters are available:
