@@ -100,9 +100,17 @@ abstract class ACL extends AbstractAccessControlList {
         }
 
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
-            String jcrName = getNamePathMapper().getJcrName(def.getName());
-            if (def.isMandatory() && (restrictions == null || !restrictions.containsKey(jcrName))) {
-                throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
+            if (def.isMandatory()) {
+                String jcrName = getNamePathMapper().getJcrName(def.getName());
+                boolean mandatoryPresent;
+                if (def.getRequiredType().isArray()) {
+                    mandatoryPresent = (mvRestrictions != null && mvRestrictions.containsKey(jcrName));
+                } else {
+                    mandatoryPresent = (restrictions != null && restrictions.containsKey(jcrName));
+                }
+                if (!mandatoryPresent) {
+                    throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
+                }
             }
         }
 

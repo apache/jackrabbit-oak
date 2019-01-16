@@ -830,17 +830,52 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         }
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testMandatoryRestrictions() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
 
         JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
-        try {
-            acl.addEntry(testPrincipal, testPrivileges, false, Collections.<String, Value>emptyMap());
-            fail("Mandatory restriction must be enforced.");
-        } catch (AccessControlException e) {
-            // mandatory restriction missing -> success
-        }
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.emptyMap());
+    }
+
+    @Test
+    public void testMandatoryRestrictionsPresent() throws Exception {
+        RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
+
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("mandatory", valueFactory.createValue("name", PropertyType.NAME)), Collections.emptyMap());
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testMandatoryRestrictionsPresentAsMV() throws Exception {
+        RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
+
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.singletonMap("mandatory", new Value[] {valueFactory.createValue("name", PropertyType.NAME)}));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testMandatoryMVRestrictions() throws Exception {
+        RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAMES, true);
+
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.emptyMap());
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testMandatoryMVRestrictionsPresentAsSingle() throws Exception {
+        RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAMES, true);
+
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("mandatory", valueFactory.createValue("name", PropertyType.NAME)), Collections.emptyMap());
+    }
+
+    @Test
+    public void testMandatoryMVRestrictionsPresent() throws Exception {
+        RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAMES, true);
+
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.singletonMap("mandatory", new Value[] {valueFactory.createValue("name", PropertyType.NAME)}));
     }
 
     //--------------------------------------------------------------------------
