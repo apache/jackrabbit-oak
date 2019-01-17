@@ -101,4 +101,20 @@ public class RemoteBlobProcessorTest {
         processor.processBinary(store.getRoot().getProperty("b").getValue(Type.BINARY));
     }
 
+    @Test
+    public void inlineBinaryShouldNotBeDownloaded() throws Exception {
+        SegmentNodeStore store = SegmentNodeStoreBuilders.builder(fileStore.fileStore()).build();
+
+        NodeBuilder root = store.getRoot().builder();
+        root.setProperty("b", root.createBlob(new NullInputStream(SegmentTestConstants.MEDIUM_LIMIT - 1)));
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        RemoteBlobProcessor processor = new RemoteBlobProcessor(blobStore.blobStore(), blobId -> {
+            Assert.fail("Inline binaries should not be downloaded");
+            return null;
+        });
+
+        processor.processBinary(store.getRoot().getProperty("b").getValue(Type.BINARY));
+    }
+
 }
