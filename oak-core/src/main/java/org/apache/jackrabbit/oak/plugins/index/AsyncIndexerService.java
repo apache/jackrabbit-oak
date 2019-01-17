@@ -191,7 +191,7 @@ public class AsyncIndexerService {
         TrackingCorruptIndexHandler corruptIndexHandler = new TrackingCorruptIndexHandler();
         corruptIndexHandler.setCorruptInterval(failingIndexTimeoutSeconds, TimeUnit.SECONDS);
         corruptIndexHandler.setErrorWarnInterval(errorWarnIntervalSeconds, TimeUnit.SECONDS);
-        corruptIndexHandler.setMeterStats(statisticsProvider.getMeter("corrupt-index", StatsOptions.METRICS_ONLY));
+        corruptIndexHandler.setMeterStats(statisticsProvider.getMeter(TrackingCorruptIndexHandler.CORRUPT_INDEX_METER_NAME, StatsOptions.METRICS_ONLY));
 
         if (failingIndexTimeoutSeconds <= 0){
             log.info("[failingIndexTimeoutSeconds] is set to {}. Auto corrupt index isolation handling is disabled, warning log would be " +
