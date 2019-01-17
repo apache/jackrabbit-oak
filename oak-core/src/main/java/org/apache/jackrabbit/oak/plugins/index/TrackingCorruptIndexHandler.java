@@ -46,6 +46,9 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
+
+    static final String CORRUPT_INDEX_METER_NAME = "corrupt-index";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Clock clock = Clock.SIMPLE;
     private long errorWarnIntervalMillis = TimeUnit.MINUTES.toMillis(15);
