@@ -25,6 +25,7 @@ import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
@@ -33,11 +34,13 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Composit
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTest {
 
@@ -141,12 +144,32 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
 
     @Test
     public void testMultipleRestrictionProvider() {
-        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(
-                createAuthorizationConfigurationImpl(),
-                createAuthorizationConfigurationImpl());
+        // 2 authorization configuration with different RestrictionProvider
+        AuthorizationConfiguration ac = createAuthorizationConfigurationImpl();
+        AuthorizationConfiguration ac2 = Mockito.mock(AuthorizationConfiguration.class);
+        when(ac2.getRestrictionProvider()).thenReturn(Mockito.mock(RestrictionProvider.class));
+        when(ac2.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac, ac2);
 
         RestrictionProvider rp = cc.getRestrictionProvider();
         assertTrue(rp instanceof CompositeRestrictionProvider);
+    }
+
+    @Test
+    public void testRedundantRestrictionProvider() {
+        // 2 authorization configuration sharing the same RestrictionProvider
+        AuthorizationConfiguration ac = createAuthorizationConfigurationImpl();
+        AuthorizationConfiguration ac2 = Mockito.mock(AuthorizationConfiguration.class);
+        when(ac2.getRestrictionProvider()).thenReturn(ac.getRestrictionProvider());
+        when(ac2.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac, ac2);
+
+        // composite should detect the duplication
+        RestrictionProvider rp = cc.getRestrictionProvider();
+        assertFalse(rp instanceof CompositeRestrictionProvider);
+        assertSame(ac.getRestrictionProvider(), rp);
     }
 
     @Test
