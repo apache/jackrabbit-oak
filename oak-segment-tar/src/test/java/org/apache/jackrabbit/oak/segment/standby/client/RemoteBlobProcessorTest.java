@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -85,7 +84,6 @@ public class RemoteBlobProcessorTest {
      * downloaded.
      */
     @Test
-    @Ignore("OAK-6749")
     public void inMemoryBinaryShouldNotBeDownloaded() throws Exception {
         SegmentNodeStore store = SegmentNodeStoreBuilders.builder(fileStore.fileStore()).build();
 

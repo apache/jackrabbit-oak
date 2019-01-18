@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.standby.client;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -59,7 +61,59 @@ class RemoteBlobProcessor implements BlobProcessor {
     }
 
     private boolean shouldFetchBinary(SegmentBlob blob) {
-        return blob.isExternal() && blob.getReference() == null && blob.getBlobId() != null;
+
+        // Shortcut: If the Blob ID is null, this is an inline binary and we
+        // don't have to fetch it.
+
+        String blobId = blob.getBlobId();
+
+        if (blobId == null) {
+            return false;
+        }
+
+        // Shortcut: If the Blob Store is able to retrieve a non-null reference
+        // to the Blob, we can be sure that the Blob is already stored locally.
+        // We don't have to download it.
+
+        String reference;
+
+        try {
+            reference = blob.getReference();
+        } catch (Exception e) {
+            reference = null;
+        }
+
+        if (reference != null) {
+            return false;
+        }
+
+        // Worst case: A null reference to the Blob might just mean that the
+        // Blob Store doesn't support references. The Blob might still be stored
+        // locally. We have to retrieve an InputStream for the Blob, and
+        // perform a tentative read in order to overcome a possible lazy
+        // implementation of the returned InputStream.
+
+        InputStream data;
+
+        try {
+            data = blobStore.getInputStream(blobId);
+        } catch (Exception e) {
+            return true;
+        }
+
+        if (data == null) {
+            return true;
+        }
+
+        try {
+            data.read();
+        } catch (Exception e) {
+            return true;
+        } finally {
+            closeQuietly(data);
+        }
+
+        return false;
     }
 
     private void fetchAndStoreBlob(String blobId) throws InterruptedException {
