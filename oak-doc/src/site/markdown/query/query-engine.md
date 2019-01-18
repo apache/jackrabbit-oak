@@ -277,6 +277,9 @@ Queries that exceed one of the limits are cancelled with an UnsupportedOperation
 
 "LimitReads" applies to the number of nodes read by a query.
 It applies whether or not an index is used.
+The exact number of nodes read for a query depends on many factors,
+mainly the query, the query plan used, the index configuration, access rights, and nodes in the repository.
+The result size of a query is often much smaller than the number of nodes read.
 As an example, if a query has just two conditions, as in `a=1 and b=2`, and if there is an index on `a`,
 then all nodes with `a=1` need to be read while traversing the result.
 If more nodes are read than the set limit, then an exception is thrown.
@@ -557,7 +560,7 @@ for evaluating the query. So, a query like:
 can only be resolved by an index which is indexing all `nt:unstructured` nodes. Following query is
 is what should be used to get facets from nodes which have existing faceted proeprty:
 
-    SELECT [rep:facet(jcr:title)] FROM [nt:unstructured] WHERE [jcr:title] IS NOT NULL 
+    SELECT [rep:facet(jcr:title)] FROM [nt:unstructured] WHERE [jcr:title] IS NOT NULL
 
 ### XPath to SQL-2 Transformation
 
