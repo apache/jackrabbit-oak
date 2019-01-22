@@ -121,7 +121,7 @@ public abstract class SegmentCopyTestBase {
 
         SegmentCopy segmentCopy = SegmentCopy.builder().withSrcPersistencee(srcPersistence)
                 .withDestPersistence(destPersistence).withSource(srcPathOrUri).withDestination(destPathOrUri)
-                .withOutWriter(outWriter).withErrWriter(errWriter).withVerbose(true).build();
+                .withOutWriter(outWriter).withErrWriter(errWriter).build();
         return segmentCopy.run();
     }
 

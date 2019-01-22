@@ -25,14 +25,12 @@ import java.io.PrintWriter;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 
 class SegmentCopyCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
-        OptionSpec<?> verbose = parser.accepts("verbose", "print detailed output about individual segments transfered");
         OptionSet options = parser.parse(args);
 
         PrintWriter out = new PrintWriter(System.out, true);
@@ -48,7 +46,6 @@ class SegmentCopyCommand implements Command {
         int statusCode = SegmentCopy.builder()
                 .withSource(source)
                 .withDestination(destination)
-                .withVerbose(options.has(verbose))
                 .withOutWriter(out)
                 .withErrWriter(err)
                 .build()
