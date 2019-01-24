@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -195,39 +196,29 @@ public class IndexTracker {
         refresh = true;
     }
 
+    /**
+     * Acquire the index node, if the index is good.
+     *
+     * @param path the index path
+     * @return the index node, or null if it's a bad (corrupt) index
+     */
+    @Nullable
     public LuceneIndexNode acquireIndexNode(String path) {
         LuceneIndexNodeManager index = indices.get(path);
         LuceneIndexNode indexNode = index != null ? index.acquire() : null;
         if (indexNode != null) {
             return indexNode;
-        } else {
-            return findIndexNode(path);
         }
+        return findIndexNode(path);
     }
 
+    /**
+     * Get the index node, if the index is good.
+     *
+     * @param path the index path
+     * @return the index node, or null if it's a bad (corrupt) index
+     */
     @Nullable
-    public LuceneIndexDefinition getIndexDefinition(String indexPath){
-        LuceneIndexNodeManager node = indices.get(indexPath);
-        if (node != null){
-            //Accessing the definition should not require
-            //locking as its immutable state
-            return node.getDefinition();
-        }
-        return null;
-    }
-
-    public Set<String> getIndexNodePaths(){
-        return indices.keySet();
-    }
-
-    public BadIndexTracker getBadIndexTracker() {
-        return badIndexTracker;
-    }
-
-    public NodeState getRoot() {
-        return root;
-    }
-
     private synchronized LuceneIndexNode findIndexNode(String path) {
         // Retry the lookup from acquireIndexNode now that we're
         // synchronized. The acquire() call is guaranteed to succeed
@@ -268,6 +259,42 @@ public class IndexTracker {
         }
 
         return null;
+    }
+
+    @Nullable
+    public LuceneIndexDefinition getIndexDefinition(String indexPath){
+        LuceneIndexNodeManager indexNodeManager = indices.get(indexPath);
+        if (indexNodeManager != null) {
+            // Accessing the definition should not require
+            // locking as its immutable state
+            return indexNodeManager.getDefinition();
+        }
+        // fallback - create definition from scratch
+        NodeState node = NodeStateUtils.getNode(root, indexPath);
+        if (!node.exists()) {
+            return null;
+        }
+        // only if there exists a stored index definition
+        if (!node.hasChildNode(INDEX_DEFINITION_NODE)) {
+            return null;
+        }
+        if (!isLuceneIndexNode(node)) {
+            return null;
+        }
+        // this will internally use the stored index definition
+        return new LuceneIndexDefinition(root, node, indexPath);
+    }
+
+    public Set<String> getIndexNodePaths(){
+        return indices.keySet();
+    }
+
+    public BadIndexTracker getBadIndexTracker() {
+        return badIndexTracker;
+    }
+
+    public NodeState getRoot() {
+        return root;
     }
 
     private static boolean isStatusChanged(NodeState before, NodeState after) {

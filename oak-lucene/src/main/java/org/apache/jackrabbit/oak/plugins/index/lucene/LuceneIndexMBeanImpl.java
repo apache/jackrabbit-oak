@@ -93,6 +93,8 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.Directory
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
 
+    private static final boolean LOAD_INDEX_FOR_STATS = Boolean.parseBoolean(System.getProperty("oak.lucene.LoadIndexForStats", "false"));
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
     private final NodeStore nodeStore;
@@ -381,11 +383,21 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     @Override
     public String getSize(String indexPath) throws IOException {
+        if (!LOAD_INDEX_FOR_STATS) {
+            if (!indexTracker.getIndexNodePaths().contains(indexPath)) {
+                return "-1";
+            }
+        }
         return String.valueOf(getIndexStats(indexPath).indexSize);
     }
 
     @Override
     public String getDocCount(String indexPath) throws IOException {
+        if (!LOAD_INDEX_FOR_STATS) {
+            if (!indexTracker.getIndexNodePaths().contains(indexPath)) {
+                return "-1";
+            }
+        }
         return String.valueOf(getIndexStats(indexPath).numDocs);
     }
 
