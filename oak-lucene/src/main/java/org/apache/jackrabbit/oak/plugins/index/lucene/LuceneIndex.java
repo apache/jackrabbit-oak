@@ -219,14 +219,17 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         try{
             if (node != null){
                 IndexDefinition defn = node.getDefinition();
-                return Collections.singletonList(planBuilder(filter)
-                        .setEstimatedEntryCount(defn.getFulltextEntryCount(node.getIndexStatistics().numDocs()))
-                        .setCostPerExecution(defn.getCostPerExecution())
-                        .setCostPerEntry(defn.getCostPerEntry())
-                        .setDeprecated(defn.isDeprecated())
-                        .setAttribute(ATTR_INDEX_PATH, indexPath)
-                        .setDeprecated(defn.isDeprecated())
-                        .build());
+                LuceneIndexStatistics stats = node.getIndexStatistics();
+                if (stats != null) {
+                    return Collections.singletonList(planBuilder(filter)
+                            .setEstimatedEntryCount(defn.getFulltextEntryCount(stats.numDocs()))
+                            .setCostPerExecution(defn.getCostPerExecution())
+                            .setCostPerEntry(defn.getCostPerEntry())
+                            .setDeprecated(defn.isDeprecated())
+                            .setAttribute(ATTR_INDEX_PATH, indexPath)
+                            .setDeprecated(defn.isDeprecated())
+                            .build());
+                }
             }
             //No index node then no plan possible
             return Collections.emptyList();

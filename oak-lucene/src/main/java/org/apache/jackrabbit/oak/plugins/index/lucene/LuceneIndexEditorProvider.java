@@ -65,6 +65,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
  *
  */
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexCopier indexCopier;
     private final ExtractedTextCache extractedTextCache;

@@ -105,6 +105,11 @@ public class FulltextIndexPlanner {
     }
 
     public IndexPlan getPlan() {
+        if (definition == null) {
+            log.debug("Index {} not loaded", indexPath);
+            return null;
+        }
+
         IndexPlan.Builder builder = getPlanBuilder();
 
         if (definition.isTestMode()){
@@ -281,6 +286,9 @@ public class FulltextIndexPlanner {
             costPerEntryFactor += sortOrder.size();
 
             IndexPlan.Builder plan = defaultPlan();
+            if (plan == null) {
+                return null;
+            }
             if (!sortOrder.isEmpty()) {
                 plan.setSortOrder(sortOrder);
             }
@@ -413,9 +421,16 @@ public class FulltextIndexPlanner {
             result.disableUniquePaths();
         }
 
-        //If native function can be handled by this index then ensure
-        // that lowest cost if returned
-        return canHandleNativeFunction ? defaultPlan().setEstimatedEntryCount(1) : null;
+        if (!canHandleNativeFunction) {
+            return null;
+        }
+        IndexPlan.Builder b = defaultPlan();
+        if (b == null) {
+            return null;
+        }
+        // If native function can be handled by this index, then ensure
+        // that lowest cost is returned
+        return b.setEstimatedEntryCount(1);
     }
 
     /*
@@ -713,7 +728,16 @@ public class FulltextIndexPlanner {
         return rule.indexesAllNodesOfMatchingType() && !rule.isBasedOnNtBase();
     }
 
+    @Nullable
     private IndexPlan.Builder defaultPlan() {
+        // With OAK-7947 lucene indexes return a non-null index node to delay reading index files
+        // While IndexNode could have a status check method but for now we are using this work-around
+        // to check null on {@code getIndexStatistics()} as proxy indicator
+        // (this could be avoided by returning lazy statistics)
+        if (indexNode.getIndexStatistics() == null) {
+            return null;
+        }
+
         return new IndexPlan.Builder()
                 .setCostPerExecution(definition.getCostPerExecution())
                 .setCostPerEntry(definition.getCostPerEntry())
@@ -730,11 +754,13 @@ public class FulltextIndexPlanner {
     }
 
     private long estimatedEntryCount() {
-        int numOfDocs = getNumDocs();
         if (useActualEntryCount) {
-            return definition.isEntryCountDefined() ? definition.getEntryCount() : numOfDocs;
+            if (definition.isEntryCountDefined()) {
+                return definition.getEntryCount();
+            }
+            return  getNumDocs();
         } else {
-            return estimatedEntryCount_Compat(numOfDocs);
+            return estimatedEntryCount_Compat(getNumDocs());
         }
     }
 
@@ -756,11 +782,20 @@ public class FulltextIndexPlanner {
     }
 
     private int getNumDocs() {
-        return indexNode.getIndexStatistics().numDocs();
+        IndexStatistics indexStatistics = indexNode.getIndexStatistics();
+        if (indexStatistics == null) {
+           log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
+           return Integer.MAX_VALUE;
+        }
+        return indexStatistics.numDocs();
     }
 
     private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns, Filter filter) {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
+        if (indexStatistics == null) {
+           log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
+           return Integer.MAX_VALUE;
+        }
         int minNumDocs = indexStatistics.numDocs();
         for (Map.Entry<String, PropertyDefinition> propDef : propDefns.entrySet()) {
             String key = propDef.getKey();

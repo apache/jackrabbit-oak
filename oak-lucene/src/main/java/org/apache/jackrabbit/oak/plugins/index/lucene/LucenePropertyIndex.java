@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
@@ -46,11 +47,13 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
@@ -120,6 +123,8 @@ import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
+import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -185,6 +190,9 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  *
  */
 public class LucenePropertyIndex extends FulltextIndex {
+
+
+    private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
 
     private static double MIN_COST = 2.1;
 
@@ -689,7 +697,10 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     @Override
     protected LuceneIndexNode acquireIndexNode(String indexPath) {
-        return tracker.acquireIndexNode(indexPath);
+        if (NON_LAZY) {
+            return tracker.acquireIndexNode(indexPath);
+        }
+        return new LazyLuceneIndexNode(tracker, indexPath);
     }
 
     @Override
@@ -1552,4 +1563,128 @@ public class LucenePropertyIndex extends FulltextIndex {
             return null;
         }
     }
+
+    /**
+     * A index node implementation that acquires the underlying index only if
+     * actually needed. This is to avoid downloading the index for the planning
+     * phase, if there is no chance that the index is actually used.
+     */
+    static class LazyLuceneIndexNode implements LuceneIndexNode {
+        private AtomicBoolean released = new AtomicBoolean();
+        private IndexTracker tracker;
+        private String indexPath;
+        private volatile LuceneIndexNode indexNode;
+
+        LazyLuceneIndexNode(IndexTracker tracker, String indexPath) {
+            this.tracker = tracker;
+            this.indexPath = indexPath;
+        }
+
+        @Override
+        public void release() {
+            if (released.getAndSet(true)) {
+                // already released
+                return;
+            }
+            if (indexNode != null) {
+                indexNode.release();
+            }
+            // to ensure it is not used after releasing
+            indexNode = null;
+            tracker = null;
+            indexPath = null;
+        }
+
+        private void checkNotReleased() {
+            if (released.get()) {
+                throw new IllegalStateException("Already released");
+            }
+        }
+
+        @Override
+        public LuceneIndexDefinition getDefinition() {
+            checkNotReleased();
+            return tracker.getIndexDefinition(indexPath);
+        }
+
+        private LuceneIndexNode getIndexNode() {
+            LuceneIndexNode n = findIndexNode();
+            if (n == null) {
+                String message = "No index node, corrupt index? " + indexPath;
+                LOG.warn(message);
+                throw new IllegalStateException(message);
+            }
+            return n;
+        }
+
+        @Nullable
+        private LuceneIndexNode findIndexNode() {
+            checkNotReleased();
+            LuceneIndexNode n = indexNode;
+            // double checked locking implemented in the correct way for Java 5
+            // and newer (actually I don't think this is ever called
+            // concurrently right now, but better be save)
+            if (n == null) {
+                synchronized (this) {
+                    n = indexNode;
+                    if (n == null) {
+                        n = indexNode = tracker.acquireIndexNode(indexPath);
+                    }
+                }
+            }
+            return n;
+        }
+
+        @Override
+        public int getIndexNodeId() {
+            return getIndexNode().getIndexNodeId();
+        }
+
+        @Nullable
+        @Override
+        public LuceneIndexStatistics getIndexStatistics() {
+            LuceneIndexNode n = findIndexNode();
+            if (n == null) {
+                return null;
+            }
+            return n.getIndexStatistics();
+        }
+
+        @Override
+        public IndexSearcher getSearcher() {
+            return getIndexNode().getSearcher();
+        }
+
+        @Override
+        public List<LuceneIndexReader> getPrimaryReaders() {
+            return getIndexNode().getPrimaryReaders();
+        }
+
+        @Override
+        public @Nullable Directory getSuggestDirectory() {
+            return getIndexNode().getSuggestDirectory();
+        }
+
+        @Override
+        public List<LuceneIndexReader> getNRTReaders() {
+            return getIndexNode().getNRTReaders();
+        }
+
+        @Override
+        public @Nullable AnalyzingInfixSuggester getLookup() {
+            return getIndexNode().getLookup();
+        }
+
+        @Override
+        public @Nullable LuceneIndexWriter getLocalWriter() throws IOException {
+            return getIndexNode().getLocalWriter();
+        }
+
+        @Override
+        public void refreshReadersOnWriteIfRequired() {
+            getIndexNode().refreshReadersOnWriteIfRequired();
+        }
+
+    }
+
 }

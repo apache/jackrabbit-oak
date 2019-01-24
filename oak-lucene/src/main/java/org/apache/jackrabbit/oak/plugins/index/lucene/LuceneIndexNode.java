@@ -37,6 +37,7 @@ public interface LuceneIndexNode extends IndexNode {
 
     IndexSearcher getSearcher();
 
+    @Nullable
     LuceneIndexStatistics getIndexStatistics();
 
     List<LuceneIndexReader> getPrimaryReaders();
