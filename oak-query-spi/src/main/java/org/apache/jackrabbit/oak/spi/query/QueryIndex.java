@@ -118,11 +118,21 @@ public interface QueryIndex {
     String getPlan(Filter filter, NodeState rootState);
 
     /**
-     * Get the unique index name.
+     * Get the generic index name (normally the index type).
      *
      * @return the index name
      */
     String getIndexName();
+
+    /**
+     * Get the specific index name (the path of the index definition, or the
+     * index type if that one is unique).
+     *
+     * @return the index name
+     */
+    default String getIndexName(Filter filter, NodeState rootState) {
+        return getIndexName();
+    }
 
     /**
      *  A marker interface which means this index supports executing native queries

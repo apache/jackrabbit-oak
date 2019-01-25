@@ -228,6 +228,12 @@ class PropertyIndex implements QueryIndex {
     public String getIndexName() {
         return PROPERTY;
     }
+    
+    @Override
+    public String getIndexName(Filter filter, NodeState root) {
+        PropertyIndexPlan plan = getPlan(root, filter);
+        return plan == null ? null : plan.getName();
+    }
 
     @Override
     public double getCost(Filter filter, NodeState root) {

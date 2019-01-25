@@ -152,7 +152,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         return queryStats;
     }
 
-    StatisticsProvider getStatisticsProvider() {
+    public StatisticsProvider getStatisticsProvider() {
         return statisticsProvider;
     }
 
