@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.run.commons.Command;
@@ -62,7 +63,7 @@ class RecoveryCommand implements Command {
             } else if (ds instanceof RDBDocumentStore) {
                 RDBDocumentStore docStore = (RDBDocumentStore) ds;
                 agent = new LastRevRecoveryAgent(docStore, dns);
-                seeker = new MissingLastRevSeeker(docStore, dns.getClock());
+                seeker = new RDBMissingLastRevSeeker(docStore, dns.getClock());
             }
 
             if (agent == null || seeker == null) {
