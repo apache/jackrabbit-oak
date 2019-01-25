@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -53,6 +54,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +68,13 @@ import com.google.common.collect.Iterables;
  */
 public class SelectorImpl extends SourceImpl {
     private static final Logger LOG = LoggerFactory.getLogger(SelectorImpl.class);
+    
+    private static final Boolean TIMER_DISABLED = Boolean.getBoolean("oak.query.timerDisabled");
+    
+    // The sample rate. Must be a power of 2.
+    private static final Long TIMER_SAMPLE_RATE = Long.getLong("oak.query.timerSampleRate", 0x100);
+    
+    private static long timerSampleCounter;
     
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     private SelectorExecutionPlan plan;
@@ -150,13 +160,16 @@ public class SelectorImpl extends SourceImpl {
      * These constraints are collected during the prepare phase.
      */
     private final List<ConstraintImpl> selectorConstraints = newArrayList();
-
+    
     private Cursor cursor;
     private IndexRow currentRow;
     private int scanCount;
     
     private Tree lastTree;
     private String lastPath;
+    
+    private String planIndexName;
+    private TimerStats timerDuration;
 
     public SelectorImpl(NodeTypeInfo nodeTypeInfo, String selectorName) {
         this.nodeTypeInfo = checkNotNull(nodeTypeInfo);
@@ -243,6 +256,8 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public void unprepare() {
         plan = null;
+        planIndexName = null;
+        timerDuration = null;
         selectorConstraints.clear();
         isParent = false;
         joinCondition = null;
@@ -308,22 +323,68 @@ public class SelectorImpl extends SourceImpl {
             isParent = true;
         }
     }
-
+    
     @Override
     public void execute(NodeState rootState) {
+        long start = startTimer();
+        try {
+            executeInternal(rootState);
+        } finally {
+            stopTimer(start, true);
+        }
+    }
+    
+    private void executeInternal(NodeState rootState) {
         QueryIndex index = plan.getIndex();
+        timerDuration = null;
         if (index == null) {
             cursor = Cursors.newPathCursor(new ArrayList<String>(), query.getSettings());
+            planIndexName = "traverse";
             return;
         }
         IndexPlan p = plan.getIndexPlan();
         if (p != null) {
+            planIndexName = p.getPlanName();
             p.setFilter(createFilter(false));
             AdvancedQueryIndex adv = (AdvancedQueryIndex) index;
             cursor = adv.query(p, rootState);
         } else {
-            cursor = index.query(createFilter(false), rootState);
+            FilterImpl f = createFilter(false);
+            planIndexName = index.getIndexName(f, rootState);
+            cursor = index.query(f, rootState);
         }
+    }
+    
+    private long startTimer() {
+        if (TIMER_DISABLED) {
+            return -1;
+        }
+        return System.nanoTime();
+    }
+    
+    private void stopTimer(long start, boolean execute) {
+        if (start == -1) {
+            return;
+        }
+        long timeNanos = System.nanoTime() - start;
+        if (timeNanos > 1000000) {
+            // always measure slow events (slower than 1 ms)
+            measure(timeNanos);
+        } else if ((timerSampleCounter++ & (TIMER_SAMPLE_RATE - 1)) == 0) {
+            // only measure each xth fast event, but multiply by x, so on
+            // average measured times are correct
+            measure(timeNanos * TIMER_SAMPLE_RATE);
+        }
+    }
+
+    private void measure(long timeNanos) {
+        TimerStats t = timerDuration;
+        if (t == null) {
+            // reuse the timer (in the normal case)
+            t = timerDuration = query.getSettings().getStatisticsProvider().
+                getTimer("QUERY_DURATION_" + planIndexName, StatsOptions.METRICS_ONLY);
+        }
+        t.update(timeNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -431,6 +492,15 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public boolean next() {
+        long start = startTimer();
+        try {
+            return nextInternal();
+        } finally {
+            stopTimer(start, true);
+        }
+    }
+    
+    private boolean nextInternal() {
         while (cursor != null && cursor.hasNext()) {
             scanCount++;
             query.getQueryExecutionStats().scan(1, scanCount);
