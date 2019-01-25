@@ -17,19 +17,23 @@
 
 package org.apache.jackrabbit.oak.run;
 
+import java.io.Closeable;
 import java.util.Arrays;
 
-import com.google.common.io.Closer;
-import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent;
+import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
-import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
+import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import com.google.common.io.Closer;
 
 class RecoveryCommand implements Command {
 
@@ -37,24 +41,40 @@ class RecoveryCommand implements Command {
     public void execute(String... args) throws Exception {
         MapFactory.setInstance(new MapDBMapFactory());
         Closer closer = Closer.create();
-        String h = "recovery mongodb://host:port/database { dryRun }";
+        String h = "recovery mongodb://host:port/database|jdbc:... { dryRun }";
         try {
             NodeStore store = Utils.bootstrapNodeStore(args, closer, h);
+
             if (!(store instanceof DocumentNodeStore)) {
                 System.err.println("Recovery only available for DocumentNodeStore");
                 System.exit(1);
             }
+
             DocumentNodeStore dns = (DocumentNodeStore) store;
-            if (!(dns.getDocumentStore() instanceof MongoDocumentStore)) {
-                System.err.println("Recovery only available for MongoDocumentStore");
+            DocumentStore ds = dns.getDocumentStore();
+            LastRevRecoveryAgent agent = null;
+            MissingLastRevSeeker seeker = null;
+
+            if (ds instanceof MongoDocumentStore) {
+                MongoDocumentStore docStore = (MongoDocumentStore) ds;
+                agent = new LastRevRecoveryAgent(docStore, dns);
+                seeker = new MongoMissingLastRevSeeker(docStore, dns.getClock());
+            } else if (ds instanceof RDBDocumentStore) {
+                RDBDocumentStore docStore = (RDBDocumentStore) ds;
+                agent = new LastRevRecoveryAgent(docStore, dns);
+                seeker = new MissingLastRevSeeker(docStore, dns.getClock());
+            }
+
+            if (agent == null || seeker == null) {
+                System.err.println("Recovery only available for MongoDocumentStore and RDBDocumentStore (this: "
+                        + ds.getClass().getName() + ")");
                 System.exit(1);
             }
-            MongoDocumentStore docStore = (MongoDocumentStore) dns.getDocumentStore();
-            LastRevRecoveryAgent agent = new LastRevRecoveryAgent(docStore, dns);
-            MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(
-                    docStore, dns.getClock());
-            CloseableIterable<NodeDocument> docs = seeker.getCandidates(0);
-            closer.register(docs);
+
+            Iterable<NodeDocument> docs = seeker.getCandidates(0);
+            if (docs instanceof Closeable) {
+                closer.register((Closeable) docs);
+            }
             boolean dryRun = Arrays.asList(args).contains("dryRun");
             agent.recover(docs, dns.getClusterId(), dryRun);
         } catch (Throwable e) {
@@ -63,5 +83,4 @@ class RecoveryCommand implements Command {
             closer.close();
         }
     }
-
 }
