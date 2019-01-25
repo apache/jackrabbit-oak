@@ -16,16 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static com.google.common.base.Suppliers.ofInstance;
+
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-
-import static com.google.common.base.Suppliers.ofInstance;
 
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
@@ -96,6 +97,15 @@ public class RDBDocumentNodeStoreBuilder
             return () -> new RDBBlobReferenceIterator(ns, (RDBDocumentStore) store);
         } else {
             return super.createReferencedBlobs(ns);
+        }
+    }
+
+    public MissingLastRevSeeker createMissingLastRevSeeker() {
+        final DocumentStore store = getDocumentStore();
+        if (store instanceof RDBDocumentStore) {
+            return new RDBMissingLastRevSeeker((RDBDocumentStore) store, getClock());
+        } else {
+            return super.createMissingLastRevSeeker();
         }
     }
 }

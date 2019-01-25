@@ -22,6 +22,8 @@ import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
@@ -54,6 +56,8 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         store = ds;
         if (dsf == DocumentStoreFixture.MONGO) {
             seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store, clock);
+        } else if (store instanceof RDBDocumentStore) {
+            seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) store, clock);
         } else {
             seeker = new MissingLastRevSeeker(store, clock);
         }
