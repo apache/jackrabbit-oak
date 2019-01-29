@@ -40,7 +40,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -2275,95 +2274,6 @@ public final class NodeDocument extends Document {
             return map;
         }
         throw new IllegalArgumentException(json.readRawValue());
-    }
-    
-    /**
-     * The list of children for a node. The list might be complete or not, in
-     * which case it only represents a block of children.
-     */
-    public static final class Children implements CacheValue, Cloneable {
-
-        /**
-         * The child node names, ordered as stored in DocumentStore.
-         */
-        ArrayList<String> childNames = new ArrayList<String>();
-
-        /**
-         * Whether the list is complete (in which case there are no other
-         * children) or not.
-         */
-        boolean isComplete;
-
-        @Override
-        public int getMemory() {
-            long size = 114;
-            for (String name : childNames) {
-                size += (long)name.length() * 2 + 56;
-            }
-            if (size > Integer.MAX_VALUE) {
-                LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
-                size = Integer.MAX_VALUE;
-            }
-            return (int) size;
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public Children clone() {
-            try {
-                Children clone = (Children) super.clone();
-                clone.childNames = (ArrayList<String>) childNames.clone();
-                return clone;
-            } catch (CloneNotSupportedException e) {
-                throw new RuntimeException();
-            }
-        }
-
-        public String asString() {
-            JsopWriter json = new JsopBuilder();
-            if (isComplete) {
-                json.key("isComplete").value(true);
-            }
-            if (childNames.size() > 0) {
-                json.key("children").array();
-                for (String c : childNames) {
-                    json.value(c);
-                }
-                json.endArray();
-            }
-            return json.toString();            
-        }
-        
-        public static Children fromString(String s) {
-            JsopTokenizer json = new JsopTokenizer(s);
-            Children children = new Children();
-            while (true) {
-                if (json.matches(JsopReader.END)) {
-                    break;
-                }
-                String k = json.readString();
-                json.read(':');
-                if ("isComplete".equals(k)) {
-                    children.isComplete = json.read() == JsopReader.TRUE;
-                } else if ("children".equals(k)) {
-                    json.read('[');
-                    while (true) {
-                        if (json.matches(']')) {
-                            break;
-                        }
-                        String value = json.readString();
-                        children.childNames.add(value);
-                        json.matches(',');
-                    }
-                }
-                if (json.matches(JsopReader.END)) {
-                    break;
-                }
-                json.read(',');
-            }
-            return children;            
-        }
-        
     }
 
     /**
