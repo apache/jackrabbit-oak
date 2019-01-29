@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
@@ -134,6 +135,34 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
             .with(new PropertyIndexEditorProvider())
             .with(new NodeTypeIndexProvider())
             .createContentRepository();
+    }
+
+    // OAK-8001
+    @Test
+    public void emptyIndex() throws Exception {
+        NodeBuilder defnBuilder = builder.child("oak:index").child("foo");
+        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(defnBuilder).noAsync();
+        idxBuilder.indexRule("nt:base").property("propa").propertyIndex();
+        idxBuilder.build();
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(builder.getNodeState(), defnBuilder.getNodeState(),
+                "/oak:index/foo");
+
+        //1. reindex to initialize empty data directories under each mount
+        DefaultIndexWriterFactory factory = new DefaultIndexWriterFactory(mip,
+                new DefaultDirectoryFactory(null, null),
+                new LuceneIndexWriterConfig());
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        writer.close(0);
+
+        //2. Construct the readers
+        LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
+        List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(), defn.getIndexPath());
+
+        LuceneIndexNodeManager nodeManager = new LuceneIndexNodeManager("foo", defn, readers, null);
+        LuceneIndexNode node = nodeManager.acquire();
+        assertEquals(0, node.getIndexStatistics().numDocs());
+        node.release();
     }
 
     @Test
