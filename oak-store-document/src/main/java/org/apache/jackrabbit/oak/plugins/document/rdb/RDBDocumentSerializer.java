@@ -343,14 +343,15 @@ public class RDBDocumentSerializer {
         try {
             if (bdata.length >= 2 && bdata[0] == GZIPSIG[0] && bdata[1] == GZIPSIG[1]) {
                 // GZIP
-                ByteArrayInputStream bis = new ByteArrayInputStream(bdata);
-                GZIPInputStream gis = new GZIPInputStream(bis, 65536);
-                return IOUtils.toString(gis, "UTF-8");
+                try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bdata), 65536)) {
+                    return IOUtils.toString(gis, "UTF-8");
+                }
             } else {
                 return IOUtils.toString(bdata, "UTF-8");
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (IOException ex) {
+            LOG.debug("Unexpected exception while processing blob data", ex);
+            throw new RuntimeException(ex);
         }
     }
 }
