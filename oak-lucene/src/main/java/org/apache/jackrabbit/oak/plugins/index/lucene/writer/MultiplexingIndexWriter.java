@@ -30,6 +30,10 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
+import static com.google.common.collect.Iterables.concat;
+import static java.util.Collections.singleton;
+import static java.util.stream.StreamSupport.stream;
+
 class MultiplexingIndexWriter implements LuceneIndexWriter {
     private final MountInfoProvider mountInfoProvider;
     private final DirectoryFactory directoryFactory;
@@ -73,6 +77,15 @@ class MultiplexingIndexWriter implements LuceneIndexWriter {
 
     @Override
     public boolean close(long timestamp) throws IOException {
+        // explicitly get writers for mounts which haven't got writers even at close.
+        // This essentially ensures we respect DefaultIndexWriters#close's intent to
+        // create empty index even if nothing has been written during re-index.
+        stream(concat(singleton(mountInfoProvider.getDefaultMount()), mountInfoProvider.getNonDefaultMounts())
+                .spliterator(), false)
+                .filter(m ->  reindex && !m.isReadOnly()) // only needed when re-indexing for read-write mounts.
+                                                         // reindex for ro-mount doesn't make sense in this case anyway.
+                .forEach(m -> getWriter(m)); // open default writers for mounts that passed all our tests
+
         boolean indexUpdated = false;
         for (LuceneIndexWriter w : writers.values()) {
             indexUpdated |= w.close(timestamp);
