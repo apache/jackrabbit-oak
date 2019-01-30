@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -88,7 +87,6 @@ public class BranchTest {
         assertModifiedPaths(b.getModifiedPathsUntil(c5));
     }
 
-    @Ignore("OAK-8012")
     @Test
     public void orphanedBranchTest() {
         MemoryDocumentStore store = new MemoryDocumentStore();
