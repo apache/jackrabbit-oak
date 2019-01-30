@@ -19,12 +19,22 @@ package org.apache.jackrabbit.oak.plugins.document;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 public class BranchTest {
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     @Test
     public void getModifiedPathsUntil() {
@@ -64,6 +74,32 @@ public class BranchTest {
         assertModifiedPaths(b.getModifiedPathsUntil(c3), "/foo", "/bar");
         assertModifiedPaths(b.getModifiedPathsUntil(c4), "/foo", "/bar", "/baz");
         assertModifiedPaths(b.getModifiedPathsUntil(c5));
+    }
+
+    @Ignore("OAK-8012")
+    @Test
+    public void orphanedBranchTest() {
+        String rootId = Utils.getIdFromPath("/");
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.setProperty("p", "v");
+        for (int i = 0; ;i++) {
+            builder.child("n-" + i);
+            NodeDocument root = store.find(Collection.NODES, rootId);
+            assertNotNull(root);
+            if (!root.getLocalMap("p").isEmpty()) {
+                // branch has been created
+                break;
+            }
+        }
+        ns.dispose();
+
+        // start again
+        ns = builderProvider.newBuilder()
+                .setDocumentStore(store).getNodeStore();
+        assertFalse(ns.getRoot().hasProperty("p"));
     }
 
     private void assertModifiedPaths(Iterable<String> actual, String... expected) {
