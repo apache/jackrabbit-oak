@@ -23,9 +23,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -78,6 +81,19 @@ public class RDBDocumentSerializerTest {
     @Test
     public void testSimpleBlob() throws UnsupportedEncodingException {
         RDBRow row = new RDBRow("_foo", 0L, false, 1l, 2l, 3l, 0L, 0L, 0L, "\"blob\"", "{}".getBytes("UTF-8"));
+        NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
+        assertEquals("_foo", doc.getId());
+        assertEquals(false, doc.hasBinary());
+        assertEquals(2L, doc.getModCount().longValue());
+    }
+
+    @Test
+    public void testSimpleBlobGzipped() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        GZIPOutputStream gos = new GZIPOutputStream(bos);
+        gos.write("{}".getBytes("UTF-8"));
+        gos.close();
+        RDBRow row = new RDBRow("_foo", 0L, false, 1l, 2l, 3l, 0L, 0L, 0L, "\"blob\"", bos.toByteArray());
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("_foo", doc.getId());
         assertEquals(false, doc.hasBinary());
@@ -202,6 +218,17 @@ public class RDBDocumentSerializerTest {
                 json.parse(test);
             } catch (IllegalArgumentException expected) {
             }
+        }
+    }
+
+    @Test
+    public void testInvalidGzip() {
+        try {
+            byte[] bytes = { 31, -117, 1, 2, 3, 4 };
+            RDBRow row = new RDBRow("_foo", 0L, false, 1l, 2l, 3l, 0L, 0L, 0L, "\"blob\"", bytes);
+            this.ser.fromRow(Collection.NODES, row);
+            fail("should fail");
+        } catch (DocumentStoreException expected) {
         }
     }
 }
