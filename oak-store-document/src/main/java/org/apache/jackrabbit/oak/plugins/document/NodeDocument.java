@@ -2063,25 +2063,20 @@ public final class NodeDocument extends Document {
             return false;
         }
         if (Utils.isCommitted(commitValue)) {
-            Branch b = context.getBranches().getBranch(readRevision);
-            if (b == null) {
-                // readRevision is not from a branch commit, though it may
-                // still be a branch revision when it references the base
-                // of a new branch that has not yet been created. In that
-                // case the branch revision is equivalent with the trunk
-                // revision.
-
+            if (context.getBranches().getBranch(readRevision) == null
+                    && !readRevision.isBranch()) {
                 // resolve commit revision
                 revision = resolveCommitRevision(revision, commitValue);
+                // readRevision is not from a branch
                 // compare resolved revision as is
                 return !readRevision.isRevisionNewer(revision);
             } else {
-                // read revision is on a branch and the change is committed
-                // get the base revision of the branch and check
-                // if change is visible from there
-                RevisionVector baseRev = b.getBase(readRevision.getBranchRevision());
-                revision = resolveCommitRevision(revision, commitValue);
-                return !baseRev.isRevisionNewer(revision);
+                // on same merged branch?
+                Revision tr = readRevision.getBranchRevision().asTrunkRevision();
+                if (commitValue.equals(context.getCommitValue(tr, this))) {
+                    // compare unresolved revision
+                    return !readRevision.isRevisionNewer(revision);
+                }
             }
         } else {
             // branch commit (not merged)
@@ -2092,23 +2087,9 @@ public final class NodeDocument extends Document {
                 // this is an unmerged branch commit from another cluster node,
                 // hence never visible to us
                 return false;
-            } else {
-                // unmerged branch change with local clusterId
-                Branch b = context.getBranches().getBranch(readRevision);
-                if (b == null) {
-                    // reading on trunk never sees changes on an unmerged branch
-                    return false;
-                } else if (b.containsCommit(revision)) {
-                    // read revision is on the same branch as the
-                    // unmerged branch changes -> compare revisions as is
-                    return !readRevision.isRevisionNewer(revision);
-                } else {
-                    // read revision is on a different branch than the
-                    // unmerged branch changes -> never visible
-                    return false;
-                }
             }
         }
+        return includeRevision(context, resolveCommitRevision(revision, commitValue), readRevision);
     }
 
     /**
@@ -2130,6 +2111,37 @@ public final class NodeDocument extends Document {
             }
         }
         return value;
+    }
+
+    private static boolean includeRevision(RevisionContext context,
+                                           Revision x,
+                                           RevisionVector readRevision) {
+        Branch b = null;
+        if (x.getClusterId() == context.getClusterId()) {
+            RevisionVector branchRev = new RevisionVector(x).asBranchRevision(context.getClusterId());
+            b = context.getBranches().getBranch(branchRev);
+        }
+        if (b != null) {
+            // only include if read revision is also a branch revision
+            // with a history including x
+            if (readRevision.isBranch()
+                    && b.containsCommit(readRevision.getBranchRevision())) {
+                // in same branch, include if the same revision or
+                // readRevision is newer
+                return !readRevision.isRevisionNewer(x);
+            }
+            // not part of branch identified by requestedRevision
+            return false;
+        }
+        // assert: x is not a branch commit
+        b = context.getBranches().getBranch(readRevision);
+        if (b != null) {
+            // reset readRevision to branch base revision to make
+            // sure we don't include revisions committed after branch
+            // was created
+            readRevision = b.getBase(readRevision.getBranchRevision());
+        }
+        return !readRevision.isRevisionNewer(x);
     }
 
     /**
