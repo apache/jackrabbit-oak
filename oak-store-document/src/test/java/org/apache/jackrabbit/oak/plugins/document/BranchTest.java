@@ -16,15 +16,37 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import com.google.common.collect.Sets;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.asDocumentState;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class BranchTest {
+
+    @Rule
+    public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     @Test
     public void getModifiedPathsUntil() {
@@ -64,6 +86,58 @@ public class BranchTest {
         assertModifiedPaths(b.getModifiedPathsUntil(c3), "/foo", "/bar");
         assertModifiedPaths(b.getModifiedPathsUntil(c4), "/foo", "/bar", "/baz");
         assertModifiedPaths(b.getModifiedPathsUntil(c5));
+    }
+
+    @Ignore("OAK-8012")
+    @Test
+    public void orphanedBranchTest() {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setDocumentStore(store).build();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.setProperty("p", "v");
+        persistToBranch(builder);
+        ns.dispose();
+
+        // start again
+        ns = builderProvider.newBuilder()
+                .setDocumentStore(store).build();
+        assertFalse(ns.getRoot().hasProperty("p"));
+    }
+
+    @Test
+    public void compareBranchStates() {
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(0).build();
+        ns.runBackgroundOperations();
+        DocumentStore store = ns.getDocumentStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.setProperty("p", "a");
+        persistToBranch(builder);
+        NodeState s1 = builder.getNodeState();
+        builder.setProperty("p", "b");
+        persistToBranch(builder);
+        NodeState s2 = builder.getNodeState();
+
+        Set<String> changes = new HashSet<>();
+        NodeStateDiff diff = new DefaultNodeStateDiff() {
+            @Override
+            public boolean propertyChanged(PropertyState before,
+                                           PropertyState after) {
+                changes.add(before.getName());
+                return super.propertyChanged(before, after);
+            }
+        };
+        s2.compareAgainstBaseState(s1, diff);
+        assertThat(changes, contains("p"));
+
+        NodeDocument root = getRootDocument(store);
+        RevisionVector br = asDocumentState(s1).getRootRevision();
+        assertTrue(br.isBranch());
+        DocumentNodeState state = root.getNodeAtRevision(ns, br, null);
+        assertNotNull(state);
+        assertEquals("a", state.getString("p"));
     }
 
     private void assertModifiedPaths(Iterable<String> actual, String... expected) {
