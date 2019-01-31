@@ -252,6 +252,7 @@ class SegmentNodeStoreRegistrar {
 
         if (cfg.isStandbyInstance()) {
             builder.withSnfeListener(IGNORE_SNFE);
+            builder.withEagerSegmentCaching(true);
         }
 
         FileStore store;
