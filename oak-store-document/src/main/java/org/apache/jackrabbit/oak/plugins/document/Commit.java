@@ -477,13 +477,17 @@ public class Commit {
     private void rollback(List<UpdateOp> changed,
                           UpdateOp commitRoot) {
         DocumentStore store = nodeStore.getDocumentStore();
+        List<UpdateOp> reverseOps = new ArrayList<>();
         for (UpdateOp op : changed) {
             UpdateOp reverse = op.getReverseOperation();
             if (op.isNew()) {
                 NodeDocument.setDeletedOnce(reverse);
             }
-            store.findAndUpdate(NODES, reverse);
+            // do not create document if it doesn't exist
+            reverse.setNew(false);
+            reverseOps.add(reverse);
         }
+        store.createOrUpdate(NODES, reverseOps);
         removeCollisionMarker(commitRoot.getId());
     }
 

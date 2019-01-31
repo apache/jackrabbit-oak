@@ -110,4 +110,18 @@ public class TestUtils {
         }
         fail("Not of type DocumentRootBuilder: " + builder.getClass().getName());
     }
+
+    public static boolean isFinalCommitRootUpdate(UpdateOp update) {
+        boolean finalUpdate = true;
+        for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> op : update.getChanges().entrySet()) {
+            String name = op.getKey().getName();
+            if (NodeDocument.isRevisionsEntry(name)
+                    || NodeDocument.MODIFIED_IN_SECS.equals(name)) {
+                continue;
+            }
+            finalUpdate = false;
+            break;
+        }
+        return finalUpdate;
+    }
 }
