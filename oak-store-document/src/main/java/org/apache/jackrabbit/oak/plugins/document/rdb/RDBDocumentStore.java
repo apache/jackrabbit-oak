@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVer
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -2171,17 +2172,16 @@ public class RDBDocumentStore implements DocumentStore {
         if (NOGZIP) {
             return bytes;
         } else {
-            try {
-                ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length());
-                GZIPOutputStream gos = new GZIPOutputStream(bos) {
-                    {
-                        // TODO: make this configurable
-                        this.def.setLevel(Deflater.BEST_SPEED);
-                    }
-                };
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(bytes.length / 2);
+            try (GZIPOutputStream gos = asGZIPOutputStream(bos, Deflater.BEST_SPEED)) {
                 gos.write(bytes);
                 gos.close();
-                return bos.toByteArray();
+                byte[] compressedBytes = bos.toByteArray();
+                if (LOG.isTraceEnabled()) {
+                    long ratio = (100L * compressedBytes.length) / bytes.length;
+                    LOG.trace("Gzipped {} bytes to {} ({}%)", bytes.length, compressedBytes.length, ratio);
+                }
+                return compressedBytes;
             } catch (IOException ex) {
                 LOG.error("Error while gzipping contents", ex);
                 throw asDocumentStoreException(ex, "Error while gzipping contents");
@@ -2189,6 +2189,13 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
+    private static GZIPOutputStream asGZIPOutputStream(OutputStream os, final int level) throws IOException {
+        return new GZIPOutputStream(os) {
+            {
+                this.def.setLevel(level);
+            }
+        };
+    }
 
     @Override
     public void setReadWriteMode(String readWriteMode) {
