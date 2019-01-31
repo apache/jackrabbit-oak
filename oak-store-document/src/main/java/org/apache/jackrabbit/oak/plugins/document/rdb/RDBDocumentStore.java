@@ -99,7 +99,7 @@ import com.google.common.collect.Sets;
 /**
  * Implementation of {@link DocumentStore} for relational databases.
  * 
- * <h3>Supported Databases</h3>
+ * <h3 id="apidocs.supported-databases">Supported Databases</h3>
  * <p>
  * The code is supposed to be sufficiently generic to run with a variety of
  * database implementations. However, the tables are created when required to
@@ -115,7 +115,7 @@ import com.google.common.collect.Sets;
  * <li>Oracle</li>
  * </ul>
  * 
- * <h3>Table Layout</h3>
+ * <h3 id="apidocs.table-layout">Table Layout</h3>
  * <p>
  * Data for each of the DocumentStore's {@link Collection}s is stored in its own
  * database table (with a name matching the collection).
@@ -202,7 +202,7 @@ import com.google.common.collect.Sets;
  * testing, as tables can also be dropped automatically when the store is
  * disposed (this only happens for those tables that have been created on
  * demand).
- * <h4>Versioning</h4>
+ * <h4 id="apidocs.versioning">Versioning</h4>
  * <p>
  * The initial database layout used in OAK 1.0 through 1.6 is version 0.
  * <p>
@@ -225,7 +225,7 @@ import com.google.common.collect.Sets;
  * <em>For MySQL, the database parameter "max_allowed_packet" needs to be
  * increased to support ~16M blobs.</em>
  * 
- * <h3>Table Creation</h3>
+ * <h3 id="apidocs.table-creation">Table Creation</h3>
  * <p>
  * The code tries to create the tables when they are not present. Likewise, it
  * tries to upgrade to a newer schema when needed.
