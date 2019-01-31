@@ -36,7 +36,7 @@ public class TemporaryFileStore extends ExternalResource {
     private final TemporaryFolder folder;
 
     private final TemporaryBlobStore blobStore;
-    
+
     private final boolean standby;
 
     private ScheduledExecutorService executor;
@@ -62,7 +62,7 @@ public class TemporaryFileStore extends ExternalResource {
                 .withMaxFileSize(1)
                 .withMemoryMapping(false)
                 .withNodeDeduplicationCacheSize(1)
-                .withSegmentCacheSize(0)
+                .withSegmentCacheSize(256)
                 .withStringCacheSize(0)
                 .withTemplateCacheSize(0)
                 .withStatisticsProvider(new DefaultStatisticsProvider(executor));
@@ -71,7 +71,8 @@ public class TemporaryFileStore extends ExternalResource {
                 .setRetainedGenerations(1);
             builder
                 .withGCOptions(gcOptions)
-                .withSnfeListener(SegmentNotFoundExceptionListener.IGNORE_SNFE);
+                .withSnfeListener(SegmentNotFoundExceptionListener.IGNORE_SNFE)
+                .withEagerSegmentCaching(true);
         }
         if (blobStore != null) {
             builder.withBlobStore(blobStore.blobStore());

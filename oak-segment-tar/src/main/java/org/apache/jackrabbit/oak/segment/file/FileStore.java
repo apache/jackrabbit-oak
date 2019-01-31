@@ -132,6 +132,8 @@ public class FileStore extends AbstractFileStore {
 
     private final GarbageCollectionStrategy garbageCollectionStrategy = newGarbageCollectionStrategy();
 
+    private final boolean eagerSegmentCaching;
+
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
@@ -197,6 +199,7 @@ public class FileStore extends AbstractFileStore {
         );
 
         this.snfeListener = builder.getSnfeListener();
+        this.eagerSegmentCaching = builder.getEagerSegmentCaching();
 
         TimerStats flushTimer = statsProvider.getTimer("oak.segment.flush", METRICS_ONLY);
         fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS, () -> {
@@ -528,6 +531,11 @@ public class FileStore extends AbstractFileStore {
                 }
 
                 segment = new Segment(tracker, segmentReader, id, data);
+
+                if (eagerSegmentCaching) {
+                    segmentCache.putSegment(segment);
+                }
+
                 generation = segment.getGcGeneration();
                 references = readReferences(segment);
                 binaryReferences = readBinaryReferences(segment);
@@ -544,7 +552,7 @@ public class FileStore extends AbstractFileStore {
             );
 
             // Keep this data segment in memory as it's likely to be accessed soon.
-            if (segment != null) {
+            if (!eagerSegmentCaching && segment != null) {
                 segmentCache.putSegment(segment);
             }
         }
