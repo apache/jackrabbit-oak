@@ -204,13 +204,7 @@ public class SegmentBlob extends Record implements Blob {
     private static String readLongBlobId(Segment segment, int recordNumber) {
         RecordId blobId = segment.readRecordId(recordNumber, 1);
 
-        // if the blob id lives in the same segment, avoid reading again
-        // the segment, as it will trigger an SNFE on standby, see OAK-8006
-        if (blobId.getSegmentId().equals(segment.getSegmentId())) {
-            return segment.readString(blobId.getRecordNumber());
-        } else {
-            return blobId.getSegment().readString(blobId.getRecordNumber());
-        }
+        return blobId.getSegment().readString(blobId.getRecordNumber());
     }
 
     private List<RecordId> getBulkRecordIds() {
