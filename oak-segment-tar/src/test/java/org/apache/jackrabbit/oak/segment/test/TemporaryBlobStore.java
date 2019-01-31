@@ -42,6 +42,10 @@ public class TemporaryBlobStore extends ExternalResource {
         store = new DataStoreBlobStore(fds);
     }
 
+    protected void configureDataStore(FileDataStore dataStore) {
+        dataStore.setMinRecordLength(4092);
+    }
+
     @Override
     protected void after() {
         try {
