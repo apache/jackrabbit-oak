@@ -44,7 +44,7 @@ public class ImmutableACL extends AbstractAccessControlList {
     private int hashCode;
 
     /**
-     * Construct a new {@code UnmodifiableAccessControlList}
+     * Construct a new {@code ImmutableACL}
      *
      * @param oakPath             The Oak path of this policy or {@code null}.
      * @param entries             The access control entries contained in this policy.
@@ -58,6 +58,15 @@ public class ImmutableACL extends AbstractAccessControlList {
         super(oakPath, namePathMapper);
         this.entries = ImmutableList.copyOf(entries);
         this.restrictionProvider = restrictionProvider;
+    }
+
+    /**
+     * Construct a new {@code ImmutableACL} from the given {@code AbstractAccessControlList}.
+     *
+     * @param accessControlList The base list
+     */
+    public ImmutableACL(@NotNull AbstractAccessControlList accessControlList) {
+        this(accessControlList.getOakPath(), accessControlList.getEntries(), accessControlList.getRestrictionProvider(), accessControlList.getNamePathMapper());
     }
 
     //--------------------------------------------------< AccessControlList >---
