@@ -123,21 +123,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
-        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), new Function<Privilege, String>() {
-
-            @Override
-            public String apply(@Nullable Privilege privilege) {
-                if (privilege != null) {
-                    try {
-                        return nameMapper.getOakName(privilege.getName());
-                    } catch (RepositoryException e) {
-                        log.debug("Unable to resolve OAK name of privilege " + privilege, e);
-                    }
-                }
-                // null privilege or failed to resolve the privilege name
-                return null;
-            }
-        }), Predicates.notNull()));
+        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), privilege -> nameMapper.getOakNameOrNull(privilege.getName())), Predicates.notNull()));
     }
 
     /**

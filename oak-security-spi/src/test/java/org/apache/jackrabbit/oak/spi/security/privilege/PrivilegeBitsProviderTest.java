@@ -161,10 +161,9 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(p.getName()).thenReturn("name");
 
         NamePathMapper mapper = new NamePathMapper.Default() {
-            @NotNull
             @Override
-            public String getOakName(@NotNull String jcrName) throws RepositoryException {
-                throw new RepositoryException();
+            public String getOakNameOrNull(@NotNull String jcrName) {
+                return null;
             }
         };
         assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits(new Privilege[] {p}, mapper));
