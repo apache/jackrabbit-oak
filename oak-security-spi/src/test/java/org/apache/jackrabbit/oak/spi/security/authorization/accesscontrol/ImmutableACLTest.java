@@ -24,6 +24,8 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -38,6 +40,7 @@ import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
@@ -218,5 +221,23 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         assertFalse(hc == new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2).hashCode());
         assertFalse(hc == new TestACL("/anotherPath", rp, getNamePathMapper()).hashCode());
         assertFalse(hc == new TestACL(getTestPath(), rp, getNamePathMapper(), ace1, ace2).hashCode());
+    }
+
+    @Test
+    public void testCreateFromBaseList() throws Exception {
+        AbstractAccessControlList aacl = Mockito.mock(AbstractAccessControlList.class);
+        when(aacl.getPath()).thenReturn("/path");
+        List entries = Lists.newArrayList(createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES));
+        when(aacl.getEntries()).thenReturn(entries);
+        when(aacl.getRestrictionProvider()).thenReturn(getRestrictionProvider());
+        when(aacl.getNamePathMapper()).thenReturn(NamePathMapper.DEFAULT);
+
+        ImmutableACL iacl = new ImmutableACL(aacl);
+        assertImmutable(iacl);
+
+        assertTrue(Iterables.elementsEqual(entries, iacl.getEntries()));
+        assertSame(aacl.getRestrictionProvider(), iacl.getRestrictionProvider());
+        assertSame(aacl.getNamePathMapper(), iacl.getNamePathMapper());
+
     }
 }
