@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -1281,30 +1282,26 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     //------------------------------------------------------------< internal >---
     @Nullable
     private String getPrimaryTypeName(@NotNull Tree tree) {
-        String primaryTypeName = null;
-        if (tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
-            primaryTypeName = TreeUtil.getPrimaryTypeName(tree);
-        } else if (tree.getStatus() != Status.NEW) {
-            // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
-            // read the primary type from the underlying node state.
-            primaryTypeName = TreeUtil.getPrimaryTypeName(RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()));
-        }
-        return primaryTypeName;
+        return TreeUtil.getPrimaryTypeName(tree, getReadOnlyTree(tree));
     }
 
     @NotNull
     private Iterator<String> getMixinTypeNames(@NotNull Tree tree) throws RepositoryException {
-        Iterator<String> mixinNames = Collections.emptyIterator();
         if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadMixinTypes(tree)) {
-            mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
-        } else if (tree.getStatus() != Status.NEW) {
-            // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
-            // read the primary type from the underlying node state.
-            mixinNames = TreeUtil.getNames(
-                    RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()),
-                    JcrConstants.JCR_MIXINTYPES).iterator();
+            return TreeUtil.getMixinTypeNames(tree).iterator();
+        } else {
+            return TreeUtil.getMixinTypeNames(tree, getReadOnlyTree(tree)).iterator();
         }
-        return mixinNames;
+    }
+
+    @NotNull
+    private LazyValue<Tree> getReadOnlyTree(@NotNull Tree tree) {
+        return new LazyValue<Tree>() {
+            @Override
+            protected Tree createValue() {
+                return RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath());
+            }
+        };
     }
 
     private boolean canReadMixinTypes(@NotNull Tree tree) throws RepositoryException {

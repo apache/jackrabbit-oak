@@ -20,11 +20,7 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +32,11 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -170,6 +169,8 @@ public class SelectorImpl extends SourceImpl {
     
     private String planIndexName;
     private TimerStats timerDuration;
+
+    private LazyValue<Tree> lastReadOnlyTree;
 
     public SelectorImpl(NodeTypeInfo nodeTypeInfo, String selectorName) {
         this.nodeTypeInfo = checkNotNull(nodeTypeInfo);
@@ -566,24 +567,20 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateTypeMatch() {
-        Tree tree = getTree(currentRow.getPath());
+        String path = currentRow.getPath();
+        Tree tree = getTree(path);
         if (tree == null || !tree.exists()) {
             return false;
         }
-        PropertyState primary = tree.getProperty(JCR_PRIMARYTYPE);
-        if (primary != null && primary.getType() == NAME) {
-            String name = primary.getValue(NAME);
-            if (primaryTypes.contains(name)) {
-                return true;
-            }
+        LazyValue<Tree> readOnly = getReadOnlyTree(path);
+        String primaryTypeName = TreeUtil.getPrimaryTypeName(tree, readOnly);
+        if (primaryTypeName != null && primaryTypes.contains(primaryTypeName)) {
+            return true;
         }
 
-        PropertyState mixins = tree.getProperty(JCR_MIXINTYPES);
-        if (mixins != null && mixins.getType() == NAMES) {
-            for (String name : mixins.getValue(NAMES)) {
-                if (mixinTypes.contains(name)) {
-                    return true;
-                }
+        for (String mixinName : TreeUtil.getMixinTypeNames(tree, readOnly)) {
+            if (mixinTypes.contains(mixinName)) {
+                return true;
             }
         }
         // no matches found
@@ -622,8 +619,21 @@ public class SelectorImpl extends SourceImpl {
         if (lastPath == null || !path.equals(lastPath)) {
             lastTree = query.getTree(path);
             lastPath = path;
+            lastReadOnlyTree = null;
         }
         return lastTree;
+    }
+
+    private LazyValue<Tree> getReadOnlyTree(@NotNull String path) {
+        if (lastReadOnlyTree == null) {
+            lastReadOnlyTree = new LazyValue<Tree>() {
+                @Override
+                protected Tree createValue() {
+                    return new ImmutableRoot(query.getExecutionContext().getBaseState()).getTree(path);
+                }
+            };
+        }
+        return lastReadOnlyTree;
     }
 
     /**
