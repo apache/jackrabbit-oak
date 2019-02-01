@@ -34,6 +34,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -85,6 +86,37 @@ public final class TreeUtil {
     @Nullable
     public static String getPrimaryTypeName(@NotNull Tree tree) {
         return getStringInternal(tree, JcrConstants.JCR_PRIMARYTYPE, Type.NAME);
+    }
+
+    @Nullable
+    public static String getPrimaryTypeName(@NotNull Tree tree, @NotNull LazyValue<Tree> readOnlyTree) {
+        String primaryTypeName = null;
+        if (tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
+            primaryTypeName = TreeUtil.getPrimaryTypeName(tree);
+        } else if (tree.getStatus() != Tree.Status.NEW) {
+            // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
+            // read the primary type from the underlying node state.
+            primaryTypeName = TreeUtil.getPrimaryTypeName(readOnlyTree.get());
+        }
+        return primaryTypeName;
+    }
+
+    @NotNull
+    public static Iterable<String> getMixinTypeNames(@NotNull Tree tree) {
+        return TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES);
+    }
+
+    @NotNull
+    public static Iterable<String> getMixinTypeNames(@NotNull Tree tree, @NotNull LazyValue<Tree> readOnlyTree) {
+        Iterable<String> mixinNames = emptyList();
+        if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
+            mixinNames = getMixinTypeNames(tree);
+        } else if (tree.getStatus() != Tree.Status.NEW) {
+            // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
+            // read the primary type from the underlying node state.
+            mixinNames = TreeUtil.getNames(readOnlyTree.get(), JcrConstants.JCR_MIXINTYPES);
+        }
+        return mixinNames;
     }
 
     @Nullable
