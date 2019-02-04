@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.util.concurrent.Monitor;
 
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -77,12 +78,7 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
-        DocumentStore docStore = new TimingDocumentStoreWrapper(ds) {
-            @Override
-            public void dispose() {
-                // do not dispose yet
-            }
-        };
+        DocumentStore docStore = new NonDisposingDocumentStore(ds);
         // use a builder with a no-op diff cache to simulate a
         // cache miss when the diff is made later in the test
         DocumentNodeStore ns1 = new TestBuilder()
@@ -147,8 +143,9 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
     public void blockingBlob() throws Exception {
         ExecutorService updateExecutor = newSingleThreadExecutor();
         ExecutorService commitExecutor = newSingleThreadExecutor();
+        DocumentStore docStore = new NonDisposingDocumentStore(ds);
         DocumentNodeStore store = builderProvider.newBuilder()
-                .setDocumentStore(ds).build();
+                .setDocumentStore(docStore).build();
         removeMeClusterNodes.add("" + store.getClusterId());
         try {
 
@@ -185,8 +182,9 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
                 blockingBlob.unblock();
             }
         } finally {
-            commitExecutor.shutdown();
-            updateExecutor.shutdown();
+            new ExecutorCloser(commitExecutor).close();
+            new ExecutorCloser(updateExecutor).close();
+            store.dispose();
         }
     }
 
@@ -241,6 +239,19 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         @Override
         public long length() {
             return -1;
+        }
+    }
+
+    private static class NonDisposingDocumentStore
+            extends TimingDocumentStoreWrapper {
+
+        NonDisposingDocumentStore(DocumentStore base) {
+            super(base);
+        }
+
+        @Override
+        public void dispose() {
+            // do not dispose yet
         }
     }
 

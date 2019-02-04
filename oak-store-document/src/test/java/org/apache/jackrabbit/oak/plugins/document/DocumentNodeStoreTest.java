@@ -2608,6 +2608,7 @@ public class DocumentNodeStoreTest {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .clock(clock)
                 .setAsyncDelay(0).getNodeStore();
