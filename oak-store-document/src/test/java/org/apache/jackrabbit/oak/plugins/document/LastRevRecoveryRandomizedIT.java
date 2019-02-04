@@ -136,6 +136,7 @@ public class LastRevRecoveryRandomizedIT {
                 if (!success) {
                     int num = 0;
                     for (String line : ops) {
+                        System.out.println("Seed: " + SEED);
                         System.out.println(num++ + ": " + line);
                     }
                 }
