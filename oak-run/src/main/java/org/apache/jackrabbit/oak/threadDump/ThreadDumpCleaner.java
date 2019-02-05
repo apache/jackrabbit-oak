@@ -148,6 +148,7 @@ public class ThreadDumpCleaner {
                 }
                 activeThreadCount = 0;
             }
+            line = removeModuleName(line);
             buff.append(line).append('\n');
             if (line.trim().length() == 0) {
                 String filtered = filter(buff.toString());
@@ -159,6 +160,38 @@ public class ThreadDumpCleaner {
             }
         }
         writer.println(filter(buff.toString()));
+    }
+
+    private static String removeModuleName(String line) {
+        // remove the module name, for example in:
+        // at java.base@11.0.1/sun.nio.ch.ServerSocketChannelImpl.accept
+        // at java.management@11.0.1/sun.management.
+        // at platform/java.scripting@11.0.1/javax.script.SimpleBindings
+
+        int atChar = line.indexOf('@');
+        if (atChar < 0) {
+            return line;
+        }
+        int slash = line.indexOf('/', atChar);
+        if (slash < 0) {
+            return line;
+        }
+        int at = line.indexOf("at ");
+        if (at < 0 || at > atChar) {
+            return line;
+        }
+
+        // String moduleName = line.substring(at + 3, slash);
+        // module names seen so far:
+        // java.base@11.0.1
+        // java.desktop@11.0.1
+        // java.management@11.0.1
+        // java.xml@11.0.1
+        // platform/java.scripting@11.0.1
+
+        // removing the module name
+        line = line.substring(0, at + 2) + line.substring(slash + 1);
+        return line;
     }
 
     private static String filter(String s) {
