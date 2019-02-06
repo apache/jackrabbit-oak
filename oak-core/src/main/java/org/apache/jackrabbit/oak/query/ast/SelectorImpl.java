@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -56,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,14 +165,11 @@ public class SelectorImpl extends SourceImpl {
     private Cursor cursor;
     private IndexRow currentRow;
     private int scanCount;
-    
-    private Tree lastTree;
-    private String lastPath;
-    
+
     private String planIndexName;
     private TimerStats timerDuration;
 
-    private LazyValue<Tree> lastReadOnlyTree;
+    private LastTree lastTree;
 
     public SelectorImpl(NodeTypeInfo nodeTypeInfo, String selectorName) {
         this.nodeTypeInfo = checkNotNull(nodeTypeInfo);
@@ -529,8 +528,7 @@ public class SelectorImpl extends SourceImpl {
                 // where [a].[jcr:path] = $path"
                 // because not checking would reveal existence
                 // of the child node
-                Tree tree = getTree(currentRow.getPath());
-                if (tree == null || !tree.exists()) {
+                if (!getLastTree(currentRow.getPath()).exists()) {
                     continue;
                 }
             }
@@ -567,18 +565,19 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateTypeMatch() {
-        String path = currentRow.getPath();
-        Tree tree = getTree(path);
-        if (tree == null || !tree.exists()) {
+        LastTree lt = getLastTree(currentRow.getPath());
+        if (!lt.exists()) {
             return false;
         }
-        LazyValue<Tree> readOnly = getReadOnlyTree(path);
-        String primaryTypeName = TreeUtil.getPrimaryTypeName(tree, readOnly);
+
+        Tree t = lt.getTree();
+        LazyValue<Tree> readOnly = lt.getReadOnlyTree();
+        String primaryTypeName = TreeUtil.getPrimaryTypeName(t, readOnly);
         if (primaryTypeName != null && primaryTypes.contains(primaryTypeName)) {
             return true;
         }
 
-        for (String mixinName : TreeUtil.getMixinTypeNames(tree, readOnly)) {
+        for (String mixinName : TreeUtil.getMixinTypeNames(t, readOnly)) {
             if (mixinTypes.contains(mixinName)) {
                 return true;
             }
@@ -601,12 +600,18 @@ public class SelectorImpl extends SourceImpl {
      * 
      * @return the current tree, or null
      */
+    @Nullable
     public Tree currentTree() {
         String path = currentPath();
         if (path == null) {
             return null;
         }
         return getTree(path);
+    }
+
+    @Nullable
+    Tree getTree(@NotNull String path) {
+        return getLastTree(path).getTree();
     }
     
     /**
@@ -615,25 +620,12 @@ public class SelectorImpl extends SourceImpl {
      * @param path the path
      * @return the tree, or null
      */
-    Tree getTree(String path) {
-        if (lastPath == null || !path.equals(lastPath)) {
-            lastTree = query.getTree(path);
-            lastPath = path;
-            lastReadOnlyTree = null;
+    @NotNull
+    private LastTree getLastTree(@NotNull  String path) {
+        if (lastTree == null || !lastTree.denotes(path)) {
+            lastTree = new LastTree(path, query);
         }
         return lastTree;
-    }
-
-    private LazyValue<Tree> getReadOnlyTree(@NotNull String path) {
-        if (lastReadOnlyTree == null) {
-            lastReadOnlyTree = new LazyValue<Tree>() {
-                @Override
-                protected Tree createValue() {
-                    return new ImmutableRoot(query.getExecutionContext().getBaseState()).getTree(path);
-                }
-            };
-        }
-        return lastReadOnlyTree;
     }
 
     /**
@@ -895,5 +887,45 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public SourceImpl copyOf() {
         return new SelectorImpl(nodeTypeInfo, selectorName);
+    }
+
+    private static final class LastTree {
+
+        private final String path;
+        private final Tree tree;
+        private final ExecutionContext ctx;
+        private LazyValue<Tree> readOnlyTree;
+
+        private LastTree(@NotNull String path, @NotNull QueryImpl query) {
+            this.path = path;
+            this.tree = query.getTree(path);
+            this.ctx = query.getExecutionContext();
+        }
+
+        private boolean denotes(@NotNull String path) {
+            return this.path.equals(path);
+        }
+
+        private boolean exists() {
+            return tree != null && tree.exists();
+        }
+
+        @Nullable
+        private Tree getTree() {
+            return tree;
+        }
+
+        @NotNull
+        private LazyValue<Tree> getReadOnlyTree() {
+            if (readOnlyTree == null) {
+                readOnlyTree = new LazyValue<Tree>() {
+                    @Override
+                    protected Tree createValue() {
+                        return new ImmutableRoot(ctx.getBaseState()).getTree(path);
+                    }
+                };
+            }
+            return readOnlyTree;
+        }
     }
 }
