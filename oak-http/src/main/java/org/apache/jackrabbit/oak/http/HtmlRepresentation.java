@@ -30,6 +30,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.sax.XHTMLContentHandler;
 import org.xml.sax.SAXException;
@@ -125,7 +126,7 @@ class HtmlRepresentation implements Representation {
             handler.setResult(new StreamResult(response.getOutputStream()));
 
             Metadata metadata = new Metadata();
-            metadata.set(Metadata.TITLE, title);
+            metadata.set(TikaCoreProperties.TITLE, title);
             return new XHTMLContentHandler(handler, metadata);
         } catch (TransformerConfigurationException e) {
             throw new IOException(e);
