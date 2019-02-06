@@ -214,12 +214,9 @@ class UnsavedModifications {
             LOG.debug("Updated _lastRev to {} on {}", rootRev, ROOT_PATH);
 
             int cid = rootRev.getClusterId();
-            if (store.find(CLUSTER_NODES, String.valueOf(cid)) != null) {
-                UpdateOp update = new UpdateOp(String.valueOf(cid), false);
-                update.equals(Document.ID, null, String.valueOf(cid));
-                update.set(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY, rootRev.toString());
-                store.findAndUpdate(CLUSTER_NODES, update);
-            }
+            UpdateOp update = new UpdateOp(String.valueOf(cid), false);
+            update.set(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY, rootRev.toString());
+            store.findAndUpdate(CLUSTER_NODES, update);
         }
 
         stats.write = sw.elapsed(TimeUnit.MILLISECONDS);
