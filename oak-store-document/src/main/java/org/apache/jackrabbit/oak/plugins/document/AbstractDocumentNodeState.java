@@ -131,13 +131,22 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
     //------------------------------< internal >--------------------------------
 
     /**
-     * Returns {@code true} if this state has the same last revision as the
-     * {@code other} state.
+     * Returns {@code true} if this state is equal to the {@code other} state
+     * by inspecting the root and last revision. Two node states are guaranteed
+     * to be equal if their root revisions are equal (even if the two revisions
+     * have different branch flags) or their last revisions are equal. This
+     * method may return {@code false} even if the actual states are in fact
+     * equal!
      *
      * @param other the other state to compare with.
-     * @return {@code true} if the last revisions are equal, {@code false} otherwise.
+     * @return {@code true} if this state is equal to the {@code other} state
+     *      based on the root and last revisions.
      */
     private boolean revisionEquals(AbstractDocumentNodeState other) {
+        if (this.getRootRevision().asTrunkRevision()
+                .equals(other.getRootRevision().asTrunkRevision())) {
+            return true;
+        }
         return this.getLastRevision() != null
                 && this.getLastRevision().equals(other.getLastRevision());
     }

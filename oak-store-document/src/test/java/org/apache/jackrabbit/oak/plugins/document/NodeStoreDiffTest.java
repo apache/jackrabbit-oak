@@ -26,6 +26,7 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
@@ -47,9 +48,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.UPDATE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.asDocumentState;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 public class NodeStoreDiffTest {
@@ -191,6 +196,43 @@ public class NodeStoreDiffTest {
         //paths which are not part of the current commit like /etc and /var
         assertThat(tds.paths, not(hasItem("/etc/x")));
         assertThat(tds.paths, not(hasItem("/var/x")));
+    }
+
+    @Test
+    public void diffBranchBase() throws Exception {
+        createNodes("/foo", "/bar");
+
+        NodeBuilder b = ns.getRoot().builder();
+        b.child("n");
+        persistToBranch(b);
+
+        DocumentNodeState branchState = asDocumentState(b.getNodeState());
+        Branch branch = ns.getBranches().getBranch(branchState.getRootRevision());
+        assertNotNull(branch);
+        DocumentNodeState headState = ns.getRoot();
+
+        createNodes("/baz");
+
+        DocumentNodeState branchBase = ns.getRoot(branch.getBase().asBranchRevision(ns.getClusterId()));
+
+        tds.reset();
+        long diffCacheRequests = diffCacheRequests(ns);
+
+        branchBase.compareAgainstBaseState(headState, new TrackingDiff());
+        diffCacheRequests = diffCacheRequests(ns) - diffCacheRequests;
+
+        assertThat(tds.paths, not(hasItem("/foo")));
+        assertThat(tds.paths, not(hasItem("/bar")));
+        assertThat(tds.paths, not(hasItem("/baz")));
+        assertEquals(0L, diffCacheRequests);
+    }
+
+    private long diffCacheRequests(DocumentNodeStore ns) {
+        long num = 0;
+        for (CacheStats stats : ns.getDiffCacheStats()) {
+            num += stats.getRequestCount();
+        }
+        return num;
     }
 
     private NodeState merge(NodeBuilder nb) throws CommitFailedException {
