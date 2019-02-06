@@ -2696,6 +2696,8 @@ public final class DocumentNodeStore
 
         checkOpen();
         Revision commitRevision = newRevision();
+        CommitBuilder commitBuilder = new CommitBuilder(this, commitRevision, base);
+        changes.with(commitBuilder);
         if (isDisableBranches()) {
             // Regular branch commits do not need to acquire the background
             // operation lock because the head is not updated and no pending
@@ -2718,8 +2720,6 @@ public final class DocumentNodeStore
                 b.addCommit(rev);
             }
         }
-        CommitBuilder commitBuilder = new CommitBuilder(this, commitRevision, base);
-        changes.with(commitBuilder);
         return commitBuilder.build();
     }
 
