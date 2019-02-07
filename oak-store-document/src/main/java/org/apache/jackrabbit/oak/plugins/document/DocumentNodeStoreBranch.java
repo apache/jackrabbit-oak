@@ -195,7 +195,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             try {
                 NodeState result = branchState.merge(checkNotNull(hook),
                         checkNotNull(info), exclusive);
-                store.getStatsCollector().doneMerge(numRetries, System.currentTimeMillis() - time, suspendMillis, exclusive);
+                store.getStatsCollector().doneMerge(branchState.getMergedChanges(),
+                        numRetries, System.currentTimeMillis() - time, suspendMillis, exclusive);
                 return result;
             } catch (FailedWithConflictException e) {
                 ex = e;
@@ -265,6 +266,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * @param toPersist the state with the changes on top of {@code base}.
      * @param base the base state.
      * @param info the commit info.
+     * @param stats the merge stats.
      * @return the state with the persisted changes.
      * @throws ConflictException if changes cannot be persisted because a
      *          conflict occurred. The exception may contain the revisions of
@@ -274,13 +276,15 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      */
     private DocumentNodeState persist(final @NotNull NodeState toPersist,
                                       final @NotNull DocumentNodeState base,
-                                      final @NotNull CommitInfo info)
+                                      final @NotNull CommitInfo info,
+                                      final @NotNull MergeStats stats)
             throws ConflictException, DocumentStoreException {
         return persist(new Changes() {
             @Override
             public void with(@NotNull CommitBuilder commitBuilder) {
-                toPersist.compareAgainstBaseState(base,
-                        new CommitDiff(store, commitBuilder, store.getBlobSerializer()));
+                CommitDiff diff = new CommitDiff(store, commitBuilder, store.getBlobSerializer());
+                toPersist.compareAgainstBaseState(base, diff);
+                stats.numDocuments += diff.getNumChanges();
             }
         }, base, info);
     }
@@ -364,6 +368,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             return base;
         }
 
+        int getMergedChanges() {
+            return 0;
+        }
+
         @NotNull
         abstract NodeState getHead();
 
@@ -441,7 +449,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         NodeState merge(@NotNull CommitHook hook,
                         @NotNull CommitInfo info,
                         boolean exclusive) {
-            branchState = new Merged(base);
+            branchState = new Merged(base, new MergeStats());
             return base;
         }
     }
@@ -526,17 +534,18 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                     NodeState toCommit = TimingHook.wrap(hook, (time, unit) -> stats.doneCommitHookProcessed(unit.toMicros(time)))
                             .processCommit(base, head, info);
                     try {
+                        MergeStats ms = new MergeStats();
                         NodeState newHead;
                         if (this != branchState) {
                             // branch state is not in-memory anymore
                             Persisted p = branchState.persist();
                             RevisionVector branchRev = p.getHead().getRootRevision();
                             newHead = store.getRoot(store.merge(branchRev, info));
-                            stats.doneMergeBranch(p.numCommits);
+                            stats.doneMergeBranch(p.numCommits, p.getMergedChanges());
                         } else {
-                            newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
+                            newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info, ms);
                         }
-                        branchState = new Merged(base);
+                        branchState = new Merged(base, ms);
                         success = true;
                         return newHead;
                     } catch (ConflictException e) {
@@ -581,6 +590,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
          * Number of commits on this persisted branch.
          */
         private int numCommits;
+
+        private final MergeStats ms = new MergeStats();
 
         @Override
         public String toString() {
@@ -649,8 +660,8 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 persistTransientHead(toCommit);
                 DocumentNodeState newRoot = store.getRoot(store.merge(head.getRootRevision(), info));
                 success = true;
-                branchState = new Merged(base);
-                stats.doneMergeBranch(numCommits);
+                branchState = new Merged(base, ms);
+                stats.doneMergeBranch(numCommits, branchState.getMergedChanges());
                 return newRoot;
             } catch (CommitFailedException e) {
                 throw e;
@@ -671,7 +682,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         private void persistTransientHead(NodeState newHead)
                 throws DocumentStoreException {
             try {
-                head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY)
+                head = DocumentNodeStoreBranch.this.persist(newHead, head, CommitInfo.EMPTY, ms)
                         .asBranchRootState(DocumentNodeStoreBranch.this);
             } catch (ConflictException e) {
                 throw DocumentStoreException.convert(e);
@@ -728,8 +739,13 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * Transitions to: none.
      */
     private class Merged extends BranchState {
-        protected Merged(DocumentNodeState base) {
+
+        private final MergeStats stats;
+
+        protected Merged(@NotNull DocumentNodeState base,
+                         @NotNull MergeStats stats) {
             super(base);
+            this.stats = stats;
         }
 
         @Override
@@ -759,6 +775,11 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                         @NotNull CommitInfo info,
                         boolean exclusive) {
             throw new IllegalStateException("Branch has already been merged");
+        }
+
+        @Override
+        int getMergedChanges() {
+            return stats.numDocuments;
         }
     }
 

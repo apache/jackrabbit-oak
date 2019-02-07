@@ -96,8 +96,10 @@ public class DocumentNodeStoreStatsCollectorIT {
     public void doneMerge() throws Exception {
         NodeBuilder nb = nodeStore.getRoot().builder();
         nb.child("a");
+        nb.child("b");
+        nb.child("c");
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        verify(statsCollector).doneMerge(eq(0), anyLong(), eq(0L), eq(false));
+        verify(statsCollector).doneMerge(eq(3), eq(0), anyLong(), eq(0L), eq(false));
     }
 
     @Test
@@ -135,10 +137,12 @@ public class DocumentNodeStoreStatsCollectorIT {
         for (int i = 0; i < updateLimit; i++) {
             nb.child("node-" + i).setProperty("p", "v");
         }
+        nb.child("foo");
+        nb.child("bar");
         merge(nodeStore, nb);
 
         verify(statsCollector, times(2)).doneBranchCommit();
-        verify(statsCollector).doneMergeBranch(2);
+        verify(statsCollector).doneMergeBranch(eq(2), eq(updateLimit + 2));
     }
 
     @Test
