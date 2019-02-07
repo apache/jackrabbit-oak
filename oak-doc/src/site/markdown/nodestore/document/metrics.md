@@ -88,6 +88,7 @@ DOCUMENT_NS_BGR_NUM_CHANGES_RATE | The number of changes the async background re
 DOCUMENT_NS_BGW_NUM_WRITE_RATE | The number of documents the async background writer updates and pushes to the DocumentStore. | updates per second
 DOCUMENT_NS_BRANCH_COMMIT_COUNT | The number of branch commits performed by this DocumentNodeStore. | branch commits per second
 DOCUMENT_NS_MERGE_BRANCH_COMMIT_COUNT | The number of branch commits merged. This count can be lower than the branch commit count because some branch commits have not yet been merged or never will be merged. | branch commits merged per second
+DOCUMENT_NS_MERGE_CHANGES_RATE | The number of changes merged. A change is defined by an update or insert of a document. | changes per second
 DOCUMENT_NS_MERGE_FAILED_EXCLUSIVE | The number of failed merges while holding the merge lock exclusively. | failed merges per second
 DOCUMENT_NS_MERGE_SUCCESS_COUNT | The number of successful merges | merges per second
 DOCUMENT_NS_MERGE_SUCCESS_EXCLUSIVE | The number of successful merges while holding the merge lock exclusively. | merges per second
@@ -115,6 +116,7 @@ DOCUMENT_NS_BGW_SWEEP | The time it takes to sweep documents in a background wri
 DOCUMENT_NS_BGW_TOTAL_TIME | The total time of a background write operation.
 DOCUMENT_NS_LEASE_UPDATE | The time it takes to update the lease.
 DOCUMENT_NS_MERGE_SUCCESS_TIME | The time it takes a successful merge to complete. This does not include merge attempts that failed.
+DOCUMENT_NS_MERGE_SUCCESS_NORMALIZED_TIME | The normalized time it takes a successful merge to complete. Normalization is done by dividing the merge time by the number of merged changes.
 DOCUMENT_NS_HEAD_OF_QUEUE_WAIT_TIME | The time a merge had to wait in the commit queue until it was the head of the queue and could proceed.
 DOCUMENT_NS_MERGE_SUSPEND_TIME | The time a merge was suspended due to a conflicting write on another cluster node.
 DOCUMENT_NS_MERGE_LOCK_TIME | The time it took to acquire the merge lock.
