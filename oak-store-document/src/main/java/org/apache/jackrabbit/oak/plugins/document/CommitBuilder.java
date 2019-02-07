@@ -254,6 +254,16 @@ class CommitBuilder {
                 addedNodes, removedNodes, nodesWithBinaries, bundledNodes);
     }
 
+    /**
+     * Returns the number of operations currently recorded by this commit
+     * builder.
+     *
+     * @return the number of operations.
+     */
+    int getNumOperations() {
+        return operations.size();
+    }
+
     //-------------------------< internal >-------------------------------------
 
     private UpdateOp getUpdateOperationForNode(String path) {

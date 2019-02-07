@@ -119,6 +119,17 @@ class CommitDiff implements NodeStateDiff {
                 new CommitDiff(store, commit, child, builder, blobs));
     }
 
+    /**
+     * The number of changes recorded by this commit diff. A change is defined
+     * as a set of updates on a document. This also includes updates for a new
+     * document.
+     *
+     * @return the number of changes.
+     */
+    int getNumChanges() {
+        return commit.getNumOperations();
+    }
+
     //----------------------------< internal >----------------------------------
 
     private void performBundlingRelatedOperations() {
