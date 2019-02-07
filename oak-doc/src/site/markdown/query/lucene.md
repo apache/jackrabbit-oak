@@ -39,7 +39,9 @@
     * [Mime type usage](#mime-type-usage)
     * [Mime type mapping](#mime-type-mapping)
 * [Non Root Index Definitions](#non-root-index)
+* [Function-Based Indexing](#function-based-indexing)
 * [Native Query and Index Selection](#native-query)
+* [Persisting indexes](#persisting-indexes)
 * [CopyOnRead](#copy-on-read)
 * [CopyOnWrite](#copy-on-write)
 * [Lucene Index MBeans](#mbeans)
@@ -439,7 +441,11 @@ nullCheckEnabled
 
 excludeFromAggregation
 : Since 1.0.27, 1.2.11
-: if set to true the property would be excluded from aggregation [OAK-3981][OAK-3981]
+: If set to true, the property is excluded from aggregation [OAK-3981][OAK-3981]
+
+function
+: Since 1.5.11, 1.6.0
+: Function, for [function-based indexing](#function-based-indexing).
 
 <a name="weight"></a>
 weight
@@ -453,7 +459,7 @@ weight
   See [OAK-6735][OAK-6735] for details.
 : Since 1.10: the default value is now `5`.
   See [OAK-7379][OAK-7379] for details.
-
+  
 <a name="property-names"></a>**Property Names**
 
 Property name can be one of following
@@ -1020,6 +1026,38 @@ Then you can create the required index definition say `assetIndex` at
 `/content/companya/oak:index/assetIndex`. In such a case that index would
 contain data for the subtree under `/content/companya`
 
+### <a name="function-based-indexing"></a>Function-Based Indexing
+
+`@since Oak 1.5.11, 1.6.0`
+
+Function-based indexes can for example allow to search (or order by) the lower case version of a property.
+For more details see [OAK-3574][OAK-3574].
+
+For example using the index definition
+
+    uppercaseLastName
+      - function = "fn:upper-case(@lastName)"
+      - propertyIndex = true
+      - ordered = true
+    
+This allows to search for, and order by, the lower case version of the property "lastName". Example functions:
+
+* fn:upper-case(@data)
+* fn:lower-case(test/@data)
+* fn:lower-case(fn:name())
+* fn:lower-case(fn:local-name())
+* fn:string-length(test/@data)
+* upper([data])
+* lower([test/data])
+* lower(name())
+* lower(localname())
+* length([test/data])
+* length(name())
+
+Indexing multi-valued properties is supported. 
+Relative properties are supported (except for ".." and "."). 
+Range conditions are supported ('>', '>=', '<=', '<').
+
 ### <a name="native-query"></a>Native Query and Index Selection
 
 Oak query engine supports native queries like
@@ -1032,17 +1070,18 @@ specify the index name via `functionName` attribute on index definition.
 
 For example for assetIndex definition like
 
-    - jcr:primaryType = "oak:QueryIndexDefinition"
-    - type = "lucene"
-    ...
-    - functionName = "lucene-assetIndex"
+    luceneAssetIndex
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - type = "lucene"
+      ...
+      - functionName = "lucene-assetIndex"
 
 Executing following query would ensure that Lucene index from `assetIndex`
 should be used
 
     //*[rep:native('lucene-assetIndex', 'name:(Hello OR World)')]
 
-### <a name="native-query"></a>Persisting indexes to FileSystem
+### <a name="persisting-indexes"></a>Persisting indexes to FileSystem
 
 By default Lucene indexes are stored in the `NodeStore`. If required they can
 be stored on the file system directly
@@ -1980,6 +2019,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
 [OAK-2895]: https://issues.apache.org/jira/browse/OAK-2895
 [OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
+[OAK-3574]: https://issues.apache.org/jira/browse/OAK-3574
 [OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
 [OAK-3994]: https://issues.apache.org/jira/browse/OAK-3994
 [OAK-4400]: https://issues.apache.org/jira/browse/OAK-4400
