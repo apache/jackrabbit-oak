@@ -169,7 +169,7 @@ public class SelectorImpl extends SourceImpl {
     private String planIndexName;
     private TimerStats timerDuration;
 
-    private LastTree lastTree;
+    private CachedTree cachedTree;
 
     public SelectorImpl(NodeTypeInfo nodeTypeInfo, String selectorName) {
         this.nodeTypeInfo = checkNotNull(nodeTypeInfo);
@@ -528,7 +528,7 @@ public class SelectorImpl extends SourceImpl {
                 // where [a].[jcr:path] = $path"
                 // because not checking would reveal existence
                 // of the child node
-                if (!getLastTree(currentRow.getPath()).exists()) {
+                if (!getCachedTree(currentRow.getPath()).exists()) {
                     continue;
                 }
             }
@@ -565,13 +565,13 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateTypeMatch() {
-        LastTree lt = getLastTree(currentRow.getPath());
-        if (!lt.exists()) {
+        CachedTree ct = getCachedTree(currentRow.getPath());
+        if (!ct.exists()) {
             return false;
         }
 
-        Tree t = lt.getTree();
-        LazyValue<Tree> readOnly = lt.getReadOnlyTree();
+        Tree t = ct.getTree();
+        LazyValue<Tree> readOnly = ct.getReadOnlyTree();
         String primaryTypeName = TreeUtil.getPrimaryTypeName(t, readOnly);
         if (primaryTypeName != null && primaryTypes.contains(primaryTypeName)) {
             return true;
@@ -611,7 +611,7 @@ public class SelectorImpl extends SourceImpl {
 
     @Nullable
     Tree getTree(@NotNull String path) {
-        return getLastTree(path).getTree();
+        return getCachedTree(path).getTree();
     }
     
     /**
@@ -621,11 +621,11 @@ public class SelectorImpl extends SourceImpl {
      * @return the tree, or null
      */
     @NotNull
-    private LastTree getLastTree(@NotNull  String path) {
-        if (lastTree == null || !lastTree.denotes(path)) {
-            lastTree = new LastTree(path, query);
+    private CachedTree getCachedTree(@NotNull  String path) {
+        if (cachedTree == null || !cachedTree.denotes(path)) {
+            cachedTree = new CachedTree(path, query);
         }
-        return lastTree;
+        return cachedTree;
     }
 
     /**
@@ -889,17 +889,23 @@ public class SelectorImpl extends SourceImpl {
         return new SelectorImpl(nodeTypeInfo, selectorName);
     }
 
-    private static final class LastTree {
+    private static final class CachedTree {
 
         private final String path;
         private final Tree tree;
         private final ExecutionContext ctx;
-        private LazyValue<Tree> readOnlyTree;
+        private final LazyValue<Tree> readOnlyTree;
 
-        private LastTree(@NotNull String path, @NotNull QueryImpl query) {
+        private CachedTree(@NotNull String path, @NotNull QueryImpl query) {
             this.path = path;
             this.tree = query.getTree(path);
             this.ctx = query.getExecutionContext();
+            this.readOnlyTree = new LazyValue<Tree>() {
+                @Override
+                protected Tree createValue() {
+                    return new ImmutableRoot(ctx.getBaseState()).getTree(path);
+                }
+            };
         }
 
         private boolean denotes(@NotNull String path) {
@@ -917,14 +923,6 @@ public class SelectorImpl extends SourceImpl {
 
         @NotNull
         private LazyValue<Tree> getReadOnlyTree() {
-            if (readOnlyTree == null) {
-                readOnlyTree = new LazyValue<Tree>() {
-                    @Override
-                    protected Tree createValue() {
-                        return new ImmutableRoot(ctx.getBaseState()).getTree(path);
-                    }
-                };
-            }
             return readOnlyTree;
         }
     }
