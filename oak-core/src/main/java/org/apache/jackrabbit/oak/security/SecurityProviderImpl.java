@@ -59,6 +59,9 @@ import org.osgi.framework.BundleContext;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * @deprecated Replaced by {@code org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder}
+ */
 @Deprecated
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
