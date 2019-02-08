@@ -62,6 +62,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class AbstractAccessControlManagerTest extends AbstractAccessControlTest {
@@ -268,14 +271,9 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
         }
     }
 
-    @Test
+    @Test(expected = PathNotFoundException.class)
     public void testGetSupportedPrivilegesNonExistingPath() throws Exception {
-        try {
-            acMgr.getSupportedPrivileges(nonExistingPath);
-            fail("Nonexisting node -> PathNotFoundException expected.");
-        } catch (PathNotFoundException e) {
-            // success
-        }
+        acMgr.getSupportedPrivileges(nonExistingPath);
     }
 
     //--------------------------------------------------< privilegeFromName >---
@@ -420,6 +418,17 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
     }
 
     @Test
+    public void testGetPrivilegesSessionPrincipalSet() throws Exception {
+        AbstractAccessControlManager mgr = spy(acMgr);
+        Privilege[] privileges = mgr.getPrivileges(testPath, testPrincipals);
+        assertArrayEquals(acMgr.getPrivileges(testPath), privileges);
+
+        // getPrivileges(String,Set) for the principals attached to the content session,
+        // must result in forwarding the call to getPrivilege(String)
+        verify(mgr, times(1)).getPrivileges(testPath);
+    }
+
+    @Test
     public void testGetRepoPrivileges() throws Exception {
         assertArrayEquals(allPrivileges, acMgr.getPrivileges(null));
     }
@@ -434,7 +443,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
         assertArrayEquals(new Privilege[0], acMgr.getPrivileges(null, ImmutableSet.<Principal>of()));
     }
 
-    private final class TestAcMgr extends AbstractAccessControlManager {
+    private class TestAcMgr extends AbstractAccessControlManager {
 
         protected TestAcMgr(@NotNull Root root, @NotNull NamePathMapper namePathMapper, @NotNull SecurityProvider securityProvider) {
             super(root, namePathMapper, securityProvider);

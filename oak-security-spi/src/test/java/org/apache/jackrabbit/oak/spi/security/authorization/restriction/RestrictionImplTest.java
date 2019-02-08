@@ -84,14 +84,9 @@ public class RestrictionImplTest {
         assertTrue(restriction.getDefinition().isMandatory());
     }
 
-    @Test
-    public void testInvalid() {
-        try {
-            new RestrictionImpl(null, false);
-            fail("Creating RestrictionDefinition with null name should fail.");
-        } catch (NullPointerException e) {
-            // success
-        }
+    @Test(expected = NullPointerException.class)
+    public void testNullProperty() {
+        new RestrictionImpl(null, false);
     }
 
     @Test
@@ -141,7 +136,7 @@ public class RestrictionImplTest {
         });
 
         for (Restriction r : rs) {
-            assertFalse(restriction.equals(r));
+            assertNotEquals(restriction, r);
         }
     }
 

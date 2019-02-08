@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.Privilege;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -37,6 +29,14 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import javax.jcr.Value;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -239,5 +239,23 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         assertSame(aacl.getRestrictionProvider(), iacl.getRestrictionProvider());
         assertSame(aacl.getNamePathMapper(), iacl.getNamePathMapper());
 
+    }
+
+    @Override
+    @Test(expected = AccessControlException.class)
+    public void testAddAccessControlEntry() throws Exception {
+        createEmptyACL().addAccessControlEntry(testPrincipal, new Privilege[0]);
+    }
+
+    @Override
+    @Test(expected = AccessControlException.class)
+    public void testAddEntry() throws Exception {
+        createEmptyACL().addEntry(testPrincipal, new Privilege[0], true);
+    }
+
+    @Override
+    @Test(expected = AccessControlException.class)
+    public void testAddEntryWithRestrictions() throws Exception {
+        createEmptyACL().addEntry(testPrincipal, new Privilege[0], true, Collections.emptyMap());
     }
 }

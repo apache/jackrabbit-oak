@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,7 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -45,6 +47,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class AbstractRestrictionProviderTest implements AccessControlConstants {
@@ -74,7 +79,11 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false);
         RestrictionDefinition nts  = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
         RestrictionDefinition mand = new RestrictionDefinitionImpl("mandatory", Type.BOOLEAN, true);
-        supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
+        RestrictionDefinition undef = mock(RestrictionDefinition.class);
+        when(undef.getName()).thenReturn("undefined");
+        when(undef.getRequiredType()).thenReturn((Type) Type.UNDEFINED);
+
+        supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand, undef.getName(), undef);
         restrictionProvider = new AbstractRestrictionProvider(supported) {
             @NotNull
             @Override
@@ -93,12 +102,17 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
     private Tree getAceTree(Restriction... restrictions) {
         Tree restrictionsTree = Mockito.mock(Tree.class);;
         when(restrictionsTree.getName()).thenReturn(REP_RESTRICTIONS);
-        when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, Type.NAME));
+        PropertyState primaryType = PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_RESTRICTIONS, Type.NAME);
+        when(restrictionsTree.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(primaryType);
+
         List<PropertyState> properties = new ArrayList<>();
         for (Restriction r : restrictions) {
             when(restrictionsTree.getProperty(r.getDefinition().getName())).thenReturn(r.getProperty());
             properties.add(r.getProperty());
         }
+        properties.add(primaryType);
+        properties.add(PropertyStates.createProperty(Iterables.get(AccessControlConstants.ACE_PROPERTY_NAMES, 0), "value"));
+
         when(restrictionsTree.getProperties()).thenReturn((Iterable)properties);
         when(restrictionsTree.exists()).thenReturn(true);
 
@@ -127,68 +141,28 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         assertTrue(defs.isEmpty());
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testCreateForUnsupportedPath() throws Exception {
-        try {
-            restrictionProvider.createRestriction(unsupportedPath, REP_GLOB, globValue);
-            fail();
-        } catch (AccessControlException e) {
-            // success
-        }
-
-        try {
-            restrictionProvider.createRestriction(unsupportedPath, REP_NT_NAMES, nameValues);
-            fail();
-        } catch (AccessControlException e) {
-            // success
-        }
+        restrictionProvider.createRestriction(unsupportedPath, REP_GLOB, globValue);
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testCreateForUnsupportedName() throws Exception {
-        try {
-            restrictionProvider.createRestriction(testPath, "unsupported", globValue);
-            fail();
-        } catch (AccessControlException e) {
-            // success
-        }
-
-        try {
-            restrictionProvider.createRestriction(testPath, "unsupported", nameValues);
-            fail();
-        } catch (AccessControlException e) {
-            // success
-        }
+        restrictionProvider.createRestriction(testPath, "unsupported", nameValue);
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testCreateForUnsupportedType() throws Exception {
-        try {
-            restrictionProvider.createRestriction(testPath, REP_GLOB, valueFactory.createValue(true));
-            fail();
-        } catch (AccessControlException e) {
-            // success
-        }
-        try {
-            restrictionProvider.createRestriction(testPath, REP_NT_NAMES,
-                    valueFactory.createValue("nt:file", PropertyType.NAME),
-                    valueFactory.createValue(true));
-            fail();
-        } catch (AccessControlException e) {
-            // success
-        }
+        restrictionProvider.createRestriction(testPath, REP_NT_NAMES,
+                valueFactory.createValue("nt:file", PropertyType.NAME),
+                valueFactory.createValue(true));
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testCreateForUnsupportedMultiValues() throws Exception {
-        try {
-            restrictionProvider.createRestriction(testPath, REP_GLOB,
-                    valueFactory.createValue("*"),
-                    valueFactory.createValue("/a/*"));
-            fail();
-        } catch (AccessControlException e) {
-            // success
-        }
+        restrictionProvider.createRestriction(testPath, REP_GLOB,
+                valueFactory.createValue("*"),
+                valueFactory.createValue("/a/*"));
     }
 
     @Test
@@ -285,6 +259,16 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
     }
 
     @Test
+    public void testCreatedUndefinedType() throws Exception {
+        Restriction r = restrictionProvider.createRestriction(testPath, "undefined", valueFactory.createValue(23));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testCreateUndefinedTypeMV() throws Exception {
+        Restriction r2 = restrictionProvider.createRestriction(testPath, "undefined", valueFactory.createValue(23), valueFactory.createValue(false));
+    }
+
+    @Test
     public void testReadRestrictionsForUnsupportedPath() {
         Set<Restriction> restrictions = restrictionProvider.readRestrictions(unsupportedPath, getAceTree());
         assertTrue(restrictions.isEmpty());
@@ -301,55 +285,36 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
     }
 
     @Test
-    public void testValidateRestrictionsUnsupportedPath() throws Exception {
+    public void testValidateRestrictionsUnsupportedPathEmptyRestrictions() throws Exception {
         // empty restrictions => must succeed
         restrictionProvider.validateRestrictions(null, getAceTree());
-
-
-        // non-empty restrictions => must fail
-        try {
-            Restriction restr = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
-            restrictionProvider.validateRestrictions(null, getAceTree(restr));
-            fail();
-        } catch (AccessControlException e) {
-            // success
-        }
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
+    public void testValidateRestrictionsUnsupportedPath() throws Exception {
+        // non-empty restrictions => must fail
+        Restriction restr = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
+        restrictionProvider.validateRestrictions(null, getAceTree(restr));
+    }
+
+    @Test(expected = AccessControlException.class)
     public void testValidateRestrictionsWrongType() throws Exception {
         Restriction mand = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(true));
-        try {
-            Tree ace = getAceTree(mand, new RestrictionImpl(PropertyStates.createProperty(REP_GLOB, true), false));
-
-            restrictionProvider.validateRestrictions(testPath, ace);
-            fail("wrong type with restriction 'rep:glob");
-        } catch (AccessControlException e) {
-            // success
-        }
+        Tree ace = getAceTree(mand, new RestrictionImpl(PropertyStates.createProperty(REP_GLOB, true), false));
+        restrictionProvider.validateRestrictions(testPath, ace);
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testValidateRestrictionsUnsupportedRestriction() throws Exception {
         Restriction mand = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(true));
-        try {
-            Tree ace = getAceTree(mand, new RestrictionImpl(PropertyStates.createProperty("unsupported", "value"), false));
-            restrictionProvider.validateRestrictions(testPath, ace);
-            fail("wrong type with restriction 'rep:glob");
-        } catch (AccessControlException e) {
-            // success
-        }
+        Tree ace = getAceTree(mand, new RestrictionImpl(PropertyStates.createProperty("unsupported", "value"), false));
+        restrictionProvider.validateRestrictions(testPath, ace);
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testValidateRestrictionsMissingMandatory() throws Exception {
         Restriction glob = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
-        try {
-            restrictionProvider.validateRestrictions(testPath, getAceTree(glob));
-            fail("missing mandatory restriction");
-        } catch (AccessControlException e) {
-            // success
-        }
+        restrictionProvider.validateRestrictions(testPath, getAceTree(glob));
     }
 
     @Test
@@ -362,5 +327,34 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
         restrictionProvider.validateRestrictions(testPath, getAceTree(mand, glob));
         restrictionProvider.validateRestrictions(testPath, getAceTree(mand, ntNames));
         restrictionProvider.validateRestrictions(testPath, getAceTree(mand, glob, ntNames));
+    }
+
+    @Test
+    public void testGetRestrictionTree() {
+        Tree aceTree = getAceTree();
+        Tree restrictionTree = restrictionProvider.getRestrictionsTree(aceTree);
+        assertEquals(aceTree.getChild(REP_RESTRICTIONS), restrictionTree);
+    }
+
+    @Test
+    public void testGetRestrictionTreeMissing() {
+        Tree aceTree = when(mock(Tree.class).getChild(REP_RESTRICTIONS)).thenReturn(mock(Tree.class)).getMock();
+        Tree restrictionTree = restrictionProvider.getRestrictionsTree(aceTree);
+        assertEquals(aceTree, restrictionTree);
+    }
+
+    @Test
+    public void testWriteEmptyRestrictions() throws Exception {
+        restrictionProvider.writeRestrictions(null, getAceTree(), Collections.emptySet());
+    }
+
+    @Test
+    public void testWriteRestrictions() throws Exception {
+        Restriction ntNames = restrictionProvider.createRestriction(testPath, REP_NT_NAMES, nameValues);
+        Tree aceTree = getAceTree();
+        restrictionProvider.writeRestrictions(null, aceTree, Collections.singleton(ntNames));
+
+        verify(aceTree, times(1)).getChild(REP_RESTRICTIONS);
+        verify(aceTree.getChild(REP_RESTRICTIONS), times(1)).setProperty(ntNames.getProperty());
     }
 }

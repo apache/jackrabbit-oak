@@ -21,18 +21,23 @@ import java.util.UUID;
 import javax.jcr.AccessDeniedException;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TreeUtilTest extends AbstractTreeTest {
@@ -56,7 +61,7 @@ public class TreeUtilTest extends AbstractTreeTest {
         typeRoot = rootTree; // TODO
 
         ntDef = mockTree("/typeDef", typeRoot, true);
-        when(typeRoot.getChild(NodeTypeConstants.NT_OAK_UNSTRUCTURED)).thenReturn(ntDef);
+        when(typeRoot.getChild(NT_OAK_UNSTRUCTURED)).thenReturn(ntDef);
         when(typeRoot.getChild(NodeTypeConstants.MIX_LOCKABLE)).thenReturn(ntDef);
         when(typeRoot.getChild(NodeTypeConstants.MIX_VERSIONABLE)).thenReturn(ntDef);
         when(typeRoot.getChild("rep:NonExistingType")).thenReturn(nonExisting);
@@ -66,9 +71,70 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testGetPrimaryTypeName() {
-        assertEquals(NodeTypeConstants.NT_OAK_UNSTRUCTURED, TreeUtil.getPrimaryTypeName(child));
+        assertEquals(NT_OAK_UNSTRUCTURED, TreeUtil.getPrimaryTypeName(child));
         assertNull(TreeUtil.getPrimaryTypeName(rootTree.getChild("x")));
     }
+
+    @Test
+    public void testGetPrimaryTypeNameUnusedLazy() {
+        assertEquals(NT_OAK_UNSTRUCTURED, TreeUtil.getPrimaryTypeName(child, mock(LazyValue.class)));
+    }
+
+    @Test
+    public void testGetPrimaryTypeNameNewTreeLazy() {
+        Tree newTree = when(rootTree.getChild("x").getStatus()).thenReturn(Tree.Status.NEW).getMock();
+        assertNull(TreeUtil.getPrimaryTypeName(newTree, new LazyValue<Tree>() {
+            @Override
+            protected Tree createValue() {
+                throw new RuntimeException("should not get here");
+            }
+        }));
+    }
+
+    @Test
+    public void testGetPrimaryTypeNameFromLazy() {
+        assertEquals(NT_OAK_UNSTRUCTURED, TreeUtil.getPrimaryTypeName(rootTree.getChild("x"), new LazyValue<Tree>() {
+            @Override
+            protected Tree createValue() {
+                return when(mock(Tree.class).getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME)).getMock();
+            }
+        }));
+    }
+
+    @Test
+    public void testGetMixinTypes() {
+        assertTrue(Iterables.elementsEqual(TreeUtil.getNames(child, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(child)));
+        assertTrue(Iterables.elementsEqual(TreeUtil.getNames(rootTree, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(rootTree)));
+    }
+
+    @Test
+    public void testGetMixinTypeNamesUnusedLazy() {
+        assertTrue(Iterables.elementsEqual(
+                TreeUtil.getNames(child, JcrConstants.JCR_MIXINTYPES),
+                TreeUtil.getMixinTypeNames(child, mock(LazyValue.class))));
+    }
+
+    @Test
+    public void testGetMixinTypeNamesNewTreeLazy() {
+        Tree newTree = when(rootTree.getChild("x").getStatus()).thenReturn(Tree.Status.NEW).getMock();
+        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(newTree, new LazyValue<Tree>() {
+            @Override
+            protected Tree createValue() {
+                throw new RuntimeException("should not get here");
+            }
+        })));
+    }
+
+    @Test
+    public void testGetMixinTypeNamesFromLazy() {
+        assertTrue(Iterables.elementsEqual(TreeUtil.getNames(child, JcrConstants.JCR_MIXINTYPES), TreeUtil.getMixinTypeNames(rootTree.getChild("x"), new LazyValue<Tree>() {
+            @Override
+            protected Tree createValue() {
+                return child;
+            }
+        })));
+    }
+
 
     @Test
     public void testGetStrings() {
@@ -172,22 +238,22 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test(expected = AccessDeniedException.class)
     public void testAddChildNonExisting() throws Exception {
-        TreeUtil.addChild(rootTree, nonExisting.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(rootTree, nonExisting.getName(), NT_OAK_UNSTRUCTURED);
     }
 
     @Test
     public void testAddChild() throws Exception {
-        assertEquals(z.getPath(), TreeUtil.addChild(rootTree, z.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED).getPath());
+        assertEquals(z.getPath(), TreeUtil.addChild(rootTree, z.getName(), NT_OAK_UNSTRUCTURED).getPath());
     }
 
     @Test(expected = AccessDeniedException.class)
     public void testGetOrAddChildNonExisting() throws Exception {
-        TreeUtil.getOrAddChild(rootTree, nonExisting.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.getOrAddChild(rootTree, nonExisting.getName(), NT_OAK_UNSTRUCTURED);
     }
 
     @Test
     public void testGetOrAddChild() throws Exception {
-        assertEquals(z.getPath(), TreeUtil.getOrAddChild(rootTree, z.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED).getPath());
+        assertEquals(z.getPath(), TreeUtil.getOrAddChild(rootTree, z.getName(), NT_OAK_UNSTRUCTURED).getPath());
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -239,7 +305,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testIsNodeType() {
-        assertTrue(TreeUtil.isNodeType(child, NodeTypeConstants.NT_OAK_UNSTRUCTURED, typeRoot));
+        assertTrue(TreeUtil.isNodeType(child, NT_OAK_UNSTRUCTURED, typeRoot));
     }
 
     @Test

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import java.util.Collections;
 import java.util.Set;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -27,8 +28,11 @@ import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -43,11 +47,14 @@ import org.mockito.Mockito;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link ACE}
@@ -60,7 +67,7 @@ public class ACETest extends AbstractAccessControlTest {
 
     @Before
     public void before() throws Exception {
-        ValueFactory valueFactory = new ValueFactoryImpl(Mockito.mock(Root.class), getNamePathMapper());
+        ValueFactory valueFactory = new ValueFactoryImpl(mock(Root.class), getNamePathMapper());
         globValue = valueFactory.createValue("*");
         nameValue = valueFactory.createValue("nt:file", PropertyType.NAME);
         nameValues = new Value[] {
@@ -141,24 +148,51 @@ public class ACETest extends AbstractAccessControlTest {
         assertEquals(expected, bits);
     }
 
-    @Test
-    public void testNullPrivileges() {
-        try {
-            new EmptyACE(null);
-            fail("Privileges must not be null");
-        } catch (AccessControlException e) {
-            // success
-        }
+    @Test(expected = AccessControlException.class)
+    public void testNullPrivileges() throws Exception {
+        new ACE(testPrincipal, null, true, Collections.emptySet(), getNamePathMapper()) {
+            @Override
+            public Privilege[] getPrivileges() {
+                return new Privilege[0];
+            }
+        };
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testEmptyPrivileges() throws Exception {
+        new ACE(testPrincipal, PrivilegeBits.EMPTY, true, null, getNamePathMapper()) {
+            @Override
+            public Privilege[] getPrivileges() {
+                return new Privilege[0];
+            }
+        };
     }
 
     @Test
-    public void testEmptyPrivileges() {
-        try {
-            new EmptyACE(PrivilegeBits.EMPTY);
-            fail("Privileges must not be empty.");
-        } catch (AccessControlException e) {
-            // success
-        }
+    public void testNullRestrictions() throws Exception {
+        ACE ace = new ACE(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true, null, getNamePathMapper()) {
+            @Override
+            public Privilege[] getPrivileges() {
+                return new Privilege[0];
+            }
+        };
+        assertTrue(ace.getRestrictions().isEmpty());
+    }
+
+    @Test
+    public void testRestrictions() throws Exception {
+        Restriction r = new RestrictionImpl(PropertyStates.createProperty("r", "v"), false);
+        Restriction r2 = new RestrictionImpl(PropertyStates.createProperty("r2", ImmutableList.of("v"), Type.STRINGS), false);
+        Set<Restriction> restrictions = Sets.newHashSet(r, r2);
+        ACE ace = new ACE(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true, restrictions, getNamePathMapper()) {
+            @Override
+            public Privilege[] getPrivileges() {
+                return new Privilege[0];
+            }
+        };
+        assertFalse(ace.getRestrictions().isEmpty());
+        assertNotSame(restrictions, ace.getRestrictions());
+        assertTrue(Iterables.elementsEqual(restrictions, ace.getRestrictions()));
     }
 
     @Test
@@ -310,7 +344,7 @@ public class ACETest extends AbstractAccessControlTest {
     public void testEqualsSameACE() throws Exception {
         ACE ace = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true);
 
-        assertTrue(ace.equals(ace));
+        assertEquals(ace, ace);
     }
 
     @Test
@@ -318,14 +352,14 @@ public class ACETest extends AbstractAccessControlTest {
         ACE ace = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true);
         ACE ace2 = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true);
 
-        assertTrue(ace.equals(ace2));
+        assertEquals(ace, ace2);
     }
 
     @Test
     public void testEqualsOtherEntryImpl() throws Exception {
         ACE ace = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true);
 
-        assertFalse(ace.equals(Mockito.mock(JackrabbitAccessControlEntry.class)));
+        assertNotEquals(ace, mock(JackrabbitAccessControlEntry.class));
     }
 
     @Test
@@ -333,7 +367,7 @@ public class ACETest extends AbstractAccessControlTest {
         ACE ace = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true);
         ACE ace2 = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), false);
 
-        assertFalse(ace.equals(ace2));
+        assertNotEquals(ace, ace2);
     }
 
     @Test
@@ -341,7 +375,7 @@ public class ACETest extends AbstractAccessControlTest {
         ACE ace = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true);
         ACE ace2 = createEntry(EveryonePrincipal.getInstance(), PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true);
 
-        assertFalse(ace.equals(ace2));
+        assertNotEquals(ace, ace2);
     }
 
     @Test
@@ -349,7 +383,7 @@ public class ACETest extends AbstractAccessControlTest {
         ACE ace = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true);
         ACE ace2 = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_ADD_CHILD_NODES), true);
 
-        assertFalse(ace.equals(ace2));
+        assertNotEquals(ace, ace2);
     }
 
     @Test
@@ -357,7 +391,7 @@ public class ACETest extends AbstractAccessControlTest {
         ACE ace = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true, createRestriction("name2", "val"));
         ACE ace2 = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true, createRestriction("name", "val"));
 
-        assertFalse(ace.equals(ace2));
+        assertNotEquals(ace, ace2);
     }
 
     @Test
@@ -365,18 +399,6 @@ public class ACETest extends AbstractAccessControlTest {
         ACE ace = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true, createRestriction("name", "val"));
         ACE ace2 = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true, createRestriction("name", "val2"));
 
-        assertFalse(ace.equals(ace2));
-    }
-
-    private class EmptyACE extends ACE {
-
-        public EmptyACE(PrivilegeBits privilegeBits) throws AccessControlException {
-            super(testPrincipal, privilegeBits, true, null, getNamePathMapper());
-        }
-
-        @Override
-        public Privilege[] getPrivileges() {
-            return new Privilege[0];
-        }
+        assertNotEquals(ace, ace2);
     }
 }

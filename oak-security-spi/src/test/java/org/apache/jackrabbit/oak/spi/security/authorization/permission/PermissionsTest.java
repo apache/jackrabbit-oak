@@ -257,6 +257,14 @@ public class PermissionsTest {
     }
 
     @Test
+    public void testIsRepositoryPermission() {
+        Set<Long> repoPermissions = ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT, Permissions.NODE_TYPE_DEFINITION_MANAGEMENT, Permissions.PRIVILEGE_MANAGEMENT, Permissions.WORKSPACE_MANAGEMENT);
+        for (long permission : Permissions.aggregates(Permissions.ALL)) {
+            assertEquals(repoPermissions.contains(permission), Permissions.isRepositoryPermission(permission));
+        }
+    }
+
+    @Test
     public void testRespectParentPermissions() {
         List<Long> permissions = ImmutableList.of(
                 Permissions.ALL,
