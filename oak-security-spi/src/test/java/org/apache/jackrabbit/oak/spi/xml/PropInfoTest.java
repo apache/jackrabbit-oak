@@ -239,15 +239,11 @@ public class PropInfoTest {
         List<TextValue> tvs = ImmutableList.of(mockTextValue("24", PropertyType.LONG));
         PropInfo propInfo = new PropInfo("longs", PropertyType.LONG, tvs);
 
-        assertEquals(Lists.transform(tvs, new Function<TextValue,Value>() {
-            @Nullable
-            @Override
-            public Value apply(TextValue input) {
-                try {
-                    return input.getValue(PropertyType.LONG);
-                } catch (RepositoryException e) {
-                    throw new RuntimeException();
-                }
+        assertEquals(Lists.transform(tvs, input -> {
+            try {
+                return input.getValue(PropertyType.LONG);
+            } catch (RepositoryException e) {
+                throw new RuntimeException();
             }
         }), propInfo.getValues(PropertyType.LONG));
     }

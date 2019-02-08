@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -57,21 +58,14 @@ public class RestrictionDefinitionImplTest {
         assertTrue(definition.isMandatory());
     }
 
-    @Test
-    public void testInvalid() {
-        try {
-            new RestrictionDefinitionImpl(null, Type.BOOLEAN, false);
-            fail("Creating RestrictionDefinition with null name should fail.");
-        } catch (NullPointerException e) {
-            // success
-        }
+    @Test(expected = NullPointerException.class)
+    public void testNullName() {
+        new RestrictionDefinitionImpl(null, Type.BOOLEAN, false);
+    }
 
-        try {
-            new RestrictionDefinitionImpl(name, Type.UNDEFINED, false);
-            fail("Creating RestrictionDefinition with undefined required type should fail.");
-        } catch (IllegalArgumentException e) {
-            // success
-        }
+    @Test(expected = IllegalArgumentException.class)
+    public void testUndefinedType() {
+        new RestrictionDefinitionImpl(name, Type.UNDEFINED, false);
     }
 
     @Test
@@ -111,7 +105,7 @@ public class RestrictionDefinitionImplTest {
         });
 
         for (RestrictionDefinition rd : defs) {
-            assertFalse(definition.equals(rd));
+            assertNotEquals(definition, rd);
         }
     }
 }

@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -51,6 +53,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -268,5 +275,37 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     @Test
     public void testIsMultiValueRestrictionForUnknownName() {
         assertFalse(createEmptyACL().isMultiValueRestriction("unknownRestrictionName"));
+    }
+
+    @Test
+    public void testAddAccessControlEntry() throws Exception {
+        AbstractAccessControlList acl = spy(createEmptyACL());
+
+        Privilege[] privs =  new Privilege[0];
+        acl.addAccessControlEntry(testPrincipal, privs);
+
+        verify(acl, never()).addEntry(testPrincipal, privs, true);
+        verify(acl, times(1)).addEntry(testPrincipal, privs, true, Collections.emptyMap());
+    }
+
+    @Test
+    public void testAddEntry() throws Exception {
+        AbstractAccessControlList acl = spy(createEmptyACL());
+
+        Privilege[] privs = new Privilege[0];
+        acl.addEntry(testPrincipal, privs, false);
+
+        verify(acl, times(1)).addEntry(testPrincipal, privs, false, Collections.emptyMap());
+    }
+
+    @Test
+    public void testAddEntryWithRestrictions() throws Exception {
+        AbstractAccessControlList acl = spy(createEmptyACL());
+
+        Privilege[] privs =  new Privilege[0];
+        Map<String, Value> restrictions = Collections.singletonMap("name", mock(Value.class));
+        acl.addEntry(testPrincipal, privs, false, restrictions);
+
+        verify(acl, times(1)).addEntry(testPrincipal, privs, false, restrictions, null);
     }
 }

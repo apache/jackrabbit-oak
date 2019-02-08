@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Test implementation of AbstractAccessControlList
  */
-public final class TestACL extends AbstractAccessControlList {
+public class TestACL extends AbstractAccessControlList {
 
     private final List<JackrabbitAccessControlEntry> entries = new ArrayList<>();
     private final RestrictionProvider restrictionProvider;
@@ -66,14 +66,8 @@ public final class TestACL extends AbstractAccessControlList {
     }
 
     @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges,
-                            boolean isAllow, Map<String, Value> restrictions) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions) {
-        throw new UnsupportedOperationException();
+        return false;
     }
 
     @Override
