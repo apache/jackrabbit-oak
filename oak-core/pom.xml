@@ -275,6 +275,12 @@
       <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
       <scope>test</scope>
     </dependency>
+      <dependency>
+          <groupId>org.assertj</groupId>
+          <artifactId>assertj-core</artifactId>
+          <version>3.6.2</version>
+          <scope>test</scope>
+      </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>

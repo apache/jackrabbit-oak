@@ -979,6 +979,7 @@ public class QueryImpl implements Query {
 
         double bestCost = Double.POSITIVE_INFINITY;
         IndexPlan bestPlan = null;
+        IndexPlan almostBestPlan = null;
 
         // track similar costs
         QueryIndex almostBestIndex = null;
@@ -1033,10 +1034,18 @@ public class QueryImpl implements Query {
                         String msg = String.format("cost for [%s] of type (%s) with plan [%s] is %1.2f", p.getPlanName(), indexName, plan, c);
                         logDebug(msg);
                     }
+                    if (c < bestCost) {
+                        almostBestCost = bestCost;
+                        almostBestIndex = bestIndex;
+                        almostBestPlan = bestPlan;
 
-                    if (c < cost) {
-                        cost = c;
-                        indexPlan = p;
+                        bestCost = c;
+                        bestIndex = index;
+                        bestPlan = p;
+                    } else if (c - bestCost <= 0.1) {
+                        almostBestCost = c;
+                        almostBestIndex = index;
+                        almostBestPlan = p;
                     }
                 }
 
@@ -1045,6 +1054,17 @@ public class QueryImpl implements Query {
                 }
             } else {
                 cost = index.getCost(filter, rootState);
+                if (cost < bestCost) {
+                    almostBestCost = bestCost;
+                    almostBestIndex = bestIndex;
+
+                    bestCost = cost;
+                    bestIndex = index;
+                    bestPlan = indexPlan;
+                } else if (cost - bestCost <= 0.1) {
+                    almostBestCost = cost;
+                    almostBestIndex = index;
+                }
             }
             if (LOG.isDebugEnabled()) {
                 logDebug("cost for " + indexName + " is " + cost);
@@ -1053,22 +1073,15 @@ public class QueryImpl implements Query {
                 LOG.error("cost below 0 for " + indexName + " is " + cost);
             }
 
-            if (cost < bestCost) {
-                almostBestCost = bestCost;
-                almostBestIndex = bestIndex;
-
-                bestCost = cost;
-                bestIndex = index;
-                bestPlan = indexPlan;
-            } else if (cost - bestCost <= 0.1) {
-                almostBestCost = cost;
-                almostBestIndex = index;
-            }
         }
 
         if (LOG.isDebugEnabled() && Math.abs(bestCost - almostBestCost) <= 0.1) {
-            LOG.debug("selected index {} and {} have similar costs {} and {} for query {} - check query explanation / index definitions",
+            String msg = (bestPlan != null && almostBestPlan != null) ? String.format("selected index {%s} with plan [%s] and {%s} with plan [%s]have similar costs {%s} and {%s} for query {%s} - " +
+                            "check query explanation / index definitions",
+                    bestIndex, bestPlan.getPlanName(), almostBestIndex, almostBestPlan.getPlanName(), bestCost, almostBestCost, filter.toString())
+                    :String.format("selected index {%s} and {%s} have similar costs {%s} and {%s} for query {%s} - check query explanation / index definitions",
                     bestIndex, almostBestIndex, bestCost, almostBestCost, filter.toString());
+            LOG.debug(msg);
         }
 
         potentiallySlowTraversalQuery = bestIndex == null;
