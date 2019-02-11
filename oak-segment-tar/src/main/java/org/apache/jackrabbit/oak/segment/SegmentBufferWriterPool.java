@@ -105,7 +105,7 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
                             @NotNull WriteOperation writeOperation)
     throws IOException {
         SimpleImmutableEntry<?,?> key = new SimpleImmutableEntry<>(currentThread(), gcGeneration);
-        SegmentBufferWriter writer = borrowWriter(key);
+        SegmentBufferWriter writer = borrowWriter(key, gcGeneration);
         try {
             return writeOperation.execute(writer);
         } finally {
@@ -184,21 +184,24 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         }
     }
 
+
     /**
      * Return a writer from the pool by its {@code key}. This method may return
      * a fresh writer at any time. Callers need to return a writer before
      * borrowing it again. Failing to do so leads to undefined behaviour.
      */
-    private SegmentBufferWriter borrowWriter(Object key) {
+    private SegmentBufferWriter borrowWriter(Object key, GCGeneration gcGeneration) {
         poolMonitor.enter();
         try {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
+                GCGeneration thisGeneration = this.gcGeneration.get();
+                checkState(thisGeneration.equals(gcGeneration));
                 writer = new SegmentBufferWriter(
                         idProvider,
                         reader,
                         getWriterId(wid),
-                        gcGeneration.get()
+                        thisGeneration
                 );
             }
             borrowed.add(writer);
