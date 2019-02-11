@@ -673,11 +673,11 @@ public class CompactionAndCleanupIT {
                             root.setChildNode(nodeName);
                             nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                             Thread.sleep(5);
-                        } catch (CommitFailedException e) {
-                            failedCommits.add(nodeName);
                         } catch (InterruptedException e) {
                             Thread.interrupted();
                             break;
+                        } catch (Exception e) {
+                            failedCommits.add(nodeName);
                         }
                     }
                 }
