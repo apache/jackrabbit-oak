@@ -37,20 +37,24 @@ public class RDBHelper {
         int upgradeTo = defaultOpts.getUpgradeToSchema();
         System.out.println("Table Creation Statements for RDBBlobStore and RDBDocumentStore");
         System.out.println("RDBDocumentStore initial version: " + initial + ", with modifications up to version: " + upgradeTo);
+        System.out.println("(use system properties org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.INITIALSCHEMA and org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions.UPGRADETOSCHEMA to specify initial DB schema, and schema to upgrade to)");
+        System.out.println();
 
         for (String database : databases) {
-            System.out.println(database);
-            System.out.println();
+            System.out.println("-- " + database);
 
             RDBDocumentStoreDB ddb = RDBDocumentStoreDB.getValue(database);
             RDBBlobStoreDB bdb = RDBBlobStoreDB.getValue(database);
 
             for (String table : RDBDocumentStore.getTableNames()) {
+                System.out.println();
+                System.out.println("  -- creating table " + table + " for schema version " + defaultOpts.getInitialSchema());
                 System.out.println("  " + ddb.getTableCreationStatement(table, defaultOpts.getInitialSchema()));
                 for (String s : ddb.getIndexCreationStatements(table, defaultOpts.getInitialSchema())) {
-                    System.out.println("    " + s);
+                    System.out.println("  " + s);
                 }
                 for (int level = initial + 1; level <= upgradeTo; level++) {
+                    System.out.println("  -- upgrading table " + table + " to schema version " + level);
                     for (String statement : ddb.getTableUpgradeStatements(table, level)) {
                         System.out.println("  " + statement);
                     }
@@ -58,6 +62,7 @@ public class RDBHelper {
             }
             System.out.println();
 
+            System.out.println("   -- creating blob store tables");
             System.out.println("  " + bdb.getMetaTableCreationStatement("DATASTORE_META"));
             System.out.println("  " + bdb.getDataTableCreationStatement("DATASTORE_DATA"));
             System.out.println();
