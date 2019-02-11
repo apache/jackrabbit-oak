@@ -196,7 +196,8 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
                 GCGeneration thisGeneration = this.gcGeneration.get();
-                checkState(thisGeneration.equals(gcGeneration));
+                checkState(thisGeneration.equals(gcGeneration),
+                    "Mismatching GC generations " + thisGeneration + " != " + gcGeneration);
                 writer = new SegmentBufferWriter(
                         idProvider,
                         reader,
