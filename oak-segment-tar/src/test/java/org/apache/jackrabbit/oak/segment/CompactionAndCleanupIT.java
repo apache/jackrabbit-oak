@@ -659,7 +659,7 @@ public class CompactionAndCleanupIT {
         collectSegments(store.getReader(), store.getRevisions(), beforeSegments);
 
         final AtomicReference<Boolean> run = new AtomicReference<Boolean>(true);
-        final List<String> failedCommits = newArrayList();
+        final List<Exception> failedCommits = newArrayList();
         Thread[] threads = new Thread[10];
         for (int k = 0; k < threads.length; k++) {
             final int threadId = k;
@@ -677,7 +677,7 @@ public class CompactionAndCleanupIT {
                             Thread.interrupted();
                             break;
                         } catch (Exception e) {
-                            failedCommits.add(nodeName);
+                            failedCommits.add(new ExecutionException("Failed commit " + nodeName, e));
                         }
                     }
                 }
@@ -692,7 +692,9 @@ public class CompactionAndCleanupIT {
         store.flush();
 
         assumeTrue("Failed to acquire compaction lock", compactionSuccess.get());
-        assertTrue("Failed commits: " + failedCommits, failedCommits.isEmpty());
+        for (Exception failedCommit : failedCommits) {
+            throw new Exception("A background commit failed", failedCommit);
+        }
 
         Set<UUID> afterSegments = new HashSet<UUID>();
         collectSegments(store.getReader(), store.getRevisions(), afterSegments);
