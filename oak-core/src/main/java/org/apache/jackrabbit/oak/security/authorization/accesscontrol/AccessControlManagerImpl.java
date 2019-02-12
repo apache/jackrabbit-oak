@@ -39,10 +39,10 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -134,7 +134,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     public AccessControlPolicy[] getPolicies(@Nullable String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
-        AccessControlPolicy policy = createACL(oakPath, tree, false);
+        AccessControlPolicy policy = createACL(oakPath, tree, false, Predicates.alwaysTrue());
 
         List<AccessControlPolicy> policies = new ArrayList<>(2);
         if (policy != null) {
@@ -156,7 +156,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         tree = r.getTree(tree.getPath());
 
         List<AccessControlPolicy> effective = new ArrayList<>();
-        AccessControlPolicy policy = createACL(oakPath, tree, true);
+        AccessControlPolicy policy = createACL(oakPath, tree, true, Predicates.alwaysTrue());
         if (policy != null) {
             effective.add(policy);
         }
@@ -164,7 +164,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             String parentPath = Text.getRelativeParent(oakPath, 1);
             while (!parentPath.isEmpty()) {
                 Tree t = r.getTree(parentPath);
-                AccessControlPolicy plc = createACL(parentPath, t, true);
+                AccessControlPolicy plc = createACL(parentPath, t, true, Predicates.alwaysTrue());
                 if (plc != null) {
                     effective.add(plc);
                 }
@@ -238,7 +238,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             String path = getNodePath(ace);
             Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL, true);
 
-            ACL acl = (ACL) createACL(path, tree, false);
+            ACL acl = (ACL) createACL(path, tree, false, Predicates.alwaysTrue());
             if (acl == null) {
                 acl = new NodeACL(path);
             }
@@ -267,7 +267,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             String path = getNodePath(ace);
             Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL, true);
 
-            ACL acl = (ACL) createACL(path, tree, false);
+            ACL acl = (ACL) createACL(path, tree, false, Predicates.alwaysTrue());
             if (acl != null) {
                 // remove rep:nodePath restriction before removing the entry from
                 // the node-based policy (see above for adding entries without
@@ -382,37 +382,17 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Root r = getLatestRoot();
 
         Result aceResult = searchAces(principals, r);
-        Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new Comparator<JackrabbitAccessControlList>() {
-            @Override
-            public int compare(JackrabbitAccessControlList list1, JackrabbitAccessControlList list2) {
-                if (list1.equals(list2)) {
-                    return 0;
-                } else {
-                    String p1 = list1.getPath();
-                    String p2 = list2.getPath();
-
-                    if (p1 == null) {
-                        return -1;
-                    } else if (p2 == null) {
-                        return 1;
-                    } else {
-                        int depth1 = PathUtils.getDepth(p1);
-                        int depth2 = PathUtils.getDepth(p2);
-                        return (depth1 == depth2) ? p1.compareTo(p2) : Ints.compare(depth1, depth2);
-                    }
-
-                }
-            }
-        });
+        Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new AcListComparator());
 
         Set<String> paths = Sets.newHashSet();
+        Predicate<Tree> predicate = new PrincipalPredicate(principals);
         for (ResultRow row : aceResult.getRows()) {
             String acePath = row.getPath();
             String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
 
             Tree accessControlledTree = r.getTree(Text.getRelativeParent(acePath, 2));
             if (aclName.isEmpty() || !accessControlledTree.exists()) {
-                log.debug("Isolated access control entry -> ignore query result at " + acePath);
+                log.debug("Isolated access control entry -> ignore query result at {}", acePath);
                 continue;
             }
 
@@ -420,7 +400,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             if (paths.contains(path)) {
                 continue;
             }
-            JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true, new AcePredicate(principals));
+            JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true, predicate);
             if (policy != null) {
                 effective.add(policy);
                 paths.add(path);
@@ -435,7 +415,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         try {
             return Util.isValidPolicy(getOakPath(absPath), accessControlPolicy);
         } catch (RepositoryException e) {
-            log.warn("Invalid absolute path: " + absPath, e.getMessage());
+            log.warn("Invalid absolute path '{}': {}", absPath, e.getMessage());
             return false;
         }
     }
@@ -479,44 +459,36 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @Nullable
     private JackrabbitAccessControlList createACL(@Nullable String oakPath,
                                                   @NotNull Tree accessControlledTree,
-                                                  boolean isEffectivePolicy) throws RepositoryException {
-        return createACL(oakPath, accessControlledTree, isEffectivePolicy, null);
-    }
-
-    @Nullable
-    private JackrabbitAccessControlList createACL(@Nullable String oakPath,
-                                                  @NotNull Tree accessControlledTree,
                                                   boolean isEffectivePolicy,
-                                                  @Nullable Predicate<ACE> predicate) throws RepositoryException {
-        JackrabbitAccessControlList acl = null;
-        String aclName = Util.getAclName(oakPath);
-        if (accessControlledTree.exists() && Util.isAccessControlled(oakPath, accessControlledTree, ntMgr)) {
-            Tree aclTree = accessControlledTree.getChild(aclName);
-            if (aclTree.exists()) {
-                List<ACE> entries = new ArrayList<>();
-                for (Tree child : aclTree.getChildren()) {
-                    if (Util.isACE(child, ntMgr)) {
-                        ACE ace = createACE(oakPath, child, restrictionProvider);
-                        if (predicate == null || predicate.apply(ace)) {
-                            entries.add(ace);
-                        }
-                    }
-                }
-                if (isEffectivePolicy) {
-                    acl = new ImmutableACL(oakPath, entries, restrictionProvider, getNamePathMapper());
-                } else {
-                    acl = new NodeACL(oakPath, entries);
-                }
+                                                  @NotNull Predicate<Tree> predicate) throws RepositoryException {
+        if (!accessControlledTree.exists() || !Util.isAccessControlled(oakPath, accessControlledTree, ntMgr)) {
+            return null;
+        }
+
+        Tree aclTree = accessControlledTree.getChild(Util.getAclName(oakPath));
+        if (!aclTree.exists()) {
+            return null;
+        }
+
+        List<ACE> entries = new ArrayList<>();
+        for (Tree child : aclTree.getChildren()) {
+            if (Util.isACE(child, ntMgr) && predicate.apply(child)) {
+                ACE ace = createACE(oakPath, child, restrictionProvider);
+                entries.add(ace);
             }
         }
-        return acl;
+        if (!isEffectivePolicy) {
+            return new NodeACL(oakPath, entries);
+        } else {
+            return (entries.isEmpty()) ? null : new ImmutableACL(oakPath, entries, restrictionProvider, getNamePathMapper());
+        }
     }
 
     @Nullable
     private JackrabbitAccessControlList createPrincipalACL(@Nullable String oakPath,
                                                            @NotNull Principal principal) throws RepositoryException {
         Root root = getRoot();
-        Result aceResult = searchAces(Collections.<Principal>singleton(principal), root);
+        Result aceResult = searchAces(Collections.singleton(principal), root);
         RestrictionProvider restrProvider = new PrincipalRestrictionProvider(restrictionProvider);
         List<ACE> entries = new ArrayList<>();
         for (ResultRow row : aceResult.getRows()) {
@@ -628,7 +600,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
 
             if (PermissionUtil.isAdminOrSystem(ImmutableSet.of(principal), configParams)) {
-                log.warn("Attempt to create an ACE for an administrative principal which always has full access:" + getPath());
+                log.warn("Attempt to create an ACE for an administrative principal which always has full access: {}", getPath());
                 switch (Util.getImportBehavior(getConfig())) {
                     case ImportBehavior.ABORT:
                         throw new AccessControlException("Attempt to create an ACE for an administrative principal which always has full access.");
@@ -775,22 +747,40 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         }
     }
 
-    private static final class AcePredicate implements Predicate<ACE> {
+    private static final class PrincipalPredicate implements Predicate<Tree> {
 
         private final Iterable<String> principalNames;
 
-        private AcePredicate(@NotNull Set<Principal> principals) {
-            principalNames = Iterables.transform(principals, new Function<Principal, String>() {
-                @Override
-                public String apply(Principal input) {
-                    return input.getName();
-                }
-            });
+        private PrincipalPredicate(@NotNull Set<Principal> principals) {
+            principalNames = Iterables.transform(principals, Principal::getName);
         }
 
         @Override
-        public boolean apply(@Nullable ACE ace) {
-            return ace != null && Iterables.contains(principalNames, ace.getPrincipal().getName());
+        public boolean apply(@Nullable Tree aceTree) {
+            return aceTree != null && Iterables.contains(principalNames, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
+        }
+    }
+
+    private static final class AcListComparator implements Comparator<JackrabbitAccessControlList> {
+        @Override
+        public int compare(JackrabbitAccessControlList list1, JackrabbitAccessControlList list2) {
+            if (list1.equals(list2)) {
+                return 0;
+            } else {
+                String p1 = list1.getPath();
+                String p2 = list2.getPath();
+
+                if (p1 == null) {
+                    return -1;
+                } else if (p2 == null) {
+                    return 1;
+                } else {
+                    int depth1 = PathUtils.getDepth(p1);
+                    int depth2 = PathUtils.getDepth(p2);
+                    return (depth1 == depth2) ? p1.compareTo(p2) : Ints.compare(depth1, depth2);
+                }
+
+            }
         }
     }
 }
