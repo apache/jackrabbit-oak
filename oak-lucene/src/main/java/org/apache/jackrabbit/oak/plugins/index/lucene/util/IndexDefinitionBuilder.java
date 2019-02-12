@@ -48,6 +48,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -120,6 +121,11 @@ public final class IndexDefinitionBuilder {
 
     public IndexDefinitionBuilder noAsync(){
         tree.removeProperty("async");
+        return this;
+    }
+
+    public IndexDefinitionBuilder deprecated() {
+        tree.setProperty(INDEX_DEPRECATED, true);
         return this;
     }
 

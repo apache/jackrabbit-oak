@@ -37,6 +37,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.AGGREGATES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -312,5 +313,14 @@ public class IndexDefinitionBuilderTest {
 
         NodeState state = builder.build();
         assertFalse(NodeStateUtils.getNode(state, "/indexRules/nt:file/properties").exists());
+    }
+
+    @Test
+    public void deprecated() {
+        NodeState state = builder.build();
+        assertFalse("By default index isn't deprecated", state.getBoolean(INDEX_DEPRECATED));
+
+        state = builder.deprecated().build();
+        assertTrue("Index must be deprecated if marked so", state.getBoolean(INDEX_DEPRECATED));
     }
 }
