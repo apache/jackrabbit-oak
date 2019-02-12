@@ -83,9 +83,9 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
         executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null", SQL2, true, false);
 
 
-        String expectedLogMessage = String.format("selected index {%s} " +
-                "with plan [testIndexPlan1] and {%s} with plan [testIndexPlan2]have similar costs {11.0} and {11.0} " +
-                "for query {Filter(query=SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null, path=*, property=[jcr:uuid=[is not null]])} - check query explanation / index definitions",testIndexProvider.index,testIndexProvider.index);
+        String expectedLogMessage = String.format("selected index %s " +
+                "with plan testIndexPlan1 and %s with plan testIndexPlan2 have similar costs 11.0 and 11.0 " +
+                "for query Filter(query=SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null, path=*, property=[jcr:uuid=[is not null]]) - check query explanation / index definitions",testIndexProvider.index,testIndexProvider.index);
 
         Assertions.assertThat(listAppender.list)
                 .extracting(ILoggingEvent::getMessage, ILoggingEvent::getLevel)

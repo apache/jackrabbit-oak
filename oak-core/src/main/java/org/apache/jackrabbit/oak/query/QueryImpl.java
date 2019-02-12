@@ -979,11 +979,11 @@ public class QueryImpl implements Query {
 
         double bestCost = Double.POSITIVE_INFINITY;
         IndexPlan bestPlan = null;
-        IndexPlan almostBestPlan = null;
 
         // track similar costs
         QueryIndex almostBestIndex = null;
         double almostBestCost = Double.POSITIVE_INFINITY;
+        IndexPlan almostBestPlan = null;
 
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
@@ -1076,10 +1076,10 @@ public class QueryImpl implements Query {
         }
 
         if (LOG.isDebugEnabled() && Math.abs(bestCost - almostBestCost) <= 0.1) {
-            String msg = (bestPlan != null && almostBestPlan != null) ? String.format("selected index {%s} with plan [%s] and {%s} with plan [%s]have similar costs {%s} and {%s} for query {%s} - " +
+            String msg = (bestPlan != null && almostBestPlan != null) ? String.format("selected index %s with plan %s and %s with plan %s have similar costs %s and %s for query %s - " +
                             "check query explanation / index definitions",
                     bestIndex, bestPlan.getPlanName(), almostBestIndex, almostBestPlan.getPlanName(), bestCost, almostBestCost, filter.toString())
-                    :String.format("selected index {%s} and {%s} have similar costs {%s} and {%s} for query {%s} - check query explanation / index definitions",
+                    :String.format("selected index %s and %s have similar costs %s and %s for query %s - check query explanation / index definitions",
                     bestIndex, almostBestIndex, bestCost, almostBestCost, filter.toString());
             LOG.debug(msg);
         }
