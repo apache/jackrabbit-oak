@@ -99,6 +99,17 @@ option. However, it is important to note that many JCR API calls rely on the
 accessibility of the namespace, nodetype and privilege information. Removing the
 corresponding paths from the configuration will most probably have undesired effects.
 
+##### Effective Policies
+
+The effective policies exposed by `AccessControlManager.getEffectivePolicies(String)` and 
+`JackrabbitAccessControlManager.getEffectivePolicies(Set<Principal>)` represent an immutable view on the 
+persisted policies taking effect act the given path or for the given set of principals. Transient 
+modifications that are the result of `setPolicy` and `removePolicy` will not be reflected.
+
+Note however, that these methods are defined to be a best-effort. In particular `AccessControlManager.getEffectivePolicies(String)`
+will not evaluate restrictions associated with individual entries that might limit the effect to individual items in the subtree. 
+See also [OAK-8000](https://issues.apache.org/jira/browse/OAK-8000) for details.
+
 #### Access Control Entries
 
 The access control entries present in a given list are subject to the following
