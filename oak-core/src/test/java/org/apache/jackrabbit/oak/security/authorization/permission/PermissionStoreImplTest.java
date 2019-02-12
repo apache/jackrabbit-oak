@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
@@ -39,6 +40,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_NODES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -116,7 +118,7 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
                     Tree collision = TreeUtil.addChild(child, "c_"+child.getName(), NT_REP_PERMISSION_STORE);
                     collision.setProperty(REP_ACCESS_CONTROLLED_PATH, "/another/path");
                     Tree entry = TreeUtil.addChild(collision, "1", NT_REP_PERMISSIONS);
-                    entry.setProperty(REP_PRIVILEGE_BITS, PermissionStore.DYNAMIC_ALL_BITS);
+                    entry.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
                     entry.setProperty(REP_IS_ALLOW, false);
                     break;
                 }

@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.Privilege;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -34,12 +30,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.jcr.security.Privilege;
+import java.util.Set;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PrivilegeBitsProviderTest implements PrivilegeConstants {
@@ -56,14 +59,18 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Before
     public void before() {
-        privTree = Mockito.mock(Tree.class);
-
-        root = Mockito.mock(Root.class);
-        when(root.getTree(PRIVILEGES_PATH)).thenReturn(privTree);
-
         pTree = Mockito.mock(Tree.class);
         when(pTree.getName()).thenReturn(KNOWN_PRIV_NAME);
         when(pTree.getProperty(REP_BITS)).thenReturn(ps);
+
+        privTree = Mockito.mock(Tree.class);
+        when(privTree.exists()).thenReturn(true);
+        when(privTree.hasChild(KNOWN_PRIV_NAME)).thenReturn(true);
+        when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
+        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree));
+
+        root = Mockito.mock(Root.class);
+        when(root.getTree(PRIVILEGES_PATH)).thenReturn(privTree);
 
         bitsProvider = new PrivilegeBitsProvider(root);
     }
@@ -86,7 +93,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetBitsEmptyArray() {
-        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits());
+        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits(new String[0]));
     }
 
     @Test
@@ -151,6 +158,72 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
     }
 
     @Test
+    public void testGetBitsTwiceSingleBuiltIn() {
+        Iterable<String> names = ImmutableList.of(JCR_ADD_CHILD_NODES);
+        PrivilegeBits bits1 = bitsProvider.getBits(names);
+        PrivilegeBits bits2 = bitsProvider.getBits(names);
+
+        assertSame(bits1, bits2);
+        assertEquals(bits1, bits2);
+
+        verify(root, never()).getTree(PRIVILEGES_PATH);
+        verify(privTree, never()).getChild(KNOWN_PRIV_NAME);
+    }
+
+    @Test
+    public void testGetBitsTwiceMultipleBuiltIn() {
+        Iterable<String> names = ImmutableList.of(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES);
+        PrivilegeBits bits1 = bitsProvider.getBits(names);
+        PrivilegeBits bits2 = bitsProvider.getBits(names);
+
+        assertNotSame(bits1, bits2);
+        assertEquals(bits1, bits2);
+
+        verify(root, never()).getTree(PRIVILEGES_PATH);
+        verify(privTree, never()).getChild(KNOWN_PRIV_NAME);
+    }
+
+    @Test
+    public void testGetBitsTwiceKnown() {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME);
+        PrivilegeBits bits1 = bitsProvider.getBits(names);
+        PrivilegeBits bits2 = bitsProvider.getBits(names);
+
+        assertNotSame(bits1, bits2);
+        assertEquals(bits1, bits2);
+
+        verify(root, times(1)).getTree(PRIVILEGES_PATH);
+        verify(privTree, times(1)).getChild(KNOWN_PRIV_NAME);
+    }
+
+    @Test
+    public void testGetBitsTwiceBuitInKnown() {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME, JCR_ADD_CHILD_NODES);
+        PrivilegeBits bits1 = bitsProvider.getBits(names);
+        PrivilegeBits bits2 = bitsProvider.getBits(names);
+
+        assertNotSame(bits1, bits2);
+        assertEquals(bits1, bits2);
+
+        verify(root, times(1)).getTree(PRIVILEGES_PATH);
+        verify(privTree, times(1)).getChild(KNOWN_PRIV_NAME);
+    }
+
+    @Test
+    public void testGetBitsTwiceKnownUnknown() {
+        Iterable<String> names = ImmutableList.of(KNOWN_PRIV_NAME, "unknown");
+        PrivilegeBits bits1 = bitsProvider.getBits(names);
+        PrivilegeBits bits2 = bitsProvider.getBits(names);
+
+        assertNotSame(bits1, bits2);
+        assertEquals(bits1, bits2);
+        assertEquals(bitsProvider.getBits(KNOWN_PRIV_NAME), bits1);
+
+        verify(root, times(2)).getTree(PRIVILEGES_PATH);
+        verify(privTree, times(1)).getChild(KNOWN_PRIV_NAME);
+    }
+
+    @Test
     public void testGetBitsFromEmptyPrivileges() {
         assertSame(PrivilegeBits.EMPTY, bitsProvider.getBits(new Privilege[0], NamePathMapper.DEFAULT));
     }
@@ -192,9 +265,6 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetPrivilegeNames() {
-        when(privTree.exists()).thenReturn(true);
-        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree));
-
         Set<String> names = bitsProvider.getPrivilegeNames(bits);
         assertFalse(names.isEmpty());
         assertEquals(ImmutableSet.of(KNOWN_PRIV_NAME), names);
@@ -202,18 +272,12 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     @Test
     public void testGetPrivilegeNamesFromCache() {
-        when(privTree.exists()).thenReturn(true);
-        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree));
-
         Set<String> names = bitsProvider.getPrivilegeNames(bits);
         assertSame(names, bitsProvider.getPrivilegeNames(bits));
     }
 
     @Test
     public void testGetPrivilegeNamesWithAggregation() {
-        when(privTree.exists()).thenReturn(true);
-        when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree));
-
         Tree anotherPriv = Mockito.mock(Tree.class);
         when(anotherPriv.exists()).thenReturn(true);
         when(anotherPriv.getName()).thenReturn("name2");

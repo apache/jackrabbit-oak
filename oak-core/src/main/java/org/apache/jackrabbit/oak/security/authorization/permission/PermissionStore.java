@@ -28,8 +28,6 @@ import org.jetbrains.annotations.Nullable;
  */
 interface PermissionStore {
 
-    long DYNAMIC_ALL_BITS = -1;
-
     /**
      * Loads the permission entries for the given principal and path. If no
      * entries can be found for the given principal or path, {@code null} is returned.
