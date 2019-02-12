@@ -184,25 +184,21 @@ public class SegmentBufferWriterPool implements WriteOperationHandler {
         }
     }
 
-
     /**
      * Return a writer from the pool by its {@code key}. This method may return
      * a fresh writer at any time. Callers need to return a writer before
      * borrowing it again. Failing to do so leads to undefined behaviour.
      */
-    private SegmentBufferWriter borrowWriter(Object key, GCGeneration gcGeneration) {
+    private SegmentBufferWriter borrowWriter(@NotNull Object key, @NotNull GCGeneration gcGeneration) {
         poolMonitor.enter();
         try {
             SegmentBufferWriter writer = writers.remove(key);
             if (writer == null) {
-                GCGeneration thisGeneration = this.gcGeneration.get();
-                checkState(thisGeneration.equals(gcGeneration),
-                    "Mismatching GC generations " + thisGeneration + " != " + gcGeneration);
                 writer = new SegmentBufferWriter(
                         idProvider,
                         reader,
                         getWriterId(wid),
-                        thisGeneration
+                        gcGeneration
                 );
             }
             borrowed.add(writer);
