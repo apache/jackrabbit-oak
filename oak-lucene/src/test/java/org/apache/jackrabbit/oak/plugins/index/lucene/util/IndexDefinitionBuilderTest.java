@@ -40,6 +40,8 @@ import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.AGGREGATES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.*;
 
@@ -322,5 +324,43 @@ public class IndexDefinitionBuilderTest {
 
         state = builder.deprecated().build();
         assertTrue("Index must be deprecated if marked so", state.getBoolean(INDEX_DEPRECATED));
+    }
+
+    @Test
+    public void boost() {
+        builder.indexRule("nt:base")
+                .property("foo1").boost(1.0f).enclosingRule()
+                .property("foo2").boost(2.0f);
+
+        NodeState state = builder.build();
+
+        NodeState foo1 = NodeStateUtils.getNode(state, "indexRules/nt:base/properties/foo1");
+        assertTrue(foo1.exists());
+        assertEquals("Incorrectly set boost",
+                1.0f, foo1.getProperty(FIELD_BOOST).getValue(Type.DOUBLE).floatValue(), 0.0001);
+
+        NodeState foo2 = NodeStateUtils.getNode(state, "indexRules/nt:base/properties/foo2");
+        assertTrue(foo2.exists());
+        assertEquals("Incorrectly set boost",
+                2.0f, foo2.getProperty(FIELD_BOOST).getValue(Type.DOUBLE).floatValue(), 0.0001);
+    }
+
+    @Test
+    public void facets() {
+        builder.indexRule("nt:base")
+                .property("foo1").facets().enclosingRule()
+                .property("foo2").propertyIndex();
+
+        NodeState state = builder.build();
+
+        NodeState foo1 = NodeStateUtils.getNode(state, "indexRules/nt:base/properties/foo1");
+        assertTrue(foo1.exists());
+        assertTrue("Incorrectly set facets property",
+                foo1.getBoolean(PROP_FACETS));
+
+        NodeState foo2 = NodeStateUtils.getNode(state, "indexRules/nt:base/properties/foo2");
+        assertTrue(foo2.exists());
+        assertFalse("Incorrectly existing facets property",
+                foo2.hasProperty(PROP_FACETS));
     }
 }
