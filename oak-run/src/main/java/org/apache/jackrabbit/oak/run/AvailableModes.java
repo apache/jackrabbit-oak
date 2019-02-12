@@ -44,6 +44,7 @@ public final class AvailableModes {
             .put("history", new HistoryCommand())
             .put(JsonIndexCommand.INDEX, new JsonIndexCommand())
             .put(PersistentCacheCommand.PERSISTENTCACHE, new PersistentCacheCommand())
+            .put("rdbddldump", new RDBDDLDumpCommand())
             .put("revisions", new RevisionsCommand())
             .put("recovery", new RecoveryCommand())
             .put("repair", new RepairCommand())
