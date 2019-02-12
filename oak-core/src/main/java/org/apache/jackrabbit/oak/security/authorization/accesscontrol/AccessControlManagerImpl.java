@@ -42,6 +42,7 @@ import javax.jcr.security.Privilege;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -593,7 +594,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         if (v == null) {
             throw new AccessControlException("Missing mandatory restriction rep:nodePath");
         } else {
-            return getOakPath(v.getString());
+            return getOakPath(Strings.emptyToNull(v.getString()));
         }
     }
 
