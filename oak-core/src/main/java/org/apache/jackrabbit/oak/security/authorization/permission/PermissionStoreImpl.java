@@ -23,13 +23,12 @@ import java.util.TreeSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.JcrAllUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -52,7 +51,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     private final Map<String, Tree> principalTreeMap = new HashMap<>();
 
     private Tree permissionsTree;
-    private PrivilegeBits allBits;
+    private PrivilegeBitsProvider bitsProvider;
 
     PermissionStoreImpl(Root root, String permissionRootName, RestrictionProvider restrictionProvider) {
         this.permissionRootName = permissionRootName;
@@ -68,7 +67,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
 
     private void reset(@NotNull Root root) {
         permissionsTree = PermissionUtil.getPermissionsRoot(root, permissionRootName);
-        allBits = new PrivilegeBitsProvider(root).getBits(PrivilegeConstants.JCR_ALL);
+        bitsProvider = new PrivilegeBitsProvider(root);
     }
 
     //----------------------------------------------------< PermissionStore >---
@@ -171,7 +170,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     }
 
     private Collection<PermissionEntry> loadPermissionEntries(@NotNull String path,
-                                       @NotNull Tree tree) {
+                                                              @NotNull Tree tree) {
         Collection<PermissionEntry> ret = new TreeSet<>();
         for (Tree ace : tree.getChildren()) {
             if (ace.getName().charAt(0) != 'c') {
@@ -185,16 +184,12 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     private PermissionEntry createPermissionEntry(@NotNull String path,
                                                   @NotNull Tree entryTree) {
         PropertyState ps = entryTree.getProperty(REP_PRIVILEGE_BITS);
-        PrivilegeBits bits = (isJcrAll(ps)) ? allBits : PrivilegeBits.getInstance(ps);
+        PrivilegeBits bits = JcrAllUtil.getPrivilegeBits(ps, bitsProvider);
         boolean isAllow = TreeUtil.getBoolean(entryTree, REP_IS_ALLOW);
         return new PermissionEntry(path,
                 isAllow,
                 Integer.parseInt(entryTree.getName()),
                 bits,
                 restrictionProvider.getPattern(path, entryTree));
-    }
-
-    private static boolean isJcrAll(@Nullable PropertyState property) {
-        return property != null && property.count() == 1 && property.getValue(Type.LONG, 0) == DYNAMIC_ALL_BITS;
     }
 }

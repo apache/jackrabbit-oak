@@ -419,6 +419,14 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
+     * @return {@code true} if this instance represents one of the built-in privilege
+     * @see #BUILT_IN
+     */
+    public boolean isBuiltin() {
+        return d.isSimple() && BUILT_IN_BITS.containsKey(d.longValue());
+    }
+
+    /**
      * Adds the other privilege bits to this instance.
      *
      * @param other The other privilege bits to be added.
@@ -493,7 +501,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     @NotNull
-    public PropertyState asPropertyState(String name) {
+    public PropertyState asPropertyState(@NotNull String name) {
         return PropertyStates.createProperty(name, Longs.asList(d.longValues()), Type.LONGS);
     }
 

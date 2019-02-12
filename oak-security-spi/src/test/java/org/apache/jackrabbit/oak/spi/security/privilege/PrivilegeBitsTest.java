@@ -206,6 +206,39 @@ public class PrivilegeBitsTest implements PrivilegeConstants {
     }
 
     @Test
+    public void testBuiltIn() {
+        for (PrivilegeBits bits : PrivilegeBits.BUILT_IN.values()) {
+            assertTrue(bits.isBuiltin());
+            assertTrue(PrivilegeBits.getInstance(bits).isBuiltin());
+        }
+    }
+
+    @Test
+    public void testCombinationNotBuiltIn() {
+        PrivilegeBits combination = PrivilegeBits.getInstance();
+        for (PrivilegeBits bits : PrivilegeBits.BUILT_IN.values()) {
+            combination.add(bits);
+        }
+        assertFalse(combination.isBuiltin());
+    }
+
+    @Test
+    public void testNextNotBuiltIn() {
+        assertFalse(PrivilegeBits.getInstance(PrivilegeBits.NEXT_AFTER_BUILT_INS).isBuiltin());
+    }
+
+    @Test
+    public void testCombinationWithNextNotBuiltIn() {
+        PrivilegeBits bits = PrivilegeBits.NEXT_AFTER_BUILT_INS;
+        PrivilegeBits toTest = PrivilegeBits.getInstance(PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ));
+
+        for (int i = 0; i<100; i++) {
+            bits = bits.nextBits();
+            assertFalse(toTest.add(bits).isBuiltin());
+        }
+    }
+
+    @Test
     public void testIsEmpty() {
         // empty
         assertTrue(PrivilegeBits.EMPTY.isEmpty());

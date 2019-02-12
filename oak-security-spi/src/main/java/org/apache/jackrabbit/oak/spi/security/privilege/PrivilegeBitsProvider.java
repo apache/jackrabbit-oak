@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
@@ -49,6 +48,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     private static final Logger log = LoggerFactory.getLogger(PrivilegeBitsProvider.class);
 
     private final Map<PrivilegeBits, Set<String>> bitsToNames = new HashMap<>();
+    private final Map<String, PrivilegeBits> nameToBits = new HashMap<>();
     private final Map<String, Set<String>> aggregation = new HashMap<>();
 
     private final Root root;
@@ -99,13 +99,17 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             PrivilegeBits builtIn = PrivilegeBits.BUILT_IN.get(privilegeName);
             if (builtIn != null) {
                 bits.add(builtIn);
-            } else {
+            } else if (nameToBits.containsKey(privilegeName)) {
+                bits.add(nameToBits.get(privilegeName));
+            }  else {
                 if (privilegesTree == null) {
                     privilegesTree = getPrivilegesTree();
                 }
                 if (privilegesTree.exists() && privilegesTree.hasChild(privilegeName)) {
                     Tree defTree = privilegesTree.getChild(privilegeName);
-                    bits.add(PrivilegeBits.getInstance(defTree));
+                    PrivilegeBits bitsFromDefTree = PrivilegeBits.getInstance(defTree);
+                    nameToBits.put(privilegeName, bitsFromDefTree);
+                    bits.add(bitsFromDefTree);
                 } else {
                     log.debug("Ignoring privilege name " + privilegeName);
                 }
