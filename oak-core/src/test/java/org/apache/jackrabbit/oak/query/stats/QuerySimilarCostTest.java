@@ -90,8 +90,7 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
         Assertions.assertThat(listAppender.list)
                 .extracting(ILoggingEvent::getMessage, ILoggingEvent::getLevel)
                 .contains(Tuple.tuple(expectedLogMessage, Level.DEBUG));
-
-        queryImplLogger.addAppender(listAppender);
+        listAppender.stop();
     }
 
     private static class TestIndexProvider implements QueryIndexProvider {
