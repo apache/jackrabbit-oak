@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.CompressingCodec;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -178,6 +179,11 @@ public class LuceneIndexDefinition extends IndexDefinition {
     //~---------------------------------------------< utility >
 
     private Codec createCodec() {
+        String mmp = System.getProperty("oak.lucene.compressing-codec");
+        if (mmp != null) {
+            return new CompressingCodec();
+        }
+
         String codecName = getOptionalValue(definition, LuceneIndexConstants.CODEC_NAME, null);
         Codec codec = null;
         if (codecName != null) {
