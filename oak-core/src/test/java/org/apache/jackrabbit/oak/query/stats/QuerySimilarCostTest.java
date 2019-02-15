@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 package org.apache.jackrabbit.oak.query.stats;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -23,7 +26,11 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexPlan;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.query.*;
+import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
+import org.apache.jackrabbit.oak.query.SQL2ParserTest;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -32,19 +39,18 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.assertj.core.api.Assertions;
 import org.assertj.core.groups.Tuple;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableList;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import org.assertj.core.api.Assertions;
 
 /**
  * Tests for cases where two or more indices return a similar cost estimation for the same query
@@ -66,8 +72,8 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
 
 
     /*
-    Given 2 index plan with similar cost
-    we expect a log at debug level to intimate user to either modify either of the indices or the query
+     * Given 2 index plan with similar cost we expect a log at debug level to
+     * intimate user to either modify either of the indices or the query
      */
     @Test
     public void testSimilarCostIndices() throws Exception{
@@ -76,24 +82,28 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
 
         ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
         listAppender.start();
-        queryImplLogger.addAppender(listAppender);
-        NodeUtil node = new NodeUtil(root.getTree("/"));
-        String uuid = UUID.randomUUID().toString();
-        node.setString(JcrConstants.JCR_UUID, uuid);
-        root.commit();
 
-        executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null", SQL2, true, false);
+        try {
+            queryImplLogger.addAppender(listAppender);
+            NodeUtil node = new NodeUtil(root.getTree("/"));
+            String uuid = UUID.randomUUID().toString();
+            node.setString(JcrConstants.JCR_UUID, uuid);
+            root.commit();
 
+            executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null", SQL2, true, false);
 
-        String expectedLogMessage = String.format("selected index %s " +
-                "with plan testIndexPlan1 and %s with plan testIndexPlan2 have similar costs 11.0 and 11.0 " +
-                "for query Filter(query=SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null, path=*, property=[jcr:uuid=[is not null]]) - check query explanation / index definitions",testIndexProvider.index,testIndexProvider.index);
+            String expectedLogMessage = String.format("selected index %s " +
+                    "with plan testIndexPlan1 and %s with plan testIndexPlan2 have similar costs 11.0 and 11.0 " +
+                    "for query Filter(query=SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null, path=*, property=[jcr:uuid=[is not null]]) - check query explanation / index definitions",testIndexProvider.index,testIndexProvider.index);
 
-        Assertions.assertThat(listAppender.list)
-                .extracting(ILoggingEvent::getMessage, ILoggingEvent::getLevel)
-                .contains(Tuple.tuple(expectedLogMessage, Level.DEBUG));
-
-        queryImplLogger.addAppender(listAppender);
+            listAppender.stop();
+            Assertions.assertThat(listAppender.list)
+                    .extracting(ILoggingEvent::getMessage, ILoggingEvent::getLevel)
+                    .contains(Tuple.tuple(expectedLogMessage, Level.DEBUG));
+        }
+        finally {
+            listAppender.stop();
+        }
     }
 
     private static class TestIndexProvider implements QueryIndexProvider {
