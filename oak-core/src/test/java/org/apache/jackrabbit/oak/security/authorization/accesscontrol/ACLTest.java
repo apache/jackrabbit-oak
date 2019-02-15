@@ -843,7 +843,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
 
         JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
-        acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("mandatory", valueFactory.createValue("name", PropertyType.NAME)), Collections.emptyMap());
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("mandatory", getValueFactory(root).createValue("name", PropertyType.NAME)), Collections.emptyMap());
     }
 
     @Test(expected = AccessControlException.class)
@@ -851,7 +851,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
 
         JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
-        acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.singletonMap("mandatory", new Value[] {valueFactory.createValue("name", PropertyType.NAME)}));
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.singletonMap("mandatory", new Value[] {getValueFactory(root).createValue("name", PropertyType.NAME)}));
     }
 
     @Test(expected = AccessControlException.class)
@@ -867,7 +867,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAMES, true);
 
         JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
-        acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("mandatory", valueFactory.createValue("name", PropertyType.NAME)), Collections.emptyMap());
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("mandatory", getValueFactory(root).createValue("name", PropertyType.NAME)), Collections.emptyMap());
     }
 
     @Test
@@ -875,7 +875,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAMES, true);
 
         JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
-        acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.singletonMap("mandatory", new Value[] {valueFactory.createValue("name", PropertyType.NAME)}));
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.singletonMap("mandatory", new Value[] {getValueFactory(root).createValue("name", PropertyType.NAME)}));
     }
 
     //--------------------------------------------------------------------------

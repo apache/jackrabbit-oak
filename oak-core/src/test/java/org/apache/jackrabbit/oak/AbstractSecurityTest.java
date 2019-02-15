@@ -80,7 +80,6 @@ public abstract class AbstractSecurityTest {
     private User testUser;
 
     protected NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
-    protected PartialValueFactory valueFactory = new PartialValueFactory(namePathMapper);
     protected SecurityProvider securityProvider;
     protected ContentSession adminSession;
     protected Root root;
@@ -185,10 +184,6 @@ public abstract class AbstractSecurityTest {
         return namePathMapper;
     }
 
-    protected PartialValueFactory getPartialValueFactory() {
-        return valueFactory;
-    }
-
     protected UserConfiguration getUserConfiguration() {
         return getConfig(UserConfiguration.class);
     }
@@ -240,6 +235,10 @@ public abstract class AbstractSecurityTest {
 
     protected ValueFactory getValueFactory(@NotNull Root root) {
         return new ValueFactoryImpl(root, getNamePathMapper());
+    }
+
+    protected PartialValueFactory getPartialValueFactory() {
+        return new PartialValueFactory(getNamePathMapper());
     }
 
     protected long waitForSystemTimeIncrement(long old) {
