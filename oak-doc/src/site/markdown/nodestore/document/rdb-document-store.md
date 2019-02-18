@@ -86,7 +86,8 @@ If it does not, the system will not start up and provide
 diagnostics in the log file.
 
 Administrators who want to create tables upfront can do so. The DDL statements
-for the supported databases can be dumped using [RDBHelper](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBHelper.html).
+for the supported databases can be dumped using [RDBHelper](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBHelper.html)
+or, more recently, using `oak-run rdbddldump` (see [below](#oak-run_rdbddldump)).
 
 
 ## Upgrade from earlier versions
@@ -120,8 +121,106 @@ and log diagnostics about the failed upgrade:
 ~~~
 
 The upgrade can then be done
-at a later point of time by executing the required DDL statements. 
+at a later point of time by executing the required DDL statements.
 
+## oak-run rdbddldump
 
+`@since Oak 1.8.12` `@since Oak 1.10.1` `@since Oak 1.12`
 
+The `rdbddldump` prints out the DDL statements that Oak would use to create or
+update a database. It can be used to create the tables upfront, or to obtain
+the DDL statements needed to upgrade to a newer schema version.
+
+By default, it will print out the DDL statements for all supported databases,
+with a target of the latest schema version.
+
+The `--db` switch can be used to specify the database type (note that precise
+spelling is needed, otherwise the code will fall back to a generic database 
+type).
+
+The `--initial` switch selects the initial database schema (and defaults to
+the most recent one).
+
+The `--upgrade` switch selects the target database schema (and defaults to
+the most recent one).
+
+Selecting a higher "upgrade" version then the "initial" version causes the
+tool to create separate DDL statements for the initial table schema (which may
+already be there), and then to add individual statements for the upgrade to
+the target schema.
+
+For instance:
+
+~~~
+java -jar oak-run-*.jar rdbddldump --db DB2 --initial 0 --upgrade 2
+~~~
+
+will dump statements for DB2, initially creating schema version 0 tables,
+and then include DDL statements to upgrade to version 2 (the latter would
+be applicable if an installation needed to be upgraded from an Oak version
+older than 1.8 to 1.8 or newer).
+
+~~~
+-- DB2
+
+  -- creating table CLUSTERNODES for schema version 0
+  create table CLUSTERNODES (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob(1073741824))
+  create unique index CLUSTERNODES_pk on CLUSTERNODES ( ID ) cluster
+  alter table CLUSTERNODES add constraint CLUSTERNODES_pk primary key ( ID )
+  create index CLUSTERNODES_MOD on CLUSTERNODES (MODIFIED)
+  -- upgrading table CLUSTERNODES to schema version 1
+  alter table CLUSTERNODES add VERSION smallint
+  -- upgrading table CLUSTERNODES to schema version 2
+  alter table CLUSTERNODES add SDTYPE smallint
+  alter table CLUSTERNODES add SDMAXREVTIME bigint
+  create index CLUSTERNODES_VSN on CLUSTERNODES (VERSION)
+  create index CLUSTERNODES_SDT on CLUSTERNODES (SDTYPE) exclude null keys
+  create index CLUSTERNODES_SDM on CLUSTERNODES (SDMAXREVTIME) exclude null keys
+
+  -- creating table JOURNAL for schema version 0
+  create table JOURNAL (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob(1073741824))
+  create unique index JOURNAL_pk on JOURNAL ( ID ) cluster
+  alter table JOURNAL add constraint JOURNAL_pk primary key ( ID )
+  create index JOURNAL_MOD on JOURNAL (MODIFIED)
+  -- upgrading table JOURNAL to schema version 1
+  alter table JOURNAL add VERSION smallint
+  -- upgrading table JOURNAL to schema version 2
+  alter table JOURNAL add SDTYPE smallint
+  alter table JOURNAL add SDMAXREVTIME bigint
+  create index JOURNAL_VSN on JOURNAL (VERSION)
+  create index JOURNAL_SDT on JOURNAL (SDTYPE) exclude null keys
+  create index JOURNAL_SDM on JOURNAL (SDMAXREVTIME) exclude null keys
+
+  -- creating table NODES for schema version 0
+  create table NODES (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob(1073741824))
+  create unique index NODES_pk on NODES ( ID ) cluster
+  alter table NODES add constraint NODES_pk primary key ( ID )
+  create index NODES_MOD on NODES (MODIFIED)
+  -- upgrading table NODES to schema version 1
+  alter table NODES add VERSION smallint
+  -- upgrading table NODES to schema version 2
+  alter table NODES add SDTYPE smallint
+  alter table NODES add SDMAXREVTIME bigint
+  create index NODES_VSN on NODES (VERSION)
+  create index NODES_SDT on NODES (SDTYPE) exclude null keys
+  create index NODES_SDM on NODES (SDMAXREVTIME) exclude null keys
+
+  -- creating table SETTINGS for schema version 0
+  create table SETTINGS (ID varchar(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob(1073741824))
+  create unique index SETTINGS_pk on SETTINGS ( ID ) cluster
+  alter table SETTINGS add constraint SETTINGS_pk primary key ( ID )
+  create index SETTINGS_MOD on SETTINGS (MODIFIED)
+  -- upgrading table SETTINGS to schema version 1
+  alter table SETTINGS add VERSION smallint
+  -- upgrading table SETTINGS to schema version 2
+  alter table SETTINGS add SDTYPE smallint
+  alter table SETTINGS add SDMAXREVTIME bigint
+  create index SETTINGS_VSN on SETTINGS (VERSION)
+  create index SETTINGS_SDT on SETTINGS (SDTYPE) exclude null keys
+  create index SETTINGS_SDM on SETTINGS (SDMAXREVTIME) exclude null keys
+
+   -- creating blob store tables
+  create table DATASTORE_META (ID varchar(64) not null primary key, LVL int, LASTMOD bigint)
+  create table DATASTORE_DATA (ID varchar(64) not null primary key, DATA blob(2097152))
+~~~
 
