@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Integer.getInteger;
 import static java.lang.String.valueOf;
@@ -48,6 +49,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -59,11 +61,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
@@ -661,17 +663,24 @@ public class CompactionAndCleanupIT {
                 .withMemoryMapping(true)
                 .build();
         final SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
-        final AtomicBoolean compactionSuccess = new AtomicBoolean(true);
+        AtomicBoolean compactionSuccess = new AtomicBoolean(true);
 
         NodeBuilder root = nodeStore.getRoot().builder();
         createNodes(root.setChildNode("test"), 10, 3);
         nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         final Set<UUID> beforeSegments = new HashSet<UUID>();
-        collectSegments(store.getReader(), store.getRevisions(), beforeSegments);
+        collectSegments(store.getReader(), store.getHead().getRecordId(),
+                        new Consumer<SegmentId>() {
+                            @Override
+                            public void accept(SegmentId segmentId) {
+                                beforeSegments.add(segmentId.asUUID());
+                            }
+                        });
+
 
         final AtomicReference<Boolean> run = new AtomicReference<Boolean>(true);
-        final List<String> failedCommits = newArrayList();
+        final List<Exception> failedCommits = newArrayList();
         Thread[] threads = new Thread[10];
         for (int k = 0; k < threads.length; k++) {
             final int threadId = k;
@@ -681,15 +690,15 @@ public class CompactionAndCleanupIT {
                     for (int j = 0; run.get(); j++) {
                         String nodeName = "b-" + threadId + "," + j;
                         try {
-                            NodeBuilder root = nodeStore.getRoot().builder();
-                            root.setChildNode(nodeName);
-                            nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                            NodeBuilder changes = nodeStore.getRoot().builder();
+                            changes.setChildNode(nodeName);
+                            nodeStore.merge(changes, EmptyHook.INSTANCE, CommitInfo.EMPTY);
                             Thread.sleep(5);
-                        } catch (CommitFailedException e) {
-                            failedCommits.add(nodeName);
                         } catch (InterruptedException e) {
                             Thread.interrupted();
                             break;
+                        } catch (Exception e) {
+                            failedCommits.add(new ExecutionException("Failed commit " + nodeName, e));
                         }
                     }
                 }
@@ -704,16 +713,84 @@ public class CompactionAndCleanupIT {
         store.flush();
 
         assumeTrue("Failed to acquire compaction lock", compactionSuccess.get());
-        assertTrue("Failed commits: " + failedCommits, failedCommits.isEmpty());
+        for (Exception failedCommit : failedCommits) {
+            throw new Exception("A background commit failed", failedCommit);
+        }
 
-        Set<UUID> afterSegments = new HashSet<UUID>();
-        collectSegments(store.getReader(), store.getRevisions(), afterSegments);
+        final Set<UUID> afterSegments = new HashSet<UUID>();
+        collectSegments(store.getReader(), store.getHead().getRecordId(),
+                        new Consumer<SegmentId>() {
+                            @Override
+                            public void accept(SegmentId segmentId) {
+                                afterSegments.add(segmentId.asUUID());
+                            }
+                        });
         try {
             for (UUID u : beforeSegments) {
                 assertFalse("Mixed segments found: " + u, afterSegments.contains(u));
             }
         } finally {
             store.close();
+        }
+    }
+
+    @Test
+    public void testMixedSegmentsGCGeneration() throws Exception {
+        try (FileStore store = fileStoreBuilder(getFileStoreFolder())
+                .withMaxFileSize(2)
+                .withMemoryMapping(true)
+                .build()) {
+
+            final CountDownLatch readyToCompact = new CountDownLatch(1);
+            final CountDownLatch compactionCompleted = new CountDownLatch(1);
+            final SegmentNodeBuilder changes = store.getHead().builder();
+            changes.setProperty("a", "a");
+            changes.setProperty(new StringPropertyState("b", "b") {
+                @Override
+                public String getValue() {
+                    readyToCompact.countDown();
+                    awaitUninterruptibly(compactionCompleted);
+                    return super.getValue();
+                }
+            });
+
+            // Overlap an ongoing write operation triggered by the call to getNodeState
+            // with a full compaction. This should not cause the written node state
+            // to reference segments from multiple generations
+            FutureTask<SegmentNodeState> futureNodeState = runAsync(new Callable<SegmentNodeState>() {
+                @Override
+                public SegmentNodeState call() throws Exception {
+                    return changes.getNodeState();
+                }
+            });
+            readyToCompact.await();
+
+            store.compact();
+            compactionCompleted.countDown();
+
+            // The node state from the write operation that started before
+            // compaction completed should reference only segments from generation 0.
+            SegmentNodeState gen0NodeState = futureNodeState.get();
+            collectSegments(store.getReader(), gen0NodeState.getRecordId(),
+                            new Consumer<SegmentId>() {
+                                @Override
+                                public void accept(SegmentId segmentId) {
+                                    assertEquals("Full generation should be 0",
+                                                 0, segmentId.getGcGeneration());
+                                }
+                            });
+
+            // Retrieving the node state again should trigger a rewriting to
+            // the next generation (1).
+            SegmentNodeState gen1NodeState = changes.getNodeState();
+            collectSegments(store.getReader(), gen1NodeState.getRecordId(),
+                            new Consumer<SegmentId>() {
+                                @Override
+                                public void accept(SegmentId segmentId) {
+                                    assertEquals("Full generation should be 1",
+                                                 1, segmentId.getGcGeneration());
+                                }
+                            });
         }
     }
 
@@ -849,81 +926,84 @@ public class CompactionAndCleanupIT {
         }
     }
 
-    private static void collectSegments(SegmentReader reader, Revisions revisions,
-                                        final Set<UUID> segmentIds) {
+    private interface Consumer<T> {
+        void accept(T value);
+    }
+
+    private static void collectSegments(SegmentReader reader, RecordId headId, final Consumer<SegmentId> onSegment) {
         new SegmentParser(reader) {
             @Override
             protected void onNode(RecordId parentId, RecordId nodeId) {
                 super.onNode(parentId, nodeId);
-                segmentIds.add(nodeId.asUUID());
+                onSegment.accept(nodeId.getSegmentId());
             }
 
             @Override
             protected void onTemplate(RecordId parentId, RecordId templateId) {
                 super.onTemplate(parentId, templateId);
-                segmentIds.add(templateId.asUUID());
+                onSegment.accept(templateId.getSegmentId());
             }
 
             @Override
             protected void onMap(RecordId parentId, RecordId mapId, MapRecord map) {
                 super.onMap(parentId, mapId, map);
-                segmentIds.add(mapId.asUUID());
+                onSegment.accept(mapId.getSegmentId());
             }
 
             @Override
             protected void onMapDiff(RecordId parentId, RecordId mapId, MapRecord map) {
                 super.onMapDiff(parentId, mapId, map);
-                segmentIds.add(mapId.asUUID());
+                onSegment.accept(mapId.getSegmentId());
             }
 
             @Override
             protected void onMapLeaf(RecordId parentId, RecordId mapId, MapRecord map) {
                 super.onMapLeaf(parentId, mapId, map);
-                segmentIds.add(mapId.asUUID());
+                onSegment.accept(mapId.getSegmentId());
             }
 
             @Override
             protected void onMapBranch(RecordId parentId, RecordId mapId, MapRecord map) {
                 super.onMapBranch(parentId, mapId, map);
-                segmentIds.add(mapId.asUUID());
+                onSegment.accept(mapId.getSegmentId());
             }
 
             @Override
             protected void onProperty(RecordId parentId, RecordId propertyId, PropertyTemplate template) {
                 super.onProperty(parentId, propertyId, template);
-                segmentIds.add(propertyId.asUUID());
+                onSegment.accept(propertyId.getSegmentId());
             }
 
             @Override
             protected void onValue(RecordId parentId, RecordId valueId, Type<?> type) {
                 super.onValue(parentId, valueId, type);
-                segmentIds.add(valueId.asUUID());
+                onSegment.accept(valueId.getSegmentId());
             }
 
             @Override
             protected void onBlob(RecordId parentId, RecordId blobId) {
                 super.onBlob(parentId, blobId);
-                segmentIds.add(blobId.asUUID());
+                onSegment.accept(blobId.getSegmentId());
             }
 
             @Override
             protected void onString(RecordId parentId, RecordId stringId) {
                 super.onString(parentId, stringId);
-                segmentIds.add(stringId.asUUID());
+                onSegment.accept(stringId.getSegmentId());
             }
 
             @Override
             protected void onList(RecordId parentId, RecordId listId, int count) {
                 super.onList(parentId, listId, count);
-                segmentIds.add(listId.asUUID());
+                onSegment.accept(listId.getSegmentId());
             }
 
             @Override
             protected void onListBucket(RecordId parentId, RecordId listId, int index, int count, int capacity) {
                 super.onListBucket(parentId, listId, index, count, capacity);
-                segmentIds.add(listId.asUUID());
+                onSegment.accept(listId.getSegmentId());
             }
-        }.parseNode(revisions.getHead());
+        }.parseNode(headId);
     }
 
     private static void createNodes(NodeBuilder builder, int count, int depth) {
@@ -1148,13 +1228,13 @@ public class CompactionAndCleanupIT {
         ExecutorService executorService = newFixedThreadPool(300);
         final AtomicInteger counter = new AtomicInteger();
         final ReferenceCollector dummyCollector = new ReferenceCollector() {
-            
+
             @Override
             public void addReference(String reference, String nodeId) {
                 // do nothing
             }
         };
-        
+
         try {
             Callable<Void> concurrentWriteTask = new Callable<Void>() {
                 @Override
