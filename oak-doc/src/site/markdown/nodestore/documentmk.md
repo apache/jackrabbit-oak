@@ -77,7 +77,7 @@ The DocumentNodeStore supports a number of backends, with a storage abstraction
 called `DocumentStore`:
 
 * [`MongoDocumentStore`](document/mongo-document-store.html): stores documents in a MongoDB.
-* `RDBDocumentStore`: stores documents in a relational data base.
+* [`RDBDocumentStore`](document/rdb-document-store.html): stores documents in a relational data base.
 * `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for testing purposes.
 
 The remaining part of the document will focus on the `MongoDocumentStore` to
