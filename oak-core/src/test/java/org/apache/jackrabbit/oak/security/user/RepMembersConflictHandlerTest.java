@@ -19,23 +19,60 @@ package org.apache.jackrabbit.oak.security.user;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+import com.google.common.collect.Lists;
+
+@RunWith(Parameterized.class)
 public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
+
+    @Parameters(name = "name={1}")
+    public static Collection<Object[]> parameters() {
+        return Lists.newArrayList(
+                new Object[] { 0, "Empty Group" },
+                new Object[] { 5, "Tiny Group" },
+                new Object[] { MembershipWriter.DEFAULT_MEMBERSHIP_THRESHOLD - 1, "Border Group" },
+                new Object[] { MembershipWriter.DEFAULT_MEMBERSHIP_THRESHOLD * 2, "Large Group" });
+    }
 
     /**
      * The id of the test group
      */
     private static final String GROUP_ID = "test-groupId";
 
+    private final int count;
     private Group group;
     private User[] users;
+
+    public RepMembersConflictHandlerTest(int count, String name) {
+        this.count = count;
+    }
+
+    @Override
+    protected ConfigurationParameters getSecurityConfigParameters() {
+        return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters
+                .of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT));
+    }
 
     @Override
     public void before() throws Exception {
@@ -43,6 +80,7 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
         UserManager um = getUserManager(root);
         // create a group to receive users
         group = um.createGroup(GROUP_ID);
+        fillGroup(group, count);
         // create future members of the above group
         User u1 = um.createUser("u1", "pass");
         User u2 = um.createUser("u2", "pass");
@@ -51,6 +89,14 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
         User u5 = um.createUser("u5", "pass");
         root.commit();
         users = new User[] { u1, u2, u3, u4, u5 };
+    }
+
+    void fillGroup(@NotNull Group group, int count) throws Exception {
+        List<String> memberIds = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            memberIds.add("member" + i);
+        }
+        assertTrue(group.addMembers(memberIds.toArray(new String[0])).isEmpty());
     }
 
     @Test
@@ -105,7 +151,8 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
     }
 
     /**
-     * Remove-Add with different ids test
+     * Remove-Add with different ids test. Depending on the size of the group
+     * the addition might work, but the removal has to definitely work.
      */
     @Test
     public void changeChangedPropertyRA() throws Exception {
@@ -120,11 +167,12 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
         root.refresh();
         assertTrue(group.isDeclaredMember(users[0]));
         assertFalse(group.isDeclaredMember(users[1]));
-        assertTrue(group.isDeclaredMember(users[2]));
+        // group.isDeclaredMember(users[2]) might be true or false
     }
 
     /**
-     * Add-Remove with different ids test
+     * Add-Remove with different ids test. Depending on the size of the group
+     * the addition might work, but the removal has to definitely work.
      */
     @Test
     public void changeChangedPropertyAR() throws Exception {
@@ -139,7 +187,7 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
         root.refresh();
         assertTrue(group.isDeclaredMember(users[0]));
         assertFalse(group.isDeclaredMember(users[1]));
-        assertTrue(group.isDeclaredMember(users[2]));
+        // group.isDeclaredMember(users[2]) might be true or false
     }
 
     /**
@@ -225,6 +273,25 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
     }
 
     /**
+     * Add-Remove wiht single element, generating zero item group. Depending on
+     * the addition might work, but the removal has to definitely work.
+     */
+    @Test
+    public void changeChangedPropertyAR4() throws Exception {
+        add(root, users[0].getID());
+
+        Root ours = login(getAdminCredentials()).getLatestRoot();
+        Root theirs = login(getAdminCredentials()).getLatestRoot();
+
+        add(ours, users[1].getID());
+        rm(theirs, users[0].getID());
+
+        root.refresh();
+        assertFalse(group.isDeclaredMember(users[0]));
+        // group.isDeclaredMember(users[1]) might be true or false
+    }
+
+    /**
      * Delete-Changed. Delete takes precedence
      */
     @Test
@@ -260,6 +327,34 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
         assertFalse(group.isDeclaredMember(users[1]));
     }
 
+    @Test
+    public void deleteDeletedTest() throws Exception {
+        add(root, users[0].getID(), users[1].getID());
+
+        Root ours = login(getAdminCredentials()).getLatestRoot();
+        Root theirs = login(getAdminCredentials()).getLatestRoot();
+
+        wipeGroup(theirs);
+        wipeGroup(ours);
+
+        root.refresh();
+        assertFalse(group.isDeclaredMember(users[0]));
+        assertFalse(group.isDeclaredMember(users[1]));
+    }
+
+    @Test
+    public void addAddedTest() throws Exception {
+        Root ours = login(getAdminCredentials()).getLatestRoot();
+        Root theirs = login(getAdminCredentials()).getLatestRoot();
+
+        add(ours, users[0].getID());
+        add(theirs, users[1].getID());
+
+        root.refresh();
+        assertTrue(group.isDeclaredMember(users[0]));
+        assertTrue(group.isDeclaredMember(users[1]));
+    }
+
     private void add(Root r, String... ids) throws Exception {
         UserManager um = getUserManager(r);
         Group g = (Group) um.getAuthorizable(GROUP_ID);
@@ -281,6 +376,14 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
     private void wipeGroup(Root r) throws Exception {
         UserManager um = getUserManager(r);
         Group g = (Group) um.getAuthorizable(GROUP_ID);
+
+        List<String> members = new ArrayList<>();
+        Iterator<Authorizable> it = g.getDeclaredMembers();
+        while (it.hasNext()) {
+            members.add(it.next().getID());
+        }
+        assertTrue(g.removeMembers(members.toArray(new String[0])).isEmpty());
+        // needed to trigger conflict events in the 'small group' case
         r.getTree(g.getPath()).removeProperty(UserConstants.REP_MEMBERS);
         r.commit();
     }
