@@ -232,8 +232,9 @@ import com.google.common.collect.Sets;
  * tries to upgrade to a newer schema when needed.
  * <p>
  * Users/Administrators who prefer to stay in control over table generation can
- * create them "manually". {@link RDBHelper} can be used to print out the DDL
- * statements that would have been used for auto-creation.
+ * create them "manually". The oak-run "<a href="https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#oak-run_rdbddldump"><code>rdbddldump</code></a>"
+ * command can be used to print out the DDL statements that would have been used for auto-creation
+ * and/or automatic schema updates.
  * 
  * <h3>Caching</h3>
  * <p>
