@@ -71,7 +71,7 @@ the correct operation:
 - character fields must be able to store any Unicode code point - UTF-8 encoding is recommended
 - the collation for character fields needs to sort by Unicode code points
 
-## Table Creation
+## <a name="table-creation"></a> Table Creation
 
 The implementation will try to create all tables and indices when they are not present
 yet. Of course this requires that the configured database user actually has
@@ -87,10 +87,10 @@ diagnostics in the log file.
 
 Administrators who want to create tables upfront can do so. The DDL statements
 for the supported databases can be dumped using [RDBHelper](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBHelper.html)
-or, more recently, using `oak-run rdbddldump` (see [below](#oak-run_rdbddldump)).
+or, more recently, using `oak-run rdbddldump` (see [below](#rdbddldump)).
 
 
-## Upgrade from earlier versions
+## <a name="upgrade"></a> Upgrade from earlier versions
 
 As of Oak 1.8, the database layout has been slightly extended (see 
 [API docs for RDBDocumentStore](/oak/docs/apidocs/org/apache/jackrabbit/oak/plugins/document/rdb/RDBDocumentStore.html#apidocs.versioning)
@@ -123,7 +123,7 @@ and log diagnostics about the failed upgrade:
 The upgrade can then be done
 at a later point of time by executing the required DDL statements.
 
-## oak-run rdbddldump
+## <a name="rdbddldump"></a> oak-run rdbddldump
 
 `@since Oak 1.8.12` `@since Oak 1.10.1` `@since Oak 1.12`
 
