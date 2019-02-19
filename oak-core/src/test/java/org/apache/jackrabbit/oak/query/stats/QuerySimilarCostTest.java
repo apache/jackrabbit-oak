@@ -23,6 +23,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexPlan;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
@@ -39,18 +40,13 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.groups.Tuple;
+import org.hamcrest.core.IsCollectionContaining;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assert;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.google.common.collect.ImmutableList;
-
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 
 /**
  * Tests for cases where two or more indices return a similar cost estimation for the same query
@@ -59,6 +55,7 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
 
     private TestIndexProvider testIndexProvider = new TestIndexProvider();
     private final SQL2Parser p = SQL2ParserTest.createTestSQL2Parser();
+
     @Override
     protected ContentRepository createRepository() {
         return new Oak()
@@ -70,21 +67,17 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
                 .createContentRepository();
     }
 
-
     /*
      * Given 2 index plan with similar cost we expect a log at debug level to
      * intimate user to either modify either of the indices or the query
      */
     @Test
-    public void testSimilarCostIndices() throws Exception{
-        Logger queryImplLogger = (Logger) LoggerFactory.getLogger(QueryImpl.class);
-        queryImplLogger.setLevel(ch.qos.logback.classic.Level.DEBUG);
-
-        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
-        listAppender.start();
+    public void testSimilarCostIndices() throws Exception {
+        LogCustomizer customLogs = LogCustomizer.forLogger(QueryImpl.class.getName()).enable(Level.DEBUG).create();
 
         try {
-            queryImplLogger.addAppender(listAppender);
+            customLogs.starting();
+
             NodeUtil node = new NodeUtil(root.getTree("/"));
             String uuid = UUID.randomUUID().toString();
             node.setString(JcrConstants.JCR_UUID, uuid);
@@ -92,22 +85,20 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
 
             executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null", SQL2, true, false);
 
-            String expectedLogMessage = String.format("selected index %s " +
-                    "with plan testIndexPlan1 and %s with plan testIndexPlan2 have similar costs 11.0 and 11.0 " +
-                    "for query Filter(query=SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null, path=*, property=[jcr:uuid=[is not null]]) - check query explanation / index definitions",testIndexProvider.index,testIndexProvider.index);
+            String expectedLogMessage = String.format("selected index %s "
+                    + "with plan testIndexPlan1 and %s with plan testIndexPlan2 have similar costs 11.0 and 11.0 "
+                    + "for query Filter(query=SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null, path=*, property=[jcr:uuid=[is not null]]) - check query explanation / index definitions",
+                    testIndexProvider.index, testIndexProvider.index);
 
-            listAppender.stop();
-            Assertions.assertThat(listAppender.list)
-                    .extracting(ILoggingEvent::getMessage, ILoggingEvent::getLevel)
-                    .contains(Tuple.tuple(expectedLogMessage, Level.DEBUG));
-        }
-        finally {
-            listAppender.stop();
+            Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+        } finally {
+            customLogs.finished();
         }
     }
 
     private static class TestIndexProvider implements QueryIndexProvider {
         TestIndex index = new TestIndex();
+
         @Override
         public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
             return ImmutableList.<QueryIndex>of(index);
@@ -115,7 +106,7 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
     }
 
     private static class TestIndex implements QueryIndex,QueryIndex.AdvancedQueryIndex {
-        int invocationCount = 0;
+
         @Override
         public double getMinimumCost() {
             return PropertyIndexPlan.COST_OVERHEAD + 0.1;
@@ -123,7 +114,6 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
 
         @Override
         public double getCost(Filter filter, NodeState rootState) {
-            invocationCount++;
             return Double.POSITIVE_INFINITY;
         }
 
@@ -141,7 +131,6 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
         public String getIndexName() {
             return "test-index";
         }
-
 
         @Override
         public List<QueryIndex.IndexPlan> getPlans(Filter filter, List<QueryIndex.OrderEntry> sortOrder, NodeState rootState) {
@@ -167,5 +156,4 @@ public class QuerySimilarCostTest extends AbstractQueryTest {
             return null;
         }
     }
-
 }
