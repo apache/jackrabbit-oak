@@ -1457,7 +1457,7 @@ public class MongoDocumentStore implements DocumentStore {
                     } else {
                         //If parent has been modified loooong time back then there children
                         //would also have not be modified. In that case we can read from secondary
-                        NodeDocument cachedDoc = nodesCache.getIfPresent(parentId);
+                        NodeDocument cachedDoc = getIfCached(Collection.NODES, parentId);
                         secondarySafe = cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit);
                     }
                 }

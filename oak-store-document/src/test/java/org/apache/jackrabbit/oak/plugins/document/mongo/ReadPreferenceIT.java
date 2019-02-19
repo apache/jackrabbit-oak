@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -128,7 +127,6 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         assertEquals(ReadPreference.secondary(), mongoDS.getConfiguredReadPreference(NODES));
     }
 
-    @Ignore("OAK-8060")
     @Test
     public void getMongoReadPreference() {
         String id = getIdFromPath("/does/not/exist");
