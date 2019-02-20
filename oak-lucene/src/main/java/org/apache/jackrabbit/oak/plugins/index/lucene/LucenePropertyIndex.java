@@ -336,7 +336,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         final Sort sort = getSort(plan);
         final PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
-        Iterator<LuceneResultRow> itr = new AbstractIterator<LuceneResultRow>() {
+        LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
             private final Set<String> seenPaths = Sets.newHashSet();
             private ScoreDoc lastDoc;
@@ -346,6 +346,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             private int indexNodeId = -1;
             private Facets facets = null;
             private boolean facetsInitialized = false;
+            private int rewoundCount = 0;
 
             @Override
             protected LuceneResultRow computeNext() {
@@ -354,6 +355,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 }
                 releaseSearcher();
                 return endOfData();
+            }
+
+            @Override
+            public int rewoundCount() {
+                return rewoundCount;
             }
 
             private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt,  Facets facets,
@@ -579,6 +585,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     //if already initialized then log about change
                     if (indexNodeId > 0){
                         LOG.debug("Change in index version detected. Query would be performed without offset");
+                        rewoundCount++;
                     }
 
                     indexSearcher = indexNode.getSearcher();
@@ -593,6 +600,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 indexSearcher =  null;
             }
         };
+        Iterator<LuceneResultRow> itr = rItr;
         SizeEstimator sizeEstimator = new SizeEstimator() {
             @Override
             public long getSize() {
@@ -623,7 +631,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             itr = mergePropertyIndexResult(plan, rootState, itr);
         }
 
-        return new LucenePathCursor(itr, plan, settings, sizeEstimator);
+        return new LucenePathCursor(itr, rItr, plan, settings, sizeEstimator);
     }
 
     private static Query addDescendantClauseIfRequired(Query query, IndexPlan plan) {
@@ -1670,7 +1678,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      */
     static class LucenePathCursor implements Cursor {
 
-        private static final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
+        private final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
 
         private final Cursor pathCursor;
         private final String pathPrefix;
@@ -1679,12 +1687,13 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         private long estimatedSize;
         private int numberOfFacets;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, final IteratorRewoundStateProvider iterStateProvider, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 private int readCount;
+                private int rewoundCount;
 
                 @Override
                 public boolean hasNext() {
@@ -1693,6 +1702,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                 @Override
                 public String next() {
+                    if (iterStateProvider.rewoundCount() > rewoundCount) {
+                        readCount = 0;
+                        rewoundCount = iterStateProvider.rewoundCount();
+                    }
                     currentRow = it.next();
                     readCount++;
                     if (readCount % TRAVERSING_WARNING == 0) {
@@ -1802,4 +1815,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
+    static abstract class LuceneResultRowIterator extends AbstractIterator<LuceneResultRow> implements IteratorRewoundStateProvider {
+    }
+
+    public interface IteratorRewoundStateProvider {
+        int rewoundCount();
+    }
 }
