@@ -30,10 +30,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -57,7 +55,6 @@ import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static com.google.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -159,23 +156,26 @@ public class ReopenedLuceneIndexTest {
     }
 
     private void createIndex() throws CommitFailedException {
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
-        idxBuilder.noAsync().evaluatePathRestrictions()
+        IndexDefinitionBuilder idxBuilderV1 = new IndexDefinitionBuilder();
+        idxBuilderV1.noAsync().evaluatePathRestrictions()
                 .indexRule("nt:base")
                 .property("cons").nodeScopeIndex()
                 // to make a change in index but we won't query for this
                 .enclosingRule().property("foo").propertyIndex();
 
-        Tree indexNode;
+        IndexDefinitionBuilder idxBuilderV2 = new IndexDefinitionBuilder();
+        idxBuilderV2.noAsync().evaluatePathRestrictions()
+                .indexRule("nt:base")
+                .property("cons").propertyIndex()
+                // to make a change in index but we won't query for this
+                .enclosingRule().property("foo").propertyIndex();
 
-        idxBuilder.getBuilderTree().setProperty(new MultiStringPropertyState("tags", of("v2")));
-        indexNode = root.getTree("/").addChild("oak:index").addChild("index-v2");
-        idxBuilder.build(indexNode);
+        Tree oi = root.getTree("/oak:index");
 
-        idxBuilder.getBuilderTree().setProperty(new MultiStringPropertyState("tags", of("v1")));
-        idxBuilder.getBuilderTree().setProperty(FulltextIndexConstants.COMPAT_MODE, 1); // to force aggregate index
-        indexNode = root.getTree("/oak:index").addChild("index-v2");
-        idxBuilder.build(indexNode);
+        idxBuilderV1.getBuilderTree().setProperty(LuceneIndexConstants.COMPAT_MODE, 1); // to force aggregate index
+        idxBuilderV1.build(oi.addChild("index-v1"));
+
+        idxBuilderV2.build(oi.addChild("index-v2"));
 
         root.commit();
     }
@@ -195,7 +195,10 @@ public class ReopenedLuceneIndexTest {
     }
 
     private int iterateResultWhileReopening(String indexTag) throws ParseException, CommitFailedException {
-        String query = "SELECT * FROM [nt:base] WHERE CONTAINS(*, 'val') option(index tag " + indexTag + ")";
+        String queryV1 = "SELECT * FROM [nt:base] WHERE CONTAINS(*, 'val')";
+        String queryV2 = "SELECT * FROM [nt:base] WHERE [cons] = 'val'";
+
+        String query = "v1".equals(indexTag) ? queryV1 : queryV2;
 
         int resultSize = 0;
 
