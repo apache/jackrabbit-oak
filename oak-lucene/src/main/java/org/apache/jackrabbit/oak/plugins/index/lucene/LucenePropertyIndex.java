@@ -243,7 +243,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         final Sort sort = getSort(plan);
         final PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
-        Iterator<FulltextResultRow> itr = new AbstractIterator<FulltextResultRow>() {
+        LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
             private final Deque<FulltextResultRow> queue = Queues.newArrayDeque();
             private final Set<String> seenPaths = Sets.newHashSet();
             private ScoreDoc lastDoc;
@@ -252,6 +252,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             private IndexSearcher indexSearcher;
             private int indexNodeId = -1;
             private LuceneFacetProvider facetProvider = null;
+            private int rewoundCount = 0;
 
             @Override
             protected FulltextResultRow computeNext() {
@@ -260,6 +261,11 @@ public class LucenePropertyIndex extends FulltextIndex {
                 }
                 releaseSearcher();
                 return endOfData();
+            }
+
+            @Override
+            public int rewoundCount() {
+                return rewoundCount;
             }
 
             private FulltextResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,
@@ -527,7 +533,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                 if (indexNodeId != indexNode.getIndexNodeId()){
                     //if already initialized then log about change
                     if (indexNodeId > 0){
-                        LOG.debug("Change in index version detected. Query would be performed without offset");
+                        LOG.info("Change in index version detected. Query would be performed without offset");
+                        rewoundCount++;
                     }
 
                     indexSearcher = indexNode.getSearcher();
@@ -542,13 +549,14 @@ public class LucenePropertyIndex extends FulltextIndex {
                 indexSearcher =  null;
             }
         };
+        Iterator<FulltextResultRow> itr = rItr;
         SizeEstimator sizeEstimator = getSizeEstimator(plan);
 
         if (pr.hasPropertyIndexResult() || pr.evaluateSyncNodeTypeRestriction()) {
             itr = mergePropertyIndexResult(plan, rootState, itr);
         }
 
-        return new FulltextPathCursor(itr, plan, settings, sizeEstimator);
+        return new FulltextPathCursor(itr, rItr, plan, settings, sizeEstimator);
     }
 
     private static Query addDescendantClauseIfRequired(Query query, IndexPlan plan) {
@@ -1551,5 +1559,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             return null;
         }
+    }
+    static abstract class LuceneResultRowIterator extends AbstractIterator<FulltextResultRow> implements IteratorRewoundStateProvider {
     }
 }

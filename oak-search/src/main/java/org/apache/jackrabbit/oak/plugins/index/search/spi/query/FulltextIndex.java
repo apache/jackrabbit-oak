@@ -365,7 +365,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     protected static class FulltextPathCursor implements Cursor {
 
         private final Logger log = LoggerFactory.getLogger(getClass());
-        private static final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
+        private final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
 
         private final Cursor pathCursor;
         private final String pathPrefix;
@@ -374,12 +374,13 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         private long estimatedSize;
         private final int numberOfFacets;
 
-        public FulltextPathCursor(final Iterator<FulltextResultRow> it, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
+        public FulltextPathCursor(final Iterator<FulltextResultRow> it, final IteratorRewoundStateProvider iterStateProvider, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 private int readCount;
+                private int rewoundCount;
 
                 @Override
                 public boolean hasNext() {
@@ -388,6 +389,10 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
                 @Override
                 public String next() {
+                    if (iterStateProvider.rewoundCount() > rewoundCount) {
+                        readCount = 0;
+                        rewoundCount = iterStateProvider.rewoundCount();
+                    }
                     currentRow = it.next();
                     readCount++;
                     if (readCount % TRAVERSING_WARNING == 0) {
@@ -491,6 +496,10 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             }
             return estimatedSize = sizeEstimator.getSize();
         }
+    }
+
+    public interface IteratorRewoundStateProvider {
+        int rewoundCount();
     }
 
     /**

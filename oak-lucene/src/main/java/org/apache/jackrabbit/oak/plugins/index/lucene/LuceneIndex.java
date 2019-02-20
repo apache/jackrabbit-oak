@@ -296,7 +296,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         final boolean nonFullTextConstraints = parent.isEmpty();
         final int parentDepth = getDepth(parent);
         QueryLimits settings = filter.getQueryLimits();
-        Iterator<LuceneResultRow> itr = new AbstractIterator<LuceneResultRow>() {
+        LuceneResultRowIterator itr = new LuceneResultRowIterator() {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
             private final Set<String> seenPaths = Sets.newHashSet();
             private ScoreDoc lastDoc;
@@ -311,6 +311,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     return queue.remove();
                 }
                 return endOfData();
+            }
+
+            @Override
+            public int rewoundCount() {
+                return reloadCount;
             }
 
             private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, String excerpt) throws IOException {
@@ -480,7 +485,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         throw new IllegalStateException("Too many version changes");
                     }
                     lastDoc = null;
-                    LOG.debug("Change in index version detected {} => {}. Query would be performed without " +
+                    LOG.info("Change in index version detected {} => {}. Query would be performed without " +
                             "offset; reload {}", currentVersion, lastSearchIndexerVersion, reloadCount);
                 }
                 this.lastSearchIndexerVersion = currentVersion;
@@ -1136,19 +1141,20 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
      */
     static class LucenePathCursor implements Cursor {
 
-        private static final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
+        private final int TRAVERSING_WARNING = Integer.getInteger("oak.traversing.warning", 10000);
 
         private final Cursor pathCursor;
         LuceneResultRow currentRow;
         private final SizeEstimator sizeEstimator;
         private long estimatedSize;
 
-        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryLimits settings, SizeEstimator sizeEstimator, Filter filter) {
+        LucenePathCursor(final LuceneResultRowIterator it, QueryLimits settings, SizeEstimator sizeEstimator, Filter filter) {
             this.sizeEstimator = sizeEstimator;
 
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 private int readCount;
+                private int rewoundCount;
 
                 @Override
                 public boolean hasNext() {
@@ -1157,6 +1163,10 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                 @Override
                 public String next() {
+                    if (it.rewoundCount() > rewoundCount) {
+                        readCount = 0;
+                        rewoundCount = it.rewoundCount();
+                    }
                     currentRow = it.next();
                     readCount++;
                     if (readCount % TRAVERSING_WARNING == 0) {
@@ -1226,5 +1236,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
             return estimatedSize = sizeEstimator.getSize();
         }
+    }
+
+    static abstract class LuceneResultRowIterator extends AbstractIterator<LuceneResultRow> {
+        abstract int rewoundCount();
     }
 }
