@@ -228,6 +228,33 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
     }
 
     @Test
+    public void onlyReferencedAfterDateWithIncludePaths() throws RepositoryException, IOException {
+        final NodeStore targetNodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+
+        // initialize the target node store, with no versions at all
+        migrate(config -> {
+            config.setCopyVersions(null);
+            config.setCopyOrphanedVersions(null);
+        }, targetNodeStore, "/");
+
+        // now only copy the recent versions
+        migrate(config -> {
+            config.setCopyVersions(betweenHistories);
+            config.setCopyOrphanedVersions(null);
+        }, targetNodeStore, "/versionables");
+
+        repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
+        Session session = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+        sessions.add(session);
+
+        assertVersionableProperties(session, VERSIONABLES_YOUNG);
+        assertExistingHistories(session, VERSIONABLES_YOUNG);
+        assertVersionablePaths(session, VERSIONABLES_YOUNG);
+        assertMissingHistories(session, VERSIONABLES_OLD, VERSIONABLES_OLD_ORPHANED, VERSIONABLES_YOUNG_ORPHANED);
+        assertVersionsCanBeRestored(session, VERSIONABLES_YOUNG);
+    }
+
+    @Test
     public void overrideOrphaned() throws RepositoryException, IOException {
         Session session = performCopy(new VersionCopySetup() {
             @Override
@@ -335,6 +362,7 @@ public class CopyVersionHistoryTest extends AbstractRepositoryUpgradeTest {
             for (final String name : names) {
                 final String path = pathPrefix + name;
                 Node versionable = session.getNode(path);
+                assertTrue(versionable.isNodeType(MIX_VERSIONABLE));
 
                 String versionHistoryUuid = versionable.getProperty(JCR_VERSIONHISTORY).getString();
                 assertEquals(getVersionHistoryForPath(session, path).getIdentifier(), versionHistoryUuid);
