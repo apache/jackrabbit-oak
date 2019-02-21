@@ -33,6 +33,7 @@ import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Lists.partition;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.io.ByteStreams.read;
+import static java.lang.Integer.getInteger;
 import static java.lang.Long.numberOfLeadingZeros;
 import static java.lang.Math.min;
 import static java.util.Arrays.asList;
@@ -86,6 +87,19 @@ import org.slf4j.LoggerFactory;
 public class DefaultSegmentWriter implements SegmentWriter {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultSegmentWriter.class);
+
+    /**
+     * Default threshold of the number of modified child nodes of a node after which to
+     * log a warning.
+     */
+    public static final int CHILD_NODE_COUNT_WARN_THRESHOLD_DEFAULT = 1000000;
+
+    /**
+     * Threshold of the number of modified child nodes of a node after which to log
+     * a warning.
+     */
+    private static final int CHILD_NODE_COUNT_WARN_THRESHOLD =
+            getInteger("oak.segment.childNodeCountWarnThreshold", CHILD_NODE_COUNT_WARN_THRESHOLD_DEFAULT);
 
     @NotNull
     private final WriterCacheManager cacheManager;
@@ -187,7 +201,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
     @NotNull
     public RecordId writeNode(@NotNull final NodeState state, @Nullable final Buffer stableIdBytes) throws IOException {
         return new SegmentWriteOperation(writeOperationHandler.getGCGeneration())
-                .writeNode(state, stableIdBytes);
+                .writeNode("/", state, stableIdBytes);
     }
 
     /**
@@ -204,6 +218,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private final Cache<Template, RecordId> templateCache;
 
         private final Cache<String, RecordId> nodeCache;
+
+        private int childNodeCountWarnThreshold = CHILD_NODE_COUNT_WARN_THRESHOLD;
 
         SegmentWriteOperation(@NotNull GCGeneration gcGeneration) {
             int generation = gcGeneration.getGeneration();
@@ -740,7 +756,10 @@ public class DefaultSegmentWriter implements SegmentWriter {
             return tid;
         }
 
-        private RecordId writeNode(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
+        private RecordId writeNode(
+                @NotNull String path,
+                @NotNull NodeState state,
+                @Nullable Buffer stableIdBytes)
         throws IOException {
             RecordId compactedId = deduplicateNode(state);
 
@@ -751,7 +770,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             if (state instanceof SegmentNodeState && stableIdBytes == null) {
                 stableIdBytes = ((SegmentNodeState) state).getStableIdBytes();
             }
-            RecordId recordId = writeNodeUncached(state, stableIdBytes);
+            RecordId recordId = writeNodeUncached(path, state, stableIdBytes);
 
             if (stableIdBytes != null) {
                 // This node state has been rewritten because it is from an older
@@ -767,7 +786,17 @@ public class DefaultSegmentWriter implements SegmentWriter {
             return (byte) (Byte.MIN_VALUE + 64 - numberOfLeadingZeros(childCount));
         }
 
-        private RecordId writeNodeUncached(@NotNull NodeState state, @Nullable Buffer stableIdBytes)
+        private void warnOnManyChildren(Map<?, ?> map, String path) {
+            if (map.size() >= childNodeCountWarnThreshold) {
+                childNodeCountWarnThreshold += CHILD_NODE_COUNT_WARN_THRESHOLD;
+                LOG.warn("Large number of modified child nodes: {} @ {}", map.size(), path);
+            }
+        }
+
+        private RecordId writeNodeUncached(
+                @NotNull String path,
+                @NotNull NodeState state,
+                @Nullable Buffer stableIdBytes)
         throws IOException {
             ModifiedNodeState after = null;
 
@@ -807,19 +836,20 @@ public class DefaultSegmentWriter implements SegmentWriter {
                         && before.getChildNodeCount(2) > 1
                         && after.getChildNodeCount(2) > 1) {
                     base = before.getChildNodeMap();
-                    childNodes = new ChildNodeCollectorDiff().diff(before, after);
+                    childNodes = new ChildNodeCollectorDiff(path).diff(before, after);
                 } else {
                     base = null;
                     childNodes = newHashMap();
                     for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                         childNodes.put(
                                 entry.getName(),
-                                writeNode(entry.getNodeState(), null));
+                                writeNode(path + "/" + entry.getName(), entry.getNodeState(), null));
+                        warnOnManyChildren(childNodes, path);
                     }
                 }
                 ids.add(writeMap(base, childNodes));
             } else if (childName != Template.ZERO_CHILD_NODES) {
-                ids.add(writeNode(state.getChildNode(template.getChildName()), null));
+                ids.add(writeNode(path + "/" + template.getChildName(), state.getChildNode(template.getChildName()), null));
             }
 
             List<RecordId> pIds = newArrayList();
@@ -967,7 +997,13 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             private final Map<String, RecordId> childNodes = newHashMap();
 
+            private final String path;
+
             private IOException exception;
+
+            public ChildNodeCollectorDiff(String path) {
+                this.path = path;
+            }
 
             public Map<String, RecordId> diff(SegmentNodeState before, ModifiedNodeState after) throws IOException {
                 after.compareAgainstBaseState(before, this);
@@ -981,7 +1017,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
             @Override
             public boolean childNodeAdded(String name, NodeState after) {
                 try {
-                    childNodes.put(name, writeNode(after, null));
+                    addChild(name, writeNode(path + "/" + name, after, null));
                 } catch (IOException e) {
                     exception = e;
                     return false;
@@ -994,7 +1030,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
                     String name, NodeState before, NodeState after
             ) {
                 try {
-                    childNodes.put(name, writeNode(after, null));
+                    addChild(name, writeNode(path + "/" + name, after, null));
                 } catch (IOException e) {
                     exception = e;
                     return false;
@@ -1004,8 +1040,13 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
             @Override
             public boolean childNodeDeleted(String name, NodeState before) {
-                childNodes.put(name, null);
+                addChild(name, null);
                 return true;
+            }
+
+            private void addChild(String name, @Nullable RecordId recordId) {
+                childNodes.put(name, recordId);
+                warnOnManyChildren(childNodes, path);
             }
         }
     }
