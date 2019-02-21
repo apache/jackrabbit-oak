@@ -111,9 +111,8 @@ public class VersionHistoryUtil {
         return vs;
     }
 
-    public static List<String> getVersionableNodes(NodeState root, TypePredicate isVersionable, Calendar olderThan) {
+    public static List<String> getVersionableNodes(NodeState root, NodeState versionStorage, TypePredicate isVersionable, Calendar olderThan) {
         List<String> paths = new ArrayList<>();
-        NodeState versionStorage = getVersionStorage(root);
         getVersionableNodes(root, versionStorage, isVersionable, olderThan, PathUtils.ROOT_PATH, paths);
         return paths;
     }
