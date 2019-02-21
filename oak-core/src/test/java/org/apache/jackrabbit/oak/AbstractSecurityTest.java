@@ -204,7 +204,7 @@ public abstract class AbstractSecurityTest {
     }
     
     protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
-        AccessControlManager acMgr = getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, NamePathMapper.DEFAULT);
+        AccessControlManager acMgr = getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
         if (acMgr instanceof JackrabbitAccessControlManager) {
             return (JackrabbitAccessControlManager) acMgr;
         } else {
