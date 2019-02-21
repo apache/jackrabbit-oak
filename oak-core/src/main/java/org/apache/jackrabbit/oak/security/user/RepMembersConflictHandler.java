@@ -18,8 +18,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
@@ -29,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 /**
@@ -37,10 +40,14 @@ import com.google.common.collect.Sets;
  *<p>
  * The conflict handler deals with the following conflicts:
  * <ul>
- *     <li>{@code addExistingProperty}  : {@code Resolution.MERGED},</li>
+ *     <li>{@code addExistingProperty}  : {@code Resolution.MERGED}.</li>
  *     <li>{@code changeDeletedProperty}: {@code Resolution.THEIRS}, removing the members property takes precedence.
  *     <li>{@code changeChangedProperty}: {@code Resolution.MERGED}, merge of the 2 members sets into a single one
  *     <li>{@code deleteChangedProperty}: {@code Resolution.OURS} removing the members property takes precedence.
+ *     <li>{@code deleteDeletedProperty}: {@code Resolution.MERGED}.</li>
+ *     <li>{@code changeDeletedNode}    : {@code Resolution.THEIRS}, removal takes precedence.</li>
+ *     <li>{@code deleteChangedNode}    : {@code Resolution.OURS}, removal takes precedence.</li>
+ *     <li>{@code deleteDeletedNode}    : {@code Resolution.MERGED}.</li>
  * </ul>
  */
 class RepMembersConflictHandler implements ThreeWayConflictHandler {
@@ -50,7 +57,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
             @NotNull PropertyState theirs) {
         if (isRepMembersProperty(theirs)) {
-            mergeChange(parent, ours, theirs,Sets.newHashSet());
+            mergeChange(parent, ours, theirs, ImmutableSet.of());
             return Resolution.MERGED;
         } else {
             return Resolution.IGNORED;
@@ -74,7 +81,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
             @NotNull PropertyState theirs, @NotNull PropertyState base) {
         if (isRepMembersProperty(theirs)) {
-            Set<String> baseMembers = Sets.newHashSet(base.getValue(Type.STRINGS));
+            Set<String> baseMembers = ImmutableSet.copyOf(base.getValue(Type.STRINGS));
             mergeChange(parent, ours, theirs, baseMembers);
             return Resolution.MERGED;
         } else {
@@ -85,8 +92,12 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     @NotNull
     @Override
     public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
-        // both are removing the members property, ignoring
-        return Resolution.IGNORED;
+        if (isRepMembersProperty(base)) {
+            // both are removing the members property
+            return Resolution.MERGED;
+        } else {
+            return Resolution.IGNORED;
+        }
     }
 
     @NotNull
@@ -101,7 +112,6 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
         }
     }
 
-
     @NotNull
     @Override
     public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
@@ -113,33 +123,45 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
     @Override
     public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours,
             @NotNull NodeState base) {
-        return Resolution.IGNORED;
+        if (isMemberRefType(base)) {
+            return Resolution.THEIRS;
+        } else {
+            return Resolution.IGNORED;
+        }
     }
 
     @NotNull
     @Override
     public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs,
             @NotNull NodeState base) {
-        return Resolution.IGNORED;
+        if (isMemberRefType(base)) {
+            return Resolution.OURS;
+        } else {
+            return Resolution.IGNORED;
+        }
     }
 
     @NotNull
     @Override
     public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
-        return Resolution.IGNORED;
+        if (isMemberRefType(base)) {
+            return Resolution.MERGED;
+        } else {
+            return Resolution.IGNORED;
+        }
     }
 
     //----------------------------< internal >----------------------------------
 
     private static void mergeChange(NodeBuilder parent, PropertyState ours, PropertyState theirs, Set<String> base) {
-        PropertyBuilder<String> merged = PropertyBuilder.array(Type.STRING);
+        PropertyBuilder<String> merged = PropertyBuilder.array(Type.WEAKREFERENCE);
         merged.setName(UserConstants.REP_MEMBERS);
 
-        Set<String> theirMembers = Sets.newHashSet(theirs.getValue(Type.STRINGS));
-        Set<String> ourMembers = Sets.newHashSet(ours.getValue(Type.STRINGS));
+        Set<String> theirMembers = ImmutableSet.copyOf(theirs.getValue(Type.STRINGS));
+        Set<String> ourMembers = ImmutableSet.copyOf(ours.getValue(Type.STRINGS));
 
         // merge ours and theirs to a de-duplicated set
-        Set<String> combined = Sets.newHashSet(Sets.intersection(ourMembers, theirMembers));
+        Set<String> combined = new LinkedHashSet<>(Sets.intersection(ourMembers, theirMembers));
         for (String m : Sets.difference(ourMembers, theirMembers)) {
             if (!base.contains(m)) {
                 combined.add(m);
@@ -158,4 +180,8 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
         return UserConstants.REP_MEMBERS.equals(p.getName());
     }
 
+    private static boolean isMemberRefType(NodeState base) {
+        String type = base.getName(JcrConstants.JCR_PRIMARYTYPE);
+        return UserConstants.NT_REP_MEMBER_REFERENCES.equals(type);
+    }
 }
