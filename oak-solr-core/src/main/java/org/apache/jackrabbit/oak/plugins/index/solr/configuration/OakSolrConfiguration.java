@@ -141,6 +141,14 @@ public interface OakSolrConfiguration {
     boolean collapseJcrContentNodes();
 
     /**
+     * Make all nodes / documents matching a query having name equals to 'jcr:content' collapse into their respective
+     * parent.
+     * @return {@code true} if only the parent of 'jcr:content' nodes should be returned,
+     * {@code false} otherwise
+     */
+    boolean collapseJcrContentParents();
+
+    /**
      * Provide the name of the field to be used for indexing the collapsed path of each node when {@link #collapseJcrContentNodes()}
      * is set to {@code true}.
      *
