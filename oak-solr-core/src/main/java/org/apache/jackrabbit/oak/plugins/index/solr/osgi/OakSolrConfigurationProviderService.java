@@ -110,6 +110,9 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     @Property(boolValue = OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES, label = "collapse jcr:content nodes")
     private static final String COLLAPSE_JCR_CONTENT_NODES = "collapse.jcrcontent.nodes";
 
+    @Property(boolValue = OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_PARENTS, label = "collapse jcr:content parents")
+    private static final String COLLAPSE_JCR_CONTENT_PARENTS = "collapse.jcrcontent.parents";
+
     private String pathChildrenFieldName;
     private String pathParentFieldName;
     private String pathDescendantsFieldName;
@@ -126,6 +129,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private String[] typeMappings;
     private String[] propertyMappings;
     private boolean collapseJcrContentNodes;
+    private boolean collapseJcrContentParents;
     private String depthField;
 
     private OakSolrConfiguration oakSolrConfiguration;
@@ -149,6 +153,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         usedProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(USED_PROPERTIES));
         propertyMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(PROPERTY_MAPPINGS));
         collapseJcrContentNodes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_NODES)));
+        collapseJcrContentParents = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_PARENTS)));
     }
 
     @Deactivate
@@ -279,6 +284,11 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Override
                 public boolean collapseJcrContentNodes() {
                     return collapseJcrContentNodes;
+                }
+
+                @Override
+                public boolean collapseJcrContentParents() {
+                    return collapseJcrContentParents;
                 }
 
                 @NotNull

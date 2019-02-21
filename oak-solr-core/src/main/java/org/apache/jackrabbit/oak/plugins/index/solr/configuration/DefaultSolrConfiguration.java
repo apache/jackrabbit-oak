@@ -125,6 +125,11 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         return OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES;
     }
 
+    @Override
+    public boolean collapseJcrContentParents() {
+        return OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_PARENTS;
+    }
+
     @NotNull
     @Override
     public String getCollapsedPathField() {
