@@ -437,7 +437,8 @@ public class RepositorySidegrade {
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
         NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
-        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        NodeState versionStorage = getVersionStorage(root);
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, versionStorage, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {
             LOG.info("Removing version histories for included paths");
             NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);
