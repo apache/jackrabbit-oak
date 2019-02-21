@@ -194,18 +194,25 @@ public class PersistentCache implements Broadcaster.Listener {
             }
             generations.remove(oldest);
         }
-        readGeneration = generations.size() > 1 ? generations.first() : -1;
-        writeGeneration = generations.size() > 0 ? generations.last() : 0;
-        if (readGeneration >= 0) {
-            readStore = createMapFactory(readGeneration, true);
-        }
-        writeStore = createMapFactory(writeGeneration, false);
-        initBroadcast(broadcast);
 
-        writeDispatcher = new CacheActionDispatcher();
-        writeDispatcherThread = new Thread(writeDispatcher, "Oak CacheWriteQueue");
-        writeDispatcherThread.setDaemon(true);
-        writeDispatcherThread.start();
+        try {
+            readGeneration = generations.size() > 1 ? generations.first() : -1;
+            writeGeneration = generations.size() > 0 ? generations.last() : 0;
+            if (readGeneration >= 0) {
+                readStore = createMapFactory(readGeneration, true);
+            }
+            writeStore = createMapFactory(writeGeneration, false);
+            initBroadcast(broadcast);
+
+            writeDispatcher = new CacheActionDispatcher();
+            writeDispatcherThread = new Thread(writeDispatcher, "Oak CacheWriteQueue");
+            writeDispatcherThread.setDaemon(true);
+            writeDispatcherThread.start();
+        } catch (RuntimeException ex) {
+            // OAK-8052: cleanup stores in case of failure
+            LOG.error("Exception during PersistentCache instantiation for {}.", url);
+            close();
+        }
     }
 
     private void logUnsupportedWarning(String configKey) {
