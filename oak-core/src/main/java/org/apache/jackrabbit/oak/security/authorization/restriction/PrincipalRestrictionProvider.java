@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.HashSet;
 import java.util.Set;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -63,8 +62,14 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @NotNull
     @Override
     public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
-        if (REP_NODE_PATH.equals(oakName) && PropertyType.PATH == value.getType()) {
-            return new RestrictionImpl(PropertyStates.createProperty(oakName, value), true);
+        if (REP_NODE_PATH.equals(oakName)) {
+            PropertyState property;
+            if (value.getString().isEmpty()) {
+                property = PropertyStates.createProperty(oakName, "", Type.STRING);
+            } else {
+                property = PropertyStates.createProperty(oakName, value);
+            }
+            return new RestrictionImpl(property, true);
         } else {
             return base.createRestriction(oakPath, oakName, value);
         }
@@ -80,9 +85,13 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @Override
     public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
         Set<Restriction> restrictions = new HashSet<>(base.readRestrictions(oakPath, aceTree));
-        String value = (oakPath == null) ? "" : oakPath;
-        PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
-        restrictions.add(new RestrictionImpl(nodePathProp, true));
+        PropertyState property;
+        if (oakPath == null) {
+            property = PropertyStates.createProperty(REP_NODE_PATH, "", Type.STRING);
+        } else {
+            property = PropertyStates.createProperty(REP_NODE_PATH, oakPath, Type.PATH);
+        }
+        restrictions.add(new RestrictionImpl(property, true));
         return restrictions;
     }
 

@@ -161,6 +161,11 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         return npMapper;
     }
 
+    private NamePathMapper getNamePathMapperWithLocalRemapping() {
+        NameMapper remapped = new LocalNameMapper(root, singletonMap(TEST_LOCAL_PREFIX, TEST_URI));
+        return new NamePathMapperImpl(remapped);
+    }
+
     private void registerNamespace(String prefix, String uri) throws Exception {
         NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry(root) {
             @Override
@@ -343,14 +348,11 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     public void testGetSupportedPrivilegesIncludingPathConversion() throws Exception {
         List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager(root).getRegisteredPrivileges());
 
-        List<String> testPaths = new ArrayList();
+        List<String> testPaths = new ArrayList<>();
         testPaths.add('/' + TEST_LOCAL_PREFIX + ":testRoot");
         testPaths.add("/{" + TEST_URI + "}testRoot");
 
-        NameMapper remapped = new LocalNameMapper(
-                root, singletonMap(TEST_LOCAL_PREFIX, TEST_URI));
-
-        AccessControlManager acMgr = createAccessControlManager(root, new NamePathMapperImpl(remapped));
+        AccessControlManager acMgr = createAccessControlManager(root, getNamePathMapperWithLocalRemapping());
         for (String path : testPaths) {
             Privilege[] supported = acMgr.getSupportedPrivileges(path);
 
@@ -377,8 +379,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
 
     @Test
     public void testPrivilegeFromName() throws Exception {
-        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager(root).getRegisteredPrivileges());
-        for (Privilege privilege : allPrivileges) {
+        for (Privilege privilege : getPrivilegeManager(root).getRegisteredPrivileges()) {
             Privilege p = acMgr.privilegeFromName(privilege.getName());
             assertEquals(privilege, p);
         }
@@ -1861,6 +1862,41 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     }
 
     @Test
+    public void testGetPoliciesByPrincipalRemapped() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        NamePathMapper mapper = getNamePathMapperWithLocalRemapping();
+        AccessControlPolicy[] policies = createAccessControlManager(root, mapper).getPolicies(testPrincipal);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+
+        List<ACE> entries = ((ACL) policies[0]).getEntries();
+        assertEquals(mapper.getJcrPath(testPath), entries.get(0).getRestriction(REP_NODE_PATH).getString());
+    }
+
+    @Test
+    public void testGetPoliciesByPrincipalRepositoryLevel() throws Exception {
+        setupPolicy(null, privilegesFromNames(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
+
+        // changes not yet persisted -> no existing policies found for user
+        AccessControlPolicy[] policies = acMgr.getPolicies(testPrincipal);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+
+        // after persisting changes -> policies must be found
+        root.commit();
+        policies = acMgr.getPolicies(testPrincipal);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+        JackrabbitAccessControlList acl = (JackrabbitAccessControlList) policies[0];
+        AccessControlEntry[] entries = acl.getAccessControlEntries();
+        assertEquals(1, entries.length);
+        JackrabbitAccessControlEntry entry = (JackrabbitAccessControlEntry) entries[0];
+        assertTrue(entry.getRestriction(REP_NODE_PATH).getString().isEmpty());
+    }
+
+    @Test
     public void testTestSessionGetPolicies() throws Exception {
         setupPolicy(testPath);
         root.commit();
@@ -2256,6 +2292,56 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     }
 
     @Test
+    public void testSetPrincipalPolicyRemapped() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        NamePathMapper mapper = getNamePathMapperWithLocalRemapping();
+        JackrabbitAccessControlManager remappedAcMgr = createAccessControlManager(root, mapper);
+        JackrabbitAccessControlPolicy[] policies = remappedAcMgr.getPolicies(testPrincipal);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+
+        ACL acl = (ACL) policies[0];
+        Value pathValue = new ValueFactoryImpl(root, mapper).createValue(mapper.getJcrPath(testPath), PropertyType.PATH);
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Collections.singletonMap(REP_NODE_PATH, pathValue)));
+        remappedAcMgr.setPolicy(acl.getPath(), acl);
+        root.commit();
+
+        AccessControlPolicy[] acps = remappedAcMgr.getPolicies(mapper.getJcrPath(testPath));
+        assertEquals(1, acps.length);
+        assertEquals(2, ((ACL) acps[0]).getAccessControlEntries().length);
+
+        acps = acMgr.getPolicies(testPath);
+        assertEquals(1, acps.length);
+        assertEquals(2, ((ACL) acps[0]).getAccessControlEntries().length);
+    }
+
+    @Test
+    public void testSetPrincipalPolicyForRepositoryLevel() throws Exception {
+        assertEquals(0, acMgr.getPolicies((String)null).length);
+
+        JackrabbitAccessControlPolicy[] policies = acMgr.getApplicablePolicies(testPrincipal);
+        ACL acl = (ACL) policies[0];
+
+        Map<String, Value> restrictions = new HashMap<String, Value>();
+        restrictions.put(REP_NODE_PATH, getValueFactory().createValue("", PropertyType.STRING));
+        Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT);
+        assertTrue(acl.addEntry(testPrincipal, privs, true, restrictions));
+
+        acMgr.setPolicy(acl.getPath(), acl);
+
+        AccessControlPolicy[] repoLevelPolicies = acMgr.getPolicies((String)null);
+        assertEquals(1, repoLevelPolicies.length);
+
+        AccessControlEntry[] entries = ((JackrabbitAccessControlList) repoLevelPolicies[0]).getAccessControlEntries();
+        assertEquals(1, entries.length);
+
+        assertArrayEquals(privs, entries[0].getPrivileges());
+        assertEquals(testPrincipal, entries[0].getPrincipal());
+    }
+
+    @Test
     public void testSetPrincipalPolicyWithNewMvRestriction() throws Exception {
         setupPolicy(testPath);
         root.commit();
@@ -2369,6 +2455,39 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
 
         // now try to write it back, which is expected to throw AccessControlException
         acMgr.removePolicy(acl.getPath(), acl);
+    }
+
+
+    @Test
+    public void testRemovePoliciesByPrincipalRemapped() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        NamePathMapper mapper = getNamePathMapperWithLocalRemapping();
+        JackrabbitAccessControlManager remappedAcMgr = createAccessControlManager(root, mapper);
+        JackrabbitAccessControlPolicy[] policies = remappedAcMgr.getPolicies(testPrincipal);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+
+        remappedAcMgr.removePolicy(policies[0].getPath(), policies[0]);
+        root.commit();
+
+        assertEquals(0, acMgr.getPolicies(testPath).length);
+    }
+
+    @Test
+    public void testRemovePrincipalPolicyForRepositoryLevel() throws Exception {
+        setupPolicy(null, privilegesFromNames(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT));
+        root.commit();
+
+        JackrabbitAccessControlPolicy[] policies = acMgr.getPolicies(testPrincipal);
+        assertEquals(1, policies.length);
+
+        acMgr.removePolicy(policies[0].getPath(), policies[0]);
+        root.commit();
+
+        AccessControlPolicy[] repoLevelPolicies = acMgr.getPolicies((String)null);
+        assertEquals(0, repoLevelPolicies.length);
     }
 
     private final static class TestACL extends AbstractAccessControlList {
