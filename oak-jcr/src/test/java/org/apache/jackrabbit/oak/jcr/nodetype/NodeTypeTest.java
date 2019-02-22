@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -39,9 +39,12 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 public class NodeTypeTest extends AbstractRepositoryTest {
 
@@ -130,9 +133,11 @@ public class NodeTypeTest extends AbstractRepositoryTest {
     @Test
     public void trivialUpdates() throws Exception {
         // test various trivial updates that should not trigger repository scans
-        // whether or not the repository scan happens can not be checked directly;
-        // it requires inspecting the INFO level log 
+        // whether or not the repository scan happens can not be checked
+        // directly; it requires inspecting the INFO level log, thus the use of
+        // LogCustomizer
 
+        LogCustomizer logCustomizer;
         String[] types = new String[] { "trivial1", "trivial2" };
         ArrayList<NodeTypeTemplate> ntt = new ArrayList<NodeTypeTemplate>();
 
@@ -161,12 +166,23 @@ public class NodeTypeTest extends AbstractRepositoryTest {
             opts.setRequiredType(PropertyType.STRING);
 
             NodeTypeTemplate nt = manager.createNodeTypeTemplate(ntd);
-            List pdt = nt.getPropertyDefinitionTemplates();
+            @SuppressWarnings("unchecked")
+            List<PropertyDefinitionTemplate> pdt = nt.getPropertyDefinitionTemplates();
             pdt.add(opt);
             pdt.add(opts);
             ntt.add(nt);
         }
-        manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+        
+        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
+                .contains("appear to be trivial, repository will not be scanned").create();
+        try {
+            logCustomizer.starting();
+            manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+            assertEquals("captured INFO log should contain exactly one entry, but is: " + logCustomizer.getLogs(), 1,
+                    logCustomizer.getLogs().size());
+        } finally {
+            logCustomizer.finished();
+        }
 
         // make one optional property mandatory
         ntt = new ArrayList<NodeTypeTemplate>();
@@ -183,13 +199,24 @@ public class NodeTypeTest extends AbstractRepositoryTest {
             opts.setRequiredType(PropertyType.STRING);
 
             NodeTypeTemplate nt = manager.createNodeTypeTemplate(ntd);
-            List pdt = nt.getPropertyDefinitionTemplates();
+            @SuppressWarnings("unchecked")
+            List<PropertyDefinitionTemplate> pdt = nt.getPropertyDefinitionTemplates();
             pdt.add(opt);
             pdt.add(opts);
             ntt.add(nt);
         }
         // but update both node types
-        manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+
+        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
+                .contains("appear not to be trivial, starting repository scan").create();
+        try {
+            logCustomizer.starting();
+            manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+            assertEquals("captured INFO log should contain exactly one entry, but is: " + logCustomizer.getLogs(), 1,
+                    logCustomizer.getLogs().size());
+        } finally {
+            logCustomizer.finished();
+        }
     }
 
     @Test
