@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.StringReader;
@@ -172,7 +173,7 @@ public class NodeTypeTest extends AbstractRepositoryTest {
             pdt.add(opts);
             ntt.add(nt);
         }
-        
+
         logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
                 .contains("appear to be trivial, repository will not be scanned").create();
         try {
@@ -349,5 +350,52 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         // now we should be able to remove the property
         n.getProperty("test:mandatory").remove();
         session.save();
+    }
+
+    @Test
+    public void addReferenceableToExistingType() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        // 1. Create node type that is not referencable
+        String cnd = "<'test'='http://www.apache.org/jackrabbit/test'> [test:AlmostReferenceable] > nt:base";
+        CndImporter.registerNodeTypes(new StringReader(cnd), session, false);
+
+        // 2. Create test node
+        Node newnode = root.addNode("testnode", "test:AlmostReferenceable");
+        session.save();
+
+        // 3. Attempt node type upgrade, adding optional jcr:uuid property
+        cnd = "<'test'='http://www.apache.org/jackrabbit/test'> [test:AlmostReferenceable] > nt:base - jcr:uuid (string)";
+        CndImporter.registerNodeTypes(new StringReader(cnd), session, true);
+
+        // 4. fill jcr:uuid
+        newnode = root.getNode("testnode");
+        String uuid = UUID.randomUUID().toString();
+        newnode.setProperty("jcr:uuid", uuid);
+        session.save();
+        // property is not a system property yet
+        assertFalse(newnode.getProperty("jcr:uuid").getDefinition().isAutoCreated());
+        assertFalse(newnode.getProperty("jcr:uuid").getDefinition().isProtected());
+
+        // 5. Attempt node type upgrade, making the type referencable
+        cnd = "<'test'='http://www.apache.org/jackrabbit/test'> [test:AlmostReferenceable] > mix:referenceable, nt:base";
+        CndImporter.registerNodeTypes(new StringReader(cnd), session, true);
+
+        // 6. new node should be referenceable and have jcr:uuid
+        newnode = root.getNode("testnode");
+        assertTrue(newnode.hasProperty("jcr:uuid"));
+        // property is now a system property
+        assertTrue(newnode.getProperty("jcr:uuid").getDefinition().isAutoCreated());
+        assertTrue(newnode.getProperty("jcr:uuid").getDefinition().isProtected());
+
+        // 7. try to reference the node
+        Node refnode = root.addNode("refnode", "nt:unstructured");
+        refnode.setProperty("refprop", newnode);
+        session.save();
+
+        // 8. get the node by UUID
+        Node found = session.getNodeByIdentifier(uuid);
+        assertTrue(found.isSame(newnode));
     }
 }
