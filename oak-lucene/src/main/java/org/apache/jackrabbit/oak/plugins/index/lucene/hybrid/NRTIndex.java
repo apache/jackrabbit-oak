@@ -61,6 +61,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.Directory
 public class NRTIndex implements Closeable {
 
     private static final boolean REGULAR_CLOSE = Boolean.getBoolean("oak.lucene.nrt.regularClose");
+    private static final boolean RETAIN_DURING_CLOSE = Boolean.getBoolean("oak.lucene.nrt.retainDuringClose");
 
     private static final AtomicInteger COUNTER = new AtomicInteger();
     private static final Logger log = LoggerFactory.getLogger(NRTIndex.class);
@@ -208,6 +209,14 @@ public class NRTIndex implements Closeable {
             if (REGULAR_CLOSE) {
                 indexWriter.close();
             } else {
+                if (RETAIN_DURING_CLOSE) {
+                    // retain entries (old style behavior)
+                } else {
+                    // delete all documents before closing,
+                    // so that closing is faster (less writes are needed)
+                    // (we anyway delete the directory after closing)
+                    indexWriter.deleteAll();
+                }
                 // don't merge, as anyway only keep two generations
                 indexWriter.close(false);
             }
