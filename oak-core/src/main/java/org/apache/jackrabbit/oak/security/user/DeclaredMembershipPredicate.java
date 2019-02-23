@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -45,7 +45,7 @@ public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
         this.membershipProvider = userManager.getMembershipProvider();
         Tree groupTree = membershipProvider.getByID(groupId, AuthorizableType.GROUP);
         if (groupTree == null) {
-            contentIdIterator = Iterators.emptyIterator();
+            contentIdIterator = Collections.emptyIterator();
         } else {
             contentIdIterator = membershipProvider.getDeclaredMemberContentIDs(membershipProvider.getByID(groupId, AuthorizableType.GROUP));
         }
