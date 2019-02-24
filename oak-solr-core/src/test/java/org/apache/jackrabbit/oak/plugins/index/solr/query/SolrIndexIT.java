@@ -242,38 +242,26 @@ public class SolrIndexIT extends AbstractQueryTest {
 
     @Test
     public void testNativeMLTQuery() throws Exception {
-        // TODO: OAK-1819
-        assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
-        assumeTrue(!System.getProperty("java.version").startsWith("9"));
-        assumeTrue(!System.getProperty("java.version").startsWith("10"));
-        assumeTrue(!System.getProperty("java.version").startsWith("11"));
-
-        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?q=text:World&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
+        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?q=text:welt&mlt.fl=text&mlt.mindf=1&mlt.mintf=1')";
 
         Tree tree = root.getTree("/");
         Tree test = tree.addChild("test");
-        test.addChild("a").setProperty("text", "Hello World, today weather is nice");
-        test.addChild("b").setProperty("text", "Cheers World, today weather is quite nice");
-        test.addChild("c").setProperty("text", "Halo Welt, today sky is cloudy");
+        test.addChild("a").setProperty("text", "Hello World today weather is nice");
+        test.addChild("b").setProperty("text", "Cheers World today weather is quite nice");
+        test.addChild("c").setProperty("text", "Halo Welt today sky is cloudy");
         root.commit();
 
         Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
         assertTrue(strings.hasNext());
         assertEquals("/test/a", strings.next());
         assertTrue(strings.hasNext());
-        assertEquals("/test/c", strings.next());
+        assertEquals("/test/b", strings.next());
         assertFalse(strings.hasNext());
     }
 
     @Test
     public void testNativeMLTQueryWithStream() throws Exception {
-        // TODO: OAK-1819
-        assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
-        assumeTrue(!System.getProperty("java.version").startsWith("9"));
-        assumeTrue(!System.getProperty("java.version").startsWith("10"));
-        assumeTrue(!System.getProperty("java.version").startsWith("11"));
-
-        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?stream.body=world is nice today&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
+        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?stream.body=sky is cloudy&mlt.fl=text&mlt.mindf=0&mlt.mintf=0')";
 
         Tree tree = root.getTree("/");
         Tree test = tree.addChild("test");
@@ -286,7 +274,7 @@ public class SolrIndexIT extends AbstractQueryTest {
         assertTrue(strings.hasNext());
         assertEquals("/test/a", strings.next());
         assertTrue(strings.hasNext());
-        assertEquals("/test/c", strings.next());
+        assertEquals("/test/b", strings.next());
         assertFalse(strings.hasNext());
     }
 
