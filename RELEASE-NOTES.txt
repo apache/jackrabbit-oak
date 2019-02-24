@@ -22,7 +22,50 @@ Oak releases, please see the Oak issue tracker at
 
   https://issues.apache.org/jira/browse/OAK
 
-...
+Bug
+
+    [OAK-6749] - Segment-Tar standby sync fails with "in-memory" blobs present in the source repo
+    [OAK-7982] - ACL.addEntry: check for mandatory restrictions only respects single value restrictions
+    [OAK-8001] - Lucene index can be empty (no :data node) in composite node store setup
+    [OAK-8003] - MongoDocumentStore does not log server details
+    [OAK-8006] - SegmentBlob#readLongBlobId might cause SegmentNotFoundException on standby
+    [OAK-8007] - RDBDocumentStore: potential off-heap memory leakage due to unclosed GzipInputStream
+    [OAK-8012] - Unmerged branch changes visible after restart
+    [OAK-8017] - Test failure: LastRevRecoveryRandomizedIT
+    [OAK-8023] - AccessControlManagerImpl can not handle repository level when editing policies by principal
+    [OAK-8033] - Node states sometimes refer to more than a single generation of segments after a full compaction
+    [OAK-8046] - Result items are not always correctly counted against the configured read limit if a query uses a lucene index
+    [OAK-8052] - PersistentCache: failure during construction may lead to resource leak
+    [OAK-8054] - RepMembersConflictHandler creates property with wrong type
+    [OAK-8070] - The date-based copy-versions directive doesn't work correctly with include-paths
+
+Improvement
+
+    [OAK-7984] - Batch update documents in commit rollback
+    [OAK-8041] - IndexDefinitionBuilder should support facets and boost for property definitions
+    [OAK-8042] - IndexDefinitionBuilder should support deprecated properties on index definition
+    [OAK-8067] - Measure fsync (called when closing the NRT index) and try to reduce disk I/O
+
+Task
+
+    [OAK-8030] - oak-jcr NodeTypeTest improvements
+    [OAK-8037] - add test case for making a node type referenceable
+    [OAK-8059] - Update Jackson dependency to 2.9.8
+    [OAK-8068] - Update slf4j dependency to 1.7.26
+    [OAK-8076] - in 1.10, adjust bundle baseline check comparisonVersion
+
+Technical task
+
+    [OAK-7960] - RDB: add to Oak documentation
+    [OAK-7978] - guava-latest profile defunct
+    [OAK-7979] - DeclaredMembershipPredicate does not compile with Guava 20
+    [OAK-8004] - oak-run: support "recovery" command for RDBDocumentStore
+    [OAK-8016] - RDBDocumentStore: minor improvements to GZIP compression of BLOB contents
+    [OAK-8043] - RDB: expose DDL generation functionality in oak-run
+    [OAK-8058] - RDB*Store: update Tomcat JDBC pool dependency to 8.5.38
+    [OAK-8069] - Log warning for too many transient modifications of direct child nodes
+    [OAK-8074] - RDB*Store: update mysql-connector-java dependency to 8.0.15
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.10.x release.
