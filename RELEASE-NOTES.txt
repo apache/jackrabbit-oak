@@ -8,7 +8,7 @@ repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
 Jackrabbit Oak 1.10.1 is a patch release that contains fixes and
-improvements over Oak 1.10. Jackrabbit Oak 1.8.x releases are
+improvements over Oak 1.10. Jackrabbit Oak 1.10.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
