@@ -486,7 +486,9 @@ public class BenchmarkRunner {
             new ReplicaCrashResilienceTest(),
 
             // benchmarks for oak-auth-external
-            new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
+                new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options),
+                        expiration.value(options), dynamicMembership.value(options), autoMembership.values(options),
+                        report.value(options)),
             new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncAllUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options)),
