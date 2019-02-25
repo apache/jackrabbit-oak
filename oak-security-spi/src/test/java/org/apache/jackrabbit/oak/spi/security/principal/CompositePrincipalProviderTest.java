@@ -17,7 +17,12 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -26,6 +31,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -134,5 +140,63 @@ public class CompositePrincipalProviderTest {
     public void findPrincipalsByTypeAll() {
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
         assertIterator(Iterables.concat(ImmutableSet.of(EveryonePrincipal.getInstance()), testPrincipals()), result);
+    }
+
+    /**
+     * Tests that the default implementation of range based
+     * {@code findPrincipals} methods of PrincipalProvider work properly. See
+     * OAK-7994
+     */
+    @Test
+    public void testRangeDefault() {
+        List<? extends Principal> pps = ImmutableList.of(new PrincipalImpl("p0"), new PrincipalImpl("p1"),
+                new PrincipalImpl("p2"));
+
+        PrincipalProvider pp = new PrincipalProvider() {
+            @Override
+            @NotNull
+            public Set<? extends Principal> getPrincipals(@NotNull String userID) {
+                return Collections.emptySet();
+            }
+            @Override
+            @Nullable
+            public Principal getPrincipal(@NotNull String principalName) {
+                return null;
+            }
+            @Override
+            @NotNull
+            public Iterator<? extends Principal> findPrincipals(int searchType) {
+                return pps.iterator();
+            }
+            @Override
+            @NotNull
+            public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
+                return pps.iterator();
+            }
+        };
+
+        List<String> expected = getNames(pps.iterator());
+        for (int offset = 0; offset < expected.size() + 1; offset++) {
+            for (int limit = -1; limit < expected.size() + 2; limit++) {
+                int to = expected.size();
+                if (limit >= 0) {
+                    to = Math.min(offset + limit, to);
+                }
+                List<String> sub = expected.subList(offset, to);
+                Iterator<? extends Principal> i0 = pp.findPrincipals(null, PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                assertEquals(sub, getNames(i0));
+                Iterator<? extends Principal> i1 = pp.findPrincipals("", PrincipalManager.SEARCH_TYPE_ALL, offset,
+                        limit);
+                assertEquals(sub, getNames(i1));
+            }
+        }
+    }
+
+    private static List<String> getNames(Iterator<? extends Principal> i) {
+        List<String> l = new ArrayList<>();
+        while (i.hasNext()) {
+            l.add(i.next().getName());
+        }
+        return l;
     }
 }
