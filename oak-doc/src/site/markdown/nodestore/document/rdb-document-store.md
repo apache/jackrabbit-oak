@@ -57,7 +57,7 @@ will attempt to start anyway):
 ~~~
 
 
-## Database Creation
+## <a name="database-creation"></a> Database Creation
 
 `RDBDocumentStore` relies on JDBC, and thus, in general, can not create
 database instances (that said, certain DBs such as Apache Derby or H2DB can create the
@@ -70,6 +70,30 @@ the correct operation:
 
 - character fields must be able to store any Unicode code point - UTF-8 encoding is recommended
 - the collation for character fields needs to sort by Unicode code points
+- BLOBs need to support sizes of ~16MB
+
+The subsections below give examples that have been found to work during the
+development of `RDBDocumentStore`.
+
+### <a name="database-creation-mysql"></a> MySQL
+
+Creating a database called `OAK`:
+~~~
+create database oak DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+~~~
+
+Also make sure to configure the `max_allowed_packet` parameter
+for the server (mysqld) to a value greater than 4M (such as 8388608).
+
+To verify, check that INFO level log message written by `RDBDocumentStore`
+upon startup. For example:
+
+~~~
+13:40:46.637 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database MySQL 8.0.15 (8.0), using driver: MySQL Connector/J mysql-connector-java-8.0.15 (Revision: 79a4336f140499bd22dd07f02b708e163844e3d5) (8.0), connecting to: jdbc:mysql://localhost:3306/oak?serverTimezone=UTC, properties: {character_set_database=utf8mb4, character_set_client=utf8mb4, character_set_connection=utf8mb4, character_set_results=, max_allowed_packet=8388608, collation_database=utf8mb4_unicode_ci, character_set_system=utf8, collation_server=utf8mb4_0900_ai_ci, collation=utf8mb4_unicode_ci, character_set_filesystem=binary, character_set_server=utf8mb4, collation_connection=utf8mb4_0900_ai_ci}, transaction isolation level: TRANSACTION_REPEATABLE_READ (4), .dstest_nodes: ID VARBINARY(512), MODIFIED BIGINT(20), HASBINARY SMALLINT(6), DELETEDONCE SMALLINT(6), MODCOUNT BIGINT(20), CMODCOUNT BIGINT(20), DSIZE BIGINT(20), VERSION SMALLINT(6), SDTYPE SMALLINT(6), SDMAXREVTIME BIGINT(20), DATA VARCHAR(16000), BDATA LONGBLOB(2147483647) /* {BIGINT=-5, LONGBLOB=-4, SMALLINT=5, VARBINARY=-3, VARCHAR=12} */ /* unique index oak.PRIMARY on dstest_nodes (ID ASC) other (#0, p0), index oak.dstest_NODES_MOD on dstest_nodes (MODIFIED ASC) other (#0, p0), index oak.dstest_NODES_SDM on dstest_nodes (SDMAXREVTIME ASC) other (#0, p0), index oak.dstest_NODES_SDT on dstest_nodes (SDTYPE ASC) other (#0, p0), index oak.dstest_NODES_VSN on dstest_nodes (VERSION ASC) other (#0, p0) */
+~~~
+ 
+ 
+
 
 ## <a name="table-creation"></a> Table Creation
 
