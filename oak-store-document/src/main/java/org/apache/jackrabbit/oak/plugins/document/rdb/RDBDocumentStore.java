@@ -221,18 +221,20 @@ import com.google.common.collect.Sets;
  * Databases need to be configured so that:
  * <ul>
  * <li>Text fields support all Unicode code points,</li>
- * <li>Collation of text fields happens by Unicode code point (in
- * DB2: "collate using identity", in PostgreSQL: "C"),</li>
- * <li>and BLOBs need to support at least 16 MB (for instance, see
- * MySQL database parameter "max_allowed_packet").</li>
+ * <li>Collation of text fields happens by Unicode code point (in PostgreSQL: "C"),</li>
+ * <li>and BLOBs need to support at least 16 MB.</li>
  * </ul>
+ * <p>
+ * See the
+ * <a href="https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#database-creation">RDBDocumentStore documentation</a>
+ * for more information.
  * <h3 id="apidocs.table-creation">Table Creation</h3>
  * <p>
  * The code tries to create the tables when they are not present. Likewise, it
  * tries to upgrade to a newer schema when needed.
  * <p>
  * Users/Administrators who prefer to stay in control over table generation can
- * create them "manually". The oak-run "<a href="https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#oak-run_rdbddldump"><code>rdbddldump</code></a>"
+ * create them "manually". The oak-run "<a href="https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#rdbddldump"><code>rdbddldump</code></a>"
  * command can be used to print out the DDL statements that would have been used for auto-creation
  * and/or automatic schema updates.
  * 
