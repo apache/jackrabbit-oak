@@ -75,6 +75,7 @@ the correct operation:
 The subsections below give examples that have been found to work during the
 development of `RDBDocumentStore`.
 
+
 ### <a name="database-creation-db2"></a> DB2
 
 Creating a database called `OAK`:
@@ -107,8 +108,22 @@ upon startup. For example:
 13:40:46.637 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database MySQL 8.0.15 (8.0), using driver: MySQL Connector/J mysql-connector-java-8.0.15 (Revision: 79a4336f140499bd22dd07f02b708e163844e3d5) (8.0), connecting to: jdbc:mysql://localhost:3306/oak?serverTimezone=UTC, properties: {character_set_database=utf8mb4, character_set_client=utf8mb4, character_set_connection=utf8mb4, character_set_results=, max_allowed_packet=8388608, collation_database=utf8mb4_unicode_ci, character_set_system=utf8, collation_server=utf8mb4_0900_ai_ci, collation=utf8mb4_unicode_ci, character_set_filesystem=binary, character_set_server=utf8mb4, collation_connection=utf8mb4_0900_ai_ci}, transaction isolation level: TRANSACTION_REPEATABLE_READ (4), .nodes: ID VARBINARY(512), MODIFIED BIGINT(20), HASBINARY SMALLINT(6), DELETEDONCE SMALLINT(6), MODCOUNT BIGINT(20), CMODCOUNT BIGINT(20), DSIZE BIGINT(20), VERSION SMALLINT(6), SDTYPE SMALLINT(6), SDMAXREVTIME BIGINT(20), DATA VARCHAR(16000), BDATA LONGBLOB(2147483647) /* {BIGINT=-5, LONGBLOB=-4, SMALLINT=5, VARBINARY=-3, VARCHAR=12} */ /* unique index oak.PRIMARY on nodes (ID ASC) other (#0, p0), index oak.NODES_MOD on nodes (MODIFIED ASC) other (#0, p0), index oak.NODES_SDM on nodes (SDMAXREVTIME ASC) other (#0, p0), index oak.NODES_SDT on nodes (SDTYPE ASC) other (#0, p0), index oak.NODES_VSN on nodes (VERSION ASC) other (#0, p0) */
 ~~~
  
- 
 
+### <a name="database-creation-postgresql"></a> PostgreSQL
+
+Creating a database called `OAK`:
+~~~
+CREATE DATABASE "oak" TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'C' LC_CTYPE = 'C';
+~~~
+
+To verify, check that INFO level log message written by `RDBDocumentStore`
+upon startup. For example:
+
+~~~
+16:26:28.172 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database PostgreSQL 10.6 (10.6), using driver: PostgreSQL JDBC Driver 42.2.5 (42.2), connecting to: jdbc:postgresql:oak, properties: {datcollate=C, pg_encoding_to_char(encoding)=UTF8}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), .nodes: id varchar(512), modified int8, hasbinary int2, deletedonce int2, modcount int8, cmodcount int8, dsize int8, version int2, sdtype int2, sdmaxrevtime int8, data varchar(16384), bdata bytea(2147483647) /* {bytea=-2, int2=5, int8=-5, varchar=12} */ /* index nodes_mod on public.nodes (modified ASC) other (#0, p1), unique index nodes_pkey on public.nodes (id ASC) other (#0, p1), index nodes_sdm on public.nodes (sdmaxrevtime ASC) other (#0, p1), index nodes_sdt on public.nodes (sdtype ASC) other (#0, p1), index nodes_vsn on public.nodes (version ASC) other (#0, p1) */
+~~~
+ 
+ 
 
 ## <a name="table-creation"></a> Table Creation
 
