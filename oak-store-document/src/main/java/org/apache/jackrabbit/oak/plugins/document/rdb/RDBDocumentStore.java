@@ -221,7 +221,7 @@ import com.google.common.collect.Sets;
  * Databases need to be configured so that:
  * <ul>
  * <li>Text fields support all Unicode code points,</li>
- * <li>Collation of text fields happens by Unicode code point (in PostgreSQL: "C"),</li>
+ * <li>Collation of text fields happens by Unicode code point,</li>
  * <li>and BLOBs need to support at least 16 MB.</li>
  * </ul>
  * <p>
