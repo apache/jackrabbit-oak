@@ -218,14 +218,14 @@ import com.google.common.collect.Sets;
  * existing version 0 and 1 tables to version 2.
  * <h4>DB-specific information</h4>
  * <p>
- * <em>Note that the database needs to be created/configured to support all
- * Unicode characters in text fields, and to collate by Unicode code point (in
- * DB2: "collate using identity", in PostgreSQL: "C"). THIS IS NOT THE
- * DEFAULT!</em>
- * <p>
- * <em>For MySQL, the database parameter "max_allowed_packet" needs to be
- * increased to support ~16M blobs.</em>
- * 
+ * Databases need to be configured so that:
+ * <ul>
+ * <li>Text fields support all Unicode code points,</li>
+ * <li>Collation of text fields happens by Unicode code point (in
+ * DB2: "collate using identity", in PostgreSQL: "C"),</li>
+ * <li>and BLOBs need to support at least 16 MB (for instance, see
+ * MySQL database parameter "max_allowed_packet").</li>
+ * </ul>
  * <h3 id="apidocs.table-creation">Table Creation</h3>
  * <p>
  * The code tries to create the tables when they are not present. Likewise, it
