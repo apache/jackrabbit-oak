@@ -2043,9 +2043,12 @@ public final class DocumentNodeStore
             // split documents (does not create new revisions)
             backgroundSplit();
             long splitTime = clock.getTime() - time;
+            time = clock.getTime();
             maybeRefreshHeadRevision();
+            long refreshTime = clock.getTime() - time;
             // write back pending updates to _lastRev
             stats = backgroundWrite();
+            stats.refresh = refreshTime;
             stats.split = splitTime;
             stats.clean = cleanTime;
             stats.totalWriteTime = clock.getTime() - start;
