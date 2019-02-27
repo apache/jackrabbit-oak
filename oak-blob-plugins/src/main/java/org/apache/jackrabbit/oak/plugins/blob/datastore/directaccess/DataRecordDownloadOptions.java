@@ -20,9 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,6 +36,16 @@ import org.jetbrains.annotations.Nullable;
 public class DataRecordDownloadOptions {
     static final String DISPOSITION_TYPE_INLINE = "inline";
     static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
+
+    private static final char[] hex = {
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+    };
+    private static final Set<Character> rfc5987AllowedChars = Sets.newHashSet(
+            '0','1','2','3','4','5','6','7','8','9',
+                    'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
+                    'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+                    '!','#','$','&','+','-','.','^','_','`','|','~'
+    );
 
     /**
      * Create an instance of this class directly from a {@link
@@ -126,17 +138,38 @@ public class DataRecordDownloadOptions {
                 if (Strings.isNullOrEmpty(dispositionType)) {
                     dispositionType = DISPOSITION_TYPE_INLINE;
                 }
-                contentDispositionHeader =
-                        String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                                dispositionType, fileName,
-                                new String(fileName.getBytes(StandardCharsets.UTF_8))
-                        );
+                contentDispositionHeader = formatContentDispositionHeader(dispositionType, fileName, null);
             }
             else if (DISPOSITION_TYPE_ATTACHMENT.equals(this.dispositionType)) {
                 contentDispositionHeader = DISPOSITION_TYPE_ATTACHMENT;
             }
         }
         return contentDispositionHeader;
+    }
+
+    private String formatContentDispositionHeader(@NotNull final String dispositionType,
+                                                  @NotNull final String fileName,
+                                                  @Nullable final String rfc8187EncodedFileName) {
+        return null != rfc8187EncodedFileName ?
+                String.format("%s; filename=\"%s\"; filename*=UTF-8''%s", dispositionType, fileName, rfc8187EncodedFileName) :
+                String.format("%s; filename=\"%s\"", dispositionType, fileName);
+    }
+
+    private String rfc8187Encode(@NotNull final String input) {
+        byte[] bytes = input.getBytes(StandardCharsets.UTF_8);
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            char c = (char) b;
+            if (rfc5987AllowedChars.contains(c)) {
+                sb.append(c);
+            }
+            else {
+                sb.append('%');
+                sb.append(hex[0x0F & (b >>> 4)]);
+                sb.append(hex[b & 0x0F]);
+            }
+        }
+        return sb.toString();
     }
 
     /**
