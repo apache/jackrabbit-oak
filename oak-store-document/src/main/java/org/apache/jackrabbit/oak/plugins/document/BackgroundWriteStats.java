@@ -23,6 +23,7 @@ class BackgroundWriteStats {
 
     long clean;
     long split;
+    long refresh;
     long sweep;
     long lock;
     long write;
@@ -34,6 +35,7 @@ class BackgroundWriteStats {
     public String toString() {
         return "clean:" + clean +
                 ", split:" + split +
+                ", refresh:" + refresh +
                 ", sweep:" + sweep +
                 ", lock:" + lock +
                 ", write:" + write +
