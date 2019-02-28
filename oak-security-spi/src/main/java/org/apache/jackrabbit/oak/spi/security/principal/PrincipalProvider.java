@@ -26,6 +26,7 @@ import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -55,6 +56,18 @@ public interface PrincipalProvider {
      */
     @Nullable
     Principal getPrincipal(@NotNull String principalName);
+
+    /**
+     * Returns the {@code ItemBasedPrincipal} with the specified {@code principalOakPath}
+     * or {@code null} if no principal with that path exists.
+     *
+     * @param principalOakPath the Oak path of the {@code ItemBasedPrincipal} to retrieve
+     * @return return the requested principal or {@code null}
+     */
+    @Nullable
+    default ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
+        return null;
+    }
 
     /**
      * Returns an iterator over all group principals for which the given

@@ -16,17 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -46,6 +40,13 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 /**
  * The {@code PrincipalProviderImpl} is a principal provider implementation
  * that operates on principal information read from user information exposed by
@@ -56,14 +57,17 @@ class PrincipalProviderImpl implements PrincipalProvider {
     private static final Logger log = LoggerFactory.getLogger(PrincipalProviderImpl.class);
 
     private final UserManager userManager;
+    private final NamePathMapper namePathMapper;
 
     PrincipalProviderImpl(@NotNull Root root,
                           @NotNull UserConfiguration userConfiguration,
                           @NotNull NamePathMapper namePathMapper) {
         this.userManager = userConfiguration.getUserManager(root, namePathMapper);
+        this.namePathMapper = namePathMapper;
     }
 
     //--------------------------------------------------< PrincipalProvider >---
+    @Nullable
     @Override
     public Principal getPrincipal(@NotNull String principalName) {
         Authorizable authorizable = getAuthorizable(new PrincipalImpl(principalName));
@@ -77,6 +81,23 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
         // no such principal or error while accessing principal from user/group
         return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
+    }
+
+    @Nullable
+    @Override
+    public ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
+        try {
+            Authorizable authorizable = userManager.getAuthorizableByPath(namePathMapper.getJcrPath(principalOakPath));
+            if (authorizable != null) {
+                Principal principal = authorizable.getPrincipal();
+                if (principal instanceof ItemBasedPrincipal) {
+                    return (ItemBasedPrincipal) principal;
+                }
+            }
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+        }
+        return null;
     }
 
     @NotNull

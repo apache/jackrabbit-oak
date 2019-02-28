@@ -27,17 +27,20 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -114,6 +117,39 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
         for (Principal principal : principals) {
             assertNotNull(principalProvider.getPrincipal(principal.getName()));
         }
+    }
+
+    @Test
+    public void testGetItemBasedPrincipal() throws Exception {
+        assertTrue(userPrincipal instanceof ItemBasedPrincipal);
+        String jcrPath = ((ItemBasedPrincipal) userPrincipal).getPath();
+        assertEquals(userPrincipal, principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(jcrPath)));
+    }
+
+    @Test
+    public void testGetItemBasedGroupPrincipal() throws Exception {
+        String jcrPath = testGroup.getPath();
+        assertEquals(testGroup.getPrincipal(), principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(jcrPath)));
+    }
+
+    @Test
+    public void testGetItemBasedPrincipalRoundTrip() throws Exception {
+        Principal principal = principalProvider.getPrincipal(testGroup2.getPrincipal().getName());
+        assertTrue(principal instanceof ItemBasedPrincipal);
+
+        String jcrPath = ((ItemBasedPrincipal) principal).getPath();
+        assertEquals(principal, principalProvider.getItemBasedPrincipal(jcrPath));
+    }
+
+    @Test
+    public void testGetitemBasedPrincipalPropertyPath() throws Exception {
+        String propPath = PathUtils.concat(((ItemBasedPrincipal) userPrincipal).getPath(), UserConstants.REP_PRINCIPAL_NAME);
+        assertNull(principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(propPath)));
+    }
+
+    @Test
+    public void testGetItemBasedPrincipalNonExisting() throws Exception {
+        assertNull(principalProvider.getItemBasedPrincipal(UserConstants.DEFAULT_GROUP_PATH));
     }
 
     @Test

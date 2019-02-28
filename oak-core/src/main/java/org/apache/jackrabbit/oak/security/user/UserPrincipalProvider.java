@@ -16,22 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.AccessDeniedException;
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -43,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.user.query.QueryUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -52,12 +44,21 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.AccessDeniedException;
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -113,6 +114,20 @@ class UserPrincipalProvider implements PrincipalProvider {
             return principal;
         }
     }
+
+    @Nullable
+    @Override
+    public ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
+        Tree authorizableTree = userProvider.getAuthorizableByPath(principalOakPath);
+        Principal principal = createPrincipal(authorizableTree);
+
+        if (principal instanceof ItemBasedPrincipal) {
+            return (ItemBasedPrincipal) principal;
+        } else {
+            return null;
+        }
+    }
+
 
     @NotNull
     @Override
