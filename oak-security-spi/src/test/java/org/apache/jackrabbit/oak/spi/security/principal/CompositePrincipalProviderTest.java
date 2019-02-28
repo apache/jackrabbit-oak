@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +41,9 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CompositePrincipalProviderTest {
 
@@ -86,6 +90,23 @@ public class CompositePrincipalProviderTest {
     }
 
     @Test
+    public void testGetItemBasedPrincipalDefault() throws Exception {
+        for (Principal p : testPrincipals()) {
+            if (p instanceof ItemBasedPrincipal) {
+                assertNull(cpp.getItemBasedPrincipal(((ItemBasedPrincipal) p).getPath()));
+            }
+         }
+    }
+
+    @Test
+    public void testGetItemBasedPrincipal() throws Exception {
+        ItemBasedPrincipal p = mock(ItemBasedPrincipal.class);
+        PrincipalProvider pp = when(mock(PrincipalProvider.class).getItemBasedPrincipal(anyString())).thenReturn(p).getMock();
+
+        assertEquals(p, CompositePrincipalProvider.of(ImmutableList.of(pp, pp2)).getItemBasedPrincipal("/any/path"));
+    }
+
+    @Test
     public void getGroupMembership() {
         for (Principal principal : testPrincipals()) {
             boolean atleastEveryone = cpp.getMembershipPrincipals(principal).contains(EveryonePrincipal.getInstance());
@@ -125,12 +146,7 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeNotGroup() {
-        Iterable<? extends Principal> expected = Iterables.filter(testPrincipals(), new Predicate<Principal>() {
-            @Override
-            public boolean apply(Principal input) {
-                return !(input instanceof GroupPrincipal);
-            }
-        });
+        Iterable<? extends Principal> expected = Iterables.filter(testPrincipals(), input -> !(input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertIterator(expected, result);

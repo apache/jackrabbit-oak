@@ -31,9 +31,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.RepositoryException;
 
 public final class TestPrincipalProvider implements PrincipalProvider {
 
@@ -53,10 +56,15 @@ public final class TestPrincipalProvider implements PrincipalProvider {
 
     public TestPrincipalProvider(String... principalNames) {
         this.exposesEveryone = true;
-        this.principals = Maps.toMap(ImmutableSet.copyOf(principalNames), new Function<String, Principal>() {
+        this.principals = Maps.toMap(ImmutableSet.copyOf(principalNames), input -> new ItemBasedPrincipal() {
             @Override
-            public Principal apply(String input) {
-                return new PrincipalImpl(input);
+            public String getPath() {
+                return "/path/to/principal/" + input;
+            }
+
+            @Override
+            public String getName() {
+                return input;
             }
         });
     }

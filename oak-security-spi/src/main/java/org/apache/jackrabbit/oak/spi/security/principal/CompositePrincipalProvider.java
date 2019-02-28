@@ -27,6 +27,7 @@ import com.google.common.collect.Iterators;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,6 +59,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     }
 
     //--------------------------------------------------< PrincipalProvider >---
+    @Nullable
     @Override
     public Principal getPrincipal(@NotNull String principalName) {
         Principal principal = null;
@@ -66,6 +68,18 @@ public class CompositePrincipalProvider implements PrincipalProvider {
 
         }
         return principal;
+    }
+
+    @Nullable
+    @Override
+    public ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
+        for (PrincipalProvider provider : providers) {
+            ItemBasedPrincipal principal = provider.getItemBasedPrincipal(principalOakPath);
+            if (principal != null) {
+                return principal;
+            }
+        }
+        return null;
     }
 
     @NotNull
