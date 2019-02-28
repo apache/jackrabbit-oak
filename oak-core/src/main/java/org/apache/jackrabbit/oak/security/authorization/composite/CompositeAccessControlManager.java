@@ -83,11 +83,11 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     @Override
     public AccessControlPolicy[] getEffectivePolicies(String absPath) throws RepositoryException {
-        ImmutableList.Builder<AccessControlPolicy> privs = ImmutableList.builder();
+        ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
-            privs.add(acMgr.getEffectivePolicies(absPath));
+            policies.add(acMgr.getEffectivePolicies(absPath));
         }
-        List<AccessControlPolicy> l = privs.build();
+        List<AccessControlPolicy> l = policies.build();
         return l.toArray(new AccessControlPolicy[0]);
     }
 
@@ -139,25 +139,25 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     @Override
     public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
-        ImmutableList.Builder<JackrabbitAccessControlPolicy> privs = ImmutableList.builder();
+        ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
-                privs.add(((JackrabbitAccessControlManager) acMgr).getPolicies(principal));
+                policies.add(((JackrabbitAccessControlManager) acMgr).getPolicies(principal));
             }
         }
-        List<JackrabbitAccessControlPolicy> l = privs.build();
+        List<JackrabbitAccessControlPolicy> l = policies.build();
         return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
     @Override
     public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
-        ImmutableList.Builder<AccessControlPolicy> privs = ImmutableList.builder();
+        ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
-                privs.add(((JackrabbitAccessControlManager) acMgr).getEffectivePolicies(principals));
+                policies.add(((JackrabbitAccessControlManager) acMgr).getEffectivePolicies(principals));
             }
         }
-        List<AccessControlPolicy> l = privs.build();
+        List<AccessControlPolicy> l = policies.build();
         return l.toArray(new AccessControlPolicy[0]);
     }
 }
