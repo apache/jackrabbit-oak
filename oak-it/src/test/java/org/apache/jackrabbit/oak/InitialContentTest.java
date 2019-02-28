@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.junit.Test;
 
@@ -74,6 +75,27 @@ public class InitialContentTest implements VersionConstants {
     @Test
     public void validatePrePopulated() throws Exception {
         NodeState before = EMPTY_NODE;
+        NodeBuilder builder = before.builder();
+        new InitialContent().withPrePopulatedVersionStore().initialize(builder);
+        NodeState after = builder.getNodeState();
+        new VersionHook().processCommit(before, after, CommitInfo.EMPTY);
+    }
+
+
+    @Test
+    public void validatePrePopulatedNonEmpty() throws Exception {
+        NodeState init = EMPTY_NODE;
+        NodeBuilder builderI = init.builder();
+
+        // create a partial version storage structure
+        new InitialContent().withPrePopulatedVersionStore().initialize(builderI);
+        NodeBuilder versionStorage = builderI.child(JCR_SYSTEM).child(JCR_VERSIONSTORAGE);
+        versionStorage.removeProperty(VERSION_STORE_INIT);
+        versionStorage.getChildNode("00").getChildNode("00").remove();
+        versionStorage.getChildNode("01").getChildNode("00").remove();
+        versionStorage.getChildNode("02").remove();
+
+        NodeState before = builderI.getNodeState();
         NodeBuilder builder = before.builder();
         new InitialContent().withPrePopulatedVersionStore().initialize(builder);
         NodeState after = builder.getNodeState();
