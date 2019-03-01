@@ -37,9 +37,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-// *<p>The test is <b>disabled</b> by default, to run it you need to set the {@code SegmentCompactionIT} system property:<br>
-// * {@code mvn test -Dtest=SegmentCompactionIT -Dtest.opts.memory=-Xmx4G}
-
 /**
  * This test asserts that a large number of child nodes can be added in a single
  * transaction. Due to its long running time the test needs to be explicitly enabled
