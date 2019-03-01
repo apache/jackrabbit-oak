@@ -37,6 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
 public class DefaultDirectoryFactory implements DirectoryFactory {
+    private static final boolean READ_BEFORE_WRITE = !Boolean.getBoolean("oak.lucene.readBeforeWriteDisabled");
     private final IndexCopier indexCopier;
     private final GarbageCollectableBlobStore blobStore;
     private final BlobDeletionCallback blobDeletionCallback;
@@ -56,6 +57,13 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
                                  String dirName, boolean reindex) throws IOException {
         Directory directory = newIndexDirectory(definition, builder, dirName);
         if (indexCopier != null && !(SUGGEST_DATA_CHILD_NAME.equals(dirName) && definition.getUniqueId() == null)) {
+            if (READ_BEFORE_WRITE) {
+                // prefetch the index when writing to it
+                // (copy from the remote directory to the local directory)
+                // to avoid having to stream it when merging
+                String indexPath = definition.getIndexPath();
+                indexCopier.wrapForRead(indexPath, definition, directory, dirName);
+            }
             directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);
         }
         return directory;

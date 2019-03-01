@@ -428,7 +428,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
                  if (!validLocalCopyPresent) {
                      log.warn("COWRemoteFileReference::file ({}) differs in length. local: {}; remote: {}, init-remote-length",
-                             localFileLength, remoteFileLength, length);
+                             name, localFileLength, remoteFileLength);
                  }
             } else if (!IndexCopier.REMOTE_ONLY.contains(name)) {
                 log.warn("COWRemoteFileReference::local file ({}) doesn't exist", name);
