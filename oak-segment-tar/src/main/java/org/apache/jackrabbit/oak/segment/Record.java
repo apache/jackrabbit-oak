@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -81,6 +82,16 @@ class Record {
      */
     public RecordId getRecordId() {
         return new RecordId(segmentId, recordNumber);
+    }
+
+    /**
+     * Get the underlying segment's gc generation. Might cause the segment to
+     * get loaded if the generation info is missing
+     * @return the segment's gc generation
+     */
+    @NotNull
+    public GCGeneration getGcGeneration() {
+        return segmentId.getGcGeneration();
     }
 
     //------------------------------------------------------------< Object >--

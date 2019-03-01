@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreStats;
 import org.apache.jackrabbit.oak.segment.SegmentOverflowException;
 import org.apache.jackrabbit.oak.segment.SegmentReader;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
@@ -52,8 +53,10 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 public class LockBasedScheduler implements Scheduler {
 
     public static class LockBasedSchedulerBuilder {
@@ -111,6 +114,13 @@ public class LockBasedScheduler implements Scheduler {
      */
     private static final double SCHEDULER_FETCH_COMMIT_DELAY_QUANTILE = Double
             .parseDouble(System.getProperty("oak.scheduler.fetch.commitDelayQuantile", "0.5"));
+
+    /**
+     * Flag controlling the number of milliseconds after which warnings are logged
+     * when threads ready to commit have to wait for a commit in progress.
+     */
+    private static final int COMMIT_WAIT_WARN_MILLIS = Integer
+            .getInteger("oak.segmentNodeStore.commitWaitWarnMillis", 60000);
     
     /**
      * Maximum number of milliseconds to wait before re-attempting to update the current
@@ -146,6 +156,50 @@ public class LockBasedScheduler implements Scheduler {
     private final Histogram commitTimeHistogram = new Histogram(new UniformReservoir());
     
     private final Random random = new Random();
+
+    private final CommitSemaphoreLogging commitSemaphoreLogging = new CommitSemaphoreLogging();
+
+    /*
+     * Logging of commits that are either blocked for longer than COMMIT_WAIT_WARN_MILLIS
+     * or on a commit that crossed the gc boundary. See OAK-8071.
+     */
+    private class CommitSemaphoreLogging {
+
+        @Nullable
+        private volatile Commit commit;
+
+        private volatile long timeStamp;
+
+        public void commitStarted(@NotNull Commit commit) {
+            this.commit = commit;
+            this.timeStamp = System.currentTimeMillis();
+        }
+
+        public void commitEnded() {
+            this.commit = null;
+        }
+
+        public void warnOnBlockingCommit() {
+            Commit currentCommit = commit;
+            GCGeneration headGeneration = head.get().getGcGeneration();
+            GCGeneration commitGeneration = currentCommit == null
+                ? null
+                : currentCommit.getGCGeneration();
+            long dt = System.currentTimeMillis() - timeStamp;
+            boolean isBlocking = currentCommit != null && dt > COMMIT_WAIT_WARN_MILLIS;
+            boolean isOldGeneration = commitGeneration != null
+                    && headGeneration.getFullGeneration() > commitGeneration.getFullGeneration();
+
+            if (isBlocking) {
+                log.warn("This commit is blocked by a commit that is in progress since {} ms", dt);
+            }
+
+            if (isOldGeneration) {
+                log.warn("The commit in progress is from an old GC generation {}. Head is at {}",
+                         commitGeneration, headGeneration);
+            }
+        }
+    }
 
     public LockBasedScheduler(LockBasedSchedulerBuilder builder) {
         if (COMMIT_FAIR_LOCK) {
@@ -202,6 +256,8 @@ public class LockBasedScheduler implements Scheduler {
         boolean queued = false;
 
         try {
+            commitSemaphoreLogging.warnOnBlockingCommit();
+
             long queuedTime = -1;
 
             if (commitSemaphore.availablePermits() < 1) {
@@ -211,6 +267,7 @@ public class LockBasedScheduler implements Scheduler {
             }
 
             commitSemaphore.acquire();
+            commitSemaphoreLogging.commitStarted(commit);
             try {
                 if (queued) {
                     long dequeuedTime = System.nanoTime();
@@ -228,6 +285,7 @@ public class LockBasedScheduler implements Scheduler {
 
                 return merged;
             } finally {
+                commitSemaphoreLogging.commitEnded();
                 commitSemaphore.release();
             }
         } catch (InterruptedException e) {
