@@ -18,12 +18,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
+import static com.google.common.io.ByteStreams.toByteArray;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -42,15 +50,6 @@ import org.apache.jackrabbit.util.Base64;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.io.ByteStreams.toByteArray;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public abstract class AbstractDataRecordAccessProviderTest {
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractDataRecordAccessProviderTest.class);
@@ -150,6 +149,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
             record = doSynchronousAddRecord((DataStore) dataStore, testStream);
             String mimeType = "image/png";
             String fileName = "album cover.png";
+            String encodedFileName = "album%20cover.png";
             String dispositionType = "inline";
             DataRecordDownloadOptions downloadOptions =
                     DataRecordDownloadOptions.fromBlobDownloadOptions(
@@ -168,10 +168,19 @@ public abstract class AbstractDataRecordAccessProviderTest {
             assertEquals(200, conn.getResponseCode());
 
             assertEquals(mimeType, conn.getHeaderField("Content-Type"));
+//            This proper behavior is disabled due to https://github.com/Azure/azure-sdk-for-java/issues/2900
+//            (see also https://issues.apache.org/jira/browse/OAK-8013).  We can re-enable the full test
+//            once the issue is resolved.  -MR
+//            assertEquals(
+//                    String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
+//                            dispositionType, fileName,
+//                            new String(encodedFileName.getBytes(StandardCharsets.UTF_8))
+//                    ),
+//                    conn.getHeaderField("Content-Disposition")
+//            );
             assertEquals(
-                    String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                            dispositionType, fileName,
-                            new String(fileName.getBytes(StandardCharsets.UTF_8))
+                    String.format("%s; filename=\"%s\"",
+                            dispositionType, fileName
                     ),
                     conn.getHeaderField("Content-Disposition")
             );
