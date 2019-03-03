@@ -25,7 +25,12 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A cache map. This map supports re-opening the store if this is needed.
- *
+ * <p>
+ * Note that a failure to open the underlying store will be handled gracefully,
+ * in that the {@code CacheMap} can be constructed, but will not actually cache
+ * anything. The same is true for the case where the underlying store starts to
+ * fail and can not be re-opened.
+ * 
  * @param <K> the key type
  * @param <V> the value type
  */
@@ -46,6 +51,13 @@ public class CacheMap<K, V> {
         this.name = name;
         this.builder = builder;
         openMap();
+        // OAK-8051: if opening failed, immediately try to re-open,
+        // until either the the map is closed, or open
+        for (int i = 0; map == null && !closed; i++) {
+            if (map == null) {
+                reopen(i, null);
+            }
+        }
     }
 
     private void reopen(int i, Exception e) {
