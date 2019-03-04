@@ -248,6 +248,11 @@ public final class DocumentNodeStore
     private final AtomicBoolean isDisposed = new AtomicBoolean();
 
     /**
+     * Whether the lease update thread shall be stopped.
+     */
+    private final AtomicBoolean stopLeaseUpdateThread = new AtomicBoolean();
+
+    /**
      * The cluster instance info.
      */
     @NotNull
@@ -557,7 +562,7 @@ public final class DocumentNodeStore
             clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
         }
         String threadNamePostfix = "(" + clusterId + ")";
-        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
+        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, stopLeaseUpdateThread),
                 "DocumentNodeStore lease update thread " + threadNamePostfix);
         leaseUpdateThread.setDaemon(true);
         if (!readOnlyMode) {
@@ -777,7 +782,17 @@ public final class DocumentNodeStore
             }
         }
 
-        Utils.joinQuietly(clusterUpdateThread, leaseUpdateThread);
+        Utils.joinQuietly(clusterUpdateThread);
+
+        // Stop lease update thread once no further document store operations
+        // are required
+        LOG.debug("Stopping LeaseUpdate thread...");
+        stopLeaseUpdateThread.set(true);
+        synchronized (stopLeaseUpdateThread) {
+            stopLeaseUpdateThread.notifyAll();
+        }
+        Utils.joinQuietly(leaseUpdateThread);
+        LOG.debug("Stopped LeaseUpdate thread");
 
         // now mark this cluster node as inactive by disposing the
         // clusterNodeInfo, but only if final background operations
@@ -785,6 +800,7 @@ public final class DocumentNodeStore
         if (ex == null) {
             clusterNodeInfo.dispose();
         }
+
         store.dispose();
 
         if (blobStore instanceof Closeable) {
