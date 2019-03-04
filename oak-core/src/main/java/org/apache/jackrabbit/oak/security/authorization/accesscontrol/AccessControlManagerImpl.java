@@ -43,7 +43,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -56,7 +55,6 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
@@ -302,7 +300,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
             Tree aceNode = TreeUtil.addChild(aclTree, nodeName, ntName);
             aceNode.setProperty(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
-            aceNode.setProperty(REP_PRIVILEGES, ImmutableList.copyOf(AccessControlUtils.namesFromPrivileges(ace.getPrivileges())), Type.NAMES);
+            aceNode.setProperty(REP_PRIVILEGES, bitsProvider.getPrivilegeNames(ace.getPrivilegeBits()), Type.NAMES);
             Set<Restriction> restrictions = ace.getRestrictions();
             restrictionProvider.writeRestrictions(oakPath, aceNode, restrictions);
         }
@@ -725,7 +723,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             Set<Privilege> privileges = new HashSet<>();
             for (String name : bitsProvider.getPrivilegeNames(getPrivilegeBits())) {
                 try {
-                    privileges.add(getPrivilegeManager().getPrivilege(name));
+                    privileges.add(getPrivilegeManager().getPrivilege(getNamePathMapper().getJcrName(name)));
                 } catch (RepositoryException e) {
                     log.warn("Unable to get privilege with name : " + name, e);
                 }
