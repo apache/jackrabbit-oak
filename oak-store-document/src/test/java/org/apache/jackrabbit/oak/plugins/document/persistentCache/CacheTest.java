@@ -26,43 +26,58 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 import com.google.common.cache.Cache;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 public class CacheTest {
 
     @Test
     public void recoverIfCorrupt() throws Exception {
-        FileUtils.deleteDirectory(new File("target/cacheTest"));
-        new File("target/cacheTest").mkdirs();
-        FileOutputStream out = new FileOutputStream("target/cacheTest/cache-0.data");
-        out.write("corrupt".getBytes());
-        out.close();
-        PersistentCache pCache = new PersistentCache("target/cacheTest");
-        CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().
-                maximumSize(1).build();
-        Cache<PathRev, StringValue> map = pCache.wrap(null,  null,  cache, CacheType.DIFF);
-        String largeString = new String(new char[1024 * 1024]);
-        for (int counter = 0; counter < 10; counter++) {
-            long end = System.currentTimeMillis() + 100;
-            while (System.currentTimeMillis() < end) {
-                Thread.yield();
+        String expectedWarning = "Too many re-opens";
+        LogCustomizer lc = LogCustomizer.forLogger(CacheMap.class).enable(Level.WARN).contains(expectedWarning).create();
+
+        try {
+            lc.starting();
+
+            FileUtils.deleteDirectory(new File("target/cacheTest"));
+            new File("target/cacheTest").mkdirs();
+            FileOutputStream out = new FileOutputStream("target/cacheTest/cache-0.data");
+            out.write("corrupt".getBytes());
+            out.close();
+            PersistentCache pCache = new PersistentCache("target/cacheTest");
+            CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().
+                    maximumSize(1).build();
+            Cache<PathRev, StringValue> map = pCache.wrap(null,  null,  cache, CacheType.DIFF);
+            String largeString = new String(new char[1024 * 1024]);
+            for (int counter = 0; counter < 10; counter++) {
+                long end = System.currentTimeMillis() + 100;
+                while (System.currentTimeMillis() < end) {
+                    Thread.yield();
+                }
+                for (int i = 0; i < 100; i++) {
+                    PathRev k = new PathRev("/" + counter, new RevisionVector(new Revision(0, 0, i)));
+                    map.getIfPresent(k);
+                    map.put(k, new StringValue(largeString));
+                }
             }
-            for (int i = 0; i < 100; i++) {
-                PathRev k = new PathRev("/" + counter, new RevisionVector(new Revision(0, 0, i)));
-                map.getIfPresent(k);
-                map.put(k, new StringValue(largeString));
-            }
+            assertTrue("Exceptions: " + pCache.getExceptionCount(), 
+                    pCache.getExceptionCount() < 100);
+
+            assertTrue("WARN level log should contain one entry containing '" + expectedWarning + "'", lc.getLogs().size() == 1);
         }
-        assertTrue("Exceptions: " + pCache.getExceptionCount(), 
-                pCache.getExceptionCount() < 100);
+        finally {
+            lc.finished();
+        }
     }
-    
+
     @Test
     public void closeAlways() throws Exception {
         FileUtils.deleteDirectory(new File("target/cacheTest"));
