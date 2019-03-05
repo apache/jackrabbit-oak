@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.segment.CancelableDiff;
-import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -51,24 +50,30 @@ class StandbyDiff implements NodeStateDiff {
 
     private final StandbyClient client;
 
-    private final boolean hasDataStore;
-
     private final String path;
 
     private final Supplier<Boolean> running;
+
+    private final BlobProcessor blobProcessor;
 
     StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, Supplier<Boolean> running) {
         this(builder, store, client, "/", running);
     }
 
-    private StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, String path,
-            Supplier<Boolean> running) {
+    private static BlobProcessor newBinaryFetcher(BlobStore blobStore, StandbyClient client) {
+        if (blobStore == null) {
+            return (blob) -> {};
+        }
+        return new RemoteBlobProcessor(blobStore, client::getBlob);
+    }
+
+    private StandbyDiff(NodeBuilder builder, FileStore store, StandbyClient client, String path, Supplier<Boolean> running) {
         this.builder = builder;
         this.store = store;
-        this.hasDataStore = store.getBlobStore() != null;
         this.client = client;
         this.path = path;
         this.running = running;
+        this.blobProcessor = newBinaryFetcher(store.getBlobStore(), client);
     }
 
     @Override
@@ -129,7 +134,7 @@ class StandbyDiff implements NodeStateDiff {
                 return (SegmentNodeState) after;
             }
 
-            if (!hasDataStore) {
+            if (store.getBlobStore() == null) {
                 return (SegmentNodeState) after;
             }
 
@@ -137,7 +142,7 @@ class StandbyDiff implements NodeStateDiff {
             // traversal to verify binaries
 
             for (PropertyState propertyState : after.getProperties()) {
-                fetchBinary(propertyState);
+                processBinary(propertyState);
             }
 
             boolean success = after.compareAgainstBaseState(before, new CancelableDiff(this, newCanceledSupplier()));
@@ -162,59 +167,44 @@ class StandbyDiff implements NodeStateDiff {
         };
     }
 
-    private PropertyState fetchBinary(PropertyState property) {
+    private PropertyState processBinary(PropertyState property) {
         Type<?> type = property.getType();
 
         if (type == BINARY) {
-            fetchBinary(property.getValue(Type.BINARY), property.getName());
+            processBinary(property.getValue(Type.BINARY), property.getName());
         } else if (type == BINARIES) {
             for (Blob blob : property.getValue(BINARIES)) {
-                fetchBinary(blob, property.getName());
+                processBinary(blob, property.getName());
             }
         }
 
         return property;
     }
 
-    private void fetchBinary(Blob b, String pName) {
-        if (b instanceof SegmentBlob) {
-            fetchBinary((SegmentBlob) b, pName);
-        } else {
-            log.warn("Unknown Blob {} at {}, ignoring", b.getClass().getName(), path + "#" + pName);
-        }
-    }
-
-    private void fetchBinary(SegmentBlob sb, String pName) {
-        if (sb.isExternal() && hasDataStore && sb.getReference() == null) {
-            String blobId = sb.getBlobId();
-
-            if (blobId == null) {
-                return;
-            }
-
-            try {
-                fetchAndStoreBlob(blobId, pName);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-
-    private void fetchAndStoreBlob(String blobId, String pName) throws InterruptedException {
-        InputStream in = client.getBlob(blobId);
-
-        if (in == null) {
-            throw new IllegalStateException("Unable to load remote blob " + blobId + " at " + path + "#" + pName
-                    + " in " + client.getReadTimeoutMs() + "ms. Please increase the timeout and try again.");
-        }
-
+    private void processBinary(Blob b, String propertyName) {
         try {
-            BlobStore blobStore = store.getBlobStore();
-            assert blobStore != null : "Blob store must not be null";
-            blobStore.writeBlob(in);
-            in.close();
-        } catch (IOException f) {
-            throw new IllegalStateException("Unable to persist blob " + blobId + " at " + path + "#" + pName, f);
+            blobProcessor.processBinary(b);
+        } catch (BlobFetchTimeoutException e) {
+            String message = String.format(
+                "Unable to load remote blob %s at %s#%s in %dms. Please increase the timeout and try again.",
+                e.getBlobId(),
+                path,
+                propertyName,
+                client.getReadTimeoutMs()
+            );
+            throw new IllegalStateException(message, e);
+        } catch (BlobWriteException e) {
+            String message = String.format(
+                "Unable to persist blob %s at %s#%s",
+                e.getBlobId(),
+                path,
+                propertyName
+            );
+            throw new IllegalStateException(message, e);
+        } catch (BlobTypeUnknownException e) {
+            log.warn("Unknown Blob {} at {}, ignoring", b.getClass().getName(), path + "#" + propertyName);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

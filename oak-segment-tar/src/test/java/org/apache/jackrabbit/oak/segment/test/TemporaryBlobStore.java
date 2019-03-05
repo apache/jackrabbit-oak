@@ -37,7 +37,7 @@ public class TemporaryBlobStore extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         FileDataStore fds = new FileDataStore();
-        fds.setMinRecordLength(4092);
+        configureDataStore(fds);
         fds.init(folder.newFolder().getAbsolutePath());
         store = new DataStoreBlobStore(fds);
     }
