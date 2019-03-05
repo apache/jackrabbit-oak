@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -162,6 +164,31 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         assertNotNull(foo);
         assertFalse(foo.getLocalCommitRoot().containsKey(
                 Revision.fromString(b1).asTrunkRevision()));
+    }
+
+    @Ignore("OAK-8108")
+    @Test
+    public void resetRemovesBranchCommitEntries() {
+        DocumentStore store = mk.getDocumentStore();
+
+        addNodes(null, "/foo");
+        String b0 = mk.branch(null);
+        String b1 = addNodes(b0, "/foo/bar");
+
+        NodeDocument foo = store.find(NODES, getIdFromPath("/foo"));
+        assertNotNull(foo);
+        assertTrue(foo.getLocalCommitRoot().containsKey(
+                Revision.fromString(b1).asTrunkRevision()));
+
+        addNodes(null, "/foo/bar");
+
+        mk.reset(b1, b0);
+
+        // reset must also remove _bc entry on parent document
+        Revision r = Revision.fromString(b1).asTrunkRevision();
+        for (NodeDocument doc : Utils.getAllDocuments(store)) {
+            assertFalse(doc.getId(), doc.getLocalBranchCommits().contains(r));
+        }
     }
 
     @Test
