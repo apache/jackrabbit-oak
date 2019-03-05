@@ -75,6 +75,10 @@ public class LogCustomizer {
         return new LogCustomizerBuilder(name);
     }
 
+    public static LogCustomizerBuilder forLogger(Class<?> clazz) {
+        return new LogCustomizerBuilder(clazz.getName());
+    }
+
     public static class LogCustomizerBuilder {
 
         private final String name;
