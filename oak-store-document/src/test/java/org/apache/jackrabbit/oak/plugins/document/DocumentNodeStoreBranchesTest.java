@@ -16,15 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -37,9 +47,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -124,6 +134,73 @@ public class DocumentNodeStoreBranchesTest {
             NodeState child = root.getChildNode("child"+i);
             assertTrue(child.exists());
             assertEquals("test", child.getProperty("p1").getValue(Type.STRING));
+        }
+    }
+
+    // OAK-8106
+    @Ignore("OAK-8106")
+    @Test
+    public void resetBranch() throws Exception {
+        final long branchCommits = 5;
+        final int updateLimit = 100;
+        final CountingDocumentStore store = new CountingDocumentStore(new MemoryDocumentStore());
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setUpdateLimit(updateLimit).setAsyncDelay(0)
+                .setDocumentStore(store).getNodeStore();
+        ns.setMaxBackOffMillis(0); // do not retry merges
+        NodeBuilder nb  = ns.getRoot().builder();
+        for (int i = 0; i < branchCommits; i++) {
+            NodeBuilder child = nb.child("foo").child("node-" + i);
+            for (int j = 0; j < updateLimit; j++) {
+                child.child("node-" + j).setProperty("p", "v");
+            }
+        }
+
+        // add some other node to force a rebase
+        NodeBuilder nb2 = ns.getRoot().builder();
+        nb2.setProperty("foo", "v");
+        TestUtils.merge(ns, nb2);
+
+        try {
+            ns.merge(nb, new CommitHook() {
+                @Nonnull
+                @Override
+                public NodeState processCommit(NodeState before,
+                                               NodeState after,
+                                               CommitInfo info)
+                        throws CommitFailedException {
+                    // add more nodes and then fail the commit to trigger a reset
+                    NodeBuilder nb = after.builder().child("bar");
+                    for (int i = 0; i < branchCommits; i++) {
+                        NodeBuilder child = nb.child("node-" + i);
+                        for (int j = 0; j < updateLimit; j++) {
+                            child.child("node-" + j);
+                        }
+                    }
+                    // reset counter before throwing the exception to measure
+                    // the number of calls for the reset
+                    store.resetCounters();
+                    throw new CommitFailedException(CommitFailedException.OAK, 1, "failure");
+                }
+            }, CommitInfo.EMPTY);
+            fail("Merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+
+        long numCreateOrUpdate = store.getNumCreateOrUpdateCalls(NODES);
+        assertThat(numCreateOrUpdate, lessThanOrEqualTo(branchCommits + 1));
+
+        // verify reset cleaned up properly
+        for (NodeDocument doc : Utils.getAllDocuments(store)) {
+            String path = doc.getPath();
+            if (path.startsWith("/bar")) {
+                assertThat(doc.getLocalRevisions().keySet(), is(empty()));
+                assertThat(doc.getLocalCommitRoot().keySet(), is(empty()));
+                assertThat(doc.getDeleted().keySet(), is(empty()));
+                assertThat(doc.getLocalBranchCommits(), is(empty()));
+                assertTrue(doc.wasDeletedOnce());
+            }
         }
     }
 
