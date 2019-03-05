@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -166,7 +165,6 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
                 Revision.fromString(b1).asTrunkRevision()));
     }
 
-    @Ignore("OAK-8108")
     @Test
     public void resetRemovesBranchCommitEntries() {
         DocumentStore store = mk.getDocumentStore();
