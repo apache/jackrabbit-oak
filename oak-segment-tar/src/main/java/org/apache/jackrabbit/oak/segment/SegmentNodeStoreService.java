@@ -470,6 +470,7 @@ public class SegmentNodeStoreService {
 
         if (configuration.isStandbyInstance()) {
             builder.withSnfeListener(IGNORE_SNFE);
+            builder.withEagerSegmentCaching(true);
         }
 
         final FileStore store;
@@ -810,7 +811,7 @@ class Configuration {
     /**
      * Chooses repository home directory name based on <b>repository.home</b>
      * property, defaulting to <b>repository</b> if property is not set.
-     * 
+     *
      * @return repository home directory name.
      */
     String getRepositoryHome() {
@@ -824,7 +825,7 @@ class Configuration {
     /**
      * Creates a new sub-directory relative to {@link #getRepositoryHome()} for
      * storing segments.
-     * 
+     *
      * @return directory for storing segments.
      */
     File getSegmentDirectory() {
@@ -832,9 +833,9 @@ class Configuration {
     }
 
     /**
-     * Creates a new sub-directory relative to {@link #getRepositoryHome()} for 
+     * Creates a new sub-directory relative to {@link #getRepositoryHome()} for
      * storing repository backups.
-     * 
+     *
      * @return directory for storing repository backups.
      */
     File getBackupDirectory() {

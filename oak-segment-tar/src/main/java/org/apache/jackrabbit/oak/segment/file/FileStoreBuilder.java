@@ -122,7 +122,9 @@ public class FileStoreBuilder {
     private IOMonitor ioMonitor = new IOMonitorAdapter();
 
     private boolean strictVersionCheck;
-    
+
+    private boolean eagerSegmentCaching;
+
     private boolean built;
 
     /**
@@ -312,7 +314,20 @@ public class FileStoreBuilder {
         this.strictVersionCheck = strictVersionCheck;
         return this;
     }
-    
+
+    /**
+     * Enable eager segment caching. This proves useful when segments need to
+     * be cached as soon as they are created, right before persisting them to disk.
+     * One such scenario is the cold standby, see OAK-8006.
+     *
+     * @param eagerSegmentCaching enables eager segment caching iff {@code true}.
+     * @return this instance
+     */
+    public FileStoreBuilder withEagerSegmentCaching(boolean eagerSegmentCaching) {
+        this.eagerSegmentCaching = eagerSegmentCaching;
+        return this;
+    }
+
     /**
      * Create a new {@link FileStore} instance with the settings specified in this
      * builder. If none of the {@code with} methods have been called before calling
@@ -436,7 +451,7 @@ public class FileStoreBuilder {
     SegmentGCOptions getGcOptions() {
         return gcOptions;
     }
-    
+
     @NotNull
     SegmentNotFoundExceptionListener getSnfeListener() {
         return snfeListener;
@@ -465,6 +480,10 @@ public class FileStoreBuilder {
 
     boolean getStrictVersionCheck() {
         return strictVersionCheck;
+    }
+
+    boolean getEagerSegmentCaching() {
+        return eagerSegmentCaching;
     }
 
     @Override
