@@ -46,6 +46,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -60,6 +61,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -1660,45 +1662,53 @@ public final class DocumentNodeStore
             throw new DocumentStoreException(branchHead + " is not the head " +
                     "of a branch");
         }
-        if (!b.containsCommit(ancestor.getBranchRevision())
+        Revision ancestorRev = ancestor.getBranchRevision();
+        if (!b.containsCommit(ancestorRev)
                 && !b.getBase().asBranchRevision(getClusterId()).equals(ancestor)) {
             throw new DocumentStoreException(ancestor + " is not " +
                     "an ancestor revision of " + branchHead);
         }
-        // tailSet is inclusive -> use an ancestorRev with a
-        // counter incremented by one to make the call exclusive
-        Revision ancestorRev = ancestor.getBranchRevision();
-        ancestorRev = new Revision(ancestorRev.getTimestamp(),
-                ancestorRev.getCounter() + 1, ancestorRev.getClusterId(), true);
-        List<Revision> revs = newArrayList(b.getCommits().tailSet(ancestorRev));
-        if (revs.isEmpty()) {
-            // trivial
-            return branchHead;
+        // tailSet is inclusive and will contain the ancestorRev, unless
+        // the ancestorRev is the base revision of the branch
+        List<Revision> revs = new ArrayList<>();
+        if (!b.containsCommit(ancestorRev)) {
+            // add before all other branch revisions
+            revs.add(ancestorRev);
         }
+        revs.addAll(b.getCommits().tailSet(ancestorRev));
         UpdateOp rootOp = new UpdateOp(Utils.getIdFromPath("/"), false);
         // reset each branch commit in reverse order
         Map<String, UpdateOp> operations = Maps.newHashMap();
+        AtomicReference<Revision> currentRev = new AtomicReference<>();
         for (Revision r : reverse(revs)) {
-            NodeDocument.removeCollision(rootOp, r.asTrunkRevision());
-            NodeDocument.removeRevision(rootOp, r.asTrunkRevision());
-            NodeDocument.removeBranchCommit(rootOp, r.asTrunkRevision());
             operations.clear();
-            BranchCommit bc = b.getCommit(r);
+            Revision previous = currentRev.getAndSet(r);
+            if (previous == null) {
+                continue;
+            }
+            NodeDocument.removeCollision(rootOp, previous.asTrunkRevision());
+            NodeDocument.removeRevision(rootOp, previous.asTrunkRevision());
+            NodeDocument.removeBranchCommit(rootOp, previous.asTrunkRevision());
+            BranchCommit bc = b.getCommit(previous);
             if (bc.isRebase()) {
                 continue;
             }
-            getRoot(bc.getBase().update(r))
-                    .compareAgainstBaseState(getRoot(bc.getBase()),
-                            new ResetDiff(r.asTrunkRevision(), operations));
+            DocumentNodeState branchState = getRoot(bc.getBase().update(previous));
+            DocumentNodeState baseState = getRoot(bc.getBase().update(r));
+            LOG.debug("reset: comparing branch {} with base {}",
+                    branchState.getRootRevision(), baseState.getRootRevision());
+            branchState.compareAgainstBaseState(baseState,
+                    new ResetDiff(previous.asTrunkRevision(), operations));
+            LOG.debug("reset: applying {} operations", operations.size());
             // apply reset operations
-            for (UpdateOp op : operations.values()) {
-                store.findAndUpdate(Collection.NODES, op);
-            }
+            store.createOrUpdate(NODES, new ArrayList<>(operations.values()));
         }
-        store.findAndUpdate(Collection.NODES, rootOp);
+        store.findAndUpdate(NODES, rootOp);
         // clean up in-memory branch data
         for (Revision r : revs) {
-            b.removeCommit(r);
+            if (!r.equals(ancestorRev)) {
+                b.removeCommit(r);
+            }
         }
         return ancestor;
     }
