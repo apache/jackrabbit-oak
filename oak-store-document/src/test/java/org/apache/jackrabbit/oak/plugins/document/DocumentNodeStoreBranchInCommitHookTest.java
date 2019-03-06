@@ -132,14 +132,13 @@ public class DocumentNodeStoreBranchInCommitHookTest {
 
         hook.assertChanges(ns.getRoot());
 
-        // must have left behind unmerged branch commits
+        // must not leave behind unmerged branch commits (OAK-8106)
         root = Utils.getRootDocument(ns.getDocumentStore());
         for (String value : root.getLocalRevisions().values()) {
             if (!Utils.isCommitted(value)) {
-                return;
+                fail("Must not leave unmerged branch commits behind");
             }
         }
-        fail("Must have created unmerged branch commits");
     }
 
     private int numBranchCommits(NodeDocument root) {

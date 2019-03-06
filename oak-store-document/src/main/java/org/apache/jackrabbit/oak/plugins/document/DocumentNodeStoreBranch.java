@@ -556,13 +556,40 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 } finally {
                     if (!success) {
                         this.head = previousHead;
-                        // make sure branch state is reset
-                        branchState = this;
+                        if (this != branchState) {
+                            // the branch state transitioned to persisted while
+                            // processing the commit hook and then failed.
+                            // remember the persisted branch state
+                            BranchState currentState = branchState;
+                            // reset branch state back to in-memory
+                            branchState = this;
+                            // reset the entire persisted branch state
+                            reset(currentState.persist());
+                        }
                     }
                 }
             } finally {
                 if (lock != null) {
                     lock.unlock();
+                }
+            }
+        }
+
+        /**
+         * Reset the entire persisted branch.
+         *
+         * @param p the persisted branch.
+         */
+        private void reset(Persisted p) {
+            RevisionVector branchHeadRev = p.getHead().getRootRevision();
+            // get the branch that belongs to this persisted branch state
+            Branch b = store.getBranches().getBranch(branchHeadRev);
+            if (b != null) {
+                try {
+                    store.reset(branchHeadRev,
+                            b.getBase().asBranchRevision(store.getClusterId()));
+                } catch (Exception e) {
+                    LOG.warn("Resetting persisted branch failed", e);
                 }
             }
         }

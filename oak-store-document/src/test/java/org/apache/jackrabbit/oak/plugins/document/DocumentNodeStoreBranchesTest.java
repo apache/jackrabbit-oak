@@ -32,6 +32,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -49,7 +50,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -138,7 +138,6 @@ public class DocumentNodeStoreBranchesTest {
     }
 
     // OAK-8106
-    @Ignore("OAK-8106")
     @Test
     public void resetBranch() throws Exception {
         final long branchCommits = 5;
@@ -195,13 +194,188 @@ public class DocumentNodeStoreBranchesTest {
         for (NodeDocument doc : Utils.getAllDocuments(store)) {
             String path = doc.getPath();
             if (path.startsWith("/bar")) {
-                assertThat(doc.getLocalRevisions().keySet(), is(empty()));
-                assertThat(doc.getLocalCommitRoot().keySet(), is(empty()));
-                assertThat(doc.getDeleted().keySet(), is(empty()));
-                assertThat(doc.getLocalBranchCommits(), is(empty()));
-                assertTrue(doc.wasDeletedOnce());
+                assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
+                assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
+                assertThat(path, doc.getDeleted().keySet(), is(empty()));
+                assertThat(path, doc.getLocalBranchCommits(), is(empty()));
+                assertTrue(path, doc.wasDeletedOnce());
             }
         }
+    }
+
+    // OAK-8106
+    @Test
+    public void resetBranchCreatedByCommitHook() {
+        final long branchCommits = 5;
+        final int updateLimit = 100;
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setUpdateLimit(updateLimit).setAsyncDelay(0)
+                .getNodeStore();
+        ns.setMaxBackOffMillis(0); // do not retry merges
+        NodeBuilder nb  = ns.getRoot().builder();
+        nb.child("foo");
+        try {
+            ns.merge(nb, new CommitHook() {
+                @Nonnull
+                @Override
+                public NodeState processCommit(NodeState before,
+                                               NodeState after,
+                                               CommitInfo info)
+                        throws CommitFailedException {
+                    // add more nodes and then fail the commit to trigger a reset
+                    NodeBuilder nb = after.builder().child("bar");
+                    for (int i = 0; i < branchCommits; i++) {
+                        NodeBuilder child = nb.child("node-" + i);
+                        for (int j = 0; j < updateLimit; j++) {
+                            child.child("node-" + j);
+                        }
+                    }
+                    throw new CommitFailedException(CommitFailedException.OAK, 1, "failure");
+                }
+            }, CommitInfo.EMPTY);
+            fail("Merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+
+        // verify reset cleaned up properly
+        for (NodeDocument doc : Utils.getAllDocuments(ns.getDocumentStore())) {
+            String path = doc.getPath();
+            if (path.startsWith("/bar")) {
+                assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
+                assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
+                assertThat(path, doc.getDeleted().keySet(), is(empty()));
+                assertThat(path, doc.getLocalBranchCommits(), is(empty()));
+                assertTrue(path, doc.wasDeletedOnce());
+            }
+        }
+    }
+
+    // OAK-8106
+    @Test
+    public void resetBranchWithFinalRebaseBranchCommit()
+            throws CommitFailedException {
+        final long branchCommits = 5;
+        final int updateLimit = 100;
+        final DocumentNodeStore ns = builderProvider.newBuilder()
+                .setUpdateLimit(updateLimit).setAsyncDelay(0)
+                .getNodeStore();
+        ns.setMaxBackOffMillis(0); // do not retry merges
+        NodeBuilder nb  = ns.getRoot().builder();
+        nb.child("foo");
+        try {
+            ns.merge(nb, new CommitHook() {
+                @Nonnull
+                @Override
+                public NodeState processCommit(NodeState before,
+                                               NodeState after,
+                                               CommitInfo info)
+                        throws CommitFailedException {
+                    // add more nodes to create branch commits
+                    DocumentRootBuilder nb = (DocumentRootBuilder) after.builder();
+                    for (int i = 0; i < branchCommits; i++) {
+                        NodeBuilder child = nb.child("bar").child("node-" + i);
+                        for (int j = 0; j < updateLimit; j++) {
+                            child.child("node-" + j);
+                        }
+                        // add a node with a different merge
+                        addNodes(ns, "/baz/node-" + i);
+                        // now force a rebase
+                        nb.rebase();
+                    }
+                    // eventually fail the commit to trigger a reset
+                    throw new CommitFailedException(CommitFailedException.OAK, Integer.MAX_VALUE, "failure");
+                }
+            }, CommitInfo.EMPTY);
+            fail("Merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            if (e.getCode() != Integer.MAX_VALUE) {
+                throw e;
+            }
+            // otherwise expected
+        }
+
+        // verify reset cleaned up properly
+        for (NodeDocument doc : Utils.getAllDocuments(ns.getDocumentStore())) {
+            String path = doc.getPath();
+            if (path.startsWith("/bar")) {
+                assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
+                assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
+                assertThat(path, doc.getDeleted().keySet(), is(empty()));
+                assertThat(path, doc.getLocalBranchCommits(), is(empty()));
+                assertTrue(path, doc.wasDeletedOnce());
+            }
+        }
+    }
+
+    // OAK-8106
+    @Test
+    public void resetBranchWithFirstRebaseBranchCommit()
+            throws CommitFailedException {
+        final long branchCommits = 5;
+        final int updateLimit = 100;
+        final DocumentNodeStore ns = builderProvider.newBuilder()
+                .setUpdateLimit(updateLimit).setAsyncDelay(0)
+                .getNodeStore();
+        ns.setMaxBackOffMillis(0); // do not retry merges
+        NodeBuilder nb  = ns.getRoot().builder();
+        nb.child("foo");
+        try {
+            ns.merge(nb, new CommitHook() {
+                @Nonnull
+                @Override
+                public NodeState processCommit(NodeState before,
+                                               NodeState after,
+                                               CommitInfo info)
+                        throws CommitFailedException {
+                    // add more nodes to create branch commits
+                    DocumentRootBuilder nb = (DocumentRootBuilder) after.builder();
+                    for (int i = 0; i < branchCommits; i++) {
+                        // add a node with a different merge
+                        addNodes(ns, "/baz/node-" + i);
+                        // now force a rebase
+                        nb.rebase();
+                        // and add nodes until a branch commit is created
+                        NodeBuilder child = nb.child("bar").child("node-" + i);
+                        for (int j = 0; j < updateLimit; j++) {
+                            child.child("node-" + j);
+                        }
+                    }
+                    // eventually fail the commit to trigger a reset
+                    throw new CommitFailedException(CommitFailedException.OAK, Integer.MAX_VALUE, "failure");
+                }
+            }, CommitInfo.EMPTY);
+            fail("Merge must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            if (e.getCode() != Integer.MAX_VALUE) {
+                throw e;
+            }
+            // otherwise expected
+        }
+
+        // verify reset cleaned up properly
+        for (NodeDocument doc : Utils.getAllDocuments(ns.getDocumentStore())) {
+            String path = doc.getPath();
+            if (path.startsWith("/bar")) {
+                assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
+                assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
+                assertThat(path, doc.getDeleted().keySet(), is(empty()));
+                assertThat(path, doc.getLocalBranchCommits(), is(empty()));
+                assertTrue(path, doc.wasDeletedOnce());
+            }
+        }
+    }
+
+    private void addNodes(DocumentNodeStore ns, String... paths)
+            throws CommitFailedException {
+        NodeBuilder nb = ns.getRoot().builder();
+        for (String p : paths) {
+            NodeBuilder b = nb;
+            for (String name : PathUtils.elements(p)) {
+                b = b.child(name);
+            }
+        }
+        TestUtils.merge(ns, nb);
     }
 
     private static class TestEditor extends DefaultEditor {
