@@ -40,6 +40,8 @@ import org.apache.jackrabbit.oak.security.authorization.ProviderCtx;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
+import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -69,6 +71,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     private final TypePredicate isRepoAccessControllable;
     private final TypePredicate isAccessControllable;
 
+    private final Context ctx;
+
     AccessControlValidator(@NotNull NodeState parentAfter,
                            @NotNull PrivilegeManager privilegeManager,
                            @NotNull PrivilegeBitsProvider privilegeBitsProvider,
@@ -81,6 +85,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         this.restrictionProvider = restrictionProvider;
         this.isRepoAccessControllable = new TypePredicate(parentAfter, MIX_REP_REPO_ACCESS_CONTROLLABLE);
         this.isAccessControllable = new TypePredicate(parentAfter, MIX_REP_ACCESS_CONTROLLABLE);
+        ctx = providerCtx.getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
     }
 
     private AccessControlValidator(AccessControlValidator parent, Tree parentAfter) {
@@ -91,6 +96,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         this.restrictionProvider = parent.restrictionProvider;
         this.isRepoAccessControllable = parent.isRepoAccessControllable;
         this.isAccessControllable = parent.isAccessControllable;
+        this.ctx = parent.ctx;
     }
 
     //----------------------------------------------------------< Validator >---
@@ -157,8 +163,15 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         } else if (isAccessControlEntry(treeAfter)) {
             checkValidAccessControlEntry(treeAfter);
         } else if (NT_REP_RESTRICTIONS.equals(TreeUtil.getPrimaryTypeName(treeAfter))) {
-            checkIsAccessControlEntry(parentAfter);
-            checkValidRestrictions(parentAfter);
+            // only validate restrictions if defined with an ACE controlled by this validator. otherwise verify that
+            // the parent is indeed access control content as defined by the authorization Context.
+            // this allows alternative authorization models to re-use the configured restriction provide and store
+            // them in a 'rep:Restriction' node even if the surrounding policy/access control entries look different
+            if (isAccessControlEntry(parentAfter)) {
+                checkValidRestrictions(parentAfter);
+            } else if (!ctx.definesTree(parentAfter)) {
+                throw accessViolation(2, "Access control entry node expected at " + parentAfter.getPath());
+            }
         }
     }
 
@@ -169,12 +182,6 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     private static boolean isAccessControlEntry(Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
         return NT_REP_DENY_ACE.equals(ntName) || NT_REP_GRANT_ACE.equals(ntName);
-    }
-
-    private static void checkIsAccessControlEntry(Tree tree) throws CommitFailedException {
-        if (!isAccessControlEntry(tree)) {
-            throw accessViolation(2, "Access control entry node expected at " + tree.getPath());
-        }
     }
 
     private void checkValidPolicy(Tree parent, Tree policyTree, NodeState policyNode) throws CommitFailedException {
