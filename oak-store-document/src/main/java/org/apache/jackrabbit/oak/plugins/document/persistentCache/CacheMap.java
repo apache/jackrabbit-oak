@@ -25,14 +25,19 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A cache map. This map supports re-opening the store if this is needed.
- *
+ * <p>
+ * Note that a failure to open the underlying store will be handled gracefully,
+ * in that the {@code CacheMap} can be constructed, but will not actually cache
+ * anything. The same is true for the case where the underlying store starts to
+ * fail and can not be re-opened.
+ * 
  * @param <K> the key type
  * @param <V> the value type
  */
 public class CacheMap<K, V> {
-    
+
     static final Logger LOG = LoggerFactory.getLogger(CacheMap.class);
-    
+
     private final MapFactory factory;
     private final String name;
     private final MVMap.Builder<K, V> builder;
@@ -40,14 +45,21 @@ public class CacheMap<K, V> {
     private volatile Map<K, V> map;
     private volatile boolean closed;
 
-    
+
     public CacheMap(MapFactory factory, String name, Builder<K, V> builder) {
         this.factory = factory;
         this.name = name;
         this.builder = builder;
         openMap();
+        // OAK-8051: if opening failed, immediately try to re-open,
+        // until either the the map is closed, or open
+        for (int i = 0; map == null && !closed; i++) {
+            if (map == null) {
+                reopen(i, null);
+            }
+        }
     }
-    
+
     private void reopen(int i, Exception e) {
         if (i > 10) {
             LOG.warn("Too many re-opens; disabling this cache map", e);
@@ -64,7 +76,7 @@ public class CacheMap<K, V> {
         }
         openMap();
     }
-    
+
     public V put(K key, V value) {
         for (int i = 0;; i++) {
             if (closed) {
@@ -77,7 +89,7 @@ public class CacheMap<K, V> {
             }
         }
     }
-    
+
     public V get(Object key) {
         for (int i = 0;; i++) {
             if (closed) {
@@ -90,7 +102,7 @@ public class CacheMap<K, V> {
             }
         }
     }
-    
+
     public boolean containsKey(Object key) {
         for (int i = 0;; i++) {
             if (closed) {
@@ -101,9 +113,9 @@ public class CacheMap<K, V> {
             } catch (Exception e) {
                 reopen(i, e);
             }
-        }        
+        }
     }
-    
+
     public V remove(Object key) {
         for (int i = 0;; i++) {
             if (closed) {
@@ -114,7 +126,7 @@ public class CacheMap<K, V> {
             } catch (Exception e) {
                 reopen(i, e);
             }
-        }        
+        }
     }
 
     public void clear() {
@@ -128,9 +140,9 @@ public class CacheMap<K, V> {
             } catch (Exception e) {
                 reopen(i, e);
             }
-        }        
+        }
     }
-    
+
     void openMap() {
         openCount = factory.reopenStoreIfNeeded(openCount);
         Map<K, V> m2 = factory.openMap(name, builder);
@@ -138,5 +150,4 @@ public class CacheMap<K, V> {
             map = m2;
         }
     }
-    
 }
