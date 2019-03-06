@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.standby.client;
 
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -104,85 +105,11 @@ class StandbyClientSyncExecution {
     }
 
     private void copySegmentHierarchyFromPrimary(StandbyClient client, UUID segmentId) throws Exception {
-        LinkedList<UUID> batch = new LinkedList<>();
-
-        batch.offer(segmentId);
-
-        LinkedList<UUID> bulk = new LinkedList<>();
-        LinkedList<UUID> data = new LinkedList<>();
-
         Set<UUID> visited = new HashSet<>();
-        Set<UUID> queued = new HashSet<>();
-        Set<UUID> local = new HashSet<>();
+        List<UUID> bulk = new LinkedList<>();
+        List<UUID> data = new LinkedList<>();
 
-        while (!batch.isEmpty()) {
-            UUID current = batch.remove();
-
-            log.debug("Inspecting segment {}", current);
-            visited.add(current);
-
-            // Add the current segment ID at the beginning of the respective
-            // list, depending on its type. This allows to process those
-            // segments in an optimal topological order later on. If the current
-            // segment is a bulk segment, we can skip the rest of the loop,
-            // since bulk segments don't reference any other segment.
-
-            if (SegmentId.isDataSegmentId(current.getLeastSignificantBits())) {
-                data.addFirst(current);
-            } else {
-                bulk.addFirst(current);
-                continue;
-            }
-
-            for (String s : readReferences(client, current)) {
-                UUID referenced = UUID.fromString(s);
-
-                // Short circuit for the "backward reference". The segment graph
-                // is not guaranteed to be acyclic, so there might be segments
-                // pointing back to a previously visited (but locally
-                // unavailable) segment.
-
-                if (visited.contains(referenced)) {
-                    continue;
-                }
-
-                // Short circuit for the "diamond problem". Imagine that segment
-                // S1 references S2 and S3 and both S2 and S3 reference S4.
-                // These references form the shape of a diamond. If the segments
-                // are processed in the order S1, S2, S3, then S4 is added twice
-                // to the 'batch' queue. The following check prevents processing
-                // S4 twice or more.
-
-                if (queued.contains(referenced)) {
-                    continue;
-                }
-
-                // Short circuit for the "sharing-is-caring problem". If many
-                // new segments are sharing segments that are already locally
-                // available, we should not issue a request for it to the
-                // server. Moreover, if a segment was visited and persisted
-                // during this synchronization process, it will end up in the
-                // 'local' set as well.
-
-                if (local.contains(referenced)) {
-                    continue;
-                }
-
-                if (isLocal(referenced)) {
-                    local.add(referenced);
-                    continue;
-                }
-
-                // If we arrive at this point, the referenced segment is 1) not
-                // present locally, 2) not already queued for retrieval and 3)
-                // never visited before. We can safely add the reference to the
-                // queue and transfer the segment later.
-
-                log.debug("Found reference from {} to {}", current, referenced);
-                batch.add(referenced);
-                queued.add(referenced);
-            }
-        }
+        deriveTopologicalOrder(client, segmentId, visited, data, bulk);
 
         for (UUID id : bulk) {
             log.info("Copying bulk segment {} from primary", id);
@@ -192,6 +119,31 @@ class StandbyClientSyncExecution {
         for (UUID id : data) {
             log.info("Copying data segment {} from primary", id);
             copySegmentFromPrimary(client, id);
+        }
+    }
+
+    private void deriveTopologicalOrder(StandbyClient client, UUID id, Set<UUID> visited, List<UUID> data, List<UUID> bulk) throws Exception {
+        if (visited.contains(id) || isLocal(id)) {
+            return;
+        }
+
+        // Use DFS to traverse segment graph and make sure
+        // to add each data segment to the data list only
+        // after all its references were already added
+
+        log.debug("Inspecting segment {}", id);
+        visited.add(id);
+
+        if (SegmentId.isDataSegmentId(id.getLeastSignificantBits())) {
+            for (String s : readReferences(client, id)) {
+                UUID referenced = UUID.fromString(s);
+                log.debug("Found reference from {} to {}", id, referenced);
+                deriveTopologicalOrder(client, referenced, visited, data, bulk);
+            }
+
+            data.add(id);
+        } else {
+            bulk.add(id);
         }
     }
 
