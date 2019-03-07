@@ -255,16 +255,19 @@ public class SimSearchUtils {
             if (binaryValue != null) {
                 double[] inputVector = toDoubleArray(binaryValue.bytes);
                 for (int j = 0; j < docs.scoreDocs.length; j++) {
-                    double[] currentVector = toDoubleArray(indexSearcher.doc(docs.scoreDocs[j].doc)
-                            .getBinaryValue(fieldName).bytes);
-                    double distance = dist(inputVector, currentVector) + 1e-10; // constant term to avoid division by zero
-                    if (Double.isNaN(distance) || Double.isInfinite(distance)) {
-                        toDiscard.add(docs.scoreDocs[j].doc);
-                    } else {
-                        distSum += distance;
-                        counter++;
-                        distances.put(docs.scoreDocs[j].doc, distance);
-                        docs.scoreDocs[j].score += (float) (1d / distance); // additive similarity boosting
+                    BytesRef featureVectorBinary = indexSearcher.doc(docs.scoreDocs[j].doc)
+                            .getBinaryValue(fieldName);
+                    if (featureVectorBinary != null) {
+                        double[] currentVector = toDoubleArray(featureVectorBinary.bytes);
+                        double distance = dist(inputVector, currentVector) + 1e-10; // constant term to avoid division by zero
+                        if (Double.isNaN(distance) || Double.isInfinite(distance)) {
+                            toDiscard.add(docs.scoreDocs[j].doc);
+                        } else {
+                            distSum += distance;
+                            counter++;
+                            distances.put(docs.scoreDocs[j].doc, distance);
+                            docs.scoreDocs[j].score = (float) (1d / distance);
+                        }
                     }
                 }
             }
