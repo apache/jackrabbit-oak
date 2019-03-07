@@ -22,6 +22,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
@@ -52,6 +55,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TestPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -71,7 +76,6 @@ public class AbstractLoginModuleTest {
         lm.initialize(new Subject(), null, sharedState, null);
         return lm;
     }
-
 
     private static AbstractLoginModule initLoginModule(Class<?> supportedCredentials, CallbackHandler cbh) {
         AbstractLoginModule lm = new TestLoginModule(supportedCredentials);
@@ -291,18 +295,30 @@ public class AbstractLoginModuleTest {
         assertSame(root, loginModule.getRoot());
     }
 
+    private static LoginModuleStats newLoginModuleStats() {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        StatisticsProvider sp = new DefaultStatisticsProvider(executor);
+        return new LoginModuleStats(sp);
+    }
+
     @Test
     public void testGetRootIOException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+        LoginModuleStats stats = newLoginModuleStats();
+        TestLoginModule lm = new TestLoginModule(TestCredentials.class, stats);
+        lm.initialize(new Subject(), new ThrowingCallbackHandler(true), Collections.emptyMap(), null);
 
-        assertNull(loginModule.getRoot());
+        assertNull(lm.getRoot());
+        assertEquals(1, stats.getLoginErrors());
     }
 
     @Test
     public void testGetRootUnsupportedCallbackException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+        LoginModuleStats stats = newLoginModuleStats();
+        TestLoginModule lm = new TestLoginModule(TestCredentials.class, stats);
+        lm.initialize(new Subject(), new ThrowingCallbackHandler(false), Collections.emptyMap(), null);
 
-        assertNull(loginModule.getRoot());
+        assertNull(lm.getRoot());
+        assertEquals(1, stats.getLoginErrors());
     }
 
     @Test
@@ -497,16 +513,62 @@ public class AbstractLoginModuleTest {
         assertSame(authInfo, fromSubject.iterator().next());
     }
 
+    @Test
+    public void testOnError() {
+        LoginModuleStats stats = newLoginModuleStats();
+
+        CallbackHandler cbh = new CallbackHandler() {
+            @Override
+            public void handle(Callback[] callbacks) {
+                for (Callback cb : callbacks) {
+                    if (cb instanceof RepositoryCallback) {
+                        ((RepositoryCallback) cb).setLoginModuleMonitor(stats);
+                    }
+                }
+            }
+        };
+
+        AbstractLoginModule lm = new AbstractLoginModule() {
+
+            @Override
+            public boolean login() throws LoginException {
+                return false;
+            }
+
+            @Override
+            public boolean commit() throws LoginException {
+                return false;
+            }
+
+            @Override
+            protected Set<Class> getSupportedCredentials() {
+                return Collections.singleton(TestCredentials.class);
+            }
+        };
+        lm.initialize(new Subject(), cbh, Collections.<String, Object>emptyMap(), null);
+
+        assertTrue(lm.getLoginModuleMonitor() instanceof LoginModuleStats);
+        lm.onError();
+        assertEquals(1, stats.getLoginErrors());
+    }
+
     //--------------------------------------------------------------------------
 
     private final class TestCredentials implements Credentials {}
 
     private static final class TestLoginModule extends AbstractLoginModule {
 
-        private Class supportedCredentialsClass;
+        private final Class supportedCredentialsClass;
+
+        private LoginModuleMonitor mon = LoginModuleMonitor.NOOP;
 
         private TestLoginModule(Class supportedCredentialsClass) {
             this.supportedCredentialsClass = supportedCredentialsClass;
+        }
+
+        private TestLoginModule(Class supportedCredentialsClass, LoginModuleMonitor mon) {
+            this.supportedCredentialsClass = supportedCredentialsClass;
+            this.mon = mon;
         }
 
         @NotNull
@@ -523,6 +585,11 @@ public class AbstractLoginModuleTest {
         @Override
         public boolean commit() {
             return true;
+        }
+
+        @Override
+        protected LoginModuleMonitor getLoginModuleMonitor() {
+            return mon;
         }
     }
 
@@ -571,6 +638,7 @@ public class AbstractLoginModuleTest {
                     rcb.setContentRepository(contentRepository);
                     rcb.setSecurityProvider(securityProvider);
                     rcb.setWorkspaceName(workspaceName);
+                    rcb.setLoginModuleMonitor(LoginModuleMonitor.NOOP);
                 } else {
                     throw new UnsupportedCallbackException(cb);
                 }

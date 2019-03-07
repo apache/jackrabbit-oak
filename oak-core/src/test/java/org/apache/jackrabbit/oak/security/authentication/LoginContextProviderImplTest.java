@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthContext;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.junit.Test;
@@ -50,8 +51,12 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
     @Override
     public void before() throws Exception {
         super.before();
+        lcProvider = newLoginContextProviderImpl(ConfigurationParameters.EMPTY);
+    }
 
-        lcProvider = new LoginContextProviderImpl(AuthenticationConfiguration.DEFAULT_APP_NAME, ConfigurationParameters.EMPTY, getContentRepository(), getSecurityProvider(), new DefaultWhiteboard());
+    private LoginContextProviderImpl newLoginContextProviderImpl(ConfigurationParameters params) {
+        return new LoginContextProviderImpl(AuthenticationConfiguration.DEFAULT_APP_NAME, params,
+                getContentRepository(), getSecurityProvider(), new DefaultWhiteboard(), LoginModuleMonitor.NOOP);
     }
 
     @Test
@@ -93,7 +98,7 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
     @Test
     public void testGetLoginContextWithInvalidProviderConfig() throws Exception {
         ConfigurationParameters params = ConfigurationParameters.of(AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME, "invalid");
-        LoginContextProvider provider = new LoginContextProviderImpl(AuthenticationConfiguration.DEFAULT_APP_NAME, params, getContentRepository(), getSecurityProvider(), new DefaultWhiteboard());
+        LoginContextProvider provider = newLoginContextProviderImpl(params);
 
         // invalid configuration falls back to default configuration
         LoginContext ctx = provider.getLoginContext(new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()), null);
@@ -106,12 +111,12 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
                 return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap())
+                        new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap<>())
                 };
             }
         });
 
-        LoginContextProvider provider = new LoginContextProviderImpl(AuthenticationConfiguration.DEFAULT_APP_NAME, ConfigurationParameters.EMPTY, getContentRepository(), getSecurityProvider(), new DefaultWhiteboard());
+        LoginContextProvider provider = newLoginContextProviderImpl(ConfigurationParameters.EMPTY);
         LoginContext ctx = provider.getLoginContext(null, null);
         ctx.login();
 
@@ -124,12 +129,12 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
                 return new AppConfigurationEntry[]{
-                        new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap())
+                        new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap<>())
                 };
             }
         });
 
-        LoginContextProvider provider = new LoginContextProviderImpl(AuthenticationConfiguration.DEFAULT_APP_NAME, ConfigurationParameters.EMPTY, getContentRepository(), getSecurityProvider(), new DefaultWhiteboard());
+        LoginContextProvider provider = newLoginContextProviderImpl(ConfigurationParameters.EMPTY);
         provider.getLoginContext(null, null);
         LoginContext ctx = provider.getLoginContext(null, null);
 

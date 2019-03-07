@@ -246,12 +246,14 @@ public class ExternalLoginModule extends AbstractLoginModule {
             }
         } catch (ExternalIdentityException e) {
             log.error("Error while authenticating '{}' with {}", logId, idp.getName(), e);
+            onError();
             return false;
         } catch (LoginException e) {
             log.debug("IDP {} throws login exception for '{}': {}", idp.getName(), logId, e.getMessage());
             throw e;
-        } catch (Exception e) {
-            log.debug("SyncHandler {} throws sync exception for '{}'", syncHandler.getName(), logId, e);
+        } catch (SyncException | RepositoryException e) {
+            onError();
+            log.error("SyncHandler {} throws sync exception for '{}'", syncHandler.getName(), logId, e);
             LoginException le = new LoginException("Error while syncing user.");
             le.initCause(e);
             throw le;

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
+import java.io.Closeable;
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -31,10 +33,15 @@ import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizable
 import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableNodeName;
 import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMBean;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -48,6 +55,9 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -66,10 +76,14 @@ import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.io.Closer;
+
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.EMPTY;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(immediate=true)
 @Designate(ocd = SecurityProviderRegistration.Configuration.class)
@@ -142,6 +156,10 @@ public class SecurityProviderRegistration {
 
     private RootProvider rootProvider;
     private TreeProvider treeProvider;
+
+    @Reference
+    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+    private Closer closer;
 
     //----------------------------------------------------< SCR integration >---
 
@@ -466,15 +484,29 @@ public class SecurityProviderRegistration {
 
         properties.put("type", "default");
 
+        Whiteboard whiteboard = new OsgiWhiteboard(context);
         ServiceRegistration registration = context.registerService(
                 SecurityProvider.class.getName(),
-                createSecurityProvider(context),
+                createSecurityProvider(whiteboard),
                 properties
         );
 
         synchronized (this) {
             this.registration = registration;
             this.registering = false;
+        }
+
+        closer = Closer.create();
+        if (authenticationConfiguration instanceof LoginModuleStatsCollector) {
+            LoginModuleStats lmMonitor = new LoginModuleStats(statisticsProvider);
+            ((LoginModuleStatsCollector) authenticationConfiguration).setLoginModuleMonitor(lmMonitor);
+
+            Registration mon = whiteboard.register(LoginModuleMonitor.class, lmMonitor, Collections.emptyMap());
+            closer.register((Closeable) mon::unregister);
+
+            Registration mbean = registerMBean(whiteboard, LoginModuleMBean.class, lmMonitor, LoginModuleMBean.TYPE,
+                    "LoginModule statistics");
+            closer.register((Closeable) mbean::unregister);
         }
 
         log.info("SecurityProvider instance registered");
@@ -509,11 +541,12 @@ public class SecurityProviderRegistration {
         }
 
         registration.unregister();
+        closeQuietly(closer);
 
         log.info("SecurityProvider instance unregistered");
     }
 
-    private SecurityProvider createSecurityProvider(@NotNull BundleContext context) {
+    private SecurityProvider createSecurityProvider(@NotNull Whiteboard whiteboard) {
         ConfigurationParameters userParams = ConfigurationParameters.of(
               ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, createWhiteboardAuthorizableActionProvider()),
               ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, createWhiteboardAuthorizableNodeName()),
@@ -526,7 +559,7 @@ public class SecurityProviderRegistration {
                 .with(authenticationConfiguration, EMPTY, privilegeConfiguration, EMPTY, userConfiguration, userParams,
                         authorizationConfiguration, authorizationParams, principalConfiguration, EMPTY,
                         tokenConfiguration, EMPTY)
-                .withWhiteboard(new OsgiWhiteboard(context)).build();
+                .withWhiteboard(whiteboard).build();
     }
 
     private RestrictionProvider createWhiteboardRestrictionProvider() {

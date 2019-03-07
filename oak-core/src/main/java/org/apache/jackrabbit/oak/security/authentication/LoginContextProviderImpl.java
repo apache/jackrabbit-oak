@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthContext;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
@@ -54,18 +55,21 @@ class LoginContextProviderImpl implements LoginContextProvider {
     private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
     private final Whiteboard whiteboard;
+    private final LoginModuleMonitor loginModuleMonitor;
 
     private Configuration configuration;
 
     LoginContextProviderImpl(String appName, ConfigurationParameters params,
                              ContentRepository contentRepository,
                              SecurityProvider securityProvider,
-                             Whiteboard whiteboard) {
+                             Whiteboard whiteboard,
+                             LoginModuleMonitor loginModuleMonitor) {
         this.appName = appName;
         this.params = params;
         this.contentRepository = contentRepository;
         this.securityProvider = securityProvider;
         this.whiteboard = whiteboard;
+        this.loginModuleMonitor = loginModuleMonitor;
     }
 
     @Override
@@ -99,7 +103,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
 
     @NotNull
     private CallbackHandler getCallbackHandler(Credentials credentials, String workspaceName) {
-        return new CallbackHandlerImpl(credentials, workspaceName, contentRepository, securityProvider, whiteboard);
+        return new CallbackHandlerImpl(credentials, workspaceName, contentRepository, securityProvider, whiteboard, loginModuleMonitor);
     }
 
     @NotNull

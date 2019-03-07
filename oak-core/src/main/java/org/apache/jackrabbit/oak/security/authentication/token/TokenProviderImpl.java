@@ -244,10 +244,10 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                 log.error(error, e.getMessage());
             } catch (CommitFailedException | RepositoryException e) {
                 // conflict while committing changes
-                log.warn(error, e.getMessage());
+                log.error(error, e.getMessage());
             }
         } else {
-            log.warn("Unable to get/create token store for user " + userId);
+            log.error("Unable to get/create token store for user {}.", userId);
         }
         return null;
     }
