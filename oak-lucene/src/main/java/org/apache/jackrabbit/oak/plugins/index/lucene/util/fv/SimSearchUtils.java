@@ -84,7 +84,7 @@ public class SimSearchUtils {
             }
         return doubles;
     }
-        
+
     private static Collection<BytesRef> getTokens(Analyzer analyzer, String field, String sampleTextString) throws IOException {
         Collection<BytesRef> tokens = new LinkedList<>();
         TokenStream ts = analyzer.tokenStream(field, sampleTextString);
@@ -156,9 +156,18 @@ public class SimSearchUtils {
                             log.trace("generating sim query on field {} and text {}", similarityFieldName, fvString);
                             Query simQuery = SimSearchUtils.getSimQuery(analyzer, similarityFieldName, fvString);
                             booleanQuery.add(new BooleanClause(simQuery, SHOULD));
+                            String[] binaryTags = doc.getValues(FieldNames.SIMILARITY_TAGS);
+                            if (binaryTags != null && binaryTags.length > 0) {
+                                BooleanQuery tagQuery = new BooleanQuery();
+                                for (String brt : binaryTags) {
+                                    tagQuery.add(new BooleanClause(new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, brt)), SHOULD));
+                                }
+                                tagQuery.setBoost(0.5f);
+                                booleanQuery.add(tagQuery, SHOULD);
+                            }
                             log.trace("similarity query generated for {}", pd.name);
                         } else {
-                            log.warn("could not create query for similarity field {}", fvString);
+                            log.warn("could not create query for similarity field {}", similarityFieldName);
                         }
                     }
                 }
