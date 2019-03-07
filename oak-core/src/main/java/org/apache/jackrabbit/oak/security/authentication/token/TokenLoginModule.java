@@ -173,8 +173,9 @@ public final class TokenLoginModule extends AbstractLoginModule {
                         updateSubject(tc, null, null);
                     } else {
                         // failed to create token -> fail commit()
+                        onError();
                         Object logId = (userId != null) ? userId : sharedState.get(SHARED_KEY_LOGIN_NAME);
-                        log.debug("TokenProvider failed to create a login token for user " + logId);
+                        log.error("TokenProvider failed to create a login token for user " + logId);
                         throw new LoginException("Failed to create login token for user " + logId);
                     }
                 }
@@ -225,7 +226,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
                 callbackHandler.handle(new Callback[] {tcCallback});
                 provider = tcCallback.getTokenProvider();
             } catch (IOException | UnsupportedCallbackException e) {
-                log.warn(e.getMessage());
+                onError();
+                log.error(e.getMessage(), e);
             }
         }
         return provider;

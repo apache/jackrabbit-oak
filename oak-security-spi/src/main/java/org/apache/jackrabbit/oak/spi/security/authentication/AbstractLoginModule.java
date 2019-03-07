@@ -170,7 +170,7 @@ public abstract class AbstractLoginModule implements LoginModule {
     protected ConfigurationParameters options;
 
     private SecurityProvider securityProvider;
-
+    private LoginModuleMonitor loginModuleMonitor;
     private Whiteboard whiteboard;
 
     private ContentSession systemSession;
@@ -217,7 +217,8 @@ public abstract class AbstractLoginModule implements LoginModule {
             try {
                 systemSession.close();
             } catch (IOException e) {
-                log.debug(e.getMessage());
+                onError();
+                log.error(e.getMessage(), e);
             }
             systemSession = null;
         }
@@ -255,10 +256,9 @@ public abstract class AbstractLoginModule implements LoginModule {
                 } else {
                     log.debug("Login: No supported credentials obtained from callback; trying shared state.");
                 }
-            } catch (UnsupportedCallbackException e) {
-                log.warn(e.getMessage());
-            } catch (IOException e) {
-                log.error(e.getMessage());
+            } catch (UnsupportedCallbackException | IOException e) {
+                onError();
+                log.error(e.getMessage(), e);
             }
         }
 
@@ -343,8 +343,9 @@ public abstract class AbstractLoginModule implements LoginModule {
             try {
                 callbackHandler.handle(new Callback[]{rcb});
                 securityProvider = rcb.getSecurityProvider();
-            } catch (Exception e) {
-                log.debug("Unable to retrieve the SecurityProvider via callback", e);
+            } catch (IOException | UnsupportedCallbackException e) {
+                onError();
+                log.error(e.getMessage(), e);
             }
         }
         return securityProvider;
@@ -366,8 +367,9 @@ public abstract class AbstractLoginModule implements LoginModule {
             try {
                 callbackHandler.handle(new Callback[]{cb});
                 whiteboard = cb.getWhiteboard();
-            } catch (Exception e) {
-                log.debug("Unable to retrieve the Whiteboard via callback", e);
+            } catch (IOException | UnsupportedCallbackException e) {
+                onError();
+                log.error(e.getMessage(), e);
             }
         }
         return whiteboard;
@@ -401,8 +403,9 @@ public abstract class AbstractLoginModule implements LoginModule {
                 } else {
                     log.debug("Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
                 }
-            } catch (UnsupportedCallbackException | PrivilegedActionException | IOException e) {
-                log.debug(e.getMessage());
+            } catch (IOException | UnsupportedCallbackException | PrivilegedActionException e) {
+                onError();
+                log.error(e.getMessage(), e);
             }
         }
         return root;
@@ -431,7 +434,8 @@ public abstract class AbstractLoginModule implements LoginModule {
                 callbackHandler.handle(new Callback[]{userCallBack});
                 userManager = userCallBack.getUserManager();
             } catch (IOException | UnsupportedCallbackException e) {
-                log.debug(e.getMessage());
+                onError();
+                log.error(e.getMessage(), e);
             }
         }
 
@@ -461,7 +465,8 @@ public abstract class AbstractLoginModule implements LoginModule {
                 callbackHandler.handle(new Callback[]{principalCallBack});
                 principalProvider = principalCallBack.getPrincipalProvider();
             } catch (IOException | UnsupportedCallbackException e) {
-                log.debug(e.getMessage());
+                onError();
+                log.error(e.getMessage(), e);
             }
         }
         return principalProvider;
@@ -506,5 +511,25 @@ public abstract class AbstractLoginModule implements LoginModule {
             subject.getPublicCredentials().removeAll(ais);
         }
         subject.getPublicCredentials().add(authInfo);
+    }
+
+    protected LoginModuleMonitor getLoginModuleMonitor() {
+        if (loginModuleMonitor == null && callbackHandler != null) {
+            RepositoryCallback rcb = new RepositoryCallback();
+            try {
+                callbackHandler.handle(new Callback[] { rcb });
+                loginModuleMonitor = rcb.getLoginModuleMonitor();
+            } catch (IOException | UnsupportedCallbackException e) {
+                log.error(e.getMessage(), e);
+            }
+        }
+        return loginModuleMonitor;
+    }
+
+    protected void onError() {
+        LoginModuleMonitor lmm = getLoginModuleMonitor();
+        if (lmm != null) {
+            lmm.loginError();
+        }
     }
 }

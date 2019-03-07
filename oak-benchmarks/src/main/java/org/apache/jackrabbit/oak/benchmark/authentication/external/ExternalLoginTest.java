@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,16 +27,17 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import com.google.common.collect.ImmutableMap;
-
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 
-import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
-import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Login against the {@link ExternalLoginModule} with a randomly selected user.
@@ -48,16 +52,18 @@ public class ExternalLoginTest extends AbstractExternalTest {
     private final int numberOfUsers;
     private final int numberOfGroups;
     private final Reporter reporter;
+    private final LoginModuleStats lmStats;
 
     private String id;
     private Set<String> uniques;
 
-    public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime,
-                             boolean dynamicMembership, @NotNull List<String> autoMembership, boolean report) {
+    public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime, boolean dynamicMembership,
+            @NotNull List<String> autoMembership, boolean report, StatisticsProvider statsProvider) {
         super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
         this.numberOfUsers = numberOfUsers;
         this.numberOfGroups = numberOfGroups;
         this.reporter = new Reporter(report);
+        this.lmStats = new LoginModuleStats(statsProvider);
     }
 
     @Override
@@ -65,6 +71,11 @@ public class ExternalLoginTest extends AbstractExternalTest {
         super.beforeSuite();
         reporter.beforeSuite();
         uniques = new HashSet<>(numberOfUsers);
+        AuthenticationConfiguration authenticationConfiguration = getSecurityProvider()
+                .getConfiguration(AuthenticationConfiguration.class);
+        if (authenticationConfiguration instanceof LoginModuleStatsCollector) {
+            ((LoginModuleStatsCollector) authenticationConfiguration).setLoginModuleMonitor(lmStats);
+        }
     }
 
     @Override

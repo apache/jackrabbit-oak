@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.jetbrains.annotations.NotNull;
@@ -49,7 +51,7 @@ import org.slf4j.LoggerFactory;
  */
 @Component(service = {AuthenticationConfiguration.class, SecurityConfiguration.class})
 @Designate(ocd = AuthenticationConfigurationImpl.Configuration.class)
-public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration {
+public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration, LoginModuleStatsCollector {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak AuthenticationConfiguration")
     @interface Configuration {
@@ -70,6 +72,9 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     }
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);
+
+    // stats
+    private LoginModuleMonitor lmMonitor = LoginModuleMonitor.NOOP;
 
     /**
      * Constructor for OSGi
@@ -137,6 +142,12 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
         } else {
             log.warn("Unable to obtain whiteboard from SecurityProvider");
         }
-        return new LoginContextProviderImpl(appName, getParameters(), contentRepository, getSecurityProvider(), whiteboard);
+        return new LoginContextProviderImpl(appName, getParameters(), contentRepository, getSecurityProvider(),
+                whiteboard, lmMonitor);
+    }
+
+    @Override
+    public void setLoginModuleMonitor(@NotNull LoginModuleMonitor lmMonitor) {
+        this.lmMonitor = lmMonitor;
     }
 }

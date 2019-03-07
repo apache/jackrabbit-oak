@@ -24,6 +24,7 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.WhiteboardCallback;
@@ -52,7 +53,7 @@ public class CallbackHandlerImplTest extends AbstractSecurityTest {
     }
 
     private CallbackHandlerImpl create(@NotNull Credentials creds) {
-        return new CallbackHandlerImpl(creds, root.getContentSession().getWorkspaceName(), getContentRepository(), getSecurityProvider(), whiteboard);
+        return new CallbackHandlerImpl(creds, root.getContentSession().getWorkspaceName(), getContentRepository(), getSecurityProvider(), whiteboard, LoginModuleMonitor.NOOP);
     }
 
     @Test

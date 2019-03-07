@@ -26,6 +26,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.WhiteboardCallback;
@@ -49,16 +50,19 @@ class CallbackHandlerImpl implements CallbackHandler {
     private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
     private final Whiteboard whiteboard;
+    private final LoginModuleMonitor loginModuleMonitor;
 
     CallbackHandlerImpl(Credentials credentials, String workspaceName,
                         ContentRepository contentRepository,
                         SecurityProvider securityProvider,
-                        Whiteboard whiteboard) {
+                        Whiteboard whiteboard,
+                        LoginModuleMonitor loginModuleMonitor) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.contentRepository = contentRepository;
         this.securityProvider = securityProvider;
         this.whiteboard = whiteboard;
+        this.loginModuleMonitor = loginModuleMonitor;
     }
 
     //----------------------------------------------------< CallbackHandler >---
@@ -76,6 +80,7 @@ class CallbackHandlerImpl implements CallbackHandler {
                 repositoryCallback.setContentRepository(contentRepository);
                 repositoryCallback.setSecurityProvider(securityProvider);
                 repositoryCallback.setWorkspaceName(workspaceName);
+                repositoryCallback.setLoginModuleMonitor(loginModuleMonitor);
             } else if (callback instanceof WhiteboardCallback) {
                 ((WhiteboardCallback) callback).setWhiteboard(whiteboard);
             } else {

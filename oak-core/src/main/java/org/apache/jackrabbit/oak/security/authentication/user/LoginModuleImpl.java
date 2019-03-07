@@ -214,12 +214,11 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             } else {
                 try {
                     NameCallback callback = new NameCallback("User-ID: ");
-                    callbackHandler.handle(new Callback[]{callback});
+                    callbackHandler.handle(new Callback[] { callback });
                     uid = callback.getName();
-                } catch (UnsupportedCallbackException e) {
-                    log.warn("Credentials- or NameCallback must be supported");
-                } catch (IOException e) {
-                    log.error("Name-Callback failed: " + e.getMessage());
+                } catch (IOException | UnsupportedCallbackException e) {
+                    onError();
+                    log.error(e.getMessage(), e);
                 }
             }
         }
