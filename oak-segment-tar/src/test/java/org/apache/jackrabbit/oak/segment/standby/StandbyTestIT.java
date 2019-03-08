@@ -71,7 +71,11 @@ public class StandbyTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build();
             StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();
@@ -111,7 +115,11 @@ public class StandbyTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build();
             StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();

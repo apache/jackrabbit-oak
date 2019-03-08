@@ -67,7 +67,12 @@ public class BrokenNetworkIT extends TestBase {
         serverStore.flush();
 
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), serverStore, MB, false);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(serverStore)
+                .withBlobChunkSize(MB)
+                .withSecureConnection(false)
+                .build();
             StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), clientStore, false, getClientTimeout(), false, folder.newFolder());
         ) {
             serverSync.start();
@@ -87,7 +92,12 @@ public class BrokenNetworkIT extends TestBase {
         storeS.flush();
 
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, MB, true);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(storeS)
+                .withBlobChunkSize(MB)
+                .withSecureConnection(true)
+                .build();
             StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), storeC, true, getClientTimeout(), false, folder.newFolder());
         ) {
             serverSync.start();
@@ -155,7 +165,14 @@ public class BrokenNetworkIT extends TestBase {
         addTestContent(store, "server");
         serverStore.flush();
 
-        try (StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), serverStore, MB, ssl)) {
+        try (
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(serverStore)
+                .withBlobChunkSize(MB)
+                .withSecureConnection(ssl)
+                .build()
+        ) {
             serverSync.start();
 
             File spoolFolder = folder.newFolder();
