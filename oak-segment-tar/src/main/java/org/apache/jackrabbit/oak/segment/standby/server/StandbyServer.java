@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.segment.standby.server;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
@@ -60,8 +62,7 @@ class StandbyServer implements AutoCloseable {
      * If a persisted head state cannot be acquired in less than this timeout,
      * the 'get head' request from the client will be discarded.
      */
-    static final long READ_HEAD_TIMEOUT =
-            Long.getLong("standby.server.timeout", 10_000L);
+    private static final long READ_HEAD_TIMEOUT = Long.getLong("standby.server.timeout", 10_000L);
 
     static Builder builder(int port, StoreProvider provider, int blobChunkSize) {
         return new Builder(port, provider, blobChunkSize);
@@ -95,6 +96,14 @@ class StandbyServer implements AutoCloseable {
 
         private CommunicationObserver observer;
 
+        private StandbyHeadReader standbyHeadReader;
+
+        private StandbySegmentReader standbySegmentReader;
+
+        private StandbyReferencesReader standbyReferencesReader;
+
+        private StandbyBlobReader standbyBlobReader;
+
         private Builder(final int port, final StoreProvider storeProvider, final int blobChunkSize) {
             this.port = port;
             this.storeProvider = storeProvider;
@@ -108,23 +117,60 @@ class StandbyServer implements AutoCloseable {
 
         Builder allowIPRanges(String[] allowedClientIPRanges) {
             this.allowedClientIPRanges = allowedClientIPRanges;
-
             return this;
         }
 
         Builder withStateConsumer(StateConsumer stateConsumer) {
             this.stateConsumer = stateConsumer;
-
             return this;
         }
 
         Builder withObserver(CommunicationObserver observer) {
             this.observer = observer;
+            return this;
+        }
 
+        Builder withStandbyHeadReader(StandbyHeadReader standbyHeadReader) {
+            this.standbyHeadReader = standbyHeadReader;
+            return this;
+        }
+
+        Builder withStandbySegmentReader(StandbySegmentReader standbySegmentReader) {
+            this.standbySegmentReader = standbySegmentReader;
+            return this;
+        }
+
+        Builder withStandbyReferencesReader(StandbyReferencesReader standbyReferencesReader) {
+            this.standbyReferencesReader = standbyReferencesReader;
+            return this;
+        }
+
+        Builder withStandbyBlobReader(StandbyBlobReader standbyBlobReader) {
+            this.standbyBlobReader = standbyBlobReader;
             return this;
         }
 
         StandbyServer build() throws CertificateException, SSLException {
+            checkState(storeProvider != null);
+
+            FileStore store = storeProvider.provideStore();
+
+            if (standbyReferencesReader == null) {
+                standbyReferencesReader = new DefaultStandbyReferencesReader(store);
+            }
+
+            if (standbyBlobReader == null) {
+                standbyBlobReader = new DefaultStandbyBlobReader(store.getBlobStore());
+            }
+
+            if (standbySegmentReader == null) {
+                standbySegmentReader = new DefaultStandbySegmentReader(store);
+            }
+
+            if (standbyHeadReader == null) {
+                standbyHeadReader = new DefaultStandbyHeadReader(store, READ_HEAD_TIMEOUT);
+            }
+
             return new StandbyServer(this);
         }
 
@@ -151,8 +197,9 @@ class StandbyServer implements AutoCloseable {
         b.childOption(ChannelOption.SO_KEEPALIVE, true);
 
         b.childHandler(new ChannelInitializer<SocketChannel>() {
+
             @Override
-            public void initChannel(SocketChannel ch) throws Exception {
+            public void initChannel(SocketChannel ch) {
                 ChannelPipeline p = ch.pipeline();
 
                 p.addLast(new ClientFilterHandler(new ClientIpFilter(builder.allowedClientIPRanges)));
@@ -187,17 +234,16 @@ class StandbyServer implements AutoCloseable {
 
                 // Handlers
 
-                FileStore store = builder.storeProvider.provideStore();
-
-                p.addLast(new GetHeadRequestHandler(new DefaultStandbyHeadReader(store, READ_HEAD_TIMEOUT)));
-                p.addLast(new GetSegmentRequestHandler(new DefaultStandbySegmentReader(store)));
-                p.addLast(new GetBlobRequestHandler(new DefaultStandbyBlobReader(store.getBlobStore())));
-                p.addLast(new GetReferencesRequestHandler(new DefaultStandbyReferencesReader(store)));
+                p.addLast(new GetHeadRequestHandler(builder.standbyHeadReader));
+                p.addLast(new GetSegmentRequestHandler(builder.standbySegmentReader));
+                p.addLast(new GetBlobRequestHandler(builder.standbyBlobReader));
+                p.addLast(new GetReferencesRequestHandler(builder.standbyReferencesReader));
 
                 // Exception handler
 
                 p.addLast(new ExceptionHandler());
             }
+
         });
     }
 

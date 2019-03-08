@@ -150,7 +150,11 @@ public abstract class DataStoreTestBase extends TestBase {
 
         // run 1: unsuccessful
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build();
             StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, 4_000, false, spoolFolder)
         ) {
             serverSync.start();
@@ -163,7 +167,11 @@ public abstract class DataStoreTestBase extends TestBase {
 
         // run 2: successful
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build();
             StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, 4_000, false, spoolFolder)
         ) {
             serverSync.start();
@@ -200,7 +208,11 @@ public abstract class DataStoreTestBase extends TestBase {
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         byte[] data = addTestContent(store, "server", blobSize);
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build();
             StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();
@@ -242,7 +254,11 @@ public abstract class DataStoreTestBase extends TestBase {
         addTestContentOnTheFly(store, "server", blobSize, seed);
 
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, 8 * MB);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(8 * MB)
+                .build();
             StandbyClientSync cl = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, 2 * 60 * 1000, false, folder.newFolder())
         ) {
             serverSync.start();
@@ -281,7 +297,11 @@ public abstract class DataStoreTestBase extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build();
             StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();
@@ -343,7 +363,13 @@ public abstract class DataStoreTestBase extends TestBase {
         byte[] data = addTestContent(store, "server", blobSize);
         primary.flush();
 
-        try (StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB)) {
+        try (
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build()
+        ) {
             serverSync.start();
 
             File spoolFolder = folder.newFolder();

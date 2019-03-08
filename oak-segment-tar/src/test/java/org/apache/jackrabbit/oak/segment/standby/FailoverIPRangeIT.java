@@ -157,7 +157,12 @@ public class FailoverIPRangeIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(storeS).build();
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), storeS, MB, ipRanges);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(storeS)
+                .withBlobChunkSize(MB)
+                .withAllowedClientIPRanges(ipRanges)
+                .build();
             StandbyClientSync clientSync = new StandbyClientSync(host, serverPort.getPort(), storeC, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();

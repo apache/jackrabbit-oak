@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.segment.standby;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.File;
+
 import org.apache.commons.io.input.NullInputStream;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -43,8 +45,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-
-import java.io.File;
 
 public class StandbySegmentBlobTestIT extends TestBase {
 
@@ -94,7 +94,11 @@ public class StandbySegmentBlobTestIT extends TestBase {
 
         NodeStore store = SegmentNodeStoreBuilders.builder(primary).build();
         try (
-            StandbyServerSync serverSync = new StandbyServerSync(serverPort.getPort(), primary, MB);
+            StandbyServerSync serverSync = StandbyServerSync.builder()
+                .withPort(serverPort.getPort())
+                .withFileStore(primary)
+                .withBlobChunkSize(MB)
+                .build();
             StandbyClientSync clientSync = new StandbyClientSync(getServerHost(), serverPort.getPort(), secondary, false, getClientTimeout(), false, folder.newFolder())
         ) {
             serverSync.start();
