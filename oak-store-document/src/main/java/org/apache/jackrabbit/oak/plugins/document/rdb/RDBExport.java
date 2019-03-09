@@ -42,6 +42,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -203,20 +204,28 @@ public class RDBExport {
             byte[] bytes = null;
             if (sbdata.length() != 0) {
                 String lobfile = sbdata.replace("/", "");
-                int lastdot = lobfile.lastIndexOf('.');
-                String length = lobfile.substring(lastdot + 1);
-                lobfile = lobfile.substring(0, lastdot);
-                lastdot = lobfile.lastIndexOf('.');
-                String startpos = lobfile.substring(lastdot + 1);
-                lobfile = lobfile.substring(0, lastdot);
-                int s = Integer.valueOf(startpos);
-                int l = Integer.valueOf(length);
-                File lf = new File(lobDirectory, lobfile);
-                InputStream is = new FileInputStream(lf);
-                bytes = new byte[l];
-                IOUtils.skip(is, s);
-                IOUtils.read(is, bytes, 0, l);
-                IOUtils.closeQuietly(is);
+
+                if (!lobfile.endsWith(".lob")) {
+                    int lastdot = lobfile.lastIndexOf('.');
+                    String length = lobfile.substring(lastdot + 1);
+                    lobfile = lobfile.substring(0, lastdot);
+                    lastdot = lobfile.lastIndexOf('.');
+                    String startpos = lobfile.substring(lastdot + 1);
+                    lobfile = lobfile.substring(0, lastdot);
+
+                    System.err.println("lastdot: " + lastdot + "; length: " + length + "; lobfile: " + lobfile + "; lastdot: " + lastdot + "; startpos: " + startpos);
+                    int s = Integer.valueOf(startpos);
+                    int l = Integer.valueOf(length);
+                    File lf = new File(lobDirectory, lobfile);
+                    InputStream is = new FileInputStream(lf);
+                    bytes = new byte[l];
+                    IOUtils.skip(is, s);
+                    IOUtils.read(is, bytes, 0, l);
+                    IOUtils.closeQuietly(is);
+                } else {
+                    File lf = new File(lobDirectory, lobfile);
+                    bytes = FileUtils.readFileToByteArray(lf);
+                }
             }
             try {
                 RDBRow row = new RDBRow(id, "1".equals(shasbinary) ? 1L : 0L, "1".equals(sdeletedonce),
@@ -235,6 +244,9 @@ public class RDBExport {
                 }
             } catch (DocumentStoreException ex) {
                 System.err.println("Error: skipping line for ID " + id + " because of " + ex.getMessage());
+            } catch (Exception e) {
+                System.err.println("Error reading fields: " + fields);
+                throw e;
             }
             line = br.readLine();
         }
