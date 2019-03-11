@@ -16,9 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.mongodb.BasicDBObject;
+import com.mongodb.MongoCommandException;
+import com.mongodb.ReadPreference;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoDatabase;
+
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.bson.BsonDocument;
+import org.bson.BsonDouble;
+import org.bson.BsonInt32;
+import org.bson.BsonString;
+import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -108,5 +124,93 @@ public class MongoStatusTest {
             } catch (Exception e) {
             }
         }
+    }
+
+    @Test
+    public void unauthorized() {
+        MongoTestClient testClient = new MongoTestClient(MongoUtils.URL) {
+
+            private final AtomicReference<String> noException = new AtomicReference<>();
+
+            @Override
+            public @NotNull MongoDatabase getDatabase(String databaseName) {
+                return new MongoTestDatabase(super.getDatabase(databaseName),
+                        noException, noException, noException) {
+                    @Override
+                    public @NotNull Document runCommand(@NotNull Bson command) {
+                        unauthorizedIfServerStatus(command);
+                        return super.runCommand(command);
+                    }
+
+                    @Override
+                    public @NotNull Document runCommand(@NotNull Bson command,
+                                                        @NotNull ReadPreference readPreference) {
+                        unauthorizedIfServerStatus(command);
+                        return super.runCommand(command, readPreference);
+                    }
+
+                    @Override
+                    public <TResult> @NotNull TResult runCommand(@NotNull Bson command,
+                                                                 @NotNull Class<TResult> tResultClass) {
+                        unauthorizedIfServerStatus(command);
+                        return super.runCommand(command, tResultClass);
+                    }
+
+                    @Override
+                    public <TResult> @NotNull TResult runCommand(@NotNull Bson command,
+                                                                 @NotNull ReadPreference readPreference,
+                                                                 @NotNull Class<TResult> tResultClass) {
+                        unauthorizedIfServerStatus(command);
+                        return super.runCommand(command, readPreference, tResultClass);
+                    }
+
+                    @Override
+                    public @NotNull Document runCommand(@NotNull ClientSession clientSession,
+                                                        @NotNull Bson command) {
+                        unauthorizedIfServerStatus(command);
+                        return super.runCommand(clientSession, command);
+                    }
+
+                    @Override
+                    public @NotNull Document runCommand(@NotNull ClientSession clientSession,
+                                                        @NotNull Bson command,
+                                                        @NotNull ReadPreference readPreference) {
+                        unauthorizedIfServerStatus(command);
+                        return super.runCommand(clientSession, command, readPreference);
+                    }
+
+                    @Override
+                    public <TResult> @NotNull TResult runCommand(@NotNull ClientSession clientSession,
+                                                                 @NotNull Bson command,
+                                                                 @NotNull Class<TResult> tResultClass) {
+                        unauthorizedIfServerStatus(command);
+                        return super.runCommand(clientSession, command, tResultClass);
+                    }
+
+                    @Override
+                    public <TResult> @NotNull TResult runCommand(@NotNull ClientSession clientSession,
+                                                                 @NotNull Bson command,
+                                                                 @NotNull ReadPreference readPreference,
+                                                                 @NotNull Class<TResult> tResultClass) {
+                        unauthorizedIfServerStatus(command);
+                        return super.runCommand(clientSession, command, readPreference, tResultClass);
+                    }
+                };
+            }
+
+            private void unauthorizedIfServerStatus(Bson command) {
+                if (command.toBsonDocument(BasicDBObject.class, getDefaultCodecRegistry()).containsKey("serverStatus")) {
+                    BsonDocument response = new BsonDocument("ok", new BsonDouble(0.0));
+                    response.put("errmsg", new BsonString("command serverStatus requires authentication"));
+                    response.put("code", new BsonInt32(13));
+                    response.put("codeName", new BsonString("Unauthorized"));
+                    ServerAddress address = getAddress();
+                    assertNotNull(address);
+                    throw new MongoCommandException(response, address);
+                }
+            }
+        };
+        MongoStatus status = new MongoStatus(testClient, MongoUtils.DB);
+        assertNotNull(status.getVersion());
     }
 }
