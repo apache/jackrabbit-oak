@@ -245,6 +245,11 @@ public class MongoStatus implements ServerMonitorListener {
                     // OAK-7485: workaround when running on
                     // MongoDB Atlas shared instances
                     serverStatus = new BasicDBObject();
+                } else if (e.getErrorCode() == 13) {
+                    // "Unauthorized"
+                    // User is not authorized to run the
+                    // serverStatus command (OAK-8122).
+                    serverStatus = new BasicDBObject();
                 } else {
                     throw e;
                 }
