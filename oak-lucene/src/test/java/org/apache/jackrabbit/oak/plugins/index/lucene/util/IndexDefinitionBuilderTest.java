@@ -253,6 +253,92 @@ public class IndexDefinitionBuilderTest {
         assertTrue(builder.build().getBoolean(REINDEX_PROPERTY_NAME));
     }
 
+    // This property is used in cost estimation - no reindexing required
+    // on property change
+    @Test
+    public void noReindexIfWeightPropertyAddedOrChanged() throws Exception {
+
+        builder.indexRule("nt:base").property("fooProp");
+
+        NodeState currentNodeState = builder.build();
+        nodeBuilder = currentNodeState.builder();
+
+        //Unset the reindex flag first because first build would have set it .
+        nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+
+        // Add the property weight to fooProp - this shouldn't cause reindex flag to set
+        builder.indexRule("nt:base").property("fooProp").weight(10);
+
+        currentNodeState = builder.build();
+
+        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
+
+        nodeBuilder = currentNodeState.builder();
+
+        // Now change the value for weight on fooProp - this also shouldn't lead to setting of reindex flag
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+
+        builder.indexRule("nt:base").property("fooProp").weight(20);
+        assertFalse(builder.build().getBoolean(REINDEX_PROPERTY_NAME));
+
+    }
+    // modifying boost value shouldn't require reindexing because we use
+    // QueryTime Boosts and not index time boosts. Refer OAK-3367 for details
+    @Test
+    public void noReindexIfBoostPropAddedOrChanged() throws  Exception {
+        builder.indexRule("nt:base").property("fooProp");
+
+        NodeState currentNodeState = builder.build();
+        nodeBuilder = currentNodeState.builder();
+
+        //Unset the reindex flag first because first build would have set it .
+        nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+
+        // Add the property weight to boost - this shouldn't cause reindex flag to set
+        builder.indexRule("nt:base").property("fooProp").boost(1.0f);
+
+        currentNodeState = builder.build();
+
+        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
+
+        nodeBuilder = currentNodeState.builder();
+
+        // Now change the value for weight on boost - this also shouldn't lead to setting of reindex flag
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+
+        builder.indexRule("nt:base").property("fooProp").boost(2.0f);
+        assertFalse(builder.build().getBoolean(REINDEX_PROPERTY_NAME));
+    }
+
+    @Test
+    public void noReindexWhenNameChangeOnIndexDefNode() throws Exception{
+        builder.async("async", IndexConstants.INDEXING_MODE_NRT);
+
+        NodeState currentNodeState = builder.build();
+        nodeBuilder = currentNodeState.builder();
+
+        //Unset the reindex flag first because first build would have set it .
+        nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
+
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+        // Setter for this is not exposed in IndexDefintionBuilder
+        // but can be set explicitly via node builder - so a valid use case
+        nodeBuilder.setProperty("name","testIndex");
+
+        currentNodeState = builder.build();
+
+        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
+        nodeBuilder = currentNodeState.builder();
+
+        //Now test with changing the value - this too shouldn't set the reindexing flag
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+        nodeBuilder.setProperty("name","testIndex2");
+
+        assertFalse(builder.build().getBoolean(REINDEX_PROPERTY_NAME));
+    }
+
     @Test
     public void propRuleCustomName() throws Exception{
         builder.indexRule("nt:base").property("foo").property("bar");
