@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.30
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.31
 
 Introduction
 ------------
@@ -7,54 +7,30 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.30 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.31 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.30
+Changes in Oak 1.2.31
 ---------------------
-
-Technical task
-
-    [OAK-6716] - RDB*Store: update DB2 JDBC dependency to 4.19.66
-    [OAK-7441] - RDB*Store: update DB2 JDBC dependency to 4.19.72
-    [OAK-7453] - oak-core/oak-store-document: fix broken line ends in
-    repo
 
 Bug
 
-    [OAK-6869] - oak-http and oak-remote use potentially vulnerable
-    versions of com.fasterxml.jackson
-    [OAK-7389] - Mongo/FileBlobStore does not update timestamp for
-    already existing blobs
-    [OAK-7490] - oak-run console lc rmdata command uses second
-    parameter for index path (and defaults to /oak:index/lucene)
+    [OAK-7935] - RDB*Store: createOrUpdate may fail on stale cache
+    when document was removed on different instance
 
 Improvement
 
-    [OAK-7437] - SimpleExcerptProvider highlighting should be case
-    insensitive
+    [OAK-7925] - OakUpgrade for RDBMK: user name and password must
+    match
 
 Task
 
-    [OAK-7240] - create announcement mail template for releases
-    [OAK-7255] - Upgrade jackson dependencies to version 2.9.4
-    [OAK-7336] - stop advertising MD5 checksums
-    [OAK-7347] - Incorrect link to KEYS in release notes
-    [OAK-7350] - stop creating MD5 checksums for releases
-    [OAK-7422] - Update jackson dependencies to 2.9.5
-    [OAK-7452] - fix broken line ends in repo
-    [OAK-7478] - Update Oak 1.2 to Jackrabbit 2.12.9
-    [OAK-7536] - Update aws java sdk version to 1.11.330
-    [OAK-7596] - define jackson version globally
-    [OAK-7609] - Update jackson dependencies to 2.9.6
-    [OAK-7611] - Disable
-    org.apache.jackrabbit.oak.plugins.segment.standby.ExternalPrivateStoreIT.testProxyFlippedIntermediateByte(Change)2
-    [OAK-7677] - Announcement mail template lacks line feeds in front
-    of release notes
+    [OAK-7868] - Update Oak 1.4 and 1.2 to Jackrabbit 2.12.10
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.2.28 release.
