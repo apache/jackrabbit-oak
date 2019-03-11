@@ -30,7 +30,7 @@ import static org.junit.Assert.assertThat;
 
 public class TimingHookTest {
 
-    private static long DELAY_MS = 10;
+    private static long DELAY_MS = 20;
 
     @Test
     public void commitTime() throws CommitFailedException {
@@ -39,7 +39,10 @@ public class TimingHookTest {
                 (before, after, info) -> sleep(),
                 (time, unit) -> processingTime.set(unit.toMillis(time))
         ).processCommit(EMPTY_NODE, EMPTY_NODE, CommitInfo.EMPTY);
-        assertThat(processingTime.get(), greaterThanOrEqualTo(DELAY_MS));
+        // lower bound for processing time is accuracy on Windows (10 ms)
+        // because Thread.sleep() may actually sleep less than the specified
+        // amount of time on Windows.
+        assertThat(processingTime.get(), greaterThanOrEqualTo(DELAY_MS / 2));
     }
 
     @NotNull
