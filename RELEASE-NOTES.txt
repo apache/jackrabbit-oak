@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.11
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.12
 
 Introduction
 ------------
@@ -7,20 +7,76 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.11 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.12 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.11
+Changes in Oak 1.8.12
 ---------------------
+
+Technical task
+
+    [OAK-7201] - make Guava version configurable at build time
+    [OAK-7399] - add build profile "guava-latest" to build with latest
+    supported Guava version
+    [OAK-7894] - RDBDocumentStore: add perf logging for JDBC read
+    operations
+    [OAK-7960] - RDB: add to Oak documentation
+    [OAK-7978] - guava-latest profile defunct
+    [OAK-8004] - oak-run: support "recovery" command for
+    RDBDocumentStore
+    [OAK-8043] - RDB: expose DDL generation functionality in oak-run
+    [OAK-8058] - RDB*Store: update Tomcat JDBC pool dependency to
+    8.5.38
+    [OAK-8069] - Log warning for too many transient modifications of
+    direct child nodes
+    [OAK-8071] - Logging to detect commits carrying over from previous
+    GC generation can block other threads from committing
 
 Bug
 
-    [OAK-7975] - Facet extraction fails while requesting multiple facets and one of the requested facets doesn't have indexed values
+    [OAK-1819] - oak-solr-core test failures on Java 8 and later
+    [OAK-6749] - Segment-Tar standby sync fails with "in-memory" blobs
+    present in the source repo
+    [OAK-7751] - CopyOnReadDirectory#removeDeletedFiles asks
+    IndexCopier to check timestamp for (remote only) segments.gen
+    leading to failure to clean up local files
+    [OAK-7901] - NodeTypeRegistryTest uses javax.annotation.Nonnull
+    [OAK-8006] - SegmentBlob#readLongBlobId might cause
+    SegmentNotFoundException on standby
+    [OAK-8007] - RDBDocumentStore: potential off-heap memory leakage
+    due to unclosed GzipInputStream
+    [OAK-8033] - Node states sometimes refer to more than a single
+    generation of segments after a full compaction
+    [OAK-8051] - PersistentCache: error during open can lead to
+    incomplete initialization and subsequent NPEs
+    [OAK-8063] - The cold standby client doesn't correctly handle
+    backward references
+    [OAK-8070] - The date-based copy-versions directive doesn't work
+    correctly with include-paths
 
+Improvement
+
+    [OAK-7246] - Improve cleanup of locally copied index files
+    [OAK-8046] - Result items are not always correctly counted against
+    the configured read limit if a query uses a lucene index
+    [OAK-8084] - LogCustomizer should allow instantiation with Java
+    class (in addition to class name)
+    [OAK-8088] - Add refresh head revision time to background update
+    stats
+
+Task
+
+    [OAK-7826] - examples: remove unused slf4f related vars from pom
+    [OAK-7892] - LogCustomizer should support slf4j log levels
+    [OAK-7969] - Update tika dependency to 1.20
+    [OAK-8030] - oak-jcr NodeTypeTest improvements
+    [OAK-8037] - add test case for making a node type referenceable
+    [OAK-8059] - Update Jackson dependency to 2.9.8
+    [OAK-8068] - Update slf4j dependency to 1.7.26
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.8.x release.
