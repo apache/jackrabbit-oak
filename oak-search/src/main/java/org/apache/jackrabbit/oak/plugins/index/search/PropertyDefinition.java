@@ -128,6 +128,7 @@ public class PropertyDefinition {
     public final boolean useInSimilarity;
 
     public final boolean similarityRerank;
+    public final boolean similarityTags;
 
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
@@ -159,6 +160,7 @@ public class PropertyDefinition {
         this.useInSpellcheck = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, false);
         this.useInSimilarity = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_USE_IN_SIMILARITY, false);
         this.similarityRerank = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SIMILARITY_RERANK, true);
+        this.similarityTags = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_SIMILARITY_TAGS, false);
         this.nullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, false);
         this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
         this.excludeFromAggregate = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);
