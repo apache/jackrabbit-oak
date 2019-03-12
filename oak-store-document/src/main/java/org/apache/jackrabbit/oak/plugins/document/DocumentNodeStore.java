@@ -1661,6 +1661,7 @@ public final class DocumentNodeStore
         for (Revision r : reverse(revs)) {
             NodeDocument.removeCollision(rootOp, r.asTrunkRevision());
             NodeDocument.removeRevision(rootOp, r.asTrunkRevision());
+            NodeDocument.removeBranchCommit(rootOp, r.asTrunkRevision());
             operations.clear();
             BranchCommit bc = b.getCommit(r);
             if (bc.isRebase()) {

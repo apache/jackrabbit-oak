@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -35,6 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
  */
 class ResetDiff implements NodeStateDiff {
 
+    private final ResetDiff parent;
     private final Revision revision;
     private final String path;
     private final Map<String, UpdateOp> operations;
@@ -42,12 +44,14 @@ class ResetDiff implements NodeStateDiff {
 
     ResetDiff(@NotNull Revision revision,
               @NotNull Map<String, UpdateOp> operations) {
-        this(revision, "/", operations);
+        this(null, revision, "/", operations);
     }
 
-    private ResetDiff(@NotNull Revision revision,
+    private ResetDiff(@Nullable ResetDiff parent,
+                      @NotNull Revision revision,
                       @NotNull String path,
                       @NotNull Map<String, UpdateOp> operations) {
+        this.parent = parent;
         this.revision = checkNotNull(revision);
         this.path = checkNotNull(path);
         this.operations = checkNotNull(operations);
@@ -75,9 +79,14 @@ class ResetDiff implements NodeStateDiff {
     public boolean childNodeAdded(String name, NodeState after) {
         NodeDocument.removeCommitRoot(getUpdateOp(), revision);
         String p = PathUtils.concat(path, name);
-        ResetDiff diff = new ResetDiff(revision, p, operations);
+        ResetDiff diff = new ResetDiff(this, revision, p, operations);
         UpdateOp op = diff.getUpdateOp();
         NodeDocument.removeDeleted(op, revision);
+        NodeDocument.setDeletedOnce(op);
+        if (parent != null) {
+            // make sure branch related entries are removed also on the parent
+            parent.getUpdateOp();
+        }
         return after.compareAgainstBaseState(EMPTY_NODE, diff);
     }
 
@@ -87,13 +96,13 @@ class ResetDiff implements NodeStateDiff {
                                     NodeState after) {
         String p = PathUtils.concat(path, name);
         return after.compareAgainstBaseState(before,
-                new ResetDiff(revision, p, operations));
+                new ResetDiff(this, revision, p, operations));
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
         String p = PathUtils.concat(path, name);
-        ResetDiff diff = new ResetDiff(revision, p, operations);
+        ResetDiff diff = new ResetDiff(this, revision, p, operations);
         NodeDocument.removeDeleted(diff.getUpdateOp(), revision);
         return MISSING_NODE.compareAgainstBaseState(before, diff);
     }
@@ -112,6 +121,7 @@ class ResetDiff implements NodeStateDiff {
             }
             NodeDocument.removeRevision(update, revision);
             NodeDocument.removeCommitRoot(update, revision);
+            NodeDocument.removeBranchCommit(update, revision);
         }
         return update;
     }
