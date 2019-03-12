@@ -25,6 +25,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.api.security.user.QueryBuilder.Direction;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -129,15 +130,29 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
-                                                        final int searchType) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final int searchType) {
+        return findPrincipals(nameHint, searchType, 0, -1);
+    }
+
+    @NotNull
+    @Override
+    public Iterator<? extends Principal> findPrincipals(final String nameHint, final int searchType, long offset,
+            long limit) {
+        if (offset < 0) {
+            offset = 0;
+        }
+        if (limit < 0) {
+            limit = Long.MAX_VALUE;
+        }
         try {
-            Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType);
+            Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset, limit);
             Iterator<Principal> principals = Iterators.transform(
                     Iterators.filter(authorizables, Predicates.notNull()),
                     new AuthorizableToPrincipal());
 
-            if (matchesEveryone(nameHint, searchType)) {
+            // everyone is injected only in complete set, not on pages
+            boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
+            if (noRange && matchesEveryone(nameHint, searchType)) {
                 principals = Iterators.concat(principals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
                 return Iterators.filter(principals, new EveryonePredicate());
             } else {
@@ -183,12 +198,15 @@ class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     private Iterator<Authorizable> findAuthorizables(@Nullable final String nameHint,
-                                                     final int searchType) throws RepositoryException {
+                                                     final int searchType, final long offset,
+                                                     final long limit) throws RepositoryException {
         Query userQuery = new Query() {
             @Override
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.like('@' +UserConstants.REP_PRINCIPAL_NAME, buildSearchPattern(nameHint)));
                 builder.setSelector(AuthorizableType.getType(searchType).getAuthorizableClass());
+                builder.setSortOrder(UserConstants.REP_PRINCIPAL_NAME, Direction.ASCENDING);
+                builder.setLimit(offset, limit);
             }
         };
         return userManager.findAuthorizables(userQuery);
