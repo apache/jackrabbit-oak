@@ -260,6 +260,11 @@ public interface FulltextIndexConstants {
     String PROP_SIMILARITY_RERANK = "similarityRerank";
 
     /**
+     * whether property values should be indexed as tags to boost similarity search results
+     */
+    String PROP_SIMILARITY_TAGS = "similarityTags";
+
+    /**
      * Property definition config indicating that null check support should be
      * enabled for this property
      */
