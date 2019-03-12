@@ -44,6 +44,37 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
     }
 
     @Test
+    public void resetEmptyBranch() {
+        String rev = mk.branch(null);
+        try {
+            mk.reset(rev, rev);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException expected) {}
+    }
+
+    @Test
+    public void resetNonBranchHead() {
+        String base = mk.branch(null);
+        String rev = addNodes(base, "/foo");
+        addNodes(rev, "/bar");
+        try {
+            mk.reset(rev, base);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException expected) {}
+    }
+
+    @Test
+    public void resetWithForeignAncestor() {
+        String rev = mk.branch(null);
+        rev = addNodes(rev, "/foo");
+        addNodes(null, "/bar");
+        try {
+            mk.reset(rev, mk.branch(null));
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException expected) {}
+    }
+
+    @Test
     public void resetTrunk() {
         String rev = addNodes(null, "/foo");
         try {
