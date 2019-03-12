@@ -155,10 +155,21 @@ class UserPrincipalProvider implements PrincipalProvider {
         return principals;
     }
 
+    @Override
+    public Iterator<? extends Principal> findPrincipals(final String nameHint, final int searchType) {
+        return findPrincipals(nameHint, searchType, 0, -1);
+    }
+
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final String nameHint,
-                                                        final int searchType) {
+    public Iterator<? extends Principal> findPrincipals(final String nameHint, final int searchType, long offset,
+            long limit) {
+        if (offset < 0) {
+            offset = 0;
+        }
+        if (limit < 0) {
+            limit = Long.MAX_VALUE;
+        }
         try {
             AuthorizableType type = AuthorizableType.getType(searchType);
             StringBuilder statement = new StringBuilder()
@@ -166,17 +177,19 @@ class UserPrincipalProvider implements PrincipalProvider {
                     .append("//element(*,").append(QueryUtil.getNodeTypeName(type)).append(')')
                     .append("[jcr:like(@rep:principalName,'")
                     .append(buildSearchPattern(nameHint))
-                    .append("')]");
+                    .append("')] order by @rep:principalName");
 
             Result result = root.getQueryEngine().executeQuery(
                     statement.toString(), javax.jcr.query.Query.XPATH,
-                    NO_BINDINGS, namePathMapper.getSessionLocalMappings());
+                    limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
 
             Iterator<Principal> principals = Iterators.filter(
                     Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()),
                     Predicates.notNull());
 
-            if (matchesEveryone(nameHint, searchType)) {
+            // everyone is injected only in complete set, not on pages
+            boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
+            if (noRange && matchesEveryone(nameHint, searchType)) {
                 principals = Iterators.concat(principals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
                 return Iterators.filter(principals, new EveryonePredicate());
             } else {

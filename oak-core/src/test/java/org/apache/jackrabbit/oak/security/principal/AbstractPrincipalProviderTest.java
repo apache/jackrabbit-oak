@@ -62,6 +62,9 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
     protected String groupId2;
     protected Group testGroup2;
 
+    protected String groupId3;
+    protected Group testGroup3;
+
     @Override
     public void before() throws Exception {
         super.before();
@@ -73,9 +76,12 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
         testGroup = getUserManager(root).createGroup(groupId);
         testGroup.addMember(getTestUser());
 
-        groupId2 = "testGroup2" + UUID.randomUUID();
+        groupId2 = "testGroup" + UUID.randomUUID() + "2";
         testGroup2 = getUserManager(root).createGroup(groupId2);
         testGroup.addMember(testGroup2);
+
+        groupId3 = "testGroup" + UUID.randomUUID() + "3";
+        testGroup3 = getUserManager(root).createGroup(groupId3);
 
         root.commit();
 
@@ -87,16 +93,13 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
     public void after() throws Exception {
         try {
             root.refresh();
-            Group gr = getUserManager(root).getAuthorizable(groupId, Group.class);
-            if (gr != null) {
-                gr.remove();
-                root.commit();
-            }
-
-            gr = getUserManager(root).getAuthorizable(groupId2, Group.class);
-            if (gr != null) {
-                gr.remove();
-                root.commit();
+            String[] rm = new String[] { groupId, groupId2, groupId3 };
+            for (String id : rm) {
+                Group gr = getUserManager(root).getAuthorizable(id, Group.class);
+                if (gr != null) {
+                    gr.remove();
+                    root.commit();
+                }
             }
         } finally {
             super.after();
