@@ -17,17 +17,11 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -38,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
@@ -208,32 +201,5 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
             group.remove();
             root.commit();
         }
-    }
-
-    @Test
-    public void testFindRange() throws Exception {
-        List<String> expected = Arrays.asList(groupId, groupId2, groupId3);
-        Collections.sort(expected);
-
-        for (int offset = 0; offset < expected.size() + 1; offset++) {
-            for (int limit = -1; limit < expected.size() + 2; limit++) {
-                int to = expected.size();
-                if (limit >= 0) {
-                    to = Math.min(offset + limit, to);
-                }
-                List<String> sub = expected.subList(offset, to);
-                Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup",
-                        PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
-                assertEquals(sub, getNames(i1));
-            }
-        }
-    }
-
-    private static List<String> getNames(Iterator<? extends Principal> i) {
-        List<String> l = new ArrayList<>();
-        while (i.hasNext()) {
-            l.add(i.next().getName());
-        }
-        return l;
     }
 }

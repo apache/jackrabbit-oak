@@ -18,8 +18,9 @@ package org.apache.jackrabbit.oak.security.principal;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -366,12 +367,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
             root.commit();
 
-            Set<String> resultNames = new HashSet<String>();
-            Iterator<? extends Principal> principals = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
-            while (principals.hasNext()) {
-                resultNames.add(principals.next().getName());
-            }
-
+            List<String> resultNames = getNames(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL));
             assertTrue(resultNames.contains(EveryonePrincipal.NAME));
             assertTrue(resultNames.contains("TestUser"));
             assertTrue(resultNames.contains("TestGroup"));
@@ -405,5 +401,32 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
                 assertFalse("Expected principal NOT to be found by name hint " + expectedName, found);
             }
         }
+    }
+
+    @Test
+    public void testFindRange() throws Exception {
+        List<String> expected = Arrays.asList(groupId, groupId2, groupId3);
+        Collections.sort(expected);
+
+        for (int offset = 0; offset < expected.size() + 1; offset++) {
+            for (int limit = -1; limit < expected.size() + 2; limit++) {
+                int to = expected.size();
+                if (limit >= 0) {
+                    to = Math.min(offset + limit, to);
+                }
+                List<String> sub = expected.subList(offset, to);
+                Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup",
+                        PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                assertEquals(sub, getNames(i1));
+            }
+        }
+    }
+
+    protected static List<String> getNames(Iterator<? extends Principal> i) {
+        List<String> l = new ArrayList<>();
+        while (i.hasNext()) {
+            l.add(i.next().getName());
+        }
+        return l;
     }
 }
