@@ -621,7 +621,7 @@ public final class IndexDefinitionBuilder {
             if(name.equals(FulltextIndexConstants.PROP_FACETS)) {
                 return true;
             }
-            return super.childNodeAdded(name,after);
+            return super.childNodeAdded(name, after);
         }
 
         @Override
@@ -630,7 +630,7 @@ public final class IndexDefinitionBuilder {
             if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
                 return true;
             }
-            return super.childNodeChanged(name,before,after);
+            return super.childNodeChanged(name, before, after);
         }
 
         @Override
@@ -638,7 +638,7 @@ public final class IndexDefinitionBuilder {
             if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
                 return true;
             }
-            return super.childNodeDeleted(name,before);
+            return super.childNodeDeleted(name, before);
         }
 
         private Set<String> getAsyncValuesWithoutNRT(PropertyState state){
