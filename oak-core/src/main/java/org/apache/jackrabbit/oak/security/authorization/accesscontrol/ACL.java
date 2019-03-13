@@ -120,15 +120,15 @@ abstract class ACL extends AbstractAccessControlList {
         } else {
             rs = new HashSet<>();
             if (restrictions != null) {
-                for (String jcrName : restrictions.keySet()) {
-                    String oakName = getNamePathMapper().getOakName(jcrName);
-                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrictions.get(oakName)));
+                for (Map.Entry<String, Value> restrEntry : restrictions.entrySet()) {
+                    String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
+                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
                 }
             }
             if (mvRestrictions != null) {
-                for (String jcrName : mvRestrictions.keySet()) {
-                    String oakName = getNamePathMapper().getOakName(jcrName);
-                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, mvRestrictions.get(oakName)));
+                for (Map.Entry<String, Value[]> restrEntry : mvRestrictions.entrySet()) {
+                    String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
+                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
                 }
             }
         }
