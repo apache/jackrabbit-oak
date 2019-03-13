@@ -79,6 +79,7 @@ class ResetDiff implements NodeStateDiff {
         ResetDiff diff = new ResetDiff(revision, p, operations);
         UpdateOp op = diff.getUpdateOp();
         NodeDocument.removeDeleted(op, revision);
+        NodeDocument.setDeletedOnce(op);
         return after.compareAgainstBaseState(EMPTY_NODE, diff);
     }
 

@@ -508,23 +508,61 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             Lock lock = acquireMergeLock(exclusive);
             try {
                 rebase();
-                NodeState toCommit = hook.processCommit(base, head, info);
+                boolean success = false;
+                NodeState previousHead = head;
                 try {
-                    NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
-                    branchState = new Merged(base);
-                    return newHead;
-                } catch (ConflictException e) {
-                    throw e.asCommitFailedException();
-                } catch(DocumentStoreException e) {
-                    throw new CommitFailedException(MERGE, 1,
-                            "Failed to merge changes to the underlying store", e);
-                } catch (Exception e) {
-                    throw new CommitFailedException(OAK, 1,
-                            "Failed to merge changes to the underlying store", e);
+                    NodeState toCommit = hook.processCommit(base, head, info);
+                    try {
+                        NodeState newHead = DocumentNodeStoreBranch.this.persist(toCommit, base, info);
+                        branchState = new Merged(base);
+                        success = true;
+                        return newHead;
+                    } catch (ConflictException e) {
+                        throw e.asCommitFailedException();
+                    } catch(DocumentStoreException e) {
+                        throw new CommitFailedException(MERGE, 1,
+                                "Failed to merge changes to the underlying store", e);
+                    } catch (Exception e) {
+                        throw new CommitFailedException(OAK, 1,
+                                "Failed to merge changes to the underlying store", e);
+                    }
+                } finally {
+                    if (!success) {
+                        this.head = previousHead;
+                        if (this != branchState) {
+                            // the branch state transitioned to persisted while
+                            // processing the commit hook and then failed.
+                            // remember the persisted branch state
+                            BranchState currentState = branchState;
+                            // reset branch state back to in-memory
+                            branchState = this;
+                            // reset the entire persisted branch state
+                            reset(currentState.persist());
+                        }
+                    }
                 }
             } finally {
                 if (lock != null) {
                     lock.unlock();
+                }
+            }
+        }
+
+        /**
+         * Reset the entire persisted branch.
+         *
+         * @param p the persisted branch.
+         */
+        private void reset(Persisted p) {
+            RevisionVector branchHeadRev = p.getHead().getRootRevision();
+            // get the branch that belongs to this persisted branch state
+            Branch b = store.getBranches().getBranch(branchHeadRev);
+            if (b != null) {
+                try {
+                    store.reset(branchHeadRev,
+                            b.getBase().asBranchRevision(store.getClusterId()));
+                } catch (Exception e) {
+                    LOG.warn("Resetting persisted branch failed", e);
                 }
             }
         }
@@ -566,7 +604,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         @Override
         @Nonnull
-        NodeState getHead() {
+        DocumentNodeState getHead() {
             return head;
         }
 

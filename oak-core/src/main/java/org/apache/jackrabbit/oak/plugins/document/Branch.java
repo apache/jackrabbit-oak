@@ -94,7 +94,7 @@ class Branch {
     }
 
     /**
-     * @return the initial base of this branch.
+     * @return the initial base of this branch. This is a trunk revision.
      */
     @Nonnull
     RevisionVector getBase() {
@@ -302,6 +302,9 @@ class Branch {
             this.commit = commit;
         }
 
+        /**
+         * @return the branch base for this branch commit.
+         */
         RevisionVector getBase() {
             return base;
         }
