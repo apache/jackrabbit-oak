@@ -106,7 +106,7 @@ public class IndexRootDirectoryTest {
         File fb2 = dir.getIndexDir(getDefn(), "/b", "default");
 
         List<LocalIndexDir> dirs = dir.getAllLocalIndexes();
-        assertEquals(2, dirs.size());
+        assertEquals(4, dirs.size());
 
         assertEquals(fb2.getParentFile().getAbsolutePath(), getDir("/b", dirs).getFSPath());
         assertEquals(fa2.getParentFile().getAbsolutePath(), getDir("/a", dirs).getFSPath());

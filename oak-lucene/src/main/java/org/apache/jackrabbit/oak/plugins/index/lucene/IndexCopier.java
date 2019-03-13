@@ -453,7 +453,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         TabularDataSupport tds;
         try{
             TabularType tt = new TabularType(IndexMappingData.class.getName(),
-                    "Lucene Index Stats", IndexMappingData.TYPE, new String[]{"jcrPath"});
+                    "Lucene Index Stats", IndexMappingData.TYPE, new String[]{"fsPath"});
             tds = new TabularDataSupport(tt);
             for (LocalIndexDir indexDir : indexRootDirectory.getAllLocalIndexes()){
                 String size = humanReadableByteCount(indexDir.size());
