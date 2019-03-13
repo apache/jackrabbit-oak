@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,6 +27,7 @@ import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -147,6 +149,7 @@ public final class IndexDefinitionBuilder {
 
     public NodeState build(){
         setReindexFlagIfRequired();
+        setRefreshFlagIfRequired();
         return builder.getNodeState();
     }
 
@@ -171,6 +174,12 @@ public final class IndexDefinitionBuilder {
         if (!reindexRequired && !SelectiveEqualsDiff.equals(initial, builder.getNodeState()) && autoManageReindexFlag){
             tree.setProperty("reindex", true);
             reindexRequired = true;
+        }
+    }
+
+    private void setRefreshFlagIfRequired() {
+        if (!initial.equals(builder.getNodeState()) && SelectiveEqualsDiff.equals(initial, builder.getNodeState())) {
+            tree.setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
         }
     }
 
@@ -567,10 +576,17 @@ public final class IndexDefinitionBuilder {
     }
 
     static class SelectiveEqualsDiff extends EqualsDiff {
+
+        List<String> ignorablePropertiesList = ImmutableList.of(FulltextIndexConstants.PROP_NAME,FulltextIndexConstants.PROP_WEIGHT,FIELD_BOOST,
+                FulltextIndexConstants.PROP_SECURE_FACETS,FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN,
+                IndexConstants.QUERY_PATHS,FulltextIndexConstants.BLOB_SIZE,FulltextIndexConstants.COST_PER_ENTRY,FulltextIndexConstants.COST_PER_EXECUTION);
+
+
         public static boolean equals(NodeState before, NodeState after) {
             return before.exists() == after.exists()
                     && after.compareAgainstBaseState(before, new SelectiveEqualsDiff());
         }
+
 
         @Override
         public boolean propertyChanged(PropertyState before, PropertyState after) {
@@ -578,8 +594,51 @@ public final class IndexDefinitionBuilder {
                 Set<String> asyncBefore = getAsyncValuesWithoutNRT(before);
                 Set<String> asyncAfter = getAsyncValuesWithoutNRT(after);
                 return asyncBefore.equals(asyncAfter);
+            } else if (ignorablePropertiesList.contains(before.getName())) {
+                return true;
             }
             return false;
+        }
+
+        @Override
+        public boolean propertyAdded(PropertyState after) {
+            if(ignorablePropertiesList.contains(after.getName())) {
+                return true;
+            }
+            return super.propertyAdded(after);
+        }
+
+        @Override
+        public boolean propertyDeleted(PropertyState before) {
+            if(ignorablePropertiesList.contains(before.getName())) {
+                return true;
+            }
+            return super.propertyDeleted(before);
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            if(name.equals(FulltextIndexConstants.PROP_FACETS)) {
+                return true;
+            }
+            return super.childNodeAdded(name,after);
+        }
+
+        @Override
+        public boolean childNodeChanged(
+                String name, NodeState before, NodeState after){
+            if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
+                return true;
+            }
+            return super.childNodeChanged(name,before,after);
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
+                return true;
+            }
+            return super.childNodeDeleted(name,before);
         }
 
         private Set<String> getAsyncValuesWithoutNRT(PropertyState state){
