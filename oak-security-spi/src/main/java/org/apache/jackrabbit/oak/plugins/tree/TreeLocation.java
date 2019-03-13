@@ -46,6 +46,7 @@ public abstract class TreeLocation {
     /**
      * Create a new {@code TreeLocation} instance for a {@code tree}
      */
+    @NotNull
     public static TreeLocation create(@NotNull Tree tree) {
         return new NodeLocation(tree);
     }
@@ -54,7 +55,8 @@ public abstract class TreeLocation {
      * Create a new {@code TreeLocation} instance for the item
      * at the given {@code path} in {@code root}.
      */
-    public static TreeLocation create(Root root, String path) {
+    @NotNull
+    public static TreeLocation create(@NotNull Root root, @NotNull String path) {
         checkArgument(isAbsolute(path));
         TreeLocation location = create(root.getTree(PathUtils.ROOT_PATH));
         for (String name : elements(path)) {
@@ -66,7 +68,8 @@ public abstract class TreeLocation {
     /**
      * Equivalent to {@code create(root, "/")}
      */
-    public static TreeLocation create(Root root) {
+    @NotNull
+    public static TreeLocation create(@NotNull Root root) {
         return create(root, PathUtils.ROOT_PATH);
     }
 
@@ -155,8 +158,8 @@ public abstract class TreeLocation {
         @Override
         public TreeLocation getParent() {
             return tree.isRoot()
-                ? NullLocation.NULL
-                : new NodeLocation(tree.getParent());
+                    ? NullLocation.NULL
+                    : new NodeLocation(tree.getParent());
         }
 
         @NotNull
@@ -180,6 +183,7 @@ public abstract class TreeLocation {
             return tree.getName();
         }
 
+        @Nullable
         @Override
         public Tree getTree() {
             return exists() ? tree : null;
@@ -205,7 +209,7 @@ public abstract class TreeLocation {
         private final Tree parent;
         private final String name;
 
-        public PropertyLocation(Tree parent, String name) {
+        public PropertyLocation(@NotNull Tree parent, @NotNull String name) {
             this.parent = parent;
             this.name = name;
         }
@@ -227,6 +231,7 @@ public abstract class TreeLocation {
             return name;
         }
 
+        @Nullable
         @Override
         public PropertyState getProperty() {
             return parent.getProperty(name);
@@ -255,7 +260,7 @@ public abstract class TreeLocation {
         private final TreeLocation parent;
         private final String name;
 
-        public NullLocation(TreeLocation parent, String name) {
+        public NullLocation(@NotNull TreeLocation parent, @NotNull String name) {
             this.parent = parent;
             this.name = name;
         }
