@@ -618,24 +618,31 @@ public final class IndexDefinitionBuilder {
 
         @Override
         public boolean childNodeAdded(String name, NodeState after) {
+
             if(name.equals(FulltextIndexConstants.PROP_FACETS)) {
+                List<String> ignorableFacetConfigProps = ImmutableList.of(FulltextIndexConstants.PROP_SECURE_FACETS,
+                        FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE, FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
+                // This here makes sure any new property under FACETS that might be added in future and if so might require
+                // reindexing - then addition of  facet node (/facet/foo) with such property lead to auto set of reindex flag
+                for(PropertyState property : after.getProperties()) {
+                    if(!ignorableFacetConfigProps.contains(property.getName())) return super.childNodeAdded(name, after);
+                }
                 return true;
             }
             return super.childNodeAdded(name, after);
         }
 
         @Override
-        public boolean childNodeChanged(
-                String name, NodeState before, NodeState after){
-            if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
-                return true;
-            }
-            return super.childNodeChanged(name, before, after);
-        }
-
-        @Override
         public boolean childNodeDeleted(String name, NodeState before) {
+
             if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
+                List<String> ignorableFacetConfigProps = ImmutableList.of(FulltextIndexConstants.PROP_SECURE_FACETS,
+                        FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE, FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
+                // This here makes sure any new property under FACETS that might be added in future and if so might require
+                // reindexing - then deletion of facet node  with such property lead to auto set of reindex flag
+                for(PropertyState property : before.getProperties()) {
+                    if(!ignorableFacetConfigProps.contains(property.getName())) return super.childNodeAdded(name, before);
+                }
                 return true;
             }
             return super.childNodeDeleted(name, before);
