@@ -93,7 +93,7 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
                 log.info("Index at [{}] which was so far failing {} is now working again.", info.path, info.getStats());
             }
         }
-        if (meter != null && !indexes.isEmpty()) {
+        if (meter != null) {
             meter.mark(indexes.size());
         }
     }
