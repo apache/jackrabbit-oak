@@ -199,9 +199,9 @@ public class CompositePrincipalProviderTest {
                     to = Math.min(offset + limit, to);
                 }
                 List<String> sub = expected.subList(offset, to);
-                Iterator<? extends Principal> i0 = pp.findPrincipals(null, PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                Iterator<? extends Principal> i0 = pp.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
                 assertEquals(sub, getNames(i0));
-                Iterator<? extends Principal> i1 = pp.findPrincipals("", PrincipalManager.SEARCH_TYPE_ALL, offset,
+                Iterator<? extends Principal> i1 = pp.findPrincipals("", false, PrincipalManager.SEARCH_TYPE_ALL, offset,
                         limit);
                 assertEquals(sub, getNames(i1));
             }

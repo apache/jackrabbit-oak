@@ -80,7 +80,7 @@ public class PrincipalManagerImpl implements PrincipalQueryManager, PrincipalMan
     }
 
     @Override
-    public PrincipalIterator findPrincipals(String simpleFilter, int searchType, long offset, long limit) {
-        return new PrincipalIteratorAdapter(principalProvider.findPrincipals(simpleFilter, searchType, offset, limit));
+    public PrincipalIterator findPrincipals(String simpleFilter, boolean fullText, int searchType, long offset, long limit) {
+        return new PrincipalIteratorAdapter(principalProvider.findPrincipals(simpleFilter, fullText, searchType, offset, limit));
     }
 }
