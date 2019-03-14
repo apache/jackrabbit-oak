@@ -412,36 +412,6 @@ public class IndexDefinitionBuilderTest {
 
     }
 
-    @Test
-    public void noReindexWhenNameChangeOnIndexDefNode() throws Exception{
-        builder.async("async", IndexConstants.INDEXING_MODE_NRT);
-
-        NodeState currentNodeState = builder.build();
-        nodeBuilder = currentNodeState.builder();
-
-        //Unset the reindex flag first because first build would have set it .
-        nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-
-        builder = new IndexDefinitionBuilder(nodeBuilder);
-        // Setter for this is not exposed in IndexDefintionBuilder
-        // but can be set explicitly via node builder - so a valid use case
-        nodeBuilder.setProperty("name","testIndex");
-
-        currentNodeState = builder.build();
-
-        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
-        assertTrue(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
-        nodeBuilder = currentNodeState.builder();
-        nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-
-        //Now test with changing the value - this too shouldn't set the reindexing flag
-        builder = new IndexDefinitionBuilder(nodeBuilder);
-        nodeBuilder.setProperty("name","testIndex2");
-
-        currentNodeState = builder.build();
-        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
-        assertTrue(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
-    }
     // This is a node for configuration on how faceted search works
     // Everything impacts querty time evauation - so no need of reindexing in case of changes
     @Test

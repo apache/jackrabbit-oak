@@ -576,11 +576,11 @@ public final class IndexDefinitionBuilder {
     }
 
     static class SelectiveEqualsDiff extends EqualsDiff {
-
-        List<String> ignorablePropertiesList = ImmutableList.of(FulltextIndexConstants.PROP_NAME,FulltextIndexConstants.PROP_WEIGHT,FIELD_BOOST,
-                FulltextIndexConstants.PROP_SECURE_FACETS,FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN,
+        // Properties for which changes shouldn't auto set the reindex flag
+        List<String> ignorablePropertiesList = ImmutableList.of(FulltextIndexConstants.PROP_WEIGHT,FIELD_BOOST,
                 IndexConstants.QUERY_PATHS,FulltextIndexConstants.BLOB_SIZE,FulltextIndexConstants.COST_PER_ENTRY,FulltextIndexConstants.COST_PER_EXECUTION);
-
+        List<String> ignorableFacetConfigProps = ImmutableList.of(FulltextIndexConstants.PROP_SECURE_FACETS,
+                FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE, FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
 
         public static boolean equals(NodeState before, NodeState after) {
             return before.exists() == after.exists()
@@ -594,7 +594,7 @@ public final class IndexDefinitionBuilder {
                 Set<String> asyncBefore = getAsyncValuesWithoutNRT(before);
                 Set<String> asyncAfter = getAsyncValuesWithoutNRT(after);
                 return asyncBefore.equals(asyncAfter);
-            } else if (ignorablePropertiesList.contains(before.getName())) {
+            } else if (ignorablePropertiesList.contains(before.getName()) || ignorableFacetConfigProps.contains(before.getName())) {
                 return true;
             }
             return false;
@@ -602,7 +602,7 @@ public final class IndexDefinitionBuilder {
 
         @Override
         public boolean propertyAdded(PropertyState after) {
-            if(ignorablePropertiesList.contains(after.getName())) {
+            if(ignorablePropertiesList.contains(after.getName()) || ignorableFacetConfigProps.contains(after.getName())) {
                 return true;
             }
             return super.propertyAdded(after);
@@ -610,7 +610,7 @@ public final class IndexDefinitionBuilder {
 
         @Override
         public boolean propertyDeleted(PropertyState before) {
-            if(ignorablePropertiesList.contains(before.getName())) {
+            if(ignorablePropertiesList.contains(before.getName()) || ignorableFacetConfigProps.contains(before.getName())) {
                 return true;
             }
             return super.propertyDeleted(before);
@@ -620,8 +620,6 @@ public final class IndexDefinitionBuilder {
         public boolean childNodeAdded(String name, NodeState after) {
 
             if(name.equals(FulltextIndexConstants.PROP_FACETS)) {
-                List<String> ignorableFacetConfigProps = ImmutableList.of(FulltextIndexConstants.PROP_SECURE_FACETS,
-                        FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE, FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
                 // This here makes sure any new property under FACETS that might be added in future and if so might require
                 // reindexing - then addition of  facet node (/facet/foo) with such property lead to auto set of reindex flag
                 for(PropertyState property : after.getProperties()) {
@@ -636,8 +634,6 @@ public final class IndexDefinitionBuilder {
         public boolean childNodeDeleted(String name, NodeState before) {
 
             if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
-                List<String> ignorableFacetConfigProps = ImmutableList.of(FulltextIndexConstants.PROP_SECURE_FACETS,
-                        FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE, FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
                 // This here makes sure any new property under FACETS that might be added in future and if so might require
                 // reindexing - then deletion of facet node  with such property lead to auto set of reindex flag
                 for(PropertyState property : before.getProperties()) {
