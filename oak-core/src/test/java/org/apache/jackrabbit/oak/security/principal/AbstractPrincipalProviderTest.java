@@ -416,7 +416,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
                 }
                 List<String> sub = expected.subList(offset, to);
                 Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup",
-                        PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                        false, PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
                 assertEquals(sub, getNames(i1));
             }
         }

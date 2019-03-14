@@ -157,12 +157,12 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     @Override
     public Iterator<? extends Principal> findPrincipals(final String nameHint, final int searchType) {
-        return findPrincipals(nameHint, searchType, 0, -1);
+        return findPrincipals(nameHint, false, searchType, 0, -1);
     }
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final String nameHint, final int searchType, long offset,
+    public Iterator<? extends Principal> findPrincipals(final String nameHint, final boolean fullText, final int searchType, long offset,
             long limit) {
         if (offset < 0) {
             offset = 0;
