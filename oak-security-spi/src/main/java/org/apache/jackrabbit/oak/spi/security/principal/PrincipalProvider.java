@@ -138,6 +138,7 @@ public interface PrincipalProvider {
      * Find the principals that match the specified nameHint and search type.
      *
      * @param nameHint A name hint to use for non-exact matching.
+     * @param fullText hint to use a full text query for search
      * @param searchType Limit the search to certain types of principals. Valid
      * values are any of
      * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_ALL}</li></ul>
@@ -149,7 +150,7 @@ public interface PrincipalProvider {
      * @throws IllegalArgumentException if {@code offset} is negative
      */
     @NotNull
-    default Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType, long offset, long limit) {
+    default Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType, long offset, long limit) {
         if (offset < 0) {
             throw new IllegalArgumentException(Long.toString(offset));
         }

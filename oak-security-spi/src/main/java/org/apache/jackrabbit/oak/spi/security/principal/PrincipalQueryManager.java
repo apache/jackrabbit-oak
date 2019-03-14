@@ -37,6 +37,7 @@ public interface PrincipalQueryManager {
      * An implementation may limit the number of principals returned.
      * If there are no matching principals, an empty iterator is returned.
      * @param simpleFilter
+     * @param fullText
      * @param searchType Any of the following constants:
      * <ul>
      * <li>{@link PrincipalManager#SEARCH_TYPE_ALL}</li>
@@ -48,5 +49,5 @@ public interface PrincipalQueryManager {
      * @return a <code>PrincipalIterator</code> over the <code>Principal</code>s
      * matching the given filter and search type.
      */
-    PrincipalIterator findPrincipals(String simpleFilter, int searchType, long offset, long limit);
+    PrincipalIterator findPrincipals(String simpleFilter, boolean fullText, int searchType, long offset, long limit);
 }

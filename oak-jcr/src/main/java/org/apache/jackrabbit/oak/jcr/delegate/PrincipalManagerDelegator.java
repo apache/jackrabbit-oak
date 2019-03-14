@@ -126,13 +126,13 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
     }
 
     @Override
-    public PrincipalIterator findPrincipals(String simpleFilter, int searchType, long offset, long limit) {
+    public PrincipalIterator findPrincipals(String simpleFilter, boolean fullText, int searchType, long offset, long limit) {
         return delegate.safePerform(new SessionOperation<PrincipalIterator>("findPrincipals") {
             @NotNull
             @Override
             public PrincipalIterator perform() {
                 if (principalManager instanceof PrincipalQueryManager) {
-                    return ((PrincipalQueryManager) principalManager).findPrincipals(simpleFilter, searchType, offset,
+                    return ((PrincipalQueryManager) principalManager).findPrincipals(simpleFilter, fullText, searchType, offset,
                             limit);
                 } else {
                     PrincipalIterator pi = principalManager.findPrincipals(simpleFilter, searchType);
