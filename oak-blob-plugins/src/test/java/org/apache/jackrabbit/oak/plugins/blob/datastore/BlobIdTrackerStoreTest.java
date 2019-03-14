@@ -87,7 +87,7 @@ public class BlobIdTrackerStoreTest {
     }
 
     private BlobIdTracker initTracker() throws IOException {
-        return new BlobIdTracker(root.getAbsolutePath(),
+        return BlobIdTracker.build(root.getAbsolutePath(),
            repoId, 5 * 60, dataStore);
     }
 

@@ -638,7 +638,7 @@ public class DataStoreTrackerGCTest {
                 REPOSITORY.getNameFromId(repoId));
 
             String trackerRoot = folder.newFolder(clusterName).getAbsolutePath();
-            tracker = new BlobIdTracker(trackerRoot,
+            tracker = BlobIdTracker.build(trackerRoot,
                 repoId, 86400, (SharedDataStore) blobStore);
             // add the tracker to the blobStore
             ((BlobTrackingStore) blobStore).addTracker(tracker);

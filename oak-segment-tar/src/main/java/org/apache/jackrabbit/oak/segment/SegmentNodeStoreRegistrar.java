@@ -416,7 +416,7 @@ class SegmentNodeStoreRegistrar {
                 if (trackingStore.getTracker() != null) {
                     trackingStore.getTracker().close();
                 }
-                trackingStore.addTracker(new BlobIdTracker(cfg.getRepositoryHome(), getOrCreateId(segmentNodeStore), cfg.getBlobSnapshotInterval(), sharedDataStore));
+                trackingStore.addTracker(BlobIdTracker.build(cfg.getRepositoryHome(), getOrCreateId(segmentNodeStore), cfg.getBlobSnapshotInterval(), sharedDataStore));
             }
         }
 
