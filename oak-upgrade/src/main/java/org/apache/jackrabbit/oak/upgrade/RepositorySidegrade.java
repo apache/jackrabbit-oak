@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
@@ -48,6 +49,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -404,6 +407,8 @@ public class RepositorySidegrade {
 
     private void migrateWithoutCheckpoints() throws CommitFailedException, RepositoryException {
         final List<CommitHook> hooks = new ArrayList<>();
+        final String workspaceName = getWorkspaceName();
+
         if (customCommitHooks != null) {
             hooks.addAll(customCommitHooks);
         }
@@ -420,7 +425,12 @@ public class RepositorySidegrade {
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), versionStorage, versionCopyConfiguration);
             }
-            hooks.add(new EditorHook(new VersionableEditor.Provider(sourceRoot, getWorkspaceName(), versionCopyConfiguration)));
+            hooks.add(new EditorHook(new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration)));
+        }
+
+        SecurityProvider security = new SecurityProviderImpl();
+        for (SecurityConfiguration securityConfig : security.getConfigurations()) {
+            hooks.addAll(securityConfig.getCommitHooks(workspaceName));
         }
         // type validation, reference and indexing hooks
         hooks.add(new EditorHook(new CompositeEditorProvider(
