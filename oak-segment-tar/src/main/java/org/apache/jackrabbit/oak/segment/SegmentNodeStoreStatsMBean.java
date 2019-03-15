@@ -61,39 +61,46 @@ public interface SegmentNodeStoreStatsMBean {
     TabularData getCommitsCountForOtherWriters() throws OpenDataException;
     
     /**
-     * @return tabular data of the form <em>&lt;writer, writerDetails, writerTimeStamp&gt;</em>
+     * @return tabular data of the form <em>&lt;writer, writerDetails, queued, dequed, applied&gt;</em>
      * for each writer currently in the queue
      * @throws OpenDataException if data is not available
      */
     TabularData getQueuedWriters() throws OpenDataException;
-    
+
     /**
-     * Turns on/off, depending on the value of {@code flag}, the collection of 
+     * @return data of the form <em>&lt;writer, writerDetails, queued, dequed, applied&gt;</em>
+     * for the writer currently in committing. @{@code null} if none.
+     * @throws OpenDataException if data is not available
+     */
+    CompositeData getCurrentWriter() throws OpenDataException;
+
+    /**
+     * Turns on/off, depending on the value of {@code flag}, the collection of
      * stack traces for each writer.
      * @param flag {@code boolean} indicating whether to collect or not
      */
     void setCollectStackTraces(boolean flag);
-    
+
     /**
      * @return collectStackTraces status flag
      */
     boolean isCollectStackTraces();
-    
+
     /**
      * Modifies the maximum number of writers outside already defined
      * groups to be recorded.
      * Changing the default value will reset the overall collection process.
-     * 
+     *
      * @param otherWritersLimit the new size
      */
     void setNumberOfOtherWritersToDetail(int otherWritersLimit);
-    
+
     /**
      * @return maximum number of writers outside already defined
      * groups to be recorded
      */
     int getNumberOfOtherWritersToDetail();
-    
+
     /**
      * @return current groups used for grouping writers.
      */
