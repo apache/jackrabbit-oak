@@ -257,7 +257,7 @@ public class LockBasedScheduler implements Scheduler {
             commitSemaphoreLogging.warnOnBlockingCommit();
 
             long queuedTime = System.nanoTime();
-            stats.onCommitQueued(Thread.currentThread());
+            stats.onCommitQueued(Thread.currentThread(), commit::getGCGeneration);
 
             commitSemaphore.acquire();
             commitSemaphoreLogging.commitStarted(commit);

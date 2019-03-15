@@ -21,13 +21,17 @@ package org.apache.jackrabbit.oak.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.Math.min;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.junit.Test;
 
 public class CommitsTrackerTest {
@@ -35,19 +39,22 @@ public class CommitsTrackerTest {
     private static class CommitTask {
         private final CommitsTracker commitsTracker;
         private final Thread thread;
+        private final GCGeneration gcGeneration;
 
-        CommitTask(CommitsTracker commitsTracker) {
+        CommitTask(CommitsTracker commitsTracker, GCGeneration gcGeneration) {
             this.commitsTracker = commitsTracker;
             this.thread = new Thread();
+            this.gcGeneration = gcGeneration;
         }
 
-        CommitTask(CommitsTracker commitsTracker, String threadName) {
+        CommitTask(CommitsTracker commitsTracker, String threadName, GCGeneration gcGeneration) {
             this.commitsTracker = commitsTracker;
             this.thread = new Thread(threadName);
+            this.gcGeneration = gcGeneration;
         }
 
         public void queued() {
-            commitsTracker.trackQueuedCommitOf(thread);
+            commitsTracker.trackQueuedCommitOf(thread, () -> gcGeneration);
         }
 
         public void dequeue() {
@@ -61,31 +68,42 @@ public class CommitsTrackerTest {
         public String getThreadName() {
             return thread.getName();
         }
+
+        public GCGeneration getGcGeneration() {
+            return gcGeneration;
+        }
     }
 
     @Test
     public void testCommitsCountOthers() throws InterruptedException {
-        CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, 10);
+        final int OTHER_WRITERS_LIMIT = 10;
+        CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, OTHER_WRITERS_LIMIT);
 
         List<CommitTask> queued = newArrayList();
         for (int k = 0; k < 20; k++) {
-            CommitTask commitTask = new CommitTask(commitsTracker);
+            CommitTask commitTask = new CommitTask(commitsTracker, newGCGeneration(k, k, false));
             queued.add(commitTask);
             commitTask.queued();
+            assertNull(commitsTracker.getCurrentWriter());
             assertEquals(queued.size(), commitsTracker.getQueuedWritersMap().size());
             assertEquals(0, commitsTracker.getCommitsCountOthers().size());
             assertTrue(commitsTracker.getCommitsCountPerGroupLastMinute().isEmpty());
         }
 
         List<CommitTask> executed = newArrayList();
-        for (int k = 0; k < 13; k ++) {
+        for (int k = 0; k < OTHER_WRITERS_LIMIT + 3; k++) {
             CommitTask commitTask = queued.remove(0);
             executed.add(commitTask);
             commitTask.dequeue();
+            Commit currentWriter = commitsTracker.getCurrentWriter();
+            assertNotNull(currentWriter);
+            assertEquals(commitTask.getGcGeneration(), currentWriter.getGCGeneration());
+            assertEquals(commitTask.getThreadName(), commitsTracker.getCurrentWriter().getThreadName());
 
             commitTask.executed();
+            assertNull(commitsTracker.getCurrentWriter());
             assertEquals(queued.size(), commitsTracker.getQueuedWritersMap().size());
-            assertEquals(min(10, executed.size()), commitsTracker.getCommitsCountOthers().size());
+            assertEquals(min(OTHER_WRITERS_LIMIT, executed.size()), commitsTracker.getCommitsCountOthers().size());
             assertTrue(commitsTracker.getCommitsCountPerGroupLastMinute().isEmpty());
         }
     }
@@ -96,7 +114,10 @@ public class CommitsTrackerTest {
         CommitsTracker commitsTracker = new CommitsTracker(groups, 10);
 
         for (int k = 0; k < 40; k++) {
-            CommitTask commitTask = new CommitTask(commitsTracker, "Thread-" + (10 + k));
+            CommitTask commitTask = new CommitTask(
+                    commitsTracker,
+                    "Thread-" + (10 + k),
+                    GCGeneration.NULL);
             commitTask.queued();
             commitTask.dequeue();
             commitTask.executed();

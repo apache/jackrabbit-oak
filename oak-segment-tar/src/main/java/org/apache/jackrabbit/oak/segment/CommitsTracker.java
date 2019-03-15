@@ -29,9 +29,11 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
+import java.util.function.Supplier;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -43,7 +45,11 @@ import org.jetbrains.annotations.Nullable;
  * currently waiting on the commit semaphore
  * </ul>
  * 
- * This class delegates thread-safety to its underlying state variables.
+ * For the most part, this class delegates thread-safety to its underlying
+ * state variables. However, the {@link #trackDequedCommitOf(Thread)} and
+ * {@link #trackExecutedCommitOf(Thread)} method must be called in
+ * sequence within the same transaction, because they are linked
+ * via the {@link #currentCommit} field.
  */
 class CommitsTracker {
     private final String[] threadGroups;
@@ -59,44 +65,52 @@ class CommitsTracker {
     static final class Commit {
         private final String threadName;
         private final WeakReference<Thread> thread;
+        private final Supplier<GCGeneration> gcGeneration;
 
         private long queued;
         private long dequeued;
         private long applied;
 
-        Commit(Thread thread) {
+        Commit(Thread thread, Supplier<GCGeneration> gcGeneration) {
             this.threadName = thread.getName();
+            this.gcGeneration = gcGeneration;
             this.thread = new WeakReference<>(thread);
         }
 
+        @NotNull
         Commit queued() {
             queued = System.currentTimeMillis();
             return this;
         }
 
+        @NotNull
         Commit dequeued() {
             dequeued = System.currentTimeMillis();
             return this;
         }
 
+        @NotNull
         Commit applied() {
             applied = System.currentTimeMillis();
             return this;
         }
 
-        String getStackTrace() {
+        @Nullable
+        StackTraceElement[] getStackTrace() {
             Thread t = thread.get();
-            if (t != null) {
-                StringBuilder threadDetails = new StringBuilder();
-                Stream.of(t.getStackTrace()).forEach(threadDetails::append);
-                return threadDetails.toString();
-            } else {
-                return "N/A";
-            }
+            return t == null
+                ? null
+                : t.getStackTrace();
         }
 
+        @NotNull
         String getThreadName() {
             return threadName;
+        }
+
+        @Nullable
+        GCGeneration getGCGeneration() {
+            return gcGeneration.get();
         }
 
         long getQueued() {
@@ -118,8 +132,8 @@ class CommitsTracker {
         this.queuedWritersMap = new ConcurrentHashMap<>();
     }
 
-    public void trackQueuedCommitOf(Thread thread) {
-        queuedWritersMap.put(thread.getName(), new Commit(thread).queued());
+    public void trackQueuedCommitOf(Thread thread, Supplier<GCGeneration> gcGeneration) {
+        queuedWritersMap.put(thread.getName(), new Commit(thread, gcGeneration).queued());
     }
 
     public void trackDequedCommitOf(Thread thread) {
