@@ -237,7 +237,7 @@ public class IndexRootDirectory {
             pathToDirMap.get(localIndexDir.getJcrPath()).add(localIndexDir);
         }
 
-        Map<String, List<LocalIndexDir>> result = Maps.newHashMap();
+        Map<String, List<LocalIndexDir>> result = Maps.newTreeMap();
         for (Map.Entry<String, Collection<LocalIndexDir>> e : pathToDirMap.asMap().entrySet()){
             List<LocalIndexDir> sortedDirs = new ArrayList<>(e.getValue());
             Collections.sort(sortedDirs, Collections.<LocalIndexDir>reverseOrder());
