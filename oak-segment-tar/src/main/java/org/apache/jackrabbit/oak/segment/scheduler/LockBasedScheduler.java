@@ -253,26 +253,17 @@ public class LockBasedScheduler implements Scheduler {
     @Override
     public NodeState schedule(@NotNull Commit commit, SchedulerOption... schedulingOptions)
             throws CommitFailedException {
-        boolean queued = false;
-
         try {
             commitSemaphoreLogging.warnOnBlockingCommit();
 
-            long queuedTime = -1;
-
-            if (commitSemaphore.availablePermits() < 1) {
-                queuedTime = System.nanoTime();
-                stats.onCommitQueued(Thread.currentThread());
-                queued = true;
-            }
+            long queuedTime = System.nanoTime();
+            stats.onCommitQueued(Thread.currentThread());
 
             commitSemaphore.acquire();
             commitSemaphoreLogging.commitStarted(commit);
             try {
-                if (queued) {
-                    long dequeuedTime = System.nanoTime();
-                    stats.onCommitDequeued(Thread.currentThread(), dequeuedTime - queuedTime);
-                }
+                long dequeuedTime = System.nanoTime();
+                stats.onCommitDequeued(Thread.currentThread(), dequeuedTime - queuedTime);
 
                 long beforeCommitTime = System.nanoTime();
 
