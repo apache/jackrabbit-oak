@@ -39,11 +39,14 @@ import javax.management.openmbean.TabularType;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, SegmentNodeStoreMonitor {
     private static final boolean COLLECT_STACK_TRACES = Boolean
@@ -65,7 +68,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     private boolean collectStackTraces = COLLECT_STACK_TRACES;
     private int otherWritersLimit = OTHER_WRITERS_LIMIT;
     private String[] writerGroups;
-    
+
     public SegmentNodeStoreStats(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
         
@@ -156,28 +159,52 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
         return tabularData;
     }
 
+    @NotNull
+    private static CompositeType getCompositeType(String name) throws OpenDataException {
+        return new CompositeType(
+                name, name,
+                new String[] {"writerName", "writerDetails", "queued", "dequeued", "applied"},
+                new String[] {"writerName", "writerDetails", "queued", "dequeued", "applied"},
+                new OpenType[] {SimpleType.STRING, SimpleType.STRING,
+                        SimpleType.LONG, SimpleType.LONG, SimpleType.LONG});
+    }
+
     @Override
     public TabularData getQueuedWriters() throws OpenDataException {
-        CompositeType queuedWritersDetailsRowType = new CompositeType(
-                "queuedWritersDetails", "queuedWritersDetails",
-                new String[] { "writerName", "writerDetails", "writerTimeStamp" },
-                new String[] { "writerName", "writerDetails", "writerTimeStamp" },
-                new OpenType[] { SimpleType.STRING, SimpleType.STRING, SimpleType.LONG });
+        CompositeType queuedWritersDetailsRowType = getCompositeType("queuedWritersDetails");
 
         TabularDataSupport tabularData = new TabularDataSupport(new TabularType(
                 "queuedWritersDetails", "Queued writers details",
                 queuedWritersDetailsRowType,
                 new String[] { "writerName" }));
 
-        commitsTracker.getQueuedWritersMap().values().stream().map(commit ->
-            ImmutableMap.<String, Object>of(
-                "writerName", commit.getThreadName(),
-                "writerDetails", collectStackTraces ? commit.getStackTrace() : "N/A",
-                "writerTimeStamp", commit.getTimeStamp()))
-        .map(d -> mapToCompositeData(queuedWritersDetailsRowType, d))
-        .forEach(tabularData::put);
+        commitsTracker.getQueuedWritersMap().values().stream()
+            .map(this::toMap)
+            .map(d -> mapToCompositeData(queuedWritersDetailsRowType, d))
+            .forEach(tabularData::put);
 
-        return tabularData; 
+        return tabularData;
+    }
+
+    @Override
+    @Nullable
+    public CompositeData getCurrentWriter() throws OpenDataException {
+        Commit writer = commitsTracker.getCurrentWriter();
+        if (writer != null) {
+            return mapToCompositeData(getCompositeType("currentWritersDetails"), toMap(writer));
+        } else {
+            return null;
+        }
+    }
+
+    @NotNull
+    private Map<String, Object> toMap(@NotNull Commit commit) {
+        return ImmutableMap.of(
+            "writerName", commit.getThreadName(),
+            "writerDetails", collectStackTraces ? commit.getStackTrace() : "N/A",
+            "queued", commit.getQueued(),
+            "dequeued", commit.getDequeued(),
+            "applied", commit.getApplied());
     }
 
     @Override
