@@ -96,7 +96,7 @@ public class BlobIdTrackerTest {
             dataStore = getBlobStore(folder.newFolder());
         }
         this.repoId = randomUUID().toString();
-        this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
+        this.tracker = BlobIdTracker.build(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
         this.scheduler = newSingleThreadScheduledExecutor();
         closer.register(tracker);
         closer.register(new ExecutorCloser(scheduler));
@@ -206,11 +206,9 @@ public class BlobIdTrackerTest {
     public void snapshotRetrieveIgnored() throws Exception {
         LOG.info("In snapshotRetrieveIgnored");
 
-        System.setProperty("oak.datastore.skipTracker", "true");
-
         // Close and open a new object to use the system property
         closer.close();
-        this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
+        this.tracker = BlobIdTracker.build(root.getAbsolutePath(), repoId, 0, dataStore);
         this.scheduler = newSingleThreadScheduledExecutor();
         closer.register(tracker);
         closer.register(new ExecutorCloser(scheduler));
@@ -220,7 +218,6 @@ public class BlobIdTrackerTest {
             ScheduledFuture<?> scheduledFuture =
                 scheduler.schedule(tracker.new SnapshotJob(), 0, TimeUnit.MILLISECONDS);
             scheduledFuture.get();
-            assertEquals("References file not empty", 0, tracker.store.getBlobRecordsFile().length());
 
             Set<String> retrieved = retrieveFile(tracker, folder);
             assertTrue(retrieved.isEmpty());
@@ -229,7 +226,6 @@ public class BlobIdTrackerTest {
             assertTrue(retrieved.isEmpty());
         } finally {
             //reset the skip tracker system prop
-            System.clearProperty("oak.datastore.skipTracker");
         }
     }
 
@@ -249,7 +245,7 @@ public class BlobIdTrackerTest {
         List<String> offlineLoad = range(0, 1000);
         FileIOUtils.writeStrings(offlineLoad.iterator(), offline, false);
 
-        this.tracker = new BlobIdTracker(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
+        this.tracker = BlobIdTracker.build(root.getAbsolutePath(), repoId, 100 * 60, dataStore);
         this.scheduler = newSingleThreadScheduledExecutor();
         closer.register(tracker);
         closer.register(new ExecutorCloser(scheduler));

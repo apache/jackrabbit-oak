@@ -355,7 +355,7 @@ public class DocumentNodeStoreService {
                     trackingStore.getTracker().close();
                 }
                 ((BlobTrackingStore) blobStore).addTracker(
-                    new BlobIdTracker(getRepositoryHome(), repoId,
+                    BlobIdTracker.build(getRepositoryHome(), repoId,
                             config.blobTrackSnapshotIntervalInSecs(),
                             (SharedDataStore) blobStore));
             }
