@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Queues.newConcurrentLinkedQueue;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -46,36 +47,48 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 class CommitsTracker {
     private final String[] threadGroups;
     private final int otherWritersLimit;
-    private final boolean collectStackTraces;
-    private final ConcurrentMap<String, String> queuedWritersMap;
+    private final ConcurrentMap<String, Commit> queuedWritersMap;
     private final Queue<Commit> commits = newConcurrentLinkedQueue();
 
-    private static final class Commit {
-        final long timeStamp;
-        final String thread;
+    static final class Commit {
+        private final long timeStamp;
+        private final String threadName;
+        private final WeakReference<Thread> thread;
 
-        Commit(long timeStamp, String thread) {
+        Commit(long timeStamp, Thread thread) {
             this.timeStamp = timeStamp;
-            this.thread = thread;
+            this.threadName = thread.getName();
+            this.thread = new WeakReference<>(thread);
+        }
+
+        String getStackTrace() {
+            Thread t = thread.get();
+            if (t != null) {
+                StringBuilder threadDetails = new StringBuilder();
+                Stream.of(t.getStackTrace()).forEach(threadDetails::append);
+                return threadDetails.toString();
+            } else {
+                return "N/A";
+            }
+        }
+
+        String getThreadName() {
+            return threadName;
+        }
+
+        long getTimeStamp() {
+            return timeStamp;
         }
     }
 
-    CommitsTracker(String[] threadGroups, int otherWritersLimit, boolean collectStackTraces) {
+    CommitsTracker(String[] threadGroups, int otherWritersLimit) {
         this.threadGroups = threadGroups;
         this.otherWritersLimit = otherWritersLimit;
-        this.collectStackTraces = collectStackTraces;
         this.queuedWritersMap = new ConcurrentHashMap<>();
     }
 
     public void trackQueuedCommitOf(Thread t) {
-        String writerDetails = "N/A";
-        if (collectStackTraces) {
-            StringBuilder threadDetails = new StringBuilder();
-            Stream.of(t.getStackTrace()).forEach(threadDetails::append);
-            writerDetails = threadDetails.toString();
-        }
-
-        queuedWritersMap.put(t.getName(), writerDetails);
+        queuedWritersMap.put(t.getName(), new Commit(System.currentTimeMillis(), t));
     }
 
     public void trackDequedCommitOf(Thread t) {
@@ -95,10 +108,10 @@ class CommitsTracker {
                 break;
             }
         }
-        commits.offer(new Commit(t, thread.getName()));
+        commits.offer(new Commit(t, thread));
     }
 
-    public Map<String, String> getQueuedWritersMap() {
+    public Map<String, Commit> getQueuedWritersMap() {
         return new HashMap<>(queuedWritersMap);
     }
 
@@ -121,7 +134,7 @@ class CommitsTracker {
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {
             if (commit.timeStamp > t) {
-                String group = findGroupFor(commit.thread);
+                String group = findGroupFor(commit.threadName);
                 if (!"other".equals(group)) {
                     commitsPerGroup.compute(group, (w, v) -> v == null ? 1 : v + 1);
                 }
@@ -136,9 +149,9 @@ class CommitsTracker {
         long t = System.currentTimeMillis() - 60000;
         for (Commit commit : commits) {
             if (commit.timeStamp > t) {
-                String group = findGroupFor(commit.thread);
+                String group = findGroupFor(commit.threadName);
                 if ("other".equals(group)) {
-                    commitsOther.compute(commit.thread, (w, v) -> v == null ? 1 : v + 1);
+                    commitsOther.compute(commit.threadName, (w, v) -> v == null ? 1 : v + 1);
                 }
             }
         }

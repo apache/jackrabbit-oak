@@ -61,8 +61,8 @@ public interface SegmentNodeStoreStatsMBean {
     TabularData getCommitsCountForOtherWriters() throws OpenDataException;
     
     /**
-     * @return tabular data of the form &lt;writer,writerDetails&gt; for each writer
-     *         currently in the queue
+     * @return tabular data of the form <em>&lt;writer, writerDetails, writerTimeStamp&gt;</em>
+     * for each writer currently in the queue
      * @throws OpenDataException if data is not available
      */
     TabularData getQueuedWriters() throws OpenDataException;

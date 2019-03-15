@@ -36,6 +36,8 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
+
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -67,7 +69,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     public SegmentNodeStoreStats(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
         
-        this.commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+        this.commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
         this.commitsCount = statisticsProvider.getMeter(COMMITS_COUNT, StatsOptions.DEFAULT);
         this.commitQueueSize = statisticsProvider.getCounterStats(COMMIT_QUEUE_SIZE, StatsOptions.DEFAULT);
         this.commitTime = statisticsProvider.getTimer(COMMIT_TIME, StatsOptions.DEFAULT);
@@ -156,24 +158,24 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
 
     @Override
     public TabularData getQueuedWriters() throws OpenDataException {
-        CompositeType queuedWritersDetailsRowType = new CompositeType("queuedWritersDetails", "queuedWritersDetails",
-                new String[] { "writerName", "writerDetails" }, new String[] { "writerName", "writerDetails" },
-                new OpenType[] { SimpleType.STRING, SimpleType.STRING });
+        CompositeType queuedWritersDetailsRowType = new CompositeType(
+                "queuedWritersDetails", "queuedWritersDetails",
+                new String[] { "writerName", "writerDetails", "writerTimeStamp" },
+                new String[] { "writerName", "writerDetails", "writerTimeStamp" },
+                new OpenType[] { SimpleType.STRING, SimpleType.STRING, SimpleType.LONG });
 
-        TabularDataSupport tabularData = new TabularDataSupport(new TabularType("queuedWritersDetails",
-                "Queued writers details", queuedWritersDetailsRowType, new String[] { "writerName" }));
+        TabularDataSupport tabularData = new TabularDataSupport(new TabularType(
+                "queuedWritersDetails", "Queued writers details",
+                queuedWritersDetailsRowType,
+                new String[] { "writerName" }));
 
-        Map<String, String> queuedWritersMap = commitsTracker.getQueuedWritersMap();
-        if (queuedWritersMap.isEmpty()) {
-            queuedWritersMap.put("N/A", "N/A");
-        }
-        
-        queuedWritersMap.entrySet().stream().map(e -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("writerName", e.getKey());
-            m.put("writerDetails", e.getValue());
-            return m;
-        }).map(d -> mapToCompositeData(queuedWritersDetailsRowType, d)).forEach(tabularData::put);
+        commitsTracker.getQueuedWritersMap().values().stream().map(commit ->
+            ImmutableMap.<String, Object>of(
+                "writerName", commit.getThreadName(),
+                "writerDetails", collectStackTraces ? commit.getStackTrace() : "N/A",
+                "writerTimeStamp", commit.getTimeStamp()))
+        .map(d -> mapToCompositeData(queuedWritersDetailsRowType, d))
+        .forEach(tabularData::put);
 
         return tabularData; 
     }
@@ -181,7 +183,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setCollectStackTraces(boolean flag) {
         this.collectStackTraces = flag;
-        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
     }
     
     @Override
@@ -197,7 +199,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setNumberOfOtherWritersToDetail(int otherWritersLimit) {
         this.otherWritersLimit = otherWritersLimit;
-        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
     }
     
     @Override
@@ -208,7 +210,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setWriterGroupsForLastMinuteCounts(String[] writerGroups) {
         this.writerGroups = writerGroups;
-        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
     }
 
     private TimeSeries getTimeSeries(String name) {
