@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -40,6 +42,7 @@ import javax.management.openmbean.TabularType;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -89,9 +92,9 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     }
 
     @Override
-    public void onCommitQueued(Thread t) {
+    public void onCommitQueued(Thread t, Supplier<GCGeneration> gcGeneration) {
         commitQueueSize.inc();
-        commitsTracker.trackQueuedCommitOf(t);
+        commitsTracker.trackQueuedCommitOf(t, gcGeneration);
     }
 
     @Override
@@ -163,9 +166,9 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     private static CompositeType getCompositeType(String name) throws OpenDataException {
         return new CompositeType(
                 name, name,
-                new String[] {"writerName", "writerDetails", "queued", "dequeued", "applied"},
-                new String[] {"writerName", "writerDetails", "queued", "dequeued", "applied"},
-                new OpenType[] {SimpleType.STRING, SimpleType.STRING,
+                new String[] {"writerName", "writerDetails", "GCGeneration", "queued", "dequeued", "applied"},
+                new String[] {"writerName", "writerDetails", "GCGeneration", "queued", "dequeued", "applied"},
+                new OpenType[] {SimpleType.STRING, SimpleType.STRING, SimpleType.STRING,
                         SimpleType.LONG, SimpleType.LONG, SimpleType.LONG});
     }
 
@@ -199,12 +202,32 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
 
     @NotNull
     private Map<String, Object> toMap(@NotNull Commit commit) {
-        return ImmutableMap.of(
-            "writerName", commit.getThreadName(),
-            "writerDetails", collectStackTraces ? commit.getStackTrace() : "N/A",
-            "queued", commit.getQueued(),
-            "dequeued", commit.getDequeued(),
-            "applied", commit.getApplied());
+        return ImmutableMap.<String, Object>builder()
+            .put("writerName", commit.getThreadName())
+            .put("writerDetails", toString(commit.getStackTrace()))
+            .put("GCGeneration", toString(commit.getGCGeneration()))
+            .put("queued", commit.getQueued())
+            .put("dequeued", commit.getDequeued())
+            .put("applied", commit.getApplied())
+            .build();
+    }
+
+    @NotNull
+    private static String toString(@Nullable StackTraceElement[] stackTrace) {
+        if (stackTrace != null) {
+            StringBuilder threadDetails = new StringBuilder();
+            Stream.of(stackTrace).forEach(threadDetails::append);
+            return threadDetails.toString();
+        } else {
+            return "N/A";
+        }
+    }
+
+    @NotNull
+    private static String toString(@Nullable GCGeneration gcGeneration) {
+        return gcGeneration == null
+            ? "N/A"
+            : gcGeneration.toString();
     }
 
     @Override
