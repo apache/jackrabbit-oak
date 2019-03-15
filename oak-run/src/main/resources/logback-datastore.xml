@@ -22,14 +22,14 @@
   <appender name="datastore" class="ch.qos.logback.core.FileAppender">
     <file>${oak.workDir}/datastore.log</file>
     <encoder>
-      <pattern>%d %-5level [%thread] %logger{30} %marker- %msg %n</pattern>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n</pattern>
     </encoder>
   </appender>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <target>System.out</target>
     <encoder>
-      <pattern>%d{HH:mm:ss} - %msg%n</pattern>
+      <pattern>%d{dd.MM.yyyy HH:mm:ss.SSS} %-5(*%level*) [%thread] %logger{30} %marker- %msg %n</pattern>
     </encoder>
   </appender>
 
