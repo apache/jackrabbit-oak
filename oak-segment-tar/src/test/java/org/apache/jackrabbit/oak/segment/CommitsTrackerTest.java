@@ -65,7 +65,7 @@ public class CommitsTrackerTest {
 
     @Test
     public void testCommitsCountOthers() throws InterruptedException {
-        CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, 10, true);
+        CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, 10);
 
         List<CommitTask> queued = newArrayList();
         for (int k = 0; k < 20; k++) {
@@ -93,7 +93,7 @@ public class CommitsTrackerTest {
     @Test
     public void testCommitsCountPerGroup() throws InterruptedException {
         String[] groups = new String[] { "Thread-1.*", "Thread-2.*", "Thread-3.*" };
-        CommitsTracker commitsTracker = new CommitsTracker(groups, 10, false);
+        CommitsTracker commitsTracker = new CommitsTracker(groups, 10);
 
         for (int k = 0; k < 40; k++) {
             CommitTask commitTask = new CommitTask(commitsTracker, "Thread-" + (10 + k));
