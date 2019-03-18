@@ -317,6 +317,11 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             return isDisposed;
         }
 
+        private AtomicBoolean getStopLeaseUpdateThread() throws NoSuchFieldException {
+            AtomicBoolean stopLeaseUpdateThread = (AtomicBoolean) PrivateAccessor.getField(ns, "stopLeaseUpdateThread");
+            return stopLeaseUpdateThread;
+        }
+
         private void stopAllBackgroundThreads() throws NoSuchFieldException {
             // get all those background threads...
             Thread backgroundReadThread = (Thread) PrivateAccessor.getField(ns, "backgroundReadThread");
@@ -348,6 +353,12 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                 assertTrue(!backgroundUpdateThread.isAlive());
             } catch (InterruptedException e) {
                 // ignore
+            }
+            final AtomicBoolean stopLeaseUpdateThread = getStopLeaseUpdateThread();
+            assertFalse(stopLeaseUpdateThread.getAndSet(true));
+            // notify background threads waiting on stopLeaseUpdateThread
+            synchronized (stopLeaseUpdateThread) {
+                stopLeaseUpdateThread.notifyAll();
             }
             try {
                 leaseUpdateThread.join(5000);
