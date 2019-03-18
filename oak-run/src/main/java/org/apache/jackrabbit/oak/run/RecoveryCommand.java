@@ -19,8 +19,11 @@ package org.apache.jackrabbit.oak.run;
 
 import java.io.Closeable;
 import java.util.Arrays;
+import java.util.List;
 
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
@@ -43,16 +46,26 @@ class RecoveryCommand implements Command {
         MapFactory.setInstance(new MapDBMapFactory());
         Closer closer = Closer.create();
         String h = "recovery mongodb://host:port/database|jdbc:... { dryRun }";
-        try {
-            NodeStore store = Utils.bootstrapNodeStore(args, closer, h);
 
-            if (!(store instanceof DocumentNodeStore)) {
-                System.err.println("Recovery only available for DocumentNodeStore");
+        try {
+            DocumentNodeStoreBuilder<?> builder = Utils.createDocumentMKBuilder(args, closer, h);
+
+            if (builder == null) {
+                System.err.println("Recovery only available for DocumentNodeStore backed by MongoDB or RDB persistence");
                 System.exit(1);
             }
 
-            DocumentNodeStore dns = (DocumentNodeStore) store;
-            DocumentStore ds = dns.getDocumentStore();
+            // dryRun implies readonly repo
+            boolean dryRun = Arrays.asList(args).contains("dryRun");
+            if (dryRun) {
+                builder.setReadOnlyMode();
+            }
+
+            DocumentNodeStore dns = builder.build();
+            closer.register(Utils.asCloseable(dns));
+
+            DocumentStore ds = builder.getDocumentStore();
+
             LastRevRecoveryAgent agent = null;
             MissingLastRevSeeker seeker = null;
 
@@ -72,12 +85,30 @@ class RecoveryCommand implements Command {
                 System.exit(1);
             }
 
+            if (builder.getClusterId() == 0) {
+                System.err.println("Please specify the clusterId for recovery using --clusterId");
+                try {
+                    List<ClusterNodeInfoDocument> all = ClusterNodeInfoDocument.all(ds);
+                    System.err.println("Existing entries in the clusternodes collection are:");
+                    for (ClusterNodeInfoDocument c : all) {
+                        String state = c.isActive() ? "ACTIVE" : "INACTIVE";
+                        System.err.println(c.getClusterId() +
+                                " (" + state + "): " +
+                                c.toString().replace('\n', ' '));
+                    }
+                }
+                catch (Throwable e) {
+                    e.printStackTrace(System.err);
+                }
+                System.exit(1);
+            }
+
             Iterable<NodeDocument> docs = seeker.getCandidates(0);
             if (docs instanceof Closeable) {
                 closer.register((Closeable) docs);
             }
-            boolean dryRun = Arrays.asList(args).contains("dryRun");
-            agent.recover(docs, dns.getClusterId(), dryRun);
+
+            agent.recover(docs, builder.getClusterId(), dryRun);
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {

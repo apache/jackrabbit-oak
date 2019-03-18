@@ -181,6 +181,11 @@ class Utils {
     }
 
     @Nullable
+    static DocumentNodeStoreBuilder<?> createDocumentMKBuilder(String[] args, Closer closer, String h) throws IOException {
+        return createDocumentMKBuilder(new NodeStoreOptions(h).parse(args), closer);
+    }
+
+    @Nullable
     static DocumentNodeStoreBuilder<?> createDocumentMKBuilder(NodeStoreOptions options,
                                                                Closer closer)
             throws IOException {
