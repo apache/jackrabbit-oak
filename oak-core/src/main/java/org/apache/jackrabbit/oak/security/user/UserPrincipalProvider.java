@@ -171,14 +171,21 @@ class UserPrincipalProvider implements PrincipalProvider {
             limit = Long.MAX_VALUE;
         }
         try {
+
+            String lookupClause = "";
+            if (nameHint != null && !nameHint.isEmpty()) {
+                if (fullText) {
+                    lookupClause = String.format("[jcr:contains(.,'%s')]", buildSearchPatternFT(nameHint));
+                } else {
+                    lookupClause = String.format("[jcr:like(@rep:principalName,'%s')]", buildSearchPatternContains(nameHint));
+                }
+            }
             AuthorizableType type = AuthorizableType.getType(searchType);
             StringBuilder statement = new StringBuilder()
                     .append(QueryUtil.getSearchRoot(type, config.getParameters()))
                     .append("//element(*,").append(QueryUtil.getNodeTypeName(type)).append(')')
-                    .append("[jcr:like(@rep:principalName,'")
-                    .append(buildSearchPattern(nameHint))
-                    .append("')] order by @rep:principalName");
-
+                    .append(lookupClause)
+                    .append(" order by @rep:principalName");
             Result result = root.getQueryEngine().executeQuery(
                     statement.toString(), javax.jcr.query.Query.XPATH,
                     limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
@@ -365,15 +372,19 @@ class UserPrincipalProvider implements PrincipalProvider {
         return expirationTime > EXPIRATION_NO_CACHE && now < expirationTime;
     }
 
-    private static String buildSearchPattern(String nameHint) {
-        if (nameHint == null) {
-            return "%";
+    private static String buildSearchPatternContains(@NotNull String nameHint) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('%');
+        sb.append(nameHint.replace("%", "\\%").replace("_", "\\_"));
+        sb.append('%');
+        return sb.toString();
+    }
+
+    private static String buildSearchPatternFT(@NotNull String nameHint) {
+        if (nameHint.contains("*")) {
+            return QueryUtil.escapeForQuery(nameHint);
         } else {
-            StringBuilder sb = new StringBuilder();
-            sb.append('%');
-            sb.append(nameHint.replace("%", "\\%").replace("_", "\\_"));
-            sb.append('%');
-            return sb.toString();
+            return QueryUtil.escapeForQuery(nameHint) + "*";
         }
     }
 
