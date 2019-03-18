@@ -68,6 +68,9 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Override
     public void before() throws Exception {
+        // because of full text search test #testFindRange
+        getQueryEngineSettings().setFailTraversal(false);
+        getQueryEngineSettings().setFullTextComparisonWithoutIndex(true);
         super.before();
 
         userPrincipal = getTestUser().getPrincipal();
@@ -415,9 +418,12 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
                     to = Math.min(offset + limit, to);
                 }
                 List<String> sub = expected.subList(offset, to);
-                Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup",
-                        false, PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup", false,
+                        PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
                 assertEquals(sub, getNames(i1));
+                Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup", true,
+                        PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                assertEquals(sub, getNames(i2));
             }
         }
     }
