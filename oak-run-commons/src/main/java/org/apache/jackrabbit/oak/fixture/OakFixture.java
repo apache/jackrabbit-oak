@@ -384,6 +384,11 @@ public abstract class OakFixture {
 
     public static class MongoFixture extends OakFixture {
 
+        private static final String PERSISTENT_CACHE = System.getProperty(
+                "oak.documentstore.persistentCache",
+                "target/persistentCache,time"
+        );
+
         private final String uri;
 
         private final boolean dropDBAfterTest;
@@ -494,7 +499,9 @@ public abstract class OakFixture {
 
         private void configurePersistentCache(DocumentNodeStoreBuilder<?> builder) {
             //TODO Persistent cache should be removed in teardown
-            builder.setPersistentCache("target/persistentCache,time");
+            if (!"".equals(PERSISTENT_CACHE)) {
+                builder.setPersistentCache(PERSISTENT_CACHE);
+            }
 
             String persistentCacheIncludes = System.getProperty("persistentCacheIncludes");
 
