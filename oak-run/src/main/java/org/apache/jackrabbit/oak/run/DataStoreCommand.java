@@ -151,16 +151,23 @@ public class DataStoreCommand implements Command {
 
     private void execute(NodeStoreFixture fixture,  DataStoreOptions dataStoreOpts, Options opts, Closer closer)
         throws Exception {
-        MarkSweepGarbageCollector collector = getCollector(fixture, dataStoreOpts, opts, closer);
-        if (dataStoreOpts.checkConsistency()) {
-            long missing = collector.checkConsistency();
-            log.warn("Found {} missing blobs", missing);
 
-            if (dataStoreOpts.isVerbose()) {
-                new VerboseIdLogger(opts).log();
+        try (Closer metricsCloser = Closer.create()) {
+            MetricsExporterFixture metricsExporterFixture =
+                MetricsExporterFixtureProvider.create(dataStoreOpts, fixture.getWhiteboard());
+            metricsCloser.register(metricsExporterFixture);
+
+            MarkSweepGarbageCollector collector = getCollector(fixture, dataStoreOpts, opts, closer);
+            if (dataStoreOpts.checkConsistency()) {
+                long missing = collector.checkConsistency();
+                log.warn("Found {} missing blobs", missing);
+
+                if (dataStoreOpts.isVerbose()) {
+                    new VerboseIdLogger(opts).log();
+                }
+            } else if (dataStoreOpts.collectGarbage()) {
+                collector.collectGarbage(dataStoreOpts.markOnly());
             }
-        } else if (dataStoreOpts.collectGarbage()) {
-            collector.collectGarbage(dataStoreOpts.markOnly());
         }
     }
 

@@ -47,6 +47,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<Long> blobGcMaxAgeInSecs;
     private final OptionSpec<Void> verbose;
     private final OptionSpec<Boolean> resetLoggingConfig;
+    private OptionSpec<String> exportMetrics;
 
     public DataStoreOptions(OptionParser parser) {
         collectGarbage = parser.accepts("collect-garbage",
@@ -73,6 +74,8 @@ public class DataStoreOptions implements OptionsBean {
         resetLoggingConfig =
             parser.accepts("reset-log-config", "Reset logging config for testing purposes only").withOptionalArg()
                 .ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+        exportMetrics = parser.accepts("export-metrics",
+            "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
 
         //Set of options which define action
         actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck);
@@ -157,5 +160,13 @@ public class DataStoreOptions implements OptionsBean {
             result.addAll(spec.options());
         }
         return result;
+    }
+
+    public boolean exportMetrics() {
+        return options.has(exportMetrics);
+    }
+
+    public String exportMetricsArgs() {
+        return exportMetrics.value(options);
     }
 }
