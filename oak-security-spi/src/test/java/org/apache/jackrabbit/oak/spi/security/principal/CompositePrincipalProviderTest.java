@@ -18,9 +18,12 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import com.google.common.base.Predicate;
@@ -34,6 +37,8 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -214,5 +219,50 @@ public class CompositePrincipalProviderTest {
             l.add(i.next().getName());
         }
         return l;
+    }
+
+    @Test
+    public void testFindPrincipalsRandom() {
+        long seed = System.currentTimeMillis();
+        int bound = 10;
+        int inputSize = 3;
+        Random r = new Random(seed);
+
+        Comparator<Principal> comparator = Comparator.comparing(Principal::getName);
+        List<String> expected = new ArrayList<>();
+        Collection<Iterator<Principal>> input = new ArrayList<>();
+        for (int i = 0; i < inputSize; i++) {
+            List<Principal> l = new ArrayList<>();
+            int size = r.nextInt(bound);
+            for (int s = 0; s < size; s++) {
+                int v = r.nextInt(bound);
+                Principal p = new PrincipalImpl("p" + v);
+                expected.add(p.getName());
+                l.add(p);
+            }
+            Collections.sort(l, comparator);
+            input.add(l.iterator());
+        }
+        Principal pb = new PrincipalImpl("p" + bound);
+        expected.add(pb.getName());
+        input.add(Collections.singleton(pb).iterator());
+        input.add(Collections.<Principal>emptyIterator());
+
+        List<PrincipalProvider> in = new ArrayList<>();
+        for (Iterator<Principal> i : input) {
+            PrincipalProvider pp = mock(PrincipalProvider.class);
+            when(pp.findPrincipals(null, true, 1, 0, -1)).thenAnswer(new Answer<Iterator<Principal>>() {
+                @Override
+                public Iterator<Principal> answer(InvocationOnMock invocation) throws Throwable {
+                    return i;
+                }
+            });
+            in.add(pp);
+        }
+
+        PrincipalProvider cpp = CompositePrincipalProvider.of(in);
+        Collections.sort(expected);
+        List<String> out = getNames(cpp.findPrincipals(null, true, 1, 0, -1));
+        assertEquals(expected, out);
     }
 }

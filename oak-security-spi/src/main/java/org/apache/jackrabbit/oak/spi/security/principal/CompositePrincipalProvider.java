@@ -19,10 +19,16 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import com.google.common.collect.Iterators;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -127,5 +133,23 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         return findPrincipals(null, searchType);
+    }
+
+    public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType,
+            long offset, long limit) {
+
+        List<Iterator<? extends Principal>> all = providers.stream()
+                .map((p) -> p.findPrincipals(nameHint, fullText, searchType, 0, limit)).collect(Collectors.toList());
+        Iterator<? extends Principal> principals = Iterators.mergeSorted(all, Comparator.comparing(Principal::getName));
+
+        Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(principals, 0);
+        Stream<? extends Principal> stream = StreamSupport.stream(spliterator, false);
+        if (offset > 0) {
+            stream = stream.skip(offset);
+        }
+        if (limit >= 0) {
+            stream = stream.limit(limit);
+        }
+        return stream.iterator();
     }
 }
