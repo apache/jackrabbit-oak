@@ -124,6 +124,20 @@ upon startup. For example:
 ~~~
  
  
+### <a name="database-creation-sqlserver"></a> SQL Server
+
+Creating a database called `OAK`:
+~~~
+create database OAK;
+~~~
+
+To verify, check that INFO level log message written by `RDBDocumentStore`
+upon startup. For example:
+
+~~~
+16:59:12.726 INFO  [main] RDBDocumentStore.java:1067        RDBDocumentStore (SNAPSHOT) instantiated for database Microsoft SQL Server 13.00.5081 (13.0), using driver: Microsoft JDBC Driver 7.2 for SQL Server 7.2.1.0 (7.2), connecting to: jdbc:sqlserver://localhost:1433;useBulkCopyForBatchInsert=false;cancelQueryTimeout=-1;sslProtocol=TLS;jaasConfigurationName=SQLJDBCDriver;statementPoolingCacheSize=0;serverPreparedStatementDiscardThreshold=10;enablePrepareOnFirstPreparedStatementCall=false;fips=false;socketTimeout=0;authentication=NotSpecified;authenticationScheme=nativeAuthentication;xopenStates=false;sendTimeAsDatetime=true;trustStoreType=JKS;trustServerCertificate=false;TransparentNetworkIPResolution=true;serverNameAsACE=false;sendStringParametersAsUnicode=true;selectMethod=direct;responseBuffering=adaptive;queryTimeout=-1;packetSize=8000;multiSubnetFailover=false;loginTimeout=15;lockTimeout=-1;lastUpdateCount=true;encrypt=false;disableStatementPooling=true;databaseName=OAK;columnEncryptionSetting=Disabled;applicationName=Microsoft JDBC Driver for SQL Server;applicationIntent=readwrite;, properties: {collation_name=Latin1_General_CI_AS}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), .: ID varbinary(512), MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, VERSION smallint, SDTYPE smallint, SDMAXREVTIME bigint, DATA nvarchar(4000), BDATA varbinary(2147483647) /* {bigint=-5, nvarchar=-9, smallint=5, varbinary=-3} */ /* index NODES.NODES_MOD on dbo.NODES (MODIFIED ASC) other (#0, p0), unique index NODES.NODES_PK on dbo.NODES (ID ASC) clustered (#0, p0), index NODES.NODES_SDM on dbo.NODES (SDMAXREVTIME ASC) other (#0, p0), index NODES.NODES_SDT on dbo.NODES (SDTYPE ASC) other (#0, p0), index NODES.NODES_VSN on dbo.NODES (VERSION ASC) other (#0, p0) */
+~~~
+
 
 ## <a name="table-creation"></a> Table Creation
 
