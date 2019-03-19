@@ -365,7 +365,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                             long f = PERF_LOGGER.start();
                             if (facetProvider == null) {
                                 facetProvider = new LuceneFacetProvider(
-                                        FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
+                                        FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration(), docs.totalHits)
                                 );
                                 PERF_LOGGER.end(f, -1, "facets retrieved");
                             }
