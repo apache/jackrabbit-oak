@@ -62,7 +62,8 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
                 // (copy from the remote directory to the local directory)
                 // to avoid having to stream it when merging
                 String indexPath = definition.getIndexPath();
-                indexCopier.wrapForRead(indexPath, definition, directory, dirName);
+                Directory d = indexCopier.wrapForRead(indexPath, definition, directory, dirName);
+                d.close();
             }
             directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);
         }
