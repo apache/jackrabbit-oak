@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.DefaultSolrServerProvider;
@@ -41,7 +42,6 @@ import org.junit.rules.TestName;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.junit.Assert.*;
-import static org.junit.Assume.assumeTrue;
 
 /**
  * General query extensive testcase for {@link SolrQueryIndex}
@@ -73,7 +73,7 @@ public class SolrIndexIT extends AbstractQueryTest {
             DefaultSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider();
             return new Oak().with(new InitialContent())
                     .with(new OpenSecurityProvider())
-                    .with(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider))
+                    .with(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider, new SimpleNodeAggregator()))
                     .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider))
                     .createContentRepository();
         } catch (Exception e) {
@@ -634,9 +634,33 @@ public class SolrIndexIT extends AbstractQueryTest {
 
         Iterator<String> result = executeQuery(xpath, XPATH).iterator();
         assertTrue(result.hasNext());
-        assertEquals("/test/content/sample1/jcr:content", result.next());
+        assertEquals("/test/content/sample1", result.next());
         assertTrue(result.hasNext());
-        assertEquals("/test/content/sample2/jcr:content", result.next());
+        assertEquals("/test/content/sample2", result.next());
+        assertFalse(result.hasNext());
+    }
+
+    @Test
+    public void testJcrContentNodeChild() throws Exception {
+
+        Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
+        assertTrue(index.exists());
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree content = test.addChild("content");
+        Tree content1 = content.addChild("sample1").addChild("jcr:content");
+        content1.setProperty("text", "bar");
+        Tree content2 = content.addChild("sample2").addChild("jcr:content");
+        content2.setProperty("foo", "bar");
+        root.commit();
+
+        String xpath = "/jcr:root/test/content//element(*, nt:base)[jcr:contains(., 'bar')]";
+
+        Iterator<String> result = executeQuery(xpath, XPATH).iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/content/sample1", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/content/sample2", result.next());
         assertFalse(result.hasNext());
     }
 

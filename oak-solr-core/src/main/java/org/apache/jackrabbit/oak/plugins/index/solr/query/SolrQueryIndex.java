@@ -33,6 +33,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -690,7 +691,12 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 @Override
                 public String next() {
                     currentRow = it.next();
-                    return currentRow.path;
+                    String path = currentRow.path;
+                    if (configuration.collapseJcrContentParents() && path.endsWith(JcrConstants.JCR_CONTENT)) {
+                        return PathUtils.getParentPath(path);
+                    } else {
+                        return path;
+                    }
                 }
 
                 @Override
