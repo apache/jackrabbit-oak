@@ -33,6 +33,8 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipException;
@@ -158,6 +160,12 @@ public class ThreadDumpCommand implements Command {
         int count = 0;
         File[] list = file.listFiles();
         if (list != null) {
+            Arrays.sort(list, new Comparator<File>() {
+                @Override
+                public int compare(File o1, File o2) {
+                    return o1.getName().compareTo(o2.getName());
+                }
+            });
             for(File f : list) {
                 count += processFileOrDirectory(f, writer);
             }

@@ -129,7 +129,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
     }
 
     @Override
-    public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Validator childNodeChanged(String name, NodeState before, NodeState after) {
         return newValidator(parentBefore.getChild(name),
                 parentAfter.getChild(name), provider);
     }

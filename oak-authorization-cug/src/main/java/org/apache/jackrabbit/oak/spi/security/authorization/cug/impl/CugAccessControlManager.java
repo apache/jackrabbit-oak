@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -68,16 +69,19 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
     private static final Logger log = LoggerFactory.getLogger(CugAccessControlManager.class);
 
     private final Set<String> supportedPaths;
+    private final CugExclude cugExclude;
     private final ConfigurationParameters config;
     private final PrincipalManager principalManager;
 
-    public CugAccessControlManager(@NotNull Root root,
-                                   @NotNull NamePathMapper namePathMapper,
-                                   @NotNull SecurityProvider securityProvider,
-                                   @NotNull Set<String> supportedPaths) {
+    CugAccessControlManager(@NotNull Root root,
+                            @NotNull NamePathMapper namePathMapper,
+                            @NotNull SecurityProvider securityProvider,
+                            @NotNull Set<String> supportedPaths,
+                            @NotNull CugExclude cugExclude) {
         super(root, namePathMapper, securityProvider);
 
         this.supportedPaths = supportedPaths;
+        this.cugExclude = cugExclude;
 
         config = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters();
         principalManager = securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
@@ -125,7 +129,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 }
                 oakPath = (PathUtils.denotesRoot(oakPath)) ? null : PathUtils.getAncestorPath(oakPath, 1);
             }
-            return effective.toArray(new AccessControlPolicy[effective.size()]);
+            return effective.toArray(new AccessControlPolicy[0]);
         } else {
             return new AccessControlPolicy[0];
         }
@@ -139,7 +143,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         } else {
             CugPolicy cug = getCugPolicy(oakPath);
             if (cug == null) {
-                cug = new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config));
+                cug = new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config), cugExclude);
                 return new AccessControlPolicyIteratorAdapter(ImmutableSet.of(cug));
             } else {
                 return AccessControlPolicyIteratorAdapter.EMPTY;
@@ -201,19 +205,19 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
     //-------------------------------------< JackrabbitAccessControlManager >---
 
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) {
         // editing by 'principal' is not supported
         return new JackrabbitAccessControlPolicy[0];
     }
 
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) {
         // editing by 'principal' is not supported
         return new JackrabbitAccessControlPolicy[0];
     }
 
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) {
         // editing by 'principal' is not supported
         return new AccessControlPolicy[0];
     }
@@ -246,7 +250,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
     private CugPolicy getCugPolicy(@NotNull String oakPath, @NotNull Tree tree) {
         Tree cug = tree.getChild(REP_CUG_POLICY);
         if (CugUtil.definesCug(cug)) {
-            return new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config), getPrincipals(cug));
+            return new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config), cugExclude, getPrincipals(cug));
         } else {
             return null;
         }

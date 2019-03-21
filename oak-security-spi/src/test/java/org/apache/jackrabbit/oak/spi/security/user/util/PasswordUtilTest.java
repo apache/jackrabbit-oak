@@ -54,7 +54,7 @@ public class PasswordUtilTest {
                 "p{SHA-256}w",
                 "");
 
-        hashedPasswords = new HashMap<String, String>();
+        hashedPasswords = new HashMap<>();
         for (String pw : plainPasswords) {
             hashedPasswords.put(pw, PasswordUtil.buildPasswordHash(pw));
         }
@@ -67,7 +67,7 @@ public class PasswordUtilTest {
             assertFalse(pw.equals(pwHash));
         }
 
-        List<Integer[]> l = new ArrayList<Integer[]>();
+        List<Integer[]> l = new ArrayList<>();
         l.add(new Integer[] {0, 1000});
         l.add(new Integer[] {1, 10});
         l.add(new Integer[] {8, 50});
@@ -86,7 +86,7 @@ public class PasswordUtilTest {
 
     @Test
     public void testBuildPasswordHashInvalidAlgorithm() throws Exception {
-        List<String> invalidAlgorithms = new ArrayList<String>();
+        List<String> invalidAlgorithms = new ArrayList<>();
         invalidAlgorithms.add("");
         invalidAlgorithms.add("+");
         invalidAlgorithms.add("invalid");
@@ -133,19 +133,19 @@ public class PasswordUtilTest {
     }
 
     @Test
-    public void testIsPlainTextPassword() throws Exception {
+    public void testIsPlainTextPassword() {
         for (String pw : plainPasswords) {
             assertTrue(pw + " should be plain text.", PasswordUtil.isPlainTextPassword(pw));
         }
     }
 
     @Test
-    public void testIsPlainTextForNull() throws Exception {
+    public void testIsPlainTextForNull() {
         assertTrue(PasswordUtil.isPlainTextPassword(null));
     }
 
     @Test
-    public void testIsPlainTextForPwHash() throws Exception {
+    public void testIsPlainTextForPwHash() {
         for (String pwHash : hashedPasswords.values()) {
             assertFalse(pwHash + " should not be plain text.", PasswordUtil.isPlainTextPassword(pwHash));
         }
@@ -173,7 +173,7 @@ public class PasswordUtilTest {
     }
 
     @Test
-    public void testIsNotSame() throws Exception {
+    public void testIsNotSame() {
         String previous = null;
         for (String pw : hashedPasswords.keySet()) {
             String pwHash = hashedPasswords.get(pw);

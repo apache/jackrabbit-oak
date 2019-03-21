@@ -30,7 +30,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         super(dlg, mgr);
     }
 
-    Group getDelegate() {
+    private Group getDelegate() {
         return (Group) getDlg();
     }
 

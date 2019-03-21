@@ -121,7 +121,7 @@ public class ConfigurationParametersTest {
         assertFalse(params.contains("some"));
         assertFalse(params.contains(""));
 
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         map.put("key1", "v");
         map.put("key2", "v");
         params = ConfigurationParameters.of(map);
@@ -133,7 +133,7 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testGetConfigValue() {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         map.put("o1", "v");
         ConfigurationParameters options = ConfigurationParameters.of(map);
 
@@ -143,7 +143,7 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testGetNullableConfigValue() {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         map.put("o1", "v");
         ConfigurationParameters options = ConfigurationParameters.of(map);
 
@@ -209,7 +209,7 @@ public class ConfigurationParametersTest {
     }
 
     @Test
-    public void testCollectionAsArray() throws Exception{
+    public void testCollectionAsArray() {
         String[] testArray = {"t"};
         ConfigurationParameters options = ConfigurationParameters.of("test", Arrays.asList(testArray));
         assertArrayEquals(testArray, options.getConfigValue("test", null, String[].class));
@@ -220,7 +220,7 @@ public class ConfigurationParametersTest {
         TestObject testObject = new TestObject("t");
         Integer int1000 = 1000;
 
-        Map<String,Object> m = new HashMap<String, Object>();
+        Map<String,Object> m = new HashMap<>();
         m.put("TEST", testObject);
         m.put("String", "1000");
         m.put("Int2", 1000);
@@ -253,7 +253,7 @@ public class ConfigurationParametersTest {
         TestObject testObject = new TestObject("t");
         Integer int1000 = 1000;
 
-        Map<String,Object> m = new HashMap<String, Object>();
+        Map<String,Object> m = new HashMap<>();
         m.put("TEST", testObject);
         m.put("String", "1000");
         m.put("Int2", 1000);
@@ -295,13 +295,13 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testImpossibleConversion() {
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("string", "v");
         map.put("obj", new TestObject("test"));
         map.put("int", 10);
         ConfigurationParameters options = ConfigurationParameters.of(map);
 
-        Map<String, Class> impossible = new HashMap<String, Class>();
+        Map<String, Class> impossible = new HashMap<>();
         impossible.put("string", TestObject.class);
         impossible.put("string", Integer.class);
         impossible.put("string", Calendar.class);
@@ -328,16 +328,16 @@ public class ConfigurationParametersTest {
         Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
 
         // map of config value (key) and expected result set.
-        Map<Object, Set> configValues = new HashMap<Object, Set>();
+        Map<Object, Set<?>> configValues = new HashMap<>();
         configValues.put("a", ImmutableSet.of("a"));
         configValues.put(stringArray, stringSet);
         configValues.put(stringSet, stringSet);
         configValues.put(testObjectArray, testObjectSet);
         configValues.put(testObjectSet, testObjectSet);
         configValues.put(new String[0], Collections.<String>emptySet());
-        configValues.put(new HashSet(), Collections.emptySet());
+        configValues.put(new HashSet<>(), Collections.emptySet());
         configValues.put(ImmutableSet.of(), Collections.emptySet());
-        configValues.put(new ArrayList(), Collections.emptySet());
+        configValues.put(new ArrayList<>(), Collections.emptySet());
         configValues.put(ConfigurationParameters.EMPTY, Collections.<String>emptySet());
 
         Set<String> defaultStrings = ImmutableSet.of("abc", "def", "ghi");
@@ -351,7 +351,7 @@ public class ConfigurationParametersTest {
                 config = ConfigurationParameters.of("key", value);
             }
 
-            Set expected = configValues.get(value);
+            Set<?> expected = configValues.get(value);
             assertEquals(expected, config.getConfigValue("key", Collections.emptySet()));
             assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet()));
             assertEquals(expected, config.getConfigValue("key", ImmutableSet.of()));
@@ -467,16 +467,16 @@ public class ConfigurationParametersTest {
         String[] defaultStrings = new String[]{"abc", "def", "ghi"};
 
         // map of config value (key) and expected result set.
-        Map<Object, Object[]> configValues = new HashMap<Object, Object[]>();
+        Map<Object, Object[]> configValues = new HashMap<>();
         configValues.put("a", new String[] {"a"});
         configValues.put(stringArray, stringArray);
         configValues.put(stringSet, stringArray);
         configValues.put(testObjectArray, stringArray);
         configValues.put(testObjectSet, stringArray);
         configValues.put(new String[0], new String[0]);
-        configValues.put(new HashSet(), new String[0]);
+        configValues.put(new HashSet<>(), new String[0]);
         configValues.put(ImmutableSet.of(), new String[0]);
-        configValues.put(new ArrayList(), new String[0]);
+        configValues.put(new ArrayList<>(), new String[0]);
         configValues.put(ConfigurationParameters.EMPTY, new String[0]);
 
         for (Object value : configValues.keySet()) {

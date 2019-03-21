@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferF
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteQueue;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
 
@@ -99,22 +99,22 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
     }
 
     @Override
-    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
+    public Buffer readSegment(long msb, long lsb) throws IOException {
         UUID uuid = new UUID(msb, lsb);
         Optional<SegmentWriteAction> segment = queue.map(q -> q.read(uuid));
         if (segment.isPresent()) {
-            return segment.get().toByteBuffer();
+            return segment.get().toBuffer();
         }
         AzureSegmentArchiveEntry indexEntry = index.get(new UUID(msb, lsb));
         if (indexEntry == null) {
             return null;
         }
 
-        ByteBuffer buffer;
+        Buffer buffer;
         if (OFF_HEAP) {
-            buffer = ByteBuffer.allocateDirect(indexEntry.getLength());
+            buffer = Buffer.allocateDirect(indexEntry.getLength());
         } else {
-            buffer = ByteBuffer.allocate(indexEntry.getLength());
+            buffer = Buffer.allocate(indexEntry.getLength());
         }
         readBufferFully(getBlob(getSegmentFileName(indexEntry)), buffer);
         return buffer;

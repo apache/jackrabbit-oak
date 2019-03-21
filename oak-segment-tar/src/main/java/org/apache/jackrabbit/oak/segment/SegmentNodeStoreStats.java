@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -36,12 +38,18 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
+
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, SegmentNodeStoreMonitor {
     private static final boolean COLLECT_STACK_TRACES = Boolean
@@ -63,11 +71,11 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     private boolean collectStackTraces = COLLECT_STACK_TRACES;
     private int otherWritersLimit = OTHER_WRITERS_LIMIT;
     private String[] writerGroups;
-    
+
     public SegmentNodeStoreStats(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
         
-        this.commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+        this.commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
         this.commitsCount = statisticsProvider.getMeter(COMMITS_COUNT, StatsOptions.DEFAULT);
         this.commitQueueSize = statisticsProvider.getCounterStats(COMMIT_QUEUE_SIZE, StatsOptions.DEFAULT);
         this.commitTime = statisticsProvider.getTimer(COMMIT_TIME, StatsOptions.DEFAULT);
@@ -84,9 +92,9 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     }
 
     @Override
-    public void onCommitQueued(Thread t) {
+    public void onCommitQueued(Thread t, Supplier<GCGeneration> gcGeneration) {
         commitQueueSize.inc();
-        commitsTracker.trackQueuedCommitOf(t);
+        commitsTracker.trackQueuedCommitOf(t, gcGeneration);
     }
 
     @Override
@@ -154,35 +162,78 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
         return tabularData;
     }
 
+    @NotNull
+    private static CompositeType getCompositeType(String name) throws OpenDataException {
+        return new CompositeType(
+                name, name,
+                new String[] {"writerName", "writerDetails", "GCGeneration", "queued", "dequeued", "applied"},
+                new String[] {"writerName", "writerDetails", "GCGeneration", "queued", "dequeued", "applied"},
+                new OpenType[] {SimpleType.STRING, SimpleType.STRING, SimpleType.STRING,
+                        SimpleType.LONG, SimpleType.LONG, SimpleType.LONG});
+    }
+
     @Override
     public TabularData getQueuedWriters() throws OpenDataException {
-        CompositeType queuedWritersDetailsRowType = new CompositeType("queuedWritersDetails", "queuedWritersDetails",
-                new String[] { "writerName", "writerDetails" }, new String[] { "writerName", "writerDetails" },
-                new OpenType[] { SimpleType.STRING, SimpleType.STRING });
+        CompositeType queuedWritersDetailsRowType = getCompositeType("queuedWritersDetails");
 
-        TabularDataSupport tabularData = new TabularDataSupport(new TabularType("queuedWritersDetails",
-                "Queued writers details", queuedWritersDetailsRowType, new String[] { "writerName" }));
+        TabularDataSupport tabularData = new TabularDataSupport(new TabularType(
+                "queuedWritersDetails", "Queued writers details",
+                queuedWritersDetailsRowType,
+                new String[] { "writerName" }));
 
-        Map<String, String> queuedWritersMap = commitsTracker.getQueuedWritersMap();
-        if (queuedWritersMap.isEmpty()) {
-            queuedWritersMap.put("N/A", "N/A");
+        commitsTracker.getQueuedWritersMap().values().stream()
+            .map(this::toMap)
+            .map(d -> mapToCompositeData(queuedWritersDetailsRowType, d))
+            .forEach(tabularData::put);
+
+        return tabularData;
+    }
+
+    @Override
+    @Nullable
+    public CompositeData getCurrentWriter() throws OpenDataException {
+        Commit writer = commitsTracker.getCurrentWriter();
+        if (writer != null) {
+            return mapToCompositeData(getCompositeType("currentWritersDetails"), toMap(writer));
+        } else {
+            return null;
         }
-        
-        queuedWritersMap.entrySet().stream().map(e -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("writerName", e.getKey());
-            m.put("writerDetails", e.getValue());
-            return m;
-        }).map(d -> mapToCompositeData(queuedWritersDetailsRowType, d)).forEach(tabularData::put);
+    }
 
-        return tabularData; 
+    @NotNull
+    private Map<String, Object> toMap(@NotNull Commit commit) {
+        return ImmutableMap.<String, Object>builder()
+            .put("writerName", commit.getThreadName())
+            .put("writerDetails", toString(commit.getStackTrace()))
+            .put("GCGeneration", toString(commit.getGCGeneration()))
+            .put("queued", commit.getQueued())
+            .put("dequeued", commit.getDequeued())
+            .put("applied", commit.getApplied())
+            .build();
+    }
+
+    @NotNull
+    private static String toString(@Nullable StackTraceElement[] stackTrace) {
+        if (stackTrace != null) {
+            StringBuilder threadDetails = new StringBuilder();
+            Stream.of(stackTrace).forEach(threadDetails::append);
+            return threadDetails.toString();
+        } else {
+            return "N/A";
+        }
+    }
+
+    @NotNull
+    private static String toString(@Nullable GCGeneration gcGeneration) {
+        return gcGeneration == null
+            ? "N/A"
+            : gcGeneration.toString();
     }
 
     @Override
     public void setCollectStackTraces(boolean flag) {
         this.collectStackTraces = flag;
-        commitsTracker.close();
-        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
     }
     
     @Override
@@ -198,8 +249,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setNumberOfOtherWritersToDetail(int otherWritersLimit) {
         this.otherWritersLimit = otherWritersLimit;
-        commitsTracker.close();
-        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
     }
     
     @Override
@@ -210,8 +260,7 @@ public class SegmentNodeStoreStats implements SegmentNodeStoreStatsMBean, Segmen
     @Override
     public void setWriterGroupsForLastMinuteCounts(String[] writerGroups) {
         this.writerGroups = writerGroups;
-        commitsTracker.close();
-        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit, collectStackTraces);
+        commitsTracker = new CommitsTracker(writerGroups, otherWritersLimit);
     }
 
     private TimeSeries getTimeSeries(String name) {

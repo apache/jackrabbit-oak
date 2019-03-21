@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * Note that the writing of the members is done in {@link MembershipWriter} so that the logic can be re-used by the
  * migration code.
  *
- * The current implementation uses a fixed threshold value of {@link MembershipWriter#DEFAULT_MEMBERSHIP_THRESHHOLD} before creating
+ * The current implementation uses a fixed threshold value of {@link MembershipWriter#DEFAULT_MEMBERSHIP_THRESHOLD} before creating
  * {@link #NT_REP_MEMBER_REFERENCES} sub nodes.
  *
  * Example Group with few members (irrelevant properties excluded):
@@ -135,7 +135,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     @NotNull
     Iterator<String> getMembership(@NotNull Tree authorizableTree, final boolean includeInherited) {
-        return getMembership(authorizableTree, includeInherited, new HashSet<String>());
+        return getMembership(authorizableTree, includeInherited, new HashSet<>());
     }
 
     /**
@@ -220,7 +220,12 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     @NotNull
     Iterator<String> getMembers(@NotNull Tree groupTree, boolean includeInherited) {
-        return getMembers(groupTree, getContentID(groupTree), includeInherited, new HashSet<String>());
+        return getMembers(groupTree, getContentID(groupTree), includeInherited, new HashSet<>());
+    }
+
+    @NotNull
+    Iterator<String> getDeclaredMemberContentIDs(@NotNull Tree groupTree) {
+        return getDeclaredMemberReferenceIterator(groupTree);
     }
 
     /**
@@ -296,12 +301,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
         }
 
         String contentId = getContentID(authorizableTree);
-        MemberReferenceIterator refs = new MemberReferenceIterator(groupTree) {
-            @Override
-            protected boolean hasProcessedReference(@NotNull String value) {
-                return true;
-            }
-        };
+        MemberReferenceIterator refs = getDeclaredMemberReferenceIterator(groupTree);
         return Iterators.contains(refs, contentId);
     }
 
@@ -340,7 +340,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @return {@code true} if the member was added
      * @throws RepositoryException if an error occurs
      */
-    boolean addMember(@NotNull Tree groupTree, @NotNull Tree newMemberTree) throws RepositoryException {
+    boolean addMember(@NotNull Tree groupTree, @NotNull Tree newMemberTree) {
         return writer.addMember(groupTree, getContentID(newMemberTree));
     }
 
@@ -351,7 +351,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @param memberIds Map of 'contentId':'memberId' of all members to be added.
      * @return the set of member IDs that was not successfully processed.
      */
-    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) throws RepositoryException {
+    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         return writer.addMembers(groupTree, memberIds);
     }
 
@@ -380,6 +380,15 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     Set<String> removeMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         return writer.removeMembers(groupTree, memberIds);
+    }
+
+    private MemberReferenceIterator getDeclaredMemberReferenceIterator(@NotNull Tree groupTree) {
+        return new MemberReferenceIterator(groupTree) {
+            @Override
+            protected boolean hasProcessedReference(@NotNull String value) {
+                return true;
+            }
+        };
     }
 
     /**
@@ -471,9 +480,9 @@ class MembershipProvider extends AuthorizableBaseProvider {
          * @param groupTree A tree associated with a group
          * @see #getNextIterator(Tree)
          */
-        protected void remember(@NotNull Tree groupTree) {
+        void remember(@NotNull Tree groupTree) {
             if (groupTrees == null) {
-                groupTrees = new ArrayList<Tree>();
+                groupTrees = new ArrayList<>();
             }
             groupTrees.add(groupTree);
         }

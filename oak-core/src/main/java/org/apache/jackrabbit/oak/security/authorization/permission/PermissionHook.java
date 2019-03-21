@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -77,8 +77,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private TypePredicate isACE;
     private TypePredicate isGrantACE;
 
-    private Map<String, PermissionStoreEditor> modified = new HashMap<String, PermissionStoreEditor>();
-    private Map<String, PermissionStoreEditor> deleted = new HashMap<String, PermissionStoreEditor>();
+    private Map<String, PermissionStoreEditor> modified = new HashMap<>();
+    private Map<String, PermissionStoreEditor> deleted = new HashMap<>();
 
     public PermissionHook(@NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider,
                           @NotNull MountInfoProvider mountInfoProvider, @NotNull RootProvider rootProvider,
@@ -94,8 +94,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     @NotNull
     @Override
     public NodeState processCommit(
-            NodeState before, NodeState after, CommitInfo info)
-            throws CommitFailedException {
+            NodeState before, NodeState after, CommitInfo info) {
         NodeBuilder rootAfter = after.builder();
 
         permissionStore = getPermissionStore(rootAfter);

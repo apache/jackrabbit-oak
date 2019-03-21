@@ -80,7 +80,6 @@ public class LSHAnalyzerTest {
       IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
       DirectoryReader reader = null;
       try {
-
           List<Double> values = new LinkedList<>();
           values.add(0.1d);
           values.add(0.3d);

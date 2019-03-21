@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 
 class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
-    public static final String EAGER_CACHE_SIZE_PARAM = "eagerCacheSize";
+    private static final String EAGER_CACHE_SIZE_PARAM = "eagerCacheSize";
 
     private static final long DEFAULT_SIZE = 250;
 

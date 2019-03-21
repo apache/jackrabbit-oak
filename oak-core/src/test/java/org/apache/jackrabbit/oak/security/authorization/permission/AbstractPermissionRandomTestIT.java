@@ -244,6 +244,7 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
         public void refresh() {
         }
 
+        @NotNull
         @Override
         public Set<String> getPrivileges(Tree tree) {
             if (canRead(tree.getPath())) {
@@ -254,31 +255,33 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
         }
 
         @Override
-        public boolean hasPrivileges(Tree tree, String... privilegeNames) {
+        public boolean hasPrivileges(Tree tree, @NotNull String... privilegeNames) {
             assertTrue("Implemened only for JCR_READ",
                     privilegeNames.length == 1 && privilegeNames[0].equals(JCR_READ));
             return canRead(tree.getPath());
         }
 
+        @NotNull
         @Override
         public RepositoryPermission getRepositoryPermission() {
             throw new RuntimeException("unimplemented");
         }
 
+        @NotNull
         @Override
-        public TreePermission getTreePermission(Tree tree, TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
             throw new RuntimeException("unimplemented");
         }
 
         @Override
-        public boolean isGranted(Tree tree, PropertyState property, long permissions) {
+        public boolean isGranted(@NotNull Tree tree, PropertyState property, long permissions) {
             assertTrue("Implemened only for Permissions.READ on trees",
                     property == null && permissions == Permissions.READ);
             return canRead(tree.getPath());
         }
 
         @Override
-        public boolean isGranted(String oakPath, String jcrActions) {
+        public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
             assertTrue("Implemened only for Session.ACTION_READ", jcrActions.equals(Session.ACTION_READ));
             return canRead(oakPath);
         }

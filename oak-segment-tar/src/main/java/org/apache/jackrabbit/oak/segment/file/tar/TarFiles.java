@@ -28,7 +28,6 @@ import static java.util.Collections.emptySet;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -55,6 +54,9 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,6 +128,10 @@ public class TarFiles implements Closeable {
 
         private SegmentNodeStorePersistence persistence;
 
+        private CounterStats readerCountStats = NoopStats.INSTANCE;
+
+        private CounterStats segmentCountStats = NoopStats.INSTANCE;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -173,6 +179,16 @@ public class TarFiles implements Closeable {
 
         public Builder withPersistence(SegmentNodeStorePersistence persistence) {
             this.persistence = persistence;
+            return this;
+        }
+
+        public Builder withReaderCountStats(CounterStats readerCountStats) {
+            this.readerCountStats = readerCountStats;
+            return this;
+        }
+
+        public Builder withSegmentCountStats(CounterStats segmentCountStats) {
+            this.segmentCountStats = segmentCountStats;
             return this;
         }
 
@@ -329,9 +345,25 @@ public class TarFiles implements Closeable {
      */
     private volatile boolean shutdown;
 
+    /**
+     * Counter exposing the number of {@link TarReader} instances.
+     */
+    private final CounterStats readerCount;
+
+    /**
+     * Counter exposing the number of segments.
+     */
+    private final CounterStats segmentCount;
+
+    private static int getSegmentCount(TarReader reader) {
+        return reader.getEntries().length;
+    }
+
     private TarFiles(Builder builder) throws IOException {
         maxFileSize = builder.maxFileSize;
         archiveManager = builder.buildArchiveManager();
+        readerCount = builder.readerCountStats;
+        segmentCount = builder.segmentCountStats;
 
         Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
@@ -349,7 +381,9 @@ public class TarFiles implements Closeable {
             } else {
                 r = TarReader.open(map.get(index), builder.tarRecovery, archiveManager);
             }
+            segmentCount.inc(getSegmentCount(r));
             readers = new Node(r, readers);
+            readerCount.inc();
         }
         if (builder.readOnly) {
             return;
@@ -358,7 +392,7 @@ public class TarFiles implements Closeable {
         if (indices.length > 0) {
             writeNumber = indices[indices.length - 1] + 1;
         }
-        writer = new TarWriter(archiveManager, writeNumber);
+        writer = new TarWriter(archiveManager, writeNumber, segmentCount);
     }
 
     @Override
@@ -441,6 +475,10 @@ public class TarFiles implements Closeable {
         return size;
     }
 
+    private static int getSize(Node head) {
+        return Iterables.size(iterable(head));
+    }
+
     public int readerCount() {
         Node head;
 
@@ -451,7 +489,7 @@ public class TarFiles implements Closeable {
             lock.readLock().unlock();
         }
 
-        return Iterables.size(iterable(head));
+        return getSize(head);
     }
 
     /**
@@ -472,7 +510,7 @@ public class TarFiles implements Closeable {
         }
 
         for (TarReader reader : iterable(head)) {
-            count += reader.getEntries().length;
+            count += getSegmentCount(reader);
         }
         return count;
     }
@@ -509,14 +547,14 @@ public class TarFiles implements Closeable {
         return false;
     }
 
-    public ByteBuffer readSegment(long msb, long lsb) {
+    public Buffer readSegment(long msb, long lsb) {
         try {
             Node head;
 
             lock.readLock().lock();
             try {
                 if (writer != null) {
-                    ByteBuffer b = writer.readEntry(msb, lsb);
+                    Buffer b = writer.readEntry(msb, lsb);
                     if (b != null) {
                         return b;
                     }
@@ -527,7 +565,7 @@ public class TarFiles implements Closeable {
             }
 
             for (TarReader reader : iterable(head)) {
-                ByteBuffer b = reader.readEntry(msb, lsb);
+                Buffer b = reader.readEntry(msb, lsb);
                 if (b != null) {
                     return b;
                 }
@@ -583,7 +621,10 @@ public class TarFiles implements Closeable {
         if (newWriter == writer) {
             return;
         }
-        readers = new Node(TarReader.open(writer.getFileName(), archiveManager), readers);
+        TarReader reader = TarReader.open(writer.getFileName(), archiveManager);
+        readers = new Node(reader, readers);
+        segmentCount.inc(getSegmentCount(reader));
+        readerCount.inc();
         writer = newWriter;
     }
 
@@ -646,11 +687,12 @@ public class TarFiles implements Closeable {
         Node closeables;
         long reclaimed;
 
+        Node swept;
         while (true) {
             closeables = null;
             reclaimed = 0;
 
-            Node swept = null;
+            swept = null;
 
             // The following loops creates a modified version of `readers` and
             // saves it into `swept`. Some TAR readers in `readers` have been
@@ -721,6 +763,8 @@ public class TarFiles implements Closeable {
                 lock.writeLock().unlock();
             }
         }
+        readerCount.dec(getSize(head) - getSize(swept));
+        segmentCount.dec(getSegmentCount(head) - getSegmentCount(swept));
 
         result.reclaimedSize -= reclaimed;
 
@@ -734,6 +778,14 @@ public class TarFiles implements Closeable {
         }
 
         return result;
+    }
+
+    private static int getSegmentCount(Node head) {
+        int c = 0;
+        for (TarReader reader : iterable(head)) {
+            c += getSegmentCount(reader);
+        }
+        return c;
     }
 
     public void collectBlobReferences(Consumer<String> collector, Predicate<GCGeneration> reclaim) throws IOException {

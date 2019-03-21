@@ -39,6 +39,7 @@ to obtain a session/login and the password needs to be changed prior
 to a next attempt. For specifying the new password, the initial password 
 has to be provided.
 
+<a href="configuration"></a>
 ### Configuration
 
 An administrator may enable password expiry and initial password change 
@@ -47,16 +48,18 @@ OSGi configuration. By default both features are disabled.
 
 The following configuration options are supported:
 
-| Parameter                       | Type    | Default  | Description            |
-|-------------------------------------      |-------- -|------------------------|
-| `PARAM_PASSWORD_MAX_AGE`        | int     | 0        | Number of days until the password expires. |
-| `PARAM_PASSWORD_INITIAL_CHANGE` | boolean | false    | boolean flag to enable initial pw change.  |
+| Parameter                         | Type    | Default  | Description                                |
+|-----------------------------------|---------|----------|--------------------------------------------|
+| `PARAM_PASSWORD_MAX_AGE`          | int     | 0        | Number of days until the password expires. |
+| `PARAM_PASSWORD_INITIAL_CHANGE`   | boolean | false    | boolean flag to enable initial pw change.  |
+| `PARAM_PASSWORD_EXPIRY_FOR_ADMIN` | boolean | false    | flag to enable pw expiry for admin user.   |
 
 Note:
 
 - Maximum Password Age (`maxPasswordAge`) will only be enabled when a value greater 0 is set (expiration time in days).
 - Change Password On First Login (`initialPasswordChange`): When enabled, forces users to change their password upon first login.
 
+<a href="how"></a>
 ### How it works
 
 #### Definition of Expired Password

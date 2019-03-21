@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.rules.ExternalResource;
-
-import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The <tt>DocumentMkBuilderProvider</tt> is a JUnit <tt>@Rule</tt> which
@@ -48,41 +49,39 @@ import com.google.common.collect.Lists;
  */
 public class DocumentMKBuilderProvider extends ExternalResource {
 
-    private List<DisposingDocumentMKBuilder> builders = Lists.newArrayList();
+    private static final Logger LOG = LoggerFactory.getLogger(DocumentMKBuilderProvider.class);
+
+    private List<DocumentNodeStore> nodeStores = new ArrayList<>();
     
     @Override
     protected void after() {
-        for (DisposingDocumentMKBuilder builder : builders) {
-            builder.dispose();
+        for (DocumentNodeStore ns : nodeStores) {
+            try {
+                ns.dispose();
+            } catch (Exception e) {
+                LOG.warn("Exception while disposing DocumentNodeStore", e);
+            }
         }
     }
-    
+
     public DocumentMK.Builder newBuilder() {
-        DisposingDocumentMKBuilder builder = new DisposingDocumentMKBuilder();
-        builders.add(builder);
-        return builder;
+        return new DisposingDocumentMKBuilder();
     }
     
-    private static class DisposingDocumentMKBuilder extends DocumentMK.Builder {
-        
-        private boolean initialised = false;
+    private class DisposingDocumentMKBuilder extends DocumentMK.Builder {
         
         @Override
         public DocumentNodeStore getNodeStore() {
-            boolean success = false;
-            try {
-                DocumentNodeStore ns = super.getNodeStore();
-                success = true;
-                return ns;
-            } finally {
-                initialised = success;
-            }
+            DocumentNodeStore ns = super.getNodeStore();
+            nodeStores.add(ns);
+            return ns;
         }
 
-        public void dispose() {
-            if ( initialised ) {
-                getNodeStore().dispose();
-            }
+        @Override
+        public DocumentNodeStore build() {
+            DocumentNodeStore ns = super.build();
+            nodeStores.add(ns);
+            return ns;
         }
-    }        
+    }
 }

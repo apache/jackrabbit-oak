@@ -26,7 +26,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.10-SNAPSHOT</version>
+    <version>1.12-SNAPSHOT</version>
     <relativePath>../../oak-parent/pom.xml</relativePath>
   </parent>
   <artifactId>oak-standalone</artifactId>
@@ -36,7 +36,7 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <spring.boot.version>1.5.16.RELEASE</spring.boot.version>
+    <spring.boot.version>1.5.19.RELEASE</spring.boot.version>
   </properties>
 
   <dependencyManagement>

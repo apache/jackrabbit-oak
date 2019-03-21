@@ -30,7 +30,7 @@ public interface TreeContext {
 
     /**
      * Reveals if the specified {@code PropertyState} is defined by the
-     * module that exposes this {@link TreeContext} instance.
+     * module that exposes this instance.
      *
      * @param parent The parent tree of the property state.
      * @param property The {@code PropertyState} to be tested.
@@ -41,7 +41,7 @@ public interface TreeContext {
 
     /**
      * Reveals if the specified {@code Tree} is the root of a subtree defined by
-     * the module that exposes this {@link TreeContext} instance. Note,
+     * the module that exposes this instance. Note,
      * that in contrast to {@link #definesTree(Tree)}
      * this method will return {@code false} for any tree located in the
      * subtree.
@@ -54,7 +54,7 @@ public interface TreeContext {
 
     /**
      * Reveals if the specified {@code Tree} is defined by the
-     * module that exposes this {@link TreeContext} instance.
+     * module that exposes this instance.
      *
      * @param tree The tree to be tested.
      * @return {@code true} if the specified tree is related to or defined by the
@@ -64,7 +64,7 @@ public interface TreeContext {
 
     /**
      * Reveals if the specified {@code TreeLocation} is defined by the
-     * module that exposes this {@link TreeContext} instance.
+     * module that exposes this instance.
      *
      * @param location The tree location to be tested.
      * @return {@code true} if the specified tree location is related to or

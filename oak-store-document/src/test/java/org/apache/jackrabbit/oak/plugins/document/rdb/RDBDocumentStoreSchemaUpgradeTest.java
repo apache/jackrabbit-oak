@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -256,6 +257,72 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), 0, logCustomizer.getLogs().size());
         } finally {
             logCustomizer.finished();
+            if (rdb != null) {
+                rdb.dispose();
+            }
+        }
+    }
+
+    @Test
+    public void init12fail() {
+        LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.INFO)
+                .contains("Attempted to upgrade").create();
+        logCustomizer.starting();
+
+        Assume.assumeTrue(ds instanceof RDBDataSourceWrapper);
+        RDBDataSourceWrapper wds = (RDBDataSourceWrapper)ds;
+        wds.setFailAlterTableAddColumnStatements(true);
+
+        RDBOptions op = new RDBOptions().tablePrefix("T12F").initialSchema(1).upgradeToSchema(2).dropTablesOnClose(true);
+        RDBDocumentStore rdb = null;
+        try {
+            rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
+            RDBTableMetaData meta = rdb.getTable(Collection.NODES);
+            assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
+            assertTrue(meta.hasVersion());
+            assertEquals("unexpected # of log entries: " + logCustomizer.getLogs(), RDBDocumentStore.getTableNames().size() * 4,
+                    logCustomizer.getLogs().size());
+            String id = Utils.getIdFromPath("/foo");
+            UpdateOp testInsert = new UpdateOp(id, true);
+            assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
+            UpdateOp testUpdate = new UpdateOp(id, false);
+            testUpdate.set("p", 42);
+            assertNotNull(rdb.findAndUpdate(Collection.NODES, testUpdate));
+            rdb.getNodeDocumentCache().invalidate(id);
+            NodeDocument doc = rdb.find(Collection.NODES, id);
+            assertNotNull(doc);
+            assertEquals(SplitDocType.NONE, doc.getSplitDocType());
+            assertNull(doc.get(NodeDocument.SD_MAX_REV_TIME_IN_SECS));
+        } finally {
+            wds.setFailAlterTableAddColumnStatements(false);
+            logCustomizer.finished();
+            if (rdb != null) {
+                rdb.dispose();
+            }
+        }
+    }
+
+    @Test
+    public void autoFixOAK7855() {
+        RDBOptions op = new RDBOptions().tablePrefix("OAK7855").dropTablesOnClose(true);
+        RDBDocumentStore rdb = null;
+        try {
+            rdb = new RDBDocumentStore(this.ds, new DocumentMK.Builder(), op);
+            RDBTableMetaData meta = rdb.getTable(Collection.NODES);
+            assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
+            assertTrue(meta.hasVersion());
+            String id = Utils.getIdFromPath("/foo");
+            UpdateOp testInsert = new UpdateOp(id, true);
+            assertTrue(rdb.create(Collection.NODES, Collections.singletonList(testInsert)));
+            UpdateOp testUpdate = new UpdateOp(id, false);
+            // set the invalid split doc type introduced by OAK-7855
+            testUpdate.set(NodeDocument.SD_TYPE, 0);
+            assertNotNull(rdb.findAndUpdate(Collection.NODES, testUpdate));
+            rdb.getNodeDocumentCache().invalidate(id);
+            NodeDocument doc = rdb.find(Collection.NODES, id);
+            assertNotNull(doc);
+            assertEquals(SplitDocType.NONE, doc.getSplitDocType());
+        } finally {
             if (rdb != null) {
                 rdb.dispose();
             }

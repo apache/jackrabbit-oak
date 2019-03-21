@@ -140,13 +140,13 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginModuleTe
 
     private static void registerSyncHandlerMapping(@NotNull OsgiContext ctx, @NotNull ExternalSetup setup) {
         String syncHandlerName = setup.sc.getName();
-        Map props = ImmutableMap.of(
+        Map<String, Object> props = ImmutableMap.of(
                 DefaultSyncConfigImpl.PARAM_NAME, syncHandlerName,
                 DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, setup.sc.user().getDynamicMembership(),
                 DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP, setup.sc.user().getAutoMembership());
         ctx.registerService(SyncHandler.class, setup.sh, props);
 
-        Map mappingProps = ImmutableMap.of(
+        Map<String, String> mappingProps = ImmutableMap.of(
                 SyncHandlerMapping.PARAM_IDP_NAME, setup.idp.getName(),
                 SyncHandlerMapping.PARAM_SYNC_HANDLER_NAME, syncHandlerName);
         ctx.registerService(SyncHandlerMapping.class, new SyncHandlerMapping() {}, mappingProps);

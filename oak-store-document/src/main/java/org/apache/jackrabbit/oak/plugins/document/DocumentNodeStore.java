@@ -46,6 +46,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -60,6 +61,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -191,6 +193,11 @@ public final class DocumentNodeStore
     private int journalPushThreshold = Integer.getInteger("oak.journalPushThreshold", 100000);
 
     /**
+     * How many collision entries to collect in a single call.
+     */
+    private int collisionGarbageBatchSize = Integer.getInteger("oak.documentMK.collisionGarbageBatchSize", 1000);
+
+    /**
      * The document store without potentially lease checking wrapper.
      */
     private final DocumentStore nonLeaseCheckingStore;
@@ -241,6 +248,11 @@ public final class DocumentNodeStore
      * Whether this instance is disposed.
      */
     private final AtomicBoolean isDisposed = new AtomicBoolean();
+
+    /**
+     * Whether the lease update thread shall be stopped.
+     */
+    private final AtomicBoolean stopLeaseUpdateThread = new AtomicBoolean();
 
     /**
      * The cluster instance info.
@@ -490,12 +502,12 @@ public final class DocumentNodeStore
 
     /**
      * A set of non-branch commit revisions that are currently in progress. A
-     * revision is added to this set when {@link #newTrunkCommit(RevisionVector)}
+     * revision is added to this set when {@link #newTrunkCommit(Changes, RevisionVector)}
      * is called and removed when the commit either:
      * <ul>
      *     <li>Succeeds with {@link #done(Commit, boolean, CommitInfo)}</li>
-     *     <li>Fails with {@link #canceled(Commit)} and the commit does *not*
-     *      have the {@link Commit#rollbackFailed()} flag set.</li>
+     *     <li>Fails with {@link #canceled(Commit)} and the commit was
+     *      successfully rolled back.</li>
      * </ul>
      * The {@link NodeDocumentSweeper} periodically goes through this set and
      * reverts changes done by commits in the set that are older than the
@@ -552,7 +564,7 @@ public final class DocumentNodeStore
             clusterNodeInfo.setLeaseFailureHandler(builder.getLeaseFailureHandler());
         }
         String threadNamePostfix = "(" + clusterId + ")";
-        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, isDisposed),
+        leaseUpdateThread = new Thread(new BackgroundLeaseUpdate(this, stopLeaseUpdateThread),
                 "DocumentNodeStore lease update thread " + threadNamePostfix);
         leaseUpdateThread.setDaemon(true);
         if (!readOnlyMode) {
@@ -604,17 +616,18 @@ public final class DocumentNodeStore
         if (rootDoc == null) {
             // root node is missing: repository is not initialized
             Revision commitRev = newRevision();
-            Commit commit = new Commit(this, commitRev, null);
             RevisionVector head = new RevisionVector(commitRev);
-            DocumentNodeState n = new DocumentNodeState(this, "/", head);
-            commit.addNode(n);
+            Commit commit = new CommitBuilder(this, commitRev, null)
+                    .addNode("/")
+                    .build();
             try {
                 commit.applyToDocumentStore();
             } catch (ConflictException e) {
+                commit.rollback();
                 throw new IllegalStateException("Conflict while creating root document", e);
             }
             unsavedLastRevisions.put("/", commitRev);
-            sweepRevisions = sweepRevisions.pmax(new RevisionVector(commitRev));
+            sweepRevisions = sweepRevisions.pmax(head);
             setRoot(head);
             // make sure _lastRev is written back to store
             backgroundWrite();
@@ -652,6 +665,7 @@ public final class DocumentNodeStore
                 new PrefetchDispatcher(getRoot(), executor) :
                 new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this);
+        commitQueue.setStatisticsCollector(nodeStoreStatsCollector);
         batchCommitQueue = new BatchCommitQueue(store);
         // prepare background threads
         backgroundReadThread = new Thread(
@@ -770,7 +784,17 @@ public final class DocumentNodeStore
             }
         }
 
-        Utils.joinQuietly(clusterUpdateThread, leaseUpdateThread);
+        Utils.joinQuietly(clusterUpdateThread);
+
+        // Stop lease update thread once no further document store operations
+        // are required
+        LOG.debug("Stopping LeaseUpdate thread...");
+        stopLeaseUpdateThread.set(true);
+        synchronized (stopLeaseUpdateThread) {
+            stopLeaseUpdateThread.notifyAll();
+        }
+        Utils.joinQuietly(leaseUpdateThread);
+        LOG.debug("Stopped LeaseUpdate thread");
 
         // now mark this cluster node as inactive by disposing the
         // clusterNodeInfo, but only if final background operations
@@ -778,6 +802,7 @@ public final class DocumentNodeStore
         if (ex == null) {
             clusterNodeInfo.dispose();
         }
+
         store.dispose();
 
         if (blobStore instanceof Closeable) {
@@ -823,6 +848,7 @@ public final class DocumentNodeStore
      * {@link #done(Commit, boolean, CommitInfo)} or {@link #canceled(Commit)},
      * depending on the result of the commit.
      *
+     * @param changes the changes to commit.
      * @param base the base revision for the commit or <code>null</code> if the
      *             commit should use the current head revision as base.
      * @param branch the branch instance if this is a branch commit. The life
@@ -833,15 +859,16 @@ public final class DocumentNodeStore
      * @return a new commit.
      */
     @NotNull
-    Commit newCommit(@Nullable RevisionVector base,
+    Commit newCommit(@NotNull Changes changes,
+                     @Nullable RevisionVector base,
                      @Nullable DocumentNodeStoreBranch branch) {
         if (base == null) {
             base = getHeadRevision();
         }
         if (base.isBranch()) {
-            return newBranchCommit(base, branch);
+            return newBranchCommit(changes, base, branch);
         } else {
-            return newTrunkCommit(base);
+            return newTrunkCommit(changes, base);
         }
     }
 
@@ -949,15 +976,17 @@ public final class DocumentNodeStore
     void canceled(Commit c) {
         if (commitQueue.contains(c.getRevision())) {
             try {
-                if (!c.rollbackFailed() || c.isEmpty()) {
+                commitQueue.canceled(c.getRevision());
+                if (c.rollback()) {
+                    // rollback was successful
                     inDoubtTrunkCommits.remove(c.getRevision());
                 }
-                commitQueue.canceled(c.getRevision());
             } finally {
                 backgroundOperationLock.readLock().unlock();
             }
         } else {
             try {
+                c.rollback();
                 Branch b = branches.getBranch(c.getBaseRevision());
                 if (b != null) {
                     b.removeCommit(c.getRevision().asBranchRevision());
@@ -1633,44 +1662,53 @@ public final class DocumentNodeStore
             throw new DocumentStoreException(branchHead + " is not the head " +
                     "of a branch");
         }
-        if (!b.containsCommit(ancestor.getBranchRevision())
+        Revision ancestorRev = ancestor.getBranchRevision();
+        if (!b.containsCommit(ancestorRev)
                 && !b.getBase().asBranchRevision(getClusterId()).equals(ancestor)) {
             throw new DocumentStoreException(ancestor + " is not " +
                     "an ancestor revision of " + branchHead);
         }
-        // tailSet is inclusive -> use an ancestorRev with a
-        // counter incremented by one to make the call exclusive
-        Revision ancestorRev = ancestor.getBranchRevision();
-        ancestorRev = new Revision(ancestorRev.getTimestamp(),
-                ancestorRev.getCounter() + 1, ancestorRev.getClusterId(), true);
-        List<Revision> revs = newArrayList(b.getCommits().tailSet(ancestorRev));
-        if (revs.isEmpty()) {
-            // trivial
-            return branchHead;
+        // tailSet is inclusive and will contain the ancestorRev, unless
+        // the ancestorRev is the base revision of the branch
+        List<Revision> revs = new ArrayList<>();
+        if (!b.containsCommit(ancestorRev)) {
+            // add before all other branch revisions
+            revs.add(ancestorRev);
         }
+        revs.addAll(b.getCommits().tailSet(ancestorRev));
         UpdateOp rootOp = new UpdateOp(Utils.getIdFromPath("/"), false);
         // reset each branch commit in reverse order
         Map<String, UpdateOp> operations = Maps.newHashMap();
+        AtomicReference<Revision> currentRev = new AtomicReference<>();
         for (Revision r : reverse(revs)) {
-            NodeDocument.removeCollision(rootOp, r.asTrunkRevision());
-            NodeDocument.removeRevision(rootOp, r.asTrunkRevision());
             operations.clear();
-            BranchCommit bc = b.getCommit(r);
+            Revision previous = currentRev.getAndSet(r);
+            if (previous == null) {
+                continue;
+            }
+            NodeDocument.removeCollision(rootOp, previous.asTrunkRevision());
+            NodeDocument.removeRevision(rootOp, previous.asTrunkRevision());
+            NodeDocument.removeBranchCommit(rootOp, previous.asTrunkRevision());
+            BranchCommit bc = b.getCommit(previous);
             if (bc.isRebase()) {
                 continue;
             }
-            getRoot(bc.getBase().update(r))
-                    .compareAgainstBaseState(getRoot(bc.getBase()),
-                            new ResetDiff(r.asTrunkRevision(), operations));
+            DocumentNodeState branchState = getRoot(bc.getBase().update(previous));
+            DocumentNodeState baseState = getRoot(bc.getBase().update(r));
+            LOG.debug("reset: comparing branch {} with base {}",
+                    branchState.getRootRevision(), baseState.getRootRevision());
+            branchState.compareAgainstBaseState(baseState,
+                    new ResetDiff(previous.asTrunkRevision(), operations));
+            LOG.debug("reset: applying {} operations", operations.size());
             // apply reset operations
-            for (UpdateOp op : operations.values()) {
-                store.findAndUpdate(Collection.NODES, op);
-            }
+            store.createOrUpdate(NODES, new ArrayList<>(operations.values()));
         }
-        store.findAndUpdate(Collection.NODES, rootOp);
+        store.findAndUpdate(NODES, rootOp);
         // clean up in-memory branch data
         for (Revision r : revs) {
-            b.removeCommit(r);
+            if (!r.equals(ancestorRev)) {
+                b.removeCommit(r);
+            }
         }
         return ancestor;
     }
@@ -1789,8 +1827,10 @@ public final class DocumentNodeStore
      * delay is set to 0.
      *
      * @param conflictRevisions the revision to become visible.
+     * @return the suspend time in milliseconds.
      */
-    void suspendUntilAll(@NotNull Set<Revision> conflictRevisions) {
+    long suspendUntilAll(@NotNull Set<Revision> conflictRevisions) {
+        long time = clock.getTime();
         // do not suspend if revision is from another cluster node
         // and background read is disabled
         if (getAsyncDelay() == 0) {
@@ -1804,6 +1844,7 @@ public final class DocumentNodeStore
         } else {
             commitQueue.suspendUntilAll(conflictRevisions);
         }
+        return clock.getTime() - time;
     }
 
     //------------------------< Observable >------------------------------------
@@ -2023,15 +2064,18 @@ public final class DocumentNodeStore
             long time = start;
             // clean orphaned branches and collisions
             cleanOrphanedBranches();
-            cleanCollisions();
+            cleanRootCollisions();
             long cleanTime = clock.getTime() - time;
             time = clock.getTime();
             // split documents (does not create new revisions)
             backgroundSplit();
             long splitTime = clock.getTime() - time;
+            time = clock.getTime();
             maybeRefreshHeadRevision();
+            long refreshTime = clock.getTime() - time;
             // write back pending updates to _lastRev
             stats = backgroundWrite();
+            stats.refresh = refreshTime;
             stats.split = splitTime;
             stats.clean = cleanTime;
             stats.totalWriteTime = clock.getTime() - start;
@@ -2283,16 +2327,19 @@ public final class DocumentNodeStore
             store.findAndUpdate(NODES, op);
         }
     }
-    
-    private void cleanCollisions() {
+
+    private void cleanRootCollisions() {
         String id = Utils.getIdFromPath("/");
         NodeDocument root = store.find(NODES, id);
-        if (root == null) {
-            return;
+        if (root != null) {
+            cleanCollisions(root, Integer.MAX_VALUE);
         }
+    }
+
+    private void cleanCollisions(NodeDocument doc, int limit) {
         RevisionVector head = getHeadRevision();
-        Map<Revision, String> map = root.getLocalMap(NodeDocument.COLLISIONS);
-        UpdateOp op = new UpdateOp(id, false);
+        Map<Revision, String> map = doc.getLocalMap(NodeDocument.COLLISIONS);
+        UpdateOp op = new UpdateOp(doc.getId(), false);
         for (Revision r : map.keySet()) {
             if (r.getClusterId() == clusterId) {
                 // remove collision if there is no active branch with
@@ -2302,11 +2349,15 @@ public final class DocumentNodeStore
                 if (branches.getBranchCommit(r) == null 
                         && !head.isRevisionNewer(r)) {
                     NodeDocument.removeCollision(op, r);
+                    if (--limit <= 0) {
+                        break;
+                    }
                 }
             }
         }
         if (op.hasChanges()) {
-            LOG.debug("Removing collisions {}", op.getChanges().keySet());
+            LOG.debug("Removing collisions {} on {}",
+                    op.getChanges().keySet(), doc.getId());
             store.findAndUpdate(NODES, op);
         }
     }
@@ -2319,6 +2370,7 @@ public final class DocumentNodeStore
             if (doc == null) {
                 continue;
             }
+            cleanCollisions(doc, collisionGarbageBatchSize);
             for (UpdateOp op : doc.split(this, head, binarySize)) {
                 NodeDocument before = null;
                 if (!op.isNew() ||
@@ -2380,7 +2432,7 @@ public final class DocumentNodeStore
             // head was not updated for more than a minute
             // create an empty commit that updates the head
             boolean success = false;
-            Commit c = newTrunkCommit(getHeadRevision());
+            Commit c = newTrunkCommit(nop -> {}, getHeadRevision());
             try {
                 done(c, false, CommitInfo.EMPTY);
                 success = true;
@@ -2640,17 +2692,21 @@ public final class DocumentNodeStore
         setRoot(headRevision);
     }
 
-    @NotNull
-    private Commit newTrunkCommit(@NotNull RevisionVector base) {
+    private Commit newTrunkCommit(@NotNull Changes changes,
+                                  @NotNull RevisionVector base) {
         checkArgument(!checkNotNull(base).isBranch(),
                 "base must not be a branch revision: " + base);
+
+        // build commit before revision is created by the commit queue (OAK-7869)
+        CommitBuilder commitBuilder = new CommitBuilder(this, base);
+        changes.with(commitBuilder);
 
         boolean success = false;
         Commit c;
         backgroundOperationLock.readLock().lock();
         try {
             checkOpen();
-            c = new Commit(this, commitQueue.createRevision(), base);
+            c = commitBuilder.build(commitQueue.createRevision());
             inDoubtTrunkCommits.add(c.getRevision());
             success = true;
         } finally {
@@ -2662,13 +2718,16 @@ public final class DocumentNodeStore
     }
 
     @NotNull
-    private Commit newBranchCommit(@NotNull RevisionVector base,
+    private Commit newBranchCommit(@NotNull Changes changes,
+                                   @NotNull RevisionVector base,
                                    @Nullable DocumentNodeStoreBranch branch) {
         checkArgument(checkNotNull(base).isBranch(),
                 "base must be a branch revision: " + base);
 
         checkOpen();
-        Commit c = new Commit(this, newRevision(), base);
+        Revision commitRevision = newRevision();
+        CommitBuilder commitBuilder = new CommitBuilder(this, commitRevision, base);
+        changes.with(commitBuilder);
         if (isDisableBranches()) {
             // Regular branch commits do not need to acquire the background
             // operation lock because the head is not updated and no pending
@@ -2677,7 +2736,7 @@ public final class DocumentNodeStore
             // must be acquired.
             backgroundOperationLock.readLock().lock();
         } else {
-            Revision rev = c.getRevision().asBranchRevision();
+            Revision rev = commitRevision.asBranchRevision();
             // remember branch commit
             Branch b = getBranches().getBranch(base);
             if (b == null) {
@@ -2691,7 +2750,7 @@ public final class DocumentNodeStore
                 b.addCommit(rev);
             }
         }
-        return c;
+        return commitBuilder.build();
     }
 
     /**

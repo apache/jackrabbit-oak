@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence;
 
+import java.io.IOException;
+
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-
-import java.io.IOException;
 
 /**
  * This type is a main entry point for the segment node store persistence. It's
@@ -35,7 +35,7 @@ public interface SegmentNodeStorePersistence {
      *
      * @param memoryMapping whether the memory mapping should be used (if the given
      *                      persistence supports it)
-     * @param offHeapAccess whether off heap access for segements should be used
+     * @param offHeapAccess whether off heap access for segments should be used
      * @param ioMonitor object used to monitor segment-related IO access. The
      *                  implementation should call the appropriate methods when
      *                  accessing segments.

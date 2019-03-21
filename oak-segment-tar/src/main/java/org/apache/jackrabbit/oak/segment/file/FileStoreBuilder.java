@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.util.Set;
 
 import com.google.common.base.Predicate;
-
 import org.apache.jackrabbit.oak.segment.CacheWeights.NodeCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.StringCacheWeigher;
 import org.apache.jackrabbit.oak.segment.CacheWeights.TemplateCacheWeigher;
@@ -137,6 +136,8 @@ public class FileStoreBuilder {
     private final Set<IOMonitor> ioMonitors = newHashSet();
 
     private boolean strictVersionCheck;
+
+    private boolean eagerSegmentCaching;
 
     private boolean built;
 
@@ -353,8 +354,21 @@ public class FileStoreBuilder {
         return this;
     }
 
-    public FileStoreBuilder withCustomPersistence(SegmentNodeStorePersistence persistence) throws IOException {
+    public FileStoreBuilder withCustomPersistence(SegmentNodeStorePersistence persistence) {
         this.persistence = persistence;
+        return this;
+    }
+
+    /**
+     * Enable eager segment caching. This proves useful when segments need to
+     * be cached as soon as they are created, right before persisting them to disk.
+     * One such scenario is the cold standby, see OAK-8006.
+     *
+     * @param eagerSegmentCaching enables eager segment caching iff {@code true}.
+     * @return this instance
+     */
+    public FileStoreBuilder withEagerSegmentCaching(boolean eagerSegmentCaching) {
+        this.eagerSegmentCaching = eagerSegmentCaching;
         return this;
     }
 
@@ -524,6 +538,10 @@ public class FileStoreBuilder {
 
     boolean getStrictVersionCheck() {
         return strictVersionCheck;
+    }
+
+    boolean getEagerSegmentCaching() {
+        return eagerSegmentCaching;
     }
 
     @Override

@@ -101,9 +101,9 @@ public class NodeStateSerializer {
     }
 
     private void serialize(JsopWriter writer, BlobSerializer blobSerializer) throws IOException {
-        JsonSerializer serializer = new JsonSerializer(writer, depth, 0, maxChildNodes, getFilter(), blobSerializer);
+        JsonSerializer serializer = new JsonSerializer(writer, depth, 0, maxChildNodes, getFilter(), blobSerializer, true);
         NodeState state = NodeStateUtils.getNode(nodeState, path);
-        serializer.serialize(state);
+        serializer.serialize(state, path);
     }
 
     private BlobSerializer createBlobSerializer(File dir) {

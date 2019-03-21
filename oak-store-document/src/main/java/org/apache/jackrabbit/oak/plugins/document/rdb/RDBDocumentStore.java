@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVer
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -99,7 +100,7 @@ import com.google.common.collect.Sets;
 /**
  * Implementation of {@link DocumentStore} for relational databases.
  * 
- * <h3>Supported Databases</h3>
+ * <h3 id="apidocs.supported-databases">Supported Databases</h3>
  * <p>
  * The code is supposed to be sufficiently generic to run with a variety of
  * database implementations. However, the tables are created when required to
@@ -115,7 +116,7 @@ import com.google.common.collect.Sets;
  * <li>Oracle</li>
  * </ul>
  * 
- * <h3>Table Layout</h3>
+ * <h3 id="apidocs.table-layout">Table Layout</h3>
  * <p>
  * Data for each of the DocumentStore's {@link Collection}s is stored in its own
  * database table (with a name matching the collection).
@@ -202,7 +203,7 @@ import com.google.common.collect.Sets;
  * testing, as tables can also be dropped automatically when the store is
  * disposed (this only happens for those tables that have been created on
  * demand).
- * <h4>Versioning</h4>
+ * <h4 id="apidocs.versioning">Versioning</h4>
  * <p>
  * The initial database layout used in OAK 1.0 through 1.6 is version 0.
  * <p>
@@ -217,22 +218,25 @@ import com.google.common.collect.Sets;
  * existing version 0 and 1 tables to version 2.
  * <h4>DB-specific information</h4>
  * <p>
- * <em>Note that the database needs to be created/configured to support all
- * Unicode characters in text fields, and to collate by Unicode code point (in
- * DB2: "collate using identity", in PostgreSQL: "C"). THIS IS NOT THE
- * DEFAULT!</em>
+ * Databases need to be configured so that:
+ * <ul>
+ * <li>Text fields support all Unicode code points,</li>
+ * <li>Collation of text fields happens by Unicode code point,</li>
+ * <li>and BLOBs need to support at least 16 MB.</li>
+ * </ul>
  * <p>
- * <em>For MySQL, the database parameter "max_allowed_packet" needs to be
- * increased to support ~16M blobs.</em>
- * 
- * <h3>Table Creation</h3>
+ * See the
+ * <a href="https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#database-creation">RDBDocumentStore documentation</a>
+ * for more information.
+ * <h3 id="apidocs.table-creation">Table Creation</h3>
  * <p>
  * The code tries to create the tables when they are not present. Likewise, it
  * tries to upgrade to a newer schema when needed.
  * <p>
  * Users/Administrators who prefer to stay in control over table generation can
- * create them "manually". {@link RDBHelper} can be used to print out the DDL
- * statements that would have been used for auto-creation.
+ * create them "manually". The oak-run "<a href="https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#rdbddldump"><code>rdbddldump</code></a>"
+ * command can be used to print out the DDL statements that would have been used for auto-creation
+ * and/or automatic schema updates.
  * 
  * <h3>Caching</h3>
  * <p>
@@ -2171,17 +2175,16 @@ public class RDBDocumentStore implements DocumentStore {
         if (NOGZIP) {
             return bytes;
         } else {
-            try {
-                ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length());
-                GZIPOutputStream gos = new GZIPOutputStream(bos) {
-                    {
-                        // TODO: make this configurable
-                        this.def.setLevel(Deflater.BEST_SPEED);
-                    }
-                };
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(bytes.length / 2);
+            try (GZIPOutputStream gos = asGZIPOutputStream(bos, Deflater.BEST_SPEED)) {
                 gos.write(bytes);
                 gos.close();
-                return bos.toByteArray();
+                byte[] compressedBytes = bos.toByteArray();
+                if (LOG.isTraceEnabled()) {
+                    long ratio = (100L * compressedBytes.length) / bytes.length;
+                    LOG.trace("Gzipped {} bytes to {} ({}%)", bytes.length, compressedBytes.length, ratio);
+                }
+                return compressedBytes;
             } catch (IOException ex) {
                 LOG.error("Error while gzipping contents", ex);
                 throw asDocumentStoreException(ex, "Error while gzipping contents");
@@ -2189,6 +2192,13 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
+    private static GZIPOutputStream asGZIPOutputStream(OutputStream os, final int level) throws IOException {
+        return new GZIPOutputStream(os) {
+            {
+                this.def.setLevel(level);
+            }
+        };
+    }
 
     @Override
     public void setReadWriteMode(String readWriteMode) {

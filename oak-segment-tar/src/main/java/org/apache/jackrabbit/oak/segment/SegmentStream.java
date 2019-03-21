@@ -25,12 +25,11 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.List;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
-
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +55,7 @@ public class SegmentStream extends InputStream {
 
     private final RecordId recordId;
 
-    private final ByteBuffer inline;
+    private final Buffer inline;
 
     private final ListRecord blocks;
 
@@ -74,7 +73,7 @@ public class SegmentStream extends InputStream {
         this.length = length;
     }
 
-    SegmentStream(RecordId recordId, ByteBuffer inline, int length) {
+    SegmentStream(RecordId recordId, Buffer inline, int length) {
         this.recordId = checkNotNull(recordId);
         this.inline = inline.duplicate();
         this.blocks = null;
@@ -95,7 +94,7 @@ public class SegmentStream extends InputStream {
 
     public String getString() {
         if (inline != null) {
-            return Charsets.UTF_8.decode(inline).toString();
+            return inline.decode(Charsets.UTF_8).toString();
         } else if (length > Integer.MAX_VALUE) {
             throw new IllegalStateException("Too long value: " + length);
         } else {

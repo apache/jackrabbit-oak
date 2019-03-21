@@ -37,13 +37,13 @@ import static org.junit.Assert.assertTrue;
 public class CompositeContextTest extends AbstractCompositeConfigurationTest {
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         compositeConfiguration = new CompositeConfiguration("test", Mockito.mock(SecurityProvider.class)) {};
     }
 
     @Test
     public void testGetContext() throws Exception {
-        Class cls = Class.forName(CompositeConfiguration.class.getName() + "$CompositeContext");
+        Class<?> cls = Class.forName(CompositeConfiguration.class.getName() + "$CompositeContext");
         Field def = cls.getDeclaredField("defaultCtx");
         def.setAccessible(true);
 

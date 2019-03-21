@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 /**
  * AuthorizableIterator...
  */
-final class AuthorizableIterator implements Iterator {
+final class AuthorizableIterator implements Iterator<Authorizable> {
 
     private static final Logger log = LoggerFactory.getLogger(AuthorizableIterator.class);
 
@@ -42,7 +42,7 @@ final class AuthorizableIterator implements Iterator {
     static AuthorizableIterator create(Iterator<String> authorizableOakPaths,
                                        UserManagerImpl userManager,
                                        AuthorizableType authorizableType) {
-        Iterator it = Iterators.transform(authorizableOakPaths, new PathToAuthorizable(userManager, authorizableType));
+        Iterator<Authorizable> it = Iterators.transform(authorizableOakPaths, new PathToAuthorizable(userManager, authorizableType));
         long size = getSize(authorizableOakPaths);
         return new AuthorizableIterator(Iterators.filter(it, Predicates.notNull()), size);
     }
@@ -75,7 +75,7 @@ final class AuthorizableIterator implements Iterator {
 
     //--------------------------------------------------------------------------
 
-    private static long getSize(Iterator it) {
+    private static long getSize(Iterator<String> it) {
         if (it instanceof RangeIterator) {
             return ((RangeIterator) it).getSize();
         } else {
@@ -86,9 +86,9 @@ final class AuthorizableIterator implements Iterator {
     private static class PathToAuthorizable implements Function<String, Authorizable> {
 
         private final UserManagerImpl userManager;
-        private final Predicate predicate;
+        private final Predicate<Authorizable> predicate;
 
-        public PathToAuthorizable(UserManagerImpl userManager, AuthorizableType type) {
+        PathToAuthorizable(UserManagerImpl userManager, AuthorizableType type) {
             this.userManager = userManager;
             this.predicate = new AuthorizableTypePredicate(type);
         }

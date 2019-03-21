@@ -304,8 +304,13 @@ public class SegmentTarFixture extends OakFixture {
         try (ServerSocket socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
         }
-        
-        serverSyncs[i] = new StandbyServerSync(port, stores[i], 1 * MB, secure);
+
+        serverSyncs[i] = StandbyServerSync.builder()
+            .withPort(port)
+            .withFileStore(stores[i])
+            .withBlobChunkSize(1 * MB)
+            .withSecureConnection(secure)
+            .build();
         clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], secure, DEFAULT_TIMEOUT, false, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
         
         if (!oneShotRun) {

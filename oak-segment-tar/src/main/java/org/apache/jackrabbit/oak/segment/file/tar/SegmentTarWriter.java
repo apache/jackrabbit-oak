@@ -20,14 +20,12 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.commons.IOUtils.readFully;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
 
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -43,6 +41,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.index.SimpleIndexEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,14 +132,14 @@ public class SegmentTarWriter implements SegmentArchiveWriter {
     }
 
     @Override
-    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
+    public Buffer readSegment(long msb, long lsb) throws IOException {
         IndexEntry indexEntry = index.get(new UUID(msb, lsb));
         if (indexEntry == null) {
             return null;
         }
         checkState(channel != null); // implied by entry != null
-        ByteBuffer data = ByteBuffer.allocate(indexEntry.getLength());
-        if (readFully(channel, indexEntry.getPosition(), data) < indexEntry.getLength()) {
+        Buffer data = Buffer.allocate(indexEntry.getLength());
+        if (data.readFully(channel, indexEntry.getPosition()) < indexEntry.getLength()) {
             throw new EOFException();
         }
         data.rewind();

@@ -25,7 +25,8 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
@@ -40,7 +41,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
  */
 public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
 
-	protected Principal testPrincipal;
+    protected Principal testPrincipal;
     private ContentSession testSession;
 
     @Before
@@ -50,18 +51,17 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
 
         testPrincipal = getTestUser().getPrincipal();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
-        NodeUtil a = rootNode.addChild("a", NT_UNSTRUCTURED);
-        a.setString("aProp", "aValue");
+        Tree a = TreeUtil.addChild(root.getTree("/"), "a", NT_UNSTRUCTURED);
+        a.setProperty("aProp", "aValue");
 
-        NodeUtil b = a.addChild("b", NT_UNSTRUCTURED);
-        b.setString("bProp", "bValue");
+        Tree b = TreeUtil.addChild(a, "b", NT_UNSTRUCTURED);
+        b.setProperty("bProp", "bValue");
         // sibling
-        NodeUtil bb = a.addChild("bb", NT_UNSTRUCTURED);
-        bb.setString("bbProp", "bbValue");
+        Tree bb = TreeUtil.addChild(a, "bb", NT_UNSTRUCTURED);
+        bb.setProperty("bbProp", "bbValue");
 
-        NodeUtil c = b.addChild("c", NT_UNSTRUCTURED);
-        c.setString("cProp", "cValue");
+        Tree c = TreeUtil.addChild(b, "c", NT_UNSTRUCTURED);
+        c.setProperty("cProp", "cValue");
         root.commit();
     }
 
@@ -138,10 +138,10 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
                                    @NotNull Principal principal,
                                    boolean isAllow,
                                    @NotNull String... privilegeNames) throws Exception {
-    	AccessControlManager acMgr = getAccessControlManager(root);
-    	JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
-      	acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);
-     	acMgr.setPolicy(path, acl);
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = checkNotNull(AccessControlUtils.getAccessControlList(acMgr, path));
+        acl.addEntry(principal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), isAllow);
+        acMgr.setPolicy(path, acl);
         root.commit();
     }
 }

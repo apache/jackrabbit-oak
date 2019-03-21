@@ -193,10 +193,10 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
 
         private final SyncHandlerMappingTracker mappingTracker;
 
-        private Set<ServiceReference> enablingRefs = new HashSet();
+        private Set<ServiceReference> enablingRefs = new HashSet<>();
         private boolean isEnabled = false;
 
-        public SyncConfigTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {
+        private SyncConfigTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {
             super(context, SyncHandler.class.getName(), null);
             this.mappingTracker = mappingTracker;
         }
@@ -234,7 +234,7 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
         }
 
         private Map<String, String[]> getAutoMembership() {
-            Map<String, String[]> autoMembership = new HashMap();
+            Map<String, String[]> autoMembership = new HashMap<>();
             for (ServiceReference ref : enablingRefs) {
                 String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
                 String[] userAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
@@ -260,9 +260,9 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
      */
     private static final class SyncHandlerMappingTracker extends ServiceTracker {
 
-        private Map<ServiceReference, String[]> referenceMap = new HashMap<ServiceReference, String[]>();
+        private Map<ServiceReference, String[]> referenceMap = new HashMap<>();
 
-        public SyncHandlerMappingTracker(@NotNull BundleContext context) {
+        private SyncHandlerMappingTracker(@NotNull BundleContext context) {
             super(context, SyncHandlerMapping.class.getName(), null);
         }
 

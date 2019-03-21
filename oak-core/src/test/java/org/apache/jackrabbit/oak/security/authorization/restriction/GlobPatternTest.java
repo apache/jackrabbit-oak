@@ -392,6 +392,24 @@ public class GlobPatternTest {
         for (String toTest : tests.keySet()) {
             assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
         }
+
+        gp = GlobPattern.create("/a/b/c", "/d/");
+
+        tests = new HashMap<String,Boolean>();
+        tests.put("/", false);
+        tests.put("/a", false);
+        tests.put("/a/b/c", false);
+        tests.put("/a/b/c/d", false);
+        tests.put("/a/b/c/d/e", true);
+        tests.put("/a/b/c/d/e/f", true);
+        tests.put("/a/b/cd", false);
+        tests.put("/a/b/cd/e", false);
+        tests.put("/a/b/cd/e/f", false);
+        tests.put("/a/b/cde", false);
+
+        for (String toTest : tests.keySet()) {
+            assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
+        }
     }
 
     @Test

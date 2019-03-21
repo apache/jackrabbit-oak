@@ -31,16 +31,18 @@ import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferenc
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +84,11 @@ class TarWriter implements Closeable {
     private final Object closeMonitor = new Object();
 
     /**
+     * Counter exposing the number of segments.
+     */
+    private final CounterStats segmentCount;
+
+    /**
      * Used for maintenance operations (GC or recovery) via the TarReader and
      * tests
      */
@@ -89,12 +96,15 @@ class TarWriter implements Closeable {
         this.archiveManager = archiveManager;
         this.archive = archiveManager.create(archiveName);
         this.writeIndex = -1;
+        this.segmentCount = NoopStats.INSTANCE;
     }
 
-    TarWriter(SegmentArchiveManager archiveManager, int writeIndex) throws IOException {
+    TarWriter(SegmentArchiveManager archiveManager, int writeIndex, CounterStats segmentCountStats)
+    throws IOException {
         this.archiveManager = archiveManager;
         this.archive = archiveManager.create(format(FILE_NAME_FORMAT, writeIndex, "a"));
         this.writeIndex = writeIndex;
+        this.segmentCount = segmentCountStats;
     }
 
     synchronized boolean containsEntry(long msb, long lsb) {
@@ -117,7 +127,7 @@ class TarWriter implements Closeable {
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file
      */
-    ByteBuffer readEntry(long msb, long lsb) throws IOException {
+    Buffer readEntry(long msb, long lsb) throws IOException {
         synchronized (this) {
             checkState(!closed);
         }
@@ -132,6 +142,7 @@ class TarWriter implements Closeable {
             checkState(!closed);
 
             archive.writeSegment(msb, lsb, data, offset, size, generation.getGeneration(), generation.getFullGeneration(), generation.isCompacted());
+            segmentCount.inc();
             long currentLength = archive.getLength();
 
             checkState(currentLength <= Integer.MAX_VALUE);
@@ -227,7 +238,7 @@ class TarWriter implements Closeable {
         }
         close();
         int newIndex = writeIndex + 1;
-        return new TarWriter(archiveManager, newIndex);
+        return new TarWriter(archiveManager, newIndex, segmentCount);
     }
 
     private void writeBinaryReferences() throws IOException {
@@ -268,7 +279,7 @@ class TarWriter implements Closeable {
             graphSize += 16 * entry.getValue().size();
         }
 
-        ByteBuffer buffer = ByteBuffer.allocate(graphSize);
+        Buffer buffer = Buffer.allocate(graphSize);
 
         for (Entry<UUID, Set<UUID>> entry : graph.entrySet()) {
             UUID from = entry.getKey();

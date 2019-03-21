@@ -81,6 +81,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class SegmentNodeStoreRegistrar {
 
@@ -251,6 +252,7 @@ class SegmentNodeStoreRegistrar {
 
         if (cfg.isStandbyInstance()) {
             builder.withSnfeListener(IGNORE_SNFE);
+            builder.withEagerSegmentCaching(true);
         }
 
         FileStore store;
@@ -364,6 +366,11 @@ class SegmentNodeStoreRegistrar {
         SegmentNodeStore.SegmentNodeStoreBuilder segmentNodeStoreBuilder = SegmentNodeStoreBuilders.builder(store).withStatisticsProvider(cfg.getStatisticsProvider());
         segmentNodeStoreBuilder.dispatchChanges(cfg.dispatchChanges());
 
+        Logger log = LoggerFactory.getLogger(LoggingHook.class.getName() + ".writer");
+        if (log.isTraceEnabled()) {
+            segmentNodeStoreBuilder.withLoggingHook(log::trace);
+        }
+
         SegmentNodeStore segmentNodeStore = segmentNodeStoreBuilder.build();
 
         if (cfg.isPrimarySegmentStore()) {
@@ -409,7 +416,7 @@ class SegmentNodeStoreRegistrar {
                 if (trackingStore.getTracker() != null) {
                     trackingStore.getTracker().close();
                 }
-                trackingStore.addTracker(new BlobIdTracker(cfg.getRepositoryHome(), getOrCreateId(segmentNodeStore), cfg.getBlobSnapshotInterval(), sharedDataStore));
+                trackingStore.addTracker(BlobIdTracker.build(cfg.getRepositoryHome(), getOrCreateId(segmentNodeStore), cfg.getBlobSnapshotInterval(), sharedDataStore));
             }
         }
 

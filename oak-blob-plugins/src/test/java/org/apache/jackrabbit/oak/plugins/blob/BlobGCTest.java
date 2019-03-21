@@ -235,7 +235,7 @@ public class BlobGCTest {
         Set<String> existingAfterGC = executeGarbageCollection(secondCluster, secondCluster.getCollector(0), false);
 
         assertEquals(totalAdded, existingAfterGC);
-        assertStats(secondCluster.statsProvider, 1, 0, 0, 0, NAME);
+        assertStats(secondCluster.statsProvider, 1, 1, 0, 0, NAME);
     }
 
     @Test

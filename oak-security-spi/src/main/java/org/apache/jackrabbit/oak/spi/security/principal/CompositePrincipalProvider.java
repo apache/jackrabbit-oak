@@ -19,14 +19,21 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import com.google.common.collect.Iterators;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,6 +65,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     }
 
     //--------------------------------------------------< PrincipalProvider >---
+    @Nullable
     @Override
     public Principal getPrincipal(@NotNull String principalName) {
         Principal principal = null;
@@ -66,6 +74,18 @@ public class CompositePrincipalProvider implements PrincipalProvider {
 
         }
         return principal;
+    }
+
+    @Nullable
+    @Override
+    public ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
+        for (PrincipalProvider provider : providers) {
+            ItemBasedPrincipal principal = provider.getItemBasedPrincipal(principalOakPath);
+            if (principal != null) {
+                return principal;
+            }
+        }
+        return null;
     }
 
     @NotNull
@@ -87,7 +107,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     @NotNull
     @Override
     public Set<Principal> getPrincipals(@NotNull String userID) {
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         for (PrincipalProvider provider : providers) {
             principals.addAll(provider.getPrincipals(userID));
         }
@@ -113,5 +133,23 @@ public class CompositePrincipalProvider implements PrincipalProvider {
     @Override
     public Iterator<? extends Principal> findPrincipals(int searchType) {
         return findPrincipals(null, searchType);
+    }
+
+    public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType,
+            long offset, long limit) {
+
+        List<Iterator<? extends Principal>> all = providers.stream()
+                .map((p) -> p.findPrincipals(nameHint, fullText, searchType, 0, limit)).collect(Collectors.toList());
+        Iterator<? extends Principal> principals = Iterators.mergeSorted(all, Comparator.comparing(Principal::getName));
+
+        Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(principals, 0);
+        Stream<? extends Principal> stream = StreamSupport.stream(spliterator, false);
+        if (offset > 0) {
+            stream = stream.skip(offset);
+        }
+        if (limit >= 0) {
+            stream = stream.limit(limit);
+        }
+        return stream.iterator();
     }
 }

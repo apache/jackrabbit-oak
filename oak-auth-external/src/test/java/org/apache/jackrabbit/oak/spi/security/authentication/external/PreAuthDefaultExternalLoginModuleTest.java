@@ -86,7 +86,7 @@ public class PreAuthDefaultExternalLoginModuleTest extends ExternalLoginModuleTe
                 AppConfigurationEntry entry3 = new AppConfigurationEntry(
                         LoginModuleImpl.class.getName(),
                         AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        new HashMap<String, Object>());
+                        new HashMap<>());
 
                 return new AppConfigurationEntry[]{entry1, entry2, entry3};
             }

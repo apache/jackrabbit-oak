@@ -77,4 +77,11 @@ public class ImmutablePrivilegeDefinitionTest {
         assertNotEquals(def, new ImmutablePrivilegeDefinition("name", true, ImmutableList.of()));
         assertNotEquals(def, new ImmutablePrivilegeDefinition("otherName", false, ImmutableList.of("aggrName","aggrName2")));
     }
+
+    @Test
+    public void testToString() {
+        assertEquals(def.toString(), def.toString());
+        assertEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), def.getDeclaredAggregateNames()).toString());
+        assertNotEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), ImmutableList.of()));
+    }
 }

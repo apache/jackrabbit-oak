@@ -23,19 +23,17 @@ import java.util.Set;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
-import com.google.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.JcrAllUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
@@ -56,6 +54,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
     private final String nodeName;
     private final Map<String, List<AcEntry>> entries = Maps.newHashMap();
     private final NodeBuilder permissionRoot;
+    private final PrivilegeBitsProvider bitsProvider;
 
     PermissionStoreEditor(@NotNull String aclPath, @NotNull String name,
                           @NotNull NodeState node, @NotNull NodeBuilder permissionRoot,
@@ -64,6 +63,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                           @NotNull RestrictionProvider restrictionProvider,
                           @NotNull TreeProvider treeProvider) {
         this.permissionRoot = permissionRoot;
+        this.bitsProvider = bitsProvider;
         if (name.equals(REP_REPO_POLICY)) {
             accessControlledPath = "";
         } else {
@@ -77,7 +77,6 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             addAll(orderedChildNames, node.getChildNodeNames());
         }
 
-        PrivilegeBits jcrAll = bitsProvider.getBits(PrivilegeConstants.JCR_ALL);
         int index = 0;
         for (String childName : orderedChildNames) {
             NodeState ace = node.getChildNode(childName);
@@ -86,14 +85,8 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
                 Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), treeProvider.createReadOnlyTree(ace));
 
-                AcEntry entry = (privilegeBits.equals(jcrAll)) ?
-                        new JcrAllAcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions) :
-                        new AcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions);
-                List<AcEntry> list = entries.get(entry.principalName);
-                if (list == null) {
-                    list = new ArrayList<>();
-                    entries.put(entry.principalName, list);
-                }
+                AcEntry entry = new AcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions);
+                List<AcEntry> list = entries.computeIfAbsent(entry.principalName, k -> new ArrayList<>());
                 list.add(entry);
                 index++;
             }
@@ -236,32 +229,18 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
 
     private static void updateNumEntries(@NotNull String principalName, @NotNull NodeBuilder principalRoot, int cnt) {
         PropertyState ps = principalRoot.getProperty(REP_NUM_PERMISSIONS);
-        long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
         if (ps == null && !principalRoot.isNew()) {
             // existing principal root that doesn't have the rep:numEntries set
             return;
-        } else if  (numEntries < 0) {
+        }
+
+        long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
+        if  (numEntries < 0) {
             // numEntries unexpectedly turned negative
             log.error("NumEntries counter for principal '"+principalName+"' turned negative -> removing 'rep:numPermissions' property.");
             principalRoot.removeProperty(REP_NUM_PERMISSIONS);
         } else {
             principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries, Type.LONG);
-        }
-    }
-
-    private final class JcrAllAcEntry extends AcEntry {
-
-        private JcrAllAcEntry(@NotNull NodeState node,
-                              @NotNull String accessControlledPath,
-                              int index, boolean isAllow,
-                              @NotNull PrivilegeBits privilegeBits,
-                              @NotNull Set<Restriction> restrictions) {
-            super(node, accessControlledPath, index, isAllow, privilegeBits, restrictions);
-        }
-
-        @Override
-        protected PropertyState getPrivilegeBitsProperty() {
-            return PropertyStates.createProperty(REP_PRIVILEGE_BITS, Longs.asList(PermissionStore.DYNAMIC_ALL_BITS), Type.LONGS);
         }
     }
 
@@ -276,8 +255,8 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         private int hashCode = -1;
 
         AcEntry(@NotNull NodeState node, @NotNull String accessControlledPath, int index,
-                        boolean isAllow, @NotNull PrivilegeBits privilegeBits,
-                        @NotNull Set<Restriction> restrictions) {
+                boolean isAllow, @NotNull PrivilegeBits privilegeBits,
+                @NotNull Set<Restriction> restrictions) {
             this.accessControlledPath = accessControlledPath;
             this.index = index;
 
@@ -297,8 +276,8 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             }
         }
 
-        protected PropertyState getPrivilegeBitsProperty() {
-            return privilegeBits.asPropertyState(REP_PRIVILEGE_BITS);
+        PropertyState getPrivilegeBitsProperty() {
+            return JcrAllUtil.asPropertyState(REP_PRIVILEGE_BITS, privilegeBits, bitsProvider);
         }
 
         //-------------------------------------------------------------< Object >---

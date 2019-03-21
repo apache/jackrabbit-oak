@@ -154,4 +154,10 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
         root.commit();
         assertTrue(a.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
+
+    @Test
+    public void testByDefaultAdminHasNoPwNode() throws Exception {
+        User adminUser = getUserManager(root).getAuthorizable(getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID), User.class);
+        assertFalse(root.getTree(adminUser.getPath()).getChild(UserConstants.REP_PWD).exists());
+    }
 }

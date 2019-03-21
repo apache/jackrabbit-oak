@@ -61,7 +61,7 @@ invalid transient modifications.
 * Group Members: The way many group members are stored with a given Group has been redesigned
   in Oak 1.0. See section [Group Membership](membership.html) for a detailed description.
 
-<a name="query"/>
+<a name="query"></a>
 ##### QueryBuilder
 
 The user query is expected to work as in Jackrabbit 2.x with the following notable

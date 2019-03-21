@@ -132,6 +132,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.descriptors.AggregatingDescriptors;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,7 +154,7 @@ public class Oak {
     public static final String DEFAULT_WORKSPACE_NAME = "default";
 
     private final NodeStore store;
-    
+
     private final List<RepositoryInitializer> initializers = newArrayList();
 
     private AnnotatedQueryEngineSettings queryEngineSettings = new AnnotatedQueryEngineSettings();
@@ -179,7 +180,7 @@ public class Oak {
     private final Closer closer = Closer.create();
 
     private ContentRepository contentRepository;
-    
+
     private Clusterable clusterable;
 
     /**
@@ -371,10 +372,10 @@ public class Oak {
         // this(new DocumentMK.Builder().open());
         // this(new LogWrapper(new DocumentMK.Builder().open()));
     }
-    
+
     /**
      * Define the current repository as being a {@link Clusterable} one.
-     * 
+     *
      * @param c
      * @return
      */
@@ -383,7 +384,7 @@ public class Oak {
         this.clusterable = checkNotNull(c);
         return this;
     }
-    
+
     /**
      * Sets the default workspace name that should be used in case of login
      * with {@code null} workspace name. If this method has not been called
@@ -406,12 +407,10 @@ public class Oak {
 
     @NotNull
     public Oak with(@NotNull QueryLimits settings) {
-        QueryEngineSettings s = new QueryEngineSettings();
-        s.setFailTraversal(settings.getFailTraversal());
-        s.setFullTextComparisonWithoutIndex(settings.getFullTextComparisonWithoutIndex());
-        s.setLimitInMemory(settings.getLimitInMemory());
-        s.setLimitReads(settings.getLimitReads());
-        this.queryEngineSettings = new AnnotatedQueryEngineSettings(s);
+        this.queryEngineSettings.setFailTraversal(settings.getFailTraversal());
+        this.queryEngineSettings.setFullTextComparisonWithoutIndex(settings.getFullTextComparisonWithoutIndex());
+        this.queryEngineSettings.setLimitInMemory(settings.getLimitInMemory());
+        this.queryEngineSettings.setLimitReads(settings.getLimitReads());
         return this;
     }
 
@@ -565,6 +564,17 @@ public class Oak {
         if (queryEngineSettings != null) {
             this.queryEngineSettings = new AnnotatedQueryEngineSettings(queryEngineSettings);
         }
+        StatisticsProvider statisticsProvider = WhiteboardUtils.getService(whiteboard, StatisticsProvider.class);
+        if (statisticsProvider != null) {
+            QueryEngineSettings newSettings = new QueryEngineSettings(statisticsProvider);
+            newSettings.setFullTextComparisonWithoutIndex(this.queryEngineSettings.settings.getFullTextComparisonWithoutIndex());
+            newSettings.setFailTraversal(this.queryEngineSettings.getFailTraversal());
+            newSettings.setFastQuerySize(this.queryEngineSettings.isFastQuerySize());
+            newSettings.setLimitInMemory(this.queryEngineSettings.getLimitInMemory());
+            newSettings.setLimitReads(this.queryEngineSettings.getLimitReads());
+            this.queryEngineSettings = new AnnotatedQueryEngineSettings(newSettings);
+        }
+
         return this;
     }
 
@@ -608,7 +618,7 @@ public class Oak {
                 public ScheduledExecutorService get() {
                     return scheduledExecutor;
                 }
-            }, 
+            },
             new Supplier<NodeStore>() {
                 @Override
                 public NodeStore get() {
@@ -622,7 +632,7 @@ public class Oak {
                 }
             }));
     }
-    
+
     /**
      * <p>
      * Enable the asynchronous (background) indexing behavior for the provided
@@ -761,7 +771,7 @@ public class Oak {
 
         CommitHook composite = CompositeHook.compose(commitHooks);
         regs.add(whiteboard.register(CommitHook.class, composite, Collections.emptyMap()));
-        
+
         final Tracker<Descriptors> t = whiteboard.track(Descriptors.class);
 
         return new ContentRepositoryImpl(
@@ -932,6 +942,10 @@ public class Oak {
         @Override
         public String toString() {
             return settings.toString();
+        }
+
+        void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
+            this.settings.setFullTextComparisonWithoutIndex(fullTextComparisonWithoutIndex);
         }
     }
 

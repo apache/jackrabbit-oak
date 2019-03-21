@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
@@ -48,8 +47,9 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PrivilegeBitsProvider.class);
 
-    private final Map<PrivilegeBits, Set<String>> bitsToNames = new HashMap<PrivilegeBits, Set<String>>();
-    private final Map<String, Set<String>> aggregation = new HashMap<String, Set<String>>();
+    private final Map<PrivilegeBits, Set<String>> bitsToNames = new HashMap<>();
+    private final Map<String, PrivilegeBits> nameToBits = new HashMap<>();
+    private final Map<String, Set<String>> aggregation = new HashMap<>();
 
     private final Root root;
 
@@ -99,13 +99,17 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             PrivilegeBits builtIn = PrivilegeBits.BUILT_IN.get(privilegeName);
             if (builtIn != null) {
                 bits.add(builtIn);
-            } else {
+            } else if (nameToBits.containsKey(privilegeName)) {
+                bits.add(nameToBits.get(privilegeName));
+            }  else {
                 if (privilegesTree == null) {
                     privilegesTree = getPrivilegesTree();
                 }
                 if (privilegesTree.exists() && privilegesTree.hasChild(privilegeName)) {
                     Tree defTree = privilegesTree.getChild(privilegeName);
-                    bits.add(PrivilegeBits.getInstance(defTree));
+                    PrivilegeBits bitsFromDefTree = PrivilegeBits.getInstance(defTree);
+                    nameToBits.put(privilegeName, bitsFromDefTree);
+                    bits.add(bitsFromDefTree);
                 } else {
                     log.debug("Ignoring privilege name " + privilegeName);
                 }
@@ -123,21 +127,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @NotNull
     public PrivilegeBits getBits(@NotNull Privilege[] privileges, @NotNull final NameMapper nameMapper) {
-        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), new Function<Privilege, String>() {
-
-            @Override
-            public String apply(@Nullable Privilege privilege) {
-                if (privilege != null) {
-                    try {
-                        return nameMapper.getOakName(privilege.getName());
-                    } catch (RepositoryException e) {
-                        log.debug("Unable to resolve OAK name of privilege " + privilege, e);
-                    }
-                }
-                // null privilege or failed to resolve the privilege name
-                return null;
-            }
-        }), Predicates.notNull()));
+        return getBits(Iterables.filter(Iterables.transform(Arrays.asList(privileges), privilege -> nameMapper.getOakNameOrNull(privilege.getName())), Predicates.notNull()));
     }
 
     /**
@@ -174,8 +164,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             if (bitsToNames.containsKey(pb)) {
                 privilegeNames = bitsToNames.get(pb);
             } else {
-                privilegeNames = new HashSet<String>();
-                Set<String> aggregates = new HashSet<String>();
+                privilegeNames = new HashSet<>();
+                Set<String> aggregates = new HashSet<>();
                 for (Tree child : privilegesTree.getChildren()) {
                     PrivilegeBits bits = PrivilegeBits.getInstance(child);
                     if (pb.includes(bits)) {

@@ -84,7 +84,7 @@ maps the ID of a synchronized user/group account to the external identity refere
 represented by [ExternalIdentityRef].
 
 
-<a name="dynamic_membership"/>
+<a name="dynamic_membership"></a>
 ### Dynamic Group Membership
 
 As of Oak 1.5.3 the default sync handler comes with an addition configuration 
@@ -95,7 +95,7 @@ groups are synchronized (see also [OAK-4101]).
 The details and effects on other security related modules are described in 
 section [Dynamic Membership](dynamic.html). 
 
-<a name="xml_import"/>
+<a name="xml_import"></a>
 #### XML Import
 
 The protected nature of the `rep:externalPrincipalNames` is also reflected during
@@ -109,7 +109,7 @@ the JMX console. Depending on the _User Dynamic Membership_ configuration value 
 the target system the sync will then result in a full sync of group membership or 
 will re-create the `rep:externalPrincipalNames` property.
 
-<a name="validation"/>
+<a name="validation"></a>
 #### Validation
 
 ##### rep:externalPrincipalNames
@@ -143,7 +143,7 @@ validator performs the following checks:
 | 0075              | Property 'rep:externalId' may only have a single value of type STRING. |
  
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 #### Configuration of the DefaultSyncHandler

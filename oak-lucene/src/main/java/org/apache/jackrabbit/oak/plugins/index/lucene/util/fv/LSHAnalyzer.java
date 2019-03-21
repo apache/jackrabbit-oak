@@ -30,7 +30,7 @@ import org.apache.lucene.util.Version;
  */
 public class LSHAnalyzer extends Analyzer {
 
-  private static final int DEFAULT_SHINGLE_SIZE = 4;
+  private static final int DEFAULT_SHINGLE_SIZE = 5;
 
   private final int min;
   private final int max;
@@ -54,7 +54,7 @@ public class LSHAnalyzer extends Analyzer {
   @Override
   protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
     Tokenizer source = new FVTokenizer(Version.LUCENE_47, reader);
-    TokenFilter truncate = new TruncateTokenFilter(source, 5);
+    TokenFilter truncate = new TruncateTokenFilter(source, 3);
     TokenFilter featurePos = new FeaturePositionTokenFilter(truncate);
     ShingleFilter shingleFilter = new ShingleFilter(featurePos, min, max);
     shingleFilter.setTokenSeparator(" ");

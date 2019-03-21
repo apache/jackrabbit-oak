@@ -33,6 +33,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore.DocumentReadPreference;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -124,6 +125,16 @@ public class ReadPreferenceIT extends AbstractMongoConnectionTest {
         assertTrue(journal);
 
         assertEquals(ReadPreference.secondary(), mongoDS.getConfiguredReadPreference(NODES));
+    }
+
+    @Test
+    public void getMongoReadPreference() {
+        String id = getIdFromPath("/does/not/exist");
+        mongoDS.setReadWriteMode(rwMode(ReadPreference.secondaryPreferred()));
+        mongoDS.find(NODES, id);
+        ReadPreference readPref = mongoDS.getMongoReadPreference(NODES, id,
+                DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH);
+        assertEquals(ReadPreference.primary(), readPref);
     }
 
     private static String rwMode(ReadPreference preference) {

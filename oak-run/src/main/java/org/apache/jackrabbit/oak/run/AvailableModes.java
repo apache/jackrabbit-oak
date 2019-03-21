@@ -44,6 +44,7 @@ public final class AvailableModes {
             .put("history", new HistoryCommand())
             .put(JsonIndexCommand.INDEX, new JsonIndexCommand())
             .put(PersistentCacheCommand.PERSISTENTCACHE, new PersistentCacheCommand())
+            .put("rdbddldump", new RDBDDLDumpCommand())
             .put("revisions", new RevisionsCommand())
             .put("recovery", new RecoveryCommand())
             .put("repair", new RepairCommand())
@@ -61,5 +62,6 @@ public final class AvailableModes {
             .put(DataStoreCommand.NAME, new DataStoreCommand())
             .put("segment-copy", new SegmentCopyCommand())
             .put("search-nodes", new SearchNodesCommand())
+            .put("recover-journal", new RecoverJournalCommand())
             .build());
 }

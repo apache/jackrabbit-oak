@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static java.util.Collections.emptySet;
+
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,6 +30,11 @@ import org.jetbrains.annotations.Nullable;
  * {@code PermissionEntries} holds the permission entries of one principal
  */
 class PrincipalPermissionEntries {
+
+    /**
+     * max size of the emptyPaths cache.
+     */
+    private static int MAX_SIZE = Integer.getInteger("oak.PrincipalPermissionEntries.maxSize", 1000);
 
     private final long expectedSize;
 
@@ -38,6 +47,7 @@ class PrincipalPermissionEntries {
      * map of permission entries, accessed by path
      */
     private Map<String, Collection<PermissionEntry>> entries = new HashMap<>();
+    private final Map<String, Boolean> emptyPaths;
 
     PrincipalPermissionEntries() {
         this(Long.MAX_VALUE);
@@ -45,10 +55,17 @@ class PrincipalPermissionEntries {
 
     PrincipalPermissionEntries(long expectedSize) {
         this.expectedSize = expectedSize;
+        this.fullyLoaded = (expectedSize == 0);
+        this.emptyPaths = new LinkedHashMap<String, Boolean>() {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+                return size() > MAX_SIZE;
+            }
+        };
     }
 
     long getSize() {
-        return entries.size();
+        return entries.size() + emptyPaths.size();
     }
 
     boolean isFullyLoaded() {
@@ -66,7 +83,7 @@ class PrincipalPermissionEntries {
 
     @Nullable
     Collection<PermissionEntry> getEntriesByPath(@NotNull String path) {
-        return entries.get(path);
+        return emptyPaths.containsKey(path) ? emptySet() : entries.get(path);
     }
 
     void putEntriesByPath(@NotNull String path, @NotNull Collection<PermissionEntry> pathEntries) {
@@ -74,6 +91,10 @@ class PrincipalPermissionEntries {
         if (entries.size() >= expectedSize) {
             setFullyLoaded(true);
         }
+    }
+
+    void rememberNotAccessControlled(@NotNull String path) {
+        emptyPaths.put(path, null);
     }
 
     void putAllEntries(@NotNull Map<String, Collection<PermissionEntry>> allEntries) {

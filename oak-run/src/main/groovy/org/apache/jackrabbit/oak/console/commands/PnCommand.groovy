@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.console.commands
 
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeState
+import org.apache.jackrabbit.oak.nodestate.NodeStateHelper
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
 
@@ -28,18 +28,19 @@ import org.codehaus.groovy.tools.shell.Groovysh
 class PnCommand extends CommandSupport{
     public static final String COMMAND_NAME = 'print-node'
 
-    public PnCommand(Groovysh shell) {
+    PnCommand(Groovysh shell) {
         super(shell, COMMAND_NAME, 'pn')
     }
 
     @Override
     Object execute(List<String> args) {
         assertNoArguments(args)
-        io.out.println(AbstractNodeState.toString(getSession().getWorkingNode()))
+        io.out.println(NodeStateHelper.nodeStateToString(getSession().getWorkingNode()))
         return null
     }
 
     ConsoleSession getSession(){
         return (ConsoleSession)variables.session
     }
+
 }

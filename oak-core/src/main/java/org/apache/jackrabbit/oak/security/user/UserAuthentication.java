@@ -79,6 +79,8 @@ class UserAuthentication implements Authentication, UserConstants {
 
     private static final Logger log = LoggerFactory.getLogger(UserAuthentication.class);
 
+    public static final String PARAM_PASSWORD_EXPIRY_FOR_ADMIN = "passwordExpiryForAdmin";
+
     private final UserConfiguration config;
     private final Root root;
     private final String loginId;
@@ -242,13 +244,13 @@ class UserAuthentication implements Authentication, UserConstants {
     }
 
     private boolean isPasswordExpired(@NotNull User user) throws RepositoryException {
-        // the password of the "admin" user never expires
-        if (user.isAdmin()) {
+        ConfigurationParameters params = config.getParameters();
+        // unless PARAM_PASSWORD_EXPIRY_FOR_ADMIN is enabled, the password of the "admin" user never expires
+        if (!Utils.canHavePasswordExpired(user, params)) {
             return false;
         }
 
         boolean expired = false;
-        ConfigurationParameters params = config.getParameters();
         int maxAge = params.getConfigValue(PARAM_PASSWORD_MAX_AGE, DEFAULT_PASSWORD_MAX_AGE);
         boolean forceInitialPwChange = params.getConfigValue(PARAM_PASSWORD_INITIAL_CHANGE, DEFAULT_PASSWORD_INITIAL_CHANGE);
         if (maxAge > 0) {

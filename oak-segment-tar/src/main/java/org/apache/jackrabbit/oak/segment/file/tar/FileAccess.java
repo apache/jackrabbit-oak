@@ -20,14 +20,13 @@ package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
-import static org.apache.jackrabbit.oak.commons.IOUtils.readFully;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 /**
  * A wrapper around either memory mapped files or random access files, to allow
@@ -39,7 +38,7 @@ abstract class FileAccess {
 
     abstract int length() throws IOException;
 
-    abstract ByteBuffer read(int position, int length) throws IOException;
+    abstract Buffer read(int position, int length) throws IOException;
 
     abstract void close() throws IOException;
 
@@ -52,11 +51,11 @@ abstract class FileAccess {
 
         private final RandomAccessFile file;
 
-        private MappedByteBuffer buffer;
+        private Buffer buffer;
 
         Mapped(RandomAccessFile file) throws IOException {
             this.file = file;
-            this.buffer = file.getChannel().map(READ_ONLY, 0, file.length());
+            this.buffer = Buffer.map(file.getChannel(), READ_ONLY, 0, file.length());
         }
 
         @Override
@@ -70,8 +69,8 @@ abstract class FileAccess {
         }
 
         @Override
-        public ByteBuffer read(int position, int length) {
-            ByteBuffer entry = buffer.asReadOnlyBuffer();
+        public Buffer read(int position, int length) {
+            Buffer entry = buffer.asReadOnlyBuffer();
             entry.position(entry.position() + position);
             entry.limit(entry.position() + length);
             return entry.slice();
@@ -111,12 +110,9 @@ abstract class FileAccess {
         }
 
         @Override
-        public synchronized ByteBuffer read(int position, int length)
-                throws IOException {
-            ByteBuffer entry;
-            entry = ByteBuffer.allocate(length);
-
-            if (readFully(channel, position, entry) < length) {
+        public synchronized Buffer read(int position, int length) throws IOException {
+            Buffer entry = Buffer.allocate(length);
+            if (entry.readFully(channel, position) < length) {
                 throw new EOFException();
             }
             entry.flip();
@@ -141,12 +137,9 @@ abstract class FileAccess {
         }
 
         @Override
-        public synchronized ByteBuffer read(int position, int length)
-                throws IOException {
-            ByteBuffer entry;
-            entry = ByteBuffer.allocateDirect(length);
-
-            if (readFully(channel, position, entry) < length) {
+        public synchronized Buffer read(int position, int length) throws IOException {
+            Buffer entry = Buffer.allocateDirect(length);
+            if (entry.readFully(channel, position) < length) {
                 throw new EOFException();
             }
             entry.flip();

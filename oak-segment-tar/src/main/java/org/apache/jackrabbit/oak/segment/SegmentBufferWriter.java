@@ -156,12 +156,16 @@ public class SegmentBufferWriter implements WriteOperationHandler {
 
     @NotNull
     @Override
-    public RecordId execute(@NotNull WriteOperation writeOperation) throws IOException {
+    public RecordId execute(@NotNull GCGeneration gcGeneration,
+                            @NotNull WriteOperation writeOperation)
+    throws IOException {
+        checkState(gcGeneration.equals(this.gcGeneration));
         return writeOperation.execute(this);
     }
 
+    @Override
     @NotNull
-    GCGeneration getGCGeneration() {
+    public GCGeneration getGCGeneration() {
         return gcGeneration;
     }
 

@@ -23,18 +23,18 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -65,20 +65,20 @@ public class Commit {
     private final HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
     private final Set<Revision> collisions = new LinkedHashSet<Revision>();
     private Branch b;
-    private boolean rollbackFailed;
+    private Rollback rollback = Rollback.NONE;
 
     /**
      * List of all node paths which have been modified in this commit. In addition to the nodes
      * which are actually changed it also contains there parent node paths
      */
-    private HashSet<String> modifiedNodes = new HashSet<String>();
+    private final HashSet<String> modifiedNodes = new HashSet<String>();
 
-    private HashSet<String> addedNodes = new HashSet<String>();
-    private HashSet<String> removedNodes = new HashSet<String>();
+    private final HashSet<String> addedNodes = new HashSet<String>();
+    private final HashSet<String> removedNodes = new HashSet<String>();
 
     /** Set of all nodes which have binary properties. **/
-    private HashSet<String> nodesWithBinaries = Sets.newHashSet();
-    private HashMap<String, String> bundledNodes = Maps.newHashMap();
+    private final HashSet<String> nodesWithBinaries = Sets.newHashSet();
+    private final HashMap<String, String> bundledNodes = Maps.newHashMap();
 
     /**
      * Create a new Commit.
@@ -96,10 +96,26 @@ public class Commit {
         this.baseRevision = baseRevision;
     }
 
+    Commit(@NotNull DocumentNodeStore nodeStore,
+           @NotNull Revision revision,
+           @Nullable RevisionVector baseRevision,
+           @NotNull Map<String, UpdateOp> operations,
+           @NotNull Set<String> addedNodes,
+           @NotNull Set<String> removedNodes,
+           @NotNull Set<String> nodesWithBinaries,
+           @NotNull Map<String, String> bundledNodes) {
+        this(nodeStore, revision, baseRevision);
+        this.operations.putAll(operations);
+        this.addedNodes.addAll(addedNodes);
+        this.removedNodes.addAll(removedNodes);
+        this.nodesWithBinaries.addAll(nodesWithBinaries);
+        this.bundledNodes.putAll(bundledNodes);
+    }
+
     UpdateOp getUpdateOperationForNode(String path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
-            op = createUpdateOp(path, revision, getBranch() != null);
+            op = createUpdateOp(path, revision, isBranchCommit());
             operations.put(path, op);
         }
         return op;
@@ -150,45 +166,26 @@ public class Commit {
         return modifiedNodes;
     }
 
-    void updateProperty(String path, String propertyName, String value) {
-        UpdateOp op = getUpdateOperationForNode(path);
-        String key = Utils.escapePropertyName(propertyName);
-        op.setMapEntry(key, revision, value);
-    }
-
-    void addBundledNode(String path, String bundlingRootPath) {
-        bundledNodes.put(path, bundlingRootPath);
-    }
-
-    void markNodeHavingBinary(String path) {
-        this.nodesWithBinaries.add(path);
-    }
-
-    void addNode(DocumentNodeState n) {
-        String path = n.getPath();
-        if (operations.containsKey(path)) {
-            String msg = "Node already added: " + path;
-            LOG.error(msg);
-            throw new DocumentStoreException(msg);
-        }
-        UpdateOp op = n.asOperation(revision);
-        if (getBranch() != null) {
-            NodeDocument.setBranchCommit(op, revision);
-        }
-        operations.put(path, op);
-        addedNodes.add(path);
-    }
-
     boolean isEmpty() {
         return operations.isEmpty();
     }
 
     /**
-     * @return {@code true} if this commit did not succeed and the rollback
-     *      was unable to revert all changes; otherwise {@code false}.
+     * Performs a rollback of this commit if necessary.
+     *
+     * @return {@code false} if a rollback was necessary and the rollback did
+     *         not complete successfully, {@code true} otherwise.
      */
-    boolean rollbackFailed() {
-        return rollbackFailed;
+    boolean rollback() {
+        boolean success = false;
+        try {
+            rollback.perform(this.nodeStore.getDocumentStore());
+            success = true;
+        } catch (Throwable t) {
+            // catch any exception caused by the rollback and log it
+            LOG.warn("Rollback failed", t);
+        }
+        return success;
     }
 
     /**
@@ -209,6 +206,7 @@ public class Commit {
                 success = true;
             } finally {
                 if (!success) {
+                    rollback();
                     Branch branch = getBranch();
                     if (branch != null) {
                         branch.removeCommit(rev.asBranchRevision());
@@ -240,7 +238,7 @@ public class Commit {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
-            applyToDocumentStore(baseRevision);
+            applyToDocumentStoreWithTiming(baseRevision);
         }
     }
 
@@ -263,7 +261,27 @@ public class Commit {
      * Apply the changes to the document store.
      */
     void applyToDocumentStore() throws ConflictException, DocumentStoreException {
-        applyToDocumentStore(null);
+        applyToDocumentStoreWithTiming(null);
+    }
+
+    /**
+     * Apply the changes to the document store.
+     *
+     * @param baseBranchRevision the base revision of this commit. Currently only
+     *                     used for branch commits.
+     * @throws ConflictException if a conflict is detected with another commit.
+     * @throws DocumentStoreException if an error occurs while writing to the
+     *          underlying store.
+     */
+    private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision)
+            throws ConflictException, DocumentStoreException {
+        long start = System.nanoTime();
+        try {
+            applyToDocumentStore(baseBranchRevision);
+        } finally {
+            nodeStore.getStatsCollector().doneChangesApplied(
+                    TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start));
+        }
     }
 
     /**
@@ -277,10 +295,9 @@ public class Commit {
      */
     private void applyToDocumentStore(RevisionVector baseBranchRevision)
             throws ConflictException, DocumentStoreException {
-        // initially set the rollbackFailed flag to true
-        // the flag will be set to false at the end of the method
-        // when the commit succeeds
-        rollbackFailed = true;
+        // initially set the rollback to always fail until we have changes
+        // in an oplog list and a commit root.
+        rollback = Rollback.FAILED;
 
         // the value in _revisions.<revision> property of the commit root node
         // regular commits use "c", which makes the commit visible to
@@ -312,6 +329,8 @@ public class Commit {
                 }
             }
         }
+
+        rollback = new Rollback(revision, opLog, Utils.getIdFromPath(commitRootPath));
 
         for (String p : bundledNodes.keySet()){
             markChanged(p);
@@ -400,14 +419,6 @@ public class Commit {
             if (success) {
                 LOG.error("Exception occurred after commit. Rollback will be suppressed.", e);
             } else {
-                try {
-                    rollback(opLog, commitRoot);
-                    rollbackFailed = false;
-                } catch (Throwable ex) {
-                    // catch any exception caused by the rollback, log it
-                    // and throw the original exception
-                    LOG.warn("Rollback failed", ex);
-                }
                 if (e instanceof ConflictException) {
                     throw e;
                 } else {
@@ -416,7 +427,7 @@ public class Commit {
             }
         } finally {
             if (success) {
-                rollbackFailed = false;
+                rollback = Rollback.NONE;
             }
         }
     }
@@ -486,19 +497,6 @@ public class Commit {
             UpdateOp op = getUpdateOperationForNode(parentPath);
             NodeDocument.setChildrenFlag(op, true);
         }
-    }
-
-    private void rollback(List<UpdateOp> changed,
-                          UpdateOp commitRoot) {
-        DocumentStore store = nodeStore.getDocumentStore();
-        for (UpdateOp op : changed) {
-            UpdateOp reverse = op.getReverseOperation();
-            if (op.isNew()) {
-                NodeDocument.setDeletedOnce(reverse);
-            }
-            store.findAndUpdate(NODES, reverse);
-        }
-        removeCollisionMarker(commitRoot.getId());
     }
 
     /**
@@ -713,6 +711,13 @@ public class Commit {
     }
 
     /**
+     * @return {@code true} if this is a branch commit.
+     */
+    private boolean isBranchCommit() {
+        return baseRevision != null && baseRevision.isBranch();
+    }
+
+    /**
      * Applies the lastRev updates to the {@link LastRevTracker} of the
      * DocumentNodeStore.
      *
@@ -827,16 +832,6 @@ public class Commit {
                 break;
             }
             path = PathUtils.getParentPath(path);
-        }
-    }
-
-    public void removeNode(String path, NodeState state) {
-        removedNodes.add(path);
-        UpdateOp op = getUpdateOperationForNode(path);
-        op.setDelete(true);
-        NodeDocument.setDeleted(op, revision, true);
-        for (PropertyState p : state.getProperties()) {
-            updateProperty(path, p.getName(), null);
         }
     }
 

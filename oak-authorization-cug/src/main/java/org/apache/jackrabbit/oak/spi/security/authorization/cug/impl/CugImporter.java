@@ -89,14 +89,14 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     }
 
     @Override
-    public void processReferences() throws RepositoryException {
+    public void processReferences() {
         // nothing to do
     }
 
     //------------------------------------------< ProtectedPropertyImporter >---
 
     @Override
-    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo, @NotNull PropertyDefinition def) throws RepositoryException {
+    public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo protectedPropInfo, @NotNull PropertyDefinition def) {
         if (CugUtil.definesCug(parent) && isValid(protectedPropInfo, def) && CugUtil.isSupportedPath(parent.getPath(), supportedPaths)) {
             Set<String> principalNames = new HashSet<>();
             for (TextValue txtValue : protectedPropInfo.getTextValues()) {
@@ -128,7 +128,7 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
     }
 
     @Override
-    public void propertiesCompleted(@NotNull Tree protectedParent) throws IllegalStateException, RepositoryException {
+    public void propertiesCompleted(@NotNull Tree protectedParent) throws IllegalStateException {
         if (CugUtil.definesCug(protectedParent) && !protectedParent.hasProperty(REP_PRINCIPAL_NAMES)) {
             // remove the rep:cugPolicy node if mandatory property is missing
             // (which may also happen upon an attempt to create a cug at an unsupported path).

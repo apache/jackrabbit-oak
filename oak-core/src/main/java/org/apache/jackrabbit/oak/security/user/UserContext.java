@@ -49,10 +49,7 @@ final class UserContext implements Context, UserConstants {
             return PWD_PROPERTY_NAMES.contains(propName);
         } else if (NT_REP_MEMBER_REFERENCES.equals(ntName)) {
             return REP_MEMBERS.equals(propName);
-        } else if (NT_REP_MEMBERS.equals(ntName)) {
-            return true;
-        }
-        return false;
+        } else return NT_REP_MEMBERS.equals(ntName);
     }
 
     @Override

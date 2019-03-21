@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -318,7 +319,12 @@ public class IndexUpdate implements Editor, PathSource {
             if (NodeStateUtils.isHidden(rm)) {
                 NodeBuilder childNode = definition.getChildNode(rm);
                 if (!childNode.getBoolean(IndexConstants.REINDEX_RETAIN)) {
-                    definition.getChildNode(rm).remove();
+                    NodeBuilder child = definition.getChildNode(rm);
+                    if (child instanceof ReadOnlyBuilder) {
+                        log.debug("Preserve read-only child node on reindex: " + rm);
+                    } else {
+                        child.remove();
+                    }
                 }
             }
         }

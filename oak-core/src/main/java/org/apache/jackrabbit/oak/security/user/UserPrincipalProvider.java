@@ -16,22 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.text.ParseException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.AccessDeniedException;
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -43,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.user.query.QueryUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -52,12 +44,21 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.AccessDeniedException;
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.text.ParseException;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -114,6 +115,20 @@ class UserPrincipalProvider implements PrincipalProvider {
         }
     }
 
+    @Nullable
+    @Override
+    public ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
+        Tree authorizableTree = userProvider.getAuthorizableByPath(principalOakPath);
+        Principal principal = createPrincipal(authorizableTree);
+
+        if (principal instanceof ItemBasedPrincipal) {
+            return (ItemBasedPrincipal) principal;
+        } else {
+            return null;
+        }
+    }
+
+
     @NotNull
     @Override
     public Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
@@ -128,9 +143,9 @@ class UserPrincipalProvider implements PrincipalProvider {
     @NotNull
     @Override
     public Set<? extends Principal> getPrincipals(@NotNull String userID) {
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         Tree tree = userProvider.getAuthorizable(userID);
-        if (tree != null && UserUtil.isType(tree, AuthorizableType.USER)) {
+        if (UserUtil.isType(tree, AuthorizableType.USER)) {
             Principal userPrincipal = createUserPrincipal(userID, tree);
             if (userPrincipal != null) {
                 principals.add(userPrincipal);
@@ -140,28 +155,48 @@ class UserPrincipalProvider implements PrincipalProvider {
         return principals;
     }
 
+    @Override
+    public Iterator<? extends Principal> findPrincipals(final String nameHint, final int searchType) {
+        return findPrincipals(nameHint, false, searchType, 0, -1);
+    }
+
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final String nameHint,
-                                                        final int searchType) {
+    public Iterator<? extends Principal> findPrincipals(final String nameHint, final boolean fullText, final int searchType, long offset,
+            long limit) {
+        if (offset < 0) {
+            offset = 0;
+        }
+        if (limit < 0) {
+            limit = Long.MAX_VALUE;
+        }
         try {
+
+            String lookupClause = "";
+            if (nameHint != null && !nameHint.isEmpty()) {
+                if (fullText) {
+                    lookupClause = String.format("[jcr:contains(.,'%s')]", buildSearchPatternFT(nameHint));
+                } else {
+                    lookupClause = String.format("[jcr:like(@rep:principalName,'%s')]", buildSearchPatternContains(nameHint));
+                }
+            }
             AuthorizableType type = AuthorizableType.getType(searchType);
             StringBuilder statement = new StringBuilder()
                     .append(QueryUtil.getSearchRoot(type, config.getParameters()))
                     .append("//element(*,").append(QueryUtil.getNodeTypeName(type)).append(')')
-                    .append("[jcr:like(@rep:principalName,'")
-                    .append(buildSearchPattern(nameHint))
-                    .append("')]");
-
+                    .append(lookupClause)
+                    .append(" order by @rep:principalName");
             Result result = root.getQueryEngine().executeQuery(
                     statement.toString(), javax.jcr.query.Query.XPATH,
-                    NO_BINDINGS, namePathMapper.getSessionLocalMappings());
+                    limit, offset, NO_BINDINGS, namePathMapper.getSessionLocalMappings());
 
             Iterator<Principal> principals = Iterators.filter(
                     Iterators.transform(result.getRows().iterator(), new ResultRowToPrincipal()),
                     Predicates.notNull());
 
-            if (matchesEveryone(nameHint, searchType)) {
+            // everyone is injected only in complete set, not on pages
+            boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
+            if (noRange && matchesEveryone(nameHint, searchType)) {
                 principals = Iterators.concat(principals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
                 return Iterators.filter(principals, new EveryonePredicate());
             } else {
@@ -248,7 +283,7 @@ class UserPrincipalProvider implements PrincipalProvider {
             Iterator<String> groupPaths = membershipProvider.getMembership(authorizableTree, true);
             while (groupPaths.hasNext()) {
                 Tree groupTree = userProvider.getAuthorizableByPath(groupPaths.next());
-                if (groupTree != null && UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
+                if (UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
                     Principal gr = createGroupPrincipal(groupTree);
                     if (gr != null) {
                         groupPrincipals.add(gr);
@@ -337,15 +372,19 @@ class UserPrincipalProvider implements PrincipalProvider {
         return expirationTime > EXPIRATION_NO_CACHE && now < expirationTime;
     }
 
-    private static String buildSearchPattern(String nameHint) {
-        if (nameHint == null) {
-            return "%";
+    private static String buildSearchPatternContains(@NotNull String nameHint) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('%');
+        sb.append(nameHint.replace("%", "\\%").replace("_", "\\_"));
+        sb.append('%');
+        return sb.toString();
+    }
+
+    private static String buildSearchPatternFT(@NotNull String nameHint) {
+        if (nameHint.contains("*")) {
+            return QueryUtil.escapeForQuery(nameHint);
         } else {
-            StringBuilder sb = new StringBuilder();
-            sb.append('%');
-            sb.append(nameHint.replace("%", "\\%").replace("_", "\\_"));
-            sb.append('%');
-            return sb.toString();
+            return QueryUtil.escapeForQuery(nameHint) + "*";
         }
     }
 

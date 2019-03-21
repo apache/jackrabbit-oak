@@ -28,10 +28,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.io.Closer;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -48,6 +52,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.PROP_UID;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -80,7 +85,8 @@ public class CopyOnWriteDirectoryTest {
                 return t;
             }
         });
-        copier = new IndexCopier(executor, tempFolder.newFolder());
+        // copyToLocalBeforeWrite requires that prefetch is enabled (as normal)
+        copier = new IndexCopier(executor, tempFolder.newFolder(), true);
         ns = builderProvider.newBuilder().getNodeStore();
     }
 
@@ -137,6 +143,41 @@ public class CopyOnWriteDirectoryTest {
         } finally {
             closer.close();
         }
+    }
+
+    // OAK-8097
+    @Test
+    public void copyToLocalBeforeWrite() throws Exception {
+        // storage backend (in-memory)
+        GarbageCollectableBlobStore blobStore = new MemoryBlobStore();
+        LuceneIndexDefinition def = new LuceneIndexDefinition(ns.getRoot(), ns.getRoot(), "/foo");
+        NodeBuilder builder = ns.getRoot().builder();
+        Directory dir = new DefaultDirectoryFactory(copier, blobStore).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+        // add some files
+        addFiles(dir);
+        // close
+        dir.close();
+        // get the directory size
+        File dirName = copier.getIndexDir(def, def.getIndexPath(), INDEX_DATA_CHILD_NAME);
+        long oldSize = FileUtils.sizeOfDirectory(dirName.getParentFile());
+
+        // delete all files from the local directory
+        FileUtils.deleteQuietly(dirName);
+        // check if empty
+        assertEquals(0, FileUtils.sizeOfDirectory(dirName.getParentFile()));
+
+        // open the directory again -
+        // this is to download the files from the blob store,
+        // and store them back to the local directory
+        dir = new DefaultDirectoryFactory(copier, blobStore).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+
+        // check if the directory size matches,
+        // if yes then all files are restored
+        long newSize = FileUtils.sizeOfDirectory(dirName.getParentFile());
+        assertEquals(oldSize, newSize);
+
+        // done
+        dir.close();
     }
 
     private void writeTree(NodeBuilder builder) {

@@ -25,9 +25,10 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.PrintableBytes.newPrintableBytes;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.DEFAULT;
+import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -51,7 +52,12 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.apache.jackrabbit.oak.stats.TimerStats.Context;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,10 +66,19 @@ import org.slf4j.LoggerFactory;
  * The storage implementation for tar files.
  */
 public class FileStore extends AbstractFileStore {
-
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
-
     private static final int MB = 1024 * 1024;
+
+    /**
+     * Name of the {@link CounterStats counter} exposing the number of {@code TarReader}
+     * instances in use by {@link TarFiles}.
+     */
+    private static final String TAR_READER_COUNT = "TAR_READER_COUNT";
+
+    /**
+     * Name of the {@link CounterStats counter} exposing the number of segments.
+     */
+    private static final String SEGMENT_COUNT = "SEGMENT_COUNT";
 
     private static GarbageCollectionStrategy newGarbageCollectionStrategy() {
         if (Boolean.getBoolean("gc.classic")) {
@@ -117,23 +132,28 @@ public class FileStore extends AbstractFileStore {
 
     private final GarbageCollectionStrategy garbageCollectionStrategy = newGarbageCollectionStrategy();
 
+    private final boolean eagerSegmentCaching;
+
     FileStore(final FileStoreBuilder builder) throws InvalidFileStoreVersionException, IOException {
         super(builder);
 
         SegmentNodeStorePersistence persistence = builder.getPersistence();
         repositoryLock = persistence.lockRepository();
+        StatisticsProvider statsProvider = builder.getStatsProvider();
 
         this.segmentWriter = defaultSegmentWriterBuilder("sys")
                 .withGeneration(() -> getGcGeneration().nonGC())
                 .withWriterPool()
                 .with(builder.getCacheManager()
-                        .withAccessTracking("WRITE", builder.getStatsProvider()))
+                        .withAccessTracking("WRITE", statsProvider))
                 .build(this);
 
         newManifestChecker(persistence, builder.getStrictVersionCheck()).checkAndUpdateManifest();
 
-        this.stats = new FileStoreStats(builder.getStatsProvider(), this, 0);
+        this.stats = new FileStoreStats(statsProvider, this, 0);
 
+        CounterStats readerCountStats = statsProvider.getCounterStats(TAR_READER_COUNT, DEFAULT);
+        CounterStats segmentCountStats = statsProvider.getCounterStats(SEGMENT_COUNT, DEFAULT);
         TarFiles.Builder tarFilesBuilder = TarFiles.builder()
                 .withDirectory(directory)
                 .withMemoryMapping(memoryMapping)
@@ -141,7 +161,9 @@ public class FileStore extends AbstractFileStore {
                 .withIOMonitor(ioMonitor)
                 .withFileStoreMonitor(stats)
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
-                .withPersistence(builder.getPersistence());
+                .withPersistence(builder.getPersistence())
+                .withReaderCountStats(readerCountStats)
+                .withSegmentCountStats(segmentCountStats);
 
         this.tarFiles = tarFilesBuilder.build();
         long size = this.tarFiles.size();
@@ -170,16 +192,24 @@ public class FileStore extends AbstractFileStore {
             this::flush,
             generation ->
                 defaultSegmentWriterBuilder("c")
-                    .with(builder.getCacheManager().withAccessTracking("COMPACT", builder.getStatsProvider()))
+                    .with(builder.getCacheManager().withAccessTracking("COMPACT", statsProvider))
                     .withGeneration(generation)
                     .withoutWriterPool()
                     .build(this)
         );
 
         this.snfeListener = builder.getSnfeListener();
+        this.eagerSegmentCaching = builder.getEagerSegmentCaching();
 
-        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS,
-                                                  this::tryFlush);
+        TimerStats flushTimer = statsProvider.getTimer("oak.segment.flush", METRICS_ONLY);
+        fileStoreScheduler.scheduleWithFixedDelay(format("TarMK flush [%s]", directory), 5, SECONDS, () -> {
+            Context timer = flushTimer.time();
+            try {
+                tryFlush();
+            } finally {
+                timer.stop();
+            }
+        });
 
         fileStoreScheduler.scheduleWithFixedDelay(format("TarMK filer reaper [%s]", directory), 5, SECONDS,
                                                   fileReaper::reap);
@@ -490,17 +520,22 @@ public class FileStore extends AbstractFileStore {
             Set<String> binaryReferences = null;
 
             if (id.isDataSegmentId()) {
-                ByteBuffer data;
+                Buffer data;
 
                 if (offset > 4096) {
-                    data = ByteBuffer.allocate(length);
+                    data = Buffer.allocate(length);
                     data.put(buffer, offset, length);
                     data.rewind();
                 } else {
-                    data = ByteBuffer.wrap(buffer, offset, length);
+                    data = Buffer.wrap(buffer, offset, length);
                 }
 
                 segment = new Segment(tracker, segmentReader, id, data);
+
+                if (eagerSegmentCaching) {
+                    segmentCache.putSegment(segment);
+                }
+
                 generation = segment.getGcGeneration();
                 references = readReferences(segment);
                 binaryReferences = readBinaryReferences(segment);
@@ -517,7 +552,7 @@ public class FileStore extends AbstractFileStore {
             );
 
             // Keep this data segment in memory as it's likely to be accessed soon.
-            if (segment != null) {
+            if (!eagerSegmentCaching && segment != null) {
                 segmentCache.putSegment(segment);
             }
         }

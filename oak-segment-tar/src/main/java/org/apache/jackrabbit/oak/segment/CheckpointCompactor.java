@@ -27,7 +27,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +35,7 @@ import java.util.Map.Entry;
 
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -70,7 +70,7 @@ public class CheckpointCompactor {
 
     private interface NodeWriter {
         @NotNull
-        SegmentNodeState writeNode(@NotNull NodeState node, @Nullable ByteBuffer stableId) throws IOException;
+        SegmentNodeState writeNode(@NotNull NodeState node, @Nullable Buffer stableId) throws IOException;
     }
 
     /**
@@ -141,7 +141,7 @@ public class CheckpointCompactor {
     }
 
     @Nullable
-    private static ByteBuffer getStableIdBytes(@NotNull NodeState node) {
+    private static Buffer getStableIdBytes(@NotNull NodeState node) {
         return node instanceof SegmentNodeState
             ? ((SegmentNodeState) node).getStableIdBytes()
             : null;

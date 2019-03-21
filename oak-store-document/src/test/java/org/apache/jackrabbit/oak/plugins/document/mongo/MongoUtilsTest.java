@@ -20,14 +20,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DuplicateKeyException;
 import com.mongodb.MongoCommandException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcernException;
+import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoCollection;
 
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.bson.BsonDocument;
@@ -153,6 +156,48 @@ public class MongoUtilsTest {
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11601)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(newMongoCommandException(11602)));
         assertEquals(TRANSIENT, getDocumentStoreExceptionTypeFor(new MongoSocketException("message", new ServerAddress())));
+    }
+
+    @Test
+    public void isCollectionEmpty() {
+        MongoConnection c = connectionFactory.getConnection();
+        assertNotNull(c);
+        c.getDatabase().drop();
+
+        String collectionName = Collection.NODES.toString();
+        MongoStatus status = new MongoStatus(c.getMongoClient(), c.getDBName());
+
+        // consider empty when collection doesn't exist
+        MongoCollection<BasicDBObject> nodes = c.getDatabase()
+                .getCollection(collectionName, BasicDBObject.class);
+        assertTrue(MongoUtils.isCollectionEmpty(nodes, null));
+        if (status.isClientSessionSupported()) {
+            try (ClientSession s = c.getMongoClient().startSession()) {
+                assertTrue(MongoUtils.isCollectionEmpty(nodes, s));
+            }
+        }
+
+        // insert a document
+        nodes.insertOne(new BasicDBObject("p", "v"));
+
+        // check again
+        assertFalse(MongoUtils.isCollectionEmpty(nodes, null));
+        if (status.isClientSessionSupported()) {
+            try (ClientSession s = c.getMongoClient().startSession()) {
+                assertFalse(MongoUtils.isCollectionEmpty(nodes, s));
+            }
+        }
+
+        // remove any document
+        nodes.deleteMany(new BasicDBObject());
+
+        // must be empty again
+        assertTrue(MongoUtils.isCollectionEmpty(nodes, null));
+        if (status.isClientSessionSupported()) {
+            try (ClientSession s = c.getMongoClient().startSession()) {
+                assertTrue(MongoUtils.isCollectionEmpty(nodes, s));
+            }
+        }
     }
 
     private static MongoCommandException newMongoCommandException(int code) {

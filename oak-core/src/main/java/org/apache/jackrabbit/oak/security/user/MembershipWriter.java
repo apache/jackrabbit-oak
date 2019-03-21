@@ -49,7 +49,7 @@ public class MembershipWriter {
      */
     private int membershipSizeThreshold = DEFAULT_MEMBERSHIP_THRESHOLD;
 
-    public void setMembershipSizeThreshold(int membershipSizeThreshold) {
+    void setMembershipSizeThreshold(int membershipSizeThreshold) {
         this.membershipSizeThreshold = membershipSizeThreshold;
     }
 
@@ -61,7 +61,7 @@ public class MembershipWriter {
      * @return {@code true} if the member was added
      * @throws RepositoryException if an error occurs
      */
-    boolean addMember(Tree groupTree, String memberContentId) throws RepositoryException {
+    boolean addMember(Tree groupTree, String memberContentId) {
         Map<String, String> m = Maps.newHashMapWithExpectedSize(1);
         m.put(memberContentId, "-");
         return addMembers(groupTree, m).isEmpty();
@@ -75,7 +75,7 @@ public class MembershipWriter {
      * @return the set of member IDs that was not successfully processed.
      * @throws RepositoryException if an error occurs
      */
-    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) throws RepositoryException {
+    Set<String> addMembers(@NotNull Tree groupTree, @NotNull Map<String, String> memberIds) {
         // check all possible rep:members properties for the new member and also find the one with the least values
         Tree membersList = groupTree.getChild(UserConstants.REP_MEMBERS_LIST);
         Iterator<Tree> trees = Iterators.concat(
@@ -83,7 +83,7 @@ public class MembershipWriter {
                 membersList.getChildren().iterator()
         );
 
-        Set<String> failed = new HashSet<String>(memberIds.size());
+        Set<String> failed = new HashSet<>(memberIds.size());
         int bestCount = membershipSizeThreshold;
         PropertyState bestProperty = null;
         Tree bestTree = null;
@@ -137,7 +137,7 @@ public class MembershipWriter {
             // for simplicity this is achieved by introducing new tree(s)
             if ((propCnt + memberIds.size()) > membershipSizeThreshold) {
                 while (!memberIds.isEmpty()) {
-                    Set<String> s = new HashSet<String>();
+                    Set<String> s = new HashSet<>();
                     Iterator<String> it = memberIds.keySet().iterator();
                     while (propCnt < membershipSizeThreshold && it.hasNext()) {
                         s.add(it.next());

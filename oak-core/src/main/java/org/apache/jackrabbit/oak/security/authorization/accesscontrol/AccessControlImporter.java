@@ -114,7 +114,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
     }
 
     @Override
-    public void processReferences() throws RepositoryException {
+    public void processReferences() {
         // nothing to do.
     }
 
@@ -243,9 +243,9 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         private final boolean isAllow;
 
         private Principal principal;
-        private List<Privilege> privileges = new ArrayList();
-        private Map<String, Value> restrictions = new HashMap();
-        private Map<String, Value[]> mvRestrictions = new HashMap();
+        private List<Privilege> privileges = new ArrayList<>();
+        private Map<String, Value> restrictions = new HashMap<>();
+        private Map<String, Value[]> mvRestrictions = new HashMap<>();
 
         private boolean ignore;
 
@@ -284,7 +284,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             if (values.size() == 1) {
                 restrictions.put(propInfo.getName(), values.get(0));
             } else {
-                mvRestrictions.put(propInfo.getName(), values.toArray(new Value[values.size()]));
+                mvRestrictions.put(propInfo.getName(), values.toArray(new Value[0]));
             }
         }
 
@@ -297,7 +297,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
         private void applyTo(JackrabbitAccessControlList acl) throws RepositoryException {
             checkNotNull(acl);
             if (!ignore) {
-                acl.addEntry(principal, privileges.toArray(new Privilege[privileges.size()]), isAllow, restrictions, mvRestrictions);
+                acl.addEntry(principal, privileges.toArray(new Privilege[0]), isAllow, restrictions, mvRestrictions);
             } else {
                 log.debug("Unknown principal: Ignore ACE based on ImportBehavior.IGNORE configuration.");
             }

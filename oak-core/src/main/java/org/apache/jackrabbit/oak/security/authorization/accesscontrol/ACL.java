@@ -48,7 +48,7 @@ abstract class ACL extends AbstractAccessControlList {
 
     private static final Logger log = LoggerFactory.getLogger(ACL.class);
 
-    private final List<ACE> entries = new ArrayList<ACE>();
+    private final List<ACE> entries = new ArrayList<>();
 
     ACL(@Nullable String oakPath, @Nullable List<ACE> entries,
         @NotNull NamePathMapper namePathMapper) {
@@ -100,9 +100,17 @@ abstract class ACL extends AbstractAccessControlList {
         }
 
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
-            String jcrName = getNamePathMapper().getJcrName(def.getName());
-            if (def.isMandatory() && (restrictions == null || !restrictions.containsKey(jcrName))) {
-                throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
+            if (def.isMandatory()) {
+                String jcrName = getNamePathMapper().getJcrName(def.getName());
+                boolean mandatoryPresent;
+                if (def.getRequiredType().isArray()) {
+                    mandatoryPresent = (mvRestrictions != null && mvRestrictions.containsKey(jcrName));
+                } else {
+                    mandatoryPresent = (restrictions != null && restrictions.containsKey(jcrName));
+                }
+                if (!mandatoryPresent) {
+                    throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
+                }
             }
         }
 
@@ -110,17 +118,17 @@ abstract class ACL extends AbstractAccessControlList {
         if (restrictions == null && mvRestrictions == null) {
             rs = Collections.emptySet();
         } else {
-            rs = new HashSet<Restriction>();
+            rs = new HashSet<>();
             if (restrictions != null) {
-                for (String jcrName : restrictions.keySet()) {
-                    String oakName = getNamePathMapper().getOakName(jcrName);
-                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrictions.get(oakName)));
+                for (Map.Entry<String, Value> restrEntry : restrictions.entrySet()) {
+                    String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
+                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
                 }
             }
             if (mvRestrictions != null) {
-                for (String jcrName : mvRestrictions.keySet()) {
-                    String oakName = getNamePathMapper().getOakName(jcrName);
-                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, mvRestrictions.get(oakName)));
+                for (Map.Entry<String, Value[]> restrEntry : mvRestrictions.entrySet()) {
+                    String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
+                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
                 }
             }
         }

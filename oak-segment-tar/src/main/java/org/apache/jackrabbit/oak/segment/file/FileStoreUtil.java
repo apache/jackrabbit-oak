@@ -40,7 +40,7 @@ class FileStoreUtil {
      *
      * @param store   An instance of {@link SegmentStore}.
      * @param idProvider  The {@code SegmentIdProvider} of the {@code store}
-     * @param journal Path to the journal file.
+     * @param journalFile The journal of the {@code store}
      * @return An instance of {@link RecordId}, or {@code null} if none could be
      * found.
      * @throws IOException If an I/O error occurs.

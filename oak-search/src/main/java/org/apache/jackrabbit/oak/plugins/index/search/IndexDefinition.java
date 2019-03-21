@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import javax.jcr.PropertyType;
@@ -79,25 +80,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_NRT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEXING_MODE_SYNC;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.BLOB_SIZE;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.COMPAT_MODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EVALUATE_PATH_RESTRICTION;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EXCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.EXPERIMENTAL_STORAGE;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FULL_TEXT_ENABLED;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.TIKA;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.TIKA_CONFIG;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.TIKA_MAPPED_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.TIKA_MIME_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.*;
 import static org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -244,7 +227,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean suggestAnalyzed;
 
-    private final boolean secureFacets;
+    private final SecureFacetConfiguration secureFacets;
+    private final long randomSeed;
 
     private final int numberOfTopFacets;
 
@@ -411,12 +395,21 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         this.queryPaths = getOptionalStrings(defn, IndexConstants.QUERY_PATHS);
         this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
 
+        {
+            PropertyState randomPS = defn.getProperty(PROP_RANDOM_SEED);
+            if (randomPS != null && randomPS.getType() == Type.LONG) {
+                randomSeed = randomPS.getValue(Type.LONG);
+            } else {
+                // create a random number
+                randomSeed = UUID.randomUUID().getMostSignificantBits();
+            }
+        }
         if (defn.hasChildNode(FACETS)) {
             NodeState facetsConfig =  defn.getChildNode(FACETS);
-            this.secureFacets = getOptionalValue(facetsConfig, PROP_SECURE_FACETS, true);
+            this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, facetsConfig);
             this.numberOfTopFacets = getOptionalValue(facetsConfig, PROP_FACETS_TOP_CHILDREN, DEFAULT_FACET_COUNT);
         } else {
-            this.secureFacets = true;
+            this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, null);
             this.numberOfTopFacets = DEFAULT_FACET_COUNT;
         }
 
@@ -879,7 +872,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return suggestAnalyzed;
     }
 
-    public boolean isSecureFacets() {
+    public SecureFacetConfiguration getSecureFacetConfiguration() {
         return secureFacets;
     }
 
@@ -1814,4 +1807,97 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return new PropertyDefinition(rule, name, builder.getNodeState());
     }
 
+    public static class SecureFacetConfiguration {
+        public enum MODE {
+            SECURE,
+            STATISTICAL,
+            INSECURE
+        }
+
+        private final long randomSeed;
+        private final MODE mode;
+        private final int statisticalFacetSampleSize;
+
+        SecureFacetConfiguration(long randomSeed, MODE mode, int statisticalFacetSampleSize) {
+            this.randomSeed = randomSeed;
+            this.mode = mode;
+            this.statisticalFacetSampleSize = statisticalFacetSampleSize;
+        }
+
+        public MODE getMode() {
+            return mode;
+        }
+
+        public int getStatisticalFacetSampleSize() {
+            return statisticalFacetSampleSize;
+        }
+
+        public long getRandomSeed() {
+            return randomSeed;
+        }
+
+        static SecureFacetConfiguration getInstance(long randomSeed, NodeState facetConfigRoot) {
+            if (facetConfigRoot == null) {
+                facetConfigRoot = EMPTY_NODE;
+            }
+
+            MODE mode = getMode(facetConfigRoot);
+            int statisticalFacetSampleSize;
+
+            if (mode == MODE.STATISTICAL) {
+                statisticalFacetSampleSize = getStatisticalFacetSampleSize(facetConfigRoot);
+            } else {
+                statisticalFacetSampleSize = -1;
+            }
+
+            return new SecureFacetConfiguration(randomSeed, mode, statisticalFacetSampleSize);
+        }
+
+        static MODE getMode(@NotNull final NodeState facetConfigRoot) {
+            PropertyState securePS = facetConfigRoot.getProperty(PROP_SECURE_FACETS);
+            String modeString;
+
+            if (securePS != null) {
+                if(securePS.getType() == Type.BOOLEAN) {
+                    // legacy secure config
+                    boolean secure = securePS.getValue(Type.BOOLEAN);
+                    return secure ? MODE.SECURE : MODE.INSECURE;
+                } else {
+                    modeString = securePS.getValue(Type.STRING);
+                }
+            } else {
+                // use "default" just as placeholder. default case would do the actual default eval
+                modeString = System.getProperty(PROP_SECURE_FACETS_VALUE_JVM_PARAM, "default");
+            }
+
+            switch (modeString) {
+                case PROP_SECURE_FACETS_VALUE_INSECURE:
+                    return MODE.INSECURE;
+                case PROP_SECURE_FACETS_VALUE_STATISTICAL:
+                    return MODE.STATISTICAL;
+                case PROP_SECURE_FACETS_VALUE_SECURE:
+                default:
+                    return MODE.SECURE;
+            }
+        }
+
+        static int getStatisticalFacetSampleSize(@NotNull final NodeState facetConfigRoot) {
+            int statisticalFacetSampleSize = Integer.getInteger(
+                    STATISTICAL_FACET_SAMPLE_SIZE_JVM_PARAM,
+                    STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT);
+            int statisticalFacetSampleSizePV = getOptionalValue(facetConfigRoot,
+                    PROP_STATISTICAL_FACET_SAMPLE_SIZE,
+                    statisticalFacetSampleSize);
+
+            if (statisticalFacetSampleSizePV > 0) {
+                statisticalFacetSampleSize = statisticalFacetSampleSizePV;
+            }
+
+            if (statisticalFacetSampleSize < 0) {
+                statisticalFacetSampleSize = STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
+            }
+
+            return statisticalFacetSampleSize;
+        }
+    }
 }

@@ -69,7 +69,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
      */
     private static final int NO_RANKING = Integer.MIN_VALUE;
 
-    private final List<T> configurations = new CopyOnWriteArrayList<T>();
+    private final List<T> configurations = new CopyOnWriteArrayList<>();
 
     private final Ranking rankings = new Ranking();
 
@@ -266,7 +266,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     private static final class Ranking {
 
-        private Map<SecurityConfiguration, Integer> m = new ConcurrentHashMap();
+        private Map<SecurityConfiguration, Integer> m = new ConcurrentHashMap<>();
 
         private int get(@NotNull SecurityConfiguration configuration) {
             Integer ranking = m.get(configuration);
@@ -302,7 +302,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
                     s.add(c);
                 }
             }
-            delegatees = (s.isEmpty()) ? null : s.toArray(new Context[s.size()]);
+            delegatees = (s.isEmpty()) ? null : s.toArray(new Context[0]);
         }
 
         private void add(@NotNull SecurityConfiguration configuration) {

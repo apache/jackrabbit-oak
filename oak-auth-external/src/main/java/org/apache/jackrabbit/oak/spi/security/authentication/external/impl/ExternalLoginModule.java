@@ -246,12 +246,14 @@ public class ExternalLoginModule extends AbstractLoginModule {
             }
         } catch (ExternalIdentityException e) {
             log.error("Error while authenticating '{}' with {}", logId, idp.getName(), e);
+            onError();
             return false;
         } catch (LoginException e) {
             log.debug("IDP {} throws login exception for '{}': {}", idp.getName(), logId, e.getMessage());
             throw e;
-        } catch (Exception e) {
-            log.debug("SyncHandler {} throws sync exception for '{}'", syncHandler.getName(), logId, e);
+        } catch (SyncException | RepositoryException e) {
+            onError();
+            log.error("SyncHandler {} throws sync exception for '{}'", syncHandler.getName(), logId, e);
             LoginException le = new LoginException("Error while syncing user.");
             le.initCause(e);
             throw le;
@@ -259,7 +261,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean commit() throws LoginException {
+    public boolean commit() {
         if (externalUser == null) {
             // login attempt in this login module was not successful
             clearState();
@@ -283,7 +285,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean abort() throws LoginException {
+    public boolean abort() {
         clearState();
         // do we need to remove the user again, in case we created it during login() ?
         return true;
@@ -412,10 +414,10 @@ public class ExternalLoginModule extends AbstractLoginModule {
         } else {
             creds = credentials;
         }
-        Map<String, Object> attributes = new HashMap<String, Object>();
+        Map<String, Object> attributes = new HashMap<>();
         Object shared = sharedState.get(SHARED_KEY_ATTRIBUTES);
         if (shared instanceof Map) {
-            for (Map.Entry entry : ((Map<?,?>) shared).entrySet()) {
+            for (Map.Entry<?,?> entry : ((Map<?,?>) shared).entrySet()) {
                 attributes.put(entry.getKey().toString(), entry.getValue());
             }
         } else if (creds != null) {

@@ -54,12 +54,12 @@ class PrivilegeManagerImpl implements PrivilegeManager {
 
     //---------------------------------------------------< PrivilegeManager >---
     @Override
-    public Privilege[] getRegisteredPrivileges() throws RepositoryException {
-        Set<Privilege> privileges = new HashSet();
+    public Privilege[] getRegisteredPrivileges() {
+        Set<Privilege> privileges = new HashSet<>();
         for (PrivilegeDefinition def : getPrivilegeDefinitions()) {
             privileges.add(getPrivilege(def));
         }
-        return privileges.toArray(new Privilege[privileges.size()]);
+        return privileges.toArray(new Privilege[0]);
     }
 
     @Override
@@ -102,7 +102,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         if (jcrNames == null || jcrNames.length == 0) {
             oakNames = Collections.emptySet();
         } else {
-            oakNames = new HashSet(jcrNames.length);
+            oakNames = new HashSet<>(jcrNames.length);
             for (String jcrName : jcrNames) {
                 String oakName = getOakName(jcrName);
                 oakNames.add(oakName);
@@ -131,7 +131,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     @NotNull
     private PrivilegeDefinition[] getPrivilegeDefinitions() {
         Map<String, PrivilegeDefinition> definitions = getReader().readDefinitions();
-        return definitions.values().toArray(new PrivilegeDefinition[definitions.size()]);
+        return definitions.values().toArray(new PrivilegeDefinition[0]);
     }
 
     @Nullable
@@ -176,7 +176,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         @Override
         public Privilege[] getDeclaredAggregatePrivileges() {
             Set<String> declaredAggregateNames = definition.getDeclaredAggregateNames();
-            Set<Privilege> declaredAggregates = new HashSet(declaredAggregateNames.size());
+            Set<Privilege> declaredAggregates = new HashSet<>(declaredAggregateNames.size());
             for (String oakName : declaredAggregateNames) {
                 if (oakName.equals(definition.getName())) {
                     log.warn("Found cyclic privilege aggregation -> ignore declared aggregate " + oakName);
@@ -189,19 +189,19 @@ class PrivilegeManagerImpl implements PrivilegeManager {
                     log.warn("Invalid privilege '{}' in declared aggregates of '{}'", oakName, getName());
                 }
             }
-            return declaredAggregates.toArray(new Privilege[declaredAggregates.size()]);
+            return declaredAggregates.toArray(new Privilege[0]);
         }
 
         @Override
         public Privilege[] getAggregatePrivileges() {
-            Set<Privilege> aggr = new HashSet();
+            Set<Privilege> aggr = new HashSet<>();
             for (Privilege decl : getDeclaredAggregatePrivileges()) {
                 aggr.add(decl);
                 if (decl.isAggregate()) {
                     aggr.addAll(Arrays.asList(decl.getAggregatePrivileges()));
                 }
             }
-            return aggr.toArray(new Privilege[aggr.size()]);
+            return aggr.toArray(new Privilege[0]);
         }
 
         //---------------------------------------------------------< Object >---

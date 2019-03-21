@@ -94,7 +94,7 @@ An overview on how the built-in privileges map to API calls and individual items
 can be found in ['Mapping Privileges to Items'](mappingtoitems.html)
 and ['Mapping API Calls to Privileges'](mappingtoprivileges.html)
 
-<a name="representation"/>
+<a name="representation"></a>
 ### Representation in the Repository
 
 As of Oak 1.0 all privilege definitions are stored in the repository itself
@@ -115,7 +115,7 @@ Note the protection status of all child items defined by these node type definit
 as they prevent modification of the privilege definitions using regular JCR
 write operations.
 
-<a name="validation"/>
+<a name="validation"></a>
 ### Validation
 
 The consistency of this content structure is asserted by a dedicated `PrivilegeValidator`.
@@ -137,7 +137,7 @@ The corresponding errors are all of type `Constraint` with the following codes:
 | 0052              | Detected circular aggregation                            |
 | 0053              | Custom aggregate privilege X is already covered.         |
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 There are no implementation specific configuration options associated with the 

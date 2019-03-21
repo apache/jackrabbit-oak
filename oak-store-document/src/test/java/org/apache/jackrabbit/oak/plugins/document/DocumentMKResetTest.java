@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -40,6 +41,37 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         rev = addNodes(rev, "/foo");
         String reset = mk.reset(rev, rev);
         assertTrue(mk.diff(rev, reset, "/", 0).length() == 0);
+    }
+
+    @Test
+    public void resetEmptyBranch() {
+        String rev = mk.branch(null);
+        try {
+            mk.reset(rev, rev);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException expected) {}
+    }
+
+    @Test
+    public void resetNonBranchHead() {
+        String base = mk.branch(null);
+        String rev = addNodes(base, "/foo");
+        addNodes(rev, "/bar");
+        try {
+            mk.reset(rev, base);
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException expected) {}
+    }
+
+    @Test
+    public void resetWithForeignAncestor() {
+        String rev = mk.branch(null);
+        rev = addNodes(rev, "/foo");
+        addNodes(null, "/bar");
+        try {
+            mk.reset(rev, mk.branch(null));
+            fail("DocumentStoreException expected");
+        } catch (DocumentStoreException expected) {}
     }
 
     @Test
@@ -162,6 +194,30 @@ public class DocumentMKResetTest extends BaseDocumentMKTest {
         assertNotNull(foo);
         assertFalse(foo.getLocalCommitRoot().containsKey(
                 Revision.fromString(b1).asTrunkRevision()));
+    }
+
+    @Test
+    public void resetRemovesBranchCommitEntries() {
+        DocumentStore store = mk.getDocumentStore();
+
+        addNodes(null, "/foo");
+        String b0 = mk.branch(null);
+        String b1 = addNodes(b0, "/foo/bar");
+
+        NodeDocument foo = store.find(NODES, getIdFromPath("/foo"));
+        assertNotNull(foo);
+        assertTrue(foo.getLocalCommitRoot().containsKey(
+                Revision.fromString(b1).asTrunkRevision()));
+
+        addNodes(null, "/foo/bar");
+
+        mk.reset(b1, b0);
+
+        // reset must also remove _bc entry on parent document
+        Revision r = Revision.fromString(b1).asTrunkRevision();
+        for (NodeDocument doc : Utils.getAllDocuments(store)) {
+            assertFalse(doc.getId(), doc.getLocalBranchCommits().contains(r));
+        }
     }
 
     @Test

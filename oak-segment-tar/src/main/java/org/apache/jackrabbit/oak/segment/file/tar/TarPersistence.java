@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.util.Collection;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.segment.file.LocalGCJournalFile;
 import org.apache.jackrabbit.oak.segment.file.LocalManifestFile;
@@ -29,13 +36,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileLock;
-import java.nio.channels.OverlappingFileLockException;
-import java.util.Collection;
 
 public class TarPersistence implements SegmentNodeStorePersistence {
 
@@ -49,8 +49,15 @@ public class TarPersistence implements SegmentNodeStorePersistence {
 
     private final File directory;
 
+    private final File journal;
+
     public TarPersistence(File directory) {
+        this(directory, new File(directory, JOURNAL_FILE_NAME));
+    }
+
+    public TarPersistence(File directory, File journal) {
         this.directory = directory;
+        this.journal = journal;
     }
 
     @Override
@@ -67,7 +74,7 @@ public class TarPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public JournalFile getJournalFile() {
-        return new LocalJournalFile(directory, JOURNAL_FILE_NAME);
+        return new LocalJournalFile(journal);
     }
 
     @Override

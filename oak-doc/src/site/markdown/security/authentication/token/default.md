@@ -106,7 +106,7 @@ throttling method was introduced to only allow the call to go through 1/8 times)
 
 This is available with Oak 1.7.12 on, see also [OAK-6818]for additional information.
 
-<a name="representation"/>
+<a name="representation"></a>
 ### Representation in the Repository
 
 #### Content Structure
@@ -181,7 +181,7 @@ definition:
         }
     }
 
-<a name="validation"/>
+<a name="validation"></a>
 ### Validation
 
 The consistency of this content structure both on creation and modification is
@@ -201,7 +201,7 @@ all of type `Constraint` with the following codes:
 | 0068              | Invalid location of .tokens node                         |
 | 0069              | Change type of .tokens parent node                       |
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The default Oak `TokenConfiguration` allows to define the following configuration
@@ -221,7 +221,7 @@ options for the `TokenProvider`:
 | | | |
 
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 In an OSGi-based setup the default `TokenConfiguration` you can bind a 

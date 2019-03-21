@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
-import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -60,7 +59,7 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
     }
 
     @Test
-    public void testRootPermission() throws Exception {
+    public void testRootPermission() {
         assertCugPermission(tp, false);
 
         TreePermission rootTp = pp.getTreePermission(root.getTree("/"), TreePermission.EMPTY);
@@ -68,7 +67,7 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
     }
 
     @Test
-    public void testJcrSystemPermissions() throws Exception {
+    public void testJcrSystemPermissions() {
         NodeState system = rootState.getChildNode(JcrConstants.JCR_SYSTEM);
         TreePermission systemTp = tp.getChildPermission(JcrConstants.JCR_SYSTEM, system);
         assertCugPermission(systemTp, false);
@@ -85,7 +84,7 @@ public class EmptyCugTreePermissionTest extends AbstractCugTest {
     }
 
     @Test
-    public void testGetChildPermission() throws Exception {
+    public void testGetChildPermission() {
         String name = Text.getName(SUPPORTED_PATH2);
         NodeState ns = rootState.getChildNode(name);
         TreePermission child = tp.getChildPermission(name, ns);

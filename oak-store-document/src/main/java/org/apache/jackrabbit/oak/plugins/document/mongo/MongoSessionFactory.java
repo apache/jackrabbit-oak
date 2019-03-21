@@ -18,11 +18,13 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.MongoClient;
-import com.mongodb.session.ClientSession;
+import com.mongodb.TransactionOptions;
+import com.mongodb.client.ClientSession;
 import com.mongodb.session.ServerSession;
 
 import org.bson.BsonDocument;
 import org.bson.BsonTimestamp;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Factory for {@link ClientSession}s.
@@ -98,6 +100,42 @@ class MongoSessionFactory {
         @Override
         public BsonDocument getClusterTime() {
             return session.getClusterTime();
+        }
+
+        @Override
+        public boolean hasActiveTransaction() {
+            return session.hasActiveTransaction();
+        }
+
+        @Override
+        public boolean notifyMessageSent() {
+            return session.notifyMessageSent();
+        }
+
+        @NotNull
+        @Override
+        public TransactionOptions getTransactionOptions() {
+            return session.getTransactionOptions();
+        }
+
+        @Override
+        public void startTransaction() {
+            session.startTransaction();
+        }
+
+        @Override
+        public void startTransaction(@NotNull TransactionOptions options) {
+            session.startTransaction(options);
+        }
+
+        @Override
+        public void commitTransaction() {
+            session.commitTransaction();
+        }
+
+        @Override
+        public void abortTransaction() {
+            session.abortTransaction();
         }
 
         @Override

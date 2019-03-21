@@ -81,7 +81,7 @@ final class Delegatee {
     private SyncContext context;
 
     private Delegatee(@NotNull SyncHandler handler, @NotNull ExternalIdentityProvider idp,
-                      @NotNull ContentSession systemSession, @NotNull SecurityProvider securityProvider, int batchSize) throws SyncException {
+                      @NotNull ContentSession systemSession, @NotNull SecurityProvider securityProvider, int batchSize) {
         this.handler = handler;
         this.idp = idp;
 
@@ -117,12 +117,7 @@ final class Delegatee {
             throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
         }
 
-        try {
-            return new Delegatee(handler, idp, systemSession, securityProvider, batchSize);
-        } catch (SyncException e) {
-            close(systemSession);
-            throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
-        }
+        return new Delegatee(handler, idp, systemSession, securityProvider, batchSize);
     }
 
     private static void close(@NotNull ContentSession systemSession) {
@@ -149,14 +144,14 @@ final class Delegatee {
         context.setKeepMissing(!purge)
                 .setForceGroupSync(true)
                 .setForceUserSync(true);
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
 
-        List<SyncResult> results = new ArrayList<SyncResult>(batchSize);
+        List<SyncResult> results = new ArrayList<>(batchSize);
         for (String userId : userIds) {
             results = syncUser(userId, false, results, list);
         }
         commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[list.size()]);
+        return list.toArray(new String[0]);
     }
 
     /**
@@ -165,13 +160,13 @@ final class Delegatee {
     @NotNull
     String[] syncAllUsers(boolean purge) {
         try {
-            List<String> list = new ArrayList<String>();
+            List<String> list = new ArrayList<>();
             context.setKeepMissing(!purge)
                     .setForceGroupSync(true)
                     .setForceUserSync(true);
             Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
 
-            List<SyncResult> results = new ArrayList<SyncResult>(batchSize);
+            List<SyncResult> results = new ArrayList<>(batchSize);
             while (it.hasNext()) {
                 SyncedIdentity id = it.next();
                 if (isMyIDP(id)) {
@@ -179,7 +174,7 @@ final class Delegatee {
                 }
             }
             commit(list, results, NO_BATCH_SIZE);
-            return list.toArray(new String[list.size()]);
+            return list.toArray(new String[0]);
         } catch (RepositoryException e) {
             throw new IllegalStateException("Error retrieving users for syncing", e);
         }
@@ -190,10 +185,10 @@ final class Delegatee {
      */
     @NotNull
     String[] syncExternalUsers(@NotNull String[] externalIds) {
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         context.setForceGroupSync(true).setForceUserSync(true);
 
-        List<SyncResult> results = new ArrayList<SyncResult>(batchSize);
+        List<SyncResult> results = new ArrayList<>(batchSize);
         for (String externalId : externalIds) {
             ExternalIdentityRef ref = ExternalIdentityRef.fromString(externalId);
             if (!idp.getName().equals(ref.getProviderName())) {
@@ -216,7 +211,7 @@ final class Delegatee {
             }
         }
         commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[list.size()]);
+        return list.toArray(new String[0]);
     }
 
     /**
@@ -224,17 +219,17 @@ final class Delegatee {
      */
     @NotNull
     String[] syncAllExternalUsers() {
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         context.setForceGroupSync(true).setForceUserSync(true);
         try {
-            List<SyncResult> results = new ArrayList<SyncResult>(batchSize);
+            List<SyncResult> results = new ArrayList<>(batchSize);
             Iterator<ExternalUser> it = idp.listUsers();
             while (it.hasNext()) {
                 ExternalUser user = it.next();
                 results = syncUser(user, results, list);
             }
             commit(list, results, NO_BATCH_SIZE);
-            return list.toArray(new String[list.size()]);
+            return list.toArray(new String[0]);
         } catch (ExternalIdentityException e) {
             throw new SyncRuntimeException("Unable to retrieve external users", e);
         }
@@ -254,16 +249,16 @@ final class Delegatee {
     @NotNull
     String[] purgeOrphanedUsers() {
         context.setKeepMissing(false);
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         Iterator<String> orphanedIdentities = internalListOrphanedIdentities();
 
-        List<SyncResult> results = new ArrayList<SyncResult>(batchSize);
+        List<SyncResult> results = new ArrayList<>(batchSize);
         while (orphanedIdentities.hasNext()) {
             String userId = orphanedIdentities.next();
             results = syncUser(userId, true, results, list);
         }
         commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[list.size()]);
+        return list.toArray(new String[0]);
     }
 
     //------------------------------------------------------------< private >---
@@ -319,7 +314,7 @@ final class Delegatee {
                 // make sure there are not pending changes that would fail the next batches
                 root.refresh();
             }
-            return new ArrayList<SyncResult>(size);
+            return new ArrayList<>(size);
         }
     }
 

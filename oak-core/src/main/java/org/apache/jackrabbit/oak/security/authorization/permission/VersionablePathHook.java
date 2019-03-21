@@ -69,7 +69,7 @@ public class VersionablePathHook implements CommitHook {
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(vsRoot, rootBuilder);
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(providerCtx.getRootProvider().createReadOnlyRoot(rootBuilder.getNodeState()), NamePathMapper.DEFAULT);
 
-        List<CommitFailedException> exceptions = new ArrayList<CommitFailedException>();
+        List<CommitFailedException> exceptions = new ArrayList<>();
         after.compareAgainstBaseState(before,
                 new Diff(vMgr, ntMgr, new Node(rootBuilder), exceptions));
         if (!exceptions.isEmpty()) {

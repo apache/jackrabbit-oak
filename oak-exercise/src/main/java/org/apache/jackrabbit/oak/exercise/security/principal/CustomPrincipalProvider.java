@@ -39,6 +39,7 @@ class CustomPrincipalProvider implements PrincipalProvider {
         this.knownPrincipalNames = ImmutableSet.copyOf(knownPrincipalNames);
     }
 
+    @Nullable
     @Override
     public Principal getPrincipal(@NotNull String principalName) {
         // EXERCISE: complete

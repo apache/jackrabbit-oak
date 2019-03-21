@@ -88,6 +88,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.bulk.BulkWriteUpsert;
+import com.mongodb.client.ClientSession;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
@@ -101,7 +102,6 @@ import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
-import com.mongodb.session.ClientSession;
 
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
@@ -274,13 +274,13 @@ public class MongoDocumentStore implements DocumentStore {
         useClientSession = !builder.isClientSessionDisabled()
                 && Boolean.parseBoolean(System.getProperty("oak.mongo.clientSession", "true"));
 
-        // counting the number of documents in the nodes collection and
-        // checking existing indexes is performed against the MongoDB primary
-        // this ensure the information is up-to-date and accurate
-        long initialDocsCount = getNodesCount();
+        // reading documents in the nodes collection and checking
+        // existing indexes is performed against the MongoDB primary
+        // this ensures the information is up-to-date and accurate
+        boolean emptyNodesCollection = execute(session -> MongoUtils.isCollectionEmpty(nodes, session));
 
         // compound index on _modified and _id
-        if (initialDocsCount == 0) {
+        if (emptyNodesCollection) {
             // this is an empty store, create a compound index
             // on _modified and _id (OAK-3071)
             createIndex(nodes, new String[]{NodeDocument.MODIFIED_IN_SECS, Document.ID},
@@ -300,7 +300,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         // index on _deleted for fast lookup of potentially garbage
         // depending on the MongoDB version, create a partial index
-        if (initialDocsCount == 0) {
+        if (emptyNodesCollection) {
             if (mongoStatus.isVersion(3, 2)) {
                 createPartialIndex(nodes, new String[]{DELETED_ONCE, MODIFIED_IN_SECS},
                         new boolean[]{true, true}, "{" + DELETED_ONCE + ":true}");
@@ -320,7 +320,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
 
         // compound index on _sdType and _sdMaxRevTime
-        if (initialDocsCount == 0) {
+        if (emptyNodesCollection) {
             // this is an empty store, create compound index
             // on _sdType and _sdMaxRevTime (OAK-6129)
             createIndex(nodes, new String[]{SD_TYPE, SD_MAX_REV_TIME_IN_SECS},
@@ -343,7 +343,8 @@ public class MongoDocumentStore implements DocumentStore {
 
         LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
                 "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
-                "clientSessionSupported {}, clientSessionInUse {}, serverStatus {}",
+                "clientSessionSupported {}, clientSessionInUse {}, {}, " +
+                "serverStatus {}",
                 mongoStatus.getVersion(), maxReplicationLagMillis,
                 maxDeltaForModTimeIdxSecs, disableIndexHint,
                 status.isClientSessionSupported(), useClientSession,
@@ -1456,7 +1457,7 @@ public class MongoDocumentStore implements DocumentStore {
                     } else {
                         //If parent has been modified loooong time back then there children
                         //would also have not be modified. In that case we can read from secondary
-                        NodeDocument cachedDoc = nodesCache.getIfPresent(parentId);
+                        NodeDocument cachedDoc = getIfCached(Collection.NODES, parentId);
                         secondarySafe = cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit);
                     }
                 }
@@ -1850,25 +1851,6 @@ public class MongoDocumentStore implements DocumentStore {
                     builder.put(key, String.valueOf(v));
                 }
             }
-        });
-    }
-
-    /**
-     * Returns the number of documents in the {@link #nodes} collection. The read
-     * always happens on the MongoDB primary.
-     *
-     * @return the number of documents in the {@link #nodes} collection.
-     */
-    private long getNodesCount() {
-        return execute(session -> {
-            MongoCollection<?> c = nodes.withReadPreference(ReadPreference.primary());
-            long count;
-            if (session != null) {
-                count = c.count(session);
-            } else {
-                count = c.count();
-            }
-            return count;
         });
     }
 

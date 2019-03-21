@@ -21,11 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
@@ -60,7 +57,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.BadIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCloner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -96,6 +92,8 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAnce
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.dirSize;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
+
+    private static final boolean LOAD_INDEX_FOR_STATS = Boolean.parseBoolean(System.getProperty("oak.lucene.LoadIndexForStats", "false"));
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
@@ -139,6 +137,21 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             throw new IllegalStateException(e);
         }
         return tds;
+    }
+
+    private IndexStats getIndexStats(String path) throws IOException {
+        LuceneIndexNode indexNode = null;
+        try {
+            indexNode = indexTracker.acquireIndexNode(path);
+            if (indexNode != null) {
+                return new IndexStats(path, indexNode);
+            }
+        } finally {
+            if (indexNode != null) {
+                indexNode.release();
+            }
+        }
+        throw new IOException("could not fetch stats for index at path " + path);
     }
 
     @Override
@@ -366,6 +379,26 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     public String getHybridIndexInfo(String indexPath) {
         NodeState idx = NodeStateUtils.getNode(nodeStore.getRoot(), indexPath);
         return new HybridPropertyIndexInfo(idx).getInfoAsJson();
+    }
+
+    @Override
+    public String getSize(String indexPath) throws IOException {
+        if (!LOAD_INDEX_FOR_STATS) {
+            if (!indexTracker.getIndexNodePaths().contains(indexPath)) {
+                return "-1";
+            }
+        }
+        return String.valueOf(getIndexStats(indexPath).indexSize);
+    }
+
+    @Override
+    public String getDocCount(String indexPath) throws IOException {
+        if (!LOAD_INDEX_FOR_STATS) {
+            if (!indexTracker.getIndexNodePaths().contains(indexPath)) {
+                return "-1";
+            }
+        }
+        return String.valueOf(getIndexStats(indexPath).numDocs);
     }
 
     private Result getConsistencyCheckResult(String indexPath, boolean fullCheck) throws IOException {

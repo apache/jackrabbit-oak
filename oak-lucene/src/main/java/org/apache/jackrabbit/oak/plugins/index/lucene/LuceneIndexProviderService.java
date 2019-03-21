@@ -85,7 +85,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.lucene.analysis.util.CharFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
@@ -382,17 +384,20 @@ public class LuceneIndexProviderService {
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, null));
         registerObserver(bundleContext, config);
         registerLocalIndexObserver(bundleContext, tracker, config);
-        registerIndexEditor(bundleContext, tracker, config);
+
         registerIndexInfoProvider(bundleContext);
         registerIndexImporterProvider(bundleContext);
         registerPropertyIndexCleaner(config, bundleContext);
 
+        LuceneIndexMBeanImpl mBean = new LuceneIndexMBeanImpl(tracker, nodeStore, indexPathService, getIndexCheckDir(), cleaner);
         oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
-                new LuceneIndexMBeanImpl(indexProvider.getTracker(), nodeStore, indexPathService, getIndexCheckDir(), cleaner),
+                mBean,
                 LuceneIndexMBean.TYPE,
                 "Lucene Index statistics"));
-        registerGCMonitor(whiteboard, indexProvider.getTracker());
+        registerGCMonitor(whiteboard, tracker);
+
+        registerIndexEditor(bundleContext, tracker, mBean, config);
     }
 
     private File getIndexCheckDir() {
@@ -491,16 +496,16 @@ public class LuceneIndexProviderService {
         }
     }
 
-    private void registerIndexEditor(BundleContext bundleContext, IndexTracker tracker, Map<String, ?> config) throws IOException {
+    private void registerIndexEditor(BundleContext bundleContext, IndexTracker tracker, LuceneIndexMBean mBean, Map<String, ?> config) throws IOException {
         boolean enableCopyOnWrite = PropertiesUtil.toBoolean(config.get(PROP_COPY_ON_WRITE), PROP_COPY_ON_WRITE_DEFAULT);
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
             editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
-                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector);
+                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
             log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
         } else {
             editorProvider = new LuceneIndexEditorProvider(null, tracker, extractedTextCache, augmentorFactory,
-                    mountInfoProvider, activeDeletedBlobCollector);
+                    mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
         }
         editorProvider.setBlobStore(blobStore);
 

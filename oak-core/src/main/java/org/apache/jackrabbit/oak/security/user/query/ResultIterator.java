@@ -69,7 +69,7 @@ public final class ResultIterator<T> implements Iterator<T> {
             // no constraints on offset nor max -> return the original iterator.
             return iterator;
         } else {
-            return new ResultIterator<T>(offset, max, iterator);
+            return new ResultIterator<>(offset, max, iterator);
         }
     }
 

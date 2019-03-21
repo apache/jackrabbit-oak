@@ -99,6 +99,17 @@ option. However, it is important to note that many JCR API calls rely on the
 accessibility of the namespace, nodetype and privilege information. Removing the
 corresponding paths from the configuration will most probably have undesired effects.
 
+##### Effective Policies
+
+The effective policies exposed by `AccessControlManager.getEffectivePolicies(String)` and 
+`JackrabbitAccessControlManager.getEffectivePolicies(Set<Principal>)` represent an immutable view on the 
+persisted policies taking effect act the given path or for the given set of principals. Transient 
+modifications that are the result of `setPolicy` and `removePolicy` will not be reflected.
+
+Note however, that these methods are defined to be a best-effort. In particular `AccessControlManager.getEffectivePolicies(String)`
+will not evaluate restrictions associated with individual entries that might limit the effect to individual items in the subtree. 
+See also [OAK-8000](https://issues.apache.org/jira/browse/OAK-8000) for details.
+
 #### Access Control Entries
 
 The access control entries present in a given list are subject to the following
@@ -115,7 +126,7 @@ restrictions as mentioned by JSR 283. Details about the restriction management
 in Oak 1.0 as well as a list of built-in restrictions and extensibility can be
 found in section [Restriction Management](../authorization/restriction.html).
 
-<a name="representation"/>
+<a name="representation"></a>
 ### Representation in the Repository
 
 All access control policies defined with an Oak repository are stores child of
@@ -199,6 +210,7 @@ the node they are bound to. The node type definition used to represent access co
         }
     }
 
+<a name="xml_import"></a>
 ### XML Import
 
 As of OAK 1.0 access control content can be imported both with Session and
@@ -225,7 +237,7 @@ the following entry:
 
 See also ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350)))
 
-<a name="validation"/>
+<a name="validation"></a>
 ### Validation
 
 The consistency of this content structure is asserted by a dedicated `AccessControlValidator`.
@@ -248,7 +260,7 @@ The corresponding errors are all of type `AccessControl` with the following code
 | 0013              | Duplicate ACE found in policy                            |
 
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 #### Configuration Parameters

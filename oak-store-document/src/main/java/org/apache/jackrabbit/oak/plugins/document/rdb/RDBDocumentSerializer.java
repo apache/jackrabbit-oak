@@ -232,6 +232,9 @@ public class RDBDocumentSerializer {
             }
             json.read(JsopReader.END);
 
+            // OAK-7855: check and fix _sdType
+            checkSdType(doc);
+
             return doc;
         } catch (Exception ex) {
             String message = String.format("Error processing persisted data for document '%s'", row.getId());
@@ -321,6 +324,17 @@ public class RDBDocumentSerializer {
         }
     }
 
+    private static void checkSdType(Document doc) {
+        Object sdType = doc.get(NodeDocument.SD_TYPE);
+        if (sdType instanceof Long) {
+            long value = (long) sdType;
+            if (value == 0) {
+                doc.remove(NodeDocument.SD_TYPE);
+                LOG.debug("Incorrect _sdType 0 in {}", doc.getId());
+            }
+        }
+    }
+
     // low level operations
 
     private static byte[] GZIPSIG = { 31, -117 };
@@ -329,14 +343,15 @@ public class RDBDocumentSerializer {
         try {
             if (bdata.length >= 2 && bdata[0] == GZIPSIG[0] && bdata[1] == GZIPSIG[1]) {
                 // GZIP
-                ByteArrayInputStream bis = new ByteArrayInputStream(bdata);
-                GZIPInputStream gis = new GZIPInputStream(bis, 65536);
-                return IOUtils.toString(gis, "UTF-8");
+                try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(bdata), 65536)) {
+                    return IOUtils.toString(gis, "UTF-8");
+                }
             } else {
                 return IOUtils.toString(bdata, "UTF-8");
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (IOException ex) {
+            LOG.debug("Unexpected exception while processing blob data", ex);
+            throw new RuntimeException(ex);
         }
     }
 }

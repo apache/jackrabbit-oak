@@ -59,7 +59,7 @@ public class TopLevelPathTest extends AbstractCugTest {
     }
 
     @Test
-    public void testContainsNoCug()  throws Exception {
+    public void testContainsNoCug() {
         TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(root));
         for (String p : PATHS) {
             assertFalse(tlp.contains(p));

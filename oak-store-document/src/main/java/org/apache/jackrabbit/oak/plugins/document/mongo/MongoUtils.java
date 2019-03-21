@@ -25,12 +25,17 @@ import com.mongodb.MongoException;
 import com.mongodb.MongoNotPrimaryException;
 import com.mongodb.MongoSocketException;
 import com.mongodb.MongoWriteConcernException;
+import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcernException;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.IndexOptions;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 import org.bson.Document;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -137,6 +142,26 @@ class MongoUtils {
             }
         }
         return false;
+    }
+
+    /**
+     * Returns {@code true} if the given collection is empty, {@code false}
+     * otherwise. The check always happens on the MongoDB primary.
+     *
+     * @param collection the collection to check.
+     * @param session an optional client session.
+     * @return {@code true} if empty, {@code false} otherwise.
+     */
+    static boolean isCollectionEmpty(@NotNull MongoCollection<?> collection,
+                                     @Nullable ClientSession session) {
+        MongoCollection<?> c = collection.withReadPreference(ReadPreference.primary());
+        FindIterable<BasicDBObject> result;
+        if (session != null) {
+            result = c.find(session, BasicDBObject.class);
+        } else {
+            result = c.find(BasicDBObject.class);
+        }
+        return result.limit(1).first() == null;
     }
 
     /**

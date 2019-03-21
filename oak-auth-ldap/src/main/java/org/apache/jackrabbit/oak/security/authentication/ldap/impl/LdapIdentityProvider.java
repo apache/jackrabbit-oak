@@ -208,21 +208,30 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
 
         LdapConnection connection = connect();
         try {
+            Entry entry;
+            String id = ref.getId();
+            boolean useUidForExtId = config.getUseUidForExtId();
             String userIdAttr = config.getUserConfig().getIdAttribute();
             String groupIdAttr = config.getGroupConfig().getIdAttribute();
             String[] ca = config.getCustomAttributes();
-            Entry entry;
-            if (ca.length == 0) {
-                entry = connection.lookup(ref.getId(), SchemaConstants.ALL_USER_ATTRIBUTES);
-            }
-            else {
-                List<String> attributes = new ArrayList<>(Arrays.asList(ca));
-                attributes.add("objectClass");
-                attributes.add(userIdAttr);
-                attributes.add(groupIdAttr);
-                String[] attributeArray = new String[attributes.size()];
-                attributes.toArray(attributeArray);
-                entry = connection.lookup(ref.getId(), attributeArray);
+            if (useUidForExtId) {
+                entry = getEntry(connection, config.getUserConfig(), id, config.getCustomAttributes());
+                if (entry == null) {
+                    entry = getEntry(connection, config.getGroupConfig(), id, config.getCustomAttributes());
+                }
+            } else {
+                if (ca.length == 0) {
+                    entry = connection.lookup(id, SchemaConstants.ALL_USER_ATTRIBUTES);
+                }
+                else {
+                    List<String> attributes = new ArrayList<>(Arrays.asList(ca));
+                    attributes.add("objectClass");
+                    attributes.add(userIdAttr);
+                    attributes.add(groupIdAttr);
+                    String[] attributeArray = new String[attributes.size()];
+                    attributes.toArray(attributeArray);
+                    entry = connection.lookup(id, attributeArray);
+                }
             }
             if (entry == null) {
                 return null;
@@ -235,6 +244,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                 return null;
             }
         } catch (LdapException e) {
+            throw lookupFailedException(e, null);
+        } catch (CursorException e) {
             throw lookupFailedException(e, null);
         } finally {
             disconnect(connection);

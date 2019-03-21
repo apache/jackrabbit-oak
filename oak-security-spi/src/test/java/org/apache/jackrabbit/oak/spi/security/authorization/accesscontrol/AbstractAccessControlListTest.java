@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -51,6 +53,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -67,7 +74,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     protected RestrictionProvider getRestrictionProvider() {
-        Map<String, RestrictionDefinition> rDefs = new HashMap();
+        Map<String, RestrictionDefinition> rDefs = new HashMap<>();
         rDefs.put("r1", new RestrictionDefinitionImpl("r1", Type.STRING, true));
         rDefs.put("r2", new RestrictionDefinitionImpl("r2", Type.LONGS, false));
 
@@ -117,7 +124,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     protected List<JackrabbitAccessControlEntry> createTestEntries() throws RepositoryException {
-        List<JackrabbitAccessControlEntry> entries = new ArrayList(3);
+        List<JackrabbitAccessControlEntry> entries = new ArrayList<>(3);
         for (int i = 0; i < 3; i++) {
             entries.add(createEntry(
                     new PrincipalImpl("testPrincipal" + i), PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true));
@@ -126,7 +133,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testGetNamePathMapper() throws Exception {
+    public void testGetNamePathMapper() {
         assertSame(getNamePathMapper(), createEmptyACL().getNamePathMapper());
         assertSame(NamePathMapper.DEFAULT, createACL(getTestPath(), ImmutableList.<JackrabbitAccessControlEntry>of(), NamePathMapper.DEFAULT).getNamePathMapper());
     }
@@ -136,7 +143,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         NamePathMapper npMapper = mockNamePathMapper(getTestPath());
 
         // map of jcr-path to standard jcr-path
-        Map<String, String> paths = new HashMap<String, String>();
+        Map<String, String> paths = new HashMap<>();
         paths.put(null, null);
         paths.put(getTestPath(), getTestPath());
         paths.put("/", "/");
@@ -154,7 +161,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         NamePathMapper npMapper = mockNamePathMapper(getTestPath());
 
         // map of jcr-path to oak path
-        Map<String, String> paths = new HashMap<String, String>();
+        Map<String, String> paths = new HashMap<>();
         paths.put(null, null);
         paths.put(getTestPath(), getTestPath());
         paths.put("/", "/");
@@ -185,7 +192,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testEmptyAcl() throws RepositoryException {
+    public void testEmptyAcl() {
         AbstractAccessControlList acl = createEmptyACL();
 
         assertNotNull(acl.getAccessControlEntries());
@@ -224,7 +231,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testGetRestrictionNames() throws RepositoryException {
+    public void testGetRestrictionNames() {
         AbstractAccessControlList acl = createEmptyACL();
 
         String[] restrNames = acl.getRestrictionNames();
@@ -237,7 +244,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testGetRestrictionType() throws RepositoryException {
+    public void testGetRestrictionType() {
         AbstractAccessControlList acl = createEmptyACL();
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getTestPath())) {
             int reqType = acl.getRestrictionType(getNamePathMapper().getJcrName(def.getName()));
@@ -248,7 +255,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testGetRestrictionTypeForUnknownName() throws RepositoryException {
+    public void testGetRestrictionTypeForUnknownName() {
         AbstractAccessControlList acl = createEmptyACL();
         // for backwards compatibility getRestrictionType(String) must return
         // UNDEFINED for a unknown restriction name:
@@ -256,7 +263,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testIsMultiValueRestriction() throws RepositoryException {
+    public void testIsMultiValueRestriction() {
         AbstractAccessControlList acl = createEmptyACL();
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getTestPath())) {
             boolean isMv = acl.isMultiValueRestriction(getNamePathMapper().getJcrName(def.getName()));
@@ -266,7 +273,39 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testIsMultiValueRestrictionForUnknownName() throws RepositoryException {
+    public void testIsMultiValueRestrictionForUnknownName() {
         assertFalse(createEmptyACL().isMultiValueRestriction("unknownRestrictionName"));
+    }
+
+    @Test
+    public void testAddAccessControlEntry() throws Exception {
+        AbstractAccessControlList acl = spy(createEmptyACL());
+
+        Privilege[] privs =  new Privilege[0];
+        acl.addAccessControlEntry(testPrincipal, privs);
+
+        verify(acl, never()).addEntry(testPrincipal, privs, true);
+        verify(acl, times(1)).addEntry(testPrincipal, privs, true, Collections.emptyMap());
+    }
+
+    @Test
+    public void testAddEntry() throws Exception {
+        AbstractAccessControlList acl = spy(createEmptyACL());
+
+        Privilege[] privs = new Privilege[0];
+        acl.addEntry(testPrincipal, privs, false);
+
+        verify(acl, times(1)).addEntry(testPrincipal, privs, false, Collections.emptyMap());
+    }
+
+    @Test
+    public void testAddEntryWithRestrictions() throws Exception {
+        AbstractAccessControlList acl = spy(createEmptyACL());
+
+        Privilege[] privs =  new Privilege[0];
+        Map<String, Value> restrictions = Collections.singletonMap("name", mock(Value.class));
+        acl.addEntry(testPrincipal, privs, false, restrictions);
+
+        verify(acl, times(1)).addEntry(testPrincipal, privs, false, restrictions, null);
     }
 }

@@ -25,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Default implementation of the {@code PrincipalManager} interface.
  */
-public class PrincipalManagerImpl implements PrincipalManager {
+public class PrincipalManagerImpl implements PrincipalQueryManager, PrincipalManager {
 
     private final PrincipalProvider principalProvider;
 
@@ -77,5 +77,10 @@ public class PrincipalManagerImpl implements PrincipalManager {
             everyone = EveryonePrincipal.getInstance();
         }
         return everyone;
+    }
+
+    @Override
+    public PrincipalIterator findPrincipals(String simpleFilter, boolean fullText, int searchType, long offset, long limit) {
+        return new PrincipalIteratorAdapter(principalProvider.findPrincipals(simpleFilter, fullText, searchType, offset, limit));
     }
 }

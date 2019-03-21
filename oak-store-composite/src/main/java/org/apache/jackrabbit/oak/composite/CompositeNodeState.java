@@ -185,7 +185,7 @@ class CompositeNodeState extends AbstractNodeState {
             } else {
                 return n.builder();
             }
-        }), ctx);
+        }), ctx, path);
     }
 
     private NodeState getWrappedNodeState() {

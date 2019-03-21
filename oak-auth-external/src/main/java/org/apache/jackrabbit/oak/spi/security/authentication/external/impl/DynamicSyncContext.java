@@ -125,7 +125,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 if (depth <= 0) {
                     vs = new Value[0];
                 } else {
-                    Set<String> principalsNames = new HashSet<String>();
+                    Set<String> principalsNames = new HashSet<>();
                     collectPrincipalNames(principalsNames, external.getDeclaredGroups(), depth);
                     vs = createValues(principalsNames);
                 }

@@ -51,7 +51,8 @@ to adhere to this rule and perform transient repository operation or validation.
 They must not force changes to be persisted by calling `org.apache.jackrabbit.oak.api.Root.commit()`.
 
 See section [Group Actions](groupaction.html) for a related extension to
-monitor group specific operations.
+monitor group specific operations and [User Actions](useraction.html) for 
+user specific operations.
 
 ### Default Implementations
 

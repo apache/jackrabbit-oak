@@ -16,30 +16,32 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.security.AccessControlException;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authorization.PrincipalSetPolicy;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import javax.jcr.security.AccessControlException;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
+
+import static org.junit.Assert.*;
 
 public class CugPolicyImplTest extends AbstractSecurityTest {
 
@@ -47,6 +49,8 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     private PrincipalManager principalManager;
     private Principal testPrincipal = new PrincipalImpl("test");
     Set<Principal> principals = ImmutableSet.of(testPrincipal);
+
+    private CugExclude exclude = new CugExclude.Default();
 
     @Override
     public void before() throws Exception {
@@ -56,13 +60,29 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     }
 
     private CugPolicyImpl createEmptyCugPolicy() {
-        return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT);
+        return createEmptyCugPolicy(ImportBehavior.ABORT);
+    }
+
+    private CugPolicyImpl createEmptyCugPolicy(int importBehavior) {
+        return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, importBehavior, exclude);
     }
 
     private CugPolicyImpl createCugPolicy(@NotNull Set<Principal> principals) {
-        return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT, principals);
+        return createCugPolicy(ImportBehavior.ABORT, principals);
     }
 
+    private CugPolicyImpl createCugPolicy(int importBehavior, @NotNull Set<Principal> principals) {
+        return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, importBehavior, exclude, principals);
+    }
+
+    private Principal getExcludedPrincipal() {
+        return new SystemUserPrincipal() {
+            @Override
+            public String getName() {
+                return "excluded";
+            }
+        };
+    }
     @Test
     public void testPrincipalSetPolicy() {
         assertTrue(createCugPolicy(principals) instanceof PrincipalSetPolicy);
@@ -115,7 +135,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test(expected = AccessControlException.class)
     public void testAddInvalidPrincipalsAbort() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT);
+        CugPolicy cug = createEmptyCugPolicy(ImportBehavior.ABORT);
         cug.addPrincipals(
                 EveryonePrincipal.getInstance(),
                 new PrincipalImpl("unknown"));
@@ -123,7 +143,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testAddInvalidPrincipalsBestEffort() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.BESTEFFORT, principals);
+        CugPolicy cug = createCugPolicy(ImportBehavior.BESTEFFORT, principals);
         assertTrue(cug.addPrincipals(
                 EveryonePrincipal.getInstance(),
                 new PrincipalImpl("unknown")));
@@ -134,7 +154,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testAddInvalidPrincipalsIgnore() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.IGNORE, principals);
+        CugPolicy cug = createCugPolicy(ImportBehavior.IGNORE, principals);
         assertTrue(cug.addPrincipals(
                 new PrincipalImpl("unknown"),
                 EveryonePrincipal.getInstance()));
@@ -147,7 +167,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testAddContainedPrincipal() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.BESTEFFORT, principals);
+        CugPolicy cug = createCugPolicy(ImportBehavior.BESTEFFORT, principals);
         assertFalse(cug.addPrincipals(
                 new PrincipalImpl("test")));
 
@@ -156,7 +176,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testAddNullPrincipal() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT, principals);
+        CugPolicy cug = createCugPolicy(ImportBehavior.ABORT, principals);
         assertTrue(cug.addPrincipals(EveryonePrincipal.getInstance(), null));
 
         assertTrue(cug.getPrincipals().contains(EveryonePrincipal.getInstance()));
@@ -165,13 +185,13 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test(expected = AccessControlException.class)
     public void testAddEmptyPrincipalName() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.BESTEFFORT);
+        CugPolicy cug = createEmptyCugPolicy(ImportBehavior.BESTEFFORT);
         cug.addPrincipals(new PrincipalImpl(""));
     }
 
     @Test(expected = AccessControlException.class)
     public void testAddNullPrincipalName() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.BESTEFFORT);
+        CugPolicy cug = createEmptyCugPolicy(ImportBehavior.BESTEFFORT);
         cug.addPrincipals(new Principal() {
             @Override
             public String getName() {
@@ -182,9 +202,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testRemovePrincipals() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager,
-                ImportBehavior.BESTEFFORT,
-                ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance()));
+        CugPolicy cug = createCugPolicy(ImportBehavior.BESTEFFORT, ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance()));
 
         assertFalse(cug.removePrincipals(new PrincipalImpl("unknown")));
         assertTrue(cug.removePrincipals(testPrincipal, EveryonePrincipal.getInstance(), new PrincipalImpl("unknown")));
@@ -193,7 +211,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testRemoveNullPrincipal() throws Exception {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT, principals);
+        CugPolicy cug = createCugPolicy(ImportBehavior.ABORT, principals);
         assertTrue(cug.removePrincipals(testPrincipal, null));
 
         assertTrue(cug.getPrincipals().isEmpty());
@@ -210,12 +228,42 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
         String oakPath = "/oak:testPath";
         NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("quercus", "http://jackrabbit.apache.org/oak/ns/1.0")));
 
-        CugPolicy empty = new CugPolicyImpl(oakPath, mapper, principalManager, ImportBehavior.ABORT);
+        CugPolicy empty = new CugPolicyImpl(oakPath, mapper, principalManager, ImportBehavior.ABORT, exclude);
         assertEquals("/quercus:testPath", empty.getPath());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidImportBehavior() {
-        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, -1, principals);
+        CugPolicy cug = createCugPolicy(-1, principals);
+    }
+
+    @Test
+    public void testAddSingleExcludedPrincipal() throws Exception {
+        CugPolicy cug = createEmptyCugPolicy(ImportBehavior.ABORT);
+
+        assertFalse(cug.addPrincipals(getExcludedPrincipal()));
+    }
+
+    @Test
+    public void testAddExcludedPrincipal() throws Exception {
+        CugPolicyImpl cug = createEmptyCugPolicy(ImportBehavior.ABORT);
+
+        Principal excluded = getExcludedPrincipal();
+        assertTrue(cug.addPrincipals(EveryonePrincipal.getInstance(), excluded));
+        assertFalse(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
+    }
+
+    @Test
+    public void testExcludedPrincipalAddedBefore() throws Exception {
+        Principal excluded = getExcludedPrincipal();
+        CugPolicyImpl cug = createCugPolicy(ImportBehavior.ABORT, Collections.singleton(excluded));
+        assertTrue(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
+    }
+
+    @Test
+    public void removeExcludedPrincipal() throws Exception {
+        Principal excluded = getExcludedPrincipal();
+        CugPolicyImpl cug = createCugPolicy(ImportBehavior.ABORT, Collections.singleton(excluded));
+        assertTrue(cug.removePrincipals(excluded));
     }
 }

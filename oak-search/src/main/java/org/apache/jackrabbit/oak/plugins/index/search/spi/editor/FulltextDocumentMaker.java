@@ -265,11 +265,16 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             if (pd.facet && isFacetingEnabled()) {
                 dirty |= indexFacets(doc, property, pname, pd);
             }
+            if (pd.similarityTags) {
+                dirty |= indexSimilarityTag(doc, property);
+            }
 
         }
 
         return dirty;
     }
+
+    protected abstract boolean indexSimilarityTag(D doc, PropertyState property);
 
     protected abstract void indexSimilarityBinaries(D doc, PropertyDefinition pd, Blob blob) throws IOException;
 

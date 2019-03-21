@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment;
 
+import java.util.function.Supplier;
+
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+
 /**
  * SegmentNodeStoreMonitor is notified for commit related operations performed by SegmentNodeStore.
  */
@@ -31,7 +35,7 @@ public interface SegmentNodeStoreMonitor {
         }
 
         @Override
-        public void onCommitQueued(Thread t) {
+        public void onCommitQueued(Thread t, Supplier<GCGeneration> gcGeneration) {
 
         }
         
@@ -53,8 +57,9 @@ public interface SegmentNodeStoreMonitor {
      * queued for later retry.
      * 
      * @param t the thread which initiated the write
+     * @param gcGeneration the commit's gc generation
      */
-    void onCommitQueued(Thread t);
+    void onCommitQueued(Thread t, Supplier<GCGeneration> gcGeneration);
     
     /**
      * Notifies the monitor when a queued commit was dequeued for processing.

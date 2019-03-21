@@ -70,7 +70,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     private static final Map<Long, String> BUILT_IN_BITS;
 
     static {
-        Map<String, PrivilegeBits> privs = new HashMap<String, PrivilegeBits>();
+        Map<String, PrivilegeBits> privs = new HashMap<>();
         privs.put(REP_READ_NODES, getInstance(READ_NODES));
         privs.put(REP_READ_PROPERTIES, getInstance(READ_PROPERTIES));
         privs.put(REP_ADD_PROPERTIES, getInstance(ADD_PROPERTIES));
@@ -419,6 +419,14 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
+     * @return {@code true} if this instance represents one of the built-in privilege
+     * @see #BUILT_IN
+     */
+    public boolean isBuiltin() {
+        return d.isSimple() && BUILT_IN_BITS.containsKey(d.longValue());
+    }
+
+    /**
      * Adds the other privilege bits to this instance.
      *
      * @param other The other privilege bits to be added.
@@ -493,7 +501,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     @NotNull
-    public PropertyState asPropertyState(String name) {
+    public PropertyState asPropertyState(@NotNull String name) {
         return PropertyStates.createProperty(name, Longs.asList(d.longValues()), Type.LONGS);
     }
 

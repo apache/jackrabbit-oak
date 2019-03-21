@@ -18,7 +18,7 @@
 Permission Evaluation in Detail
 --------------------------------------------------------------------------------
 
-<a name="permissionentries"/>
+<a name="permissionentries"></a>
 ### Order and Evaluation of Permission Entries
 
 In order to evaluate the permissions for a given item, the `PermissionProvider`

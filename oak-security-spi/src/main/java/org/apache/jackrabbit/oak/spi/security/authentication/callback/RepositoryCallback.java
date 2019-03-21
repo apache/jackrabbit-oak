@@ -20,6 +20,7 @@ import javax.security.auth.callback.Callback;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -33,6 +34,7 @@ public class RepositoryCallback implements Callback {
     private ContentRepository contentRepository;
     private SecurityProvider securityProvider;
     private String workspaceName;
+    private LoginModuleMonitor loginModuleMonitor;
 
     @Nullable
     public String getWorkspaceName() {
@@ -59,5 +61,14 @@ public class RepositoryCallback implements Callback {
 
     public void setSecurityProvider(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
+    }
+
+    public LoginModuleMonitor getLoginModuleMonitor() {
+        return loginModuleMonitor;
+    }
+
+    @Nullable
+    public void setLoginModuleMonitor(LoginModuleMonitor loginModuleMonitor) {
+        this.loginModuleMonitor = loginModuleMonitor;
     }
 }

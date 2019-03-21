@@ -294,14 +294,15 @@ public class DocumentNodeStoreTest {
         Thread writer = new Thread(new Runnable() {
             @Override
             public void run() {
+                Commit c = new CommitBuilder(store, store.newRevision(), head)
+                        .addNode("/newConflictingNode")
+                        .addNode("/deletedNode")
+                        .updateProperty("/updateNode", "foo", "baz")
+                        .build();
                 try {
-                    Revision r = store.newRevision();
-                    Commit c = new Commit(store, r, head);
-                    c.addNode(new DocumentNodeState(store, "/newConflictingNode", new RevisionVector(r)));
-                    c.addNode(new DocumentNodeState(store, "/deletedNode", new RevisionVector(r)));
-                    c.updateProperty("/updateNode", "foo", "baz");
                     c.apply();
                 } catch (Exception e) {
+                    c.rollback();
                     exceptions.add(e);
                 }
             }
@@ -314,12 +315,13 @@ public class DocumentNodeStoreTest {
         created.acquireUninterruptibly();
         // commit will succeed and add collision marker to writer commit
         Revision r = store.newRevision();
-        Commit c = new Commit(store, r, head);
-        c.addNode(new DocumentNodeState(store, "/newConflictingNode", new RevisionVector(r)));
-        c.addNode(new DocumentNodeState(store, "/newNonConflictingNode", new RevisionVector(r)));
+        Commit c = new CommitBuilder(store, r, head)
+                .addNode("/newConflictingNode")
+                .addNode("/newNonConflictingNode")
+                .build();
         c.apply();
         // allow writer to continue
-        s.release();
+        s.release(10);
         writer.join();
         assertEquals("expected exception", 1, exceptions.size());
 
@@ -2436,7 +2438,7 @@ public class DocumentNodeStoreTest {
         final List<Commit> commits = new ArrayList<Commit>();
         for (int i = 0; i < 10; i++) {
             Revision revision = ds.newRevision();
-            Commit commit = ds.newCommit(new RevisionVector(revision), ds.createBranch(root));
+            Commit commit = ds.newCommit(nop -> {}, new RevisionVector(revision), ds.createBranch(root));
             commits.add(commit);
             revisions.add(revision);
         }
@@ -2606,6 +2608,7 @@ public class DocumentNodeStoreTest {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
+        ClusterNodeInfo.setClock(clock);
         DocumentNodeStore ns = builderProvider.newBuilder()
                 .clock(clock)
                 .setAsyncDelay(0).getNodeStore();

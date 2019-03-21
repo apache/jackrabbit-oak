@@ -74,6 +74,8 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
     private final long MIN_BLOB_AGE_TO_ACTIVELY_DELETE = Long.getLong("oak.active.deletion.minAge",
             TimeUnit.HOURS.toSeconds(24));
 
+    private final boolean ACTIVE_DELETION_DISABLED = Boolean.getBoolean("oak.active.deletion.disabled");
+
     Clock clock = Clock.SIMPLE; // package private for tests
 
     @NotNull
@@ -128,9 +130,17 @@ public class ActiveDeletedBlobCollectorMBeanImpl implements ActiveDeletedBlobCol
         LOG.info("Active blob collector initialized with minAge: {}", MIN_BLOB_AGE_TO_ACTIVELY_DELETE);
     }
 
+    @Override
+    public boolean isDisabled() {
+        return ACTIVE_DELETION_DISABLED;
+    }
+
     @NotNull
     @Override
     public CompositeData startActiveCollection() {
+        if (isDisabled()) {
+            return ManagementOperation.Status.none(gcOp, "Active deletion is disabled").toCompositeData();
+        }
         if (gcOp.isDone()) {
             long safeTimestampForDeletedBlobs = getSafeTimestampForDeletedBlobs();
             if (safeTimestampForDeletedBlobs == -1) {

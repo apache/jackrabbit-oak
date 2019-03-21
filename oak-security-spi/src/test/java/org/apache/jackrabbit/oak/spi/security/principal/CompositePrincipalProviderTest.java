@@ -17,16 +17,28 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -34,6 +46,9 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CompositePrincipalProviderTest {
 
@@ -80,6 +95,23 @@ public class CompositePrincipalProviderTest {
     }
 
     @Test
+    public void testGetItemBasedPrincipalDefault() throws Exception {
+        for (Principal p : testPrincipals()) {
+            if (p instanceof ItemBasedPrincipal) {
+                assertNull(cpp.getItemBasedPrincipal(((ItemBasedPrincipal) p).getPath()));
+            }
+         }
+    }
+
+    @Test
+    public void testGetItemBasedPrincipal() throws Exception {
+        ItemBasedPrincipal p = mock(ItemBasedPrincipal.class);
+        PrincipalProvider pp = when(mock(PrincipalProvider.class).getItemBasedPrincipal(anyString())).thenReturn(p).getMock();
+
+        assertEquals(p, CompositePrincipalProvider.of(ImmutableList.of(pp, pp2)).getItemBasedPrincipal("/any/path"));
+    }
+
+    @Test
     public void getGroupMembership() {
         for (Principal principal : testPrincipals()) {
             boolean atleastEveryone = cpp.getMembershipPrincipals(principal).contains(EveryonePrincipal.getInstance());
@@ -119,12 +151,7 @@ public class CompositePrincipalProviderTest {
 
     @Test
     public void findPrincipalsByTypeNotGroup() {
-        Iterable<? extends Principal> expected = Iterables.filter(testPrincipals(), new Predicate<Principal>() {
-            @Override
-            public boolean apply(Principal input) {
-                return !(input instanceof GroupPrincipal);
-            }
-        });
+        Iterable<? extends Principal> expected = Iterables.filter(testPrincipals(), input -> !(input instanceof GroupPrincipal));
 
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
         assertIterator(expected, result);
@@ -134,5 +161,108 @@ public class CompositePrincipalProviderTest {
     public void findPrincipalsByTypeAll() {
         Iterator<? extends Principal> result = cpp.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
         assertIterator(Iterables.concat(ImmutableSet.of(EveryonePrincipal.getInstance()), testPrincipals()), result);
+    }
+
+    /**
+     * Tests that the default implementation of range based
+     * {@code findPrincipals} methods of PrincipalProvider work properly. See
+     * OAK-7994
+     */
+    @Test
+    public void testRangeDefault() {
+        List<? extends Principal> pps = ImmutableList.of(new PrincipalImpl("p0"), new PrincipalImpl("p1"),
+                new PrincipalImpl("p2"));
+
+        PrincipalProvider pp = new PrincipalProvider() {
+            @Override
+            @NotNull
+            public Set<? extends Principal> getPrincipals(@NotNull String userID) {
+                return Collections.emptySet();
+            }
+            @Override
+            @Nullable
+            public Principal getPrincipal(@NotNull String principalName) {
+                return null;
+            }
+            @Override
+            @NotNull
+            public Iterator<? extends Principal> findPrincipals(int searchType) {
+                return pps.iterator();
+            }
+            @Override
+            @NotNull
+            public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
+                return pps.iterator();
+            }
+        };
+
+        List<String> expected = getNames(pps.iterator());
+        for (int offset = 0; offset < expected.size() + 1; offset++) {
+            for (int limit = -1; limit < expected.size() + 2; limit++) {
+                int to = expected.size();
+                if (limit >= 0) {
+                    to = Math.min(offset + limit, to);
+                }
+                List<String> sub = expected.subList(offset, to);
+                Iterator<? extends Principal> i0 = pp.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, offset, limit);
+                assertEquals(sub, getNames(i0));
+                Iterator<? extends Principal> i1 = pp.findPrincipals("", false, PrincipalManager.SEARCH_TYPE_ALL, offset,
+                        limit);
+                assertEquals(sub, getNames(i1));
+            }
+        }
+    }
+
+    private static List<String> getNames(Iterator<? extends Principal> i) {
+        List<String> l = new ArrayList<>();
+        while (i.hasNext()) {
+            l.add(i.next().getName());
+        }
+        return l;
+    }
+
+    @Test
+    public void testFindPrincipalsRandom() {
+        long seed = System.currentTimeMillis();
+        int bound = 10;
+        int inputSize = 3;
+        Random r = new Random(seed);
+
+        Comparator<Principal> comparator = Comparator.comparing(Principal::getName);
+        List<String> expected = new ArrayList<>();
+        Collection<Iterator<Principal>> input = new ArrayList<>();
+        for (int i = 0; i < inputSize; i++) {
+            List<Principal> l = new ArrayList<>();
+            int size = r.nextInt(bound);
+            for (int s = 0; s < size; s++) {
+                int v = r.nextInt(bound);
+                Principal p = new PrincipalImpl("p" + v);
+                expected.add(p.getName());
+                l.add(p);
+            }
+            Collections.sort(l, comparator);
+            input.add(l.iterator());
+        }
+        Principal pb = new PrincipalImpl("p" + bound);
+        expected.add(pb.getName());
+        input.add(Collections.singleton(pb).iterator());
+        input.add(Collections.<Principal>emptyIterator());
+
+        List<PrincipalProvider> in = new ArrayList<>();
+        for (Iterator<Principal> i : input) {
+            PrincipalProvider pp = mock(PrincipalProvider.class);
+            when(pp.findPrincipals(null, true, 1, 0, -1)).thenAnswer(new Answer<Iterator<Principal>>() {
+                @Override
+                public Iterator<Principal> answer(InvocationOnMock invocation) throws Throwable {
+                    return i;
+                }
+            });
+            in.add(pp);
+        }
+
+        PrincipalProvider cpp = CompositePrincipalProvider.of(in);
+        Collections.sort(expected);
+        List<String> out = getNames(cpp.findPrincipals(null, true, 1, 0, -1));
+        assertEquals(expected, out);
     }
 }

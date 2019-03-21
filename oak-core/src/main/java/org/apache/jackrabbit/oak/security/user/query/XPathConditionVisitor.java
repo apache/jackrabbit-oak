@@ -44,7 +44,7 @@ class XPathConditionVisitor implements ConditionVisitor {
 
     //---------------------------------------------------< ConditionVisitor >---
     @Override
-    public void visit(Condition.Node condition) throws RepositoryException {
+    public void visit(Condition.Node condition) {
         statement.append('(')
                 .append("jcr:like(@")
                 .append(QueryUtil.escapeForQuery(UserConstants.REP_AUTHORIZABLE_ID, namePathMapper))

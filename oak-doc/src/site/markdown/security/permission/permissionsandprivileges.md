@@ -90,7 +90,7 @@ requires the ability to read access control content on the target path.
 - Restrictions may or may not be respected
 - Default implementation close to real permission evaluation (not exactly following the specification)
 
-<a name="further_reading"/>
+<a name="further_reading"></a>
 ### Further Reading
 
 - [Mapping Privileges to Items](../privilege/mappingtoitems.html)

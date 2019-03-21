@@ -42,7 +42,7 @@ public class PasswordValidationActionTest {
     private User user;
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         user = Mockito.mock(User.class);
         pwAction.init(securityProvider, ConfigurationParameters.of(
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*"));
@@ -71,7 +71,7 @@ public class PasswordValidationActionTest {
 
     @Test
     public void testPasswordValidationActionInvalid() throws Exception {
-        List<String> invalid = new ArrayList<String>();
+        List<String> invalid = new ArrayList<>();
         invalid.add("pw1");
         invalid.add("only6C");
         invalid.add("12345678");
@@ -90,7 +90,7 @@ public class PasswordValidationActionTest {
 
     @Test
     public void testPasswordValidationActionValid() throws Exception {
-        List<String> valid = new ArrayList();
+        List<String> valid = new ArrayList<>();
         valid.add("abCDefGH");
         valid.add("Abbbbbbbbbbbb");
         valid.add("cDDDDDDDDDDDDDDDDD");

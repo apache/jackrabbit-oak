@@ -42,11 +42,6 @@ import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
@@ -141,6 +136,12 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
                 {false, "Lucene46", false, 100, "tiered"},
                 {false, "Lucene46", false, 100, "mitigated"},
                 {false, "Lucene46", false, 100, "no"},
+                {false, "compressingCodec", false, 4096, "tiered"},
+                {false, "compressingCodec", false, 4096, "mitigated"},
+                {false, "compressingCodec", false, 4096, "no"},
+                {false, "compressingCodec", false, 100, "tiered"},
+                {false, "compressingCodec", false, 100, "mitigated"},
+                {false, "compressingCodec", false, 100, "no"},
         });
     }
 

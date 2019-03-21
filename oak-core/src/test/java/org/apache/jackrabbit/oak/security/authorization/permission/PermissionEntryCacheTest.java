@@ -163,6 +163,28 @@ public class PermissionEntryCacheTest {
     }
 
     @Test
+    public void testLoadNonExistingNotCompleted2() throws Exception {
+        cache.init("a", 1);
+        when(store.load("a", "/path")).thenReturn(null);
+
+        Collection<PermissionEntry> result = Sets.newHashSet();
+        cache.load(store, result, "a", "/path");
+
+        assertTrue(result.isEmpty());
+
+        PrincipalPermissionEntries inspectedEntries = inspectEntries(cache, "a");
+        assertFalse(inspectedEntries.isFullyLoaded());
+
+        // requesting the entries again must NOT hit the store
+        when(store.load("a", "/path")).thenThrow(IllegalStateException.class);
+
+        result.clear();
+        cache.load(store, result, "a", "/path");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
     public void testLoadNonExistingCompleted() throws Exception {
         cache.init("a", 0);
         when(store.load("a", "/path")).thenReturn(null);

@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllExtern
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.CanReadNonExisting;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
@@ -127,7 +128,11 @@ public class BenchmarkRunner {
         OptionSpec<Long> expiration = parser.accepts("expiration", "Expiration time (e.g. principal cache.")
                         .withOptionalArg().ofType(Long.class).defaultsTo(AbstractLoginTest.NO_CACHE);
         OptionSpec<Integer> numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
-                        .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
+                .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
+        OptionSpec<Integer> queryMaxCount = parser.accepts("queryMaxCount", "Max number of query results.")
+                .withOptionalArg().ofType(Integer.class).defaultsTo(Integer.MAX_VALUE);
+        OptionSpec<Boolean> declaredMembership = parser.accepts("declaredMembership", "Only look for declared membership.")
+                .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
         OptionSpec<Integer> numberOfInitialAce = parser.accepts("numberOfInitialAce", "Number of ACE to create before running the test.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AceCreationTest.NUMBER_OF_INITIAL_ACE_DEFAULT);
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
@@ -469,7 +474,7 @@ public class BenchmarkRunner {
                     wikipedia.value(options),
                     flatStructure.value(options),
                     report.value(options), withStorage.value(options), withServer.value(options)),
-            new FindAuthorizableWithScopeTest(numberOfUsers.value(options), setScope.value(options)),
+            new FindAuthorizableWithScopeTest(numberOfUsers.value(options), numberOfGroups.value(options), queryMaxCount.value(options), setScope.value(options), declaredMembership.value(options), runAsAdmin.value(options)),
             new LucenePropertyFullTextTest(
                 wikipedia.value(options),
                 flatStructure.value(options),
@@ -481,7 +486,9 @@ public class BenchmarkRunner {
             new ReplicaCrashResilienceTest(),
 
             // benchmarks for oak-auth-external
-            new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
+                new ExternalLoginTest(numberOfUsers.value(options), numberOfGroups.value(options),
+                        expiration.value(options), dynamicMembership.value(options), autoMembership.values(options),
+                        report.value(options), statsProvider),
             new SyncAllExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncAllUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options)),
             new SyncExternalUsersTest(numberOfUsers.value(options), numberOfGroups.value(options), expiration.value(options), dynamicMembership.value(options), autoMembership.values(options), batchSize.value(options)),
@@ -492,7 +499,8 @@ public class BenchmarkRunner {
             new BundlingNodeTest(),
             new PersistentCacheTest(statsProvider),
             new StringWriteTest(),
-            new BasicWriteTest()
+            new BasicWriteTest(),
+            new CanReadNonExisting()
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));

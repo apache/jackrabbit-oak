@@ -16,21 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.api.security.user.QueryBuilder.Direction;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -46,6 +41,13 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+
 /**
  * The {@code PrincipalProviderImpl} is a principal provider implementation
  * that operates on principal information read from user information exposed by
@@ -56,14 +58,17 @@ class PrincipalProviderImpl implements PrincipalProvider {
     private static final Logger log = LoggerFactory.getLogger(PrincipalProviderImpl.class);
 
     private final UserManager userManager;
+    private final NamePathMapper namePathMapper;
 
     PrincipalProviderImpl(@NotNull Root root,
                           @NotNull UserConfiguration userConfiguration,
                           @NotNull NamePathMapper namePathMapper) {
         this.userManager = userConfiguration.getUserManager(root, namePathMapper);
+        this.namePathMapper = namePathMapper;
     }
 
     //--------------------------------------------------< PrincipalProvider >---
+    @Nullable
     @Override
     public Principal getPrincipal(@NotNull String principalName) {
         Authorizable authorizable = getAuthorizable(new PrincipalImpl(principalName));
@@ -77,6 +82,23 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
         // no such principal or error while accessing principal from user/group
         return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
+    }
+
+    @Nullable
+    @Override
+    public ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
+        try {
+            Authorizable authorizable = userManager.getAuthorizableByPath(namePathMapper.getJcrPath(principalOakPath));
+            if (authorizable != null) {
+                Principal principal = authorizable.getPrincipal();
+                if (principal instanceof ItemBasedPrincipal) {
+                    return (ItemBasedPrincipal) principal;
+                }
+            }
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+        }
+        return null;
     }
 
     @NotNull
@@ -93,7 +115,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
     @NotNull
     @Override
     public Set<? extends Principal> getPrincipals(@NotNull String userID) {
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         try {
             Authorizable authorizable = userManager.getAuthorizable(userID);
             if (authorizable != null && !authorizable.isGroup()) {
@@ -108,15 +130,29 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint,
-                                                        final int searchType) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final int searchType) {
+        return findPrincipals(nameHint, false, searchType, 0, -1);
+    }
+
+    @NotNull
+    @Override
+    public Iterator<? extends Principal> findPrincipals(final String nameHint, final boolean fullText, final int searchType, long offset,
+            long limit) {
+        if (offset < 0) {
+            offset = 0;
+        }
+        if (limit < 0) {
+            limit = Long.MAX_VALUE;
+        }
         try {
-            Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType);
+            Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset, limit);
             Iterator<Principal> principals = Iterators.transform(
                     Iterators.filter(authorizables, Predicates.notNull()),
                     new AuthorizableToPrincipal());
 
-            if (matchesEveryone(nameHint, searchType)) {
+            // everyone is injected only in complete set, not on pages
+            boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
+            if (noRange && matchesEveryone(nameHint, searchType)) {
                 principals = Iterators.concat(principals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
                 return Iterators.filter(principals, new EveryonePredicate());
             } else {
@@ -162,12 +198,15 @@ class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     private Iterator<Authorizable> findAuthorizables(@Nullable final String nameHint,
-                                                     final int searchType) throws RepositoryException {
+                                                     final int searchType, final long offset,
+                                                     final long limit) throws RepositoryException {
         Query userQuery = new Query() {
             @Override
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.like('@' +UserConstants.REP_PRINCIPAL_NAME, buildSearchPattern(nameHint)));
                 builder.setSelector(AuthorizableType.getType(searchType).getAuthorizableClass());
+                builder.setSortOrder(UserConstants.REP_PRINCIPAL_NAME, Direction.ASCENDING);
+                builder.setLimit(offset, limit);
             }
         };
         return userManager.findAuthorizables(userQuery);

@@ -24,9 +24,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.FacetsCollector;
 import org.apache.lucene.facet.FacetsConfig;
@@ -35,7 +37,7 @@ import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +60,8 @@ public class FacetHelper {
         return new NodeStateFacetsConfig(definition);
     }
 
-    public static Facets getFacets(IndexSearcher searcher, Query query, TopDocs docs, QueryIndex.IndexPlan plan, boolean secure) throws IOException {
+    public static Facets getFacets(IndexSearcher searcher, Query query, QueryIndex.IndexPlan plan,
+                                   SecureFacetConfiguration secureFacetConfiguration) throws IOException {
         Facets facets = null;
         @SuppressWarnings("unchecked")
         List<String> facetFields = (List<String>) plan.getAttribute(ATTR_FACET_FIELDS);
@@ -70,17 +73,30 @@ public class FacetHelper {
                 try {
                     DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
                             searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
-                        FacetsCollector.search(searcher, query, 10, facetsCollector);
-                    facetsMap.put(facetField, secure ?
-                            new FilteredSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter(), docs) :
-                            new SortedSetDocValuesFacetCounts(state, facetsCollector));
+                    FacetsCollector.search(searcher, query, null,1, Sort.INDEXORDER, facetsCollector);
+
+                    switch (secureFacetConfiguration.getMode()) {
+                        case INSECURE:
+                            facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
+                            break;
+                        case STATISTICAL:
+                            facets = new StatisticalSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter(),
+                                    secureFacetConfiguration);
+                            break;
+                        case SECURE:
+                        default:
+                            facets = new SecureSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter());
+                            break;
+                    }
+
+                    facetsMap.put(facetField, facets);
 
                 } catch (IllegalArgumentException iae) {
                     LOGGER.warn("facets for {} not yet indexed", facetField);
                 }
             }
             if (facetsMap.size() > 0) {
-                facets = new MultiFacets(facetsMap);
+                facets = new MultiFacets(facetsMap, NULL_FACETS);
             }
 
         }
@@ -90,4 +106,21 @@ public class FacetHelper {
     public static String parseFacetField(String columnName) {
         return columnName.substring(QueryConstants.REP_FACET.length() + 1, columnName.length() - 1);
     }
+
+    private static final Facets NULL_FACETS = new Facets() {
+        @Override
+        public FacetResult getTopChildren(int topN, String dim, String... path) {
+            return null;
+        }
+
+        @Override
+        public Number getSpecificValue(String dim, String... path) {
+            return null;
+        }
+
+        @Override
+        public List<FacetResult> getAllDims(int topN) {
+            return null;
+        }
+    };
 }

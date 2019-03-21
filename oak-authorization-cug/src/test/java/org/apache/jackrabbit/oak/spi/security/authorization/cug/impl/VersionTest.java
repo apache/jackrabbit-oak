@@ -60,8 +60,8 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
     private Root testRoot;
     private ReadOnlyVersionManager versionManager;
 
-    private List<String> readAccess = new ArrayList<String>();
-    private List<String> noReadAccess = new ArrayList<String>();
+    private List<String> readAccess = new ArrayList<>();
+    private List<String> noReadAccess = new ArrayList<>();
 
     @Before
     @Override
@@ -163,7 +163,7 @@ public class VersionTest extends AbstractCugTest implements NodeTypeConstants, V
     }
 
     @Test
-    public void testReadVersionContentNoAccess() throws Exception {
+    public void testReadVersionContentNoAccess() {
         IdentifierManager idMgr = new IdentifierManager(testRoot);
 
         for (String path : noReadAccess) {

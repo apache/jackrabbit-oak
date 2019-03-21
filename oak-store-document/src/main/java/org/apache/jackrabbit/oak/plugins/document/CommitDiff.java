@@ -40,7 +40,7 @@ class CommitDiff implements NodeStateDiff {
 
     private final DocumentNodeStore store;
 
-    private final Commit commit;
+    private final CommitBuilder commit;
 
     private final JsopBuilder builder;
 
@@ -48,16 +48,19 @@ class CommitDiff implements NodeStateDiff {
 
     private final BundlingHandler bundlingHandler;
 
-    CommitDiff(@NotNull DocumentNodeStore store, @NotNull Commit commit,
+    CommitDiff(@NotNull DocumentNodeStore store,
+               @NotNull CommitBuilder commitBuilder,
                @NotNull BlobSerializer blobs) {
-        this(checkNotNull(store), checkNotNull(commit), store.getBundlingConfigHandler().newBundlingHandler(),
+        this(checkNotNull(store), checkNotNull(commitBuilder),
+                store.getBundlingConfigHandler().newBundlingHandler(),
                 new JsopBuilder(), checkNotNull(blobs));
     }
 
-    private CommitDiff(DocumentNodeStore store, Commit commit, BundlingHandler bundlingHandler,
-               JsopBuilder builder, BlobSerializer blobs) {
+    private CommitDiff(DocumentNodeStore store, CommitBuilder commitBuilder,
+                       BundlingHandler bundlingHandler, JsopBuilder builder,
+                       BlobSerializer blobs) {
         this.store = store;
-        this.commit = commit;
+        this.commit = commitBuilder;
         this.bundlingHandler = bundlingHandler;
         this.builder = builder;
         this.blobs = blobs;
@@ -86,8 +89,7 @@ class CommitDiff implements NodeStateDiff {
     public boolean childNodeAdded(String name, NodeState after) {
         BundlingHandler child = bundlingHandler.childAdded(name, after);
         if (child.isBundlingRoot()) {
-            commit.addNode(new DocumentNodeState(store, child.getRootBundlePath(),
-                    new RevisionVector(commit.getRevision())));
+            commit.addNode(child.getRootBundlePath());
         }
         setOrTouchChildrenFlag(child);
         return after.compareAgainstBaseState(EMPTY_NODE,
@@ -115,6 +117,17 @@ class CommitDiff implements NodeStateDiff {
         setOrTouchChildrenFlag(child);
         return MISSING_NODE.compareAgainstBaseState(before,
                 new CommitDiff(store, commit, child, builder, blobs));
+    }
+
+    /**
+     * The number of changes recorded by this commit diff. A change is defined
+     * as a set of updates on a document. This also includes updates for a new
+     * document.
+     *
+     * @return the number of changes.
+     */
+    int getNumChanges() {
+        return commit.getNumOperations();
     }
 
     //----------------------------< internal >----------------------------------

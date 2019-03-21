@@ -37,19 +37,19 @@ import static org.junit.Assert.fail;
  */
 public class RestrictionImplTest {
 
-    private final Type type = Type.NAME;
+    private final Type<String> type = Type.NAME;
     private final String name = "test:defName";
     private final String value = "value";
     private final boolean isMandatory = true;
     private RestrictionImpl restriction;
 
     @Before
-    public void before() throws Exception {
+    public void before() {
         PropertyState property = createProperty(name, value, type);
         restriction = new RestrictionImpl(property, isMandatory);
     }
 
-    private static PropertyState createProperty(String name, String value, Type type) {
+    private static PropertyState createProperty(String name, String value, Type<String> type) {
         return PropertyStates.createProperty(name, value, type);
     }
 
@@ -84,14 +84,9 @@ public class RestrictionImplTest {
         assertTrue(restriction.getDefinition().isMandatory());
     }
 
-    @Test
-    public void testInvalid() {
-        try {
-            new RestrictionImpl(null, false);
-            fail("Creating RestrictionDefinition with null name should fail.");
-        } catch (NullPointerException e) {
-            // success
-        }
+    @Test(expected = NullPointerException.class)
+    public void testNullProperty() {
+        new RestrictionImpl(null, false);
     }
 
     @Test
@@ -114,7 +109,7 @@ public class RestrictionImplTest {
 
     @Test
     public void testNotEqual() {
-        List<Restriction> rs = new ArrayList();
+        List<Restriction> rs = new ArrayList<>();
         // - different type
         rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), isMandatory));
         // - different multi-value status
@@ -141,7 +136,7 @@ public class RestrictionImplTest {
         });
 
         for (Restriction r : rs) {
-            assertFalse(restriction.equals(r));
+            assertNotEquals(restriction, r);
         }
     }
 
@@ -153,7 +148,7 @@ public class RestrictionImplTest {
 
     @Test
     public void testNotSameHashCode() {
-        List<Restriction> rs = new ArrayList<Restriction>();
+        List<Restriction> rs = new ArrayList<>();
         // - different type
         rs.add(new RestrictionImpl(PropertyStates.createProperty(name, value, Type.STRING), isMandatory));
         // - different multi-value status

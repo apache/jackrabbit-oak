@@ -19,17 +19,22 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Queues.newConcurrentLinkedQueue;
 
-import java.io.Closeable;
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
+import java.util.function.Supplier;
 
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
-import org.apache.jackrabbit.oak.segment.file.Scheduler;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A simple tracker for the source of commits (writes) in
@@ -40,62 +45,141 @@ import org.apache.jackrabbit.oak.segment.file.Scheduler;
  * currently waiting on the commit semaphore
  * </ul>
  * 
- * This class delegates thread-safety to its underlying state variables.
+ * For the most part, this class delegates thread-safety to its underlying
+ * state variables. However, the {@link #trackDequedCommitOf(Thread)} and
+ * {@link #trackExecutedCommitOf(Thread)} method must be called in
+ * sequence within the same transaction, because they are linked
+ * via the {@link #currentCommit} field.
  */
-class CommitsTracker implements Closeable {
-    private final boolean collectStackTraces;
+class CommitsTracker {
     private final String[] threadGroups;
-    private final ConcurrentMap<String, String> queuedWritersMap;
-    private final ConcurrentMap<String, Long> commitsCountPerThreadGroup;
-    private final ConcurrentMap<String, Long> commitsCountOtherThreads;
-    private final ConcurrentMap<String, Long> commitsCountPerThreadGroupLastMinute;
-    private final Scheduler commitsTrackerScheduler = new Scheduler("CommitsTracker background tasks");
+    private final int otherWritersLimit;
+    private final ConcurrentMap<String, Commit> queuedWritersMap;
+    private final Queue<Commit> commits = newConcurrentLinkedQueue();
 
-    CommitsTracker(String[] threadGroups, int otherWritersLimit, boolean collectStackTraces) {
+    /*
+     * Read access via getCurrentWriter() happens usually on a separate thread, thus volatile
+     */
+    private volatile Commit currentCommit;
+
+    static final class Commit {
+        private final String threadName;
+        private final WeakReference<Thread> thread;
+        private final Supplier<GCGeneration> gcGeneration;
+
+        private long queued;
+        private long dequeued;
+        private long applied;
+
+        Commit(Thread thread, Supplier<GCGeneration> gcGeneration) {
+            this.threadName = thread.getName();
+            this.gcGeneration = gcGeneration;
+            this.thread = new WeakReference<>(thread);
+        }
+
+        @NotNull
+        Commit queued() {
+            queued = System.currentTimeMillis();
+            return this;
+        }
+
+        @NotNull
+        Commit dequeued() {
+            dequeued = System.currentTimeMillis();
+            return this;
+        }
+
+        @NotNull
+        Commit applied() {
+            applied = System.currentTimeMillis();
+            return this;
+        }
+
+        @Nullable
+        StackTraceElement[] getStackTrace() {
+            Thread t = thread.get();
+            return t == null
+                ? null
+                : t.getStackTrace();
+        }
+
+        @NotNull
+        String getThreadName() {
+            return threadName;
+        }
+
+        @Nullable
+        GCGeneration getGCGeneration() {
+            return gcGeneration.get();
+        }
+
+        long getQueued() {
+            return queued;
+        }
+
+        long getDequeued() {
+            return dequeued;
+        }
+
+        long getApplied() {
+            return applied;
+        }
+    }
+
+    CommitsTracker(String[] threadGroups, int otherWritersLimit) {
         this.threadGroups = threadGroups;
-        this.collectStackTraces = collectStackTraces;
-        this.commitsCountPerThreadGroup = new ConcurrentHashMap<>();
-        this.commitsCountPerThreadGroupLastMinute = new ConcurrentHashMap<>();
-        this.commitsCountOtherThreads = new ConcurrentLinkedHashMap.Builder<String, Long>()
-                .maximumWeightedCapacity(otherWritersLimit).build();
+        this.otherWritersLimit = otherWritersLimit;
         this.queuedWritersMap = new ConcurrentHashMap<>();
-
-        commitsTrackerScheduler.scheduleWithFixedDelay("TarMK commits tracker stats resetter", 1, MINUTES,
-                this::resetStatistics);
     }
 
-    public void trackQueuedCommitOf(Thread t) {
-        String writerDetails = "N/A";
-        if (collectStackTraces) {
-            StringBuilder threadDetails = new StringBuilder();
-            Stream.of(t.getStackTrace()).forEach(threadDetails::append);
-            writerDetails = threadDetails.toString();
+    public void trackQueuedCommitOf(Thread thread, Supplier<GCGeneration> gcGeneration) {
+        queuedWritersMap.put(thread.getName(), new Commit(thread, gcGeneration).queued());
+    }
+
+    public void trackDequedCommitOf(Thread thread) {
+        currentCommit = queuedWritersMap.remove(thread.getName());
+        if (currentCommit != null) {
+            currentCommit.dequeued();
+        }
+    }
+
+    public void trackExecutedCommitOf(Thread thread) {
+        long t = System.currentTimeMillis();
+        final Iterator<Commit> it = commits.iterator();
+
+        // Purge the queue
+        // Avoiding removeIf allows us to bail out early. See OAK-7885
+        while (it.hasNext()) {
+            if (it.next().getQueued() < t - 60000) {
+                it.remove();
+            } else {
+                break;
+            }
         }
 
-        queuedWritersMap.put(t.getName(), writerDetails);
-    }
-
-    public void trackDequedCommitOf(Thread t) {
-        queuedWritersMap.remove(t.getName());
-    }
-
-    public void trackExecutedCommitOf(Thread t) {
-        String group = findGroupFor(t);
-
-        if (group.equals("other")) {
-            commitsCountOtherThreads.compute(t.getName(), (w, v) -> v == null ? 1 : v + 1);
+        if (currentCommit != null) {
+            currentCommit.applied();
+            commits.offer(currentCommit);
+            currentCommit = null;
         }
-
-        commitsCountPerThreadGroup.compute(group, (w, v) -> v == null ? 1 : v + 1);
     }
 
-    private String findGroupFor(Thread t) {
+    public Map<String, Commit> getQueuedWritersMap() {
+        return new HashMap<>(queuedWritersMap);
+    }
+
+    @Nullable
+    public Commit getCurrentWriter() {
+        return currentCommit;
+    }
+
+    private String findGroupFor(String thread) {
         if (threadGroups == null) {
             return "other";
         }
-        
+
         for (String group : threadGroups) {
-            if (t.getName().matches(group)) {
+            if (thread.matches(group)) {
                 return group;
             }
         }
@@ -103,31 +187,32 @@ class CommitsTracker implements Closeable {
         return "other";
     }
 
-    private void resetStatistics() {
-        commitsCountPerThreadGroupLastMinute.clear();
-        commitsCountPerThreadGroupLastMinute.putAll(commitsCountPerThreadGroup);
-        commitsCountPerThreadGroup.clear();
-        commitsCountOtherThreads.clear();
-    }
-
-    @Override
-    public void close() {
-        commitsTrackerScheduler.close();
-    }
-
-    public Map<String, String> getQueuedWritersMap() {
-        return new HashMap<>(queuedWritersMap);
-    }
-
     public Map<String, Long> getCommitsCountPerGroupLastMinute() {
-        return new HashMap<>(commitsCountPerThreadGroupLastMinute);
+        Map<String, Long> commitsPerGroup = newHashMap();
+        long t = System.currentTimeMillis() - 60000;
+        for (Commit commit : commits) {
+            if (commit.getQueued() > t) {
+                String group = findGroupFor(commit.threadName);
+                if (!"other".equals(group)) {
+                    commitsPerGroup.compute(group, (k, v) -> v == null ? 1 : v + 1);
+                }
+            }
+        }
+        return commitsPerGroup;
     }
 
     public Map<String, Long> getCommitsCountOthers() {
-        return new HashMap<>(commitsCountOtherThreads);
-    }
-    
-    Map<String, Long> getCommitsCountPerGroup() {
-        return new HashMap<>(commitsCountPerThreadGroup);
+        Map<String, Long> commitsOther = new ConcurrentLinkedHashMap.Builder<String, Long>()
+                .maximumWeightedCapacity(otherWritersLimit).build();
+        long t = System.currentTimeMillis() - 60000;
+        for (Commit commit : commits) {
+            if (commit.getQueued() > t) {
+                String group = findGroupFor(commit.threadName);
+                if ("other".equals(group)) {
+                    commitsOther.compute(commit.threadName, (k, v) -> v == null ? 1 : v + 1);
+                }
+            }
+        }
+        return commitsOther;
     }
 }

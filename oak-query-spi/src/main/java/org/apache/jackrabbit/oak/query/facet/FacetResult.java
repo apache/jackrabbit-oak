@@ -19,21 +19,27 @@
 
 package org.apache.jackrabbit.oak.query.facet;
 
-import javax.jcr.Value;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.jcr.Value;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static java.util.Collections.reverseOrder;
+import static java.util.Comparator.comparingInt;
 
 /**
  * A facet result is a wrapper for {@link javax.jcr.query.QueryResult} capable of returning information about facets
@@ -48,25 +54,69 @@ public class FacetResult {
             RowIterator rows = queryResult.getRows();
             if (rows.hasNext()) {
                 Row row = rows.nextRow();
-                for (String column : queryResult.getColumnNames()) {
-                    if (column.startsWith(QueryConstants.REP_FACET)) {
-                        String dimension = column.substring(QueryConstants.REP_FACET.length() + 1, column.length() - 1);
-                        Value value = row.getValue(column);
-                        if (value != null) {
-                            String jsonFacetString = value.getString();
-                            parseJson(dimension, jsonFacetString);
-                        }
-                    }
-                }
+                parseJson(queryResult.getColumnNames(), columnName -> {
+                    Value value = row.getValue(columnName);
+                    return value == null ? null : value.getString();
+                });
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
+    public FacetResult(String[] columnNames, FacetResultRow...rows) {
+        try {
+            for (FacetResultRow row : rows) {
+                parseJson(columnNames, row);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Map<String, String> asColumnToFacetJsonMap() {
+        Map<String, String> json = Maps.newHashMap();
+        for (Map.Entry<String, List<Facet>> entry : perDimFacets.entrySet()) {
+            JsopBuilder builder = new JsopBuilder();
+            builder.object();
+
+            for (Facet f : entry.getValue()) {
+                builder.key(f.getLabel());
+                builder.value(f.getCount());
+            }
+
+            builder.endObject();
+
+            json.put(QueryConstants.REP_FACET + "(" + entry.getKey() + ")", builder.toString());
+        }
+
+        return json;
+    }
+
+    private void parseJson(String[] columnNames, FacetResultRow row) throws Exception {
+        for (String column : columnNames) {
+            if (column.startsWith(QueryConstants.REP_FACET)) {
+                String dimension = column.substring(QueryConstants.REP_FACET.length() + 1, column.length() - 1);
+                String value = row.getValue(column);
+                if (value != null) {
+                    String jsonFacetString = value;
+                    parseJson(dimension, jsonFacetString);
+                }
+            }
+        }
+    }
+
     private void parseJson(String dimension, String jsonFacetString) {
         JsopTokenizer jsopTokenizer = new JsopTokenizer(jsonFacetString);
-        List<Facet> facets = new LinkedList<Facet>();
+        List<Facet> facets = perDimFacets.get(dimension);
+        Map<String, Facet> facetsMap = Maps.newLinkedHashMap();
+        if (facets != null) {
+            for (Facet facet : facets) {
+                if (!facetsMap.containsKey(facet.getLabel())) {
+                    facetsMap.put(facet.getLabel(), facet);
+                }
+            }
+        }
         int c;
         String label = null;
         int count;
@@ -76,11 +126,16 @@ public class FacetResult {
             } else if (JsopReader.NUMBER == c) {
                 count = Integer.parseInt(jsopTokenizer.getEscapedToken());
                 if (label != null) {
-                    facets.add(new Facet(label, count));
+                    if (facetsMap.containsKey(label)) {
+                        count += facetsMap.get(label).getCount();
+                    }
+                    facetsMap.put(label, new Facet(label, count));
                 }
                 label = null;
             }
         }
+        facets = Lists.newArrayList(facetsMap.values());
+        Collections.sort(facets, reverseOrder(comparingInt(Facet::getCount)));
         perDimFacets.put(dimension, facets);
     }
 
@@ -102,7 +157,7 @@ public class FacetResult {
         private final String label;
         private final int count;
 
-        private Facet(String label, int count) {
+        Facet(String label, int count) {
             this.label = label;
             this.count = count;
         }
@@ -123,6 +178,10 @@ public class FacetResult {
         public int getCount() {
             return count;
         }
+    }
+
+    public interface FacetResultRow {
+        String getValue(String columnName) throws Exception;
     }
 }
 

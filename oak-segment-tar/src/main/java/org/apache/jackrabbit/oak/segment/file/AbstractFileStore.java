@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.segment.data.SegmentData.newSegmentData;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -54,6 +53,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
@@ -215,7 +215,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     private void writeSegment(UUID id, byte[] data, EntryRecovery w) throws IOException {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
-        ByteBuffer buffer = ByteBuffer.wrap(data);
+        Buffer buffer = Buffer.wrap(data);
         GCGeneration generation = SegmentId.isDataSegmentId(lsb)
                 ? Segment.getGcGeneration(newSegmentData(buffer), id)
                 : GCGeneration.NULL;
@@ -279,7 +279,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
     }
 
     Segment readSegmentUncached(TarFiles tarFiles, SegmentId id) {
-        ByteBuffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
+        Buffer buffer = tarFiles.readSegment(id.getMostSignificantBits(), id.getLeastSignificantBits());
         if (buffer == null) {
             throw new SegmentNotFoundException(id);
         }

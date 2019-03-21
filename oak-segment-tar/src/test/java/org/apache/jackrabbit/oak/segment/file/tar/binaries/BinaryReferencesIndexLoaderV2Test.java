@@ -24,10 +24,10 @@ import static org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferenc
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
 import com.google.common.base.Charsets;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.junit.Test;
 
 public class BinaryReferencesIndexLoaderV2Test {
@@ -40,9 +40,9 @@ public class BinaryReferencesIndexLoaderV2Test {
         return s.getBytes(Charsets.UTF_8);
     }
 
-    private static BinaryReferencesIndex loadIndex(ByteBuffer buffer) throws Exception {
-        ByteBuffer data = loadBinaryReferencesIndex((whence, length) -> {
-            ByteBuffer slice = buffer.duplicate();
+    private static BinaryReferencesIndex loadIndex(Buffer buffer) throws Exception {
+        Buffer data = loadBinaryReferencesIndex((whence, length) -> {
+            Buffer slice = buffer.duplicate();
             slice.position(slice.limit() - whence);
             slice.limit(slice.position() + length);
             return slice.slice();
@@ -50,7 +50,7 @@ public class BinaryReferencesIndexLoaderV2Test {
         return parseBinaryReferencesIndex(data);
     }
 
-    private static void assertInvalidBinaryReferencesIndexException(ByteBuffer buffer, String message) throws Exception {
+    private static void assertInvalidBinaryReferencesIndexException(Buffer buffer, String message) throws Exception {
         try {
             loadIndex(buffer);
         } catch (InvalidBinaryReferencesIndexException e) {
@@ -59,23 +59,23 @@ public class BinaryReferencesIndexLoaderV2Test {
         }
     }
 
-    private static int checksum(ByteBuffer buffer) {
+    private static int checksum(Buffer buffer) {
         CRC32 checksum = new CRC32();
         int position = buffer.position();
-        checksum.update(buffer);
+        buffer.update(checksum);
         buffer.position(position);
         return (int) checksum.getValue();
     }
 
     @Test(expected = InvalidBinaryReferencesIndexException.class)
     public void testInvalidMagicNumber() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(FOOTER_SIZE);
         assertInvalidBinaryReferencesIndexException(buffer, "Invalid magic number");
     }
 
     @Test(expected = InvalidBinaryReferencesIndexException.class)
     public void testInvalidCount() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(FOOTER_SIZE);
         buffer.duplicate()
             .putInt(0)
             .putInt(-1)
@@ -86,7 +86,7 @@ public class BinaryReferencesIndexLoaderV2Test {
 
     @Test(expected = InvalidBinaryReferencesIndexException.class)
     public void testInvalidSize() throws Exception {
-        ByteBuffer buffer = ByteBuffer.allocate(FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(FOOTER_SIZE);
         buffer.duplicate()
             .putInt(0)
             .putInt(0)
@@ -97,7 +97,7 @@ public class BinaryReferencesIndexLoaderV2Test {
 
     @Test(expected = InvalidBinaryReferencesIndexException.class)
     public void testInvalidChecksum() throws Exception {
-        ByteBuffer entries = ByteBuffer.allocate(512)
+        Buffer entries = Buffer.allocate(512)
             // First generation
             .putInt(1).putInt(2).put((byte) 0)
             .putInt(2)
@@ -126,7 +126,7 @@ public class BinaryReferencesIndexLoaderV2Test {
             .putInt(length("2.2.2")).put(bytes("2.2.2"));
         entries.flip();
 
-        ByteBuffer buffer = ByteBuffer.allocate(entries.remaining() + FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(entries.remaining() + FOOTER_SIZE);
         buffer.duplicate()
             .put(entries.duplicate())
             .putInt(checksum(entries) + 1)
@@ -139,7 +139,7 @@ public class BinaryReferencesIndexLoaderV2Test {
 
     @Test
     public void testParse() throws Exception {
-        ByteBuffer entries = ByteBuffer.allocate(512)
+        Buffer entries = Buffer.allocate(512)
             // First generation
             .putInt(1).putInt(2).put((byte) 0)
             .putInt(2)
@@ -168,7 +168,7 @@ public class BinaryReferencesIndexLoaderV2Test {
             .putInt(length("2.2.2")).put(bytes("2.2.2"));
         entries.flip();
 
-        ByteBuffer buffer = ByteBuffer.allocate(entries.remaining() + FOOTER_SIZE);
+        Buffer buffer = Buffer.allocate(entries.remaining() + FOOTER_SIZE);
         buffer.duplicate()
             .put(entries.duplicate())
             .putInt(checksum(entries))

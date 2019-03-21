@@ -97,7 +97,7 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         IndexCopier copier = createIndexCopier();
         editorProvider = new LuceneIndexEditorProvider(copier, null,
                 new ExtractedTextCache(10* FileUtils.ONE_MB,100),
-                null, Mounts.defaultMountInfoProvider(), adbc);
+                null, Mounts.defaultMountInfoProvider(), adbc, null, null);
         provider = new LuceneIndexProvider(copier);
         mongoConnection = connectionFactory.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDatabase());

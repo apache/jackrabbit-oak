@@ -18,31 +18,31 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
+import static org.apache.jackrabbit.oak.segment.file.tar.SegmentTarWriter.getPaddingSize;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
+import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIndexLoader;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import com.google.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
 import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.index.InvalidIndexException;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.jackrabbit.oak.segment.file.tar.SegmentTarWriter.getPaddingSize;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
-import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIndexLoader;
 
 public class SegmentTarReader implements SegmentArchiveReader {
 
@@ -71,7 +71,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
     }
 
     @Override
-    public ByteBuffer readSegment(long msb, long lsb) throws IOException {
+    public Buffer readSegment(long msb, long lsb) throws IOException {
         int i = index.findEntry(msb, lsb);
         if (i == -1) {
             return null;
@@ -79,7 +79,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
         IndexEntry indexEntry = index.entry(i);
         ioMonitor.beforeSegmentRead(file, msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
-        ByteBuffer buffer = access.read(indexEntry.getPosition(), indexEntry.getLength());
+        Buffer buffer = access.read(indexEntry.getPosition(), indexEntry.getLength());
         long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
         ioMonitor.afterSegmentRead(file, msb, lsb, indexEntry.getLength(), elapsed);
         return buffer;
@@ -115,7 +115,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
             return null;
         }
         ReaderAtEnd r = (whence, size) -> {
-            ByteBuffer buffer = ByteBuffer.allocate(size);
+            Buffer buffer = Buffer.allocate(size);
             file.seek(length - 2 * BLOCK_SIZE - whence);
             file.readFully(buffer.array());
             return buffer;
@@ -129,9 +129,9 @@ public class SegmentTarReader implements SegmentArchiveReader {
     }
 
     @Override
-    public ByteBuffer getGraph() throws IOException {
+    public Buffer getGraph() throws IOException {
         int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize();
-        ByteBuffer graph = GraphLoader.loadGraph((whence, amount) -> access.read(end - whence, amount));
+        Buffer graph = GraphLoader.loadGraph((whence, amount) -> access.read(end - whence, amount));
         hasGraph = graph != null;
         return graph;
     }
@@ -147,7 +147,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
     }
 
     @Override
-    public ByteBuffer getBinaryReferences() throws IOException {
+    public Buffer getBinaryReferences() throws IOException {
         try {
             int end = access.length() - 2 * BLOCK_SIZE - getIndexEntrySize() - getGraphEntrySize();
             return BinaryReferencesIndexLoader.loadBinaryReferencesIndex((whence, amount) -> access.read(end - whence, amount));
@@ -181,7 +181,7 @@ public class SegmentTarReader implements SegmentArchiveReader {
     }
 
     private int getGraphEntrySize() {
-        ByteBuffer buffer;
+        Buffer buffer;
 
         try {
             buffer = getGraph();

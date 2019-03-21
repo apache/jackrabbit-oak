@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
@@ -46,11 +47,13 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
@@ -120,6 +123,8 @@ import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
+import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -186,6 +191,9 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  */
 public class LucenePropertyIndex extends FulltextIndex {
 
+
+    private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+
     private static double MIN_COST = 2.1;
 
     private static final Logger LOG = LoggerFactory
@@ -243,7 +251,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         final Sort sort = getSort(plan);
         final PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
-        Iterator<FulltextResultRow> itr = new AbstractIterator<FulltextResultRow>() {
+        LuceneResultRowIterator rItr = new LuceneResultRowIterator() {
             private final Deque<FulltextResultRow> queue = Queues.newArrayDeque();
             private final Set<String> seenPaths = Sets.newHashSet();
             private ScoreDoc lastDoc;
@@ -251,6 +259,8 @@ public class LucenePropertyIndex extends FulltextIndex {
             private boolean noDocs = false;
             private IndexSearcher indexSearcher;
             private int indexNodeId = -1;
+            private LuceneFacetProvider facetProvider = null;
+            private int rewoundCount = 0;
 
             @Override
             protected FulltextResultRow computeNext() {
@@ -261,7 +271,13 @@ public class LucenePropertyIndex extends FulltextIndex {
                 return endOfData();
             }
 
-            private FulltextResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,  Facets facets,
+            @Override
+            public int rewoundCount() {
+                return rewoundCount;
+            }
+
+            private FulltextResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,
+                                                   LuceneFacetProvider facetProvider,
                                                    String explanation) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 //TODO Look into usage of field cache for retrieving the path
@@ -293,7 +309,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     boolean shouldIncludeForHierarchy = shouldInclude(path, plan);
                     LOG.trace("Matched path {}; shouldIncludeForHierarchy: {}", path, shouldIncludeForHierarchy);
                     return shouldIncludeForHierarchy? new FulltextResultRow(path, doc.score, excerpts,
-                        new LuceneFacetProvider(facets), explanation)
+                            facetProvider, explanation)
                         : null;
                 }
                 return null;
@@ -347,8 +363,12 @@ public class LucenePropertyIndex extends FulltextIndex {
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
                             long f = PERF_LOGGER.start();
-                            Facets facets = FacetHelper.getFacets(searcher, query, docs, plan, indexNode.getDefinition().isSecureFacets());
-                            PERF_LOGGER.end(f, -1, "facets retrieved");
+                            if (facetProvider == null) {
+                                facetProvider = new LuceneFacetProvider(
+                                        FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
+                                );
+                                PERF_LOGGER.end(f, -1, "facets retrieved");
+                            }
 
                             Set<String> excerptFields = Sets.newHashSet();
                             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
@@ -373,6 +393,36 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 mergedFieldInfos = MultiFields.getMergedFieldInfos(searcher.getIndexReader());
                             }
 
+                            boolean earlyStop = false;
+                            if (docs.scoreDocs.length > 1) {
+                                // reranking step for fv sim search
+                                PropertyRestriction pr = null;
+                                LuceneIndexDefinition defn = indexNode.getDefinition();
+                                if (defn.hasFunctionDefined()) {
+                                    pr = filter.getPropertyRestriction(defn.getFunctionName());
+                                }
+                                if (pr != null) {
+                                    String queryString = String.valueOf(pr.first.getValue(pr.first.getType()));
+                                    if (queryString.startsWith("mlt?")) {
+                                        List<PropertyDefinition> sp = new LinkedList<>();
+                                        for (IndexingRule r : defn.getDefinedRules()) {
+                                            List<PropertyDefinition> similarityProperties = r.getSimilarityProperties();
+                                            for (PropertyDefinition pd : similarityProperties) {
+                                                if (pd.similarityRerank) {
+                                                    sp.add(pd);
+                                                }
+                                            }
+                                        }
+                                        if (!sp.isEmpty()) {
+                                            long fvs = PERF_LOGGER.start();
+                                            SimSearchUtils.bruteForceFVRerank(sp, docs, indexSearcher);
+                                            PERF_LOGGER.end(fvs, -1, "fv reranking done");
+                                            earlyStop = true;
+                                        }
+                                    }
+                                }
+                            }
+
                             for (ScoreDoc doc : docs.scoreDocs) {
                                 Map<String, String> excerpts = null;
                                 if (addExcerpt) {
@@ -384,13 +434,17 @@ public class LucenePropertyIndex extends FulltextIndex {
                                     explanation = searcher.explain(query, doc.doc).toString();
                                 }
 
-                                FulltextResultRow row = convertToRow(doc, searcher, excerpts, facets, explanation);
+                                FulltextResultRow row = convertToRow(doc, searcher, excerpts, facetProvider, explanation);
                                 if (row != null) {
                                     queue.add(row);
                                 }
                                 lastDocToRecord = doc;
                             }
 
+                            if (earlyStop) {
+                                noDocs = true;
+                                break;
+                            }
                             if (queue.isEmpty() && docs.scoreDocs.length > 0) {
                                 //queue is still empty but more results can be fetched
                                 //from Lucene so still continue
@@ -487,7 +541,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                 if (indexNodeId != indexNode.getIndexNodeId()){
                     //if already initialized then log about change
                     if (indexNodeId > 0){
-                        LOG.debug("Change in index version detected. Query would be performed without offset");
+                        LOG.info("Change in index version detected. Query would be performed without offset");
+                        rewoundCount++;
                     }
 
                     indexSearcher = indexNode.getSearcher();
@@ -502,13 +557,14 @@ public class LucenePropertyIndex extends FulltextIndex {
                 indexSearcher =  null;
             }
         };
+        Iterator<FulltextResultRow> itr = rItr;
         SizeEstimator sizeEstimator = getSizeEstimator(plan);
 
         if (pr.hasPropertyIndexResult() || pr.evaluateSyncNodeTypeRestriction()) {
             itr = mergePropertyIndexResult(plan, rootState, itr);
         }
 
-        return new FulltextPathCursor(itr, plan, settings, sizeEstimator);
+        return new FulltextPathCursor(itr, rItr, plan, settings, sizeEstimator);
     }
 
     private static Query addDescendantClauseIfRequired(Query query, IndexPlan plan) {
@@ -649,7 +705,10 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     @Override
     protected LuceneIndexNode acquireIndexNode(String indexPath) {
-        return tracker.acquireIndexNode(indexPath);
+        if (NON_LAZY) {
+            return tracker.acquireIndexNode(indexPath);
+        }
+        return new LazyLuceneIndexNode(tracker, indexPath);
     }
 
     @Override
@@ -1511,5 +1570,131 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             return null;
         }
+    }
+
+    /**
+     * A index node implementation that acquires the underlying index only if
+     * actually needed. This is to avoid downloading the index for the planning
+     * phase, if there is no chance that the index is actually used.
+     */
+    static class LazyLuceneIndexNode implements LuceneIndexNode {
+        private AtomicBoolean released = new AtomicBoolean();
+        private IndexTracker tracker;
+        private String indexPath;
+        private volatile LuceneIndexNode indexNode;
+
+        LazyLuceneIndexNode(IndexTracker tracker, String indexPath) {
+            this.tracker = tracker;
+            this.indexPath = indexPath;
+        }
+
+        @Override
+        public void release() {
+            if (released.getAndSet(true)) {
+                // already released
+                return;
+            }
+            if (indexNode != null) {
+                indexNode.release();
+            }
+            // to ensure it is not used after releasing
+            indexNode = null;
+            tracker = null;
+            indexPath = null;
+        }
+
+        private void checkNotReleased() {
+            if (released.get()) {
+                throw new IllegalStateException("Already released");
+            }
+        }
+
+        @Override
+        public LuceneIndexDefinition getDefinition() {
+            checkNotReleased();
+            return tracker.getIndexDefinition(indexPath);
+        }
+
+        private LuceneIndexNode getIndexNode() {
+            LuceneIndexNode n = findIndexNode();
+            if (n == null) {
+                String message = "No index node, corrupt index? " + indexPath;
+                LOG.warn(message);
+                throw new IllegalStateException(message);
+            }
+            return n;
+        }
+
+        @Nullable
+        private LuceneIndexNode findIndexNode() {
+            checkNotReleased();
+            LuceneIndexNode n = indexNode;
+            // double checked locking implemented in the correct way for Java 5
+            // and newer (actually I don't think this is ever called
+            // concurrently right now, but better be save)
+            if (n == null) {
+                synchronized (this) {
+                    n = indexNode;
+                    if (n == null) {
+                        n = indexNode = tracker.acquireIndexNode(indexPath);
+                    }
+                }
+            }
+            return n;
+        }
+
+        @Override
+        public int getIndexNodeId() {
+            return getIndexNode().getIndexNodeId();
+        }
+
+        @Nullable
+        @Override
+        public LuceneIndexStatistics getIndexStatistics() {
+            LuceneIndexNode n = findIndexNode();
+            if (n == null) {
+                return null;
+            }
+            return n.getIndexStatistics();
+        }
+
+        @Override
+        public IndexSearcher getSearcher() {
+            return getIndexNode().getSearcher();
+        }
+
+        @Override
+        public List<LuceneIndexReader> getPrimaryReaders() {
+            return getIndexNode().getPrimaryReaders();
+        }
+
+        @Override
+        public @Nullable Directory getSuggestDirectory() {
+            return getIndexNode().getSuggestDirectory();
+        }
+
+        @Override
+        public List<LuceneIndexReader> getNRTReaders() {
+            return getIndexNode().getNRTReaders();
+        }
+
+        @Override
+        public @Nullable AnalyzingInfixSuggester getLookup() {
+            return getIndexNode().getLookup();
+        }
+
+        @Override
+        public @Nullable LuceneIndexWriter getLocalWriter() throws IOException {
+            return getIndexNode().getLocalWriter();
+        }
+
+        @Override
+        public void refreshReadersOnWriteIfRequired() {
+            getIndexNode().refreshReadersOnWriteIfRequired();
+        }
+
+    }
+
+    static abstract class LuceneResultRowIterator extends AbstractIterator<FulltextResultRow> implements IteratorRewoundStateProvider {
     }
 }

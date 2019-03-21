@@ -59,7 +59,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
     //----------------------------------------------------------< Validator >---
     @Override
-    public void propertyAdded(PropertyState after) throws CommitFailedException {
+    public void propertyAdded(PropertyState after) {
         // no-op
     }
 
@@ -208,7 +208,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
             }
         }
 
-        PrivilegeBits aggrBits = bitsProvider.getBits(declaredNames.toArray(new String[declaredNames.size()]));
+        PrivilegeBits aggrBits = bitsProvider.getBits(declaredNames.toArray(new String[0]));
         if (!newBits.equals(aggrBits)) {
             throw new CommitFailedException(CONSTRAINT, 53, "Invalid privilege bits for aggregated privilege definition.");
         }
@@ -238,7 +238,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
     }
 
     private static Set<String> resolveAggregates(Set<String> declared, Map<String, PrivilegeDefinition> definitions) throws CommitFailedException {
-        Set<String> aggregateNames = new HashSet<String>();
+        Set<String> aggregateNames = new HashSet<>();
         for (String name : declared) {
             PrivilegeDefinition d = definitions.get(name);
             if (d == null) {

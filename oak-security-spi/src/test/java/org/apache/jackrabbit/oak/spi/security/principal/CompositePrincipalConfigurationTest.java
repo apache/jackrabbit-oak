@@ -69,7 +69,7 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
     }
 
     @Test
-    public void testEmptyGetProvider() throws Exception {
+    public void testEmptyGetProvider() {
         PrincipalProvider pp = getComposite().getPrincipalProvider(root, NamePathMapper.DEFAULT);
         assertFalse(pp instanceof CompositePrincipalProvider);
         assertSame(EmptyPrincipalProvider.INSTANCE, pp);
@@ -85,7 +85,7 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
     }
 
     @Test
-    public void testSingleGetProvider() throws Exception {
+    public void testSingleGetProvider() {
         PrincipalConfiguration testConfig = new TestPrincipalConfiguration();
         addConfiguration(testConfig);
 

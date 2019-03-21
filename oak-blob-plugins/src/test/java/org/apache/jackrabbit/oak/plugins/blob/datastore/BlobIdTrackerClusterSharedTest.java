@@ -167,7 +167,7 @@ public class BlobIdTrackerClusterSharedTest {
 
         Cluster(String repoId, String path, TemporaryFolder folder) throws Exception {
             this.dataStore = getBlobStore(root);
-            this.tracker = new BlobIdTracker(path, repoId, 100 * 60, dataStore);
+            this.tracker = BlobIdTracker.build(path, repoId, 100 * 60, dataStore);
             this.scheduler = newSingleThreadScheduledExecutor();
             this.folder = folder;
         }

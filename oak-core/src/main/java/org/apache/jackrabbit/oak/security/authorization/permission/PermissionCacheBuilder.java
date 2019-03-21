@@ -105,7 +105,7 @@ final class PermissionCacheBuilder {
                     String path = e.getKey();
                     Collection<PermissionEntry> pathEntries = pathEntryMap.get(path);
                     if (pathEntries == null) {
-                        pathEntries = new TreeSet(e.getValue());
+                        pathEntries = new TreeSet<>(e.getValue());
                         pathEntryMap.put(path, pathEntries);
                     } else {
                         pathEntries.addAll(e.getValue());
@@ -142,7 +142,7 @@ final class PermissionCacheBuilder {
 
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull String path) {
-            Collection<PermissionEntry> ret = new TreeSet();
+            Collection<PermissionEntry> ret = new TreeSet<>();
             for (String name : existingNames) {
                 cache.load(store, ret, name, path);
             }

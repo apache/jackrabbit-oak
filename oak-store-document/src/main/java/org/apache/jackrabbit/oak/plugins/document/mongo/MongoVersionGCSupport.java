@@ -107,7 +107,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public long getDeletedOnceCount() {
         Bson query = Filters.eq(DELETED_ONCE, Boolean.TRUE);
-        return getNodeCollection().count(query);
+        return getNodeCollection().countDocuments(query);
     }
 
     @Override

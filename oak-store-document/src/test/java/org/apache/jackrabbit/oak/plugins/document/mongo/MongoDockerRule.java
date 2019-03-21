@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.slf4j.Logger;
@@ -33,16 +34,23 @@ public class MongoDockerRule extends DockerRule {
 
     private static final String CONFIG_NAME = "MongoDB";
 
+    private static final String VERSION = System.getProperty("mongo.version", "3.6");
+
+    private static final String IMAGE = "mongo:" + VERSION;
+
     private static final boolean DOCKER_AVAILABLE;
 
     static {
         boolean available = false;
         try (DefaultDockerClient client = DefaultDockerClient.fromEnv()
-                .connectTimeoutMillis(5000L).readTimeoutMillis(20000L).build()) {
+                .connectTimeoutMillis(5000L).readTimeoutMillis(20000L)
+                .registryAuthSupplier(new FixedRegistryAuthSupplier())
+                .build()) {
             client.ping();
+            client.pull(IMAGE);
             available = true;
-        } catch (Exception e) {
-            LOG.info("Cannot connect to docker", e);
+        } catch (Throwable t) {
+            LOG.info("Cannot connect to docker or pull image", t);
         }
         DOCKER_AVAILABLE = available;
     }
@@ -50,7 +58,7 @@ public class MongoDockerRule extends DockerRule {
     public MongoDockerRule() {
         super(ImmutableDockerConfig.builder()
                 .name(CONFIG_NAME)
-                .image("mongo:" + MongoUtils.VERSION)
+                .image(IMAGE)
                 .ports("27017")
                 .allowRunningBetweenUnitTests(true)
                 .alwaysRemoveContainer(true)

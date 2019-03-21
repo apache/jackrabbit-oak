@@ -102,9 +102,7 @@ public final class GuestLoginModule implements LoginModule {
                     sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, guestCredentials);
                     return true;
                 }
-            } catch (IOException e) {
-                log.debug("Login: Failed to retrieve Credentials from CallbackHandler", e);
-            } catch (UnsupportedCallbackException e) {
+            } catch (IOException | UnsupportedCallbackException e) {
                 log.debug("Login: Failed to retrieve Credentials from CallbackHandler", e);
             }
         }

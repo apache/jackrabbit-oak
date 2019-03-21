@@ -160,7 +160,7 @@ public final class Permissions {
             USER_MANAGEMENT,
             INDEX_DEFINITION_MANAGEMENT);
 
-    public static final Map<Long, String> PERMISSION_NAMES = new LinkedHashMap<Long, String>();
+    public static final Map<Long, String> PERMISSION_NAMES = new LinkedHashMap<>();
     static {
         PERMISSION_NAMES.put(ALL, "ALL");
         PERMISSION_NAMES.put(READ, "READ");
@@ -190,7 +190,7 @@ public final class Permissions {
         PERMISSION_NAMES.put(INDEX_DEFINITION_MANAGEMENT, "INDEX_DEFINITION_MANAGEMENT");
     }
 
-    private static final Map<String, Long> PERMISSION_LOOKUP = new LinkedHashMap<String, Long>();
+    private static final Map<String, Long> PERMISSION_LOOKUP = new LinkedHashMap<>();
     static {
         PERMISSION_LOOKUP.put("ALL", ALL);
         PERMISSION_LOOKUP.put("READ", READ);
@@ -230,7 +230,7 @@ public final class Permissions {
             JackrabbitSession.ACTION_REMOVE_PROPERTY
     );
 
-    private static final Map<String, Long> ACTIONS_MAP = new LinkedHashMap<String, Long>();
+    private static final Map<String, Long> ACTIONS_MAP = new LinkedHashMap<>();
     static {
         ACTIONS_MAP.put(Session.ACTION_ADD_NODE, ADD_NODE);
         ACTIONS_MAP.put(JackrabbitSession.ACTION_ADD_PROPERTY, ADD_PROPERTY);
@@ -256,7 +256,7 @@ public final class Permissions {
         if (PERMISSION_NAMES.containsKey(permissions)) {
             return ImmutableSet.of(PERMISSION_NAMES.get(permissions));
         } else {
-            Set<String> names = new HashSet<String>();
+            Set<String> names = new HashSet<>();
             for (Map.Entry<Long, String> entry : PERMISSION_NAMES.entrySet()) {
                 long key = entry.getKey();
                 if ((permissions & key) == key) {

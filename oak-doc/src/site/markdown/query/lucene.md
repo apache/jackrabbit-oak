@@ -39,7 +39,9 @@
     * [Mime type usage](#mime-type-usage)
     * [Mime type mapping](#mime-type-mapping)
 * [Non Root Index Definitions](#non-root-index)
+* [Function-Based Indexing](#function-based-indexing)
 * [Native Query and Index Selection](#native-query)
+* [Persisting indexes](#persisting-indexes)
 * [CopyOnRead](#copy-on-read)
 * [CopyOnWrite](#copy-on-write)
 * [Lucene Index MBeans](#mbeans)
@@ -62,6 +64,7 @@
         * [UC2 - Find all assets which are having `status` as `published` sorted by last modified date](#uc2)
         * [UC3 - Find all assets where comment contains _december_](#uc3)
         * [UC4 - Find all assets which are created by David and refer to december](#uc4)
+        * [UC5 - Facets](#uc5)
 
 Oak supports Lucene based indexes to support both property constraint and full
 text constraints. Depending on the configuration a Lucene index can be used
@@ -354,6 +357,11 @@ isRegexp
     * `jcr:content/metadata/.*` - This property definition is
       applicable for all properties of child node _jcr:content/metadata_
 
+  Note that the regular expression doesn't match intermediate nodes, so,
+  `jcr:content/.*/.*` would *not* index all properties for all children of
+  `jcr:content`. [OAK-5187][OAK-5187] is an open improvement to track supporting
+  arbitrary intermediate child nodes.
+
 boost
 : If the property is included in `nodeScopeIndex` then it defines the boost
   done for the index value against the given property name. See
@@ -433,7 +441,11 @@ nullCheckEnabled
 
 excludeFromAggregation
 : Since 1.0.27, 1.2.11
-: if set to true the property would be excluded from aggregation [OAK-3981][OAK-3981]
+: If set to true, the property is excluded from aggregation [OAK-3981][OAK-3981]
+
+function
+: Since 1.5.11, 1.6.0
+: Function, for [function-based indexing](#function-based-indexing).
 
 <a name="weight"></a>
 weight
@@ -447,7 +459,7 @@ weight
   See [OAK-6735][OAK-6735] for details.
 : Since 1.10: the default value is now `5`.
   See [OAK-7379][OAK-7379] for details.
-
+  
 <a name="property-names"></a>**Property Names**
 
 Property name can be one of following
@@ -723,7 +735,10 @@ the analyzer node
 
 Analyzers can also be composed based on `Tokenizers`, `TokenFilters` and
 `CharFilters`. This is similar to the support provided in Solr where you can
-[configure analyzers in xml][solr-analyzer]
+[configure analyzers in xml][solr-analyzer].
+In this case, the analyzer `class` property needs to be removed.
+The `tokenizer` needs to be specified,
+all the other components (e.g. `charFilters`, `Synonym`) are optional.
 
 ```
     + analyzers
@@ -1011,6 +1026,38 @@ Then you can create the required index definition say `assetIndex` at
 `/content/companya/oak:index/assetIndex`. In such a case that index would
 contain data for the subtree under `/content/companya`
 
+### <a name="function-based-indexing"></a>Function-Based Indexing
+
+`@since Oak 1.5.11, 1.6.0`
+
+Function-based indexes can for example allow to search (or order by) the lower case version of a property.
+For more details see [OAK-3574][OAK-3574].
+
+For example using the index definition
+
+    uppercaseLastName
+      - function = "fn:upper-case(@lastName)"
+      - propertyIndex = true
+      - ordered = true
+    
+This allows to search for, and order by, the lower case version of the property "lastName". Example functions:
+
+* fn:upper-case(@data)
+* fn:lower-case(test/@data)
+* fn:lower-case(fn:name())
+* fn:lower-case(fn:local-name())
+* fn:string-length(test/@data)
+* upper([data])
+* lower([test/data])
+* lower(name())
+* lower(localname())
+* length([test/data])
+* length(name())
+
+Indexing multi-valued properties is supported. 
+Relative properties are supported (except for ".." and "."). 
+Range conditions are supported ('>', '>=', '<=', '<').
+
 ### <a name="native-query"></a>Native Query and Index Selection
 
 Oak query engine supports native queries like
@@ -1023,17 +1070,18 @@ specify the index name via `functionName` attribute on index definition.
 
 For example for assetIndex definition like
 
-    - jcr:primaryType = "oak:QueryIndexDefinition"
-    - type = "lucene"
-    ...
-    - functionName = "lucene-assetIndex"
+    luceneAssetIndex
+      - jcr:primaryType = "oak:QueryIndexDefinition"
+      - type = "lucene"
+      ...
+      - functionName = "lucene-assetIndex"
 
 Executing following query would ensure that Lucene index from `assetIndex`
 should be used
 
     //*[rep:native('lucene-assetIndex', 'name:(Hello OR World)')]
 
-### <a name="native-query"></a>Persisting indexes to FileSystem
+### <a name="persisting-indexes"></a>Persisting indexes to FileSystem
 
 By default Lucene indexes are stored in the `NodeStore`. If required they can
 be stored on the file system directly
@@ -1122,6 +1170,8 @@ The feature would only delete blobs which have been deleted before a certain tim
 The task to actually purge blobs from datastore is performed by jmx operation. Jmx bean
 for the operation is `org.apache.jackrabbit.oak:name=Active lucene files collection,type=ActiveDeletedBlobCollector`
 and the operation is `startActiveCollection()`.
+To disable active deletion in a certain installation, set the system property `oak.active.deletion.disabled`.
+
 
 ### <a name="luke"></a>Analyzing created Lucene Index
 
@@ -1314,19 +1364,15 @@ Lucene property indexes can also be used for retrieving facets, in order to do s
 
 Specific facet related features for Lucene property index can be configured in a separate _facets_ node below the
  index definition.
- By default ACL checks are always performed on facets by the Lucene property index however this can be avoided by setting
- the property _secure_ to _false_ in the _facets_ configuration node.
 `@since Oak 1.5.15` The no. of facets to be retrieved is configurable via the _topChildren_ property, which defaults to 10.
-
 ```
-/oak:index/lucene-with-unsecure-facets
+/oak:index/lucene-with-more-facets
   - jcr:primaryType = "oak:QueryIndexDefinition"
   - compatVersion = 2
   - type = "lucene"
   - async = "async"
   + facets
     - topChildren = 100
-    - secure = false
   + indexRules
     - jcr:primaryType = "nt:unstructured"
     + nt:base
@@ -1336,6 +1382,82 @@ Specific facet related features for Lucene property index can be configured in a
           - facets = true
           - propertyIndex = true
 ```
+
+By default ACL checks are always performed on facets by the Lucene property index however there are a few configuration
+option to configure how ACL checks are done by configuring _secure_ property in the _facets_ configuration node.
+`@since Oak 1.6.16, 1.8.10, 1.9.13` `secure` property is a string with allowed values of `secure`, `statistical` and
+`insecure` - `secure` being the default value. Before that `secure` was a boolean property and to maintain compatibility
+`false` maps to `insecure` while `true` (default at the time) maps to `secure`.
+
+For `insecure` facets, the facet counts reported by lucene index are reported back as is.
+For `secure` configuration all results of a query are checked for access permissions and facets returned by index are
+updated accordingly. This can be very bad from performance point of view for large result set.
+As a trade off `statistical` configuration can be used to randomly sample some items (default `1000` configurable via
+`sampleSize`) and check ACL for the random samples. Facet counts returned via index are updated proportionally to the
+percentage of accessible samples that were checked for ACL.
+Do note that the [beauty of sampling](https://onlinecourses.science.psu.edu/stat100/node/16/) is that a sample size of
+`1000` would have 3% error rate with 95% confidence. But that's a theoretical limit for infinite number of experiments -
+in practice though, a low rate of accessible documents decreases chances to reach that average rate. To have a sense of
+expectation of error rate, here's how errors looked like in different scenarios of test runs with sample size of 1000
+with error averaged over 1000 random runs for each scenario.
+```
+|-----------------|-----------------------|------------------------|
+| Result set size | %age accessible nodes | Avg error in 1000 runs |
+|-----------------|-----------------------|------------------------|
+| 2000            |  5                    |  5.79                  |
+| 5000            |  5                    |  9.99                  |
+| 10000           |  5                    |  10.938                |
+| 100000          |  5                    |  11.13                 |
+|                 |                       |                        |
+| 2000            | 25                    | 2.4192004              |
+| 5000            | 25                    | 3.8087976              |
+| 10000           | 25                    | 4.096                  |
+| 100000          | 25                    | 4.3699985              |
+|                 |                       |                        |
+| 2000            | 50                    | 1.3990011              |
+| 5000            | 50                    | 2.2695997              |
+| 10000           | 50                    | 2.5303981              |
+| 100000          | 50                    | 2.594599               |
+|                 |                       |                        |
+| 2000            | 75                    | 0.80360085             |
+| 5000            | 75                    | 1.1929348              |
+| 10000           | 75                    | 1.4357346              |
+| 100000          | 75                    | 1.4272015              |
+|                 |                       |                        |
+| 2000            | 95                    | 0.30958                |
+| 5000            | 95                    | 0.52715933             |
+| 10000           | 95                    | 0.5109484              |
+| 100000          | 95                    | 0.5481065              |
+|-----------------|-----------------------|------------------------|
+```
+![error rate plot](../img/facets-statistical-error-rate-plot.png)
+
+Notice that error rate does increase with large result set sizes but it flattens after around 10000 results. Also, note
+that even with 50% results being accessible, error rate averages at less that 3%.
+
+So, in most cases, sampling size of 1000 should give fairly decent estimation of facet counts. On the off chance that
+the setup is such that error rates are intolerable, sample size can be configured with _sampleSize_ property under
+_facets_ configuration node. Error rates are generally inversely proportional to `√sample-size`. So, to reduce error
+rate by 1/2 sample size needs to increased 4 times.
+
+Canonical example of `statistical` configuration would look like:
+```
+/oak:index/lucene-with-statistical-facets
+  + facets
+    - secure = "statistical"
+    - sampleSize = 1500
+  + indexRules
+    - jcr:primaryType = "nt:unstructured"
+    + nt:base
+      + properties
+        - jcr:primaryType = "nt:unstructured"
+        + tags
+          - facets = true
+          - propertyIndex = true
+```
+
+See [query-engine](query-engine.html#Facets) regarding how to query to evaluate facets alongwith. Also check out
+some examples of queries and required index definitions for faceting in [use case 5](#uc5).
 
 #### <a name="score-explanation"></a>Score Explanation
 
@@ -1774,6 +1896,109 @@ such fields
           - boost = 2.0
 ```
 
+##### <a name="uc5"></a>UC5 - Facets
+
+Unconstrained queries for facets like
+```
+    SELECT [rep:facet(title)] FROM [app:Asset]
+or
+    //element(*, app:Asset)/(rep:facet(title))
+or
+    SELECT [rep:facet(title)], [rep:facet(tags)] FROM [app:Asset]
+or
+    //element(*, app:Asset)/(rep:facet(title) | rep:facet(tags))
+```
+would require an index on `app:Asset`  containing all nodes of the type. That, in
+turn, means that either the index needs to be a fulltext index or needs to be
+indexing `jcr:primaryType` property. All of the following definitions would work
+for such a case:
+```
+   + /oak:index/index1
+      - ...
+      + aggregates
+        + app:Asset
+          + include0
+            - path = "jcr:content"
+      + indexRules
+        + app:Asset
+          + properties
+            + title
+              - facets = true
+            + tags
+              - facets = true
+              - propertyIndex = true
+or
+   + /oak:index/index2
+      - ...
+      + indexRules
+        + app:Asset
+          + properties
+            + title
+              - facets = true
+              - nodeScopeIndex = true
+            + tags
+              - facets = true
+              - propertyIndex = true
+or
+   + /oak:index/index3
+      - ...
+      + indexRules
+        + app:Asset
+          + properties
+            + nodeType
+              - propertyIndex = true
+              - name = jcr:primaryType
+            + title
+              - facets = true
+            + tags
+              - facets = true
+```
+
+Another thing to note with facets is that facet counts are derived from lucene index.
+While not immediately obvious, that implies that any constraint on the query that do
+**not** get evaluated by the index are going to return incorrect facet counts as the other
+constraints would get filtered _after_ collecting counts from the index.
+
+So, following queries require correspondingly listed indexes:
+```
+SELECT rep:facet(title) FROM [app:Asset] WHERE ISDESCENDANTNODE(/some/path)
+
++ /oak:index/index2
+  - ...
+  - evaluatePathRestrictions = true
+  + indexRules
+    + app:Asset
+      + properties
+        + title
+          - facets = true
+          - propertyIndex = true
+```
+```
+SELECT rep:facet(title) FROM [app:Asset] WHERE CONTAINS(., 'foo')
+
++ /oak:index/index2
+  - ...
+  + indexRules
+    + app:Asset
+      + properties
+        + title
+          - facets = true
+          - propertyIndex = true
+          - nodeScopeIndex = true
+```
+```
+SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
+
++ /oak:index/index2
+  - ...
+  + indexRules
+    + app:Asset
+      + properties
+        + title
+          - facets = true
+          - propertyIndex = true
+```
+
 [1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
 [OAK-1737]: https://issues.apache.org/jira/browse/OAK-1737
@@ -1794,10 +2019,12 @@ such fields
 [OAK-2892]: https://issues.apache.org/jira/browse/OAK-2892
 [OAK-2895]: https://issues.apache.org/jira/browse/OAK-2895
 [OAK-3367]: https://issues.apache.org/jira/browse/OAK-3367
+[OAK-3574]: https://issues.apache.org/jira/browse/OAK-3574
 [OAK-3981]: https://issues.apache.org/jira/browse/OAK-3981
 [OAK-3994]: https://issues.apache.org/jira/browse/OAK-3994
 [OAK-4400]: https://issues.apache.org/jira/browse/OAK-4400
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
+[OAK-5187]: https://issues.apache.org/jira/browse/OAK-5187
 [OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
 [OAK-6735]: https://issues.apache.org/jira/browse/OAK-6735
 [OAK-7379]: https://issues.apache.org/jira/browse/OAK-7379

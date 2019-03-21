@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,6 +26,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 
 import com.google.common.base.Charsets;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 /**
  * Maintains the transient state of a binary references index, formats it and
@@ -129,7 +129,7 @@ public class BinaryReferencesIndexWriter {
             }
         }
 
-        ByteBuffer buffer = ByteBuffer.allocate(binaryReferenceSize);
+        Buffer buffer = Buffer.allocate(binaryReferenceSize);
 
         for (Entry<Generation, Map<UUID, Set<String>>> be : entries.entrySet()) {
             Generation generation = be.getKey();

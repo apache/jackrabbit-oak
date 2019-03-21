@@ -217,11 +217,11 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         if (pNames.isEmpty()) {
             return new Privilege[0];
         } else {
-            Set<Privilege> privileges = new HashSet<Privilege>(pNames.size());
+            Set<Privilege> privileges = new HashSet<>(pNames.size());
             for (String name : pNames) {
                 privileges.add(privilegeManager.getPrivilege(namePathMapper.getJcrName(name)));
             }
-            return privileges.toArray(new Privilege[privileges.size()]);
+            return privileges.toArray(new Privilege[0]);
         }
     }
 
@@ -242,11 +242,11 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
             log.debug("No privileges passed -> allowed.");
             return true;
         } else {
-            Set<String> privilegeNames = new HashSet<String>(privileges.length);
+            Set<String> privilegeNames = new HashSet<>(privileges.length);
             for (Privilege privilege : privileges) {
                 privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
             }
-            return provider.hasPrivileges(tree, privilegeNames.toArray(new String[privilegeNames.size()]));
+            return provider.hasPrivileges(tree, privilegeNames.toArray(new String[0]));
         }
     }
 }

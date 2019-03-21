@@ -33,7 +33,9 @@ import static org.mockito.Mockito.withSettings;
 
 public class AbstractTreeTest {
 
+    static final String NON_EXISTING_PATH = "/nonExisting";
     static final String CHILD_PATH = "/z/child";
+    static final String PROPERTY_PATH = CHILD_PATH + "/p";
     static final String STRING_VALUE = "value";
     static final long LONG_VALUE = 1;
 
@@ -50,11 +52,11 @@ public class AbstractTreeTest {
         when(rootTree.hasProperty("p")).thenReturn(true);
         when(rootTree.getProperty("p")).thenReturn(PropertyStates.createProperty("p", LONG_VALUE));
 
-        nonExisting = mockTree("/nonExisting", rootTree, false, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        nonExisting = mockTree(NON_EXISTING_PATH, rootTree, false, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
         Tree x = mockTree("/x", rootTree, true);
         z = mockTree("/z", rootTree, true, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        child = mockTree("/z/child", z, true, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        child = mockTree(CHILD_PATH, z, true, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         when(child.hasProperty("p")).thenReturn(true);
         when(child.getProperty("p")).thenReturn(PropertyStates.createProperty("p", STRING_VALUE));
         when(child.hasProperty("pp")).thenReturn(true);
@@ -71,7 +73,8 @@ public class AbstractTreeTest {
         when(rootTree.getChild("nonExisting")).thenReturn(nonExisting);
 
         root = Mockito.mock(Root.class);
-        when(root.getTree("/")).thenReturn(rootTree);
+        when(root.getTree(PathUtils.ROOT_PATH)).thenReturn(rootTree);
+        when(root.getTree(CHILD_PATH)).thenReturn(child);
     }
 
     public Tree mockTree(String path, boolean exists) {
@@ -112,7 +115,6 @@ public class AbstractTreeTest {
         when(t.hasProperty("nonExisting")).thenReturn(false);
         when(t.hasChild("nonExisting")).thenReturn(false);
         when(t.getChild("nonExisting")).thenReturn(nonExisting);
-        when(t.remove()).thenThrow(new UnsupportedOperationException());
         return t;
     }
 }

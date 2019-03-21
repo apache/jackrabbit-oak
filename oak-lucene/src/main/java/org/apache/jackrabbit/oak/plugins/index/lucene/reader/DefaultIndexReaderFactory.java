@@ -72,7 +72,8 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
         }
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
             reader = createReader(m, definition, defnState, indexPath);
-            if (reader != null) {
+            // Although, it shouldn't matter much, but let's not add extra readers if they don't have any docs
+            if (reader != null && reader.getReader() != null && reader.getReader().numDocs() > 0) {
                 readers.add(reader);
             }
         }

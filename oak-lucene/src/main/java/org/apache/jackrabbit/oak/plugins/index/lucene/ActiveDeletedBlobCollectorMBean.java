@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.management.openmbean.CompositeData;
-import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -79,4 +78,12 @@ public interface ActiveDeletedBlobCollectorMBean {
      * would get marked for active deletion when active deletion is active.
      */
     void flagActiveDeletionSafe();
+
+    /**
+     * Whether active deletion is disabled.
+     *
+     * @return true if disabled
+     */
+    boolean isDisabled();
+
 }

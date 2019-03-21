@@ -107,7 +107,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
-            Set<Restriction> restrictions = new HashSet<Restriction>();
+            Set<Restriction> restrictions = new HashSet<>();
             for (PropertyState propertyState : getRestrictionsTree(aceTree).getProperties()) {
                 String propName = propertyState.getName();
                 if (isRestrictionProperty(propName) && supported.containsKey(propName)) {
@@ -213,7 +213,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
     @NotNull
     private Map<String, PropertyState> getRestrictionProperties(Tree aceTree) {
         Tree rTree = getRestrictionsTree(aceTree);
-        Map<String, PropertyState> restrictionProperties = new HashMap<String, PropertyState>();
+        Map<String, PropertyState> restrictionProperties = new HashMap<>();
         for (PropertyState property : rTree.getProperties()) {
             String name = property.getName();
             if (isRestrictionProperty(name)) {

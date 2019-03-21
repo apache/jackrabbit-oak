@@ -96,8 +96,10 @@ public class DocumentNodeStoreStatsCollectorIT {
     public void doneMerge() throws Exception {
         NodeBuilder nb = nodeStore.getRoot().builder();
         nb.child("a");
+        nb.child("b");
+        nb.child("c");
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        verify(statsCollector).doneMerge(eq(0), anyLong(), eq(false), eq(false));
+        verify(statsCollector).doneMerge(eq(3), eq(0), anyLong(), eq(0L), eq(false));
     }
 
     @Test
@@ -122,10 +124,10 @@ public class DocumentNodeStoreStatsCollectorIT {
 
         }
 
-        verify(statsCollector).failedMerge(anyInt(), anyLong(), eq(false), eq(false));
+        verify(statsCollector).failedMerge(anyInt(), anyLong(), eq(0L), eq(false));
 
         //Should be called once more with exclusive lock
-        verify(statsCollector).failedMerge(anyInt(), anyLong(), eq(false), eq(true));
+        verify(statsCollector).failedMerge(anyInt(), anyLong(), eq(0L), eq(true));
     }
 
     @Test
@@ -135,10 +137,12 @@ public class DocumentNodeStoreStatsCollectorIT {
         for (int i = 0; i < updateLimit; i++) {
             nb.child("node-" + i).setProperty("p", "v");
         }
+        nb.child("foo");
+        nb.child("bar");
         merge(nodeStore, nb);
 
         verify(statsCollector, times(2)).doneBranchCommit();
-        verify(statsCollector).doneMergeBranch(2);
+        verify(statsCollector).doneMergeBranch(eq(2), eq(updateLimit + 2));
     }
 
     @Test
@@ -178,5 +182,48 @@ public class DocumentNodeStoreStatsCollectorIT {
                 stats -> stats.externalChangesLag > lag
                         && stats.externalChangesLag - lag < 100
         ));
+    }
+
+    @Test
+    public void waitUntilHead() throws Exception {
+        NodeBuilder nb = nodeStore.getRoot().builder();
+        nb.child("a");
+        nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        verify(statsCollector).doneWaitUntilHead(eq(0L));
+    }
+
+    @Test
+    public void mergeLockAcquired() throws Exception {
+        NodeBuilder nb = nodeStore.getRoot().builder();
+        nb.child("a");
+        nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        verify(statsCollector).doneMergeLockAcquired(anyLong());
+    }
+
+    @Test
+    public void commitHookProcessed() throws Exception {
+        NodeBuilder nb = nodeStore.getRoot().builder();
+        nb.child("a");
+        nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        verify(statsCollector).doneCommitHookProcessed(anyLong());
+    }
+
+    @Test
+    public void commitHookProcessedOnBranch() throws Exception {
+        NodeBuilder nb = nodeStore.getRoot().builder();
+        nb.child("a");
+        TestUtils.persistToBranch(nb);
+        nb.child("b");
+        nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        verify(statsCollector).doneCommitHookProcessed(anyLong());
+    }
+
+    @Test
+    public void changesApplied() throws Exception {
+        Mockito.reset(statsCollector);
+        NodeBuilder nb = nodeStore.getRoot().builder();
+        nb.child("a");
+        nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        verify(statsCollector).doneChangesApplied(anyLong());
     }
 }

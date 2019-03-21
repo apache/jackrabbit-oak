@@ -169,9 +169,17 @@ public final class DefaultSegmentWriterBuilder {
                 store.getBlobStore(),
                 cacheManager,
                 new WriteOperationHandler() {
+
+                    @Override
+                    @NotNull
+                    public GCGeneration getGCGeneration() {
+                        throw new UnsupportedOperationException("Cannot write to read-only store");
+                    }
+
                     @NotNull
                     @Override
-                    public RecordId execute(@NotNull WriteOperation writeOperation) {
+                    public RecordId execute(@NotNull GCGeneration gcGeneration,
+                                            @NotNull WriteOperation writeOperation) {
                         throw new UnsupportedOperationException("Cannot write to read-only store");
                     }
 

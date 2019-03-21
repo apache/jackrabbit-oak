@@ -55,4 +55,4 @@ final class FeaturePositionTokenFilter extends TokenFilter {
     tokenCount = 0;
   }
 
-  }
+}

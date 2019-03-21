@@ -51,9 +51,16 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private static final String MERGE_SUCCESS_NUM_RETRY = "DOCUMENT_NS_MERGE_SUCCESS_RETRY";
     static final String MERGE_SUCCESS_COUNT = "DOCUMENT_NS_MERGE_SUCCESS_COUNT";
     private static final String MERGE_SUCCESS_TIME = "DOCUMENT_NS_MERGE_SUCCESS_TIME";
+    private static final String MERGE_SUCCESS_NORMALIZED_TIME = "DOCUMENT_NS_MERGE_SUCCESS_NORMALIZED_TIME";
     private static final String MERGE_SUCCESS_SUSPENDED = "DOCUMENT_NS_MERGE_SUCCESS_SUSPENDED";
     private static final String MERGE_SUCCESS_EXCLUSIVE = "DOCUMENT_NS_MERGE_SUCCESS_EXCLUSIVE";
     static final String MERGE_FAILED_EXCLUSIVE = "DOCUMENT_NS_MERGE_FAILED_EXCLUSIVE";
+    private static final String HEAD_OF_QUEUE_WAIT_TIME = "DOCUMENT_NS_HEAD_OF_QUEUE_WAIT_TIME";
+    private static final String MERGE_SUSPEND_TIME = "DOCUMENT_NS_MERGE_SUSPEND_TIME";
+    private static final String MERGE_LOCK_TIME = "DOCUMENT_NS_MERGE_LOCK_TIME";
+    private static final String MERGE_COMMIT_HOOK_TIME = "DOCUMENT_NS_MERGE_COMMIT_HOOK_TIME";
+    private static final String MERGE_CHANGES_APPLIED_TIME = "DOCUMENT_NS_MERGE_CHANGES_APPLIED_TIME";
+    private static final String MERGE_CHANGES_RATE = "DOCUMENT_NS_MERGE_CHANGES_RATE";
 
     static final String BRANCH_COMMIT_COUNT = "DOCUMENT_NS_BRANCH_COMMIT_COUNT";
     static final String MERGE_BRANCH_COMMIT_COUNT = "DOCUMENT_NS_MERGE_BRANCH_COMMIT_COUNT";
@@ -85,9 +92,16 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     private final HistogramStats mergeSuccessRetries;
     private final MeterStats mergeSuccessRate;
     private final TimerStats mergeSuccessTime;
+    private final TimerStats mergeSuccessNormalizedTime;
     private final MeterStats mergeSuccessExclusive;
     private final MeterStats mergeSuccessSuspended;
     private final MeterStats mergeFailedExclusive;
+    private final TimerStats headOfQueueWaitTime;
+    private final TimerStats mergeSuspendTime;
+    private final TimerStats mergeLockTime;
+    private final TimerStats mergeCommitHookTime;
+    private final TimerStats mergeChangesApplied;
+    private final MeterStats mergeChangesRate;
 
     // branch stats
     private final MeterStats branchCommitRate;
@@ -118,9 +132,16 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
         mergeSuccessRetries = sp.getHistogram(MERGE_SUCCESS_NUM_RETRY, StatsOptions.METRICS_ONLY);
         mergeSuccessRate = sp.getMeter(MERGE_SUCCESS_COUNT, StatsOptions.DEFAULT); //Enable time series
         mergeSuccessTime = sp.getTimer(MERGE_SUCCESS_TIME, StatsOptions.METRICS_ONLY);
+        mergeSuccessNormalizedTime = sp.getTimer(MERGE_SUCCESS_NORMALIZED_TIME, StatsOptions.METRICS_ONLY);
         mergeSuccessExclusive = sp.getMeter(MERGE_SUCCESS_EXCLUSIVE, StatsOptions.METRICS_ONLY);
         mergeSuccessSuspended = sp.getMeter(MERGE_SUCCESS_SUSPENDED, StatsOptions.METRICS_ONLY);
         mergeFailedExclusive = sp.getMeter(MERGE_FAILED_EXCLUSIVE, StatsOptions.DEFAULT); //Enable time series
+        headOfQueueWaitTime = sp.getTimer(HEAD_OF_QUEUE_WAIT_TIME, StatsOptions.METRICS_ONLY);
+        mergeSuspendTime = sp.getTimer(MERGE_SUSPEND_TIME, StatsOptions.METRICS_ONLY);
+        mergeLockTime = sp.getTimer(MERGE_LOCK_TIME, StatsOptions.METRICS_ONLY);
+        mergeCommitHookTime = sp.getTimer(MERGE_COMMIT_HOOK_TIME, StatsOptions.METRICS_ONLY);
+        mergeChangesApplied = sp.getTimer(MERGE_CHANGES_APPLIED_TIME, StatsOptions.METRICS_ONLY);
+        mergeChangesRate = sp.getMeter(MERGE_CHANGES_RATE, StatsOptions.METRICS_ONLY);
 
         branchCommitRate = sp.getMeter(BRANCH_COMMIT_COUNT, StatsOptions.DEFAULT);
         mergeBranchCommitRate = sp.getMeter(MERGE_BRANCH_COMMIT_COUNT, StatsOptions.DEFAULT);
@@ -168,29 +189,60 @@ public class DocumentNodeStoreStats implements DocumentNodeStoreStatsCollector {
     }
 
     @Override
-    public void doneMergeBranch(int numCommits) {
+    public void doneMergeBranch(int numCommits, int numChanges) {
         mergeBranchCommitRate.mark(numCommits);
+        mergeChangesRate.mark(numChanges);
     }
 
     @Override
-    public void doneMerge(int numRetries, long time, boolean suspended, boolean exclusive) {
+    public void doneMerge(int numChanges,
+                          int numRetries,
+                          long timeMillis,
+                          long suspendMillis,
+                          boolean exclusive) {
         mergeSuccessRate.mark();
         mergeSuccessRetries.update(numRetries);
-        mergeSuccessTime.update(time, TimeUnit.MILLISECONDS);
+        mergeSuccessTime.update(timeMillis, TimeUnit.MILLISECONDS);
+
+        if (numChanges > 0) {
+            mergeSuccessNormalizedTime.update(timeMillis / numChanges, TimeUnit.MILLISECONDS);
+            mergeChangesRate.mark(numChanges);
+        }
 
         if (exclusive) {
             mergeSuccessExclusive.mark();
         }
 
-        if (suspended) {
+        mergeSuspendTime.update(suspendMillis, TimeUnit.MILLISECONDS);
+        if (suspendMillis > 0) {
             mergeSuccessSuspended.mark();
         }
     }
 
     @Override
-    public void failedMerge(int numRetries, long timeMillis, boolean suspended, boolean exclusive) {
+    public void failedMerge(int numRetries, long timeMillis, long suspendMillis, boolean exclusive) {
         if (exclusive){
             mergeFailedExclusive.mark();
         }
+    }
+
+    @Override
+    public void doneWaitUntilHead(long waitMicros) {
+        headOfQueueWaitTime.update(waitMicros, TimeUnit.MICROSECONDS);
+    }
+
+    @Override
+    public void doneMergeLockAcquired(long timeMicros) {
+        mergeLockTime.update(timeMicros, TimeUnit.MICROSECONDS);
+    }
+
+    @Override
+    public void doneCommitHookProcessed(long timeMicros) {
+        mergeCommitHookTime.update(timeMicros, TimeUnit.MICROSECONDS);
+    }
+
+    @Override
+    public void doneChangesApplied(long timeMicros) {
+        mergeChangesApplied.update(timeMicros, TimeUnit.MICROSECONDS);
     }
 }

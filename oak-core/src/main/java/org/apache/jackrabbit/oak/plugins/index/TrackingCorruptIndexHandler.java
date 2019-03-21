@@ -46,6 +46,9 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
+
+    static final String CORRUPT_INDEX_METER_NAME = "corrupt-index";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Clock clock = Clock.SIMPLE;
     private long errorWarnIntervalMillis = TimeUnit.MINUTES.toMillis(15);
@@ -88,9 +91,10 @@ public class TrackingCorruptIndexHandler implements CorruptIndexHandler {
             CorruptIndexInfo info = indexes.remove(indexPath);
             if (info != null){
                 log.info("Index at [{}] which was so far failing {} is now working again.", info.path, info.getStats());
-            } else if (meter != null) {
-                meter.mark();
             }
+        }
+        if (meter != null) {
+            meter.mark(indexes.size());
         }
     }
 

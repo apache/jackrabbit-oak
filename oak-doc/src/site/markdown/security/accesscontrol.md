@@ -28,7 +28,7 @@ read [Using the Access Control Management API](accesscontrol/editing.html) for
 a comprehensive list of method calls as well as examples that may be used to
 edit the access control content of the repository.
 
-<a name="jcr_api"/>
+<a name="jcr_api"></a>
 ### JCR API
 
 Access Control Management is an optional feature defined by [JSR 283] consisting of
@@ -58,7 +58,7 @@ The JCR access control management has the following characteristics:
 - *effect*: policies bound to a given node only take effect upon `Session.save()`. Access to properties is defined by the their parent node.
 - *scope*: a given policy may not only affect the node it is bound to but may have an effect on accessibility of items elsewhere in the workspace.
 
-<a name="jackrabbit_api"/>
+<a name="jackrabbit_api"></a>
 ### Jackrabbit API
 
 The Jackrabbit API defines various access control related extensions to the
@@ -80,7 +80,7 @@ The following interfaces and extensions are defined:
 - `JackrabbitAccessControlList`
 - `JackrabbitAccessControlEntry`
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extensions
 
 Oak defines the following interfaces extending the access control management API:
@@ -102,7 +102,7 @@ Oak 1.0 defines a dedicated restriction management API. See
 [Restriction Management](authorization/restriction.html) for details and further
 information regarding extensibility and pluggability.
 
-<a name="utilities"/>
+<a name="utilities"></a>
 ### Utilities
 
 The jcr-commons module present with Jackrabbit provide some access control related
@@ -124,14 +124,14 @@ the complete list of methods.
     acMgr.setPolicy(path, acl);
     session.save();
 
-<a name="default_implementation"/>
+<a name="default_implementation"></a>
 ### Characteristics of the Default Implementation
 
 The behavior of the default access control implementation is described in sections 
 [Access Control Management: The Default Implementation](accesscontrol/default.html)  
 and [Restriction Management](authorization/restriction.html).
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The configuration of the access control management implementation is handled
@@ -146,7 +146,7 @@ methods:
 
 The supported configuration options of the default implementation are described in the corresponding [section](accesscontrol/default.html#configuration).
 
-<a name="further_reading"/>
+<a name="further_reading"></a>
 ### Further Reading
 
 - [Differences wrt Jackrabbit 2.x](accesscontrol/differences.html)

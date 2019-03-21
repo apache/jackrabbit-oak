@@ -51,7 +51,7 @@ class ItemNamePattern implements RestrictionPattern {
 
     @Override
     public boolean matches(@NotNull String path) {
-        return (PathUtils.denotesRoot(path) ? false : names.contains(PathUtils.getName(path)));
+        return (!PathUtils.denotesRoot(path) && names.contains(PathUtils.getName(path)));
     }
 
     @Override
@@ -61,25 +61,16 @@ class ItemNamePattern implements RestrictionPattern {
     }
 
     //-------------------------------------------------------------< Object >---
-    /**
-     * @see Object#hashCode()
-     */
     @Override
     public int hashCode() {
         return names.hashCode();
     }
 
-    /**
-     * @see Object#toString()
-     */
     @Override
     public String toString() {
         return names.toString();
     }
 
-    /**
-     * @see Object#equals(Object)
-     */
     @Override
     public boolean equals(Object obj) {
         if (obj == this) {

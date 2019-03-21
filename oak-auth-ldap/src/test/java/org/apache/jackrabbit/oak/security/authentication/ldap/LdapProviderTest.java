@@ -110,7 +110,7 @@ public class LdapProviderTest {
 
     protected LdapIdentityProvider createIDP() {
         //The attribute "mail" is excluded deliberately
-        return createIDP(new String[] { "objectclass", "uid", "givenname", "description", "sn"});
+        return createIDP(new String[] { "objectclass", "uid", "givenname", "description", "sn", "cn"});
     }
 
     protected LdapIdentityProvider createIDP(String[] userProperties) {
@@ -174,6 +174,13 @@ public class LdapProviderTest {
     public void testGetUserByRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_USER1_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
+        assertTrue("User instance", id instanceof ExternalUser);
+        assertEquals("User ID", TEST_USER1_UID, id.getId());
+        providerConfig.setUseUidForExtId(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+        ref = new ExternalIdentityRef(TEST_USER1_UID, IDP_NAME);
+        id = idp.getIdentity(ref);
         assertTrue("User instance", id instanceof ExternalUser);
         assertEquals("User ID", TEST_USER1_UID, id.getId());
     }
@@ -362,12 +369,23 @@ public class LdapProviderTest {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_USER1_DN, "foobar");
         ExternalIdentity id = idp.getIdentity(ref);
         assertNull("Foreign ref must be null", id);
+        providerConfig.setUseUidForExtId(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+        ref = new ExternalIdentityRef(TEST_USER1_UID, "foobar");
+        id = idp.getIdentity(ref);
+        assertNull("Foreign ref must be null", id);
     }
 
     @Test
     public void testGetUnknownUserByRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("bla=foo," + TEST_USER1_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
+        assertNull("Unknown user must return null", id);
+        providerConfig.setUseUidForExtId(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+        id = idp.getIdentity(ref);
         assertNull("Unknown user must return null", id);
     }
 
@@ -376,6 +394,12 @@ public class LdapProviderTest {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_GROUP1_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("Group instance", id instanceof ExternalGroup);
+        assertEquals("Group Name", TEST_GROUP1_NAME, id.getId());
+        providerConfig.setUseUidForExtId(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+        ref = new ExternalIdentityRef(TEST_GROUP1_NAME, IDP_NAME);
+        id = idp.getIdentity(ref);
         assertEquals("Group Name", TEST_GROUP1_NAME, id.getId());
     }
 
@@ -391,8 +415,16 @@ public class LdapProviderTest {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_GROUP1_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("Group instance", id instanceof ExternalGroup);
-
         ExternalGroup grp = (ExternalGroup) id;
+        assertIfEquals("Group members", TEST_GROUP1_MEMBERS, grp.getDeclaredMembers());
+
+        providerConfig.setUseUidForExtId(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+        ref = new ExternalIdentityRef(TEST_GROUP1_NAME, IDP_NAME);
+        id = idp.getIdentity(ref);
+        assertTrue("Group instance", id instanceof ExternalGroup);
+        grp = (ExternalGroup) id;
         assertIfEquals("Group members", TEST_GROUP1_MEMBERS, grp.getDeclaredMembers());
     }
 
@@ -402,12 +434,28 @@ public class LdapProviderTest {
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("User instance", id instanceof ExternalUser);
         assertIfEquals("Groups", TEST_USER1_GROUPS, id.getDeclaredGroups());
+
+        providerConfig.setUseUidForExtId(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+        ref = new ExternalIdentityRef(TEST_USER1_UID, IDP_NAME);
+        id = idp.getIdentity(ref);
+        assertTrue("User instance", id instanceof ExternalUser);
+        assertIfEquals("Groups", TEST_USER1_GROUPS, id.getDeclaredGroups());
     }
 
     @Test
     public void testGetGroups2() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_USER0_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
+        assertTrue("User instance", id instanceof ExternalUser);
+        assertIfEquals("Groups", TEST_USER0_GROUPS, id.getDeclaredGroups());
+
+        providerConfig.setUseUidForExtId(true);
+        idp.close();
+        idp = new LdapIdentityProvider(providerConfig);
+        ref = new ExternalIdentityRef(TEST_USER0_UID, IDP_NAME);
+        id = idp.getIdentity(ref);
         assertTrue("User instance", id instanceof ExternalUser);
         assertIfEquals("Groups", TEST_USER0_GROUPS, id.getDeclaredGroups());
     }

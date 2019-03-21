@@ -244,10 +244,10 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                 log.error(error, e.getMessage());
             } catch (CommitFailedException | RepositoryException e) {
                 // conflict while committing changes
-                log.warn(error, e.getMessage());
+                log.error(error, e.getMessage());
             }
         } else {
-            log.warn("Unable to get/create token store for user " + userId);
+            log.error("Unable to get/create token store for user {}.", userId);
         }
         return null;
     }
@@ -417,6 +417,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * new token node.
      *
      */
+    @NotNull
     private TokenInfo createTokenNode(@NotNull Tree parent, @NotNull String tokenName,
                                       long expTime, @NotNull String uuid,
                                       @NotNull String id, Map<String, ?> attributes)
@@ -433,12 +434,11 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
         tokenNode.setProperty(TOKEN_ATTRIBUTE_KEY, keyHash);
         setExpirationTime(tokenNode, expTime);
 
-        for (String name : attributes.keySet()) {
+        attributes.forEach((name, value) -> {
             if (!RESERVED_ATTRIBUTES.contains(name)) {
-                String attr = attributes.get(name).toString();
-                tokenNode.setProperty(name, attr);
+                tokenNode.setProperty(name, value.toString());
             }
-        }
+        });
         return new TokenInfoImpl(tokenNode, token, id, null);
     }
 
@@ -492,7 +492,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * Method that determines if the cleanup should run or not based on the
      * randomly generated token's first char, this decreases the chances to 1/8.
      *
-     * @param tkn
+     * @param token The target token
      * @return true if the cleanup should run
      */
     static boolean shouldRunCleanup(@NotNull String token) {
@@ -526,8 +526,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             expirationTime = getExpirationTime(tokenTree, Long.MIN_VALUE);
             key = TreeUtil.getString(tokenTree, TOKEN_ATTRIBUTE_KEY);
 
-            mandatoryAttributes = new HashMap();
-            publicAttributes = new HashMap();
+            mandatoryAttributes = new HashMap<>();
+            publicAttributes = new HashMap<>();
             for (PropertyState propertyState : tokenTree.getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue(STRING);
@@ -618,7 +618,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             if (pos > -1) {
                 tk = tk.substring(pos + 1);
             }
-            if (key == null || !PasswordUtil.isSame(key, getKeyValue(tk, userId))) {
+            if (!PasswordUtil.isSame(key, getKeyValue(tk, userId))) {
                 return false;
             }
 
@@ -633,13 +633,12 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             // update set of informative attributes on the credentials
             // based on the properties present on the token node.
             Collection<String> attrNames = Arrays.asList(tokenCredentials.getAttributeNames());
-            for (Map.Entry<String,String> attr : publicAttributes.entrySet()) {
-                String name = attr.getKey();
+            publicAttributes.forEach((name, value) -> {
                 if (!attrNames.contains(name)) {
-                    tokenCredentials.setAttribute(name, attr.getValue());
+                    tokenCredentials.setAttribute(name, value);
 
                 }
-            }
+            });
             return true;
         }
 

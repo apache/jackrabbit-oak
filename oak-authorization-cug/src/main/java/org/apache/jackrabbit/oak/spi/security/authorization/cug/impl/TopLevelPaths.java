@@ -31,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
  */
 class TopLevelPaths implements CugConstants {
 
-    static final long NONE = -1;
+    private static final long NONE = -1;
     static final long MAX_CNT = 10;
 
     private final Root root;

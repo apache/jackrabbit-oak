@@ -99,8 +99,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         // setup
         this.store = store;
-        Set<String> userNames = new HashSet<String>(principals.size());
-        Set<String> groupNames = new HashSet<String>(principals.size());
+        Set<String> userNames = new HashSet<>(principals.size());
+        Set<String> groupNames = new HashSet<>(principals.size());
         for (Principal principal : principals) {
             if (GroupPrincipals.isGroup(principal)) {
                 groupNames.add(principal.getName());
@@ -109,8 +109,16 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
         }
 
-        userStore = new PermissionEntryProviderImpl(store, userNames, options);
-        groupStore = new PermissionEntryProviderImpl(store, groupNames, options);
+        if (!userNames.isEmpty()) {
+            userStore = new PermissionEntryProviderImpl(store, userNames, options);
+        } else {
+            userStore = null;
+        }
+        if (!groupNames.isEmpty()) {
+            groupStore = new PermissionEntryProviderImpl(store, groupNames, options);
+        } else {
+            groupStore = null;
+        }
 
         typeProvider = new TreeTypeProvider(ctx);
     }
@@ -138,8 +146,12 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         this.versionManager = null;
 
         store.flush(root);
-        userStore.flush();
-        groupStore.flush();
+        if (userStore != null) {
+            userStore.flush();
+        }
+        if (groupStore != null) {
+            groupStore.flush();
+        }
     }
 
     @NotNull
@@ -183,7 +195,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         log.warn("Cannot retrieve versionable node for " + tree.getPath());
                         return EMPTY;
                     } else {
-                        /**
+                        /*
                          * NOTE: may return wrong results in case of restrictions
                          * that would match the path of the versionable node
                          * (or item in the subtree) but that item no longer exists
@@ -227,7 +239,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     @NotNull
     private TreePermission buildParentPermission(@NotNull Tree tree) {
-        List<Tree> trees = new ArrayList<Tree>();
+        List<Tree> trees = new ArrayList<>();
         while (!tree.isRoot()) {
             tree = tree.getParent();
             trees.add(0, tree);
@@ -414,9 +426,17 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     @NotNull
     private Iterator<PermissionEntry> getEntryIterator(@NotNull EntryPredicate predicate) {
-        Iterator<PermissionEntry> userEntries = userStore.getEntryIterator(predicate);
-        Iterator<PermissionEntry> groupEntries = groupStore.getEntryIterator(predicate);
-        return concat(userEntries, groupEntries);
+        if (userStore != null && groupStore != null) {
+            Iterator<PermissionEntry> userEntries = userStore.getEntryIterator(predicate);
+            Iterator<PermissionEntry> groupEntries = groupStore.getEntryIterator(predicate);
+            return concat(userEntries, groupEntries);
+        } else if (userStore != null) {
+            return userStore.getEntryIterator(predicate);
+        } else if (groupStore != null) {
+            return groupStore.getEntryIterator(predicate);
+        } else {
+            return Collections.emptyIterator();
+        }
     }
 
     @Nullable
@@ -548,33 +568,45 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         @Override
         public boolean isGranted(long permissions) {
             EntryPredicate predicate = new EntryPredicate(tree, null, Permissions.respectParentPermissions(permissions));
-            Iterator<PermissionEntry> it = concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
+            Iterator<PermissionEntry> it = getIterator(predicate);
             return hasPermissions(it, predicate, permissions, tree.getPath());
         }
 
         @Override
         public boolean isGranted(long permissions, @NotNull PropertyState property) {
             EntryPredicate predicate = new EntryPredicate(tree, property, Permissions.respectParentPermissions(permissions));
-            Iterator<PermissionEntry> it = concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
+            Iterator<PermissionEntry> it = getIterator(predicate);
             return hasPermissions(it, predicate, permissions, tree.getPath());
         }
 
         //--------------------------------------------------------< private >---
         private Iterator<PermissionEntry> getIterator(@Nullable PropertyState property, long permissions) {
             EntryPredicate predicate = new EntryPredicate(tree, property, Permissions.respectParentPermissions(permissions));
-            return concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
+            return getIterator(predicate);
+        }
+
+        private Iterator<PermissionEntry> getIterator(@NotNull EntryPredicate predicate) {
+            if (userStore != null && groupStore != null) {
+                return concat(new LazyIterator(this, true, predicate), new LazyIterator(this, false, predicate));
+            } else if (userStore != null) {
+                return new LazyIterator(this, true, predicate);
+            } else if (groupStore != null) {
+                return new LazyIterator(this, false, predicate);
+            } else {
+                return Collections.emptyIterator();
+            }
         }
 
         private Iterator<PermissionEntry> getUserEntries() {
             if (userEntries == null) {
-                userEntries = userStore.getEntries(tree);
+                userEntries = userStore != null ? userStore.getEntries(tree) : Collections.emptyList();
             }
             return userEntries.iterator();
         }
 
         private Iterator<PermissionEntry> getGroupEntries() {
             if (groupEntries == null) {
-                groupEntries = groupStore.getEntries(tree);
+                groupEntries = groupStore != null ? groupStore.getEntries(tree) : Collections.emptyList();
             }
             return groupEntries.iterator();
         }
@@ -663,7 +695,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         private final boolean isDefaultPaths;
 
         private DefaultReadPolicy(Set<String> readPaths) {
-            this.readPaths = readPaths.toArray(new String[readPaths.size()]);
+            this.readPaths = readPaths.toArray(new String[0]);
             altReadPaths = new String[readPaths.size()];
             int i = 0;
             for (String p : this.readPaths) {

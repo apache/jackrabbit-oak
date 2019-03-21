@@ -19,10 +19,11 @@ package org.apache.jackrabbit.oak.segment.file.tar.index;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.CRC32;
+
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 /**
  * Builds an index incrementally in memory, and serializes its contents into a
@@ -106,7 +107,7 @@ public class IndexWriter {
         int dataSize = entries.size() * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE;
         int totalSize = ((dataSize + blockSize - 1) / blockSize) * blockSize;
 
-        ByteBuffer buffer = ByteBuffer.allocate(totalSize);
+        Buffer buffer = Buffer.allocate(totalSize);
         buffer.position(totalSize - dataSize);
 
         entries.sort((a, b) -> {

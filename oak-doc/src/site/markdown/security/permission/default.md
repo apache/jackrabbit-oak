@@ -24,7 +24,7 @@ The default implementation of the `PermissionProvider` interface evaluates permi
 based on the information stored in a dedicated part of the repository content call
 the [permission store](#permissionStore).
 
-<a name="default_implementation"/>
+<a name="default_implementation"></a>
 ### Characteristics of the Permission Evaluation
 
 #### Regular Permission Evaluation
@@ -65,10 +65,10 @@ that deal with the administrator (i.e. `User#isAdmin`).
 
 See section [Multiplexing support in the PermissionStore](multiplexing.html).
 
-<a name="representation"/>
+<a name="representation"></a>
 ### Representation in the Repository
 
-<a name="permissionStore"/>
+<a name="permissionStore"></a>
 #### Permission Store
 
 The permission evaluation present with Oak 1.0 keeps a dedicated location where
@@ -155,7 +155,7 @@ implementation (`VersionablePathHook`).
       mixin
       - * (PATH) protected ABORT
 
-<a name="validation"/>
+<a name="validation"></a>
 ### Validation
 
 The consistency of this content structure is asserted by a dedicated `PermissionValidator`.
@@ -167,7 +167,7 @@ The corresponding errors are all of type `Access` with the following codes:
 | 0021              | Version storage: Node creation without version history   |
 | 0022              | Version storage: Removal of intermediate node            |
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 #### Configuration Parameters

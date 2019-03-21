@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Represents an instance of an index.
  *
@@ -34,6 +36,7 @@ public interface IndexNode {
 
     int getIndexNodeId();
 
+    @Nullable
     IndexStatistics getIndexStatistics();
 
 }

@@ -92,6 +92,9 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +115,9 @@ public class QueryImpl implements Query {
     public final static int MAX_UNION = Integer.getInteger("oak.sql2MaxUnion", 1000);
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
-    
+
+    private static final String INDEX_UNAVAILABLE = "INDEX-UNAVAILABLE";
+
     private final QueryExecutionStats stats;
 
     private boolean potentiallySlowTraversalQueryLogged;
@@ -425,7 +430,8 @@ public class QueryImpl implements Query {
         for (int i = 0; i < columns.length; i++) {
             ColumnImpl c = columns[i];
             boolean distinct = true;
-            if (QueryConstants.JCR_SCORE.equals(c.getPropertyName())) {
+            String propName = c.getPropertyName();
+            if (QueryConstants.JCR_SCORE.equals(propName) || propName.startsWith(QueryConstants.REP_FACET + "(")) {
                 distinct = false;
             }
             distinctColumns[i] = distinct;
@@ -977,6 +983,7 @@ public class QueryImpl implements Query {
         // track similar costs
         QueryIndex almostBestIndex = null;
         double almostBestCost = Double.POSITIVE_INFINITY;
+        IndexPlan almostBestPlan = null;
 
         // Sort the indexes according to their minimum cost to be able to skip the remaining indexes if the cost of the
         // current index is below the minimum cost of the next index.
@@ -1027,10 +1034,18 @@ public class QueryImpl implements Query {
                         String msg = String.format("cost for [%s] of type (%s) with plan [%s] is %1.2f", p.getPlanName(), indexName, plan, c);
                         logDebug(msg);
                     }
+                    if (c < bestCost) {
+                        almostBestCost = bestCost;
+                        almostBestIndex = bestIndex;
+                        almostBestPlan = bestPlan;
 
-                    if (c < cost) {
-                        cost = c;
-                        indexPlan = p;
+                        bestCost = c;
+                        bestIndex = index;
+                        bestPlan = p;
+                    } else if (c - bestCost <= 0.1) {
+                        almostBestCost = c;
+                        almostBestIndex = index;
+                        almostBestPlan = p;
                     }
                 }
 
@@ -1061,8 +1076,12 @@ public class QueryImpl implements Query {
         }
 
         if (LOG.isDebugEnabled() && Math.abs(bestCost - almostBestCost) <= 0.1) {
-            LOG.debug("selected index {} and {} have similar costs {} and {} for query {} - check query explanation / index definitions",
+            String msg = (bestPlan != null && almostBestPlan != null) ? String.format("selected index %s with plan %s and %s with plan %s have similar costs %s and %s for query %s - " +
+                            "check query explanation / index definitions",
+                    bestIndex, bestPlan.getPlanName(), almostBestIndex, almostBestPlan.getPlanName(), bestCost, almostBestCost, filter.toString())
+                    :String.format("selected index %s and %s have similar costs %s and %s for query %s - check query explanation / index definitions",
                     bestIndex, almostBestIndex, bestCost, almostBestCost, filter.toString());
+            LOG.debug(msg);
         }
 
         potentiallySlowTraversalQuery = bestIndex == null;
@@ -1081,7 +1100,19 @@ public class QueryImpl implements Query {
                 }
             }
         }
-        return new SelectorExecutionPlan(filter.getSelector(), bestIndex, 
+
+        if (potentiallySlowTraversalQuery || bestIndex == null) {
+            LOG.debug("no proper index was found for filter {}", filter);
+            StatisticsProvider statisticsProvider = getSettings().getStatisticsProvider();
+            if (statisticsProvider != null) {
+                HistogramStats histogram = statisticsProvider.getHistogram(INDEX_UNAVAILABLE, StatsOptions.METRICS_ONLY);
+                if (histogram != null) {
+                    histogram.update(1);
+                }
+            }
+        }
+
+        return new SelectorExecutionPlan(filter.getSelector(), bestIndex,
                 bestPlan, bestCost);
     }
     

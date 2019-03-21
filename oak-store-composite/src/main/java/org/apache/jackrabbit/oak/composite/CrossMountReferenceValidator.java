@@ -156,8 +156,14 @@ public class CrossMountReferenceValidator extends DefaultValidator {
         Type<?> type = property.getType();
         if (type == Type.REFERENCE) {
             newReferences.put(property.getValue(Type.REFERENCE), getPath());
+        } else if (type == Type.WEAKREFERENCE) {
+            newReferences.put(property.getValue(Type.WEAKREFERENCE), getPath());
         } else if (type == Type.REFERENCES) {
             for (String r : property.getValue(Type.REFERENCES)) {
+                newReferences.put(r, getPath());
+            }
+        } else if (type == Type.WEAKREFERENCES) {
+            for (String r : property.getValue(Type.WEAKREFERENCES)) {
                 newReferences.put(r, getPath());
             }
         } else if (type == Type.STRING && JCR_UUID.equals(property.getName())) {

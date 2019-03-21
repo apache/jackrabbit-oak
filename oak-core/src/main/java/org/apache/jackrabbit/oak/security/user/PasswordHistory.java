@@ -42,7 +42,7 @@ final class PasswordHistory implements UserConstants {
     private final int maxSize;
     private final boolean isEnabled;
 
-    public PasswordHistory(@NotNull ConfigurationParameters config) {
+    PasswordHistory(@NotNull ConfigurationParameters config) {
         maxSize = Math.min(HISTORY_MAX_SIZE, config.getConfigValue(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE));
         isEnabled = maxSize > UserConstants.PASSWORD_HISTORY_DISABLED_SIZE;
     }
@@ -86,7 +86,7 @@ final class PasswordHistory implements UserConstants {
             PropertyState historyProp = passwordTree.getProperty(UserConstants.REP_PWD_HISTORY);
 
             // insert the current (old) password at the beginning of the password history
-            List<String> historyEntries = (historyProp == null) ? new ArrayList<String>() : Lists.newArrayList(historyProp.getValue(Type.STRINGS));
+            List<String> historyEntries = (historyProp == null) ? new ArrayList<>() : Lists.newArrayList(historyProp.getValue(Type.STRINGS));
             historyEntries.add(0, currentPasswordHash);
 
             /* remove oldest history entries exceeding configured history max size (e.g. after

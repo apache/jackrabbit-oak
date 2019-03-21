@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -39,9 +40,12 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 public class NodeTypeTest extends AbstractRepositoryTest {
 
@@ -130,9 +134,11 @@ public class NodeTypeTest extends AbstractRepositoryTest {
     @Test
     public void trivialUpdates() throws Exception {
         // test various trivial updates that should not trigger repository scans
-        // whether or not the repository scan happens can not be checked directly;
-        // it requires inspecting the INFO level log 
+        // whether or not the repository scan happens can not be checked
+        // directly; it requires inspecting the INFO level log, thus the use of
+        // LogCustomizer
 
+        LogCustomizer logCustomizer;
         String[] types = new String[] { "trivial1", "trivial2" };
         ArrayList<NodeTypeTemplate> ntt = new ArrayList<NodeTypeTemplate>();
 
@@ -161,12 +167,23 @@ public class NodeTypeTest extends AbstractRepositoryTest {
             opts.setRequiredType(PropertyType.STRING);
 
             NodeTypeTemplate nt = manager.createNodeTypeTemplate(ntd);
-            List pdt = nt.getPropertyDefinitionTemplates();
+            @SuppressWarnings("unchecked")
+            List<PropertyDefinitionTemplate> pdt = nt.getPropertyDefinitionTemplates();
             pdt.add(opt);
             pdt.add(opts);
             ntt.add(nt);
         }
-        manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+
+        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
+                .contains("appear to be trivial, repository will not be scanned").create();
+        try {
+            logCustomizer.starting();
+            manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+            assertEquals("captured INFO log should contain exactly one entry, but is: " + logCustomizer.getLogs(), 1,
+                    logCustomizer.getLogs().size());
+        } finally {
+            logCustomizer.finished();
+        }
 
         // make one optional property mandatory
         ntt = new ArrayList<NodeTypeTemplate>();
@@ -183,13 +200,24 @@ public class NodeTypeTest extends AbstractRepositoryTest {
             opts.setRequiredType(PropertyType.STRING);
 
             NodeTypeTemplate nt = manager.createNodeTypeTemplate(ntd);
-            List pdt = nt.getPropertyDefinitionTemplates();
+            @SuppressWarnings("unchecked")
+            List<PropertyDefinitionTemplate> pdt = nt.getPropertyDefinitionTemplates();
             pdt.add(opt);
             pdt.add(opts);
             ntt.add(nt);
         }
         // but update both node types
-        manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+
+        logCustomizer = LogCustomizer.forLogger(TypeEditorProvider.class.getName()).enable(Level.INFO)
+                .contains("appear not to be trivial, starting repository scan").create();
+        try {
+            logCustomizer.starting();
+            manager.registerNodeTypes(ntt.toArray(new NodeTypeTemplate[0]), true);
+            assertEquals("captured INFO log should contain exactly one entry, but is: " + logCustomizer.getLogs(), 1,
+                    logCustomizer.getLogs().size());
+        } finally {
+            logCustomizer.finished();
+        }
     }
 
     @Test
@@ -322,5 +350,52 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         // now we should be able to remove the property
         n.getProperty("test:mandatory").remove();
         session.save();
+    }
+
+    @Test
+    public void addReferenceableToExistingType() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+
+        // 1. Create node type that is not referencable
+        String cnd = "<'test'='http://www.apache.org/jackrabbit/test'> [test:AlmostReferenceable] > nt:base";
+        CndImporter.registerNodeTypes(new StringReader(cnd), session, false);
+
+        // 2. Create test node
+        Node newnode = root.addNode("testnode", "test:AlmostReferenceable");
+        session.save();
+
+        // 3. Attempt node type upgrade, adding optional jcr:uuid property
+        cnd = "<'test'='http://www.apache.org/jackrabbit/test'> [test:AlmostReferenceable] > nt:base - jcr:uuid (string)";
+        CndImporter.registerNodeTypes(new StringReader(cnd), session, true);
+
+        // 4. fill jcr:uuid
+        newnode = root.getNode("testnode");
+        String uuid = UUID.randomUUID().toString();
+        newnode.setProperty("jcr:uuid", uuid);
+        session.save();
+        // property is not a system property yet
+        assertFalse(newnode.getProperty("jcr:uuid").getDefinition().isAutoCreated());
+        assertFalse(newnode.getProperty("jcr:uuid").getDefinition().isProtected());
+
+        // 5. Attempt node type upgrade, making the type referencable
+        cnd = "<'test'='http://www.apache.org/jackrabbit/test'> [test:AlmostReferenceable] > mix:referenceable, nt:base";
+        CndImporter.registerNodeTypes(new StringReader(cnd), session, true);
+
+        // 6. new node should be referenceable and have jcr:uuid
+        newnode = root.getNode("testnode");
+        assertTrue(newnode.hasProperty("jcr:uuid"));
+        // property is now a system property
+        assertTrue(newnode.getProperty("jcr:uuid").getDefinition().isAutoCreated());
+        assertTrue(newnode.getProperty("jcr:uuid").getDefinition().isProtected());
+
+        // 7. try to reference the node
+        Node refnode = root.addNode("refnode", "nt:unstructured");
+        refnode.setProperty("refprop", newnode);
+        session.save();
+
+        // 8. get the node by UUID
+        Node found = session.getNodeByIdentifier(uuid);
+        assertTrue(found.isSame(newnode));
     }
 }

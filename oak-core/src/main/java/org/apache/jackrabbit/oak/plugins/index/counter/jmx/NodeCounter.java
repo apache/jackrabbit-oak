@@ -218,14 +218,20 @@ public class NodeCounter extends AnnotatedStandardMBean implements NodeCounterMB
             }
             buff.append(path).append(": ").append(count);
         }
-        if (level <= 0) {
-            return;
-        }
         NodeState s = child(store.getRoot(),
                 PathUtils.elements(path));
         if (!s.exists()) {
             return;
         }
+        if (count == 0 && level < 0) {
+            if (buff.length() > 0) {
+                buff.append(",\n");
+            }
+            buff.append(path).append(": 0");
+        }
+        if (level <= 0) {
+            return;
+        }        
         ArrayList<String> names = new ArrayList<String>();
         for (ChildNodeEntry c : s.getChildNodeEntries()) {
             names.add(c.getName());

@@ -18,13 +18,16 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.AccessDeniedException;
 
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
-class Utils {
+final class Utils {
 
     private Utils() {}
 
@@ -75,5 +78,13 @@ class Utils {
                 return t;
             }
         }
+    }
+
+    static boolean canHavePasswordExpired(@NotNull String userId, @NotNull ConfigurationParameters config) {
+        return !UserUtil.isAdmin(config, userId) || config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
+    }
+
+    static boolean canHavePasswordExpired(@NotNull User user, @NotNull ConfigurationParameters config) {
+        return !user.isAdmin() || config.getConfigValue(UserAuthentication.PARAM_PASSWORD_EXPIRY_FOR_ADMIN, false);
     }
 }

@@ -159,6 +159,7 @@ public class PrincipalConfigurationImplTest extends AbstractSecurityTest {
 
         PrincipalConfigurationImpl pc = new PrincipalConfigurationImpl() {
 
+            @NotNull
             @Override
             public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
                 return pp;

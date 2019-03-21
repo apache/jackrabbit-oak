@@ -101,7 +101,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(LoginModuleImpl.class);
 
-    protected static final Set<Class> SUPPORTED_CREDENTIALS = new HashSet<Class>(3);
+    protected static final Set<Class> SUPPORTED_CREDENTIALS = new HashSet<>(3);
     static {
         SUPPORTED_CREDENTIALS.add(SimpleCredentials.class);
         SUPPORTED_CREDENTIALS.add(GuestCredentials.class);
@@ -214,12 +214,11 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             } else {
                 try {
                     NameCallback callback = new NameCallback("User-ID: ");
-                    callbackHandler.handle(new Callback[]{callback});
+                    callbackHandler.handle(new Callback[] { callback });
                     uid = callback.getName();
-                } catch (UnsupportedCallbackException e) {
-                    log.warn("Credentials- or NameCallback must be supported");
-                } catch (IOException e) {
-                    log.error("Name-Callback failed: " + e.getMessage());
+                } catch (IOException | UnsupportedCallbackException e) {
+                    onError();
+                    log.error(e.getMessage(), e);
                 }
             }
         }
@@ -263,12 +262,10 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         } else {
             creds = credentials;
         }
-        Map<String, Object> attributes = new HashMap<String, Object>();
+        Map<String, Object> attributes = new HashMap<>();
         Object shared = sharedState.get(SHARED_KEY_ATTRIBUTES);
         if (shared instanceof Map) {
-            for (Object key : ((Map) shared).keySet()) {
-                attributes.put(key.toString(), ((Map) shared).get(key));
-            }
+            ((Map<?,?>) shared).forEach((key, value) -> attributes.put(key.toString(), value));
         } else if (creds instanceof SimpleCredentials) {
             SimpleCredentials sc = (SimpleCredentials) creds;
             for (String attrName : sc.getAttributeNames()) {

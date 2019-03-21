@@ -20,23 +20,24 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.QueryOptions;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -53,7 +54,10 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +69,13 @@ import com.google.common.collect.Iterables;
  */
 public class SelectorImpl extends SourceImpl {
     private static final Logger LOG = LoggerFactory.getLogger(SelectorImpl.class);
+    
+    private static final Boolean TIMER_DISABLED = Boolean.getBoolean("oak.query.timerDisabled");
+    
+    // The sample rate. Must be a power of 2.
+    private static final Long TIMER_SAMPLE_RATE = Long.getLong("oak.query.timerSampleRate", 0x100);
+    
+    private static long timerSampleCounter;
     
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     private SelectorExecutionPlan plan;
@@ -150,13 +161,15 @@ public class SelectorImpl extends SourceImpl {
      * These constraints are collected during the prepare phase.
      */
     private final List<ConstraintImpl> selectorConstraints = newArrayList();
-
+    
     private Cursor cursor;
     private IndexRow currentRow;
     private int scanCount;
-    
-    private Tree lastTree;
-    private String lastPath;
+
+    private String planIndexName;
+    private TimerStats timerDuration;
+
+    private CachedTree cachedTree;
 
     public SelectorImpl(NodeTypeInfo nodeTypeInfo, String selectorName) {
         this.nodeTypeInfo = checkNotNull(nodeTypeInfo);
@@ -243,6 +256,8 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public void unprepare() {
         plan = null;
+        planIndexName = null;
+        timerDuration = null;
         selectorConstraints.clear();
         isParent = false;
         joinCondition = null;
@@ -308,22 +323,68 @@ public class SelectorImpl extends SourceImpl {
             isParent = true;
         }
     }
-
+    
     @Override
     public void execute(NodeState rootState) {
+        long start = startTimer();
+        try {
+            executeInternal(rootState);
+        } finally {
+            stopTimer(start, true);
+        }
+    }
+    
+    private void executeInternal(NodeState rootState) {
         QueryIndex index = plan.getIndex();
+        timerDuration = null;
         if (index == null) {
             cursor = Cursors.newPathCursor(new ArrayList<String>(), query.getSettings());
+            planIndexName = "traverse";
             return;
         }
         IndexPlan p = plan.getIndexPlan();
         if (p != null) {
+            planIndexName = p.getPlanName();
             p.setFilter(createFilter(false));
             AdvancedQueryIndex adv = (AdvancedQueryIndex) index;
             cursor = adv.query(p, rootState);
         } else {
-            cursor = index.query(createFilter(false), rootState);
+            FilterImpl f = createFilter(false);
+            planIndexName = index.getIndexName(f, rootState);
+            cursor = index.query(f, rootState);
         }
+    }
+    
+    private long startTimer() {
+        if (TIMER_DISABLED) {
+            return -1;
+        }
+        return System.nanoTime();
+    }
+    
+    private void stopTimer(long start, boolean execute) {
+        if (start == -1) {
+            return;
+        }
+        long timeNanos = System.nanoTime() - start;
+        if (timeNanos > 1000000) {
+            // always measure slow events (slower than 1 ms)
+            measure(timeNanos);
+        } else if ((timerSampleCounter++ & (TIMER_SAMPLE_RATE - 1)) == 0) {
+            // only measure each xth fast event, but multiply by x, so on
+            // average measured times are correct
+            measure(timeNanos * TIMER_SAMPLE_RATE);
+        }
+    }
+
+    private void measure(long timeNanos) {
+        TimerStats t = timerDuration;
+        if (t == null) {
+            // reuse the timer (in the normal case)
+            t = timerDuration = query.getSettings().getStatisticsProvider().
+                getTimer("QUERY_DURATION_" + planIndexName, StatsOptions.METRICS_ONLY);
+        }
+        t.update(timeNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -431,6 +492,15 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public boolean next() {
+        long start = startTimer();
+        try {
+            return nextInternal();
+        } finally {
+            stopTimer(start, true);
+        }
+    }
+    
+    private boolean nextInternal() {
         while (cursor != null && cursor.hasNext()) {
             scanCount++;
             query.getQueryExecutionStats().scan(1, scanCount);
@@ -458,8 +528,7 @@ public class SelectorImpl extends SourceImpl {
                 // where [a].[jcr:path] = $path"
                 // because not checking would reveal existence
                 // of the child node
-                Tree tree = getTree(currentRow.getPath());
-                if (tree == null || !tree.exists()) {
+                if (!getCachedTree(currentRow.getPath()).exists()) {
                     continue;
                 }
             }
@@ -496,24 +565,21 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateTypeMatch() {
-        Tree tree = getTree(currentRow.getPath());
-        if (tree == null || !tree.exists()) {
+        CachedTree ct = getCachedTree(currentRow.getPath());
+        if (!ct.exists()) {
             return false;
         }
-        PropertyState primary = tree.getProperty(JCR_PRIMARYTYPE);
-        if (primary != null && primary.getType() == NAME) {
-            String name = primary.getValue(NAME);
-            if (primaryTypes.contains(name)) {
-                return true;
-            }
+
+        Tree t = ct.getTree();
+        LazyValue<Tree> readOnly = ct.getReadOnlyTree();
+        String primaryTypeName = TreeUtil.getPrimaryTypeName(t, readOnly);
+        if (primaryTypeName != null && primaryTypes.contains(primaryTypeName)) {
+            return true;
         }
 
-        PropertyState mixins = tree.getProperty(JCR_MIXINTYPES);
-        if (mixins != null && mixins.getType() == NAMES) {
-            for (String name : mixins.getValue(NAMES)) {
-                if (mixinTypes.contains(name)) {
-                    return true;
-                }
+        for (String mixinName : TreeUtil.getMixinTypeNames(t, readOnly)) {
+            if (mixinTypes.contains(mixinName)) {
+                return true;
             }
         }
         // no matches found
@@ -534,12 +600,18 @@ public class SelectorImpl extends SourceImpl {
      * 
      * @return the current tree, or null
      */
+    @Nullable
     public Tree currentTree() {
         String path = currentPath();
         if (path == null) {
             return null;
         }
         return getTree(path);
+    }
+
+    @Nullable
+    Tree getTree(@NotNull String path) {
+        return getCachedTree(path).getTree();
     }
     
     /**
@@ -548,12 +620,12 @@ public class SelectorImpl extends SourceImpl {
      * @param path the path
      * @return the tree, or null
      */
-    Tree getTree(String path) {
-        if (lastPath == null || !path.equals(lastPath)) {
-            lastTree = query.getTree(path);
-            lastPath = path;
+    @NotNull
+    private CachedTree getCachedTree(@NotNull  String path) {
+        if (cachedTree == null || !cachedTree.denotes(path)) {
+            cachedTree = new CachedTree(path, query);
         }
-        return lastTree;
+        return cachedTree;
     }
 
     /**
@@ -815,5 +887,43 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public SourceImpl copyOf() {
         return new SelectorImpl(nodeTypeInfo, selectorName);
+    }
+
+    private static final class CachedTree {
+
+        private final String path;
+        private final Tree tree;
+        private final ExecutionContext ctx;
+        private final LazyValue<Tree> readOnlyTree;
+
+        private CachedTree(@NotNull String path, @NotNull QueryImpl query) {
+            this.path = path;
+            this.tree = query.getTree(path);
+            this.ctx = query.getExecutionContext();
+            this.readOnlyTree = new LazyValue<Tree>() {
+                @Override
+                protected Tree createValue() {
+                    return new ImmutableRoot(ctx.getBaseState()).getTree(path);
+                }
+            };
+        }
+
+        private boolean denotes(@NotNull String path) {
+            return this.path.equals(path);
+        }
+
+        private boolean exists() {
+            return tree != null && tree.exists();
+        }
+
+        @Nullable
+        private Tree getTree() {
+            return tree;
+        }
+
+        @NotNull
+        private LazyValue<Tree> getReadOnlyTree() {
+            return readOnlyTree;
+        }
     }
 }

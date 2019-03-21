@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.util.EnumSet;
@@ -36,6 +35,7 @@ import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +75,7 @@ public final class AzureUtilities {
         }
     }
 
-    public static void readBufferFully(CloudBlob blob, ByteBuffer buffer) throws IOException {
+    public static void readBufferFully(CloudBlob blob, Buffer buffer) throws IOException {
         try {
             blob.download(new ByteBufferOutputStream(buffer));
             buffer.flip();
@@ -105,7 +105,7 @@ public final class AzureUtilities {
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
             String dir) throws InvalidKeyException, URISyntaxException, StorageException {
-        CloudStorageAccount cloud = CloudStorageAccount.parse(connection.toString());
+        CloudStorageAccount cloud = CloudStorageAccount.parse(connection);
         CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(containerName);
         container.createIfNotExists();
 
@@ -115,19 +115,19 @@ public final class AzureUtilities {
     private static class ByteBufferOutputStream extends OutputStream {
 
         @NotNull
-        private final ByteBuffer buffer;
+        private final Buffer buffer;
 
-        public ByteBufferOutputStream(@NotNull ByteBuffer buffer) {
+        public ByteBufferOutputStream(@NotNull Buffer buffer) {
             this.buffer = buffer;
         }
 
         @Override
-        public void write(int b) throws IOException {
+        public void write(int b) {
             buffer.put((byte)b);
         }
 
         @Override
-        public void write(@NotNull byte[] bytes, int offset, int length) throws IOException {
+        public void write(@NotNull byte[] bytes, int offset, int length) {
             buffer.put(bytes, offset, length);
         }
     }

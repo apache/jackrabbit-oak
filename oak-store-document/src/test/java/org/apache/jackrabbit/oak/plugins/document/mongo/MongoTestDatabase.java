@@ -22,13 +22,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.ChangeStreamIterable;
+import com.mongodb.client.ClientSession;
 import com.mongodb.client.ListCollectionsIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.CreateViewOptions;
-import com.mongodb.session.ClientSession;
 
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -282,5 +283,58 @@ class MongoTestDatabase implements MongoDatabase {
                            @NotNull List<? extends Bson> pipeline,
                            @NotNull CreateViewOptions createViewOptions) {
         db.createView(clientSession, viewName, viewOn, pipeline, createViewOptions);
+    }
+
+    @NotNull
+    @Override
+    public ChangeStreamIterable<Document> watch() {
+        return db.watch();
+    }
+
+    @NotNull
+    @Override
+    public <TResult> ChangeStreamIterable<TResult> watch(@NotNull Class<TResult> tResultClass) {
+        return db.watch(tResultClass);
+    }
+
+    @NotNull
+    @Override
+    public ChangeStreamIterable<Document> watch(@NotNull List<? extends Bson> pipeline) {
+        return db.watch(pipeline);
+    }
+
+    @NotNull
+    @Override
+    public <TResult> ChangeStreamIterable<TResult> watch(@NotNull List<? extends Bson> pipeline,
+                                                         @NotNull Class<TResult> tResultClass) {
+        return db.watch(pipeline, tResultClass);
+    }
+
+    @NotNull
+    @Override
+    public ChangeStreamIterable<Document> watch(@NotNull ClientSession clientSession) {
+        return db.watch(clientSession);
+    }
+
+    @NotNull
+    @Override
+    public <TResult> ChangeStreamIterable<TResult> watch(@NotNull ClientSession clientSession,
+                                                         @NotNull Class<TResult> tResultClass) {
+        return db.watch(clientSession, tResultClass);
+    }
+
+    @NotNull
+    @Override
+    public ChangeStreamIterable<Document> watch(@NotNull ClientSession clientSession,
+                                                @NotNull List<? extends Bson> pipeline) {
+        return db.watch(clientSession, pipeline);
+    }
+
+    @NotNull
+    @Override
+    public <TResult> ChangeStreamIterable<TResult> watch(@NotNull ClientSession clientSession,
+                                                         @NotNull List<? extends Bson> pipeline,
+                                                         @NotNull Class<TResult> tResultClass) {
+        return db.watch(clientSession, pipeline, tResultClass);
     }
 }

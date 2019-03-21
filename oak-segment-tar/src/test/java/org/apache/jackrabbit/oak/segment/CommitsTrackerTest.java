@@ -19,120 +19,119 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static java.util.concurrent.Executors.newFixedThreadPool;
+import static com.google.common.collect.Lists.newArrayList;
+import static java.lang.Math.min;
+import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.segment.CommitsTracker.Commit;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.junit.Test;
 
 public class CommitsTrackerTest {
 
-    static class DequedCommitTask implements Runnable {
+    private static class CommitTask {
         private final CommitsTracker commitsTracker;
-        private final String threadName;
-        private final CountDownLatch latch;
+        private final Thread thread;
+        private final GCGeneration gcGeneration;
 
-        public DequedCommitTask(CommitsTracker commitsTracker, String threadName, CountDownLatch latch) {
+        CommitTask(CommitsTracker commitsTracker, GCGeneration gcGeneration) {
             this.commitsTracker = commitsTracker;
-            this.threadName = threadName;
-            this.latch = latch;
+            this.thread = new Thread();
+            this.gcGeneration = gcGeneration;
         }
 
-        @Override
-        public void run() {
-            Thread.currentThread().setName(threadName);
-            commitsTracker.trackDequedCommitOf(Thread.currentThread());
-            latch.countDown();
+        CommitTask(CommitsTracker commitsTracker, String threadName, GCGeneration gcGeneration) {
+            this.commitsTracker = commitsTracker;
+            this.thread = new Thread(threadName);
+            this.gcGeneration = gcGeneration;
+        }
+
+        public void queued() {
+            commitsTracker.trackQueuedCommitOf(thread, () -> gcGeneration);
+        }
+
+        public void dequeue() {
+            commitsTracker.trackDequedCommitOf(thread);
+        }
+
+        public void executed() {
+            commitsTracker.trackExecutedCommitOf(thread);
+        }
+
+        public String getThreadName() {
+            return thread.getName();
+        }
+
+        public GCGeneration getGcGeneration() {
+            return gcGeneration;
         }
     }
 
     @Test
     public void testCommitsCountOthers() throws InterruptedException {
-        CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, 10, false);
-        ExecutorService executorService = newFixedThreadPool(30);
-        final CountDownLatch addLatch = new CountDownLatch(25);
+        final int OTHER_WRITERS_LIMIT = 10;
+        CommitsTracker commitsTracker = new CommitsTracker(new String[] {}, OTHER_WRITERS_LIMIT);
 
-        Runnable executedCommitTask = () -> {
-            commitsTracker.trackExecutedCommitOf(Thread.currentThread());
-            addLatch.countDown();
-        };
+        List<CommitTask> queued = newArrayList();
+        for (int k = 0; k < 20; k++) {
+            CommitTask commitTask = new CommitTask(commitsTracker, newGCGeneration(k, k, false));
+            queued.add(commitTask);
+            commitTask.queued();
+            assertNull(commitsTracker.getCurrentWriter());
+            assertEquals(queued.size(), commitsTracker.getQueuedWritersMap().size());
+            assertEquals(0, commitsTracker.getCommitsCountOthers().size());
+            assertTrue(commitsTracker.getCommitsCountPerGroupLastMinute().isEmpty());
+        }
 
-        Runnable queuedCommitTask = () -> {
-            Thread t = Thread.currentThread();
-            commitsTracker.trackQueuedCommitOf(t);
-            addLatch.countDown();
-        };
+        List<CommitTask> executed = newArrayList();
+        for (int k = 0; k < OTHER_WRITERS_LIMIT + 3; k++) {
+            CommitTask commitTask = queued.remove(0);
+            executed.add(commitTask);
+            commitTask.dequeue();
+            Commit currentWriter = commitsTracker.getCurrentWriter();
+            assertNotNull(currentWriter);
+            assertEquals(commitTask.getGcGeneration(), currentWriter.getGCGeneration());
+            assertEquals(commitTask.getThreadName(), commitsTracker.getCurrentWriter().getThreadName());
 
-        try {
-            for (int i = 0; i < 20; i++) {
-                executorService.submit(executedCommitTask);
-            }
-
-            for (int i = 0; i < 5; i++) {
-                executorService.submit(queuedCommitTask);
-            }
-
-            addLatch.await();
-            Map<String, Long> commitsCountOthersMap = commitsTracker.getCommitsCountOthers();
-            Map<String, String> queuedWritersMap = commitsTracker.getQueuedWritersMap();
-
-            assertTrue(commitsCountOthersMap.size() >= 10);
-            assertTrue(commitsCountOthersMap.size() < 20);
-            assertEquals(5, queuedWritersMap.size());
-
-            CountDownLatch removeLatch = new CountDownLatch(5);
-            for (String threadName : queuedWritersMap.keySet()) {
-                executorService.submit(new DequedCommitTask(commitsTracker, threadName, removeLatch));
-            }
-
-            removeLatch.await();
-            queuedWritersMap = commitsTracker.getQueuedWritersMap();
-            assertEquals(0, queuedWritersMap.size());
-        } finally {
-            commitsTracker.close();
-            new ExecutorCloser(executorService).close();
+            commitTask.executed();
+            assertNull(commitsTracker.getCurrentWriter());
+            assertEquals(queued.size(), commitsTracker.getQueuedWritersMap().size());
+            assertEquals(min(OTHER_WRITERS_LIMIT, executed.size()), commitsTracker.getCommitsCountOthers().size());
+            assertTrue(commitsTracker.getCommitsCountPerGroupLastMinute().isEmpty());
         }
     }
 
     @Test
     public void testCommitsCountPerGroup() throws InterruptedException {
         String[] groups = new String[] { "Thread-1.*", "Thread-2.*", "Thread-3.*" };
-        CommitsTracker commitsTracker = new CommitsTracker(groups, 10, false);
-        ExecutorService executorService = newFixedThreadPool(30);
-        AtomicInteger counter = new AtomicInteger(10);
-        final CountDownLatch latch = new CountDownLatch(30);
+        CommitsTracker commitsTracker = new CommitsTracker(groups, 10);
 
-        Runnable executedCommitTask = () -> {
-            Thread.currentThread().setName("Thread-" + counter.getAndIncrement());
-            commitsTracker.trackExecutedCommitOf(Thread.currentThread());
-            latch.countDown();
-        };
-
-        try {
-            for (int i = 0; i < 30; i++) {
-                executorService.submit(executedCommitTask);
-            }
-            
-            latch.await();
-            
-            Map<String, Long> commitsCountPerGroup = commitsTracker.getCommitsCountPerGroup();
-            assertEquals(3, commitsCountPerGroup.size());
-            
-            for (String group : groups) {
-                Long groupCount = commitsCountPerGroup.get(group);
-                assertNotNull(groupCount);
-                assertEquals(10, (long) groupCount);
-            }
-        } finally {
-            commitsTracker.close();
-            new ExecutorCloser(executorService).close();
+        for (int k = 0; k < 40; k++) {
+            CommitTask commitTask = new CommitTask(
+                    commitsTracker,
+                    "Thread-" + (10 + k),
+                    GCGeneration.NULL);
+            commitTask.queued();
+            commitTask.dequeue();
+            commitTask.executed();
         }
+
+        Map<String, Long> commitsCountPerGroup = commitsTracker.getCommitsCountPerGroupLastMinute();
+        assertEquals(3, commitsCountPerGroup.size());
+
+        for (String group : groups) {
+            Long groupCount = commitsCountPerGroup.get(group);
+            assertNotNull(groupCount);
+            assertEquals(10, (long) groupCount);
+        }
+
+        assertEquals(10, commitsTracker.getCommitsCountOthers().size());
     }
 }

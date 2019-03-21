@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -27,15 +30,24 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
+import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
+import org.slf4j.event.Level;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 
@@ -135,6 +147,87 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             assertThat(info.keySet(), hasItem("journal.count"));
             assertThat(info.keySet(), hasItem("settings.count"));
             // info.forEach((k, v) -> System.err.println(k +": " + v));
+        }
+    }
+
+    @Test
+    public void testRDBJDBCPerfLog() {
+        if (ds instanceof RDBDocumentStore) {
+            LogCustomizer logCustomizerRead = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName() + ".perf")
+                    .enable(Level.TRACE).matchesRegex("read: .*").create();
+            logCustomizerRead.starting();
+            LogCustomizer logCustomizerQuery = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName() + ".perf")
+                    .enable(Level.TRACE).matchesRegex("quer.*").create();
+            logCustomizerQuery.starting();
+
+            try {
+                String id1 = Utils.getIdFromPath("/testRDBJDBCPerfLog");
+                String id2 = Utils.getIdFromPath("/testRDBJDBCPerfLog/foo");
+                UpdateOp up1 = new UpdateOp(id1, true);
+                up1.set(NodeDocument.MODIFIED_IN_SECS, 12345L);
+                super.removeMe.add(id1);
+                super.ds.create(Collection.NODES, Collections.singletonList(up1));
+                super.ds.invalidateCache();
+                super.ds.find(Collection.NODES, id1);
+                int count = logCustomizerRead.getLogs().size();
+                assertTrue(count > 0);
+                super.ds.find(Collection.NODES, id1);
+                assertEquals("no new log entry expected but got: " + logCustomizerRead.getLogs(), count,
+                        logCustomizerRead.getLogs().size());
+                count = logCustomizerRead.getLogs().size();
+
+                // add a child node
+                UpdateOp up2 = new UpdateOp(id2, true);
+                up1.set(NodeDocument.MODIFIED_IN_SECS, 12346L);
+                super.removeMe.add(id2);
+                super.ds.create(Collection.NODES, Collections.singletonList(up2));
+
+                // query
+                List<NodeDocument> results = super.ds.query(Collection.NODES, Utils.getKeyLowerLimit("/testRDBJDBCPerfLog"), Utils.getKeyUpperLimit("/testRDBJDBCPerfLog"), 10);
+                assertEquals(1, results.size());
+                assertEquals(2, logCustomizerQuery.getLogs().size());
+            } finally {
+                logCustomizerRead.finished();
+                logCustomizerQuery.finished();
+            }
+        }
+    }
+
+    // stolen from MongoMissingLastRevSeekerTest
+    @Test
+    public void completeResult() throws Exception {
+        if (ds instanceof RDBDocumentStore) {
+            final int NUM_DOCS = 200;
+            // populate the store
+            List<UpdateOp> ops = Lists.newArrayList();
+            for (int i = 0; i < NUM_DOCS; i++) {
+                UpdateOp op = new UpdateOp(getIdFromPath("/lastRevnode-" + i), true);
+                NodeDocument.setModified(op, new Revision(i * 5000, 0, 1));
+                ops.add(op);
+                removeMe.add(op.getId());
+            }
+            assertTrue(ds.create(NODES, ops));
+
+            Set<String> ids = Sets.newHashSet();
+            boolean updated = false;
+            MissingLastRevSeeker seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) ds, Clock.SIMPLE);
+            for (NodeDocument doc : seeker.getCandidates(0)) {
+                if (!updated) {
+                    // as soon as we have the first document, update
+                    // /lastRevnode-0
+                    UpdateOp op = new UpdateOp(getIdFromPath("/lastRevnode-0"), false);
+                    // and push out the _modified timestamp
+                    NodeDocument.setModified(op, new Revision(NUM_DOCS * 5000, 0, 1));
+                    // even after the update the document matches the query
+                    assertNotNull(ds.findAndUpdate(NODES, op));
+                    updated = true;
+                }
+                if (doc.getPath().startsWith("/lastRevnode-")) {
+                    ids.add(doc.getId());
+                }
+            }
+            // seeker must return all documents
+            assertEquals(NUM_DOCS, ids.size());
         }
     }
 }

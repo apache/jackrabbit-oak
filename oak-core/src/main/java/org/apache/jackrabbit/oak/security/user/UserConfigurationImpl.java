@@ -151,6 +151,12 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         int passwordHistorySize() default UserConstants.PASSWORD_HISTORY_DISABLED_SIZE;
 
         @AttributeDefinition(
+                name = "Enable Password Expiry for Admin User",
+                description = "When enabled, the admin user will also be subject to password expiry. The default value is false for backwards compatibility."
+        )
+        boolean passwordExpiryForAdmin() default false;
+
+        @AttributeDefinition(
                 name = "Principal Cache Expiration",
                 description = "Optional configuration defining the number of milliseconds " +
                         "until the principal cache expires (NOTE: currently only respected for principal resolution " +

@@ -81,7 +81,7 @@ public class CugExcludeDefaultTest {
 
     @Test
     public void testPrincipals() {
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         principals.add(new PrincipalImpl("test"));
         principals.add(new ItemBasedPrincipal() {
             @Override
@@ -103,7 +103,7 @@ public class CugExcludeDefaultTest {
 
     @Test
     public void testMixedPrincipals() {
-        Set<Principal> principals = new HashSet<Principal>();
+        Set<Principal> principals = new HashSet<>();
         principals.add(new PrincipalImpl("test"));
         principals.add(new SystemUserPrincipal() {
             @Override

@@ -50,11 +50,10 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class MultiplexingIndexWriterTest {
     @Rule
@@ -64,9 +63,12 @@ public class MultiplexingIndexWriterTest {
     private NodeBuilder builder = EMPTY_NODE.builder();
     private LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
     private MountInfoProvider mip = Mounts.newBuilder()
-            .mount("foo", "/libs", "/apps").build();
+            .mount("foo", "/libs", "/apps")
+            .readOnlyMount("ro", "/ro-tree")
+            .build();
 
     private Mount fooMount;
+    private Mount roMount;
     private Mount defaultMount;
     private LuceneIndexWriterConfig writerConfig = new LuceneIndexWriterConfig();
 
@@ -86,6 +88,17 @@ public class MultiplexingIndexWriterTest {
     public void closeWithoutChange() throws Exception{
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        assertTrue(writer.close(0));
+        assertEquals(2, Iterables.size(getIndexDirNodes()));
+        assertFalse(builder.hasChildNode(indexDirName(roMount)));
+        assertEquals(0, numDocs(fooMount));
+        assertEquals(0, numDocs(defaultMount));
+
+        // delete all dir nodes first
+        getIndexDirNodes().stream().forEach(dirName -> builder.getChildNode(dirName).remove());
+
+        // empty index dir doesn't get created during normal indexing
+        writer = factory.newInstance(defn, builder, false);
         assertFalse(writer.close(0));
         assertEquals(0, Iterables.size(getIndexDirNodes()));
     }
@@ -95,21 +108,43 @@ public class MultiplexingIndexWriterTest {
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
 
+
         //1. Add entry in foo mount
         writer.updateDocument("/libs/config", newDoc("/libs/config"));
         writer.close(0);
-        List<String> names = getIndexDirNodes();
-        //Only dirNode for mount foo should be present
-        assertThat(names, contains(indexDirName(fooMount)));
+
+        // only mount foo must have indexed document
+        assertEquals(1, numDocs(fooMount));
+        assertEquals(0, numDocs(defaultMount));
 
         //2. Add entry in default mount
         writer = factory.newInstance(defn, builder, true);
         writer.updateDocument("/content", newDoc("/content"));
         writer.close(0);
 
-        names = getIndexDirNodes();
-        //Dir names for both mounts should be present
-        assertThat(names, containsInAnyOrder(indexDirName(fooMount), indexDirName(defaultMount)));
+
+        // both mounts must have 1 document each
+        assertEquals(1, numDocs(fooMount));
+        assertEquals(1, numDocs(defaultMount));
+
+        //3. Add another entry in foo mount without reindexing
+        writer = factory.newInstance(defn, builder, false);
+        writer.updateDocument("/libs/config1", newDoc("/libs/config1"));
+        writer.close(0);
+
+        // only mount foo must have indexed document
+        assertEquals(2, numDocs(fooMount));
+        assertEquals(1, numDocs(defaultMount));
+
+        //4. Add another entry in default mount without reindexing
+        writer = factory.newInstance(defn, builder, false);
+        writer.updateDocument("/content1", newDoc("/content1"));
+        writer.close(0);
+
+
+        // both mounts must have 1 document each
+        assertEquals(2, numDocs(fooMount));
+        assertEquals(2, numDocs(defaultMount));
     }
 
     @Test
@@ -125,18 +160,39 @@ public class MultiplexingIndexWriterTest {
         //1. Add entry in foo mount
         writer.updateDocument("/libs/config", newDoc("/libs/config"));
         writer.close(0);
-        List<String> names = getIndexDirNodes();
-        //Only dirNode for mount foo should be present
-        assertThat(names, contains(indexDirName(fooMount)));
+
+        // only mount foo must have indexed document
+        assertEquals(1, numDocs(fooMount));
+        assertEquals(0, numDocs(defaultMount));
 
         //2. Add entry in default mount
         writer = factory.newInstance(defn, builder, true);
         writer.updateDocument("/content", newDoc("/content"));
         writer.close(0);
 
-        names = getIndexDirNodes();
-        //Dir names for both mounts should be present
-        assertThat(names, containsInAnyOrder(indexDirName(fooMount), indexDirName(defaultMount)));
+
+        // both mounts must have 1 document each
+        assertEquals(1, numDocs(fooMount));
+        assertEquals(1, numDocs(defaultMount));
+
+        //3. Add another entry in foo mount without reindexing
+        writer = factory.newInstance(defn, builder, false);
+        writer.updateDocument("/libs/config1", newDoc("/libs/config1"));
+        writer.close(0);
+
+        // only mount foo must have indexed document
+        assertEquals(2, numDocs(fooMount));
+        assertEquals(1, numDocs(defaultMount));
+
+        //4. Add another entry in default mount without reindexing
+        writer = factory.newInstance(defn, builder, false);
+        writer.updateDocument("/content1", newDoc("/content1"));
+        writer.close(0);
+
+
+        // both mounts must have 1 document each
+        assertEquals(2, numDocs(fooMount));
+        assertEquals(2, numDocs(defaultMount));
     }
 
     @Test
@@ -195,6 +251,7 @@ public class MultiplexingIndexWriterTest {
 
     private void initializeMounts() {
         fooMount = mip.getMountByName("foo");
+        roMount = mip.getMountByName("ro");
         defaultMount = mip.getDefaultMount();
     }
 
@@ -213,6 +270,14 @@ public class MultiplexingIndexWriterTest {
             }
         }
         return names;
+    }
+
+    private void deleteIndexDirNodes(){
+        for (String name : builder.getChildNodeNames()) {
+            if (MultiplexersLucene.isIndexDirName(name)){
+                builder.getChildNode(name).remove();
+            }
+        }
     }
 
     private String indexDirName(Mount m){

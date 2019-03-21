@@ -107,7 +107,7 @@ public class ExternalIdentityRefTest {
 
     @Test
     public void testNotEquals() {
-        Map<ExternalIdentityRef, ExternalIdentityRef> notEqual = new HashMap();
+        Map<ExternalIdentityRef, ExternalIdentityRef> notEqual = new HashMap<>();
         notEqual.put(refNullProvider, ref);
         notEqual.put(refEmptyProvider, ref);
         notEqual.put(refNullProvider, null);

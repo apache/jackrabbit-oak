@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.isFinalCommitRootUpdate;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -55,20 +56,6 @@ public class CommitRootUpdateTest {
                 }
                 return doc;
             }
-
-            private boolean isFinalCommitRootUpdate(UpdateOp update) {
-                boolean finalUpdate = true;
-                for (Map.Entry<Key, Operation> op : update.getChanges().entrySet()) {
-                    String name = op.getKey().getName();
-                    if (NodeDocument.isRevisionsEntry(name)
-                            || NodeDocument.MODIFIED_IN_SECS.equals(name)) {
-                        continue;
-                    }
-                    finalUpdate = false;
-                    break;
-                }
-                return finalUpdate;
-            }
         };
 
         DocumentNodeStore ns = builderProvider.newBuilder()
@@ -80,10 +67,11 @@ public class CommitRootUpdateTest {
 
         throwAfterUpdate.set(true);
         boolean success = false;
-        Commit c = ns.newCommit(ns.getHeadRevision(), null);
+        Commit c = ns.newCommit(changes -> {
+            changes.addNode("/foo/node");
+            changes.addNode("/bar/node");
+        }, ns.getHeadRevision(), null);
         try {
-            c.addNode(new DocumentNodeState(ns, "/foo/node", c.getBaseRevision()));
-            c.addNode(new DocumentNodeState(ns, "/bar/node", c.getBaseRevision()));
             c.apply();
             success = true;
         } finally {
@@ -136,9 +124,10 @@ public class CommitRootUpdateTest {
 
         throwAfterUpdate.set(true);
         boolean success = false;
-        Commit c = ns.newCommit(ns.getHeadRevision(), null);
+        Commit c = ns.newCommit(
+                changes -> changes.updateProperty("/foo", "p", "v"),
+                ns.getHeadRevision(), null);
         try {
-            c.updateProperty("/foo", "p", "v");
             c.apply();
             success = true;
         } finally {

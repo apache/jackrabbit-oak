@@ -52,12 +52,11 @@ public interface SyncHandler {
      * @param userManager user manager for managing authorizables
      * @param valueFactory the value factory to create values
      * @return the sync context
-     * @throws SyncException if an error occurs
      */
     @NotNull
     SyncContext createContext(@NotNull ExternalIdentityProvider idp,
                               @NotNull UserManager userManager,
-                              @NotNull ValueFactory valueFactory) throws SyncException;
+                              @NotNull ValueFactory valueFactory);
 
     /**
      * Tries to find the identity with the given authorizable id or name.

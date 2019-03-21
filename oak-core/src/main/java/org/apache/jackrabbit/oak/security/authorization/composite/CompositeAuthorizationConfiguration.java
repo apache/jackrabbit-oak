@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
@@ -99,7 +100,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
          * @return corresponding composition type, or {@code AND} if the
          *         provided type is {@code null}
          */
-        public static CompositionType fromString(@Nullable String type) {
+        static CompositionType fromString(@Nullable String type) {
             String or = OR.name();
             if (or.equals(type) || or.toLowerCase().equals(type)) {
                 return OR;
@@ -146,7 +147,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 0: return RestrictionProvider.EMPTY;
             case 1: return configurations.get(0).getRestrictionProvider();
             default:
-                List<RestrictionProvider> rps = new ArrayList<RestrictionProvider>(configurations.size());
+                Set<RestrictionProvider> rps = new LinkedHashSet<>(configurations.size());
                 for (AuthorizationConfiguration c : configurations) {
                     RestrictionProvider rp = c.getRestrictionProvider();
                     if (RestrictionProvider.EMPTY != rp) {

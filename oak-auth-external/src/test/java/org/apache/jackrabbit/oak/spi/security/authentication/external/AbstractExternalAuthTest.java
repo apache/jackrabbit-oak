@@ -158,7 +158,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
 
     protected DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig syncConfig = new DefaultSyncConfig();
-        Map<String, String> mapping = new HashMap<String, String>();
+        Map<String, String> mapping = new HashMap<>();
         mapping.put("name", "name");
         mapping.put("email", "email");
         mapping.put("profile/name", "profile/name");

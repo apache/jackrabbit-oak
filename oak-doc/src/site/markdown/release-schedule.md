@@ -21,9 +21,10 @@ Here is the frequency where the team **aim** to cut new releases. As we
 strive for quality rather than frequency the date may slip according
 to needs.
 
-- Trunk: every 2 weeks (2 / month, ~26 /year)
-- 1.8: every 4 weeks (1 / month, ~12 / year)
-- 1.6: every 8 weeks (1 / other month, ~6 / year)
-- 1.4: every 13 weeks (1 / quarter, ~4 / year)
-- 1.2: every 13 weeks (1 / quarter, ~4 / year)
-- 1.0: every 26 weeks (~2 / year)
+- Trunk: TBD
+- 1.10: every 4 weeks (~12 / year)
+- 1.8: every 8 weeks (~6 / year)
+- 1.6: every 13 weeks (~4 / year)
+- 1.4: every 26 weeks (~2 / year)
+- 1.2: every 52 weeks (1 / year)
+- 1.0: every 52 weeks (1 / year)

@@ -18,20 +18,20 @@
  */
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
+import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
-import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class GraphLoader {
 
@@ -48,8 +48,8 @@ public final class GraphLoader {
      * @return the graph or {@code null} if one was not found
      * @throws IOException if the tar file could not be read
      */
-    public static ByteBuffer loadGraph(ReaderAtEnd readerAtEnd) throws IOException {
-        ByteBuffer meta = readerAtEnd.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
+    public static Buffer loadGraph(ReaderAtEnd readerAtEnd) throws IOException {
+        Buffer meta = readerAtEnd.readAtEnd(FOOTER_SIZE, FOOTER_SIZE);
 
         int crc32 = meta.getInt();
         int count = meta.getInt();
@@ -71,7 +71,7 @@ public final class GraphLoader {
             return null;
         }
 
-        ByteBuffer graph = readerAtEnd.readAtEnd(bytes, bytes);
+        Buffer graph = readerAtEnd.readAtEnd(bytes, bytes);
 
         byte[] b = new byte[bytes - FOOTER_SIZE];
 
@@ -90,7 +90,7 @@ public final class GraphLoader {
         return graph;
     }
 
-    public static Map<UUID, List<UUID>> parseGraph(ByteBuffer buffer) {
+    public static Map<UUID, List<UUID>> parseGraph(Buffer buffer) {
         int nEntries = buffer.getInt(buffer.limit() - 12);
 
         Map<UUID, List<UUID>> graph = newHashMapWithExpectedSize(nEntries);

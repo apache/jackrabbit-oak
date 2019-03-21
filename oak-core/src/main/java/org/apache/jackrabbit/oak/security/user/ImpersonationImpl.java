@@ -52,24 +52,21 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     private final UserImpl user;
     private final PrincipalManager principalManager;
 
-    ImpersonationImpl(@NotNull UserImpl user) throws RepositoryException {
+    ImpersonationImpl(@NotNull UserImpl user) {
         this.user = user;
         this.principalManager = user.getUserManager().getPrincipalManager();
     }
 
     //------------------------------------------------------< Impersonation >---
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Impersonation#getImpersonators()
-     */
     @NotNull
     @Override
-    public PrincipalIterator getImpersonators() throws RepositoryException {
+    public PrincipalIterator getImpersonators() {
         Set<String> impersonators = getImpersonatorNames();
         if (impersonators.isEmpty()) {
             return PrincipalIteratorAdapter.EMPTY;
         } else {
-            Set<Principal> s = new HashSet<Principal>();
+            Set<Principal> s = new HashSet<>();
             for (final String pName : impersonators) {
                 Principal p = principalManager.getPrincipal(pName);
                 if (p == null) {
@@ -83,14 +80,12 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Impersonation#grantImpersonation(Principal)
-     */
     @Override
     public boolean grantImpersonation(@NotNull Principal principal) throws RepositoryException {
         if (!isValidPrincipal(principal)) {
             return false;
         }
+
         String principalName = principal.getName();
         // make sure user does not impersonate himself
         Tree userTree = user.getTree();
@@ -99,6 +94,8 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             log.warn("Cannot grant impersonation to oneself.");
             return false;
         }
+
+        user.getUserManager().onImpersonation(user, principal, true);
 
         Set<String> impersonators = getImpersonatorNames(userTree);
         if (impersonators.add(principalName)) {
@@ -109,12 +106,11 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    /**
-     * @see Impersonation#revokeImpersonation(java.security.Principal)
-     */
     @Override
     public boolean revokeImpersonation(@NotNull Principal principal) throws RepositoryException {
         String pName = principal.getName();
+
+        user.getUserManager().onImpersonation(user, principal, false);
 
         Tree userTree = user.getTree();
         Set<String> impersonators = getImpersonatorNames(userTree);
@@ -126,16 +122,13 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    /**
-     * @see Impersonation#allows(javax.security.auth.Subject)
-     */
     @Override
-    public boolean allows(@Nullable Subject subject) throws RepositoryException {
+    public boolean allows(@Nullable Subject subject) {
         if (subject == null) {
             return false;
         }
 
-        Set<String> principalNames = new HashSet<String>();
+        Set<String> principalNames = new HashSet<>();
         for (Principal principal : subject.getPrincipals()) {
             principalNames.add(principal.getName());
         }
@@ -161,7 +154,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     @NotNull
     private Set<String> getImpersonatorNames(@NotNull Tree userTree) {
-        Set<String> princNames = new HashSet<String>();
+        Set<String> princNames = new HashSet<>();
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         if (impersonators != null) {
             for (String v : impersonators.getValue(STRINGS)) {
@@ -172,7 +165,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     private void updateImpersonatorNames(@NotNull Tree userTree, @NotNull Set<String> principalNames) {
-        if (principalNames == null || principalNames.isEmpty()) {
+        if (principalNames.isEmpty()) {
             userTree.removeProperty(REP_IMPERSONATORS);
         } else {
             userTree.setProperty(REP_IMPERSONATORS, principalNames, Type.STRINGS);

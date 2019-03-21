@@ -45,7 +45,7 @@ public class JdbcToSegmentTest extends AbstractOak2OakTest {
 
     @Override
     protected String[] getArgs() {
-        return new String[] { "--src-user", "sa", "--src-password", "sa", source.getDescription(),
+        return new String[] { "--src-user", "sa", "--src-password", "pwd", source.getDescription(),
                 destination.getDescription() };
     }
 

@@ -133,14 +133,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAgg
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ORDERED_PROP_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_ANALYZED;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE_SCOPE_INDEX;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.*;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
@@ -393,7 +386,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String propabQuery = "/jcr:root//element(*, nt:file)";
-        System.out.println(explainXpath(propabQuery));
         assertThat(explainXpath(propabQuery), containsString("nodeType"));
     }
 
@@ -1240,7 +1232,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where [propb] < 'g'", asList("/test/c", "/test/d"));
         assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
     }
-
 
     @Test
     public void rangeQueriesWithDate() throws Exception {
@@ -2499,13 +2490,13 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
         root.commit();
 
-        //force CoR
-        executeQuery("SELECT * FROM [mix:title]", SQL2);
+        // force CoR
+        executeQuery("select * from [mix:title] where [jcr:title] = 'x'", SQL2);
 
         assertNotNull(corDir);
         String localPathBeforeReindex = corDir;
 
-        //CoW with re-indexing
+        // CoW with re-indexing
         idx.setProperty("reindex", true);
         root.commit();
 
@@ -2909,6 +2900,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         idxb.indexRule("nt:base").property("foo").propertyIndex();
         Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
         idxb.build(idx);
+        idx.setProperty(PROP_RANDOM_SEED, new Random().nextLong());
         root.commit();
 
         AsyncIndexInfoService asyncService = new AsyncIndexInfoServiceImpl(nodeStore);
@@ -2988,6 +2980,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             String name = split[0];
             Tree child = test.addChild(name);
             child.setProperty("fv", blob, Type.BINARY);
+            children.add(child.getPath());
         }
         root.commit();
 
@@ -3006,7 +2999,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             baseline.clear();
             baseline.addAll(current);
         }
-
     }
 
     @Test
@@ -3014,6 +3006,106 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("fv").useInSimilarity().nodeScopeIndex().propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            int i1 = line.indexOf(',');
+            String name = line.substring(0, i1);
+            String value = line.substring(i1 + 1);
+            Tree child = test.addChild(name);
+            child.setProperty("fv", value, Type.STRING);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        List<String> baseline = new LinkedList<>();
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertNotEquals(baseline, current);
+            baseline.clear();
+            baseline.addAll(current);
+        }
+    }
+
+    @Test
+    public void testRepSimilarWithBinaryFeatureVectorsAndRerank() throws Exception {
+
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex().propertyIndex();
+
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/fvs.csv").toURI();
+        File file = new File(uri);
+
+        Collection<String> children = new LinkedList<>();
+        for (String line : IOUtils.readLines(new FileInputStream(file), Charset.defaultCharset())) {
+            String[] split = line.split(",");
+            List<Double> values = new LinkedList<>();
+            int i = 0;
+            for (String s : split) {
+                if (i > 0) {
+                    values.add(Double.parseDouble(s));
+                }
+                i++;
+            }
+
+            byte[] bytes = SimSearchUtils.toByteArray(values);
+            List<Double> actual = SimSearchUtils.toDoubles(bytes);
+            assertEquals(values, actual);
+
+            Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
+            String name = split[0];
+            Tree child = test.addChild(name);
+            child.setProperty("fv", blob, Type.BINARY);
+            children.add(child.getPath());
+        }
+        root.commit();
+
+        // check that similarity changes across different feature vectors
+        List<String> baseline = new LinkedList<>();
+        for (String similarPath : children) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + similarPath + "')";
+
+            Iterator<String> result = executeQuery(query, "JCR-SQL2").iterator();
+            List<String> current = new LinkedList<>();
+            while (result.hasNext()) {
+                String next = result.next();
+                current.add(next);
+            }
+            assertNotEquals(baseline, current);
+            baseline.clear();
+            baseline.addAll(current);
+        }
+    }
+
+    @Test
+    public void testRepSimilarWithStringFeatureVectorsAndRerank() throws Exception {
+
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex().propertyIndex();
 
         Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
         idxb.build(idx);
@@ -3052,6 +3144,124 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             baseline.clear();
             baseline.addAll(current);
         }
+    }
+
+    @Test
+    public void injectRandomSeedDuringReindex() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+
+        // Push a change to get another indexing cycle run
+        root.getTree("/").addChild("force-index-run");
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+    }
+
+    @Test
+    public void injectRandomSeedDuringRefresh() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+
+        long seed = new Random().nextLong();
+
+        // Push a change to get another indexing cycle run
+        idx.setProperty(PROP_RANDOM_SEED, seed);
+        idx.setProperty(PROP_REFRESH_DEFN, true);
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertEquals("Random seed not updated", seed, defSeed);
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+    }
+
+    @Test
+    public void injectRandomSeedDuringUpdate() throws Exception{
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+
+        long seed = new Random().nextLong();
+
+        // Update seed
+        idx.setProperty(PROP_RANDOM_SEED, seed);
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertEquals("Random seed not updated", seed, defSeed);
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+    }
+
+    @Test
+    public void injectGarbageSeed() throws Exception {
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+
+        long orignalSeed = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath())
+                .getProperty(PROP_RANDOM_SEED)
+                .getValue(Type.LONG);
+
+        // Update seed
+        idx.setProperty(PROP_RANDOM_SEED, "garbage");
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertNotEquals("Random seed not updated", orignalSeed, defSeed);
+        assertNotEquals("Random seed updated to garbage", "garbage", defSeed);
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+    }
+
+    @Test
+    public void injectStringLongSeed() throws Exception {
+        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        idxb.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+        idxb.build(idx);
+
+        root.commit();
+        // Update seed
+        idx.setProperty(PROP_RANDOM_SEED, "-12312");
+        root.commit();
+
+        NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+
+        long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+        long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+
+        assertEquals("Random seed udpated to garbage", -12312, defSeed);
+        assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
     }
 
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths) {

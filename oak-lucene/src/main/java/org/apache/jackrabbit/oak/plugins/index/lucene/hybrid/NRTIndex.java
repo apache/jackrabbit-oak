@@ -59,6 +59,10 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.Directory
 
 
 public class NRTIndex implements Closeable {
+
+    private static final boolean REGULAR_CLOSE = Boolean.getBoolean("oak.lucene.nrt.regularClose");
+    private static final boolean RETAIN_DURING_CLOSE = Boolean.getBoolean("oak.lucene.nrt.retainDuringClose");
+
     private static final AtomicInteger COUNTER = new AtomicInteger();
     private static final Logger log = LoggerFactory.getLogger(NRTIndex.class);
 
@@ -200,10 +204,30 @@ public class NRTIndex implements Closeable {
         assertAllReadersAreClosed();
 
         if (indexWriter != null) {
-            //TODO Close call can possibly be speeded up by
-            //avoiding merge and dropping stuff in memory. To be explored
-            //indexWrite.close(waitForMerges)
-            indexWriter.close();
+
+            long time = System.nanoTime();
+            if (REGULAR_CLOSE) {
+                indexWriter.close();
+            } else {
+                if (RETAIN_DURING_CLOSE) {
+                    // retain entries (old style behavior)
+                } else {
+                    // delete all documents before closing,
+                    // so that closing is faster (less writes are needed)
+                    // (we anyway delete the directory after closing)
+                    indexWriter.deleteAll();
+                }
+                // don't merge, as anyway only keep two generations
+                indexWriter.close(false);
+            }
+            time = System.nanoTime() - time;
+            if (time > 100_000_000) {
+                // slower than 100 ms
+                log.info("Closing time: {} ns", time);
+            } else if (log.isTraceEnabled()) {
+                log.trace("Closing time: {} ns", time);
+            }
+
             sizeHisto.update(dirSize(directory));
             directory.close();
             FileUtils.deleteQuietly(indexDir);

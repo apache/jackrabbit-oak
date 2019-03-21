@@ -183,6 +183,11 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         return getBooleanValueFor(Properties.COLLAPSE_JCR_CONTENT_NODES, OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES);
     }
 
+    @Override
+    public boolean collapseJcrContentParents() {
+        return getBooleanValueFor(Properties.COLLAPSE_JCR_CONTENT_PARENTS, OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_PARENTS);
+    }
+
     @NotNull
     @Override
     public String getCollapsedPathField() {
@@ -260,5 +265,6 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         public static final String USED_PROPERTIES = "usedProperties";
         public static final String COLLAPSE_JCR_CONTENT_NODES = "collapseJcrContentNodes";
         public static final String DEPTH_FIELD= "depthField";
+        public static final String COLLAPSE_JCR_CONTENT_PARENTS = "collapseJcrContentParents";
     }
 }

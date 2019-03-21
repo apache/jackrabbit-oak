@@ -52,9 +52,11 @@ public final class UpdateOp {
         this(id, isNew, false, new HashMap<Key, Operation>(), null);
     }
 
-    private UpdateOp(@NotNull String id, boolean isNew, boolean isDelete,
-                     @NotNull Map<Key, Operation> changes,
-                     @Nullable Map<Key, Condition> conditions) {
+    UpdateOp(@NotNull String id,
+             boolean isNew,
+             boolean isDelete,
+             @NotNull Map<Key, Operation> changes,
+             @Nullable Map<Key, Condition> conditions) {
         this.id = checkNotNull(id, "id must not be null");
         this.isNew = isNew;
         this.isDelete = isDelete;

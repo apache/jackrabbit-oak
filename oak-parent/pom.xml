@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.10-SNAPSHOT</version>
+  <version>1.12-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -43,7 +43,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.17.6</jackrabbit.version>
+    <jackrabbit.version>2.19.1</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -53,16 +53,16 @@
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
     <solr.version>5.5.5</solr.version>
-    <mongo.driver.version>3.6.4</mongo.driver.version>
-    <slf4j.api.version>1.7.25</slf4j.api.version>
-    <slf4j.version>1.7.25</slf4j.version> <!-- sync with logback version -->
+    <mongo.driver.version>3.8.2</mongo.driver.version>
+    <slf4j.api.version>1.7.26</slf4j.api.version>
+    <slf4j.version>1.7.26</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.3</logback.version>
     <h2.version>1.4.194</h2.version>
-    <tika.version>1.19.1</tika.version>
+    <tika.version>1.20</tika.version>
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.9.7</jackson.version>
+    <jackson.version>2.9.8</jackson.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
@@ -186,7 +186,7 @@
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
                 <!-- Set the comparisonVersion to last release from stable branch-->
-                <comparisonVersion>1.8.8</comparisonVersion>
+                <comparisonVersion>1.10.1</comparisonVersion>
                 <filters>
                   <!-- Disable baseline for explicitly NOT managed packages. See OAK-3842 -->
                   <filter>!org.apache.jackrabbit.oak.spi.blob</filter>
@@ -222,7 +222,6 @@
                   <filter>!org.apache.jackrabbit.oak.plugins.version</filter>
                   <filter>!org.apache.jackrabbit.oak.query</filter>
                   <filter>!org.apache.jackrabbit.oak.query.fulltext</filter>
-                  <filter>!org.apache.jackrabbit.oak.security</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.cluster</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.commit</filter>
                   <filter>!org.apache.jackrabbit.oak.spi.filter</filter>
@@ -285,7 +284,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.0</version>
+          <version>2.22.1</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
@@ -304,7 +303,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.22.0</version>
+          <version>2.22.1</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
@@ -326,7 +325,7 @@
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>3.1.5</version>
+          <version>3.1.11</version>
         </plugin>
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
@@ -632,7 +631,7 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>8.5.33</version>
+        <version>8.5.38</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -672,32 +671,32 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.5.6</version>
+        <version>4.5.7</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient-osgi</artifactId>
-        <version>4.5.6</version>
+        <version>4.5.7</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore</artifactId>
-        <version>4.4.10</version>
+        <version>4.4.11</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore-osgi</artifactId>
-        <version>4.4.10</version>
+        <version>4.4.11</version>
      </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
-        <version>4.5.6</version>
+        <version>4.5.7</version>
       </dependency>
       <dependency>
         <groupId>com.arakelian</groupId>
         <artifactId>docker-junit-rule</artifactId>
-        <version>2.1.0</version>
+        <version>2.2.2</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -1016,14 +1015,10 @@
     </profile>
     <profile>
       <id>guava-latest</id>
-      <dependencies>
-        <dependency>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-          <version>20.0</version>
-        </dependency>
-      </dependencies>
-    </profile>
+      <properties>
+        <guava.version>20.0</guava.version>
+      </properties>
+	  </profile>
     <profile>
       <id>rdb-derby</id>
       <dependencies>
@@ -1040,7 +1035,7 @@
         <dependency>
           <groupId>mysql</groupId>
           <artifactId>mysql-connector-java</artifactId>
-          <version>8.0.12</version>
+          <version>8.0.15</version>
         </dependency>
       </dependencies>
     </profile>
@@ -1070,7 +1065,7 @@
         <dependency>
           <groupId>com.microsoft.sqlserver</groupId>
           <artifactId>mssql-jdbc</artifactId>
-          <version>7.0.0.jre8</version>
+          <version>7.2.1.jre8</version>
         </dependency>
       </dependencies>
     </profile>
@@ -1094,14 +1089,29 @@
       <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
       <!-- for instance:
         mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
-          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.72
+          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.19.77
        -->
       <id>rdb-db2</id>
       <dependencies>
         <dependency>
           <groupId>com.ibm.db2</groupId>
           <artifactId>db2</artifactId>
-          <version>4.19.72</version>
+          <version>4.19.77</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
+      <!-- for instance:
+        mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
+          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.25.13
+       -->
+      <id>rdb-db2-11</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.ibm.db2</groupId>
+          <artifactId>db2</artifactId>
+          <version>4.25.13</version>
         </dependency>
       </dependencies>
     </profile>

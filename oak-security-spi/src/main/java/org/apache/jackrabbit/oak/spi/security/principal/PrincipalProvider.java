@@ -21,6 +21,12 @@ import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -50,6 +56,18 @@ public interface PrincipalProvider {
      */
     @Nullable
     Principal getPrincipal(@NotNull String principalName);
+
+    /**
+     * Returns the {@code ItemBasedPrincipal} with the specified {@code principalOakPath}
+     * or {@code null} if no principal with that path exists.
+     *
+     * @param principalOakPath the Oak path of the {@code ItemBasedPrincipal} to retrieve
+     * @return return the requested principal or {@code null}
+     */
+    @Nullable
+    default ItemBasedPrincipal getItemBasedPrincipal(@NotNull String principalOakPath) {
+        return null;
+    }
 
     /**
      * Returns an iterator over all group principals for which the given
@@ -116,6 +134,37 @@ public interface PrincipalProvider {
     @NotNull
     Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType);
 
+    /**
+     * Find the principals that match the specified nameHint and search type.
+     *
+     * @param nameHint A name hint to use for non-exact matching.
+     * @param fullText hint to use a full text query for search
+     * @param searchType Limit the search to certain types of principals. Valid
+     * values are any of
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_ALL}</li></ul>
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_NOT_GROUP}</li></ul>
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_GROUP}</li></ul>
+     * @param offset Offset from where to start returning results. <code>0</code> for no offset.
+     * @param limit Maximal number of results to return. -1 for no limit.
+     * @return An iterator of principals.
+     * @throws IllegalArgumentException if {@code offset} is negative
+     */
+    @NotNull
+    default Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType, long offset, long limit) {
+        if (offset < 0) {
+            throw new IllegalArgumentException(Long.toString(offset));
+        }
+        Iterator<? extends Principal> principals = findPrincipals(nameHint, searchType);
+        Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(principals, 0);
+        Stream<? extends Principal> stream = StreamSupport.stream(spliterator, false);
+        if (offset > 0) {
+            stream = stream.skip(offset);
+        }
+        if (limit >= 0) {
+            stream = stream.limit(limit);
+        }
+        return stream.iterator();
+    }
 
     /**
      * Find all principals that match the search type.

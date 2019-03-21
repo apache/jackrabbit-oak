@@ -72,7 +72,7 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
             editorProvider =
                 new LuceneIndexEditorProvider(copier, null, new ExtractedTextCache(10 * FileUtils.ONE_MB,
                     100), null,
-                    Mounts.defaultMountInfoProvider(), adbc);
+                    Mounts.defaultMountInfoProvider(), adbc, null, null);
             provider = new LuceneIndexProvider(copier);
 
             OakFileDataStore ds = new OakFileDataStore();
@@ -86,7 +86,7 @@ public class ActiveDeletedBlobSyncTrackerTest extends AbstractActiveDeletedBlobT
             nodeStore = SegmentNodeStoreBuilders.builder(store).build();
             BlobTrackingStore trackingStore = (BlobTrackingStore) blobStore;
             trackingStore.addTracker(
-                new BlobIdTracker(blobTrackerRoot.getRoot().getAbsolutePath(), getOrCreateId(nodeStore), 600,
+                BlobIdTracker.build(blobTrackerRoot.getRoot().getAbsolutePath(), getOrCreateId(nodeStore), 600,
                     dsbs));
             // set the blob store to skip writing blobs through the node store
             editorProvider.setBlobStore(blobStore);

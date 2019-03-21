@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -56,7 +54,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @NotNull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
-        Set<RestrictionDefinition> definitions = new HashSet<RestrictionDefinition>(base.getSupportedRestrictions(oakPath));
+        Set<RestrictionDefinition> definitions = new HashSet<>(base.getSupportedRestrictions(oakPath));
         definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, Type.PATH, true));
         return definitions;
     }
@@ -64,8 +62,14 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @NotNull
     @Override
     public Restriction createRestriction(@Nullable String oakPath, @NotNull String oakName, @NotNull Value value) throws RepositoryException {
-        if (REP_NODE_PATH.equals(oakName) && PropertyType.PATH == value.getType()) {
-            return new RestrictionImpl(PropertyStates.createProperty(oakName, value), true);
+        if (REP_NODE_PATH.equals(oakName)) {
+            PropertyState property;
+            if (value.getString().isEmpty()) {
+                property = PropertyStates.createProperty(oakName, "", Type.STRING);
+            } else {
+                property = PropertyStates.createProperty(oakName, value);
+            }
+            return new RestrictionImpl(property, true);
         } else {
             return base.createRestriction(oakPath, oakName, value);
         }
@@ -80,22 +84,20 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @NotNull
     @Override
     public Set<Restriction> readRestrictions(@Nullable String oakPath, @NotNull Tree aceTree) {
-        Set<Restriction> restrictions = new HashSet<Restriction>(base.readRestrictions(oakPath, aceTree));
-        String value = (oakPath == null) ? "" : oakPath;
-        PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
-        restrictions.add(new RestrictionImpl(nodePathProp, true));
+        Set<Restriction> restrictions = new HashSet<>(base.readRestrictions(oakPath, aceTree));
+        PropertyState property;
+        if (oakPath == null) {
+            property = PropertyStates.createProperty(REP_NODE_PATH, "", Type.STRING);
+        } else {
+            property = PropertyStates.createProperty(REP_NODE_PATH, oakPath, Type.PATH);
+        }
+        restrictions.add(new RestrictionImpl(property, true));
         return restrictions;
     }
 
     @Override
     public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
-        Iterator<Restriction> it = Sets.newHashSet(restrictions).iterator();
-        while (it.hasNext()) {
-            Restriction r = it.next();
-            if (REP_NODE_PATH.equals(r.getDefinition().getName())) {
-                it.remove();
-            }
-        }
+        Sets.newHashSet(restrictions).removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
         base.writeRestrictions(oakPath, aceTree, restrictions);
     }
 

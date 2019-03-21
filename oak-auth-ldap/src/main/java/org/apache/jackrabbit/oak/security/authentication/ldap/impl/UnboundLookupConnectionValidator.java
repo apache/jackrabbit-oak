@@ -35,7 +35,7 @@ public class UnboundLookupConnectionValidator implements LdapConnectionValidator
     private static final Logger log = LoggerFactory.getLogger(UnboundLookupConnectionValidator.class);
 
     /**
-     * Returns true if <code>connection</code> is connected, authenticated, and
+     * Returns true if {@code connection} is connected, authenticated, and
      * a lookup on the rootDSE returns a non-null response.
      *
      * @param connection The connection to validate

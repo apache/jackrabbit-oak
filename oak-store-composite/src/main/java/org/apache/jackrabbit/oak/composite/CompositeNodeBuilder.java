@@ -25,12 +25,13 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.composite.CompositeNodeState.STOP_COUNTING_CHILDREN;
@@ -40,13 +41,18 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 
 class CompositeNodeBuilder implements NodeBuilder {
 
+    private final static Logger LOG = LoggerFactory.getLogger(CompositeNodeBuilder.class);
+
     private final CompositionContext ctx;
 
     private final NodeMap<NodeBuilder> nodeBuilders;
 
-    CompositeNodeBuilder(NodeMap<NodeBuilder> nodeBuilders, CompositionContext ctx) {
+    private final String path;
+
+    CompositeNodeBuilder(NodeMap<NodeBuilder> nodeBuilders, CompositionContext ctx, String path) {
         this.ctx = ctx;
         this.nodeBuilders = nodeBuilders;
+        this.path = path;
         ctx.getNodeBuilderMonitor().onCreateNodeObject(getPath());
     }
 
@@ -213,7 +219,7 @@ class CompositeNodeBuilder implements NodeBuilder {
             ctx.getNodeBuilderMonitor().onSwitchNodeToNative(mns.getMount());
             return nodeBuilders.get(mns).getChildNode(name);
         }
-        return new CompositeNodeBuilder(nodeBuilders.lazyApply((mns, b) -> b.getChildNode(name)), ctx);
+        return new CompositeNodeBuilder(nodeBuilders.lazyApply((mns, b) -> b.getChildNode(name)), ctx, childPath);
     }
 
     @Override
@@ -223,17 +229,24 @@ class CompositeNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setChildNode(final String name, NodeState nodeState) {
-        checkState(exists(), "This builder does not exist: " + PathUtils.getName(getPath()));
+        if (!exists()) {
+            throw new IllegalStateException("This builder does not exist: " + PathUtils.getName(getPath()));
+        }
         String childPath = simpleConcat(getPath(), name);
-        final MountedNodeStore childStore = ctx.getOwningStore(childPath);
+        MountedNodeStore childStore = ctx.getOwningStore(childPath);
         if (childStore != ctx.getGlobalStore() && !nodeBuilders.get(childStore).exists()) {
-            throw new IllegalStateException("The mount root doesn't exist: " + getPath() + " for " + childStore);
+            // if it doesn't exist in the read-only repository, create it in the global repository
+            // (needed for example for a new index)
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Creating node in the global store; will become invisible once overlayed: " + childPath);
+            }
+            childStore = ctx.getGlobalStore();
         }
         final NodeBuilder childBuilder = nodeBuilders.get(childStore).setChildNode(name, nodeState);
         if (!ctx.shouldBeComposite(childPath)) {
             return childBuilder;
         }
-        return new CompositeNodeBuilder(nodeBuilders.lazyApply((mns, b) -> b.getChildNode(name)).replaceNode(childStore, childBuilder), ctx);
+        return new CompositeNodeBuilder(nodeBuilders.lazyApply((mns, b) -> b.getChildNode(name)).replaceNode(childStore, childBuilder), ctx, childPath);
     }
 
     @Override
@@ -256,7 +269,7 @@ class CompositeNodeBuilder implements NodeBuilder {
     }
 
     String getPath() {
-        return ((MemoryNodeBuilder) getWrappedNodeBuilder()).getPath();
+        return path;
     }
 
     private boolean belongsToStore(MountedNodeStore mns, String childName) {

@@ -28,7 +28,7 @@ class SupportedPaths {
     private final boolean includesRootPath;
 
     SupportedPaths(@NotNull Set<String> supportedPaths) {
-        this.supportedPaths = supportedPaths.toArray(new String[supportedPaths.size()]);
+        this.supportedPaths = supportedPaths.toArray(new String[0]);
         supportedAltPaths = new String[supportedPaths.size()];
 
         boolean foundRootPath = false;

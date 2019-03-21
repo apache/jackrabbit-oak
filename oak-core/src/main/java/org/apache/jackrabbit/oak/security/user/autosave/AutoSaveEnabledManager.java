@@ -168,7 +168,7 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @Override
-    public void autoSave(boolean enable) throws RepositoryException {
+    public void autoSave(boolean enable) {
         autosave = enable;
     }
 
@@ -199,12 +199,12 @@ public class AutoSaveEnabledManager implements UserManager {
     }
 
     @NotNull
-    User wrap(@NotNull User user) {
+    private User wrap(@NotNull User user) {
         return new UserImpl(user, this);
     }
 
     @NotNull
-    Group wrap(@NotNull Group group) {
+    private Group wrap(@NotNull Group group) {
         return new GroupImpl(group, this);
     }
 }

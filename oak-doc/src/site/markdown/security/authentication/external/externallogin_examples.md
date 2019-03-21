@@ -21,7 +21,7 @@ Authentication with External Login Module : Examples
 - [Integration with Standard Oak Authentication](#standard)
 - [Integration with Pre-Authentication and Login Module Chain](#preauth)
 
-<a name="standard"/>
+<a name="standard"></a>
 ### Integration with Standard Oak Authentication
 
 #### Example JAAS Configuration
@@ -143,7 +143,7 @@ Authentication with External Login Module : Examples
   `CredentialsSupport` that ensures that authentication against the external 
   IDP is successful.
 
-<a name="preauth"/>
+<a name="preauth"></a>
 ### Integration with Pre-Authentication and Login Module Chain
 
 #### Example JAAS Configuration

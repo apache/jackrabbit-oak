@@ -16,18 +16,18 @@
  */
 package org.apache.jackrabbit.oak.segment.split;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
+
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class SplitSegmentArchiveManager implements SegmentArchiveManager {
 
@@ -116,7 +116,7 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
         if (roArchiveList.contains(to)) {
             throw new IOException("Can't overwrite the read-only " + to);
         } else if (roArchiveList.contains(from)) {
-            throw new IOException("Can't copy the archive between persistances " + from + " -> " + to);
+            throw new IOException("Can't copy the archive between persistence " + from + " -> " + to);
         } else {
             rwArchiveManager.copyFile(from, to);
         }

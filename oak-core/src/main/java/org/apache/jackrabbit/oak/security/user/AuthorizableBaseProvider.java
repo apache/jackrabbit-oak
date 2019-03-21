@@ -28,7 +28,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.UUIDUtils.generateUUID;
 import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.getIdentifier;
 
 /**
@@ -56,7 +55,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     }
 
     @Nullable
-    Tree getByContentID(@NotNull String contentId, @NotNull AuthorizableType authorizableType) {
+    private Tree getByContentID(@NotNull String contentId, @NotNull AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(contentId);
         if (UserUtil.isType(tree, authorizableType)) {
             return tree;

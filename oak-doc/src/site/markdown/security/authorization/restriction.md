@@ -51,7 +51,7 @@ facing usage of restrictions i.e. access control management.
 In addition Oak provides it's own restriction API that adds support for internal 
 validation and permission evaluation.
 
-<a name="jackrabbit_api"/>
+<a name="jackrabbit_api"></a>
 ### Jackrabbit API
 
 The Jackrabbit API add the following extensions to JCR access control management
@@ -69,7 +69,7 @@ to read and create entries with restrictions:
     - `getRestriction(String restrictionName)`: returns the restriction as JCR value.
     - `getRestrictions(String restrictionName)`: returns the restriction as array of JCR values (since Oak 1.0, Jackrabbit API 2.8).
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### Oak Restriction API
 
 The following public interfaces are provided by Oak in the package 
@@ -82,7 +82,7 @@ repository internal permission evaluation:
 - [RestrictionDefinition]: the static definition of a supported restriction
 - [RestrictionPattern]: the processed restriction ready for permission evaluation
 
-<a name="default_implementation"/>
+<a name="default_implementation"></a>
 ### Default Implementation
 
 Oak 1.0 provides the following base implementations:
@@ -125,24 +125,40 @@ Oak 1.0 access control management:
 For a nodePath `/foo` the following results can be expected for the different
 values of `rep:glob`.
 
-| rep:glob          | Result                                                   |
-|-------------------|----------------------------------------------------------|
-| ""                | matches node /foo only                                   |
-| /cat              | the node /foo/cat and all it's children                  |
-| /cat/             | the descendants of the node /foo/cat                     |
-| cat               | the node /foocat and all it's children                   |
-| cat/              | all descendants of the node /foocat                      |
-| \*                | foo, siblings of foo and their descendants               |
-| /\*cat            | all children of /foo whose path ends with 'cat'          |
-| /\*/cat           | all non-direct descendants of /foo named 'cat'           |
-| /cat\*            | all descendant path of /foo that have the direct foo-descendant segment starting with 'cat' |
-| \*cat             | all siblings and descendants of foo that have a name ending with 'cat' |
-| \*/cat            | all descendants of /foo and foo's siblings that have a name segment 'cat' |
-| cat/\*            | all descendants of '/foocat'                             |
-| /cat/\*           | all descendants of '/foo/cat'                            |
-| \*cat/\*          | all descendants of /foo that have an intermediate segment ending with 'cat' |
+Please note that the pattern is based on simple path concatenation and equally applies to either type of item (both nodes and properties). 
+Consequently the examples below need to be adjusted for the root node in order to produce the desired effect. In particular a path with two subsequent / is invalid and will never match any target item or path.
 
-<a name="representation"/>
+| rep:glob      | Result                                                   |
+|---------------|----------------------------------------------------------|
+| null          | i.e. no restriction: matches /foo and all children       |
+| ""            | matches node /foo only                                   |
+
+Examples including wildcard char:
+
+| rep:glob      | Result                                                   |
+|---------------|----------------------------------------------------------|
+| \*            | foo, siblings of foo and their descendants               |
+| /\*cat        | all child items of /foo whose paths end with 'cat'       |
+| \*cat         | all siblings and descendants of foo that have a name ending with 'cat' |
+| /\*/cat       | all non-direct descendants of /foo named 'cat'           |
+| /cat\*        | all descendant of /foo that have the direct foo-descendant segment starting with 'cat' |
+| \*/cat        | all descendants of /foo and foo's siblings that have a name segment 'cat' |
+| cat/\*        | all descendants of '/foocat'                             |
+| /cat/\*       | all descendants of '/foo/cat'                            |
+| /\*cat/\*     | all descendants of /foo that have an intermediate segment ending with 'cat' |
+
+Examples without wildcard char:
+
+| rep:glob      | Result                                                   |
+|---------------|----------------------------------------------------------|
+| /cat          |   the node /foo/cat and all it's child items             |
+| /cat/         |   the descendants of the node /foo/cat                   |
+| cat           |   the node /foocat and all it's child items              |
+| cat/          |   all descendants of the node /foocat                    |
+
+See also [GlobPattern] for implementation details.
+
+<a name="representation"></a>
 ### Representation in the Repository
 
 All restrictions defined by default in a Oak repository are stored as properties 
@@ -166,7 +182,7 @@ The node type definition used to represent restriction content is as follows:
       - * (UNDEFINED) protected multiple
 
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to provide custom
@@ -285,6 +301,7 @@ The time-based `RestrictionPattern` used by the example provider above.
     Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 <!-- hidden references -->
+[GlobPattern]: http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/restriction/GlobPattern.java?view=markup
 [Restriction]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/Restriction.html
 [RestrictionDefinition]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionDefinition.html
 [RestrictionPattern]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionPattern.html

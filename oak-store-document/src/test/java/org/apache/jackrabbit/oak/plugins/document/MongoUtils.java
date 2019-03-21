@@ -51,9 +51,6 @@ public class MongoUtils {
     public static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
-    public static final String VERSION =
-            System.getProperty("mongo.version", "3.6");
-
     private static final String OPTIONS = "connectTimeoutMS=3000&serverSelectionTimeoutMS=3000";
 
     public static final String URL = createMongoURL();

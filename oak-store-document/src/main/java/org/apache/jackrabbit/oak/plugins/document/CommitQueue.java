@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Maps;
 
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,10 +60,20 @@ final class CommitQueue {
 
     private final RevisionContext context;
 
+    /**
+     * The default stats collector is a noop.
+     */
+    private DocumentNodeStoreStatsCollector statsCollector
+            = new DocumentNodeStoreStats(StatisticsProvider.NOOP);
+
     private long suspendTimeout = Long.getLong("oak.documentMK.suspendTimeoutMillis", DEFAULT_SUSPEND_TIMEOUT);
 
     CommitQueue(@NotNull RevisionContext context) {
         this.context = checkNotNull(context);
+    }
+
+    void setStatisticsCollector(@NotNull DocumentNodeStoreStatsCollector collector) {
+        statsCollector = checkNotNull(collector);
     }
 
     @NotNull
@@ -250,9 +261,11 @@ final class CommitQueue {
             isHead = commits.firstKey().equals(rev);
             commitEntry = commits.get(rev);
         }
-        if (!isHead) {
+        if (isHead) {
+            statsCollector.doneWaitUntilHead(0);
+        } else {
             LOG.debug("not head: {}, waiting...", rev);
-            commitEntry.await();
+            statsCollector.doneWaitUntilHead(commitEntry.await());
         }
         try {
             c.headOfQueue(rev);
@@ -305,8 +318,11 @@ final class CommitQueue {
 
         /**
          * Wait for the latch to be released.
+         *
+         * @return the number of microseconds this method waited.
          */
-        void await() {
+        long await() {
+            long start = System.nanoTime();
             for (;;) {
                 try {
                     LOG.debug("awaiting {}", revision);
@@ -316,6 +332,7 @@ final class CommitQueue {
                     // retry
                 }
             }
+            return TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start);
         }
     }
 

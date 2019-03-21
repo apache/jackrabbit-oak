@@ -354,6 +354,40 @@ public class SharedDataStoreUtilsTest {
     }
 
     @Test
+    public void testGetAllRecordsWithMeta() throws Exception {
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
+        int number = 2;
+        Set<String> added = newHashSet();
+        for (int i = 0; i < number; i++) {
+            String rec = dataStore.addRecord(randomStream(i, 16516))
+                .getIdentifier().toString();
+            added.add(rec);
+        }
+
+        if (dataStore.getType() == SharedDataStore.Type.SHARED) {
+            dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]), "1meta");
+            dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]), "2meta");
+            dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]), "ameta1");
+            dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]), "bmeta2");
+        }
+
+        for (int i = 0; i < number; i++) {
+            String rec = dataStore.addRecord(randomStream(100+i, 16516))
+                .getIdentifier().toString();
+            added.add(rec);
+        }
+
+        Set<String> retrieved = newHashSet(Iterables.transform(newHashSet(dataStore.getAllRecords()),
+            new Function<DataRecord, String>() {
+                @Nullable @Override public String apply(@Nullable DataRecord input) {
+                    return input.getIdentifier().toString();
+                }
+            }));
+        assertEquals(added, retrieved);
+    }
+
+    @Test
     public void testStreamFromGetAllRecords() throws Exception {
         File rootFolder = folder.newFolder();
         dataStore = getBlobStore(rootFolder);

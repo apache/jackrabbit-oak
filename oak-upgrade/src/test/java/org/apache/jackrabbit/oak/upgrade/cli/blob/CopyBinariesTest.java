@@ -85,14 +85,16 @@ public class CopyBinariesTest extends AbstractOak2OakTest {
                 "Copy references, no blobstores defined, document -> segment-tar",
                 new JdbcNodeStoreContainer(blob),
                 new SegmentNodeStoreContainer(blob),
-                asList("--src-user=sa", "--src-password=sa"),
+                asList("--src-user=sa", "--src-password=pwd"),
                 DatastoreArguments.BlobMigrationCase.COPY_REFERENCES
         });
         params.add(new Object[]{
                 "Copy references, no blobstores defined, segment-tar -> document",
                 new SegmentTarNodeStoreContainer(blob),
                 new JdbcNodeStoreContainer(blob),
-                asList("--user=sa", "--password=sa"),
+                // user name and password are not used, as no login is attepted
+                // for unsupported migration use cases
+                asList("--user=unused", "--password=unused"),
                 DatastoreArguments.BlobMigrationCase.UNSUPPORTED
         });
         params.add(new Object[]{

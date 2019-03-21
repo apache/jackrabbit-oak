@@ -42,7 +42,7 @@ by a dedicated sub-interfaces of [SecurityConfiguration]:
 - [Principal Management](principal.html)
 - [User Management](user.html)
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extensions
 
 The package `org.apache.jackrabbit.oak.spi.security` defines the following interfaces
@@ -180,7 +180,7 @@ of view. Please note the following dependencies and special cases:
 6. **User Management** is optional and _MAY_ be used for credentials validation during the authentication 
    step. If present it is _usually_ used as a source for principals exposed by Principal Management.
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration 
 
 The configuration parameters of individual security modules are described in 
@@ -232,7 +232,7 @@ implementations. If the ranking parameter is omitted the `CompositeConfiguration
 will try to use the [SERVICE_RANKING] to define the order. If neither is available 
 (or set to `NO_RANKING`) the new entry will be appended to the list.
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 In a default setup Oak allows to plug custom or additional implementations of 

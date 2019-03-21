@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.query;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Map;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -264,4 +265,16 @@ public class ResultRowImpl implements ResultRow {
 
     }
 
+    static ResultRowImpl getMappingResultRow(ResultRowImpl delegate, final Map<String, String> columnToFacetMap) {
+        if (columnToFacetMap.size() == 0) {
+            return delegate;
+        }
+
+        PropertyValue[] mappedVals = delegate.getValues();
+        for (Map.Entry<String, String> entry : columnToFacetMap.entrySet()) {
+            mappedVals[delegate.query.getColumnIndex(entry.getKey())]   = PropertyValues.newString(entry.getValue());
+        }
+        return new ResultRowImpl(delegate.query, delegate.trees, mappedVals,
+                delegate.distinctValues, delegate.orderValues);
+    }
 }

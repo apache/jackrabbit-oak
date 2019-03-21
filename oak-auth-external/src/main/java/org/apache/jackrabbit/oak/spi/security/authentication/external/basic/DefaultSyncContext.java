@@ -309,9 +309,7 @@ public class DefaultSyncContext implements SyncContext {
                 log.debug("sync({}) -> {} {}", id, ref.getString(), timer.getString());
             }
             return ret;
-        } catch (RepositoryException e) {
-            throw new SyncException(e);
-        } catch (ExternalIdentityException e) {
+        } catch (RepositoryException | ExternalIdentityException e) {
             throw new SyncException(e);
         }
     }
@@ -520,7 +518,7 @@ public class DefaultSyncContext implements SyncContext {
         timer.mark("fetching");
 
         // first get the set of the existing groups that are synced ones
-        Map<String, Group> declaredExternalGroups = new HashMap<String, Group>();
+        Map<String, Group> declaredExternalGroups = new HashMap<>();
         Iterator<Group> grpIter = auth.declaredMemberOf();
         while (grpIter.hasNext()) {
             Group grp = grpIter.next();
@@ -737,14 +735,14 @@ public class DefaultSyncContext implements SyncContext {
      */
     @Nullable
     protected Value[] createValues(@NotNull Collection<?> propValues) throws RepositoryException {
-        List<Value> values = new ArrayList<Value>();
+        List<Value> values = new ArrayList<>();
         for (Object obj : propValues) {
             Value v = createValue(obj);
             if (v != null) {
                 values.add(v);
             }
         }
-        return values.toArray(new Value[values.size()]);
+        return values.toArray(new Value[0]);
     }
 
     /**

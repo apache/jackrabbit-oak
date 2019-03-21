@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.tool;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.segment.tool.Utils.parseSegmentInfoTimestamp;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -31,8 +32,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.json.JsonObject;
-import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -170,37 +169,6 @@ public class SearchNodes {
         return FileStoreBuilder.fileStoreBuilder(path).buildReadOnly();
     }
 
-    private Long parseSegmentInfoTimestamp(SegmentId segmentId) {
-        String segmentInfo = segmentId.getSegment().getSegmentInfo();
-
-        if (segmentInfo == null) {
-            err.printf("Segment info not found in %s\n", segmentId);
-            return null;
-        }
-
-        JsopTokenizer t = new JsopTokenizer(segmentInfo, 0);
-        t.read('{');
-        JsonObject object = JsonObject.create(t);
-
-        String timestampString = object.getProperties().get("t");
-
-        if (timestampString == null) {
-            err.printf("No timestamp found in segment info in %s\n", segmentId);
-            return null;
-        }
-
-        long timestamp;
-
-        try {
-            timestamp = Long.parseLong(timestampString);
-        } catch (NumberFormatException e) {
-            err.printf("Invalid timestamp %s found in segment info in %s\n", timestampString, segmentId);
-            return null;
-        }
-
-        return timestamp;
-    }
-
     private void processSegment(ReadOnlyFileStore fileStore, SegmentId segmentId) {
         if (segmentId.isBulkSegmentId()) {
             return;
@@ -209,6 +177,7 @@ public class SearchNodes {
         Long timestamp = parseSegmentInfoTimestamp(segmentId);
 
         if (timestamp == null) {
+            err.printf("No timestamp found in segment %s\n", segmentId);
             return;
         }
 

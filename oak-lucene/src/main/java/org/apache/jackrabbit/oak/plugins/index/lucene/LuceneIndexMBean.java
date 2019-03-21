@@ -129,4 +129,10 @@ public interface LuceneIndexMBean {
     @Description("Fetches hybrid property index info as json for index at given path")
     String getHybridIndexInfo(@Name("indexPath") String indexPath);
 
+    @Description("Fetches index size for index at given path")
+    String getSize(@Name("indexPath") String indexPath) throws IOException;
+
+    @Description("Fetches current number of docs for index at given path")
+    String getDocCount(@Name("indexPath") String indexPath) throws IOException;
+
 }

@@ -134,7 +134,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     }
 
     @Override
-    public String getPath() throws RepositoryException {
+    public String getPath() {
         return userManager.getNamePathMapper().getJcrPath(getTree().getPath());
     }
 

@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.JcrAllUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -382,7 +383,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         assertTrue(allEntry.exists());
         PropertyState ps = allEntry.getProperty(PermissionConstants.REP_PRIVILEGE_BITS);
         assertEquals(1, ps.count());
-        assertEquals(PermissionStore.DYNAMIC_ALL_BITS, ps.getValue(Type.LONG, 0).longValue());
+        assertTrue(JcrAllUtil.denotesDynamicJcrAll(ps));
 
         // verify that the permission provider still exposes the correct privilege
         // (jcr:all) for the given childPath irrespective of the dynamic nature of

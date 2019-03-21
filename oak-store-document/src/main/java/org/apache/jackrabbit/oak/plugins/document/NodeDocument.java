@@ -40,7 +40,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -2064,20 +2063,25 @@ public final class NodeDocument extends Document {
             return false;
         }
         if (Utils.isCommitted(commitValue)) {
-            if (context.getBranches().getBranch(readRevision) == null
-                    && !readRevision.isBranch()) {
+            Branch b = context.getBranches().getBranch(readRevision);
+            if (b == null) {
+                // readRevision is not from a branch commit, though it may
+                // still be a branch revision when it references the base
+                // of a new branch that has not yet been created. In that
+                // case the branch revision is equivalent with the trunk
+                // revision.
+
                 // resolve commit revision
                 revision = resolveCommitRevision(revision, commitValue);
-                // readRevision is not from a branch
                 // compare resolved revision as is
                 return !readRevision.isRevisionNewer(revision);
             } else {
-                // on same merged branch?
-                Revision tr = readRevision.getBranchRevision().asTrunkRevision();
-                if (commitValue.equals(context.getCommitValue(tr, this))) {
-                    // compare unresolved revision
-                    return !readRevision.isRevisionNewer(revision);
-                }
+                // read revision is on a branch and the change is committed
+                // get the base revision of the branch and check
+                // if change is visible from there
+                RevisionVector baseRev = b.getBase(readRevision.getBranchRevision());
+                revision = resolveCommitRevision(revision, commitValue);
+                return !baseRev.isRevisionNewer(revision);
             }
         } else {
             // branch commit (not merged)
@@ -2088,9 +2092,23 @@ public final class NodeDocument extends Document {
                 // this is an unmerged branch commit from another cluster node,
                 // hence never visible to us
                 return false;
+            } else {
+                // unmerged branch change with local clusterId
+                Branch b = context.getBranches().getBranch(readRevision);
+                if (b == null) {
+                    // reading on trunk never sees changes on an unmerged branch
+                    return false;
+                } else if (b.containsCommit(revision)) {
+                    // read revision is on the same branch as the
+                    // unmerged branch changes -> compare revisions as is
+                    return !readRevision.isRevisionNewer(revision);
+                } else {
+                    // read revision is on a different branch than the
+                    // unmerged branch changes -> never visible
+                    return false;
+                }
             }
         }
-        return includeRevision(context, resolveCommitRevision(revision, commitValue), readRevision);
     }
 
     /**
@@ -2112,37 +2130,6 @@ public final class NodeDocument extends Document {
             }
         }
         return value;
-    }
-
-    private static boolean includeRevision(RevisionContext context,
-                                           Revision x,
-                                           RevisionVector readRevision) {
-        Branch b = null;
-        if (x.getClusterId() == context.getClusterId()) {
-            RevisionVector branchRev = new RevisionVector(x).asBranchRevision(context.getClusterId());
-            b = context.getBranches().getBranch(branchRev);
-        }
-        if (b != null) {
-            // only include if read revision is also a branch revision
-            // with a history including x
-            if (readRevision.isBranch()
-                    && b.containsCommit(readRevision.getBranchRevision())) {
-                // in same branch, include if the same revision or
-                // readRevision is newer
-                return !readRevision.isRevisionNewer(x);
-            }
-            // not part of branch identified by requestedRevision
-            return false;
-        }
-        // assert: x is not a branch commit
-        b = context.getBranches().getBranch(readRevision);
-        if (b != null) {
-            // reset readRevision to branch base revision to make
-            // sure we don't include revisions committed after branch
-            // was created
-            readRevision = b.getBase(readRevision.getBranchRevision());
-        }
-        return !readRevision.isRevisionNewer(x);
     }
 
     /**
@@ -2275,95 +2262,6 @@ public final class NodeDocument extends Document {
             return map;
         }
         throw new IllegalArgumentException(json.readRawValue());
-    }
-    
-    /**
-     * The list of children for a node. The list might be complete or not, in
-     * which case it only represents a block of children.
-     */
-    public static final class Children implements CacheValue, Cloneable {
-
-        /**
-         * The child node names, ordered as stored in DocumentStore.
-         */
-        ArrayList<String> childNames = new ArrayList<String>();
-
-        /**
-         * Whether the list is complete (in which case there are no other
-         * children) or not.
-         */
-        boolean isComplete;
-
-        @Override
-        public int getMemory() {
-            long size = 114;
-            for (String name : childNames) {
-                size += (long)name.length() * 2 + 56;
-            }
-            if (size > Integer.MAX_VALUE) {
-                LOG.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
-                size = Integer.MAX_VALUE;
-            }
-            return (int) size;
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public Children clone() {
-            try {
-                Children clone = (Children) super.clone();
-                clone.childNames = (ArrayList<String>) childNames.clone();
-                return clone;
-            } catch (CloneNotSupportedException e) {
-                throw new RuntimeException();
-            }
-        }
-
-        public String asString() {
-            JsopWriter json = new JsopBuilder();
-            if (isComplete) {
-                json.key("isComplete").value(true);
-            }
-            if (childNames.size() > 0) {
-                json.key("children").array();
-                for (String c : childNames) {
-                    json.value(c);
-                }
-                json.endArray();
-            }
-            return json.toString();            
-        }
-        
-        public static Children fromString(String s) {
-            JsopTokenizer json = new JsopTokenizer(s);
-            Children children = new Children();
-            while (true) {
-                if (json.matches(JsopReader.END)) {
-                    break;
-                }
-                String k = json.readString();
-                json.read(':');
-                if ("isComplete".equals(k)) {
-                    children.isComplete = json.read() == JsopReader.TRUE;
-                } else if ("children".equals(k)) {
-                    json.read('[');
-                    while (true) {
-                        if (json.matches(']')) {
-                            break;
-                        }
-                        String value = json.readString();
-                        children.childNames.add(value);
-                        json.matches(',');
-                    }
-                }
-                if (json.matches(JsopReader.END)) {
-                    break;
-                }
-                json.read(',');
-            }
-            return children;            
-        }
-        
     }
 
     /**

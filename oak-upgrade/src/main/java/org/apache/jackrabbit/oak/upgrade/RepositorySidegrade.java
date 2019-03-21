@@ -34,11 +34,13 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -46,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -406,6 +410,8 @@ public class RepositorySidegrade {
 
     private void migrateWithoutCheckpoints() throws CommitFailedException, RepositoryException {
         final List<CommitHook> hooks = new ArrayList<>();
+        final String workspaceName = getWorkspaceName();
+
         if (customCommitHooks != null) {
             hooks.addAll(customCommitHooks);
         }
@@ -422,7 +428,12 @@ public class RepositorySidegrade {
             if (!versionCopyConfiguration.skipOrphanedVersionsCopy()) {
                 copyVersionStorage(targetRoot, getVersionStorage(sourceRoot), versionStorage, versionCopyConfiguration);
             }
-            hooks.add(new EditorHook(new VersionableEditor.Provider(sourceRoot, getWorkspaceName(), versionCopyConfiguration)));
+            hooks.add(new EditorHook(new VersionableEditor.Provider(sourceRoot, workspaceName, versionCopyConfiguration)));
+        }
+
+        SecurityProvider security = SecurityProviderBuilder.newBuilder().build();
+        for (SecurityConfiguration securityConfig : security.getConfigurations()) {
+            hooks.addAll(securityConfig.getCommitHooks(workspaceName));
         }
         // type validation, reference and indexing hooks
         hooks.add(new EditorHook(new CompositeEditorProvider(
@@ -436,7 +447,8 @@ public class RepositorySidegrade {
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
         NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
-        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
+        NodeState versionStorage = getVersionStorage(root);
+        List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, versionStorage, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {
             LOG.info("Removing version histories for included paths");
             NodeBuilder newRoot = VersionHistoryUtil.removeVersions(root, versionablesToStrip);
@@ -520,7 +532,7 @@ public class RepositorySidegrade {
 
     private NodeState wrapNodeState(NodeState source, boolean tracePaths, boolean filterPaths) {
         NodeState wrapped = source;
-        if (migrateDocumentMetadata) {
+        if (migrateDocumentMetadata && source instanceof DocumentNodeState) {
             wrapped = MetadataExposingNodeState.wrap(wrapped);
         }
         if (!isCompleteMigration() && filterPaths) {

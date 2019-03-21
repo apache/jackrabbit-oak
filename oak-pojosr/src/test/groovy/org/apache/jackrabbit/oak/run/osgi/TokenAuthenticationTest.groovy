@@ -24,6 +24,7 @@ import groovy.util.logging.Slf4j
 import org.apache.felix.jaas.LoginModuleFactory
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin
+import org.jetbrains.annotations.NotNull
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -69,6 +70,8 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest {
     @Slf4j
     private static class PreAuthLoginModule extends AbstractLoginModule {
         private MyCredential credential
+
+        @NotNull
         @Override
         protected Set<Class> getSupportedCredentials() {
             return Sets.newHashSet(MyCredential.class)

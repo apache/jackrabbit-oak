@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static com.google.common.collect.Lists.newArrayList;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
@@ -71,6 +68,8 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 /**
  * AbstractOakTest is the base class for oak test execution.
  */
@@ -81,7 +80,6 @@ public abstract class AbstractSecurityTest {
     private User testUser;
 
     protected NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
-    protected PartialValueFactory valueFactory = new PartialValueFactory(namePathMapper);
     protected SecurityProvider securityProvider;
     protected ContentSession adminSession;
     protected Root root;
@@ -108,7 +106,7 @@ public abstract class AbstractSecurityTest {
         withEditors(oak);
         contentRepository = oak.createContentRepository();
 
-        adminSession = login(getAdminCredentials());
+        adminSession = createAdminSession(contentRepository);
         root = adminSession.getLatestRoot();
 
         Configuration.setConfiguration(getConfiguration());
@@ -177,12 +175,13 @@ public abstract class AbstractSecurityTest {
         return new SimpleCredentials(adminId, adminId.toCharArray());
     }
 
-    protected NamePathMapper getNamePathMapper() {
-        return namePathMapper;
+    @NotNull
+    protected ContentSession createAdminSession(@NotNull ContentRepository repository) throws LoginException, NoSuchWorkspaceException {
+        return repository.login(getAdminCredentials(), null);
     }
 
-    protected PartialValueFactory getPartialValueFactory() {
-        return valueFactory;
+    protected NamePathMapper getNamePathMapper() {
+        return namePathMapper;
     }
 
     protected UserConfiguration getUserConfiguration() {
@@ -205,7 +204,7 @@ public abstract class AbstractSecurityTest {
     }
     
     protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
-        AccessControlManager acMgr = getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, NamePathMapper.DEFAULT);
+        AccessControlManager acMgr = getConfig(AuthorizationConfiguration.class).getAccessControlManager(root, getNamePathMapper());
         if (acMgr instanceof JackrabbitAccessControlManager) {
             return (JackrabbitAccessControlManager) acMgr;
         } else {
@@ -236,6 +235,10 @@ public abstract class AbstractSecurityTest {
 
     protected ValueFactory getValueFactory(@NotNull Root root) {
         return new ValueFactoryImpl(root, getNamePathMapper());
+    }
+
+    protected PartialValueFactory getPartialValueFactory() {
+        return new PartialValueFactory(getNamePathMapper());
     }
 
     protected long waitForSystemTimeIncrement(long old) {

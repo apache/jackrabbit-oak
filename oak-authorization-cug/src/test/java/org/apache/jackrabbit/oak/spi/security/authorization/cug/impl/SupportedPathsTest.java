@@ -34,7 +34,7 @@ public class SupportedPathsTest {
     public void testIncludes() {
         SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/content"));
 
-        Map<String, Boolean> pathMap = new HashMap<String, Boolean>();
+        Map<String, Boolean> pathMap = new HashMap<>();
         pathMap.put("/content", true);
         pathMap.put("/content/a", true);
         pathMap.put("/content/a/rep:cugPolicy", true);
@@ -59,7 +59,7 @@ public class SupportedPathsTest {
     public void testMayContainCug() {
         SupportedPaths supportedPaths = new SupportedPaths(ImmutableSet.of("/content/a"));
 
-        Map<String, Boolean> pathMap = new HashMap<String, Boolean>();
+        Map<String, Boolean> pathMap = new HashMap<>();
         pathMap.put("/", true);
         pathMap.put("/content", true);
         pathMap.put("/jcr:system", false);

@@ -29,9 +29,8 @@ import java.util.List;
 
 import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.segment.RecordId;
-import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
-import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -39,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Persists the repository size and the reclaimed size following a cleanup
- * operation in the {@link TarPersistence#GC_JOURNAL gc journal} file with the format:
+ * operation in the {@code gc.log} file with the format:
  * 'repoSize, reclaimedSize, timestamp, gc generation, gc full generation (since Oak 1.8),
  * number of nodes compacted, root id (since Oak 1.8)'.
  */

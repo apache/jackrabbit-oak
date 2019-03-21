@@ -264,7 +264,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         @Override
-        public boolean hasPrivileges(Tree tree, String... privilegeNames) {
+        public boolean hasPrivileges(Tree tree, @NotNull String... privilegeNames) {
             Set<String> in = Sets.newHashSet(privilegeNames);
             return granted.containsAll(in);
         }
@@ -281,12 +281,12 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         @Override
-        public long supportedPermissions(TreeLocation location, long permissions) {
+        public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
             return supportedPermissions(permissions);
         }
 
         @Override
-        public long supportedPermissions(TreePermission treePermission, PropertyState property, long permissions) {
+        public long supportedPermissions(@NotNull TreePermission treePermission, PropertyState property, long permissions) {
             return supportedPermissions(permissions);
         }
 
@@ -297,11 +297,12 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         @Override
-        public boolean isGranted(TreeLocation location, long permissions) {
+        public boolean isGranted(@NotNull TreeLocation location, long permissions) {
             long myperms = mapToPermissions(granted, grantMap);
             return Permissions.includes(myperms, permissions);
         }
 
+        @NotNull
         @Override
         public RepositoryPermission getRepositoryPermission() {
             return new RepositoryPermission() {
@@ -314,8 +315,9 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             };
         }
 
+        @NotNull
         @Override
-        public TreePermission getTreePermission(Tree tree, TreeType type, TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
             return new CustomTreePermission(granted, grantMap);
         }
 
@@ -324,20 +326,22 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             Assert.fail("method should not be called");
         }
 
+        @NotNull
         @Override
         public Set<String> getPrivileges(Tree tree) {
             Assert.fail("method should not be called");
             return null;
         }
 
+        @NotNull
         @Override
-        public TreePermission getTreePermission(Tree tree, TreePermission parentPermission) {
+        public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
             Assert.fail("method should not be called");
             return null;
         }
 
         @Override
-        public boolean isGranted(String oakPath, String jcrActions) {
+        public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
             Assert.fail("method should not be called");
             return false;
         }
@@ -358,8 +362,9 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
             this.grantMap = grantMap;
         }
 
+        @NotNull
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@NotNull String childName, @NotNull NodeState childState) {
             Assert.fail("method should not be called");
             return null;
         }
@@ -371,7 +376,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         @Override
-        public boolean canRead(PropertyState property) {
+        public boolean canRead(@NotNull PropertyState property) {
             Assert.fail("method should not be called");
             return false;
         }
@@ -395,7 +400,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         }
 
         @Override
-        public boolean isGranted(long permissions, PropertyState property) {
+        public boolean isGranted(long permissions, @NotNull PropertyState property) {
             Assert.fail("method should not be called");
             return false;
         }

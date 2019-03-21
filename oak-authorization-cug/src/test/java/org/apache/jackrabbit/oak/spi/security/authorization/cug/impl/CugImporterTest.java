@@ -47,7 +47,7 @@ public class CugImporterTest extends AbstractCugTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testInitTwice() throws Exception {
+    public void testInitTwice() {
         Session session = Mockito.mock(Session.class);
         assertTrue(importer.init(session, root, getNamePathMapper(), true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW, new ReferenceChangeTracker(), getSecurityProvider()));
         importer.init(session, root, getNamePathMapper(), true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW, new ReferenceChangeTracker(), getSecurityProvider());

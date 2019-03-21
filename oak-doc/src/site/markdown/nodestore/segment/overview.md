@@ -34,6 +34,7 @@
     * [IOTrace](#iotrace)
     * [Diff](#diff)
     * [History](#history)
+    * [Recover Journal](#recover-journal)
 
 ## <a name="overview"/> Overview
 
@@ -939,3 +940,30 @@ The `--depth` parameter determines if the content of a single node should be pri
 `DEPTH` must be a positive integer specifying how deep the printed content should be.
 If this option is not specified, the depth is assumed to be `0`, i.e. only information about the node will be printed.
 
+### <a name="recover-journal"/> Recover journal
+
+```
+java -jar oak-run.jar recover-journal [--help] PATH
+```
+
+The `recover-journal` command rebuilds a journal by scanning the content of the Segment Store at `PATH`.
+
+The command performs the following steps:
+
+- It scans the content of all segments for potential head states.
+- It sorts the found head states from older to newer.
+- It checks the consistency of the found head states until the first consistent head state is found.
+
+During the consistency check, some segments might be missing.
+The command outputs a stack trace on stderr every time it finds a new missing segment.
+If the command finds a segment missing more than once, further stack traces are suppressed.
+
+The last revision in the recovered journal is guaranteed to have a consistent head state.
+For the sake of speed, checkpoints are **not** checked.
+Moreover, since the consistency check stops as soon as it finds a consistent head state, older revisions in the recovered journal might still be inconsistent.
+For a deeper analysis of the consistency of the recovered journal, see the `check` command.
+
+The `recover-journal` command is not destructive and tries its best to leave the Segment Store folder in a consistent, usable state.
+Before creating a new journal, the old one is backed up in the Segment Store folder as `journal.log.bak.XXX`, where `XXX` is a monotonically increasing, three-digit number.
+Only after the backup of the old journal is successful, the command installs the recovered journal as the canonical `journal.log`.
+If any error occurs in the process, the command will roll the old journal back and discard the backup.

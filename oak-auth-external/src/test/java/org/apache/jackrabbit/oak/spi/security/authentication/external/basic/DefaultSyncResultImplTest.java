@@ -37,7 +37,7 @@ public class DefaultSyncResultImplTest {
 
     @Test
     public void testGetIdentity() {
-        List<DefaultSyncedIdentity> l = new ArrayList();
+        List<DefaultSyncedIdentity> l = new ArrayList<>();
         l.add(new DefaultSyncedIdentity("id", null, true, -1));
         l.add(new DefaultSyncedIdentity("id", new ExternalIdentityRef("id", "idp"), false, 500));
 

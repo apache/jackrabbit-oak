@@ -91,7 +91,8 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
     private static final String PATH_PREFIX = "pathPrefix";
 
-    private final Random random = new Random();
+    protected final long seed = Long.getLong("seed", System.currentTimeMillis());
+    private final Random random = new Random(seed);
     private final ExternalPrincipalConfiguration externalPrincipalConfiguration = new ExternalPrincipalConfiguration();
 
     private ContentRepository contentRepository;

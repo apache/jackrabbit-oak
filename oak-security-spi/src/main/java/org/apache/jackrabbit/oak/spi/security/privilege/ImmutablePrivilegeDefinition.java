@@ -21,6 +21,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default implementation of the {@code PrivilegeDefinition} interface.
@@ -31,9 +32,7 @@ public final class ImmutablePrivilegeDefinition implements PrivilegeDefinition {
     private final boolean isAbstract;
     private final Set<String> declaredAggregateNames;
 
-    public ImmutablePrivilegeDefinition(
-            String name, boolean isAbstract,
-            Iterable<String> declaredAggregateNames) {
+    public ImmutablePrivilegeDefinition(@NotNull String name, boolean isAbstract, @Nullable Iterable<String> declaredAggregateNames) {
         this.name = name;
         this.isAbstract = isAbstract;
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();

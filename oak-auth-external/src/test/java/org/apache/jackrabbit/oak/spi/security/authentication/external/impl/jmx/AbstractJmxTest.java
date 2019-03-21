@@ -55,8 +55,7 @@ public abstract class AbstractJmxTest extends AbstractExternalAuthTest {
 
     static void assertResultMessages(@NotNull String[] resultMessages, @NotNull Map<String, String> expected) {
         assertEquals(expected.size(), resultMessages.length);
-        for (int i = 0; i < resultMessages.length; i++) {
-            String rm = resultMessages[i];
+        for (String rm : resultMessages) {
             String op = rm.substring(rm.indexOf(":") + 2, rm.indexOf("\","));
 
             int index = rm.indexOf("uid:\"") + 5;

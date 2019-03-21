@@ -135,12 +135,15 @@ public class MongodProcessFactory extends ExternalResource {
     }
 
     static String localhost(Iterable<Integer> ports) {
-        String portsString = Joiner.on(',').join(ports);
         String host = InetAddress.getLoopbackAddress().getHostAddress();
-        if (!portsString.isEmpty()) {
-            host += ":" + portsString;
+        List<String> portsWithHost = new ArrayList<>();
+        for (int p : ports) {
+            portsWithHost.add(host + ":" + p);
         }
-        return host;
+        if (portsWithHost.isEmpty()) {
+            return host;
+        }
+        return Joiner.on(',').join(portsWithHost);
     }
 
     //----------------------------< internal >----------------------------------

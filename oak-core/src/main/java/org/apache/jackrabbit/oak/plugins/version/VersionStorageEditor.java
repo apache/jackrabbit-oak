@@ -54,17 +54,19 @@ class VersionStorageEditor extends DefaultEditor {
     VersionStorageEditor(@NotNull NodeBuilder versionStorageNode,
                          @NotNull NodeBuilder workspaceRoot) {
         this(versionStorageNode, workspaceRoot, versionStorageNode,
-                VERSION_STORE_PATH);
+                VERSION_STORE_PATH, false);
     }
 
     private VersionStorageEditor(@NotNull NodeBuilder versionStorageNode,
                                  @NotNull NodeBuilder workspaceRoot,
                                  @NotNull NodeBuilder builder,
-                                 @NotNull String path) {
+                                 @NotNull String path,
+                                 boolean initPhase) {
         this.versionStorageNode = checkNotNull(versionStorageNode);
         this.workspaceRoot = checkNotNull(workspaceRoot);
         this.builder = checkNotNull(builder);
         this.path = checkNotNull(path);
+        this.initPhase = initPhase;
     }
 
     @Override
@@ -88,8 +90,7 @@ class VersionStorageEditor extends DefaultEditor {
         if (d < VERSION_HISTORY_DEPTH && !isVersionStorageNode(after)) {
             return null;
         }
-        return new VersionStorageEditor(versionStorageNode, workspaceRoot,
-                builder.child(name), p);
+        return new VersionStorageEditor(versionStorageNode, workspaceRoot, builder.child(name), p, initPhase);
     }
 
     @Override

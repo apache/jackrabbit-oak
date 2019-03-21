@@ -61,7 +61,6 @@ public class DefaultSyncConfigTest {
         assertEquals(Long.MAX_VALUE, authorizableConfig.getExpirationTime());
     }
 
-
     @Test
     public void testName() {
         assertEquals("default", config.getName());

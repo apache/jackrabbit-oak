@@ -18,7 +18,7 @@
 Principal Management
 --------------------------------------------------------------------------------
 
-<a href="jcr_api"/>
+<a href="jcr_api"></a>
 ### JCR API
 
 JCR itself doesn't come with a dedicated principal management API. Nevertheless
@@ -29,7 +29,7 @@ control management but leaves the discovery of principals to the implementation
 Therefore an API for principal management has been defined as part of the
 extensions present with Jackrabbit API.
 
-<a name="jackrabbit_api"/>
+<a name="jackrabbit_api"></a>
 ### Jackrabbit API
 
 The Jackrabbit API provides support for principal management (i.e. discovery) that 
@@ -45,7 +45,7 @@ are missing in JCR. The relevant interfaces are defined in the
 
 See the corresponding [documentation](principal/differences.html).
 
-<a name="api_extensions"/>
+<a name="api_extensions"></a>
 ### API Extensions
 
 - [PrincipalProvider]: SPI level access to principals known to the repository
@@ -63,7 +63,7 @@ from different source providers.
 - [SystemPrincipal]: built-in principal implementation to mark system internal subjects.
 - [SystemUserPrincipal]: Marker interface to identify principals associated with special system users.
 
-<a href="default_implementation"/>
+<a href="default_implementation"></a>
 ### Oak Principal Management Implementation
 
 The default implementation of the principal management API basically corresponds
@@ -77,7 +77,7 @@ in Jackrabbit 2.x). See the configuration section below for details.
 See section [Implementations of the PrincipalProvider Interface](principal/principalprovider.html)
 for details.
 
-<a name="configuration"/>
+<a name="configuration"></a>
 ### Configuration
 
 The [PrincipalConfiguration] is the Oak level entry point to obtain a new
@@ -90,7 +90,7 @@ provider implementation configured. In order to combine principals from differen
 sources a implementation that properly handles the different sources is required;
 the [CompositePrincipalProvider] is an example that combines multiple implementations.
 
-<a name="pluggability"/>
+<a name="pluggability"></a>
 ### Pluggability
 
 The default security setup as present with Oak 1.0 is able to provide custom
@@ -159,7 +159,7 @@ provider implementation:
          ...
      }
 
-<a name="further_reading"/>
+<a name="further_reading"></a>
 ### Further Reading
 
 - [Differences wrt Jackrabbit 2.x](principal/differences.html)

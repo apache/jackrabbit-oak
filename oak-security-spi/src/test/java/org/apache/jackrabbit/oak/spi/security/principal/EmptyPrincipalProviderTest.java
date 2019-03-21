@@ -45,7 +45,7 @@ public class EmptyPrincipalProviderTest {
     }
 
     @Test
-    public void testGetPrincipals() throws Exception {
+    public void testGetPrincipals() {
         assertTrue(principalProvider.getPrincipals("userId").isEmpty());
     }
 

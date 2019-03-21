@@ -34,6 +34,7 @@
         <exclude>org.apache.tika:tika-core:*</exclude>
         <exclude>org.apache.tika:tika-parsers:*</exclude>
         <exclude>org.apache.jackrabbit:jackrabbit-aws-ext:*</exclude>
+        <exclude>io.prometheus:simpleclient*:*</exclude>
       </excludes>
       <useStrictFiltering>true</useStrictFiltering>
       <useProjectArtifact>true</useProjectArtifact>

@@ -69,7 +69,7 @@ public class TreeTypeProviderTest extends AbstractTreeTest {
             }
         });
 
-        tests = new ArrayList<TypeTest>();
+        tests = new ArrayList<>();
         tests.add(new TypeTest("/", TreeType.DEFAULT));
         tests.add(new TypeTest("/content", TreeType.DEFAULT));
         tests.add(new TypeTest('/' + JcrConstants.JCR_SYSTEM, TreeType.DEFAULT));

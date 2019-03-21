@@ -108,6 +108,11 @@ public final class S3Constants {
     public static final String PROXY_HOST = "proxyHost";
 
     /**
+     * Constant to set max list keys.
+     */
+    public static final String MAX_KEYS = "maxKeys";
+
+    /**
      *  Constant to set proxy port.
      */
     public static final String PROXY_PORT = "proxyPort";

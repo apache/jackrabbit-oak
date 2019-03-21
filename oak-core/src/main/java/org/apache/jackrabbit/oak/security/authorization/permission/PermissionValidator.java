@@ -148,7 +148,7 @@ class PermissionValidator extends DefaultValidator {
 
 
     @Override
-    public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+    public Validator childNodeChanged(String name, NodeState before, NodeState after) {
         Tree childBefore = parentBefore.getChild(name);
         Tree childAfter = parentAfter.getChild(name);
         return nextValidator(childBefore, childAfter, parentPermission.getChildPermission(name, before));
@@ -204,10 +204,6 @@ class PermissionValidator extends DefaultValidator {
             return null; // no need for further validation down the subtree
         } else {
             NodeState ns = provider.getTreeProvider().asNodeState(tree);
-            if (ns == null) {
-                throw new CommitFailedException(ACCESS, 0, "Access denied");
-            }
-
             TreePermission tp = parentPermission.getChildPermission(tree.getName(), ns);
             if (!tp.isGranted(toTest)) {
                 throw new CommitFailedException(ACCESS, 0, "Access denied");

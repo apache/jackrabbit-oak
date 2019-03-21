@@ -31,7 +31,6 @@ import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
@@ -101,7 +100,7 @@ public class DefaultSyncHandler implements SyncHandler {
     @NotNull
     @Override
     public SyncContext createContext(@NotNull ExternalIdentityProvider idp, @NotNull UserManager userManager,
-                                     @NotNull ValueFactory valueFactory) throws SyncException {
+                                     @NotNull ValueFactory valueFactory) {
         if (config.user().getDynamicMembership()) {
             return new DynamicSyncContext(config, idp, userManager, valueFactory);
         } else {

@@ -159,7 +159,14 @@ public class StandbyStoreService {
         String[] ranges = config.primary_allowed$_$client$_$ip$_$ranges();
         boolean secure = config.secure();
 
-        StandbyServerSync standbyServerSync = new StandbyServerSync(port, fileStore, BLOB_CHUNK_SIZE, ranges, secure);
+        StandbyServerSync standbyServerSync = StandbyServerSync.builder()
+            .withPort(port)
+            .withFileStore(fileStore)
+            .withBlobChunkSize(BLOB_CHUNK_SIZE)
+            .withAllowedClientIPRanges(ranges)
+            .withSecureConnection(secure)
+            .build();
+
         closer.register(standbyServerSync);
         standbyServerSync.start();
 

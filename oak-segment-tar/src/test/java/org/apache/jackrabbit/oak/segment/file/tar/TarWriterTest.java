@@ -32,6 +32,7 @@ import java.util.UUID;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,7 +56,7 @@ public class TarWriterTest {
     @Test
     public void createNextGenerationTest() throws IOException {
         int counter = 2222;
-        TarWriter t0 = new TarWriter(archiveManager, counter);
+        TarWriter t0 = new TarWriter(archiveManager, counter, NoopStats.INSTANCE);
 
         // not dirty, will not create a new writer
         TarWriter t1 = t0.createNextGeneration();
@@ -88,7 +89,7 @@ public class TarWriterTest {
 
     @Test
     public void testFileStoreMonitor() throws Exception {
-        try (TarWriter writer = new TarWriter(archiveManager, 0)) {
+        try (TarWriter writer = new TarWriter(archiveManager, 0, NoopStats.INSTANCE)) {
             long sizeBefore = writer.fileLength();
             long writtenBefore = monitor.written;
             writer.writeEntry(0, 0, new byte[42], 0, 42, newGCGeneration(0, 0, false));

@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.memory;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.segment.SegmentReader;
 import org.apache.jackrabbit.oak.segment.SegmentStore;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.NoopStats;
 import org.jetbrains.annotations.NotNull;
@@ -113,7 +113,7 @@ public class MemoryStore implements SegmentStore {
     @Override
     public void writeSegment(
             SegmentId id, byte[] data, int offset, int length) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(length);
+        Buffer buffer = Buffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
         Segment segment = new Segment(tracker, segmentReader, id, buffer);

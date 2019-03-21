@@ -257,6 +257,14 @@ public class PermissionsTest {
     }
 
     @Test
+    public void testIsRepositoryPermission() {
+        Set<Long> repoPermissions = ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT, Permissions.NODE_TYPE_DEFINITION_MANAGEMENT, Permissions.PRIVILEGE_MANAGEMENT, Permissions.WORKSPACE_MANAGEMENT);
+        for (long permission : Permissions.aggregates(Permissions.ALL)) {
+            assertEquals(repoPermissions.contains(permission), Permissions.isRepositoryPermission(permission));
+        }
+    }
+
+    @Test
     public void testRespectParentPermissions() {
         List<Long> permissions = ImmutableList.of(
                 Permissions.ALL,
@@ -350,7 +358,7 @@ public class PermissionsTest {
         TreeLocation tl = TreeLocation.create(existingTree);
         long permissions = Permissions.NODE_TYPE_MANAGEMENT|Permissions.LOCK_MANAGEMENT|Permissions.VERSION_MANAGEMENT;
         Set<String> names = Permissions.getNames(permissions);
-        String jcrActions = Text.implode(names.toArray(new String[names.size()]), ",");
+        String jcrActions = Text.implode(names.toArray(new String[0]), ",");
         assertEquals(permissions, Permissions.getPermissions(jcrActions, tl, false));
     }
 
@@ -374,7 +382,7 @@ public class PermissionsTest {
     @Test
     public void testGetPermissionsFromJackrabbitActions() {
         TreeLocation tl = TreeLocation.create(existingTree);
-        Map<String, Long> map = new HashMap<String, Long>();
+        Map<String, Long> map = new HashMap<>();
         map.put(Session.ACTION_ADD_NODE, Permissions.ADD_NODE);
         map.put(JackrabbitSession.ACTION_ADD_PROPERTY, Permissions.ADD_PROPERTY);
         map.put(JackrabbitSession.ACTION_MODIFY_PROPERTY, Permissions.MODIFY_PROPERTY);
@@ -395,7 +403,7 @@ public class PermissionsTest {
     @Test
     public void testGetPermissionsOnAccessControlledNode() {
         TreeLocation tl = createNonExistingTreeLocation(PathUtils.ROOT_PATH + AccessControlConstants.REP_POLICY);
-        Map<String, Long> map = new HashMap<String, Long>();
+        Map<String, Long> map = new HashMap<>();
 
         // read -> mapped to read-access-control
         map.put(Session.ACTION_READ, Permissions.READ_ACCESS_CONTROL);
