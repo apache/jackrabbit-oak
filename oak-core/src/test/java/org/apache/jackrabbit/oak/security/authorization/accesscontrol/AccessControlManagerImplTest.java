@@ -27,6 +27,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -95,6 +96,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1151,6 +1153,24 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
                 // success
             }
         }
+    }
+
+    @Test
+    public void testGetPoliciesLimitsPrincipalLookup() throws Exception {
+        ACL policy = getApplicablePolicy(testPath);
+        policy.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ));
+        policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true, ImmutableMap.of(REP_GLOB, getValueFactory(root).createValue("")));
+        policy.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE));
+        acMgr.setPolicy(policy.getPath(), policy);
+
+        // read policy again
+        policy = (ACL) acMgr.getPolicies(policy.getPath())[0];
+        assertEquals(3, policy.size());
+        AccessControlEntry[] entries = policy.getAccessControlEntries();
+        // reading policies attempts to lookup principals (see OAK-xxx)
+        assertTrue(entries[0].getPrincipal() instanceof GroupPrincipal);
+        // reading policies must only lookup a given principal once
+        assertSame(entries[1].getPrincipal(), entries[2].getPrincipal());
     }
 
     //---------------------------------------< getEffectivePolicies(String) >---
