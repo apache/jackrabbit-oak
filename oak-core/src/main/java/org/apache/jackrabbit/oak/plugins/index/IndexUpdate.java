@@ -231,6 +231,11 @@ public class IndexUpdate implements Editor, PathSource {
         // might be set to 'false' (possible via content import).
         // However if its already indexed i.e. has some hidden nodes (containing hidden data)
         // then no need to reindex
+        
+        // WARNING: If there is _any_ hidden node, then it is assumed that
+        // no reindex is needed. Even if the hidden node is completely unrelated
+        // and doesn't contain index data (for example the node ":status").
+        // See also OAK-7991.
         boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)
                 && !hasAnyHiddenNodes(definition);
         if (result) {
@@ -242,7 +247,7 @@ public class IndexUpdate implements Editor, PathSource {
 
     private static boolean hasAnyHiddenNodes(NodeBuilder builder){
         for (String name : builder.getChildNodeNames()) {
-            if (NodeStateUtils.isHidden(name)){
+            if (NodeStateUtils.isHidden(name)) {
                 NodeBuilder childNode = builder.getChildNode(name);
                 if (childNode.getBoolean(IndexConstants.REINDEX_RETAIN)) {
                     continue;
