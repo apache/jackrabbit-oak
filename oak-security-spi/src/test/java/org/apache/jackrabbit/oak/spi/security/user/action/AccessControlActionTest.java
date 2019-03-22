@@ -17,10 +17,17 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -36,6 +43,11 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.security.Principal;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -45,20 +57,40 @@ import static org.mockito.Mockito.when;
  */
 public class AccessControlActionTest implements UserConstants {
 
-    private final Root root = Mockito.mock(Root.class);
-    private final SecurityProvider securityProvider = Mockito.mock(SecurityProvider.class);
-    private final UserConfiguration userConfiguration = Mockito.mock(UserConfiguration.class);
-    private final AuthorizationConfiguration authorizationConfiguration = Mockito.mock(AuthorizationConfiguration.class);
+    private final Root root = mock(Root.class);
+    private final SecurityProvider securityProvider = mock(SecurityProvider.class);
+    private final UserConfiguration userConfiguration = mock(UserConfiguration.class);
+    private final AuthorizationConfiguration authorizationConfiguration = mock(AuthorizationConfiguration.class);
 
-    private void initSecurityProvider(@NotNull String adminId, @NotNull String anonymousId, @NotNull String... adminPrincipalNames) {
+    private void initSecurityProvider(@NotNull String adminId, @NotNull String anonymousId, @NotNull String... adminPrincipalNames) throws Exception {
+        initSecurityProvider(null, adminId, anonymousId, adminPrincipalNames);
+    }
+
+    private void initSecurityProvider(@Nullable AccessControlManager acMgr, @NotNull String adminId, @NotNull String anonymousId, @NotNull String... adminPrincipalNames) throws Exception {
         when(userConfiguration.getParameters()).thenReturn(ConfigurationParameters.of(
                 PARAM_ADMIN_ID, adminId,
                 PARAM_ANONYMOUS_ID, anonymousId));
 
         when(authorizationConfiguration.getParameters()).thenReturn(ConfigurationParameters.of(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, adminPrincipalNames));
-
+        if (acMgr != null) {
+            when(authorizationConfiguration.getAccessControlManager(root, NamePathMapper.DEFAULT)).thenReturn(acMgr);
+        }
         when(securityProvider.getConfiguration(UserConfiguration.class)).thenReturn(userConfiguration);
         when(securityProvider.getConfiguration(AuthorizationConfiguration.class)).thenReturn(authorizationConfiguration);
+
+    }
+
+    private AccessControlManager mockAccessControlManager(boolean addEntrySuccess) throws Exception {
+        AccessControlManager acMgr = mock(AccessControlManager.class);
+        when(acMgr.getApplicablePolicies("/none")).thenReturn(AccessControlPolicyIteratorAdapter.EMPTY);
+        AccessControlPolicy policy = mock(AccessControlPolicy.class);
+        when(acMgr.getApplicablePolicies("/nonACL")).thenReturn(new AccessControlPolicyIteratorAdapter(ImmutableList.of(policy)));
+        JackrabbitAccessControlList acl = mock(JackrabbitAccessControlList.class);
+        if (addEntrySuccess) {
+            when(acl.addAccessControlEntry(any(Principal.class), any(Privilege[].class))).thenReturn(true);
+        }
+        when(acMgr.getApplicablePolicies("/acl")).thenReturn(new AccessControlPolicyIteratorAdapter(ImmutableList.of(acl)));
+        return acMgr;
 
     }
 
@@ -93,14 +125,14 @@ public class AccessControlActionTest implements UserConstants {
     }
 
     private static User mockUser(@NotNull String id, @Nullable String principalName, @Nullable String path) throws RepositoryException {
-        User user = Mockito.mock(User.class);
+        User user = mock(User.class);
         when(user.isGroup()).thenReturn(false);
         mockAuthorizable(user, id, principalName, path);
         return user;
     }
 
     private static Group mockGroup(@NotNull String id, @Nullable String principalName, @Nullable String path) throws RepositoryException {
-        Group gr = Mockito.mock(Group.class);
+        Group gr = mock(Group.class);
         when(gr.isGroup()).thenReturn(true);
         mockAuthorizable(gr, id, principalName, path);
         return gr;
@@ -108,12 +140,12 @@ public class AccessControlActionTest implements UserConstants {
 
     @Test(expected = IllegalStateException.class)
     public void testOnCreateUserMissingSecurityProvider() throws Exception {
-        new AccessControlAction().onCreate(Mockito.mock(User.class), null, root, NamePathMapper.DEFAULT);
+        new AccessControlAction().onCreate(mock(User.class), null, root, NamePathMapper.DEFAULT);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testOnCreateGroupMissingSecurityProvider() throws Exception {
-        new AccessControlAction().onCreate(Mockito.mock(Group.class), root, NamePathMapper.DEFAULT);
+        new AccessControlAction().onCreate(mock(Group.class), root, NamePathMapper.DEFAULT);
     }
 
     @Test
@@ -200,4 +232,35 @@ public class AccessControlActionTest implements UserConstants {
         action.onCreate(gr, root, NamePathMapper.DEFAULT);
     }
 
+    @Test
+    public void testOnCreateNoApplicablePolicy() throws Exception {
+        initSecurityProvider(mockAccessControlManager(false), DEFAULT_ADMIN_ID, DEFAULT_ANONYMOUS_ID);
+        AccessControlAction action = createAction(PrivilegeConstants.JCR_READ);
+
+        action.onCreate(mockUser("userId", "pName", "/none"), "pw", root, NamePathMapper.DEFAULT);
+    }
+
+    @Test
+    public void testOnCreateNoApplicableAclPolicy() throws Exception {
+        initSecurityProvider(mockAccessControlManager(false), DEFAULT_ADMIN_ID, DEFAULT_ANONYMOUS_ID);
+        AccessControlAction action = createAction(PrivilegeConstants.JCR_READ);
+
+        action.onCreate(mockGroup("grId", "pName", "/nonACL"), root, NamePathMapper.DEFAULT);
+    }
+
+    @Test
+    public void testOnCreateApplicableAclPolicyForGroup() throws Exception {
+        initSecurityProvider(mockAccessControlManager(false), DEFAULT_ADMIN_ID, DEFAULT_ANONYMOUS_ID);
+        AccessControlAction action = createAction(PrivilegeConstants.JCR_READ);
+
+        action.onCreate(mockGroup("grId", "pName", "/acl"), root, NamePathMapper.DEFAULT);
+    }
+
+    @Test
+    public void testOnCreateApplicableAclPolicyForUser() throws Exception {
+        initSecurityProvider(mockAccessControlManager(true), DEFAULT_ADMIN_ID, DEFAULT_ANONYMOUS_ID);
+        AccessControlAction action = createAction(PrivilegeConstants.JCR_READ);
+
+        action.onCreate(mockUser("userId", "pName", "/acl"), "pw", root, NamePathMapper.DEFAULT);
+    }
 }

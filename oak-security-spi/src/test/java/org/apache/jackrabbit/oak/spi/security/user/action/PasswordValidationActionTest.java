@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -30,20 +31,22 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 public class PasswordValidationActionTest {
 
-    private final SecurityProvider securityProvider = Mockito.mock(SecurityProvider.class);
-    private final Root root = Mockito.mock(Root.class);
-    private final NamePathMapper namePathMapper = Mockito.mock(NamePathMapper.class);
+    private final SecurityProvider securityProvider = mock(SecurityProvider.class);
+    private final Root root = mock(Root.class);
+    private final NamePathMapper namePathMapper = mock(NamePathMapper.class);
     private final PasswordValidationAction pwAction = new PasswordValidationAction();
 
     private User user;
 
     @Before
     public void before() {
-        user = Mockito.mock(User.class);
+        user = mock(User.class);
         pwAction.init(securityProvider, ConfigurationParameters.of(
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*"));
 
@@ -70,7 +73,12 @@ public class PasswordValidationActionTest {
     }
 
     @Test
-    public void testPasswordValidationActionInvalid() throws Exception {
+    public void testOnCreateHashedInvalidPw() throws Exception {
+        pwAction.onCreate(user, PasswordUtil.buildPasswordHash("pw1"), root, namePathMapper);
+    }
+
+    @Test
+    public void testOnPasswordChangeInvalid() throws Exception {
         List<String> invalid = new ArrayList<>();
         invalid.add("pw1");
         invalid.add("only6C");
@@ -89,7 +97,7 @@ public class PasswordValidationActionTest {
     }
 
     @Test
-    public void testPasswordValidationActionValid() throws Exception {
+    public void testOnPasswordChangeValidPw() throws Exception {
         List<String> valid = new ArrayList<>();
         valid.add("abCDefGH");
         valid.add("Abbbbbbbbbbbb");
@@ -103,10 +111,32 @@ public class PasswordValidationActionTest {
     }
 
     @Test(expected = ConstraintViolationException.class)
-    public void testPasswordValidationActionOnChange() throws Exception {
+    public void testOnPasswordChange() throws Exception {
         pwAction.init(securityProvider, ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "abc"));
 
         String hashed = PasswordUtil.buildPasswordHash("abc");
-        pwAction.onPasswordChange(user, hashed, Mockito.mock(Root.class), Mockito.mock(NamePathMapper.class));
+        pwAction.onPasswordChange(user, hashed, root, namePathMapper);
+    }
+
+    @Test
+    public void testOnPasswordChangeNullPw() throws Exception {
+        pwAction.init(securityProvider, ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "abc"));
+        pwAction.onPasswordChange(user, null, root, namePathMapper);
+    }
+
+    @Test
+    public void testInvalidPattern() throws Exception {
+        PasswordValidationAction action = new PasswordValidationAction();
+        action.init(mock(SecurityProvider.class), ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "["));
+
+        Field f = PasswordValidationAction.class.getDeclaredField("pattern");
+        f.setAccessible(true);
+
+        // no pattern was set
+        assertNull(f.get(action));
+
+        // no pattern gets evaluated
+        action.onCreate(user, null, root, namePathMapper);
+        action.onPasswordChange(user, "]", root, namePathMapper);
     }
 }

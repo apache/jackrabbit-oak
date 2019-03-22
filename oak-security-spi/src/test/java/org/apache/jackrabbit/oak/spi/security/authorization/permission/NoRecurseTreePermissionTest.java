@@ -21,6 +21,9 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 public class NoRecurseTreePermissionTest {
 
     private final TreePermission noRecurse = TreePermission.NO_RECOURSE;
@@ -59,5 +62,11 @@ public class NoRecurseTreePermissionTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testIsGrantedProperty() {
         noRecurse.isGranted(Permissions.ALL, property);
+    }
+
+    @Test
+    public void testToString() {
+        assertEquals(noRecurse.toString(),  TreePermission.NO_RECOURSE.toString());
+        assertNotEquals(noRecurse.toString(), TreePermission.EMPTY.toString());
     }
 }
