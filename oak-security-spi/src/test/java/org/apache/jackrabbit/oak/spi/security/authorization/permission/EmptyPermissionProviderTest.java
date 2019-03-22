@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -63,5 +64,10 @@ public class EmptyPermissionProviderTest {
     @Test
     public void testIsGrantedActions() {
         assertFalse(emptyProvider.isGranted("/", Session.ACTION_READ));
+    }
+
+    @Test
+    public void testRefreshMustNotFail() {
+        emptyProvider.refresh();
     }
 }

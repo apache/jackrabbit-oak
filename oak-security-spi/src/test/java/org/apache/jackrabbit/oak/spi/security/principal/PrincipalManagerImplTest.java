@@ -34,6 +34,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class PrincipalManagerImplTest {
 
@@ -307,5 +314,16 @@ public class PrincipalManagerImplTest {
     public void testFindUnknownByTypeNotGroup() {
         String unknownHint = TestPrincipalProvider.UNKNOWN.getName().substring(0, 4);
         assertFalse(principalMgr.findPrincipals(unknownHint, PrincipalManager.SEARCH_TYPE_NOT_GROUP).hasNext());
+    }
+
+    @Test
+    public void testFindPrincipalsWithOffsetLimit() {
+        PrincipalProvider pp = when(mock(PrincipalProvider.class).findPrincipals(any(), anyBoolean(), anyInt(), anyInt(), anyInt())).thenReturn(Iterators.emptyIterator()).getMock();
+        PrincipalQueryManager pm = new PrincipalManagerImpl(pp);
+
+        PrincipalIterator it = pm.findPrincipals("filter", true, PrincipalManager.SEARCH_TYPE_ALL, 5, 2);
+        assertTrue(it instanceof PrincipalIteratorAdapter);
+
+        verify(pp, times(1)).findPrincipals("filter", true, PrincipalManager.SEARCH_TYPE_ALL, 5, 2);
     }
 }

@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.AbstractCompositeConfigurationTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -40,17 +41,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class CompositePrincipalConfigurationTest extends AbstractCompositeConfigurationTest<PrincipalConfiguration> {
 
-    private final Root root = Mockito.mock(Root.class);
+    private final Root root = mock(Root.class);
 
     private PrincipalConfiguration principalConfigurationMock;
 
     @Before
     public void before() {
         compositeConfiguration = new CompositePrincipalConfiguration();
-        principalConfigurationMock = Mockito.mock(PrincipalConfiguration.class);
+        principalConfigurationMock = mock(PrincipalConfiguration.class);
         Mockito.when(principalConfigurationMock.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
     }
 
@@ -136,6 +138,23 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
         assertSize(2, (CompositePrincipalProvider) pp);
     }
 
+    @Test
+    public void testInitWithSecurityProvider() {
+        SecurityProvider sp = mock(SecurityProvider.class);
+        TestComposite cpc = new TestComposite(sp);
+
+        assertSame(PrincipalConfiguration.NAME, cpc.getName());
+        assertSame(sp, cpc.getSecurityProvider());
+    }
+
+    private final class TestComposite extends CompositePrincipalConfiguration {
+        TestComposite(@NotNull SecurityProvider securityProvider) {
+            super(securityProvider);
+        }
+        public SecurityProvider getSecurityProvider() {
+            return super.getSecurityProvider();
+        }
+    }
 
     private final class TestPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
 

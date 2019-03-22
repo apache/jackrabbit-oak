@@ -29,10 +29,11 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class EveryonePrincipalTest  {
 
-    private final Principal everyone = EveryonePrincipal.getInstance();
+    private final EveryonePrincipal everyone = EveryonePrincipal.getInstance();
 
     @Test
     public void testGetName() {
@@ -40,13 +41,23 @@ public class EveryonePrincipalTest  {
     }
 
     @Test
+    public void testAddMember() {
+        assertFalse(everyone.addMember(mock(Principal.class)));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRemoveMember() {
+        everyone.removeMember(mock(Principal.class));
+    }
+
+    @Test
     public void testIsMember() {
-        assertTrue(EveryonePrincipal.getInstance().isMember(new PrincipalImpl("test")));
+        assertTrue(everyone.isMember(new PrincipalImpl("test")));
     }
 
     @Test
     public void testIsMemberSelf() {
-        assertFalse(EveryonePrincipal.getInstance().isMember(everyone));
+        assertFalse(everyone.isMember(everyone));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -66,7 +77,7 @@ public class EveryonePrincipalTest  {
 
     @Test
     public void testHashCode() {
-        assertTrue(everyone.hashCode() == EveryonePrincipal.getInstance().hashCode());
+        assertEquals(everyone.hashCode(), EveryonePrincipal.getInstance().hashCode());
     }
 
     @Test
@@ -76,13 +87,13 @@ public class EveryonePrincipalTest  {
                 return EveryonePrincipal.NAME;
             }
         };
-        assertFalse(everyone.equals(someotherEveryone));
+        assertNotEquals(everyone, someotherEveryone);
     }
 
     @Test
     public void testEqualsOtherJackrabbitPrincipal() {
         Principal someotherEveryone = new OtherEveryone();
-        assertFalse(everyone.equals(someotherEveryone));
+        assertNotEquals(everyone, someotherEveryone);
     }
 
     @Test

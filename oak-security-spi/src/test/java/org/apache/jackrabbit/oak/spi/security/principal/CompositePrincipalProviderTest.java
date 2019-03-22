@@ -46,6 +46,8 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -112,7 +114,14 @@ public class CompositePrincipalProviderTest {
     }
 
     @Test
-    public void getGroupMembership() {
+    public void testGetGroupMembership() {
+        for (Principal principal : testPrincipals()) {
+            assertTrue(cpp.getGroupMembership(principal).isEmpty());
+        }
+    }
+
+    @Test
+    public void testGetMembershipPrincipals() {
         for (Principal principal : testPrincipals()) {
             boolean atleastEveryone = cpp.getMembershipPrincipals(principal).contains(EveryonePrincipal.getInstance());
             assertTrue("All principals (except everyone) must be member of the everyone group. Violation: "+principal.getName(), atleastEveryone);
@@ -120,7 +129,7 @@ public class CompositePrincipalProviderTest {
     }
 
     @Test
-    public void getGroupMembershipUnknown() {
+    public void testGetMembershipPrincipalsUnknown() {
         assertTrue(cpp.getMembershipPrincipals(TestPrincipalProvider.UNKNOWN).isEmpty());
     }
 
@@ -264,5 +273,21 @@ public class CompositePrincipalProviderTest {
         Collections.sort(expected);
         List<String> out = getNames(cpp.findPrincipals(null, true, 1, 0, -1));
         assertEquals(expected, out);
+    }
+
+    @Test
+    public void testFindWithOffsetLimit() {
+        Iterator principals = new TestPrincipalProvider("p1", "p2", "p3", "p4").getTestPrincipals().iterator();
+        PrincipalProvider pp = mock(PrincipalProvider.class);
+        // NOTE: CompositePrincipalProvider passes 0 offset to the aggregated provider!
+        when(pp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 0, 1)).thenReturn(principals);
+
+        PrincipalProvider cpp = CompositePrincipalProvider.of(ImmutableList.of(pp, EmptyPrincipalProvider.INSTANCE));
+
+        Iterator<? extends Principal> it = cpp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 2, 1);
+        assertTrue(it.hasNext());
+        Principal p = it.next();
+        assertEquals("p3", p.getName());
+        assertFalse(it.hasNext());
     }
 }

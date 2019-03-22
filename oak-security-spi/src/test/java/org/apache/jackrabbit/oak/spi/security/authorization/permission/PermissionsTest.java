@@ -538,6 +538,12 @@ public class PermissionsTest {
     }
 
     @Test
+    public void testGetPermissionsMultipleNamesWithMissing() {
+        String str = Permissions.PERMISSION_NAMES.get(Permissions.READ) + ", ,," + Permissions.PERMISSION_NAMES.get(Permissions.READ);
+        assertEquals(Permissions.READ, Permissions.getPermissions(str));
+    }
+
+    @Test
     public void testGetPermissionsForReservedPaths() {
         Map<String, Long> mapping = ImmutableMap.of(
                 NamespaceConstants.NAMESPACES_PATH, Permissions.NAMESPACE_MANAGEMENT,
