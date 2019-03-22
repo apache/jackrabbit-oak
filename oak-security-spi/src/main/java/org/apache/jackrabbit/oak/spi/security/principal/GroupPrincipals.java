@@ -58,6 +58,7 @@ public final class GroupPrincipals {
      * @param principal the principal whose membership is listed.
      * @return an enumeration of the group members.
      */
+    @NotNull
     public static Enumeration<? extends Principal> members(@NotNull Principal principal) {
         if (principal instanceof Group) {
             return ((Group) principal).members();
@@ -84,7 +85,8 @@ public final class GroupPrincipals {
         return false;
     }
 
-    public static Set<Principal> transform(Set<Group> groups) {
+    @NotNull
+    public static Set<Principal> transform(@NotNull Set<Group> groups) {
         ImmutableSet.Builder<Principal> g2 = ImmutableSet.builder();
         for (Group g : groups) {
             g2.add(new GroupPrincipalWrapper(g));
@@ -92,7 +94,8 @@ public final class GroupPrincipals {
         return g2.build();
     }
 
-    public static Enumeration<? extends Principal> transform(Enumeration<? extends Principal> members) {
+    @NotNull
+    public static Enumeration<? extends Principal> transform(@NotNull Enumeration<? extends Principal> members) {
         Iterator<Principal> m2 = Iterators.transform(Iterators.forEnumeration(members), TRANSFORMER);
         return Iterators.asEnumeration(m2);
     }
