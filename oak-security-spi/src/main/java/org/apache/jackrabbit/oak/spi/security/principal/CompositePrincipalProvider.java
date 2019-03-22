@@ -135,6 +135,8 @@ public class CompositePrincipalProvider implements PrincipalProvider {
         return findPrincipals(null, searchType);
     }
 
+    @NotNull
+    @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType,
             long offset, long limit) {
 
