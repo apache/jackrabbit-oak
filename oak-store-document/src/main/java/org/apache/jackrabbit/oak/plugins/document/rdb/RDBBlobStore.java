@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
+import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -121,6 +122,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStore.class);
+    private static final PerfLogger PERFLOG = new PerfLogger(
+            LoggerFactory.getLogger(RDBBlobStore.class.getName() + ".perf"));
 
     // ID size we need to support; is 2 * (hex) size of digest length
     protected static final int IDSIZE;
@@ -345,20 +348,29 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     // needed in test
     protected byte[] readBlockFromBackend(byte[] digest) throws Exception {
-        String id = StringUtils.convertBytesToHex(digest);
+        return readBlockFromBackend(StringUtils.convertBytesToHex(digest));
+    }
+
+    private byte[] readBlockFromBackend(String id) throws Exception {
         Connection con = this.ch.getROConnection();
         byte[] data;
 
         try {
+            long pstart = PERFLOG.start(PERFLOG.isDebugEnabled() ? ("reading: " + id) : null);
             PreparedStatement prep = con.prepareStatement("select DATA from " + this.tnData + " where ID = ?");
             ResultSet rs = null;
             try {
                 prep.setString(1, id);
                 rs = prep.executeQuery();
                 if (!rs.next()) {
+                    PERFLOG.end(pstart, 10, "read: table={}, id={} -> not found", this.tnData, id);
                     throw new IOException("Datastore block " + id + " not found");
                 }
                 data = rs.getBytes(1);
+                PERFLOG.end(pstart, 10, "read: table={}, id={} -> data={}", this.tnData, id, (data == null ? 0 : data.length));
+            } catch (SQLException ex) {
+                PERFLOG.end(pstart, 10, "read: table={} -> exception={}", this.tnData, ex.getMessage());
+                throw ex;
             } finally {
                 closeResultSet(rs);
                 closeStatement(prep);
@@ -377,32 +389,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         byte[] data = cache.get(id);
 
         if (data == null) {
-            Connection con = this.ch.getROConnection();
             long start = System.nanoTime();
-            try {
-                PreparedStatement prep = con.prepareStatement("select DATA from " + this.tnData + " where ID = ?");
-                ResultSet rs = null;
-                try {
-                    prep.setString(1, id);
-                    rs = prep.executeQuery();
-                    if (!rs.next()) {
-                        throw new IOException("Datastore block " + id + " not found");
-                    }
-                    data = rs.getBytes(1);
-                } finally {
-                    closeResultSet(rs);
-                    closeStatement(prep);
-                }
-
-                getStatsCollector().downloaded(id, System.nanoTime() - start, TimeUnit.NANOSECONDS, data.length);
-                cache.put(id, data);
-            } finally {
-                con.commit();
-                this.ch.closeConnection(con);
-            }
+            data = readBlockFromBackend(id);
+            getStatsCollector().downloaded(id, System.nanoTime() - start, TimeUnit.NANOSECONDS, data.length);
+            cache.put(id, data);
         }
-        // System.out.println("    read block " + id + " blockLen: " +
-        // data.length + " [0]: " + data[0]);
+
         if (blockId.getPos() == 0) {
             return data;
         }
