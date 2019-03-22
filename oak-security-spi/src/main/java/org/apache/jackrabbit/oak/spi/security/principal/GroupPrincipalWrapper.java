@@ -34,11 +34,6 @@ class GroupPrincipalWrapper extends PrincipalImpl implements GroupPrincipal {
     }
 
     @Override
-    public String getName() {
-        return group.getName();
-    }
-
-    @Override
     public boolean isMember(Principal member) {
         return group.isMember(member);
     }
