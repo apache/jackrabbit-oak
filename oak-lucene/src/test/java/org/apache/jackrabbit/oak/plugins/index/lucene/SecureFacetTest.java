@@ -136,7 +136,7 @@ public class SecureFacetTest {
 
         Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", session));
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < NUM_LABELS; i++) {
             Node subPar = par.addNode("par" + i);
             for (int j = 0; j < NUM_LEAF_NODES; j++) {
                 Node child = subPar.addNode("c" + j);
@@ -180,9 +180,9 @@ public class SecureFacetTest {
 
         Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", session));
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < NUM_LABELS; i++) {
             Node subPar = par.addNode("par" + i);
-            for (int j = 0; j < NUM_LEAF_NODES/10; j++) {
+            for (int j = 0; j < NUM_LEAF_NODES/(2 * NUM_LABELS); j++) {
                 Node child = subPar.addNode("c" + j);
                 child.setProperty("cons", "val");
 

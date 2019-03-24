@@ -60,16 +60,9 @@ public class FacetHelper {
         return new NodeStateFacetsConfig(definition);
     }
 
-    public static Facets getFacets(IndexSearcher searcher, Query query, QueryIndex.IndexPlan plan,
-                                   SecureFacetConfiguration secureFacetConfiguration) throws IOException {
-        // This method is just a fail safe in case it is being called via the old signature in any code that consumes oak.
-        // The internal usage in LucenePropertyIndex has been modified to send total hits
-        // Calling searcher.search here with top docs count as 1 - as we are just concerned with the numbder of total hits here.
-        return getFacets(searcher, query, plan, secureFacetConfiguration,searcher.search(query,1).totalHits );
-    }
 
     public static Facets getFacets(IndexSearcher searcher, Query query, QueryIndex.IndexPlan plan,
-                                   SecureFacetConfiguration secureFacetConfiguration, int totalHits) throws IOException {
+                                   SecureFacetConfiguration secureFacetConfiguration) throws IOException {
         Facets facets = null;
         @SuppressWarnings("unchecked")
         List<String> facetFields = (List<String>) plan.getAttribute(ATTR_FACET_FIELDS);
@@ -88,10 +81,7 @@ public class FacetHelper {
                             facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
                             break;
                         case STATISTICAL:
-                            // Check if the total hits here are less than the sample size -> if yes , then switch to secure mode instead of statistical
-                            facets = (totalHits < secureFacetConfiguration.getStatisticalFacetSampleSize()) ?
-                                    new SecureSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter()) :
-                                    new StatisticalSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter(),
+                            facets = new StatisticalSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter(),
                                     secureFacetConfiguration);
                             break;
                         case SECURE:
