@@ -60,7 +60,6 @@ public class FacetHelper {
         return new NodeStateFacetsConfig(definition);
     }
 
-
     public static Facets getFacets(IndexSearcher searcher, Query query, QueryIndex.IndexPlan plan,
                                    SecureFacetConfiguration secureFacetConfiguration) throws IOException {
         Facets facets = null;
