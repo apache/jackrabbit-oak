@@ -18,21 +18,32 @@ package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
 import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
 import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
+import static org.junit.Assert.assertEquals;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import javax.jcr.LoginException;
+import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -53,9 +64,10 @@ public class ExternalLoginTest extends AbstractExternalTest {
     private final int numberOfGroups;
     private final Reporter reporter;
     private final LoginModuleStats lmStats;
+    private final List<String> auto;
 
-    private String id;
     private Set<String> uniques;
+    private AtomicLong err;
 
     public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime, boolean dynamicMembership,
             @NotNull List<String> autoMembership, boolean report, StatisticsProvider statsProvider) {
@@ -64,13 +76,15 @@ public class ExternalLoginTest extends AbstractExternalTest {
         this.numberOfGroups = numberOfGroups;
         this.reporter = new Reporter(report);
         this.lmStats = new LoginModuleStats(statsProvider);
+        this.auto = autoMembership;
     }
 
     @Override
     protected void beforeSuite() throws Exception {
         super.beforeSuite();
         reporter.beforeSuite();
-        uniques = new HashSet<>(numberOfUsers);
+        uniques = Collections.synchronizedSet(new HashSet<>(numberOfUsers));
+        err = new AtomicLong();
         AuthenticationConfiguration authenticationConfiguration = getSecurityProvider()
                 .getConfiguration(AuthenticationConfiguration.class);
         if (authenticationConfiguration instanceof LoginModuleStatsCollector) {
@@ -82,27 +96,52 @@ public class ExternalLoginTest extends AbstractExternalTest {
     protected void afterSuite() throws Exception {
         reporter.afterSuite();
         System.out.println("Unique users " + uniques.size() + " out of total " + numberOfUsers + ". Groups "
-                + numberOfGroups + ". Seed " + seed);
+                + numberOfGroups + ". Err " + err.get() + ". Seed " + seed);
         super.afterSuite();
     }
 
     @Override
     protected void beforeTest() throws Exception {
         super.beforeTest();
-        id = getRandomUserId();
         reporter.beforeTest();
     }
 
     @Override
     protected void afterTest() throws Exception {
         super.afterTest();
-        uniques.add(id);
         reporter.afterTest();
     }
 
     @Override
     protected void runTest() throws Exception {
-        getRepository().login(new SimpleCredentials(id, new char[0])).logout();
+        String id = getRandomUserId();
+        Session s = null;
+        try {
+            s = getRepository().login(new SimpleCredentials(id, new char[0]));
+            Set<String> principals = extractGroupPrincipals(s, id);
+            Set<String> expected = new TreeSet<>(StreamSupport.stream(idp.getDeclaredGroupRefs(id).spliterator(), false)
+                    .map(ExternalIdentityRef::getId).collect(Collectors.toSet()));
+            expected.addAll(auto);
+            assertEquals(expected, principals);
+        } catch (LoginException ex) {
+            // ignore, will be reflected in the jmx stats
+            err.incrementAndGet();
+        } finally {
+            if (s != null) {
+                s.logout();
+            }
+            uniques.add(id);
+        }
+    }
+
+    private static Set<String> extractGroupPrincipals(Session s, String userId) throws Exception {
+        SessionDelegate sd = (SessionDelegate) FieldUtils.readField(s, "sd", true);
+        Set<String> principals = new TreeSet<>(sd.getAuthInfo().getPrincipals().stream()
+                .map((p) -> p.getName().startsWith("p_") ? p.getName().substring(2) : p.getName())
+                .collect(Collectors.toSet()));
+        principals.remove("everyone");
+        principals.remove(userId);
+        return principals;
     }
 
     protected Configuration createConfiguration() {

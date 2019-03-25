@@ -101,7 +101,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     final DefaultSyncConfig syncConfig = new DefaultSyncConfig();
     final SyncHandler syncHandler = new DefaultSyncHandler(syncConfig);
 
-    final ExternalIdentityProvider idp;
+    final TestIdentityProvider idp;
     final long delay;
 
     SyncManagerImpl syncManager;
