@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStoreFriend;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceWrapper;
@@ -42,6 +44,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -273,5 +276,31 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         }
         messageDigest.update(bytes, 0, bytes.length);
         return messageDigest.digest();
+    }
+
+    @Test
+    public void testRDBJDBCPerfLog() throws Exception {
+        LogCustomizer logCustomizerRead = LogCustomizer.forLogger(RDBBlobStore.class.getName() + ".perf").enable(Level.TRACE)
+                .matchesRegex("read: .*").create();
+        logCustomizerRead.starting();
+        try {
+            byte[] data = new byte[256];
+            Random r = new Random(0);
+            r.nextBytes(data);
+            byte[] digest = getDigest(data);
+            RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
+            Assert.assertNotNull(RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest));
+            assertEquals(1, logCustomizerRead.getLogs().size());
+
+            r.nextBytes(data);
+            digest = getDigest(data);
+            try {
+                Assert.assertNotNull(RDBBlobStoreFriend.readBlockFromBackend(blobStore, digest));
+            } catch (IOException expected) {
+                assertEquals(2, logCustomizerRead.getLogs().size());
+            }
+        } finally {
+            logCustomizerRead.finished();
+        }
     }
 }

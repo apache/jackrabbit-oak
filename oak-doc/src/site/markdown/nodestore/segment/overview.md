@@ -63,6 +63,7 @@ Most of the operations on repository data generate a certain amount of garbage.
 This garbage is a byproduct of the repository operations and consists of leftover data that is not usable by the user.
 If left unchecked, this garbage would just pile up, consume disk space and pollute in-memory data structures.
 To avoid this, Oak Segment Tar defines garbage collection procedures to eliminate unnecessary data.
+The implementation of garbage collection in Oak evolved heavily between Oak 1.0 and Oak 1.8. See [Memoirs in Garbage Collection](onrc-memoirs.html) for an historical account.
 
 ### <a name="generational-garbage-collection"/> Generational Garbage Collection
 

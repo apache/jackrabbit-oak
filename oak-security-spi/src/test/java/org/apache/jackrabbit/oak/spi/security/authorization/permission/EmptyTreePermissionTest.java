@@ -21,7 +21,9 @@ import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 
 public class EmptyTreePermissionTest {
@@ -64,4 +66,9 @@ public class EmptyTreePermissionTest {
         assertFalse(empty.isGranted(Permissions.ALL, property));
     }
 
+    @Test
+    public void testToString() {
+        assertEquals(empty.toString(),  TreePermission.EMPTY.toString());
+        assertNotEquals(empty.toString(), TreePermission.ALL.toString());
+    }
 }

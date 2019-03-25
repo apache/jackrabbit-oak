@@ -517,6 +517,7 @@ Maintenance commands for the DataStore:
             [--max-age <seconds>] \
             [--verbose] \
             [<store_path>|<mongo_uri>]
+            [--metrics] [--export-metrics]
 
 The following operations are available:
     
@@ -539,9 +540,32 @@ The following options are available:
     <store_path|mongo_uri>  - Path to the tar segment store or the segment azure uri as specified in 
                                http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
                                or if Mongo NodeStore then the mongo uri.
+    --metrics                - If metrics are to be captured.
+    --export-metrics         - Option to export the captured metrics. The format of the command is type;URL;key1=value1,key2=value2
+                              Currently only [Prometheus Pushgateway](https://github.com/prometheus/pushgateway) is supported
+                              e.g. --export-metrics "pushgateway;localhost:9091;key1=value1,key2=value2" 
 
 Note:
 
+Note: When using --export-metrics the following additional jars have to be downloaded to support Prometheus Pushgatway
+* [simpleclient_common-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient_common/0.6.0/simpleclient_common-0.6.0.jar) 
+* [simpleclient-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient/0.6.0/simpleclient-0.6.0.jar)
+* [simpleclient_pushgateway-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient_pushgateway/0.6.0/simpleclient_pushgateway-0.6.0.jar)
+* [simpleclient_dropwizard-0.6.0.jar](http://central.maven.org/maven2/io/prometheus/simpleclient_dropwizard/0.6.0/simpleclient_dropwizard-0.6.0.jar)
+
+The command to be executed when using this option is:
+
+    $ java -classpath oak-run-*.jar:simpleclient_common-0.6.0.jar:simpleclient-0.6.0.jar:simpleclient_dropwizard-0.6.0.jar:simpleclient_pushgateway-0.6.0.jar \
+        org.apache.jackrabbit.oak.run.Main \
+        datastore [--check-consistency|--collect-garbage [true]] \
+        [--s3ds <s3ds_config>|--fds <fds_config>|--azureds <s3ds_config>|fake-ds-path <ds_path>] \
+        [--out-dir <output_path>] \
+        [--work-dir <temporary_path>] \
+        [--max-age <seconds>] \
+        [--verbose] \
+        [<store_path>|<mongo_uri>]
+        [--metrics] [--export-metrics]
+    
 Data Store and node store configuration is mandatory.
 
 The config files should be formatted according to the OSGi configuration admin specification

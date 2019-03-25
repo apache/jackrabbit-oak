@@ -311,6 +311,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         String oakPath = getOakPath(absPath);
         Util.checkValidPolicy(oakPath, policy);
 
+        Map<String, Principal> principalMap = new HashMap<>();
         if (policy instanceof PrincipalACL) {
             PrincipalACL principalAcl = (PrincipalACL) policy;
             for (ACE ace : principalAcl.getEntries()) {
@@ -323,7 +324,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 Iterator<Tree> children = aclTree.getChildren().iterator();
                 while (children.hasNext()) {
                     Tree child = children.next();
-                    if (ace.equals(createACE(path, child, principalAcl.rProvider))) {
+                    if (ace.equals(createACE(path, child, principalAcl.rProvider, principalMap))) {
                         child.remove();
                     }
                 }
@@ -469,9 +470,10 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         }
 
         List<ACE> entries = new ArrayList<>();
+        Map<String, Principal> principalMap = new HashMap<>();
         for (Tree child : aclTree.getChildren()) {
             if (Util.isACE(child, ntMgr) && predicate.apply(child)) {
-                ACE ace = createACE(oakPath, child, restrictionProvider);
+                ACE ace = createACE(oakPath, child, restrictionProvider, principalMap);
                 entries.add(ace);
             }
         }
@@ -489,6 +491,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Result aceResult = searchAces(Collections.singleton(principal), root);
         RestrictionProvider restrProvider = new PrincipalRestrictionProvider(restrictionProvider);
         List<ACE> entries = new ArrayList<>();
+        Map<String, Principal> principalMap = new HashMap<>();
         for (ResultRow row : aceResult.getRows()) {
             Tree aceTree = root.getTree(row.getPath());
             if (Util.isACE(aceTree, ntMgr)) {
@@ -499,7 +502,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 } else {
                     path = Text.getRelativeParent(aclPath, 1);
                 }
-                entries.add(createACE(path, aceTree, restrProvider));
+                entries.add(createACE(path, aceTree, restrProvider, principalMap));
             }
         }
         if (entries.isEmpty()) {
@@ -513,11 +516,12 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @NotNull
     private ACE createACE(@Nullable String oakPath,
                           @NotNull Tree aceTree,
-                          @NotNull RestrictionProvider restrictionProvider) throws RepositoryException {
+                          @NotNull RestrictionProvider restrictionProvider,
+                          @NotNull Map<String, Principal> principalMap) throws RepositoryException {
         boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
         Set<Restriction> restrictions = restrictionProvider.readRestrictions(oakPath, aceTree);
         Iterable<String> privNames = checkNotNull(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
-        return new Entry(getPrincipal(aceTree), bitsProvider.getBits(privNames), isAllow, restrictions, getNamePathMapper());
+        return new Entry(getPrincipal(aceTree, principalMap), bitsProvider.getBits(privNames), isAllow, restrictions, getNamePathMapper());
     }
 
     @NotNull
@@ -554,9 +558,15 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     }
 
     @NotNull
-    private Principal getPrincipal(@NotNull Tree aceTree) {
+    private Principal getPrincipal(@NotNull Tree aceTree, @NotNull Map<String, Principal> principalMap) {
         String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
-        return new PrincipalImpl(principalName);
+        return principalMap.computeIfAbsent(principalName, pn -> {
+            Principal principal = principalManager.getPrincipal(pn);
+            if (principal == null) {
+                principal = new PrincipalImpl(pn);
+            }
+            return principal;
+        });
     }
 
     private String getNodePath(ACE principalBasedAce) throws RepositoryException {

@@ -33,20 +33,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CompositeTokenProviderTest {
 
     private static final String TOKEN = "t";
+    private static final String USERID = "userId";
     private TokenInfo info;
 
     private TokenProvider composite;
 
     @Before
     public void before() {
-        info = Mockito.mock(TokenInfo.class);
-        Mockito.when(info.getToken()).thenReturn(TOKEN);
+        info = mock(TokenInfo.class);
+        when(info.getToken()).thenReturn(TOKEN);
 
-        TokenProvider tp1 = Mockito.mock(TokenProvider.class);
+        TokenProvider tp1 = mock(TokenProvider.class);
         TokenProvider tp2 = new TestTokenProvider();
 
         composite = CompositeTokenProvider.newInstance(tp1, tp2);
@@ -64,7 +67,7 @@ public class CompositeTokenProviderTest {
         assertFalse(tp.doCreateToken(creds));
 
         assertNull(tp.createToken(null, null));
-        assertNull(tp.createToken("userID", ImmutableMap.<String, String>of()));
+        assertNull(tp.createToken(USERID, ImmutableMap.<String, String>of()));
 
         assertNull(tp.createToken(null));
         assertNull(tp.createToken(creds));
@@ -75,7 +78,7 @@ public class CompositeTokenProviderTest {
 
     @Test
     public void testSingleProvider() {
-        TokenProvider base = Mockito.mock(TokenProvider.class);
+        TokenProvider base = mock(TokenProvider.class);
 
         TokenProvider tp = CompositeTokenProvider.newInstance(base);
 
@@ -90,29 +93,44 @@ public class CompositeTokenProviderTest {
 
     @Test
     public void testCreateCompositeProviderFromList() {
-        TokenProvider base = Mockito.mock(TokenProvider.class);
+        TokenProvider base = mock(TokenProvider.class);
         TokenProvider tp = CompositeTokenProvider.newInstance(ImmutableList.of(base, base));
         assertTrue(tp instanceof CompositeTokenProvider);
     }
 
     @Test
     public void testDoCreateToken() {
-        assertTrue(composite.doCreateToken(new SimpleCredentials("id", new char[0])));
+        assertTrue(composite.doCreateToken(new SimpleCredentials(USERID, new char[0])));
         assertFalse(composite.doCreateToken(new GuestCredentials()));
         assertFalse(composite.doCreateToken(new Credentials() {}));
     }
 
     @Test
     public void testCreateTokenFromCredentials() {
-        assertSame(info, composite.createToken(new SimpleCredentials("id", new char[0])));
+        assertSame(info, composite.createToken(new SimpleCredentials(USERID, new char[0])));
         assertNull(composite.createToken(new GuestCredentials()));
         assertNull(composite.createToken(new Credentials() {
         }));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testCreateTokenFromId() {
-        composite.createToken("id", ImmutableMap.<String, Object>of());
+        assertSame(info, composite.createToken(USERID, ImmutableMap.of()));
+    }
+
+    @Test
+    public void testCreateTokenFromUnknownId() {
+        assertNull(composite.createToken("unknown", ImmutableMap.of()));
+    }
+
+    @Test
+    public void testCreateTokenFromIdFirstWins() {
+        TokenInfo ti = mock(TokenInfo.class);
+        TokenProvider tp1 = when(mock(TokenProvider.class).createToken(USERID, ImmutableMap.of())).thenReturn(ti).getMock();
+        TokenProvider tp2 = new TestTokenProvider();
+
+        TokenProvider ctp = CompositeTokenProvider.newInstance(tp1, tp2);
+        assertSame(ti, ctp.createToken(USERID, ImmutableMap.of()));
     }
 
     @Test
@@ -140,8 +158,11 @@ public class CompositeTokenProviderTest {
         @Nullable
         @Override
         public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
-            throw new UnsupportedOperationException();
-
+            if (USERID.equals(userId)) {
+                return info;
+            } else {
+                return null;
+            }
         }
 
         @Nullable

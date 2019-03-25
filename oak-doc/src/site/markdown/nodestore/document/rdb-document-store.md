@@ -83,7 +83,7 @@ Creating a database called `OAK`:
 create database oak USING CODESET UTF-8 TERRITORY DEFAULT COLLATE USING IDENTITY;
 ~~~
 
-To verify, check that INFO level log message written by `RDBDocumentStore`
+To verify, check the INFO level log message written by `RDBDocumentStore`
 upon startup. For example:
 
 ~~~
@@ -101,13 +101,27 @@ create database oak DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 Also make sure to configure the `max_allowed_packet` parameter
 for the server (mysqld) to a value greater than 4M (such as 8388608).
 
-To verify, check that INFO level log message written by `RDBDocumentStore`
+To verify, check the INFO level log message written by `RDBDocumentStore`
 upon startup. For example:
 
 ~~~
 13:40:46.637 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database MySQL 8.0.15 (8.0), using driver: MySQL Connector/J mysql-connector-java-8.0.15 (Revision: 79a4336f140499bd22dd07f02b708e163844e3d5) (8.0), connecting to: jdbc:mysql://localhost:3306/oak?serverTimezone=UTC, properties: {character_set_database=utf8mb4, character_set_client=utf8mb4, character_set_connection=utf8mb4, character_set_results=, max_allowed_packet=8388608, collation_database=utf8mb4_unicode_ci, character_set_system=utf8, collation_server=utf8mb4_0900_ai_ci, collation=utf8mb4_unicode_ci, character_set_filesystem=binary, character_set_server=utf8mb4, collation_connection=utf8mb4_0900_ai_ci}, transaction isolation level: TRANSACTION_REPEATABLE_READ (4), .nodes: ID VARBINARY(512), MODIFIED BIGINT(20), HASBINARY SMALLINT(6), DELETEDONCE SMALLINT(6), MODCOUNT BIGINT(20), CMODCOUNT BIGINT(20), DSIZE BIGINT(20), VERSION SMALLINT(6), SDTYPE SMALLINT(6), SDMAXREVTIME BIGINT(20), DATA VARCHAR(16000), BDATA LONGBLOB(2147483647) /* {BIGINT=-5, LONGBLOB=-4, SMALLINT=5, VARBINARY=-3, VARCHAR=12} */ /* unique index oak.PRIMARY on nodes (ID ASC) other (#0, p0), index oak.NODES_MOD on nodes (MODIFIED ASC) other (#0, p0), index oak.NODES_SDM on nodes (SDMAXREVTIME ASC) other (#0, p0), index oak.NODES_SDT on nodes (SDTYPE ASC) other (#0, p0), index oak.NODES_VSN on nodes (VERSION ASC) other (#0, p0) */
 ~~~
  
+
+### <a name="database-creation-oracle"></a> Oracle
+
+Creating a database called `OAK`:
+
+(to be done)
+
+To verify, check the INFO level log message written by `RDBDocumentStore`
+upon startup. For example:
+
+~~~
+13:26:37.073 INFO  [main] RDBDocumentStore.java:1067        RDBDocumentStore (SNAPSHOT) instantiated for database Oracle Oracle Database 12c Enterprise Edition Release 12.2.0.1.0 - 64bit Production (12.2), using driver: Oracle JDBC driver 12.2.0.1.0 (12.2), connecting to: jdbc:oracle:thin:@localhost:1521:orcl, properties: {NLS_CHARACTERSET=AL32UTF8, NLS_COMP=BINARY}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), .: ID VARCHAR2(512), MODIFIED NUMBER, HASBINARY NUMBER, DELETEDONCE NUMBER, MODCOUNT NUMBER, CMODCOUNT NUMBER, DSIZE NUMBER, VERSION NUMBER, SDTYPE NUMBER, SDMAXREVTIME NUMBER, DATA VARCHAR2(4000), BDATA BLOB(-1) /* {BLOB=2004, NUMBER=2, VARCHAR2=12} */ /* index NODES_MOD on SYSTEM.NODES (MODIFIED) clustered (#0, p0), index NODES_SDM on SYSTEM.NODES (SDMAXREVTIME) clustered (#0, p0), index NODES_SDT on SYSTEM.NODES (SDTYPE) clustered (#0, p0), index NODES_VSN on SYSTEM.NODES (VERSION) clustered (#0, p0), unique index SYS_C008093 on SYSTEM.NODES (ID) clustered (#0, p0) */
+~~~
+
 
 ### <a name="database-creation-postgresql"></a> PostgreSQL
 
@@ -116,7 +130,7 @@ Creating a database called `OAK`:
 CREATE DATABASE "oak" TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'C' LC_CTYPE = 'C';
 ~~~
 
-To verify, check that INFO level log message written by `RDBDocumentStore`
+To verify, check the INFO level log message written by `RDBDocumentStore`
 upon startup. For example:
 
 ~~~
@@ -131,7 +145,7 @@ Creating a database called `OAK`:
 create database OAK;
 ~~~
 
-To verify, check that INFO level log message written by `RDBDocumentStore`
+To verify, check the INFO level log message written by `RDBDocumentStore`
 upon startup. For example:
 
 ~~~
