@@ -136,7 +136,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final String nameHint, final boolean fullText, final int searchType, long offset,
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final boolean fullText, final int searchType, long offset,
             long limit) {
         if (offset < 0) {
             offset = 0;
