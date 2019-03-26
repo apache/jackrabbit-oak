@@ -450,7 +450,7 @@ public class DocumentMK {
                                JsopWriter json,
                                boolean includeId) {
         if (includeId) {
-            json.key(":id").value(node.getId());
+            json.key(":id").value(node.getPath() + "@" + node.getLastRevision());
         }
         for (String name : node.getPropertyNames()) {
             json.key(name).encodedValue(node.getPropertyAsString(name));
