@@ -428,10 +428,6 @@ public class DocumentNodeState extends AbstractDocumentNodeState implements Cach
         return op;
     }
 
-    String getId() {
-        return path + "@" + lastRevision;
-    }
-
     @Override
     public int getMemory() {
         long size = 40 // shallow
