@@ -38,7 +38,8 @@
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
     <skip.coverage>true</skip.coverage>
-    <minimum.coverage>0.0</minimum.coverage>
+    <minimum.line.coverage>0.0</minimum.line.coverage>
+    <minimum.branch.coverage>0.0</minimum.branch.coverage>
     <known.issues />
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
@@ -445,7 +446,12 @@
                     <limit>
                       <counter>LINE</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>${minimum.coverage}</minimum>
+                      <minimum>${minimum.line.coverage}</minimum>
+                    </limit>
+                    <limit>
+                      <counter>BRANCH</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>${minimum.branch.coverage}</minimum>
                     </limit>
                   </limits>
                 </rule>

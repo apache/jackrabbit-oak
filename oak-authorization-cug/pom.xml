@@ -27,7 +27,8 @@
   <properties>
     <!-- enable execution of jacoco and set minimal line coverage -->
     <skip.coverage>false</skip.coverage>
-    <minimum.coverage>0.97</minimum.coverage>
+    <minimum.line.coverage>0.97</minimum.line.coverage>
+    <minimum.branch.coverage>0.94</minimum.branch.coverage>
   </properties>
 
   <artifactId>oak-authorization-cug</artifactId>
