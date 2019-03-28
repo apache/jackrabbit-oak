@@ -186,7 +186,7 @@ public class DocumentBundlingTest {
         int nonBundledMem = nonBundledFile.getMemory() + nonBundledContent.getMemory();
         int bundledMem = bundledFile.getMemory();
 
-        assertEquals(1386, bundledMem);
+        assertEquals(1410, bundledMem);
         assertThat(bundledMem, is(greaterThan(nonBundledMem)));
     }
 

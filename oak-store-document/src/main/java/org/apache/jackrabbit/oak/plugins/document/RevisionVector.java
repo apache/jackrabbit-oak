@@ -429,8 +429,9 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
 
     @Override
     public int getMemory() {
-        long size = 32 // shallow size
-                      + (long)revisions.length * (Revision.SHALLOW_MEMORY_USAGE + 4);
+        long size = 24 // shallow size
+                + revisionArrayMemory()
+                + revisions.length * Revision.SHALLOW_MEMORY_USAGE;
         if (size > Integer.MAX_VALUE) {
             log.debug("Estimated memory footprint larger than Integer.MAX_VALUE: {}.", size);
             size = Integer.MAX_VALUE;
@@ -514,6 +515,10 @@ public final class RevisionVector implements Iterable<Revision>, Comparable<Revi
             it.next();
         }
         return it.hasNext() ? it.peek() : null;
+    }
+
+    private long revisionArrayMemory() {
+        return 16 + ((revisions.length + 1 >> 1) << 3);
     }
 
     private static void checkUniqueClusterIds(Revision[] revisions)
