@@ -141,7 +141,7 @@ public class CompositePrincipalProvider implements PrincipalProvider {
             long offset, long limit) {
 
         List<Iterator<? extends Principal>> all = providers.stream()
-                .map((p) -> p.findPrincipals(nameHint, fullText, searchType, 0, limit)).collect(Collectors.toList());
+                .map((p) -> p.findPrincipals(nameHint, fullText, searchType, 0, limit + offset)).collect(Collectors.toList());
         Iterator<? extends Principal> principals = Iterators.mergeSorted(all, Comparator.comparing(Principal::getName));
 
         Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(principals, 0);
