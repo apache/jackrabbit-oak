@@ -40,6 +40,9 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
+import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
@@ -60,6 +63,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.Fulltext
  *
  */
 public class FulltextBinaryTextExtractor {
+  private final static String TEXT_EXTRACTION_TIMER_METRIC_NAME = "TEXT_EXTRACTION_TIME";
 
   private static final Logger log = LoggerFactory.getLogger(FulltextBinaryTextExtractor.class);
   private static final Parser defaultParser = createDefaultParser();
@@ -122,13 +126,22 @@ public class FulltextBinaryTextExtractor {
     return values;
   }
 
-  private String parseStringValue(Blob v, Metadata metadata, String path, String propertyName) {
-    String text = extractedTextCache.get(path, propertyName, v, reindex);
-    if (text == null){
-      text = parseStringValue0(v, metadata, path);
+    private String parseStringValue(Blob v, Metadata metadata, String path, String propertyName) {
+        String text = extractedTextCache.get(path, propertyName, v, reindex);
+        if (text == null) {
+            StatisticsProvider stats = extractedTextCache.getStatisticsProvider();
+            if (stats != null) {
+                TimerStats textExtractionTimerMetricStats = stats
+                        .getTimer(TEXT_EXTRACTION_TIMER_METRIC_NAME, StatsOptions.METRICS_ONLY);
+                TimerStats.Context context = textExtractionTimerMetricStats.time();
+                text = parseStringValue0(v, metadata, path);
+                context.stop();
+            } else {
+                text = parseStringValue0(v, metadata, path);
+            }
+        }
+        return text;
     }
-    return text;
-  }
 
   private String parseStringValue0(Blob v, Metadata metadata, String path) {
     WriteOutContentHandler handler = new WriteOutContentHandler(definition.getMaxExtractLength());

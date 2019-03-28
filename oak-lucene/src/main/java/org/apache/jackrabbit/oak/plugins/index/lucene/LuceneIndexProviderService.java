@@ -374,7 +374,7 @@ public class LuceneIndexProviderService {
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
         initializeIndexDir(bundleContext, config);
-        initializeExtractedTextCache(bundleContext, config);
+        initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
         indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
         initializeActiveBlobCollector(whiteboard, config);
@@ -680,7 +680,7 @@ public class LuceneIndexProviderService {
         log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
     }
 
-    private void initializeExtractedTextCache(BundleContext bundleContext, Map<String, ?> config) {
+    private void initializeExtractedTextCache(BundleContext bundleContext, Map<String, ?> config, StatisticsProvider statisticsProvider) {
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_EXTRACTED_TEXT_CACHE_SIZE),
                 PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT);
         int cacheExpiryInSecs = PropertiesUtil.toInteger(config.get(PROP_EXTRACTED_TEXT_CACHE_EXPIRY),
@@ -692,7 +692,7 @@ public class LuceneIndexProviderService {
                 cacheSizeInMB * ONE_MB,
                 cacheExpiryInSecs,
                 alwaysUsePreExtractedCache,
-                indexDir);
+                indexDir, statisticsProvider);
         if (extractedTextProvider != null){
             registerExtractedTextProvider(extractedTextProvider);
         }
