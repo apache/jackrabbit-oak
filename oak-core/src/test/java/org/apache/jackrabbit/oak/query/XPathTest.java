@@ -308,7 +308,21 @@ public class XPathTest {
                 "from [nt:base] as a " +
                 "where [a] is not null " +
                 "and isdescendantnode(a, '/lib') " +
-                "/* xpath: /jcr:root/lib//*[@a] */");        
+                "/* xpath: /jcr:root/lib//*[@a] */");
+        // "order by @jcr:score" is kept on xpath to sql2 conversion 
+        // (because the default is ascending)
+        verify("/jcr:root/content//(element(*, nt:base) | element(*, nt:folder)) order by @jcr:score",
+                "select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/content') " +
+                "/* xpath: /jcr:root/content//element(*, nt:base)  order by @jcr:score */ " +
+                "union select [jcr:path], [jcr:score], * from [nt:folder] as a where isdescendantnode(a, '/content') " +
+                "/* xpath: /jcr:root/content// element(*, nt:folder) order by @jcr:score */ " +
+                "order by [jcr:score]");
+        // "order by @jcr:score descending" is ignored on xpath to sql2 conversion
+        verify("/jcr:root/content//(element(*, nt:base) | element(*, nt:folder)) order by @jcr:score descending",
+                "select [jcr:path], [jcr:score], * from [nt:base] as a where isdescendantnode(a, '/content') " +
+                "/* xpath: /jcr:root/content//element(*, nt:base)  order by @jcr:score descending */ " +
+                "union select [jcr:path], [jcr:score], * from [nt:folder] as a where isdescendantnode(a, '/content') " +
+                "/* xpath: /jcr:root/content// element(*, nt:folder) order by @jcr:score descending */");
     }
 
     private void verify(String xpath, String expectedSql2) throws ParseException {
