@@ -29,6 +29,7 @@ import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil.DEFAULT_ALGORITHM;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -78,7 +79,7 @@ public class PasswordUtilTest {
                 int saltsize = params[0];
                 int iterations = params[1];
 
-                String pwHash = PasswordUtil.buildPasswordHash(pw, PasswordUtil.DEFAULT_ALGORITHM, saltsize, iterations);
+                String pwHash = PasswordUtil.buildPasswordHash(pw, DEFAULT_ALGORITHM, saltsize, iterations);
                 assertFalse(pw.equals(pwHash));
             }
         }
@@ -104,21 +105,28 @@ public class PasswordUtilTest {
 
     @Test
     public void testBuildPasswordHashNoIterations() throws Exception {
-        String hash = PasswordUtil.buildPasswordHash("pw", PasswordUtil.DEFAULT_ALGORITHM, PasswordUtil.DEFAULT_SALT_SIZE, 1);
+        String hash = PasswordUtil.buildPasswordHash("pw", DEFAULT_ALGORITHM, PasswordUtil.DEFAULT_SALT_SIZE, 1);
         assertTrue(PasswordUtil.isSame(hash, "pw"));
     }
 
     @Test
     public void testBuildPasswordHashNoSalt() throws Exception {
-        String hash = PasswordUtil.buildPasswordHash("pw", PasswordUtil.DEFAULT_ALGORITHM, 0, PasswordUtil.DEFAULT_ITERATIONS);
+        String hash = PasswordUtil.buildPasswordHash("pw", DEFAULT_ALGORITHM, 0, PasswordUtil.DEFAULT_ITERATIONS);
         assertTrue(PasswordUtil.isSame(hash, "pw"));
     }
 
     @Test
     public void testBuildPasswordHashNoSaltNoIterations() throws Exception {
-        assumeFalse(PasswordUtil.DEFAULT_ALGORITHM.startsWith(PasswordUtil.PBKDF2_PREFIX));
-        String jr2Hash = "{"+PasswordUtil.DEFAULT_ALGORITHM+"}" + Text.digest(PasswordUtil.DEFAULT_ALGORITHM, "pw".getBytes("utf-8"));
+        assumeFalse(DEFAULT_ALGORITHM.startsWith(PasswordUtil.PBKDF2_PREFIX));
+        String jr2Hash = "{"+ DEFAULT_ALGORITHM+"}" + Text.digest(DEFAULT_ALGORITHM, "pw".getBytes("utf-8"));
         assertTrue(PasswordUtil.isSame(jr2Hash, "pw"));
+    }
+
+    @Test
+    public void testBuiltPasswordHashNullAlgorithm() throws Exception {
+        String hash = PasswordUtil.buildPasswordHash("pw", null, 0, PasswordUtil.DEFAULT_ITERATIONS);
+        assertTrue(PasswordUtil.isSame(hash, "pw"));
+        assertTrue(hash.startsWith("{" + DEFAULT_ALGORITHM + "}"));
     }
 
     @Test

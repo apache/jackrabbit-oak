@@ -30,6 +30,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -391,8 +392,14 @@ public class ConfigurationParametersTest {
 
     @Test
     public void testInvalidConversionToMilliseconds() {
-        ConfigurationParameters params = ConfigurationParameters.of("str", "abc");
-        assertNull(params.getConfigValue("str", null, ConfigurationParameters.Milliseconds.class));
+        ConfigurationParameters options = ConfigurationParameters.of("str", "abc");
+        assertNull(options.getConfigValue("str", null, ConfigurationParameters.Milliseconds.class));
+    }
+
+    @Test
+    public void testInvalidConversionToMillisecondsWithDefault() {
+        ConfigurationParameters options = ConfigurationParameters.of("str", "abc");
+        assertSame(ConfigurationParameters.Milliseconds.FOREVER, options.getConfigValue("str", ConfigurationParameters.Milliseconds.FOREVER));
     }
 
     @Test
@@ -512,7 +519,6 @@ public class ConfigurationParametersTest {
     public void testNullValue() {
         ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", null));
 
-        assertNull(options.getConfigValue("test", null));
         assertEquals("value", options.getConfigValue("test", "value"));
         TestObject to = new TestObject("t");
         assertEquals(to, options.getConfigValue("test", to));
@@ -529,6 +535,51 @@ public class ConfigurationParametersTest {
         assertNull(options.getConfigValue("test", "value", null));
         assertNull(options.getConfigValue("test", new TestObject("t"), null));
         assertNull(options.getConfigValue("test", false, null));
+    }
+
+    @Test
+    public void testContainsValue() {
+        TestObject value = new TestObject("name");
+        ConfigurationParameters options = ConfigurationParameters.of("test", value);
+        assertTrue(options.containsValue(value));
+        assertFalse(options.containsValue(new TestObject("another")));
+    }
+
+    @Test
+    public void testGet() {
+        TestObject value = new TestObject("name");
+        ConfigurationParameters options = ConfigurationParameters.of("test", value);
+        assertSame(value, options.get("test"));
+    }
+
+    @Test
+    public void testGetNullValue() {
+        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", null));
+        assertNull(options.get("test"));
+    }
+
+    @Test
+    public void testKeySet() {
+        TestObject value = new TestObject("name");
+        ConfigurationParameters options = ConfigurationParameters.of("test", value);
+        assertEquals(Sets.newHashSet("test"), options.keySet());
+    }
+
+    @Test
+    public void testKeySetEmptyOptions() {
+        assertTrue(ConfigurationParameters.EMPTY.keySet().isEmpty());
+    }
+
+    @Test
+    public void testEntrySet() {
+        Map m = ImmutableMap.of("test", new TestObject("name"));
+        ConfigurationParameters options = ConfigurationParameters.of(m);
+        assertEquals(m.entrySet(), options.entrySet());
+    }
+
+    @Test
+    public void testEntrySetEmptyOptions() {
+        assertTrue(ConfigurationParameters.EMPTY.entrySet().isEmpty());
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -553,59 +604,6 @@ public class ConfigurationParametersTest {
     public void testClear() {
         ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", "val"));
         options.clear();
-    }
-
-    @Test
-    public void testDurationParser() {
-        assertNull(ConfigurationParameters.Milliseconds.of(""));
-        assertNull(ConfigurationParameters.Milliseconds.of(null));
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("1").value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("1ms").value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms").value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms   ").value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms  foobar").value);
-        assertEquals(1000, ConfigurationParameters.Milliseconds.of("1s").value);
-        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1.5s").value);
-        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1s 500ms").value);
-        assertEquals(60 * 1000, ConfigurationParameters.Milliseconds.of("1m").value);
-        assertEquals(90 * 1000, ConfigurationParameters.Milliseconds.of("1m30s").value);
-        assertEquals(60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1h1m30s").value);
-        assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s").value);
-    }
-
-    @Test
-    public void testDurationParserWithDefault() {
-        ConfigurationParameters.Milliseconds defValue = ConfigurationParameters.Milliseconds.FOREVER;
-        assertEquals(defValue, ConfigurationParameters.Milliseconds.of("", defValue));
-        assertEquals(defValue, ConfigurationParameters.Milliseconds.of(null, defValue));
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("1", defValue).value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("1ms", defValue).value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms", defValue).value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms   ", defValue).value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms  foobar", defValue).value);
-        assertEquals(1000, ConfigurationParameters.Milliseconds.of("1s", defValue).value);
-        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1.5s", defValue).value);
-        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1s 500ms", defValue).value);
-        assertEquals(60 * 1000, ConfigurationParameters.Milliseconds.of("1m", defValue).value);
-        assertEquals(90 * 1000, ConfigurationParameters.Milliseconds.of("1m30s", defValue).value);
-        assertEquals(60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1h1m30s", defValue).value);
-        assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s", defValue).value);
-    }
-
-    @Test
-    public void testNullMilliseconds() {
-        assertSame(ConfigurationParameters.Milliseconds.NULL, ConfigurationParameters.Milliseconds.of(0));
-    }
-
-    @Test
-    public void testForeverMilliseconds() {
-        assertSame(ConfigurationParameters.Milliseconds.FOREVER, ConfigurationParameters.Milliseconds.of(Long.MAX_VALUE));
-    }
-
-    @Test
-    public void testNeverMilliseconds() {
-        assertSame(ConfigurationParameters.Milliseconds.NEVER, ConfigurationParameters.Milliseconds.of(Long.MIN_VALUE));
-        assertSame(ConfigurationParameters.Milliseconds.NEVER, ConfigurationParameters.Milliseconds.of(-1));
     }
 
     private class TestObject {

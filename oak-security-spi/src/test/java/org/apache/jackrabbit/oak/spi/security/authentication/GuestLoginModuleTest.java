@@ -122,6 +122,14 @@ public class GuestLoginModuleTest {
     }
 
     @Test
+    public void testMissingCallbackhandler() throws LoginException {
+        guestLoginModule.initialize(subject, null, sharedState, Collections.<String, Object>emptyMap());
+
+        assertFalse(guestLoginModule.login());
+        assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
+    }
+
+    @Test
     public void testAbort() throws LoginException {
         assertTrue(guestLoginModule.abort());
     }
@@ -129,6 +137,19 @@ public class GuestLoginModuleTest {
     @Test
     public void testLogout() throws LoginException {
         assertFalse(guestLoginModule.logout());
+    }
+
+    @Test
+    public void testCommitWithReadOnlySubject() throws Exception {
+        subject.setReadOnly();
+        CallbackHandler cbh = new TestCallbackHandler(null);
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+
+        assertTrue(guestLoginModule.login());
+        assertTrue(guestLoginModule.commit());
+
+        assertTrue(subject.getPublicCredentials().isEmpty());
+        assertTrue(subject.getPrincipals().isEmpty());
     }
 
     //--------------------------------------------------------------------------
