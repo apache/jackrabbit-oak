@@ -55,6 +55,15 @@ public class OpenAuthenticationConfigurationTest {
     }
 
     @Test
+    public void testLoginContextSubjectNullCredentials() throws LoginException {
+        LoginContext ctx = lcp.getLoginContext(null, null);
+        assertNotNull(ctx);
+
+        Subject subject = ctx.getSubject();
+        assertEquals(new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(), ImmutableSet.of()), subject);
+    }
+
+    @Test
     public void testLogin() throws LoginException {
         // nop => must not throw
         lcp.getLoginContext(new Credentials() {}, null).login();
