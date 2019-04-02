@@ -317,7 +317,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetCredentialsIOException() {
-        LoginModuleMonitor monitor = spy(LoginModuleMonitor.NOOP);
+        LoginModuleMonitor monitor = mock(LoginModuleMonitor.class);
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true), monitor);
         assertNull(lm.getCredentials());
         verify(monitor, times(1)).loginError();
@@ -325,7 +325,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetCredentialsUnsupportedCallbackException() {
-        LoginModuleMonitor monitor = spy(LoginModuleMonitor.NOOP);
+        LoginModuleMonitor monitor = mock(LoginModuleMonitor.class);
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false), monitor);
         assertNull(lm.getCredentials());
         verify(monitor, times(1)).loginError();
