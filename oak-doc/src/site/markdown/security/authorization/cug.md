@@ -164,6 +164,12 @@ node (access control content) is consequently delegated to other
 authorization modules. In case there was no module dealing with these permissions, 
 access will be denied (see in section _Combining Multiple Authorization Models_ for [details](composite.html#details)). 
 
+#### Permission Evaluation with Multiplexed Stores
+
+The CUG authorization module is not designed to be used in combination with non-default mounts. If any of the configured 
+supported paths (see below) is found to be an ancestor of any non-default mount or included therein the activation/modification 
+of the `CugConfiguration` will fail with immediately and log an error.
+
 ### Representation in the Repository
 
 CUG policies defined by this module in a dedicate node name `rep:cugPolicy` of 
