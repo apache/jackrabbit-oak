@@ -228,6 +228,6 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
     @Override
     public void setParameters(@NotNull ConfigurationParameters config) {
         super.setParameters(config);
-        supportedPath = config.getConfigValue("supportedPath", null);
+        supportedPath = config.getConfigValue("supportedPath", null, String.class);
     }
 }
