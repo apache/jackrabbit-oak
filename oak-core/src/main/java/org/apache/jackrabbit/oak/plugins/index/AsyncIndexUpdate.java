@@ -661,6 +661,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         }
         keep.add(cp);
         keep.addAll(indexStats.tempCps);
+        log.debug("Getting checkpoint info for {}", cp);
         Map<String, String> info = store.checkpointInfo(cp);
         String value = info.get("created");
         if (value != null) {
@@ -685,6 +686,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                     }
                 }
             }
+        } else {
+            log.info("Checkpoint Info : '{}' for the checkpoint - {} ; keep -- {}", info, cp, keep);
         }
     }
 

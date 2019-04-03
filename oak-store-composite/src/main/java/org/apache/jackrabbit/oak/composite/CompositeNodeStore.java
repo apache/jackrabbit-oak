@@ -243,7 +243,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
     @Override
     public Map<String, String> checkpointInfo(String checkpoint) {
         if (!checkpointExists(ctx.getGlobalStore().getNodeStore(), checkpoint)) {
-            LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo());
+            LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception());
             return Collections.emptyMap();
         }
         return copyOf(filterKeys(ctx.getGlobalStore().getNodeStore().checkpointInfo(checkpoint), new Predicate<String>() {
@@ -278,7 +278,7 @@ public class CompositeNodeStore implements NodeStore, Observable {
             nodeStates.put(nodeStore, nodeState);
         }
         if (any(nodeStates.values(), isNull())) {
-            LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo());
+            LOG.warn("Checkpoint {} doesn't exist. Debug info:\n{}", checkpoint, checkpointDebugInfo(), new Exception());
             return null;
         }
         return ctx.createRootNodeState(nodeStates);
