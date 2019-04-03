@@ -52,12 +52,14 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
     private final Filter filter;
     private final IndexReader reader;
     private final SecureFacetConfiguration secureFacetConfiguration;
+    private final DefaultSortedSetDocValuesReaderState state;
     private FacetResult facetResult = null;
 
     StatisticalSortedSetDocValuesFacetCounts(DefaultSortedSetDocValuesReaderState state,
                                                     FacetsCollector facetsCollector, Filter filter,
                                                     SecureFacetConfiguration secureFacetConfiguration) throws IOException {
         super(state, facetsCollector);
+        this.state = state;
         this.reader = state.origReader;
         this.facetsCollector = facetsCollector;
         this.filter = filter;
@@ -89,6 +91,13 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
             hitCount += matchingDocs.totalHits;
         }
         int sampleSize = secureFacetConfiguration.getStatisticalFacetSampleSize();
+        // In case the hit count is less than sample size(A very small reposiotry perhaps)
+        // Delegate getting FacetResults to SecureSortedSetDocValuesFacetCounts to get the exact count
+        // instead of statistical count. <OAK-8138>
+        if (hitCount < sampleSize) {
+            return new SecureSortedSetDocValuesFacetCounts(state, facetsCollector, filter).getTopChildren(topN, dim, path);
+        }
+
         long randomSeed = secureFacetConfiguration.getRandomSeed();
 
         LOG.debug("Sampling facet dim {}; hitCount: {}, sampleSize: {}, seed: {}", dim, hitCount, sampleSize, randomSeed);
