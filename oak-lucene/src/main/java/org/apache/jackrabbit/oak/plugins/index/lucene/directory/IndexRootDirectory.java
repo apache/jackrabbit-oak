@@ -132,9 +132,9 @@ public class IndexRootDirectory {
      */
     public List<LocalIndexDir> getAllLocalIndexes() throws IOException {
         Map<String, List<LocalIndexDir>> mapping = getIndexesPerPath();
-        List<LocalIndexDir> result = Lists.newArrayListWithCapacity(mapping.size());
+        List<LocalIndexDir> result = new ArrayList<>();
         for (Map.Entry<String, List<LocalIndexDir>> e : mapping.entrySet()){
-            result.add(e.getValue().get(0));
+            result.addAll(e.getValue());
         }
         return result;
     }
@@ -228,7 +228,7 @@ public class IndexRootDirectory {
             pathToDirMap.get(localIndexDir.getJcrPath()).add(localIndexDir);
         }
 
-        Map<String, List<LocalIndexDir>> result = Maps.newHashMap();
+        Map<String, List<LocalIndexDir>> result = Maps.newTreeMap();
         for (Map.Entry<String, Collection<LocalIndexDir>> e : pathToDirMap.asMap().entrySet()){
             List<LocalIndexDir> sortedDirs = new ArrayList<>(e.getValue());
             Collections.sort(sortedDirs, Collections.<LocalIndexDir>reverseOrder());
