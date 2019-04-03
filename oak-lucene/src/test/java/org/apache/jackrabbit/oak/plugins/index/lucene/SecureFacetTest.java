@@ -136,7 +136,7 @@ public class SecureFacetTest {
 
         Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", session));
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < NUM_LABELS; i++) {
             Node subPar = par.addNode("par" + i);
             for (int j = 0; j < NUM_LEAF_NODES; j++) {
                 Node child = subPar.addNode("c" + j);
@@ -170,6 +170,51 @@ public class SecureFacetTest {
         }
 
         assertNotEquals("Acl-ed and actual counts mustn't be same", actualLabelCount, actualAclLabelCount);
+    }
+
+    private void createSmallDataset() throws RepositoryException{
+        Random rGen = new Random(42);
+        int[] labelCount = new int[NUM_LABELS];
+        int[] aclLabelCount = new int[NUM_LABELS];
+        int[] aclPar1LabelCount = new int[NUM_LABELS];
+
+        Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", session));
+
+        for (int i = 0; i < NUM_LABELS; i++) {
+            Node subPar = par.addNode("par" + i);
+            for (int j = 0; j < NUM_LEAF_NODES/(2 * NUM_LABELS); j++) {
+                Node child = subPar.addNode("c" + j);
+                child.setProperty("cons", "val");
+
+                // Add a random label out of "l0", "l1", "l2", "l3"
+                int labelNum = rGen.nextInt(NUM_LABELS);
+                child.setProperty("foo", "l" + labelNum);
+
+                labelCount[labelNum]++;
+                if (i != 0) {
+                    aclLabelCount[labelNum]++;
+                }
+                if (i == 1) {
+                    aclPar1LabelCount[labelNum]++;
+                }
+            }
+
+            // deny access for one sub-parent
+            if (i == 0) {
+                deny(subPar);
+            }
+        }
+
+        session.save();
+
+        for (int i = 0; i < labelCount.length; i++) {
+            actualLabelCount.put("l" + i, labelCount[i]);
+            actualAclLabelCount.put("l" + i, aclLabelCount[i]);
+            actualAclPar1LabelCount.put("l" + i, aclPar1LabelCount[i]);
+        }
+
+        assertNotEquals("Acl-ed and actual counts mustn't be same", actualLabelCount, actualAclLabelCount);
+
     }
 
     @Test
@@ -222,6 +267,23 @@ public class SecureFacetTest {
                             "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
                     Math.abs(ratio - 1) < 0.1);
         }
+    }
+
+    @Test
+    public void statisticalFacetsWithHitCountLessThanSampleSize() throws Exception {
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+        indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        session.save();
+
+        createSmallDataset();
+
+        Map<String, Integer> facets = getFacets();
+        assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
+
+        // Since the hit count is less than sample size -> flow should have switched to secure facet count instead of statistical
+        // and thus the count should be exactly equal
+        assertEquals(actualAclLabelCount, facets);
     }
 
     @Test
