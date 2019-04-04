@@ -17,11 +17,15 @@
 package org.apache.jackrabbit.oak.security.internal;
 
 import java.io.Closeable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -33,7 +37,6 @@ import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizable
 import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardAuthorizableNodeName;
 import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -61,6 +64,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -152,7 +156,7 @@ public class SecurityProviderRegistration {
     private final List<AuthorizableNodeName> authorizableNodeNames = newCopyOnWriteArrayList();
     private final List<AuthorizableActionProvider> authorizableActionProviders = newCopyOnWriteArrayList();
     private final List<RestrictionProvider> restrictionProviders = newCopyOnWriteArrayList();
-    private final List<UserAuthenticationFactory> userAuthenticationFactories = newCopyOnWriteArrayList();
+    private final SortedMap<ServiceReference, UserAuthenticationFactory> userAuthenticationFactories = Collections.synchronizedSortedMap(new TreeMap<>());
 
     private RootProvider rootProvider;
     private TreeProvider treeProvider;
@@ -403,19 +407,19 @@ public class SecurityProviderRegistration {
             cardinality = ReferenceCardinality.MULTIPLE,
             policy = ReferencePolicy.DYNAMIC
     )
-    public void bindUserAuthenticationFactory(UserAuthenticationFactory userAuthenticationFactory, Map<String, Object> properties) {
+    public void bindUserAuthenticationFactory(@NotNull ServiceReference serviceReference, @NotNull UserAuthenticationFactory userAuthenticationFactory) {
         synchronized (this) {
-            userAuthenticationFactories.add(userAuthenticationFactory);
-            addCandidate(properties);
+            userAuthenticationFactories.put(serviceReference, userAuthenticationFactory);
+            addCandidate(serviceReference);
         }
 
         maybeRegister();
     }
 
-    public void unbindUserAuthenticationFactory(UserAuthenticationFactory userAuthenticationFactory, Map<String, Object> properties) {
+    public void unbindUserAuthenticationFactory(@NotNull ServiceReference serviceReference, @NotNull UserAuthenticationFactory userAuthenticationFactory) {
         synchronized (this) {
-            userAuthenticationFactories.remove(userAuthenticationFactory);
-            removeCandidate(properties);
+            userAuthenticationFactories.remove(serviceReference);
+            removeCandidate(serviceReference);
         }
 
         maybeUnregister();
@@ -600,7 +604,10 @@ public class SecurityProviderRegistration {
 
             @Override
             protected List<UserAuthenticationFactory> getServices() {
-                return newArrayList(userAuthenticationFactories);
+                Collection<UserAuthenticationFactory> values = userAuthenticationFactories.values();
+                synchronized (userAuthenticationFactories) {
+                    return newArrayList(values);
+                }
             }
 
         };
@@ -608,6 +615,16 @@ public class SecurityProviderRegistration {
 
     private void addCandidate(Map<String, Object> properties) {
         String pidOrName = getServicePidOrComponentName(properties);
+
+        if (pidOrName == null) {
+            return;
+        }
+
+        preconditions.addCandidate(pidOrName);
+    }
+
+    private void addCandidate(@NotNull ServiceReference serviceReference) {
+        String pidOrName = getServicePidOrComponentName(serviceReference);
 
         if (pidOrName == null) {
             return;
@@ -626,11 +643,29 @@ public class SecurityProviderRegistration {
         preconditions.removeCandidate(pidOrName);
     }
 
+    private void removeCandidate(@NotNull ServiceReference serviceReference) {
+        String pidOrName = getServicePidOrComponentName(serviceReference);
+
+        if (pidOrName == null) {
+            return;
+        }
+
+        preconditions.removeCandidate(pidOrName);
+    }
+
     private static String getServicePidOrComponentName(Map<String, Object> properties) {
         String servicePid = PropertiesUtil.toString(properties.get(Constants.SERVICE_PID), null);
         if ( servicePid != null ) {
             return servicePid;
         }
         return PropertiesUtil.toString(properties.get(OAK_SECURITY_NAME), null);
+    }
+
+    private static String getServicePidOrComponentName(@NotNull ServiceReference serviceReference) {
+        String servicePid = PropertiesUtil.toString(serviceReference.getProperty(Constants.SERVICE_PID), null);
+        if ( servicePid != null ) {
+            return servicePid;
+        }
+        return PropertiesUtil.toString(serviceReference.getProperty(OAK_SECURITY_NAME), null);
     }
 }
