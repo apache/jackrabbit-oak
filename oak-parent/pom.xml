@@ -96,6 +96,13 @@
     demanding content applications.
   </description>
 
+  <repositories>
+    <repository>
+      <id>restlet</id>
+      <url>http://maven.restlet.com/</url>
+    </repository>
+  </repositories>
+
   <build>
     <pluginManagement>
       <plugins>
