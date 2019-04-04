@@ -120,7 +120,7 @@ public class AutoSaveEnabledManager implements UserManager {
     @Override
     public User createSystemUser(String userID, String intermediatePath) throws RepositoryException {
         try {
-            return wrap(dlg.createUser(userID, intermediatePath));
+            return wrap(dlg.createSystemUser(userID, intermediatePath));
         } finally {
             autosave();
         }
