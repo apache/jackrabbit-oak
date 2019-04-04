@@ -16,29 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.user.autosave;
 
-import java.util.Collections;
-
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+
+import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.spy;
 
 public abstract class AbstractAutoSaveTest extends AbstractSecurityTest {
 
-    UserManager mgr;
+    UserManager mgrDlg;
+    AutoSaveEnabledManager autosaveMgr;
 
     @Override
     public void before() throws Exception {
         super.before();
-        mgr = getUserManager(root);
-    }
-
-    @Override
-    protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters userConfig = ConfigurationParameters.of(
-                Collections.singletonMap(UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE));
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+        mgrDlg = spy(getUserManager(root));
+        assertFalse(mgrDlg instanceof AutoSaveEnabledManager);
+        autosaveMgr = spy(new AutoSaveEnabledManager(mgrDlg, root));
     }
 }
