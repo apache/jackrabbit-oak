@@ -265,4 +265,25 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
             assertNotNull(ref.getProviderName());
         }
     }
+
+    @Test
+    public void testLastSynced() throws Exception {
+        sync(USER_ID, false);
+
+        // force sync on next update
+        Authorizable a = userManager.getAuthorizable(USER_ID);
+        a.removeProperty(DefaultSyncContext.REP_LAST_SYNCED);
+        root.commit();
+
+        // start sync
+        SyncContext ctx = syncHandler.createContext(idp, userManager, getValueFactory());
+        SyncResult res = ctx.sync(USER_ID);
+        assertSame(SyncResult.Status.UPDATE, res.getStatus());
+
+        // concurrent login
+        login(new SimpleCredentials(USER_ID, new char[0])).close();
+
+        // the conflict handler needs to fix overlapping update
+        root.commit();
+    }
 }

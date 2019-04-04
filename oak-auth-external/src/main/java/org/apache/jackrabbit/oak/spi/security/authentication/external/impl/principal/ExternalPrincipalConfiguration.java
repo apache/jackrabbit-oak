@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
 
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -27,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ObjectArrays;
 import org.apache.felix.scr.annotations.Activate;
@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -141,13 +142,19 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @NotNull
     @Override
     public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
-        return ImmutableList.of(new ExternalIdentityValidatorProvider(principals, protectedExternalIds()));
+        return Collections.singletonList(new ExternalIdentityValidatorProvider(principals, protectedExternalIds()));
     }
 
     @NotNull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return ImmutableList.<ProtectedItemImporter>of(new ExternalIdentityImporter());
+        return Collections.singletonList(new ExternalIdentityImporter());
+    }
+
+    @NotNull
+    @Override
+    public List<ThreeWayConflictHandler> getConflictHandlers() {
+        return Collections.singletonList(new ExternalIdentityConflictHandler());
     }
 
     //----------------------------------------------------< SCR integration >---
