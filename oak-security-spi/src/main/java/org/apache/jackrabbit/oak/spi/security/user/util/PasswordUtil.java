@@ -26,6 +26,7 @@ import java.security.spec.KeySpec;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -46,6 +47,7 @@ public final class PasswordUtil {
     private static final char DELIMITER = '-';
     private static final int NO_ITERATIONS = 1;
     private static final String ENCODING = "UTF-8";
+    private static final int PBKDF2_KEY_LENGTH = 128;
 
     /**
      * @since OAK 1.0
@@ -159,7 +161,7 @@ public final class PasswordUtil {
      * the given {@code hashedPassword} string.
      */
     public static boolean isSame(@Nullable String hashedPassword, @NotNull String password) {
-        if (hashedPassword == null || password == null) {
+        if (hashedPassword == null) {
             return false;
         }
         try {
@@ -214,7 +216,7 @@ public final class PasswordUtil {
                                        @Nullable String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
         passwordHash.append('{').append(algorithm).append('}');
-        if (salt != null && !salt.isEmpty()) {
+        if (!Strings.isNullOrEmpty(salt)) {
             StringBuilder data = new StringBuilder();
             data.append(salt).append(pwd);
 
@@ -224,7 +226,7 @@ public final class PasswordUtil {
             }
             String digest;
             if (algorithm.startsWith(PBKDF2_PREFIX)) {
-                digest = generatePBKDF2(pwd, salt, algorithm, iterations, 128);
+                digest = generatePBKDF2(pwd, salt, algorithm, iterations);
             } else {
                 digest = generateDigest(data.toString(), algorithm, iterations);
             }
@@ -241,7 +243,6 @@ public final class PasswordUtil {
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[saltSize];
         random.nextBytes(salt);
-
         return convertBytesToHex(salt);
     }
     
@@ -284,11 +285,11 @@ public final class PasswordUtil {
 
     @NotNull
     private static String generatePBKDF2(@NotNull String pwd, @NotNull String salt,
-                                         @NotNull String algorithm, int iterations, int keyLength) throws NoSuchAlgorithmException {
+                                         @NotNull String algorithm, int iterations) throws NoSuchAlgorithmException {
         // for example PBKDF2WithHmacSHA1
         SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm);
         byte[] saltBytes = convertHexToBytes(salt);
-        KeySpec keyspec = new PBEKeySpec(pwd.toCharArray(), saltBytes, iterations, keyLength);
+        KeySpec keyspec = new PBEKeySpec(pwd.toCharArray(), saltBytes, iterations, PBKDF2_KEY_LENGTH);
         try {
             Key key = factory.generateSecret(keyspec);
             byte[] bytes = key.getEncoded();
@@ -324,7 +325,7 @@ public final class PasswordUtil {
      */
     @Nullable
     private static String extractAlgorithm(@Nullable String hashedPwd) {
-        if (hashedPwd != null && !hashedPwd.isEmpty()) {
+        if (!Strings.isNullOrEmpty(hashedPwd)) {
             int end = hashedPwd.indexOf('}');
             if (hashedPwd.charAt(0) == '{' && end > 0 && end < hashedPwd.length()-1) {
                 String algorithm = hashedPwd.substring(1, end);
@@ -346,30 +347,26 @@ public final class PasswordUtil {
     }
 
     @Nullable
-    private static String extractSalt(@Nullable String hashedPwd, int start) {
-        if (hashedPwd != null) {
-            int end = hashedPwd.indexOf(DELIMITER, start);
-            if (end > -1) {
-                return hashedPwd.substring(start, end);
-            }
+    private static String extractSalt(@NotNull String hashedPwd, int start) {
+        int end = hashedPwd.indexOf(DELIMITER, start);
+        if (end > -1) {
+            return hashedPwd.substring(start, end);
+        } else {
+            // no salt
+            return null;
         }
-        // no salt
-        return null;
     }
 
-    private static int extractIterations(@Nullable String hashedPwd, int start) {
-        if (hashedPwd != null) {
-            int end = hashedPwd.indexOf(DELIMITER, start);
-            if (end > -1) {
-                String str = hashedPwd.substring(start, end);
-                try {
-                    return Integer.parseInt(str);
-                } catch (NumberFormatException e) {
-                    log.debug("Expected number of iterations. Found: " + str, e);
-                }
+    private static int extractIterations(@NotNull String hashedPwd, int start) {
+        int end = hashedPwd.indexOf(DELIMITER, start);
+        if (end > -1) {
+            String str = hashedPwd.substring(start, end);
+            try {
+                return Integer.parseInt(str);
+            } catch (NumberFormatException e) {
+                log.debug("Expected number of iterations. Found: " + str, e);
             }
         }
-
         // no extra iterations
         return NO_ITERATIONS;
     }
