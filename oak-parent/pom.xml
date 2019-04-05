@@ -677,12 +677,12 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.5.7</version>
+        <version>4.5.8</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient-osgi</artifactId>
-        <version>4.5.7</version>
+        <version>4.5.8</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
@@ -697,7 +697,7 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
-        <version>4.5.7</version>
+        <version>4.5.8</version>
       </dependency>
       <dependency>
         <groupId>com.arakelian</groupId>
