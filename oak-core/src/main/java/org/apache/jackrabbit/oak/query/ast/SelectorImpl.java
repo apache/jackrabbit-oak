@@ -503,7 +503,7 @@ public class SelectorImpl extends SourceImpl {
     private boolean nextInternal() {
         while (cursor != null && cursor.hasNext()) {
             scanCount++;
-            query.getQueryExecutionStats().scan(1, scanCount);
+            query.getQueryExecutionStats().scan(1, scanCount, query.getSettings());
             currentRow = cursor.next();
             if (isParent) {
                 // we must not check whether the _parent_ is readable
