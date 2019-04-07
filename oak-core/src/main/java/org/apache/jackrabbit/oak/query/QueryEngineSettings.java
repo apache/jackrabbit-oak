@@ -76,7 +76,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public static final boolean DEFAULT_FAST_QUERY_SIZE = Boolean.getBoolean(OAK_FAST_QUERY_SIZE);
     private boolean fastQuerySize = DEFAULT_FAST_QUERY_SIZE;
 
-    private QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
+    private final QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
 
     /**
      * StatisticsProvider used to record query side metrics.
