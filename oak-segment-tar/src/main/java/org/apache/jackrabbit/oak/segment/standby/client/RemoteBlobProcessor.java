@@ -27,8 +27,12 @@ import java.io.InputStream;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class RemoteBlobProcessor implements BlobProcessor {
+
+    private static final Logger logger = LoggerFactory.getLogger(RemoteBlobProcessor.class);
 
     interface BlobDownloader {
 
@@ -80,6 +84,7 @@ class RemoteBlobProcessor implements BlobProcessor {
         try {
             reference = blob.getReference();
         } catch (Exception e) {
+            logger.warn("Unable to read a reference for blob {}", blobId, e);
             reference = null;
         }
 
@@ -98,6 +103,7 @@ class RemoteBlobProcessor implements BlobProcessor {
         try {
             data = blobStore.getInputStream(blobId);
         } catch (Exception e) {
+            logger.warn("Unable to open a stream for blob {}, the blob will be downloaded", blobId, e);
             return true;
         }
 
@@ -108,6 +114,7 @@ class RemoteBlobProcessor implements BlobProcessor {
         try {
             data.read();
         } catch (Exception e) {
+            logger.warn("Unable to read the content for blob {}, the blob will be downloaded", blobId, e);
             return true;
         } finally {
             closeQuietly(data);
