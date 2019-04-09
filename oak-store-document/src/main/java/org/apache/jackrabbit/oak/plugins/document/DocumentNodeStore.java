@@ -614,6 +614,11 @@ public final class DocumentNodeStore
         // check if root node exists
         NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath("/"));
         if (rootDoc == null) {
+            if (readOnlyMode) {
+                throw new DocumentStoreException("Unable to initialized a " +
+                        "read-only DocumentNodeStore. The DocumentStore nodes " +
+                        "collection does not have a root document.");
+            }
             // root node is missing: repository is not initialized
             Revision commitRev = newRevision();
             RevisionVector head = new RevisionVector(commitRev);
