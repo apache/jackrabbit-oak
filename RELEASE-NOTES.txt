@@ -298,6 +298,8 @@ Task
     [OAK-8189] - Getting warning message in error logs while trying to
     search using filters
     [OAK-8196] - Update httpclient/mime dependencies to 4.5.8
+    [OAK-8206] - Revert Jackrabbit dependency from 2.19.1 to last
+    stable (2.18.0) for stable Oak release
 
 Documentation
 
