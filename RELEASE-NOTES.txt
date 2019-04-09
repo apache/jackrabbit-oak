@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.9.13
+Release Notes -- Apache Jackrabbit Oak -- Version 1.12.0
 
 Introduction
 ------------
@@ -7,67 +7,306 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.9.13 is an unstable release cut directly from
-Jackrabbit Oak trunk, with a focus on new features and other
-improvements. For production use we recommend the latest stable 1.8.x
-release.
+Apache Jackrabbit Oak 1.12.0 is an incremental feature release based
+on and compatible with earlier stable Jackrabbit Oak 1.x
+releases. This release is considered stable and targeted for
+production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.9.13
+Changes in Oak 1.12.0
 --------------------
-
-Sub-task
-
-    [OAK-7930] - Add tape sampling
 
 Technical task
 
-    [OAK-7942] - Fix covariant return type changes in ByteBuffer
+    [OAK-7960] - RDB: add to Oak documentation
+    [OAK-7970] - RDB*Store: add profile for DB2 11.1 JDBC driver
+    [OAK-7971] - RDB*Store: update DB2 JDBC reference to 4.19.77
+    [OAK-7978] - guava-latest profile defunct
+    [OAK-7979] - DeclaredMembershipPredicate does not compile with
+    Guava 20
+    [OAK-8002] - RDBDocumentStore: add RDB-specific
+    MissingLastRevSeeker
+    [OAK-8004] - oak-run: support "recovery" command for
+    RDBDocumentStore
+    [OAK-8016] - RDBDocumentStore: minor improvements to GZIP
+    compression of BLOB contents
+    [OAK-8043] - RDB: expose DDL generation functionality in oak-run
+    [OAK-8058] - RDB*Store: update Tomcat JDBC pool dependency to
+    8.5.38
+    [OAK-8069] - Log warning for too many transient modifications of
+    direct child nodes
+    [OAK-8071] - Logging to detect commits carrying over from previous
+    GC generation can block other threads from committing
+    [OAK-8074] - RDB*Store: update mysql-connector-java dependency to
+    8.0.15
+    [OAK-8080] - RDB*Store: move DB-specific config hints from Javadoc
+    into oak-doc
+    [OAK-8083] - RDB*Store: add SQLServer specific documentation
+    [OAK-8087] - RDB*Store: update mssql-jdbc driver reference to
+    7.2.1.jre8
+    [OAK-8147] - RDBBlobStore: add perf logging for JDBC read
+    operations
+    [OAK-8200] - MongoDocumentStore in ReadOnly mode should never
+    modify persistence
 
 Bug
 
-    [OAK-7803] - IndexFormatVersion should be available in oak-lucene
-    [OAK-7869] - Commit queue stuck when input stream of blob blocks
-    [OAK-7923] - CompositeNodeBuilder#getPath() fails when it wraps a
-    ReadOnlyBuilder
-    [OAK-7929] - Incorrect Facet Count With Large Dataset and ACLs
-    [OAK-7935] - RDB*Store: createOrUpdate may fail on stale cache
-    when document was removed on different instance
+    [OAK-6749] - Segment-Tar standby sync fails with "in-memory" blobs
+    present in the source repo
+    [OAK-7027] - Test failure:
+    ExternalPrivateStoreIT.testSyncFailingDueToTooShortTimeout
+    [OAK-7719] - CheckCommand should consistently use an alternative
+    journal if specified
+    [OAK-7938] - Test failure: MBeanIT.testClientAndServerEmptyConfig
+    [OAK-7951] - Datastore GC stats not updated with failure when "Not
+    all repositories have marked references available"
+    [OAK-7953] - Test failure:
+    JdbcToSegmentWithMetadataTest.validateMigration()
+    [OAK-7966] - Avoid adding excluded principal to cug policy
+    [OAK-7975] - Facet extraction fails while requesting multiple
+    facets and one of the requested facets doesn't have indexed values
+    [OAK-7982] - ACL.addEntry: check for mandatory restrictions only
+    respects single value restrictions
+    [OAK-7986] - Incorrect MongoDB URI in
+    ReplicaSetDefaultWriteConcernIT
+    [OAK-7987] -
+    LdapIdentityProviderImpl#getIdentity(ExternalIdentityRef) won't
+    work with useUidForExtId enabled
+    [OAK-7993] -
+    CompositeAuthorizationConfiguration.getRestrictionProvider()
+    should filter duplications
+    [OAK-7997] - Adding restrictions to ACLs yields empty results for
+    queries in Jackrabbit Oak
+    [OAK-8001] - Lucene index can be empty (no :data node) in
+    composite node store setup
+    [OAK-8003] - MongoDocumentStore does not log server details
+    [OAK-8006] - SegmentBlob#readLongBlobId might cause
+    SegmentNotFoundException on standby
+    [OAK-8007] - RDBDocumentStore: potential off-heap memory leakage
+    due to unclosed GzipInputStream
+    [OAK-8012] - Unmerged branch changes visible after restart
+    [OAK-8013] - [Direct Binary Access] DataRecordDownloadOptions
+    creates invalid Content-Disposition headers - Workaround
+    [OAK-8017] - Test failure: LastRevRecoveryRandomizedIT
+    [OAK-8023] - AccessControlManagerImpl can not handle repository
+    level when editing policies by principal
+    [OAK-8024] - oak-http generates invalid html
+    [OAK-8026] - Warn message when branch is created
+    [OAK-8033] - Node states sometimes refer to more than a single
+    generation of segments after a full compaction
+    [OAK-8035] - Debug logging when two or more indices have same or
+    very close cost amounts doesn't work in case both indices belong
+    to the same type of Query Index
+    [OAK-8044] - AccessControlManagerImpl.getEffectivePolicies returns
+    empty ACLs
+    [OAK-8045] - Allow for ranking being specified with
+    UserAuthenticatonFactory implementations
+    [OAK-8049] - AbstractSecurityTest: fix PartialValueFactory field
+    and it's usages.
+    [OAK-8051] - PersistentCache: error during open can lead to
+    incomplete initialization and subsequent NPEs
+    [OAK-8052] - PersistentCache: failure during construction may lead
+    to resource leak
+    [OAK-8054] - RepMembersConflictHandler creates property with wrong
+    type
+    [OAK-8060] - Incorrect read preference when parentId refers to
+    NodeDocument.NULL
+    [OAK-8063] - The cold standby client doesn't correctly handle
+    backward references
+    [OAK-8065] - AbstractSecurityTest.getAccessControlManager: should
+    use getNamePathMapper() instead of DEFAULT
+    [OAK-8070] - The date-based copy-versions directive doesn't work
+    correctly with include-paths
+    [OAK-8089] - DocumentNodeStore dispose can fail when duration of
+    final background ops exceeds lease time
+    [OAK-8091] - Build failure: artifact does not exist on remote
+    repository
+    [OAK-8092] - The cold standby server cannot handle blob requests
+    for long blob IDs
+    [OAK-8093] - AccessControlManagerImpl: respect local namespaces
+    when writing back ACEs
+    [OAK-8095] - VersionStorageEditor can prevent upgrade of version
+    store
+    [OAK-8101] - AccessControlValidator prevents alternative
+    authorization models to use restrictions
+    [OAK-8106] - High memory usage when large branch is reset
+    [OAK-8108] - Branch reset does not remove all branch commit
+    entries
+    [OAK-8117] - NPE when adding ACE with restrictions and remapped
+    namespaces
+    [OAK-8122] - MongoDocumentStore init may fail with authentication
+    [OAK-8124] - Sidegrade operation doesn't run security-related
+    commit hooks
+    [OAK-8126] - Load Lucene index files before writing to the index:
+    close directory
+    [OAK-8127] - TreeLocation: imcomplete Nullable/NotNull annotations
+    [OAK-8130] - Index corruption stats should get updated also when
+    no failing index remains
+    [OAK-8133] - Word SHA1 no longer allowed
+    [OAK-8161] - Build failure: Too many files with unapproved license
+    [OAK-8176] - Inaccurate calculation of RevisionVector memory
+    [OAK-8195] - AutoSaveEnabledManager.createSystemUser calls
+    createUser on delegatee
 
 New Feature
 
-    [OAK-7866] - Add tooling for recovering from an outdated journal
-    [OAK-7933] - Expose number of tar readers as metric
-    [OAK-7934] - Expose the number of segments as metric
+    [OAK-8062] - PrincipalProvider: optional lookup of
+    ItemBasedPrincipal by path
 
 Improvement
 
-    [OAK-7918] - Extract checking logic from ConsistencyChecker
-    [OAK-7925] - OakUpgrade for RDBMK: user name and password must
-    match
-    [OAK-7928] - Avoid reference resolution for user query with scope
-    and declaredMembersOnly
-    [OAK-7940] - Index importer should warn if there is no index to
-    import
+    [OAK-7731] - Order by jcr:score descending is not always ignored
+    [OAK-7924] - Reduce Lucene index size footprint with compressing
+    Codec
+    [OAK-7944] - Minor improvements to oak security code base
+    [OAK-7947] - Lazy loading of Lucene index files startup
+    [OAK-7968] - Active deletion of Lucene binaries: configuration
+    option to disable
+    [OAK-7974] - Detailed merge metrics
+    [OAK-7976] - Non-blocking commit rollback
+    [OAK-7977] - Add multi-threaded segment transfer to oak-run
+    segment-copy
+    [OAK-7984] - Batch update documents in commit rollback
+    [OAK-7988] - The node counter jmx bean should show 0 if a node
+    exists
+    [OAK-7991] - Composite node store: tests with queries
+    [OAK-7994] - Principal Management APIs don't allow for search
+    pagination
+    [OAK-8009] - Remove unused code in NodeDocument
+    [OAK-8018] - Move LazyValue from oak-core to oak-commons
+    [OAK-8019] - Replace deprecated NodeUtil in AbstractOakCoreTest
+    [OAK-8020] - Create ImmutableACL from another
+    AbstractAccessControlList
+    [OAK-8021] - PrivilegeBitsProvider.getBits(Privilege[],NameMapper)
+    should use getOakNameOrNull
+    [OAK-8025] - Improve branch state comparison
+    [OAK-8027] - Extract public utility for handling jcr:all privilege
+    bits
+    [OAK-8028] - Avoid unnecessary query in
+    UnsavedModifications.persist()
+    [OAK-8029] - Additional merge metrics
+    [OAK-8036] - Improve test in oak-security-spi
+    [OAK-8041] - IndexDefinitionBuilder should support facets and
+    boost for property definitions
+    [OAK-8042] - IndexDefinitionBuilder should support deprecated
+    properties on index definition
+    [OAK-8046] - Result items are not always correctly counted against
+    the configured read limit if a query uses a lucene index
+    [OAK-8053] - Add intermediate report to ExternalLoginTest
+    [OAK-8055] - Add conflict handler for rep:lastSynced property on
+    external groups
+    [OAK-8066] - Nodes with many direct children can lead to OOME when
+    saving
+    [OAK-8078] - UserPrincipalProvider support for range search
+    [OAK-8084] - LogCustomizer should allow instantiation with Java
+    class (in addition to class name)
+    [OAK-8088] - Add refresh head revision time to background update
+    stats
+    [OAK-8094] - JMX monitoring to detect commits carrying over from
+    previous GC generation can block other threads from committing
+    [OAK-8096] - CompositeAccessControlManager: misleading local field
+    name
+    [OAK-8097] - Load Lucene index files before writing to the index
+    [OAK-8102] - LoginModule error metrics
+    [OAK-8111] - Create read-only DocumentNodeStore for oak-run
+    recovery dry run
+    [OAK-8113] - Add ability to push metrics to prometheus pushgateway
+    from oak-run
+    [OAK-8114] - IndexDefinitionBuilder should be smarter when to
+    reindex while updating a definition
+    [OAK-8121] - RDBExport should handle db2 dump where del files
+    refers to lob files without offset and length params
+    [OAK-8125] - PrincipalProviderImpl support for range search
+    [OAK-8131] - Principal Management APIs full text search support
+    [OAK-8135] - HTTP service may not select correct media type if
+    multiple are specified in Accept header field
+    [OAK-8137] - Oak run tooling to run a RepositoryInitializer on top
+    a list index definitions
+    [OAK-8138] - In cases where search hit count is less than sample
+    size defined for statistical mode for facets, secure mode should
+    be used so that the counts are accurate for non-admin users.
+    [OAK-8140] - UserPrincipalProvider support for full text search
+    [OAK-8142] - CompositePrincipalProvider support for full text
+    search
+    [OAK-8143] - Configurable persistent cache for Oak-Mongo fixture
+    [OAK-8159] - GroupPrincipalWrapper.getName is redundant
+    [OAK-8160] - Missing notnull/nullable annotations with
+    GroupPrincipals
+    [OAK-8164] - CompositePrincipalProvider.findPrincipals lacks
+    NotNull and Overrides annotation
+    [OAK-8168] - Improve readability of AccessControlAction
+    [OAK-8169] - Missing nullability annotations with
+    UserPrincipalProvider and PrincipalProviderImpl
+    [OAK-8171] - Remove DocumentNodeState.getId()
+    [OAK-8175] - ExternalGroupPrincipalProvider support for full text
+    search
+    [OAK-8177] - Add logging around getReferenceCheckpoint method
+    [OAK-8182] - Improvements to PasswordUtil
+    [OAK-8205] - Add benchmark for Node.isNodeType()
 
 Test
 
-    [OAK-7878] - Add unit test for LoggingHook
+    [OAK-8172] - Basic test for LoggingDocumentStoreWrapper
+
+Wish
+
+    [OAK-8151] - Let ACE.getPrincipal return principals obtained from
+    PrincipalManager
+    [OAK-8173] - Add branch coverage to Jacoco check
 
 Task
 
-    [OAK-7915] - Update Oak trunk to Jackrabbit 2.17.7
-    [OAK-7931] - Don't allow for weak references between mounts
-    [OAK-7943] - Update Oak trunk to Jackrabbit 2.18.0
+    [OAK-7904] - Exporting query duration per index metrics with Sling
+    Metrics / DropWizard
+    [OAK-7961] - LSH should truncate to first decimal place
+    [OAK-7962] - FV reranking should be enabled by default
+    [OAK-7969] - Update tika dependency to 1.20
+    [OAK-8011] - Benchmark on QUERY_DURATION metrics implemented in
+    OAK-7904
+    [OAK-8022] - Update Oak trunk to Jackrabbit 2.19.0
+    [OAK-8030] - oak-jcr NodeTypeTest improvements
+    [OAK-8031] - Update Oak trunk to Jackrabbit 2.19.1
+    [OAK-8037] - add test case for making a node type referenceable
+    [OAK-8050] - Make it possible to use CompressingCodec via system
+    property
+    [OAK-8059] - Update Jackson dependency to 2.9.8
+    [OAK-8068] - Update slf4j dependency to 1.7.26
+    [OAK-8072] - Aggregate jcr:content result nodes as their parent
+    [OAK-8085] - Upgrade spotbugs to 3.1.11
+    [OAK-8090] - Update baseline comparisonVersion to 1.10.1
+    [OAK-8098] - oak-examples/webapp: update spring boot dependency to
+    1.5.19
+    [OAK-8103] - TimingHookTest.commitTime failing occasionally
+    [OAK-8112] - Change log pattern to have complete date for oak-run
+    datastore command
+    [OAK-8115] - Allow disabling of BlobTracker when not required
+    [OAK-8116] - Expose text extraction metrics as sling metrics
+    [OAK-8118] - Index selected properties to enhance feature vector
+    similarity search results
+    [OAK-8119] - Let similarity search rerank use distance as exact
+    score
+    [OAK-8120] - Update http components to 4.5.7/4.4.11
+    [OAK-8134] - Index Copier Stats MBean shows stale info
+    [OAK-8148] - [Indexing] Implement sling metric to calculate number
+    of slow queries(relative to all queries)
+    [OAK-8156] - Update baseline comparisonVersion to 1.10.2
+    [OAK-8163] - examples: update Tomcat dependency to 7.0.93
+    [OAK-8179] - Update jacoco to 0.8.3
+    [OAK-8180] - Update mockito to 2.25.1
+    [OAK-8189] - Getting warning message in error logs while trying to
+    search using filters
+    [OAK-8196] - Update httpclient/mime dependencies to 4.5.8
 
 Documentation
 
-    [OAK-7945] - Document the recover-journal command
+    [OAK-8178] - Document missing support for multiplexing in Cug
+    Authorization
+    [OAK-8193] - Update docs with new release strategies
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.9.x release.
+all changes included up to the Apache Jackrabbit Oak 1.x release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
