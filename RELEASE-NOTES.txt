@@ -308,7 +308,7 @@ Documentation
     [OAK-8193] - Update docs with new release strategies
 
 In addition to the above-mentioned changes, this release contains all
-changes up to the previous release
+changes up to the previous release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
