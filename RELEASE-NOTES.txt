@@ -16,7 +16,7 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 Changes in Oak 1.12.0
---------------------
+---------------------
 
 Technical task
 
