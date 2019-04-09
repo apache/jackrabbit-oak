@@ -500,7 +500,8 @@ public class BenchmarkRunner {
             new PersistentCacheTest(statsProvider),
             new StringWriteTest(),
             new BasicWriteTest(),
-            new CanReadNonExisting()
+            new CanReadNonExisting(),
+            new IsNodeTypeTest()
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
