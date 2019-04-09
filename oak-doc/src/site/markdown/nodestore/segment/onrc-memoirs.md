@@ -107,5 +107,11 @@ Oak 1.6 removed the [`Compactor` class](https://github.com/apache/jackrabbit-oak
 
 Oak 1.10
 --------
-* TODO: describe fixes, improvements and backports
+With Oak 1.6 and Oak 1.8 it was observed that running compaction first increases the repository until cleanup runs and subsequently removes the generation that has become reclaimable. Oak 1.10 improved this aspect by running cleanup *before* compaction thus levelling out the bump in repository size cause by the compaction phase. 
+
+The effort included a few refactorings making garbage collection more modular:
+* [OAK-7377](https://issues.apache.org/jira/browse/OAK-7377) generalised the [garbage collector](https://github.com/apache/jackrabbit-oak/blob/jackrabbit-oak-1.10.0/oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/GarbageCollector.java#L46) allowing multiple implementations. 
+* [OAK-7440](https://issues.apache.org/jira/browse/OAK-7440), [OAK-7434](https://issues.apache.org/jira/browse/OAK-7434) and [OAK-7436](https://issues.apache.org/jira/browse/OAK-7436) factored estimation, compaction and cleanup into independent components. 
+* [OAK-7445](https://issues.apache.org/jira/browse/OAK-7445) introduced the new cleanup before compaction garbage collection strategy.
+* [OAK-7550](https://issues.apache.org/jira/browse/OAK-7550) eventually set the cleanup before compaction strategy as the new default for Oak 1.10.
 
