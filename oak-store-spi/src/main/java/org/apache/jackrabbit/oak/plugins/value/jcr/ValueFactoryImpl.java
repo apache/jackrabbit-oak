@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.List;
 
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
@@ -34,15 +33,12 @@ import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.value.ErrorValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -85,73 +81,6 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
      */
     public ValueFactoryImpl(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         this(root, namePathMapper, DEFAULT_BLOB_ACCESS_PROVIDER);
-    }
-
-    /**
-     * Utility method for creating a {@code Value} based on a
-     * {@code PropertyState}. The {@link Value} instance created by this factory
-     * method will not be backed with a {@link BlobAccessProvider} and the
-     * {@link Binary} retrieved from the {@link Value} does not provide a
-     * download URI, even if the underlying blob store supports it.
-     *
-     * @param property  The property state
-     * @param namePathMapper The name/path mapping used for converting JCR
-     *          names/paths to the internal representation.
-     * @return  New {@code Value} instance
-     * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
-     * @deprecated use {@link PartialValueFactory#createValue(PropertyState)} instead.
-     */
-    @Deprecated
-    @NotNull
-    public static Value createValue(@NotNull PropertyState property,
-                                    @NotNull NamePathMapper namePathMapper) {
-        return new PartialValueFactory(namePathMapper).createValue(property);
-    }
-
-    /**
-     * Utility method for creating a {@code Value} based on a
-     * {@code PropertyValue}. The {@link Value} instance created by this factory
-     * method will not be backed with a {@link BlobAccessProvider} and the
-     * {@link Binary} retrieved from the {@link Value} does not provide a
-     * download URI, even if the underlying blob store supports it.
-     *
-     * Utility method for creating a {@code Value} based on a {@code PropertyValue}.
-     * @param property  The property value
-     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
-     * the internal representation.
-     * @return  New {@code Value} instance
-     * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
-     * @deprecated use {@link PartialValueFactory#createValue(PropertyState)} instead.
-     */
-    @Deprecated
-    @NotNull
-    public static Value createValue(@NotNull PropertyValue property,
-                                    @NotNull NamePathMapper namePathMapper) {
-        PropertyState ps = PropertyValues.create(property);
-        if (ps == null) {
-            throw new IllegalArgumentException("Failed to convert the specified property value to a property state.");
-        }
-        return new PartialValueFactory(namePathMapper).createValue(ps);
-    }
-
-    /**
-     * Utility method for creating {@code Value}s based on a
-     * {@code PropertyState}. The {@link Value} instances created by this factory
-     * method will not be backed with a {@link BlobAccessProvider} and the
-     * {@link Binary} retrieved from the {@link Value} does not provide a
-     * download URI, even if the underlying blob store supports it.
-     *
-     * @param property  The property state
-     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
-     * the internal representation.
-     * @return  A list of new {@code Value} instances
-     * @deprecated use {@link PartialValueFactory#createValues(PropertyState)} instead.
-     */
-    @Deprecated
-    @NotNull
-    public static List<Value> createValues(@NotNull PropertyState property,
-                                           @NotNull NamePathMapper namePathMapper) {
-        return new PartialValueFactory(namePathMapper).createValues(property);
     }
 
     //-------------------------------------------------------< ValueFactory >---
