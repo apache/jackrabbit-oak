@@ -23,7 +23,9 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
-import org.h2.mvstore.type.StringDataType;
+import org.jetbrains.annotations.NotNull;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class ValueDataType implements DataType {
     
@@ -31,9 +33,9 @@ public class ValueDataType implements DataType {
     private final DocumentStore docStore;
     private final CacheType type;
     
-    public ValueDataType(
-            DocumentNodeStore docNodeStore,
-            DocumentStore docStore, CacheType type) {
+    ValueDataType(DocumentNodeStore docNodeStore,
+                  DocumentStore docStore,
+                  CacheType type) {
         this.docNodeStore = docNodeStore;
         this.docStore = docStore;
         this.type = type;
@@ -51,14 +53,12 @@ public class ValueDataType implements DataType {
 
     @Override
     public void write(WriteBuffer buff, Object obj) {
-        String s = type.valueToString(obj);
-        StringDataType.INSTANCE.write(buff, s);
+        type.writeValue(buff, obj);
     }
 
     @Override
     public Object read(ByteBuffer buff) {
-        String s = StringDataType.INSTANCE.read(buff);
-        return type.valueFromString(docNodeStore, docStore, s);
+        return type.readValue(docNodeStore, docStore, buff);
     }
 
     @Override

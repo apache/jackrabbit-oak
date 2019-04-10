@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -82,7 +83,8 @@ public class CacheChangesTrackerTest {
     @Test
     public void testRegisterChildrenTracker() {
         NodeDocumentCache cache = createCache();
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit("/parent"), getKeyUpperLimit("/parent"));
+        Path parent = Path.fromString("/parent");
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
 
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
         assertFalse(tracker.mightBeenAffected("2:/parent/abc"));
@@ -105,7 +107,8 @@ public class CacheChangesTrackerTest {
     @Test
     public void testGetLoaderAffectsTracker() throws ExecutionException {
         NodeDocumentCache cache = createCache();
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit("/parent"), getKeyUpperLimit("/parent"));
+        Path parent = Path.fromString("/parent");
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
 
         assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
 
@@ -149,7 +152,8 @@ public class CacheChangesTrackerTest {
     @Test
     public void testOnlyExternalChanges() {
         NodeDocumentCache cache = createCache();
-        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit("/parent"), getKeyUpperLimit("/parent"));
+        Path parent = Path.fromString("/parent");
+        CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
 
         cache.putNonConflictingDocs(tracker, ImmutableSet.of(createDoc("2:/parent/local")));
         assertFalse(tracker.mightBeenAffected("2:/parent/local"));

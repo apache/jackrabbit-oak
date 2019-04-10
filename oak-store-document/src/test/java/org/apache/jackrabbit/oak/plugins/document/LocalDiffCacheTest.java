@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Test;
 
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -85,11 +83,11 @@ public class LocalDiffCacheTest {
 
     @Test
     public void diffFromAsString() {
-        Map<String, String> changes = Maps.newHashMap();
-        changes.put("/", "+\"foo\":{}^\"bar\":{}-\"baz\"");
-        changes.put("/foo", "");
-        changes.put("/bar", "+\"qux\"");
-        changes.put("/bar/qux", "");
+        Map<Path, String> changes = Maps.newHashMap();
+        changes.put(Path.ROOT, "+\"foo\":{}^\"bar\":{}-\"baz\"");
+        changes.put(Path.fromString("/foo"), "");
+        changes.put(Path.fromString("/bar"), "+\"qux\"");
+        changes.put(Path.fromString("/bar/qux"), "");
         Diff diff = new Diff(changes, 0);
 
         assertEquals(changes, Diff.fromString(diff.asString()).getChanges());
@@ -97,7 +95,7 @@ public class LocalDiffCacheTest {
 
     @Test
     public void emptyDiff() throws Exception{
-        Map<String, String> changes = new HashMap<String, String>();
+        Map<Path, String> changes = new HashMap<>();
         Diff diff = new Diff(changes, 100);
         String asString = diff.asString();
         Diff diff2 = Diff.fromString(asString);

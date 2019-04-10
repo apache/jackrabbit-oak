@@ -77,7 +77,7 @@ class SplitOperations {
     private static final DocumentStore STORE = new MemoryDocumentStore();
 
     private final NodeDocument doc;
-    private final String path;
+    private final Path path;
     private final String id;
     private final Revision headRevision;
     private final RevisionContext context;
@@ -314,11 +314,11 @@ class SplitOperations {
                 if (h == null || l == null) {
                     throw new IllegalStateException();
                 }
-                String prevPath = Utils.getPreviousPathFor(path, h, entry.getKey() + 1);
+                Path prevPath = Utils.getPreviousPathFor(path, h, entry.getKey() + 1);
                 String prevId = Utils.getIdFromPath(prevPath);
                 UpdateOp intermediate = new UpdateOp(prevId, true);
-                if (Utils.isLongPath(prevPath)) {
-                    intermediate.set(NodeDocument.PATH, prevPath);
+                if (Utils.isIdFromLongPath(prevId)) {
+                    intermediate.set(NodeDocument.PATH, prevPath.toString());
                 }
                 setPrevious(main, new Range(h, l, entry.getKey() + 1));
                 for (Range r : entry.getValue()) {
@@ -351,10 +351,11 @@ class SplitOperations {
             // move to another document
             main = new UpdateOp(id, false);
             setPrevious(main, new Range(high, low, 0));
-            String oldPath = Utils.getPreviousPathFor(path, high, 0);
-            UpdateOp old = new UpdateOp(Utils.getIdFromPath(oldPath), true);
-            if (Utils.isLongPath(oldPath)) {
-                old.set(NodeDocument.PATH, oldPath);
+            Path oldPath = Utils.getPreviousPathFor(path, high, 0);
+            String oldId = Utils.getIdFromPath(oldPath);
+            UpdateOp old = new UpdateOp(oldId, true);
+            if (Utils.isIdFromLongPath(oldId)) {
+                old.set(NodeDocument.PATH, oldPath.toString());
             }
             for (String property : committedChanges.keySet()) {
                 NavigableMap<Revision, String> splitMap = committedChanges.get(property);

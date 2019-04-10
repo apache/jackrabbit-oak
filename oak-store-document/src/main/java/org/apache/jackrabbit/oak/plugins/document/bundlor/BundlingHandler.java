@@ -24,25 +24,25 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 public class BundlingHandler {
 
     private final BundledTypesRegistry registry;
-    private final String path;
+    private final Path path;
     private final BundlingContext ctx;
     private final NodeState nodeState;
 
     public BundlingHandler(BundledTypesRegistry registry) {
-        this(checkNotNull(registry), BundlingContext.NULL, ROOT_PATH, EMPTY_NODE);
+        this(checkNotNull(registry), BundlingContext.NULL, Path.ROOT, EMPTY_NODE);
     }
 
-    private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, String path, NodeState nodeState) {
+    private BundlingHandler(BundledTypesRegistry registry, BundlingContext ctx, Path path, NodeState nodeState) {
         this.registry = registry;
         this.path = path;
         this.ctx = ctx;
@@ -67,7 +67,7 @@ public class BundlingHandler {
     /**
      * Returns absolute path of the current node
      */
-    public String getNodeFullPath() {
+    public Path getNodeFullPath() {
         return path;
     }
 
@@ -86,12 +86,12 @@ public class BundlingHandler {
         return ctx.removedProps;
     }
 
-    public String getRootBundlePath() {
+    public Path getRootBundlePath() {
         return ctx.isBundling() ? ctx.bundlingPath : path;
     }
 
     public BundlingHandler childAdded(String name, NodeState state){
-        String childPath = childPath(name);
+        Path childPath = childPath(name);
         BundlingContext childContext;
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
@@ -111,7 +111,7 @@ public class BundlingHandler {
     }
 
     public BundlingHandler childDeleted(String name, NodeState state){
-        String childPath = childPath(name);
+        Path childPath = childPath(name);
         BundlingContext childContext;
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
@@ -127,7 +127,7 @@ public class BundlingHandler {
     }
 
     public BundlingHandler childChanged(String name, NodeState before, NodeState after){
-        String childPath = childPath(name);
+        Path childPath = childPath(name);
         BundlingContext childContext;
         Matcher childMatcher = ctx.matcher.next(name);
         if (childMatcher.isMatch()) {
@@ -151,22 +151,22 @@ public class BundlingHandler {
 
     @Override
     public String toString() {
-        String result = path;
+        String result = path.toString();
         if (isBundledNode()){
             result = path + "( Bundling root - " + getRootBundlePath() + ")";
         }
         return result;
     }
 
-    private String childPath(String name){
-        return PathUtils.concat(path, name);
+    private Path childPath(String name){
+        return new Path(path, name);
     }
 
     private BundlingContext createChildContext(Matcher childMatcher) {
         return ctx.child(childMatcher);
     }
 
-    private static BundlingContext getBundlorContext(String path, NodeState state) {
+    private static BundlingContext getBundlorContext(Path path, NodeState state) {
         BundlingContext result = BundlingContext.NULL;
         PropertyState bundlorConfig = state.getProperty(DocumentBundlor.META_PROP_PATTERN);
         if (bundlorConfig != null){
@@ -199,13 +199,13 @@ public class BundlingHandler {
     }
 
     private static class BundlingContext {
-        static final BundlingContext NULL = new BundlingContext("", Matcher.NON_MATCHING);
-        final String bundlingPath;
+        static final BundlingContext NULL = new BundlingContext(Path.ROOT, Matcher.NON_MATCHING);
+        final Path bundlingPath;
         final Matcher matcher;
         final Set<PropertyState> metaProps = Sets.newHashSet();
         final Set<String> removedProps = Sets.newHashSet();
 
-        public BundlingContext(String bundlingPath, Matcher matcher) {
+        public BundlingContext(Path bundlingPath, Matcher matcher) {
             this.bundlingPath = bundlingPath;
             this.matcher = matcher;
         }

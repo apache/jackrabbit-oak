@@ -38,6 +38,7 @@ import com.mongodb.client.model.Filters;
 
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.SplitDocumentCleanUp;
@@ -189,7 +190,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // only remove those older than sweep rev
         List<Bson> queries = Lists.newArrayList();
         for (Revision r : sweepRevs) {
-            String idSuffix = Utils.getPreviousIdFor("/", r, 0);
+            String idSuffix = Utils.getPreviousIdFor(Path.ROOT, r, 0);
             idSuffix = idSuffix.substring(idSuffix.lastIndexOf('-'));
 
             // id/path constraint for previous documents

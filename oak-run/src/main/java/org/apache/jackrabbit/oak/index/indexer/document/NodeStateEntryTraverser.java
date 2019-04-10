@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
@@ -94,14 +95,15 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
     }
 
     private boolean includeDoc(NodeDocument doc) {
+        String path = doc.getPath().toString();
         return !doc.isSplitDocument()
-                && !NodeStateUtils.isHiddenPath(doc.getPath())
-                && pathPredicate.test(doc.getPath());
+                && !NodeStateUtils.isHiddenPath(path)
+                && pathPredicate.test(path);
     }
 
     @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
     private Iterable<NodeStateEntry> getEntries(NodeDocument doc) {
-        String path = doc.getPath();
+        Path path = doc.getPath();
 
         DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
 
@@ -113,7 +115,7 @@ public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closea
         return transform(
                 concat(singleton(nodeState),
                     nodeState.getAllBundledNodesStates()),
-                dns -> new NodeStateEntry(dns, dns.getPath())
+                dns -> new NodeStateEntry(dns, dns.getPath().toString())
         );
     }
 

@@ -137,10 +137,10 @@ final class NodeDocumentSweeper {
             return null;
         }
 
-        Iterable<Map.Entry<String, UpdateOp>> ops = sweepOperations(documents);
-        for (List<Map.Entry<String, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
-            Map<String, UpdateOp> updates = newHashMap();
-            for (Map.Entry<String, UpdateOp> entry : batch) {
+        Iterable<Map.Entry<Path, UpdateOp>> ops = sweepOperations(documents);
+        for (List<Map.Entry<Path, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
+            Map<Path, UpdateOp> updates = newHashMap();
+            for (Map.Entry<Path, UpdateOp> entry : batch) {
                 updates.put(entry.getKey(), entry.getValue());
             }
             listener.sweepUpdate(updates);
@@ -149,17 +149,17 @@ final class NodeDocumentSweeper {
         return head;
     }
 
-    private Iterable<Map.Entry<String, UpdateOp>> sweepOperations(
+    private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
         return filter(transform(docs,
-                new Function<NodeDocument, Map.Entry<String, UpdateOp>>() {
+                new Function<NodeDocument, Map.Entry<Path, UpdateOp>>() {
             @Override
-            public Map.Entry<String, UpdateOp> apply(NodeDocument doc) {
+            public Map.Entry<Path, UpdateOp> apply(NodeDocument doc) {
                 return immutableEntry(doc.getPath(), sweepOne(doc));
             }
-        }), new Predicate<Map.Entry<String, UpdateOp>>() {
+        }), new Predicate<Map.Entry<Path, UpdateOp>>() {
             @Override
-            public boolean apply(Map.Entry<String, UpdateOp> input) {
+            public boolean apply(Map.Entry<Path, UpdateOp> input) {
                 return input.getValue() != null;
             }
         });

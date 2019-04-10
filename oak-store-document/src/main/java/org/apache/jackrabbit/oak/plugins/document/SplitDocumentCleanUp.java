@@ -114,11 +114,9 @@ public class SplitDocumentCleanUp implements Closeable {
             return;
         }
 
-        String splitDocPath = splitDoc.getPath();
-        int slashIdx = splitDocPath.lastIndexOf('/');
-        int height = Integer.parseInt(splitDocPath.substring(slashIdx + 1));
-        Revision rev = Revision.fromString(
-                splitDocPath.substring(splitDocPath.lastIndexOf('/', slashIdx - 1) + 1, slashIdx));
+        Path splitDocPath = splitDoc.getPath();
+        int height = Integer.parseInt(splitDocPath.getName());
+        Revision rev = Revision.fromString(splitDocPath.getParent().getName());
         doc = doc.findPrevReferencingDoc(rev, height);
         if (doc == null) {
             LOG.warn("Split document {} for path {} not referenced anymore. Main document is {}",

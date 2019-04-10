@@ -295,9 +295,9 @@ public class DocumentNodeStoreTest {
             @Override
             public void run() {
                 Commit c = new CommitBuilder(store, store.newRevision(), head)
-                        .addNode("/newConflictingNode")
-                        .addNode("/deletedNode")
-                        .updateProperty("/updateNode", "foo", "baz")
+                        .addNode(Path.fromString("/newConflictingNode"))
+                        .addNode(Path.fromString("/deletedNode"))
+                        .updateProperty(Path.fromString("/updateNode"), "foo", "baz")
                         .build();
                 try {
                     c.apply();
@@ -316,8 +316,8 @@ public class DocumentNodeStoreTest {
         // commit will succeed and add collision marker to writer commit
         Revision r = store.newRevision();
         Commit c = new CommitBuilder(store, r, head)
-                .addNode("/newConflictingNode")
-                .addNode("/newNonConflictingNode")
+                .addNode(Path.fromString("/newConflictingNode"))
+                .addNode(Path.fromString("/newNonConflictingNode"))
                 .build();
         c.apply();
         // allow writer to continue
@@ -2144,7 +2144,7 @@ public class DocumentNodeStoreTest {
         RevisionVector to = ns.getHeadRevision();
 
         DiffCache.Entry entry = ns.getDiffCache().newEntry(from, to, true);
-        entry.append("/", "-\"foo\"");
+        entry.append(Path.ROOT, "-\"foo\"");
         entry.done();
 
         ns.compare(ns.getRoot(), ns.getRoot(from), new DefaultNodeStateDiff() {
@@ -2928,7 +2928,7 @@ public class DocumentNodeStoreTest {
 
         RevisionVector headRev = ns.getHeadRevision();
         Iterable<DocumentNodeState> nodes = ns.getChildNodes(
-                asDocumentNodeState(ns.getRoot().getChildNode("foo")), null, 10);
+                asDocumentNodeState(ns.getRoot().getChildNode("foo")), "", 10);
         assertEquals(2, Iterables.size(nodes));
         for (DocumentNodeState c : nodes) {
             assertEquals(headRev, c.getRootRevision());
@@ -3259,7 +3259,7 @@ public class DocumentNodeStoreTest {
         Revision rev = ns.newRevision();
         RevisionVector after = new RevisionVector(ns.newRevision());
 
-        String path = "/foo";
+        Path path = Path.fromString("/foo");
         ns.getNode(path, before);
         assertNotNull(ns.getNodeCache().getIfPresent(new PathRev(path, before)));
 
@@ -3282,7 +3282,7 @@ public class DocumentNodeStoreTest {
         RevisionVector head = ns.getHeadRevision();
 
         // simulate an incorrect cache entry
-        PathRev key = new PathRev("/", head);
+        NamePathRev key = new NamePathRev("", Path.ROOT, head);
         DocumentNodeState.Children c = new DocumentNodeState.Children();
         c.children.add("a");
         c.children.add("b");

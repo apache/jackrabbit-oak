@@ -30,8 +30,8 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
-import org.apache.jackrabbit.oak.plugins.document.PathRev;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache.Key;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.Broadcaster;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.TCPBroadcaster;
@@ -63,9 +63,11 @@ public class BroadcastTest {
         ArrayList<PersistentCache> nodeList = new ArrayList<PersistentCache>();
         for (int nodes = 1; nodes < 20; nodes++) {
             PersistentCache pc = new PersistentCache("target/broadcastTest/p" + nodes + ",broadcast=" + type);
-            Cache<PathRev, StringValue> cache = openCache(pc);
-            String key = "/test" + Math.random();
-            PathRev k = new PathRev(key, new RevisionVector(new Revision(0, 0, 0)));
+            Cache<Key, StringValue> cache = openCache(pc);
+            Path key = Path.fromString("/test" + Math.random());
+            RevisionVector from = RevisionVector.fromString("r1-0-1");
+            RevisionVector to = RevisionVector.fromString("r2-0-1");
+            Key k = new Key(key, from, to);
             long time = System.currentTimeMillis();
             for (int i = 0; i < 2000; i++) {
                 cache.put(k, new StringValue("Hello World " + i));
@@ -204,10 +206,12 @@ public class BroadcastTest {
         new File("target/broadcastTest").mkdirs();        
         PersistentCache p1 = new PersistentCache("target/broadcastTest/p1,broadcast=" + type);
         PersistentCache p2 = new PersistentCache("target/broadcastTest/p2,broadcast=" + type);
-        Cache<PathRev, StringValue> c1 = openCache(p1);
-        Cache<PathRev, StringValue> c2 = openCache(p2);
-        String key = "/test" + Math.random();
-        PathRev k = new PathRev(key, new RevisionVector(new Revision(0, 0, 0)));
+        Cache<Key, StringValue> c1 = openCache(p1);
+        Cache<Key, StringValue> c2 = openCache(p2);
+        Path key = Path.fromString("/test" + Math.random());
+        RevisionVector from = RevisionVector.fromString("r1-0-1");
+        RevisionVector to = RevisionVector.fromString("r2-0-1");
+        Key k = new Key(key, from, to);
         int correct = 0;
         for (int i = 0; i < 50; i++) {
             c1.put(k, new StringValue("Hello World " + i));
@@ -280,8 +284,8 @@ public class BroadcastTest {
         }, timeoutInMilliseconds);
     }
     
-    private static Cache<PathRev, StringValue> openCache(PersistentCache p) {
-        CacheLIRS<PathRev, StringValue> cache = new CacheLIRS.Builder<PathRev, StringValue>().
+    private static Cache<Key, StringValue> openCache(PersistentCache p) {
+        CacheLIRS<Key, StringValue> cache = new CacheLIRS.Builder<Key, StringValue>().
                 maximumSize(1).build();
         return p.wrap(null,  null,  cache, CacheType.DIFF);        
     }

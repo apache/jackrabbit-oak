@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -114,8 +115,9 @@ public class MongoDBExceptionTest {
                     e.getMessage().contains(id));
         }
 
-        String fromKey = Utils.getKeyLowerLimit("/foo");
-        String toKey = Utils.getKeyUpperLimit("/foo");
+        Path foo = Path.fromString("/foo");
+        String fromKey = Utils.getKeyLowerLimit(foo);
+        String toKey = Utils.getKeyUpperLimit(foo);
         exceptionMsg = "query failed";
         setExceptionMsg();
         try {

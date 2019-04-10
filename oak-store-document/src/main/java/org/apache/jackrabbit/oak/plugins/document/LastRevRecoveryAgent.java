@@ -22,7 +22,6 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
@@ -40,7 +39,6 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -239,7 +237,7 @@ public class LastRevRecoveryAgent {
             final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
             sweeper.sweep(suspects, new NodeDocumentSweepListener() {
                 @Override
-                public void sweepUpdate(Map<String, UpdateOp> updates)
+                public void sweepUpdate(Map<Path, UpdateOp> updates)
                         throws DocumentStoreException {
                     if (dryRun) {
                         log.info("Dry run of sweeper identified [{}] documents for " +
@@ -276,7 +274,7 @@ public class LastRevRecoveryAgent {
         UnsavedModifications unsavedParents = new UnsavedModifications();
 
         //Map of known last rev of checked paths
-        Map<String, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
+        Map<Path, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
         final JournalEntry changes = JOURNAL.newDocument(store);
 
         long count = 0;
@@ -308,19 +306,19 @@ public class LastRevRecoveryAgent {
 
             //2. Update lastRev for parent paths aka rollup
             if (lastRevForParents != null) {
-                String path = doc.getPath();
+                Path path = doc.getPath();
                 changes.modified(path); // track all changes
                 while (true) {
-                    if (PathUtils.denotesRoot(path)) {
+                    path = path.getParent();
+                    if (path == null) {
                         break;
                     }
-                    path = PathUtils.getParentPath(path);
                     unsavedParents.put(path, lastRevForParents);
                 }
             }
         }
 
-        for (String parentPath : unsavedParents.getPaths()) {
+        for (Path parentPath : unsavedParents.getPaths()) {
             Revision calcLastRev = unsavedParents.get(parentPath);
             Revision knownLastRev = knownLastRevOrModification.get(parentPath);
             if (knownLastRev == null) {
@@ -348,11 +346,11 @@ public class LastRevRecoveryAgent {
         }
 
         if (sweepRev.get() != null) {
-            unsaved.put(ROOT_PATH, sweepRev.get());
+            unsaved.put(Path.ROOT, sweepRev.get());
         }
 
         // take the root's lastRev
-        final Revision lastRootRev = unsaved.get(ROOT_PATH);
+        final Revision lastRootRev = unsaved.get(Path.ROOT);
 
         //Note the size before persist as persist operation
         //would empty the internal state

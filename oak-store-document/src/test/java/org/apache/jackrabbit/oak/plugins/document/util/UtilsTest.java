@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -71,18 +72,18 @@ public class UtilsTest {
     public void getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
         assertEquals("2:p/" + r.toString() + "/0",
-                Utils.getPreviousIdFor("/", r, 0));
+                Utils.getPreviousIdFor(Path.ROOT, r, 0));
         assertEquals("3:p/test/" + r.toString() + "/1",
-                Utils.getPreviousIdFor("/test", r, 1));
+                Utils.getPreviousIdFor(Path.fromString("/test"), r, 1));
         assertEquals("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString() + "/3",
-                Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3));
+                Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3));
     }
 
     @Test
     public void previousDoc() throws Exception{
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor("/", r, 0)));
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3)));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0)));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
         assertFalse(Utils.isPreviousDocId(Utils.getIdFromPath("/a/b")));
         assertFalse(Utils.isPreviousDocId("foo"));
         assertFalse(Utils.isPreviousDocId("0:"));
@@ -91,9 +92,9 @@ public class UtilsTest {
     @Test
     public void leafPreviousDoc() throws Exception {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/", r, 0)));
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 0)));
-        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3)));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0)));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 0)));
+        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
         assertFalse(Utils.isLeafPreviousDocId(Utils.getIdFromPath("/a/b")));
         assertFalse(Utils.isLeafPreviousDocId("foo"));
         assertFalse(Utils.isLeafPreviousDocId("0:"));
@@ -102,19 +103,19 @@ public class UtilsTest {
 
     @Test
     public void getParentIdFromLowerLimit() throws Exception{
-        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit("/foo")));
+        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit(Path.fromString("/foo"))));
         assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar"));
     }
 
     @Test
     public void getParentId() throws Exception{
-        String longPath = PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo");
+        Path longPath = Path.fromString(PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
         assertTrue(Utils.isLongPath(longPath));
 
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
 
-        assertNull(Utils.getParentId(Utils.getIdFromPath("/")));
-        assertEquals("1:/foo",Utils.getParentId("2:/foo/bar"));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(Path.ROOT)));
+        assertEquals("1:/foo", Utils.getParentId("2:/foo/bar"));
     }
 
     @Test
@@ -128,7 +129,7 @@ public class UtilsTest {
     @Test
     public void performance_getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        String path = "/some/test/path/foo";
+        Path path = Path.fromString("/some/test/path/foo");
         // warm up
         for (int i = 0; i < 1 * 1000 * 1000; i++) {
             Utils.getPreviousIdFor(path, r, 0);
@@ -300,9 +301,9 @@ public class UtilsTest {
 
     @Test
     public void isIdFromLongPath() {
-        String path = "/test";
+        Path path = Path.fromString("/test");
         while (!Utils.isLongPath(path)) {
-            path += path;
+            path = new Path(path, path.getName());
         }
         String idFromLongPath = Utils.getIdFromPath(path);
         assertTrue(Utils.isIdFromLongPath(idFromLongPath));
@@ -310,6 +311,16 @@ public class UtilsTest {
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MIN_ID_VALUE));
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MAX_ID_VALUE));
         assertFalse(Utils.isIdFromLongPath(":"));
+    }
+
+    @Test
+    public void idDepth() {
+        assertEquals(0, Utils.getIdDepth(Path.ROOT));
+        assertEquals(0, Utils.getIdDepth(Path.fromString("a")));
+        assertEquals(1, Utils.getIdDepth(Path.fromString("/a")));
+        assertEquals(2, Utils.getIdDepth(Path.fromString("/a/b")));
+        assertEquals(3, Utils.getIdDepth(Path.fromString("/a/b/c")));
+        assertEquals(2, Utils.getIdDepth(Path.fromString("a/b/c")));
     }
 
     @Test

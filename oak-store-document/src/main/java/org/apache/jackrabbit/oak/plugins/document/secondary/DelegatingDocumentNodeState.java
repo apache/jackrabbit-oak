@@ -25,6 +25,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
@@ -36,9 +37,6 @@ import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 /**
  * NodeState wrapper which wraps another NodeState (mostly SegmentNodeState)
@@ -61,7 +59,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     private final NodeState delegate;
     private final RevisionVector rootRevision;
     private final boolean fromExternalChange;
-    private final String path;
+    private final Path path;
     private RevisionVector lastRevision;
 
 
@@ -75,7 +73,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     public static NodeState wrapIfPossible(NodeState delegate, NodeStateDiffer differ) {
         if (hasMetaProps(delegate)) {
             String revVector = getRequiredProp(delegate, PROP_REVISION);
-            return new DelegatingDocumentNodeState(delegate, ROOT_PATH, RevisionVector.fromString(revVector), false, differ);
+            return new DelegatingDocumentNodeState(delegate, Path.ROOT, RevisionVector.fromString(revVector), false, differ);
         }
         return delegate;
     }
@@ -86,10 +84,10 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     public static AbstractDocumentNodeState wrap(NodeState delegate, NodeStateDiffer differ) {
         String revVector = getRequiredProp(delegate, PROP_REVISION);
-        return new DelegatingDocumentNodeState(delegate, ROOT_PATH, RevisionVector.fromString(revVector), false, differ);
+        return new DelegatingDocumentNodeState(delegate, Path.ROOT, RevisionVector.fromString(revVector), false, differ);
     }
 
-    private DelegatingDocumentNodeState(NodeState delegate, String path, RevisionVector rootRevision,
+    private DelegatingDocumentNodeState(NodeState delegate, Path path, RevisionVector rootRevision,
                                        boolean fromExternalChange, NodeStateDiffer differ) {
         this.differ = differ;
         this.delegate = delegate;
@@ -111,7 +109,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     //~----------------------------------< AbstractDocumentNodeState >
 
     @Override
-    public String getPath() {
+    public Path getPath() {
         return path;
     }
 
@@ -192,7 +190,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
     @NotNull
     @Override
     public NodeBuilder builder() {
-        checkState(!denotesRoot(getPath()), "Builder cannot be opened for root " +
+        checkState(!getPath().isRoot(), "Builder cannot be opened for root " +
                 "path for state of type [%s]", delegate.getClass());
         return new MemoryNodeBuilder(this);
     }
@@ -261,7 +259,7 @@ public class DelegatingDocumentNodeState extends AbstractDocumentNodeState {
 
     private NodeState decorate(String nodeName, NodeState childNode) {
         if (childNode.exists()) {
-            return new DelegatingDocumentNodeState(childNode, concat(path, nodeName), rootRevision,
+            return new DelegatingDocumentNodeState(childNode, new Path(path, nodeName), rootRevision,
                     fromExternalChange, differ);
         }
         return childNode;

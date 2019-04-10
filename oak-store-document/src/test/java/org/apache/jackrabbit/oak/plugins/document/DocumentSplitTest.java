@@ -107,7 +107,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             assertTrue(isCommitted(ns.getCommitValue(rev, doc)));
         }
         // check if document is still there
-        assertNotNull(ns.getNode("/", RevisionVector.fromString(head)));
+        assertNotNull(ns.getNode(Path.ROOT, RevisionVector.fromString(head)));
 
         NodeDocument prevDoc = Iterators.getOnlyElement(doc.getAllPreviousDocs());
         assertThat(prevDoc.getSplitDocType(), either(is(SplitDocType.DEFAULT)).or(is(SplitDocType.DEFAULT_NO_BRANCH)));
@@ -147,7 +147,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                     || doc.getCommitRootPath(rev) != null);
             assertTrue(isCommitted(ns.getCommitValue(rev, doc)));
         }
-        DocumentNodeState node = ns.getNode("/foo", RevisionVector.fromString(head));
+        DocumentNodeState node = ns.getNode(Path.fromString("/foo"), RevisionVector.fromString(head));
         // check status of node
         if (create) {
             assertNull(node);
@@ -305,7 +305,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             NodeDocument doc = ds.find(NODES, Utils.getIdFromPath("/test"));
             assertNotNull(doc);
             RevisionVector head = ns.getHeadRevision();
-            Revision lastRev = ns.getPendingModifications().get("/test");
+            Revision lastRev = ns.getPendingModifications().get(Path.fromString("/test"));
             DocumentNodeState n = doc.getNodeAtRevision(mk.getNodeStore(), head, lastRev);
             assertNotNull(n);
             String value = n.getPropertyAsString(name);
@@ -416,11 +416,11 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
     @Test
     public void cascadingSplitLongPath() {
-        String p = "/";
+        Path p = Path.ROOT;
         while (!Utils.isLongPath(p)) {
-            p = PathUtils.concat(p, "long-path-element");
+            p = new Path(p, "long-path-element");
         }
-        cascadingSplit(p);
+        cascadingSplit(p.toString());
     }
 
     private void cascadingSplit(String path) {
@@ -502,7 +502,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     @Test
     public void mainPath() {
         Revision r = Revision.fromString("r1-0-1");
-        for (String path : new String[]{"/", "/test", "/test/path"}) {
+        for (String p : new String[]{"/", "/test", "/test/path"}) {
+            Path path = Path.fromString(p);
             DocumentStore store = mk.getDocumentStore();
             NodeDocument doc = new NodeDocument(store);
             String id = Utils.getPreviousIdFor(path, r, 0);
@@ -550,7 +551,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         assertEquals(2, splitOps.size());
         // first update op is for the new intermediate doc
         op = splitOps.get(0);
-        String newPrevId = Utils.getPreviousIdFor("/test", prev.last(), 1);
+        String newPrevId = Utils.getPreviousIdFor(Path.fromString("/test"), prev.last(), 1);
         assertEquals(newPrevId, op.getId());
         // second update op is for the main document
         op = splitOps.get(1);
@@ -563,7 +564,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                 if (entry.getValue().type == REMOVE_MAP_ENTRY) {
                     assertTrue(prev.contains(r));
                 } else if (entry.getValue().type == SET_MAP_ENTRY) {
-                    assertEquals(newPrevId, Utils.getPreviousIdFor("/test", r, 1));
+                    assertEquals(newPrevId, Utils.getPreviousIdFor(Path.fromString("/test"), r, 1));
                 } else {
                     fail("unexpected update operation " + entry);
                 }
@@ -605,7 +606,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                 mk.getNodeStore(), mk.getNodeStore().getHeadRevision(),
                 NO_BINARY));
         assertEquals(2, splitOps.size());
-        String prevId = Utils.getPreviousIdFor("/test", revs.get(revs.size() - 2), 0);
+        String prevId = Utils.getPreviousIdFor(Path.fromString("/test"), revs.get(revs.size() - 2), 0);
         assertEquals(prevId, splitOps.get(0).getId());
         assertEquals(id, splitOps.get(1).getId());
     }

@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +40,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Commit.createUpdateOp;
@@ -59,7 +57,7 @@ class UnsavedModifications {
      */
     static final int BACKGROUND_MULTI_UPDATE_LIMIT = 100;
 
-    private final ConcurrentMap<String, Revision> map = MapFactory.getInstance().create();
+    private final ConcurrentMap<Path, Revision> map = MapFactory.getInstance().create();
 
     /**
      * Puts a revision for the given path. The revision for the given path is
@@ -72,7 +70,7 @@ class UnsavedModifications {
      *          was none or the current revision is newer.
      */
     @Nullable
-    public Revision put(@NotNull String path, @NotNull Revision revision) {
+    public Revision put(@NotNull Path path, @NotNull Revision revision) {
         checkNotNull(path);
         checkNotNull(revision);
         for (;;) {
@@ -95,12 +93,12 @@ class UnsavedModifications {
     }
 
     @Nullable
-    public Revision get(String path) {
+    public Revision get(Path path) {
         return map.get(path);
     }
 
     @NotNull
-    public Collection<String> getPaths() {
+    public Collection<Path> getPaths() {
         return map.keySet();
     }
 
@@ -112,19 +110,19 @@ class UnsavedModifications {
      * @return matching paths with pending modifications.
      */
     @NotNull
-    public Iterable<String> getPaths(@NotNull final Revision start) {
+    public Iterable<Path> getPaths(@NotNull final Revision start) {
         if (map.isEmpty()) {
             return Collections.emptyList();
         } else {
             return Iterables.transform(Iterables.filter(map.entrySet(),
-                    new Predicate<Map.Entry<String, Revision>>() {
+                    new Predicate<Map.Entry<Path, Revision>>() {
                 @Override
-                public boolean apply(Map.Entry<String, Revision> input) {
+                public boolean apply(Map.Entry<Path, Revision> input) {
                     return start.compareRevisionTime(input.getValue()) < 1;
                 }
-            }), new Function<Map.Entry<String, Revision>, String>() {
+            }), new Function<Map.Entry<Path, Revision>, Path>() {
                 @Override
-                public String apply(Map.Entry<String, Revision> input) {
+                public Path apply(Map.Entry<Path, Revision> input) {
                     return input.getKey();
                 }
             });
@@ -163,7 +161,7 @@ class UnsavedModifications {
         stats.lock = sw.elapsed(TimeUnit.MILLISECONDS);
         sw.reset().start();
         Revision sweepRev;
-        Map<String, Revision> pending;
+        Map<Path, Revision> pending;
         try {
             snapshot.acquiring(getMostRecentRevision());
             pending = Maps.newTreeMap(PathComparator.INSTANCE);
@@ -174,23 +172,23 @@ class UnsavedModifications {
         }
         stats.num = pending.size();
         List<UpdateOp> updates = Lists.newArrayList();
-        Map<String, Revision> pathToRevision = Maps.newHashMap();
-        for (Iterable<Map.Entry<String, Revision>> batch : Iterables.partition(
+        Map<Path, Revision> pathToRevision = Maps.newHashMap();
+        for (Iterable<Map.Entry<Path, Revision>> batch : Iterables.partition(
                 pending.entrySet(), BACKGROUND_MULTI_UPDATE_LIMIT)) {
-            for (Map.Entry<String, Revision> entry : batch) {
-                String p = entry.getKey();
+            for (Map.Entry<Path, Revision> entry : batch) {
+                Path p = entry.getKey();
                 Revision r = entry.getValue();
-                if (PathUtils.denotesRoot(entry.getKey())) {
+                if (p.isRoot()) {
                     // update root individually at the end
                     continue;
                 }
                 updates.add(newUpdateOp(p, r));
-                pathToRevision.put(p, r);
+                pathToRevision.put(entry.getKey(), r);
             }
             if (!updates.isEmpty()) {
                 store.createOrUpdate(NODES, updates);
                 stats.calls++;
-                for (Map.Entry<String, Revision> entry : pathToRevision.entrySet()) {
+                for (Map.Entry<Path, Revision> entry : pathToRevision.entrySet()) {
                     map.remove(entry.getKey(), entry.getValue());
                     LOG.debug("Updated _lastRev to {} on {}", entry.getValue(), entry.getKey());
                 }
@@ -200,9 +198,9 @@ class UnsavedModifications {
             }
         }
         // finally update remaining root document
-        Revision rootRev = pending.get(ROOT_PATH);
+        Revision rootRev = pending.get(Path.ROOT);
         if (rootRev != null) {
-            UpdateOp rootUpdate = newUpdateOp(ROOT_PATH, rootRev);
+            UpdateOp rootUpdate = newUpdateOp(Path.ROOT, rootRev);
             // also update to most recent sweep revision
             if (sweepRev != null) {
                 NodeDocument.setSweepRevision(rootUpdate, sweepRev);
@@ -210,8 +208,8 @@ class UnsavedModifications {
             }
             store.findAndUpdate(NODES, rootUpdate);
             stats.calls++;
-            map.remove(ROOT_PATH, rootRev);
-            LOG.debug("Updated _lastRev to {} on {}", rootRev, ROOT_PATH);
+            map.remove(Path.ROOT, rootRev);
+            LOG.debug("Updated _lastRev to {} on {}", rootRev, Path.ROOT);
 
             int cid = rootRev.getClusterId();
             UpdateOp update = new UpdateOp(String.valueOf(cid), false);
@@ -228,7 +226,7 @@ class UnsavedModifications {
         return map.toString();
     }
 
-    private static UpdateOp newUpdateOp(String path, Revision r) {
+    private static UpdateOp newUpdateOp(Path path, Revision r) {
         UpdateOp updateOp = createUpdateOp(path, r, false);
         NodeDocument.setLastRev(updateOp, r);
         return updateOp;
@@ -236,7 +234,7 @@ class UnsavedModifications {
 
     private Revision getMostRecentRevision() {
         // use revision of root document
-        Revision rev = map.get(ROOT_PATH);
+        Revision rev = map.get(Path.ROOT);
         // otherwise find most recent
         if (rev == null) {
             for (Revision r : map.values()) {

@@ -764,7 +764,7 @@ public class VersionGarbageCollector {
                 // all previous document ids can be constructed from the
                 // previous ranges map. this works for first level previous
                 // documents only.
-                final String path = doc.getPath();
+                final Path path = doc.getPath();
                 return Iterators.transform(prevRanges.entrySet().iterator(),
                         new Function<Map.Entry<Revision, Range>, String>() {
                     @Override

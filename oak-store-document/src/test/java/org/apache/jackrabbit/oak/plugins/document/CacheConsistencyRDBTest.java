@@ -65,7 +65,7 @@ public class CacheConsistencyRDBTest extends AbstractRDBConnectionTest {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                store.query(NODES, Utils.getKeyLowerLimit("/"), Utils.getKeyUpperLimit("/"), 10);
+                store.query(NODES, Utils.getKeyLowerLimit(Path.ROOT), Utils.getKeyUpperLimit(Path.ROOT), 10);
             }
         }, "query");
         // block thread when it tries to convert db objects

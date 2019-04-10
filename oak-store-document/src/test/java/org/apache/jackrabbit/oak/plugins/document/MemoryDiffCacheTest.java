@@ -37,11 +37,11 @@ public class MemoryDiffCacheTest {
         RevisionVector from = new RevisionVector(Revision.newRevision(1));
         RevisionVector to = new RevisionVector(Revision.newRevision(1));
         DiffCache.Entry entry = cache.newEntry(from, to, false);
-        entry.append("/", "^\"foo\":{}");
-        entry.append("/foo", changes(MemoryDiffCache.CACHE_VALUE_LIMIT));
+        entry.append(Path.ROOT, "^\"foo\":{}");
+        entry.append(Path.fromString("/foo"), changes(MemoryDiffCache.CACHE_VALUE_LIMIT));
         entry.done();
-        assertNotNull(cache.getChanges(from, to, "/", null));
-        assertNull(cache.getChanges(from, to, "/foo", null));
+        assertNotNull(cache.getChanges(from, to, Path.ROOT, null));
+        assertNull(cache.getChanges(from, to, Path.fromString("/foo"), null));
     }
 
     private static String changes(int minLength) {

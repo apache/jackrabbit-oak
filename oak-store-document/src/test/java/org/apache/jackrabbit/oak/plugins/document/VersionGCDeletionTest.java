@@ -428,7 +428,7 @@ public class VersionGCDeletionTest {
      * /x /x/y /x/y/z
      */
     private static class NodeDocComparator implements Comparator<NodeDocument> {
-        private static Comparator<String> reverse = Collections.reverseOrder(PathComparator.INSTANCE);
+        private static Comparator<Path> reverse = Collections.reverseOrder(PathComparator.INSTANCE);
 
         @Override
         public int compare(NodeDocument o1, NodeDocument o2) {

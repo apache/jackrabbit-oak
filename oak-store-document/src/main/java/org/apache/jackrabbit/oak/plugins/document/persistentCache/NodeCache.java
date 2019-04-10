@@ -112,8 +112,7 @@ class NodeCache<K extends CacheValue, V extends  CacheValue>
     public void addGeneration(int generation, boolean readOnly) {
         MVMap.Builder<K, V> b = new MVMap.Builder<K, V>().
                 keyType(keyType).valueType(valueType);
-        String mapName = type.name();
-        CacheMap<K, V> m = cache.openMap(generation, mapName, b);
+        CacheMap<K, V> m = cache.openMap(generation, type.getMapName(), b);
         map.addReadMap(generation, m);
         if (!readOnly) {
             map.setWriteMap(m);

@@ -25,13 +25,13 @@ import org.jetbrains.annotations.Nullable;
 public interface DocumentNodeStateCache {
     DocumentNodeStateCache NOOP = new DocumentNodeStateCache() {
         @Override
-        public AbstractDocumentNodeState getDocumentNodeState(String path, @Nullable RevisionVector rootRevision,
+        public AbstractDocumentNodeState getDocumentNodeState(Path path, @Nullable RevisionVector rootRevision,
                                                         RevisionVector lastRev) {
             return null;
         }
 
         @Override
-        public boolean isCached(String path) {
+        public boolean isCached(Path path) {
             return false;
         }
     };
@@ -47,14 +47,14 @@ public interface DocumentNodeStateCache {
      * path is not cached then <code>null</code> would be returned
      */
     @Nullable
-    AbstractDocumentNodeState getDocumentNodeState(String path, RevisionVector rootRevision, RevisionVector lastRev);
+    AbstractDocumentNodeState getDocumentNodeState(Path path, RevisionVector rootRevision, RevisionVector lastRev);
 
     /**
      * Determines if given path is cached by this implementation
      * @param path path to check
      * @return true if given path is cached
      */
-    boolean isCached(String path);
+    boolean isCached(Path path);
 
 
 }

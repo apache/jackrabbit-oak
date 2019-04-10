@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
@@ -79,7 +78,6 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
-import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
@@ -88,7 +86,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
-import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
@@ -460,7 +457,7 @@ public class DocumentNodeStoreService {
                 setPrefetchExternalChanges(config.prefetchExternalChanges()).
                 setUpdateLimit(config.updateLimit()).
                 setJournalGCMaxAge(config.journalGCMaxAge()).
-                setNodeCachePredicate(createCachePredicate());
+                setNodeCachePathPredicate(createCachePredicate());
 
         if (!Strings.isNullOrEmpty(persistentCache)) {
             builder.setPersistentCache(persistentCache);
@@ -481,7 +478,7 @@ public class DocumentNodeStoreService {
         return customBlobStore && blobStore instanceof BlobStoreWrapper;
     }
 
-    private Predicate<String> createCachePredicate() {
+    private Predicate<Path> createCachePredicate() {
         if (config.persistentCacheIncludes().length == 0) {
             return Predicates.alwaysTrue();
         }
@@ -489,16 +486,24 @@ public class DocumentNodeStoreService {
             return Predicates.alwaysTrue();
         }
 
-        Set<String> paths = new HashSet<>();
+        Set<Path> paths = new HashSet<>();
         for (String p : config.persistentCacheIncludes()) {
             p = p != null ? Strings.emptyToNull(p.trim()) : null;
             if (p != null) {
-                paths.add(p);
+                paths.add(Path.fromString(p));
             }
         }
-        PathFilter pf = new PathFilter(paths, emptyList());
         log.info("Configuring persistent cache to only cache nodes under paths {}", paths);
-        return path -> path != null && pf.filter(path) == PathFilter.Result.INCLUDE;
+        return input -> {
+            if (input != null) {
+                for (Path p : paths) {
+                    if (p.isAncestorOf(input)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
     }
 
     private boolean isNodeStoreProvider() {
@@ -731,7 +736,7 @@ public class DocumentNodeStoreService {
         }
 
         // register persistent cache stats
-        Map<CacheType, PersistentCacheStats> persistenceCacheStats = mkBuilder.getPersistenceCacheStats();
+        Map<String, PersistentCacheStats> persistenceCacheStats = mkBuilder.getPersistenceCacheStats();
         for (PersistentCacheStats pcs: persistenceCacheStats.values()) {
             addRegistration(
                     registerMBean(whiteboard,

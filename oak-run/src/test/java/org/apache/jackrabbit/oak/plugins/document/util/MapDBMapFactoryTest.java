@@ -14,18 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.util;
 
-/**
- * An implementation of this interface receives callbacks about paths
- * that need an update of the _lastRev field on documents.
- */
-public interface LastRevTracker {
+import java.util.concurrent.ConcurrentMap;
 
-    /**
-     * Called when a document needs an update of the _lastRev field.
-     *
-     * @param path the path of the document to update.
-     */
-    public void track(Path path);
+import org.apache.jackrabbit.oak.plugins.document.Path;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+
+public class MapDBMapFactoryTest {
+
+    @Test
+    public void mapDB() {
+        ConcurrentMap<Path, Revision> map = new MapDBMapFactory().create();
+        for (int i = 0; i < 10000; i++) {
+            map.put(Path.fromString("/some/test/path/node-" + i), new Revision(i, 0, 1));
+        }
+        for (int i = 0; i < 10000; i++) {
+            assertEquals(
+                    new Revision(i, 0, 1),
+                    map.get(Path.fromString("/some/test/path/node-" + i))
+            );
+        }
+    }
 }

@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.spi.state.ConflictType;
 
 /**
@@ -139,11 +139,11 @@ public final class StringCache {
     }
 
     private static Map<String, String> createStringMap(String... strings) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        Map<String, String> map = new HashMap<>();
         for (String string : strings) {
-            builder.put(string, string);
+            map.put(string, string);
         }
-        return builder.build();
+        return map;
     }
 
     // must be a power of 2

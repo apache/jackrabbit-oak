@@ -35,18 +35,22 @@ public class PathComparatorTest {
 
     @Test
     public void sort() {
-        List<String> paths = new ArrayList<String>();
-        paths.add("/foo");
-        paths.add("/foo/bar");
-        paths.add("/bar/qux");
-        paths.add("/");
-        paths.add("/bar");
+        List<Path> paths = new ArrayList<>();
+        paths.add(p("/foo"));
+        paths.add(p("/foo/bar"));
+        paths.add(p("/bar/qux"));
+        paths.add(p("/"));
+        paths.add(p("/bar"));
 
-        Collections.sort(paths, PathComparator.INSTANCE);
+        paths.sort(PathComparator.INSTANCE);
 
-        List<String> expected = Lists.newArrayList(
-                "/bar/qux", "/foo/bar", "/bar", "/foo", "/");
+        List<Path> expected = Lists.newArrayList(
+                p("/bar/qux"), p("/foo/bar"), p("/bar"), p("/foo"), p("/"));
 
         assertEquals(expected, paths);
+    }
+
+    private static Path p(String path) {
+        return Path.fromString(path);
     }
 }

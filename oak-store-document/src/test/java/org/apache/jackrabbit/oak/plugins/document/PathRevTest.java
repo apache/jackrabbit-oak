@@ -25,11 +25,11 @@ import static org.junit.Assert.assertEquals;
 public class PathRevTest {
 
     @Test
-    public void roundTrip() {
-        String path = "/this/is/a/test/path";
+    public void equals() {
+        Path path = Path.fromString("/this/is/a/test/path");
         RevisionVector rv = new RevisionVector(
                 Revision.newRevision(1), Revision.newRevision(2));
-        PathRev key = new PathRev(path, rv);
-        assertEquals(key, PathRev.fromString(key.asString()));
+        PathRev expected = new PathRev(path, rv);
+        assertEquals(expected, new PathRev(path, rv));
     }
 }

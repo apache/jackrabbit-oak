@@ -71,8 +71,8 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
             @Override
             public void run() {
                 store.query(NODES,
-                        Utils.getKeyLowerLimit("/"),
-                        Utils.getKeyUpperLimit("/"), 10);
+                        Utils.getKeyLowerLimit(Path.ROOT),
+                        Utils.getKeyUpperLimit(Path.ROOT), 10);
             }
         });
         // block thread when it tries to convert db objects

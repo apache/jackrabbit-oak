@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -42,17 +43,17 @@ public class BundlingHandlerTest {
         childBuilder(builder, "/x/y/z");
         NodeState state = builder.getNodeState();
 
-        assertEquals("/", handler.getRootBundlePath());
+        assertEquals(Path.ROOT, handler.getRootBundlePath());
         assertTrue(handler.isBundlingRoot());
         assertEquals("foo", handler.getPropertyPath("foo"));
 
         BundlingHandler xh = childHandler(handler, state, "/x");
-        assertEquals("/x", xh.getRootBundlePath());
+        assertEquals(Path.fromString("/x"), xh.getRootBundlePath());
         assertTrue(xh.isBundlingRoot());
         assertEquals("foo", xh.getPropertyPath("foo"));
 
         BundlingHandler xz = childHandler(handler, state, "/x/y/z");
-        assertEquals("/x/y/z", xz.getRootBundlePath());
+        assertEquals(Path.fromString("/x/y/z"), xz.getRootBundlePath());
         assertTrue(xz.isBundlingRoot());
         assertEquals("foo", xz.getPropertyPath("foo"));
     }
@@ -70,26 +71,26 @@ public class BundlingHandlerTest {
         BundlingHandler handler = new BundlingHandler(registry);
 
         BundlingHandler fileHandler = childHandler(handler, state, "/sunrise.jpg");
-        assertEquals("/sunrise.jpg", fileHandler.getRootBundlePath());
+        assertEquals(Path.fromString("/sunrise.jpg"), fileHandler.getRootBundlePath());
         assertTrue(fileHandler.isBundlingRoot());
         assertFalse(fileHandler.isBundledNode());
         assertEquals("foo", fileHandler.getPropertyPath("foo"));
 
         BundlingHandler jcrContentHandler = childHandler(handler, state, "/sunrise.jpg/jcr:content");
-        assertEquals("/sunrise.jpg", jcrContentHandler.getRootBundlePath());
+        assertEquals(Path.fromString("/sunrise.jpg"), jcrContentHandler.getRootBundlePath());
         assertFalse(jcrContentHandler.isBundlingRoot());
         assertTrue(jcrContentHandler.isBundledNode());
         assertEquals("jcr:content/foo", jcrContentHandler.getPropertyPath("foo"));
 
         BundlingHandler metadataHandler = childHandler(handler, state, "/sunrise.jpg/metadata");
-        assertEquals("/sunrise.jpg/metadata", metadataHandler.getRootBundlePath());
+        assertEquals(Path.fromString("/sunrise.jpg/metadata"), metadataHandler.getRootBundlePath());
         assertTrue(metadataHandler.isBundlingRoot());
         assertFalse(metadataHandler.isBundledNode());
         assertEquals("foo", metadataHandler.getPropertyPath("foo"));
 
         // /sunrise.jpg/jcr:content/bar should have bundle root reset
         BundlingHandler barHandler = childHandler(handler, state, "/sunrise.jpg/jcr:content/bar");
-        assertEquals("/sunrise.jpg/jcr:content/bar", barHandler.getRootBundlePath());
+        assertEquals(Path.fromString("/sunrise.jpg/jcr:content/bar"), barHandler.getRootBundlePath());
         assertTrue(barHandler.isBundlingRoot());
         assertEquals("foo", barHandler.getPropertyPath("foo"));
     }
@@ -104,7 +105,7 @@ public class BundlingHandlerTest {
         NodeState state = builder.getNodeState();
 
         BundlingHandler fileHandler = handler.childAdded("sunrise.jpg", state.getChildNode("sunrise.jpg"));
-        assertEquals("/sunrise.jpg", fileHandler.getRootBundlePath());
+        assertEquals(Path.fromString("/sunrise.jpg"), fileHandler.getRootBundlePath());
         assertTrue(fileHandler.isBundlingRoot());
         assertEquals("foo", fileHandler.getPropertyPath("foo"));
         assertEquals(1, fileHandler.getMetaProps().size());
@@ -118,7 +119,7 @@ public class BundlingHandlerTest {
         NodeState state = builder.getNodeState();
 
         BundlingHandler fileHandler = handler.childAdded("sunrise.jpg", state.getChildNode("sunrise.jpg"));
-        assertEquals("/sunrise.jpg", fileHandler.getRootBundlePath());
+        assertEquals(Path.fromString("/sunrise.jpg"), fileHandler.getRootBundlePath());
         assertTrue(fileHandler.isBundlingRoot());
         assertEquals("foo", fileHandler.getPropertyPath("foo"));
         assertEquals(0, fileHandler.getMetaProps().size());

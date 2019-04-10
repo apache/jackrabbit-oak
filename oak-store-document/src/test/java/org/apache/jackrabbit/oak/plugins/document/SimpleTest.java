@@ -72,6 +72,7 @@ public class SimpleTest {
         assertEquals(2, Utils.pathDepth("/a/"));
         assertEquals(2, Utils.pathDepth("/a/b"));
         assertEquals(3, Utils.pathDepth("/a/b/c"));
+        assertEquals(2, Utils.pathDepth("a/b/c"));
     }
 
     @Test
@@ -80,13 +81,13 @@ public class SimpleTest {
         DocumentStore s = mk.getDocumentStore();
         DocumentNodeStore ns = mk.getNodeStore();
         RevisionVector rev = RevisionVector.fromString(mk.getHeadRevision());
-        DocumentNodeState n = new DocumentNodeState(ns, "/test", rev,
+        DocumentNodeState n = new DocumentNodeState(ns, Path.fromString("/test"), rev,
                 Collections.singleton(ns.createPropertyState("name", "\"Hello\"")), false, null);
         UpdateOp op = n.asOperation(rev.getRevision(ns.getClusterId()));
         // mark as commit root
         NodeDocument.setRevision(op, rev.getRevision(ns.getClusterId()), "c");
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
-        DocumentNodeState n2 = ns.getNode("/test", rev);
+        DocumentNodeState n2 = ns.getNode(Path.fromString("/test"), rev);
         assertNotNull(n2);
         PropertyState p = n2.getProperty("name");
         assertNotNull(p);
@@ -249,13 +250,13 @@ public class SimpleTest {
         String r0 = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
         String r1 = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
         test = mk.getNodes("/test", r0, 0, 0, Integer.MAX_VALUE, null);
-        DocumentNodeState n = ns.getNode("/", RevisionVector.fromString(r0));
+        DocumentNodeState n = ns.getNode(Path.ROOT, RevisionVector.fromString(r0));
         assertNotNull(n);
-        Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
+        Children c = ns.getChildren(n, "", Integer.MAX_VALUE);
         assertEquals("[test]", c.toString());
-        n = ns.getNode("/test", RevisionVector.fromString(r1));
+        n = ns.getNode(Path.fromString("/test"), RevisionVector.fromString(r1));
         assertNotNull(n);
-        c = ns.getChildren(n, null, Integer.MAX_VALUE);
+        c = ns.getChildren(n, "", Integer.MAX_VALUE);
         assertEquals("[a, b]", c.toString());
 
         rev = mk.commit("", "^\"/test\":1", null, null);
@@ -275,19 +276,19 @@ public class SimpleTest {
         mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
         String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
 
-        DocumentNodeState n = ns.getNode("/testDel", RevisionVector.fromString(r1));
+        DocumentNodeState n = ns.getNode(Path.fromString("/testDel"), RevisionVector.fromString(r1));
         assertNotNull(n);
-        Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
+        Children c = ns.getChildren(n, "", Integer.MAX_VALUE);
         assertEquals(3, c.children.size());
 
         String r2 = mk.commit("/testDel", "-\"c\"", null, null);
-        n = ns.getNode("/testDel", RevisionVector.fromString(r2));
+        n = ns.getNode(Path.fromString("/testDel"), RevisionVector.fromString(r2));
         assertNotNull(n);
-        c = ns.getChildren(n, null, Integer.MAX_VALUE);
+        c = ns.getChildren(n, "", Integer.MAX_VALUE);
         assertEquals(2, c.children.size());
 
         String r3 = mk.commit("/", "-\"testDel\"", null, null);
-        n = ns.getNode("/testDel", RevisionVector.fromString(r3));
+        n = ns.getNode(Path.fromString("/testDel"), RevisionVector.fromString(r3));
         assertNull(n);
     }
 
@@ -412,7 +413,7 @@ public class SimpleTest {
         NodeDocument foo = store.find(Collection.NODES, "2:/test/foo");
         assertNotNull(foo);
         assertFalse(foo.containsRevision(head));
-        assertEquals("/", foo.getCommitRootPath(head));
+        assertEquals(Path.ROOT, foo.getCommitRootPath(head));
 
         head = Revision.fromString(mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head.toString(), null));
 
@@ -424,12 +425,12 @@ public class SimpleTest {
         // /bar refers to root nodes a commit root
         NodeDocument bar = store.find(Collection.NODES, "1:/bar");
         assertNotNull(bar);
-        assertEquals("/", bar.getCommitRootPath(head));
+        assertEquals(Path.ROOT, bar.getCommitRootPath(head));
 
         // /test/foo/bar refers to root nodes a commit root
         bar = store.find(Collection.NODES, "3:/test/foo/bar");
         assertNotNull(bar);
-        assertEquals("/", bar.getCommitRootPath(head));
+        assertEquals(Path.ROOT, bar.getCommitRootPath(head));
 
     }
 

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -38,19 +37,19 @@ class ResetDiff implements NodeStateDiff {
 
     private final ResetDiff parent;
     private final Revision revision;
-    private final String path;
-    private final Map<String, UpdateOp> operations;
+    private final Path path;
+    private final Map<Path, UpdateOp> operations;
     private UpdateOp update;
 
     ResetDiff(@NotNull Revision revision,
-              @NotNull Map<String, UpdateOp> operations) {
-        this(null, revision, "/", operations);
+              @NotNull Map<Path, UpdateOp> operations) {
+        this(null, revision, Path.ROOT, operations);
     }
 
     private ResetDiff(@Nullable ResetDiff parent,
                       @NotNull Revision revision,
-                      @NotNull String path,
-                      @NotNull Map<String, UpdateOp> operations) {
+                      @NotNull Path path,
+                      @NotNull Map<Path, UpdateOp> operations) {
         this.parent = parent;
         this.revision = checkNotNull(revision);
         this.path = checkNotNull(path);
@@ -78,7 +77,7 @@ class ResetDiff implements NodeStateDiff {
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
         NodeDocument.removeCommitRoot(getUpdateOp(), revision);
-        String p = PathUtils.concat(path, name);
+        Path p = new Path(path, name);
         ResetDiff diff = new ResetDiff(this, revision, p, operations);
         UpdateOp op = diff.getUpdateOp();
         NodeDocument.removeDeleted(op, revision);
@@ -94,20 +93,20 @@ class ResetDiff implements NodeStateDiff {
     public boolean childNodeChanged(String name,
                                     NodeState before,
                                     NodeState after) {
-        String p = PathUtils.concat(path, name);
+        Path p = new Path(path, name);
         return after.compareAgainstBaseState(before,
                 new ResetDiff(this, revision, p, operations));
     }
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        String p = PathUtils.concat(path, name);
+        Path p = new Path(path, name);
         ResetDiff diff = new ResetDiff(this, revision, p, operations);
         NodeDocument.removeDeleted(diff.getUpdateOp(), revision);
         return MISSING_NODE.compareAgainstBaseState(before, diff);
     }
 
-    Map<String, UpdateOp> getOperations() {
+    Map<Path, UpdateOp> getOperations() {
         return operations;
     }
 

@@ -24,25 +24,25 @@ import java.util.Comparator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 /**
- * Implements a comparator, which sorts path string according to 1) their
- * depth (highest first) and 2) the path string itself.
+ * Implements a comparator, which sorts paths according to 1) their depth
+ * (highest first) and 2) the paths natural ordering.
  */
-public class PathComparator implements Comparator<String>, Serializable {
+public class PathComparator implements Comparator<Path>, Serializable {
 
     private static final long serialVersionUID = -1523171906146067782L;
 
-    public static final Comparator<String> INSTANCE = new PathComparator();
+    public static final Comparator<Path> INSTANCE = new PathComparator();
 
     private PathComparator() {
     }
 
     @Override
-    public int compare(String o1, String o2) {
-        int d1 = Utils.pathDepth(o1);
-        int d2 = Utils.pathDepth(o2);
+    public int compare(Path p1, Path p2) {
+        int d1 = p1.getDepth();
+        int d2 = p2.getDepth();
         if (d1 != d2) {
             return Integer.signum(d2 - d1);
         }
-        return o1.compareTo(o2);
+        return p1.compareTo(p2);
     }
 }

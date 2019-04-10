@@ -62,7 +62,7 @@ public class Commit {
     protected final DocumentNodeStore nodeStore;
     private final RevisionVector baseRevision;
     private final Revision revision;
-    private final HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
+    private final HashMap<Path, UpdateOp> operations = new LinkedHashMap<>();
     private final Set<Revision> collisions = new LinkedHashSet<Revision>();
     private Branch b;
     private Rollback rollback = Rollback.NONE;
@@ -71,14 +71,14 @@ public class Commit {
      * List of all node paths which have been modified in this commit. In addition to the nodes
      * which are actually changed it also contains there parent node paths
      */
-    private final HashSet<String> modifiedNodes = new HashSet<String>();
+    private final HashSet<Path> modifiedNodes = new HashSet<>();
 
-    private final HashSet<String> addedNodes = new HashSet<String>();
-    private final HashSet<String> removedNodes = new HashSet<String>();
+    private final HashSet<Path> addedNodes = new HashSet<>();
+    private final HashSet<Path> removedNodes = new HashSet<>();
 
     /** Set of all nodes which have binary properties. **/
-    private final HashSet<String> nodesWithBinaries = Sets.newHashSet();
-    private final HashMap<String, String> bundledNodes = Maps.newHashMap();
+    private final HashSet<Path> nodesWithBinaries = new HashSet<>();
+    private final HashMap<Path, Path> bundledNodes = new HashMap<>();
 
     /**
      * Create a new Commit.
@@ -99,11 +99,11 @@ public class Commit {
     Commit(@NotNull DocumentNodeStore nodeStore,
            @NotNull Revision revision,
            @Nullable RevisionVector baseRevision,
-           @NotNull Map<String, UpdateOp> operations,
-           @NotNull Set<String> addedNodes,
-           @NotNull Set<String> removedNodes,
-           @NotNull Set<String> nodesWithBinaries,
-           @NotNull Map<String, String> bundledNodes) {
+           @NotNull Map<Path, UpdateOp> operations,
+           @NotNull Set<Path> addedNodes,
+           @NotNull Set<Path> removedNodes,
+           @NotNull Set<Path> nodesWithBinaries,
+           @NotNull Map<Path, Path> bundledNodes) {
         this(nodeStore, revision, baseRevision);
         this.operations.putAll(operations);
         this.addedNodes.addAll(addedNodes);
@@ -112,7 +112,7 @@ public class Commit {
         this.bundledNodes.putAll(bundledNodes);
     }
 
-    UpdateOp getUpdateOperationForNode(String path) {
+    UpdateOp getUpdateOperationForNode(Path path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
             op = createUpdateOp(path, revision, isBranchCommit());
@@ -121,7 +121,7 @@ public class Commit {
         return op;
     }
 
-    static UpdateOp createUpdateOp(String path,
+    static UpdateOp createUpdateOp(Path path,
                                    Revision revision,
                                    boolean isBranch) {
         String id = Utils.getIdFromPath(path);
@@ -162,7 +162,7 @@ public class Commit {
      *          modifications.
      */
     @NotNull
-    Iterable<String> getModifiedPaths() {
+    Iterable<Path> getModifiedPaths() {
         return modifiedNodes;
     }
 
@@ -248,7 +248,7 @@ public class Commit {
     private void updateBinaryStatus() {
         DocumentStore store = this.nodeStore.getDocumentStore();
 
-        for (String path : this.nodesWithBinaries) {
+        for (Path path : this.nodesWithBinaries) {
             NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(path));
             if ((nd == null) || !nd.hasBinary()) {
                 UpdateOp updateParentOp = getUpdateOperationForNode(path);
@@ -305,10 +305,10 @@ public class Commit {
         // the visibility of the commit
         String commitValue = baseBranchRevision != null ? baseBranchRevision.getBranchRevision().toString() : "c";
         DocumentStore store = nodeStore.getDocumentStore();
-        String commitRootPath = null;
+        Path commitRootPath = null;
         if (baseBranchRevision != null) {
             // branch commits always use root node as commit root
-            commitRootPath = "/";
+            commitRootPath = Path.ROOT;
         }
         ArrayList<UpdateOp> changedNodes = new ArrayList<UpdateOp>();
         // operations are added to this list before they are executed,
@@ -316,23 +316,24 @@ public class Commit {
         ArrayList<UpdateOp> opLog = new ArrayList<UpdateOp>();
 
         // Compute the commit root
-        for (String p : operations.keySet()) {
+        for (Path p : operations.keySet()) {
             markChanged(p);
             if (commitRootPath == null) {
                 commitRootPath = p;
             } else {
-                while (!PathUtils.isAncestor(commitRootPath, p)) {
-                    commitRootPath = PathUtils.getParentPath(commitRootPath);
-                    if (denotesRoot(commitRootPath)) {
+                while (!commitRootPath.isAncestorOf(p)) {
+                    Path parent = commitRootPath.getParent();
+                    if (parent == null) {
                         break;
                     }
+                    commitRootPath = parent;
                 }
             }
         }
 
         rollback = new Rollback(revision, opLog, Utils.getIdFromPath(commitRootPath));
 
-        for (String p : bundledNodes.keySet()){
+        for (Path p : bundledNodes.keySet()){
             markChanged(p);
         }
 
@@ -345,7 +346,7 @@ public class Commit {
             store.create(JOURNAL, singletonList(doc.asUpdateOp(r)));
         }
 
-        int commitRootDepth = PathUtils.getDepth(commitRootPath);
+        int commitRootDepth = commitRootPath.getDepth();
         // check if there are real changes on the commit root
         boolean commitRootHasChanges = operations.containsKey(commitRootPath);
         for (UpdateOp op : operations.values()) {
@@ -476,13 +477,12 @@ public class Commit {
     }
 
     private void updateParentChildStatus() {
-        final Set<String> processedParents = Sets.newHashSet();
-        for (String path : addedNodes) {
-            if (denotesRoot(path)) {
+        final Set<Path> processedParents = Sets.newHashSet();
+        for (Path path : addedNodes) {
+            Path parentPath = path.getParent();
+            if (parentPath == null) {
                 continue;
             }
-
-            String parentPath = PathUtils.getParentPath(path);
 
             if (processedParents.contains(parentPath)) {
                 continue;
@@ -725,10 +725,10 @@ public class Commit {
      */
     void applyLastRevUpdates(boolean isBranchCommit) {
         LastRevTracker tracker = nodeStore.createTracker(revision, isBranchCommit);
-        for (String path : modifiedNodes) {
+        for (Path path : modifiedNodes) {
             UpdateOp op = operations.get(path);
             // track _lastRev only when path is not for a bundled node state
-            if ((op == null || !hasContentChanges(op) || denotesRoot(path))
+            if ((op == null || !hasContentChanges(op) || path.isRoot())
                     && !isBundled(path)) {
                 // track intermediate node and root
                 tracker.track(path);
@@ -743,33 +743,30 @@ public class Commit {
      * @param isBranchCommit whether this is a commit to a branch
      */
     public void applyToCache(RevisionVector before, boolean isBranchCommit) {
-        HashMap<String, ArrayList<String>> nodesWithChangedChildren = new HashMap<String, ArrayList<String>>();
-        for (String p : modifiedNodes) {
-            if (denotesRoot(p)) {
+        HashMap<Path, ArrayList<Path>> nodesWithChangedChildren = new HashMap<>();
+        for (Path p : modifiedNodes) {
+            if (p.isRoot()) {
                 continue;
             }
-            String parent = PathUtils.getParentPath(p);
-            ArrayList<String> list = nodesWithChangedChildren.get(parent);
-            if (list == null) {
-                list = new ArrayList<String>();
-                nodesWithChangedChildren.put(parent, list);
-            }
+            Path parent = p.getParent();
+            ArrayList<Path> list = nodesWithChangedChildren
+                    .computeIfAbsent(parent, k -> new ArrayList<>());
             list.add(p);
         }
         // the commit revision with branch flag if this is a branch commit
         Revision rev = isBranchCommit ? revision.asBranchRevision() : revision;
         RevisionVector after = before.update(rev);
         DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, after, true);
-        List<String> added = new ArrayList<String>();
-        List<String> removed = new ArrayList<String>();
-        List<String> changed = new ArrayList<String>();
-        for (String path : modifiedNodes) {
+        List<Path> added = new ArrayList<>();
+        List<Path> removed = new ArrayList<>();
+        List<Path> changed = new ArrayList<>();
+        for (Path path : modifiedNodes) {
             added.clear();
             removed.clear();
             changed.clear();
-            ArrayList<String> changes = nodesWithChangedChildren.get(path);
+            ArrayList<Path> changes = nodesWithChangedChildren.get(path);
             if (changes != null) {
-                for (String s : changes) {
+                for (Path s : changes) {
                     if (addedNodes.contains(s)) {
                         added.add(s);
                     } else if (removedNodes.contains(s)) {
@@ -801,41 +798,38 @@ public class Commit {
      * @param changed the list of changed child nodes
      * @param cacheEntry the cache entry changes are added to
      */
-    private void addChangesToDiffCacheEntry(String path,
-                                            List<String> added,
-                                            List<String> removed,
-                                            List<String> changed,
+    private void addChangesToDiffCacheEntry(Path path,
+                                            List<Path> added,
+                                            List<Path> removed,
+                                            List<Path> changed,
                                             DiffCache.Entry cacheEntry) {
         // update diff cache
         JsopWriter w = new JsopStream();
-        for (String p : added) {
-            w.tag('+').key(PathUtils.getName(p)).object().endObject();
+        for (Path p : added) {
+            w.tag('+').key(p.getName()).object().endObject();
         }
-        for (String p : removed) {
-            w.tag('-').value(PathUtils.getName(p));
+        for (Path p : removed) {
+            w.tag('-').value(p.getName());
         }
-        for (String p : changed) {
-            w.tag('^').key(PathUtils.getName(p)).object().endObject();
+        for (Path p : changed) {
+            w.tag('^').key(p.getName()).object().endObject();
         }
         cacheEntry.append(path, w.toString());
     }
 
-    private void markChanged(String path) {
-        if (!denotesRoot(path) && !PathUtils.isAbsolute(path)) {
-            throw new IllegalArgumentException("path: " + path);
-        }
+    private void markChanged(Path path) {
         while (true) {
             if (!modifiedNodes.add(path)) {
                 break;
             }
-            if (denotesRoot(path)) {
+            path = path.getParent();
+            if (path == null) {
                 break;
             }
-            path = PathUtils.getParentPath(path);
         }
     }
 
-    private boolean isBundled(String path) {
+    private boolean isBundled(Path path) {
         return bundledNodes.containsKey(path);
     }
 
