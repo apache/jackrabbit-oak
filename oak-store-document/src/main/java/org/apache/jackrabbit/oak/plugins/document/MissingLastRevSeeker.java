@@ -39,8 +39,6 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedD
  */
 public class MissingLastRevSeeker {
 
-    protected final String ROOT_PATH = "/";
-
     private final DocumentStore store;
 
     protected final Clock clock;
@@ -125,7 +123,7 @@ public class MissingLastRevSeeker {
     }
 
     public NodeDocument getRoot() {
-        return store.find(Collection.NODES, Utils.getIdFromPath(ROOT_PATH));
+        return store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT));
     }
 
     /**

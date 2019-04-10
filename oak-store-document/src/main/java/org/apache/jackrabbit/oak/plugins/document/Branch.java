@@ -232,7 +232,7 @@ class Branch {
      *         there is none in this branch.
      */
     @Nullable
-    public Revision getUnsavedLastRevision(String path,
+    public Revision getUnsavedLastRevision(Path path,
                                            Revision readRevision) {
         readRevision = readRevision.asBranchRevision();
         for (Revision r : commits.descendingKeySet()) {
@@ -266,22 +266,22 @@ class Branch {
      * @return modified paths until {@code r}.
      * @throws IllegalArgumentException if r is not a branch revision.
      */
-    Iterable<String> getModifiedPathsUntil(@NotNull final Revision r) {
+    Iterable<Path> getModifiedPathsUntil(@NotNull final Revision r) {
         checkArgument(checkNotNull(r).isBranch(),
                 "Not a branch revision: %s", r);
         if (!commits.containsKey(r)) {
             return Collections.emptyList();
         }
-        Iterable<Iterable<String>> paths = transform(filter(commits.entrySet(),
+        Iterable<Iterable<Path>> paths = transform(filter(commits.entrySet(),
                 new Predicate<Map.Entry<Revision, BranchCommit>>() {
             @Override
             public boolean apply(Map.Entry<Revision, BranchCommit> input) {
                 return !input.getValue().isRebase()
                         && input.getKey().compareRevisionTime(r) <= 0;
             }
-        }), new Function<Map.Entry<Revision, BranchCommit>, Iterable<String>>() {
+        }), new Function<Map.Entry<Revision, BranchCommit>, Iterable<Path>>() {
             @Override
-            public Iterable<String> apply(Map.Entry<Revision, BranchCommit> input) {
+            public Iterable<Path> apply(Map.Entry<Revision, BranchCommit> input) {
                 return input.getValue().getModifiedPaths();
             }
         });
@@ -310,9 +310,9 @@ class Branch {
 
         abstract void applyTo(UnsavedModifications trunk, Revision commit);
 
-        abstract boolean isModified(String path);
+        abstract boolean isModified(Path path);
 
-        abstract Iterable<String> getModifiedPaths();
+        abstract Iterable<Path> getModifiedPaths();
 
         protected abstract boolean isRebase();
     }
@@ -322,7 +322,7 @@ class Branch {
      */
     private static class BranchCommitImpl extends BranchCommit {
 
-        private final Set<String> modifications = Sets.newHashSet();
+        private final Set<Path> modifications = Sets.newHashSet();
 
         BranchCommitImpl(RevisionVector base, Revision commit) {
             super(base, commit);
@@ -330,18 +330,18 @@ class Branch {
 
         @Override
         void applyTo(UnsavedModifications trunk, Revision commit) {
-            for (String p : modifications) {
+            for (Path p : modifications) {
                 trunk.put(p, commit);
             }
         }
 
         @Override
-        boolean isModified(String path) { // TODO: rather pass NodeDocument?
+        boolean isModified(Path path) { // TODO: rather pass NodeDocument?
             return modifications.contains(path);
         }
 
         @Override
-        Iterable<String> getModifiedPaths() {
+        Iterable<Path> getModifiedPaths() {
             return modifications;
         }
 
@@ -353,7 +353,7 @@ class Branch {
         //------------------< LastRevTracker >----------------------------------
 
         @Override
-        public void track(String path) {
+        public void track(Path path) {
             modifications.add(path);
         }
 
@@ -381,7 +381,7 @@ class Branch {
         }
 
         @Override
-        boolean isModified(String path) {
+        boolean isModified(Path path) {
             for (BranchCommit c : previous.values()) {
                 if (c.isModified(path)) {
                     return true;
@@ -396,11 +396,11 @@ class Branch {
         }
 
         @Override
-        Iterable<String> getModifiedPaths() {
-            Iterable<Iterable<String>> paths = transform(previous.values(),
-                    new Function<BranchCommit, Iterable<String>>() {
+        Iterable<Path> getModifiedPaths() {
+            Iterable<Iterable<Path>> paths = transform(previous.values(),
+                    new Function<BranchCommit, Iterable<Path>>() {
                 @Override
-                public Iterable<String> apply(BranchCommit branchCommit) {
+                public Iterable<Path> apply(BranchCommit branchCommit) {
                     return branchCommit.getModifiedPaths();
                 }
             });
@@ -426,7 +426,7 @@ class Branch {
         //------------------< LastRevTracker >----------------------------------
 
         @Override
-        public void track(String path) {
+        public void track(Path path) {
             throw new UnsupportedOperationException("RebaseCommit is read-only");
         }
 

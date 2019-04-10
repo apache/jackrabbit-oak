@@ -122,7 +122,7 @@ public class ConcurrentQueryAndInvalidateIT extends AbstractMultiDocumentStoreTe
     }
 
     private void queryDocuments() {
-        ds1.query(NODES, getKeyLowerLimit("/"), getKeyUpperLimit("/"), 100);
+        ds1.query(NODES, getKeyLowerLimit(Path.ROOT), getKeyUpperLimit(Path.ROOT), 100);
     }
 
     private Iterable<String> updateDocuments() {

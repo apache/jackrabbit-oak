@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.document.secondary;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -56,7 +55,7 @@ class PathFilteringDiff extends ApplyDiff {
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
         AbstractDocumentNodeState afterDoc = asDocumentState(after, name);
-        String nextPath = afterDoc.getPath();
+        String nextPath = afterDoc.getPath().toString();
         PathFilter.Result result = ctx.pathFilter.filter(nextPath);
         if (result == PathFilter.Result.EXCLUDE){
             return true;
@@ -75,7 +74,7 @@ class PathFilteringDiff extends ApplyDiff {
     @Override
     public boolean childNodeChanged(String name, NodeState before, NodeState after) {
         AbstractDocumentNodeState afterDoc = asDocumentState(after, name);
-        String nextPath = afterDoc.getPath();
+        String nextPath = afterDoc.getPath().toString();
         if (ctx.pathFilter.filter(nextPath) != PathFilter.Result.EXCLUDE) {
             ctx.traversingNode(nextPath);
             NodeBuilder childBuilder = builder.getChildNode(name);
@@ -88,7 +87,7 @@ class PathFilteringDiff extends ApplyDiff {
 
     @Override
     public boolean childNodeDeleted(String name, NodeState before) {
-        String path = asDocumentState(before, name).getPath();
+        String path = asDocumentState(before, name).getPath().toString();
         if (ctx.pathFilter.filter(path) != PathFilter.Result.EXCLUDE) {
             return super.childNodeDeleted(name, before);
         }
@@ -104,7 +103,7 @@ class PathFilteringDiff extends ApplyDiff {
 
     static void copyMetaProperties(AbstractDocumentNodeState state, NodeBuilder builder, List<String> metaPropNames) {
         //Only set root revision on root node
-        if (PathUtils.denotesRoot(state.getPath())) {
+        if (state.getPath().isRoot()) {
             builder.setProperty(asPropertyState(PROP_REVISION, state.getRootRevision()));
         }
 

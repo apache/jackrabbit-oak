@@ -20,10 +20,10 @@
 package org.apache.jackrabbit.oak.plugins.document.secondary;
 
 import com.google.common.collect.EvictingQueue;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.document.NodeStateDiffer;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -73,11 +73,12 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
 
     @Nullable
     @Override
-    public AbstractDocumentNodeState getDocumentNodeState(String path, RevisionVector rootRevision,
-                                                    RevisionVector lastRev) {
+    public AbstractDocumentNodeState getDocumentNodeState(Path path, RevisionVector rootRevision,
+                                                          RevisionVector lastRev) {
         //TODO We might need skip the calls if they occur due to SecondaryStoreObserver
         //doing the diff or in the startup when we try to sync the state
-        PathFilter.Result result = pathFilter.filter(path);
+        String p = path.toString();
+        PathFilter.Result result = pathFilter.filter(p);
         if (result != PathFilter.Result.INCLUDE) {
             unknownPaths.mark();
             return null;
@@ -103,7 +104,7 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
 
         AbstractDocumentNodeState matchingRoot = findMatchingRoot(rootRevision);
         if (matchingRoot != null){
-            NodeState state = NodeStateUtils.getNode(matchingRoot, path);
+            NodeState state = NodeStateUtils.getNode(matchingRoot, p);
             if (state.exists()){
                 AbstractDocumentNodeState docState = asDocState(state);
                 prevRevMatched.mark();
@@ -116,16 +117,16 @@ public class SecondaryStoreCache implements DocumentNodeStateCache, SecondarySto
     }
 
     @Override
-    public boolean isCached(String path) {
-        return pathFilter.filter(path) == PathFilter.Result.INCLUDE;
+    public boolean isCached(Path path) {
+        return pathFilter.filter(path.toString()) == PathFilter.Result.INCLUDE;
     }
 
     @Nullable
-    private AbstractDocumentNodeState findByMatchingLastRev(AbstractDocumentNodeState root, String path,
+    private AbstractDocumentNodeState findByMatchingLastRev(AbstractDocumentNodeState root, Path path,
                                                       RevisionVector lastRev){
         NodeState state = root;
 
-        for (String name : PathUtils.elements(path)) {
+        for (String name : path.elements()) {
             state = state.getChildNode(name);
 
             if (!state.exists()){

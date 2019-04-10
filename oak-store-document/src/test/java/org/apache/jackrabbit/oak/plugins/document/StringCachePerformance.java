@@ -16,16 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-/**
- * An implementation of this interface receives callbacks about paths
- * that need an update of the _lastRev field on documents.
- */
-public interface LastRevTracker {
+import java.util.concurrent.TimeUnit;
 
-    /**
-     * Called when a document needs an update of the _lastRev field.
-     *
-     * @param path the path of the document to update.
-     */
-    public void track(Path path);
+import org.junit.Test;
+
+public class StringCachePerformance {
+
+    @Test
+    public void get() {
+        long time = System.nanoTime();
+        for (int i = 0; i < 1000000; i++) {
+            StringCache.get("some string");
+        }
+        time = System.nanoTime() - time;
+        System.out.println("time: " + TimeUnit.NANOSECONDS.toMicros(time) + " us.");
+    }
 }

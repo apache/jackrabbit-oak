@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -151,8 +151,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private CacheStats blobStoreCacheStats;
     private DocumentStoreStatsCollector documentStoreStatsCollector;
     private DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
-    private Map<CacheType, PersistentCacheStats> persistentCacheStats =
-            new EnumMap<CacheType, PersistentCacheStats>(CacheType.class);
+    private Map<String, PersistentCacheStats> persistentCacheStats = new HashMap<>();
     private boolean bundlingDisabled;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory =
             new JournalPropertyHandlerFactory();
@@ -161,7 +160,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private long maxRevisionAgeMillis = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
     private GCMonitor gcMonitor = new LoggingGCMonitor(
             LoggerFactory.getLogger(VersionGarbageCollector.class));
-    private Predicate<String> nodeCachePredicate = Predicates.alwaysTrue();
+    private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
 
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
@@ -479,7 +478,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     @NotNull
-    public Map<CacheType, PersistentCacheStats> getPersistenceCacheStats() {
+    public Map<String, PersistentCacheStats> getPersistenceCacheStats() {
         return persistentCacheStats;
     }
 
@@ -591,11 +590,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return buildCache(CacheType.NODE, getNodeCacheSize(), store, null);
     }
 
-    public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache(DocumentNodeStore store) {
+    public Cache<NamePathRev, DocumentNodeState.Children> buildChildrenCache(DocumentNodeStore store) {
         return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), store, null);
     }
 
-    public Cache<PathRev, StringValue> buildMemoryDiffCache() {
+    public Cache<CacheValue, StringValue> buildMemoryDiffCache() {
         return buildCache(CacheType.DIFF, getMemoryDiffCacheSize(), null, null);
     }
 
@@ -621,12 +620,29 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
     }
 
+    /**
+     * @deprecated Use {@link #setNodeCachePathPredicate(Predicate)} instead.
+     */
+    @Deprecated
     public T setNodeCachePredicate(Predicate<String> p){
+        this.nodeCachePredicate = input -> input != null && p.apply(input.toString());
+        return thisBuilder();
+    }
+
+    /**
+     * @deprecated Use {@link #getNodeCachePathPredicate()} instead.
+     */
+    @Deprecated
+    public Predicate<String> getNodeCachePredicate() {
+        return input -> input != null && nodeCachePredicate.apply(Path.fromString(input));
+    }
+
+    public T setNodeCachePathPredicate(Predicate<Path> p){
         this.nodeCachePredicate = p;
         return thisBuilder();
     }
 
-    public Predicate<String> getNodeCachePredicate() {
+    public Predicate<Path> getNodeCachePathPredicate() {
         return nodeCachePredicate;
     }
 
@@ -654,7 +670,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             }
             PersistentCacheStats stats = PersistentCache.getPersistentCacheStats(cache);
             if (stats != null) {
-                persistentCacheStats.put(cacheType, stats);
+                persistentCacheStats.put(cacheType.name(), stats);
             }
         }
         return cache;

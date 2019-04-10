@@ -65,13 +65,13 @@ class JournalDiffLoader implements DiffCache.Loader {
 
     @Override
     public String call() {
-        String path = node.getPath();
         RevisionVector afterRev = node.getRootRevision();
         RevisionVector beforeRev = base.getRootRevision();
-        stats = new Stats(path, beforeRev, afterRev);
+        stats = new Stats(node.getPath(), beforeRev, afterRev);
 
         StringSort changes = JournalEntry.newSorter();
         try {
+            Path path = node.getPath();
             readTrunkChanges(path, beforeRev, afterRev, changes);
 
             readBranchChanges(path, beforeRev, changes);
@@ -80,7 +80,7 @@ class JournalDiffLoader implements DiffCache.Loader {
             changes.sort();
             DiffCache df = ns.getDiffCache();
             WrappedDiffCache wrappedCache = new WrappedDiffCache(node.getPath(), df, stats);
-            JournalEntry.applyTo(changes, wrappedCache, path, beforeRev, afterRev);
+            JournalEntry.applyTo(changes, wrappedCache, node.getPath(), beforeRev, afterRev);
 
             return wrappedCache.changes;
         } catch (IOException e) {
@@ -91,7 +91,7 @@ class JournalDiffLoader implements DiffCache.Loader {
         }
     }
 
-    private void readBranchChanges(String path,
+    private void readBranchChanges(Path path,
                                    RevisionVector rv,
                                    StringSort changes) throws IOException {
         if (!rv.isBranch() || ns.isDisableBranches()) {
@@ -119,7 +119,7 @@ class JournalDiffLoader implements DiffCache.Loader {
         }
     }
 
-    private void readTrunkChanges(String path,
+    private void readTrunkChanges(Path path,
                                   RevisionVector beforeRev,
                                   RevisionVector afterRev,
                                   StringSort changes) throws IOException {
@@ -214,14 +214,14 @@ class JournalDiffLoader implements DiffCache.Loader {
     private static class Stats {
 
         private final Stopwatch sw = Stopwatch.createStarted();
-        private final String path;
+        private final Path path;
         private final RevisionVector from, to;
         private long numJournalEntries;
         private long numDiffEntries;
         private long keyMemory;
         private long valueMemory;
 
-        Stats(String path, RevisionVector from, RevisionVector to) {
+        Stats(Path path, RevisionVector from, RevisionVector to) {
             this.path = path;
             this.from = from;
             this.to = to;
@@ -241,12 +241,12 @@ class JournalDiffLoader implements DiffCache.Loader {
 
     private static class WrappedDiffCache extends DiffCache {
 
-        private final String path;
+        private final Path path;
         private String changes = "";
         private final DiffCache cache;
         private Stats stats;
 
-        WrappedDiffCache(String path,
+        WrappedDiffCache(Path path,
                          DiffCache cache,
                          Stats stats) {
             this.path = path;
@@ -262,7 +262,7 @@ class JournalDiffLoader implements DiffCache.Loader {
         @Override
         String getChanges(@NotNull RevisionVector from,
                           @NotNull RevisionVector to,
-                          @NotNull String path,
+                          @NotNull Path path,
                           @Nullable Loader loader) {
             return cache.getChanges(from, to, path, loader);
         }
@@ -275,7 +275,7 @@ class JournalDiffLoader implements DiffCache.Loader {
             final Entry entry = cache.newEntry(from, to, local);
             return new Entry() {
                 @Override
-                public void append(@NotNull String path,
+                public void append(@NotNull Path path,
                                    @NotNull String changes) {
                     trackStats(path, from, to, changes);
                     entry.append(path, changes);
@@ -291,12 +291,12 @@ class JournalDiffLoader implements DiffCache.Loader {
             };
         }
 
-        private void trackStats(String path,
+        private void trackStats(Path path,
                                 RevisionVector from,
                                 RevisionVector to,
                                 String changes) {
             stats.numDiffEntries++;
-            stats.keyMemory += new StringValue(path).getMemory();
+            stats.keyMemory += path.getMemory();
             stats.keyMemory += from.getMemory();
             stats.keyMemory += to.getMemory();
             stats.valueMemory += new StringValue(changes).getMemory();

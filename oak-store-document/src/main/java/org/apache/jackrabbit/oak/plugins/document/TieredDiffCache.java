@@ -53,7 +53,7 @@ class TieredDiffCache extends DiffCache {
     @Override
     public String getChanges(@NotNull RevisionVector from,
                              @NotNull RevisionVector to,
-                             @NotNull String path,
+                             @NotNull Path path,
                              @Nullable Loader loader) {
         // do not check local cache when changes are external
         if (isLocalChange(from, to, clusterId)) {

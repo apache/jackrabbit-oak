@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
@@ -183,7 +184,8 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
                 super.ds.create(Collection.NODES, Collections.singletonList(up2));
 
                 // query
-                List<NodeDocument> results = super.ds.query(Collection.NODES, Utils.getKeyLowerLimit("/testRDBJDBCPerfLog"), Utils.getKeyUpperLimit("/testRDBJDBCPerfLog"), 10);
+                Path p = Path.fromString("/testRDBJDBCPerfLog");
+                List<NodeDocument> results = super.ds.query(Collection.NODES, Utils.getKeyLowerLimit(p), Utils.getKeyUpperLimit(p), 10);
                 assertEquals(1, results.size());
                 assertEquals(2, logCustomizerQuery.getLogs().size());
             } finally {
@@ -222,7 +224,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
                     assertNotNull(ds.findAndUpdate(NODES, op));
                     updated = true;
                 }
-                if (doc.getPath().startsWith("/lastRevnode-")) {
+                if (doc.getPath().toString().startsWith("/lastRevnode-")) {
                     ids.add(doc.getId());
                 }
             }

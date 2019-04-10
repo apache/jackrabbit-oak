@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -43,14 +44,14 @@ class CommitBuilder {
     private final DocumentNodeStore nodeStore;
     private final Revision revision;
     private final RevisionVector baseRevision;
-    private final Map<String, UpdateOp> operations = new LinkedHashMap<>();
+    private final Map<Path, UpdateOp> operations = new LinkedHashMap<>();
 
-    private final Set<String> addedNodes = new HashSet<>();
-    private final Set<String> removedNodes = new HashSet<>();
+    private final Set<Path> addedNodes = new HashSet<>();
+    private final Set<Path> removedNodes = new HashSet<>();
 
     /** Set of all nodes which have binary properties. **/
-    private final Set<String> nodesWithBinaries = new HashSet<>();
-    private final Map<String, String> bundledNodes = new HashMap<>();
+    private final Set<Path> nodesWithBinaries = new HashSet<>();
+    private final Map<Path, Path> bundledNodes = new HashMap<>();
 
     /**
      * Creates a new builder with a pseudo commit revision. Building the commit
@@ -103,7 +104,7 @@ class CommitBuilder {
      * @return {@code this} builder.
      */
     @NotNull
-    CommitBuilder addNode(@NotNull String path) {
+    CommitBuilder addNode(@NotNull Path path) {
         addNode(new DocumentNodeState(nodeStore, path, new RevisionVector(revision)));
         return this;
     }
@@ -121,7 +122,7 @@ class CommitBuilder {
             throws DocumentStoreException {
         checkNotNull(node);
 
-        String path = node.getPath();
+        Path path = node.getPath();
         UpdateOp op = node.asOperation(revision);
         if (operations.containsKey(path)) {
             String msg = "Node already added: " + path;
@@ -144,8 +145,8 @@ class CommitBuilder {
      * @return {@code this} builder.
      */
     @NotNull
-    CommitBuilder addBundledNode(@NotNull String path,
-                                 @NotNull String bundlingRootPath) {
+    CommitBuilder addBundledNode(@NotNull Path path,
+                                 @NotNull Path bundlingRootPath) {
         checkNotNull(path);
         checkNotNull(bundlingRootPath);
 
@@ -163,7 +164,7 @@ class CommitBuilder {
      *      a node at the given {@code path} in this commit builder.
      */
     @NotNull
-    CommitBuilder removeNode(@NotNull String path,
+    CommitBuilder removeNode(@NotNull Path path,
                              @NotNull NodeState state)
             throws DocumentStoreException {
         checkNotNull(path);
@@ -192,7 +193,7 @@ class CommitBuilder {
      * @return {@code this} builder.
      */
     @NotNull
-    CommitBuilder updateProperty(@NotNull String path,
+    CommitBuilder updateProperty(@NotNull Path path,
                                  @NotNull String propertyName,
                                  @Nullable String value) {
         checkNotNull(path);
@@ -212,7 +213,7 @@ class CommitBuilder {
      * @return {@code this} builder.
      */
     @NotNull
-    CommitBuilder markNodeHavingBinary(@NotNull String path) {
+    CommitBuilder markNodeHavingBinary(@NotNull Path path) {
         checkNotNull(path);
 
         nodesWithBinaries.add(path);
@@ -248,7 +249,7 @@ class CommitBuilder {
         checkNotNull(revision);
 
         Revision from = this.revision;
-        Map<String, UpdateOp> operations = Maps.transformValues(
+        Map<Path, UpdateOp> operations = Maps.transformValues(
                 this.operations, op -> rewrite(op, from, revision));
         return new Commit(nodeStore, revision, baseRevision, operations,
                 addedNodes, removedNodes, nodesWithBinaries, bundledNodes);
@@ -266,7 +267,7 @@ class CommitBuilder {
 
     //-------------------------< internal >-------------------------------------
 
-    private UpdateOp getUpdateOperationForNode(String path) {
+    private UpdateOp getUpdateOperationForNode(Path path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
             op = createUpdateOp(path, revision, isBranchCommit());
@@ -275,7 +276,7 @@ class CommitBuilder {
         return op;
     }
 
-    private static UpdateOp createUpdateOp(String path,
+    private static UpdateOp createUpdateOp(Path path,
                                            Revision revision,
                                            boolean isBranch) {
         String id = Utils.getIdFromPath(path);

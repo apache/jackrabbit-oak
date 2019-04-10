@@ -58,7 +58,7 @@ public class LocalDiffCache extends DiffCache {
     @Override
     public String getChanges(@NotNull RevisionVector from,
                              @NotNull RevisionVector to,
-                             @NotNull String path,
+                             @NotNull Path path,
                              @Nullable Loader loader) {
         RevisionsKey key = new RevisionsKey(from, to);
         Diff diff = diffCache.getIfPresent(key);
@@ -78,14 +78,14 @@ public class LocalDiffCache extends DiffCache {
                           final @NotNull RevisionVector to,
                           boolean local /*ignored*/) {
         return new Entry() {
-            private final Map<String, String> changesPerPath = Maps.newHashMap();
+            private final Map<Path, String> changesPerPath = Maps.newHashMap();
             private long size;
             @Override
-            public void append(@NotNull String path, @NotNull String changes) {
+            public void append(@NotNull Path path, @NotNull String changes) {
                 if (exceedsSize()){
                     return;
                 }
-                size += size(path) + size(changes);
+                size += path.getMemory() + size(changes);
                 changesPerPath.put(path, changes);
             }
 
@@ -117,16 +117,16 @@ public class LocalDiffCache extends DiffCache {
 
     public static final class Diff implements CacheValue {
 
-        private final Map<String, String> changes;
+        private final Map<Path, String> changes;
         private long memory;
 
-        public Diff(Map<String, String> changes, long memory) {
+        public Diff(Map<Path, String> changes, long memory) {
             this.changes = changes;
             this.memory = memory;
         }
 
         public static Diff fromString(String value) {
-            Map<String, String> map = Maps.newHashMap();
+            Map<Path, String> map = Maps.newHashMap();
             JsopReader reader = new JsopTokenizer(value);
             while (true) {
                 if (reader.matches(JsopReader.END)) {
@@ -135,7 +135,7 @@ public class LocalDiffCache extends DiffCache {
                 String k = reader.readString();
                 reader.read(':');
                 String v = reader.readString();
-                map.put(k, v);
+                map.put(Path.fromString(k), v);
                 if (reader.matches(JsopReader.END)) {
                     break;
                 }
@@ -146,14 +146,14 @@ public class LocalDiffCache extends DiffCache {
 
         public String asString(){
             JsopBuilder builder = new JsopBuilder();
-            for (Map.Entry<String, String> entry : changes.entrySet()) {
-                builder.key(entry.getKey());
+            for (Map.Entry<Path, String> entry : changes.entrySet()) {
+                builder.key(entry.getKey().toString());
                 builder.value(entry.getValue());
             }
             return builder.toString();
         }
 
-        public Map<String, String> getChanges() {
+        public Map<Path, String> getChanges() {
             return Collections.unmodifiableMap(changes);
         }
 
@@ -161,8 +161,8 @@ public class LocalDiffCache extends DiffCache {
         public int getMemory() {
             if (memory == 0) {
                 long m = 0;
-                for (Map.Entry<String, String> e : changes.entrySet()){
-                    m += size(e.getKey()) + size(e.getValue());
+                for (Map.Entry<Path, String> e : changes.entrySet()){
+                    m += e.getKey().getMemory() + size(e.getValue());
                 }
                 memory = m;
             }
@@ -174,7 +174,7 @@ public class LocalDiffCache extends DiffCache {
             }
         }
 
-        String get(String path) {
+        String get(Path path) {
             return changes.get(path);
         }
 

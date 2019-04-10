@@ -164,7 +164,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
         // store must now contain uncommitted changes
         NodeDocument doc = null;
         for (NodeDocument d : Utils.getAllDocuments(store)) {
-            if (d.getPath().startsWith("/node-")) {
+            if (d.getPath().toString().startsWith("/node-")) {
                 doc = d;
                 break;
             }
@@ -175,7 +175,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
         assertEquals(1, deleted.size());
         assertNull(ns.getCommitValue(deleted.firstKey(), doc));
 
-        return doc.getPath();
+        return doc.getPath().toString();
     }
 
 }

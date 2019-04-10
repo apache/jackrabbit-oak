@@ -47,12 +47,12 @@ abstract class DiffCache {
     @Nullable
     abstract String getChanges(@NotNull RevisionVector from,
                                @NotNull RevisionVector to,
-                               @NotNull String path,
+                               @NotNull Path path,
                                @Nullable Loader loader);
 
     /**
      * Starts a new cache entry for the diff cache. Actual changes are added
-     * to the entry with the {@link Entry#append(String, String)} method.
+     * to the entry with the {@link Entry#append(Path, String)} method.
      *
      * @param from the from revision.
      * @param to the to revision.
@@ -73,7 +73,7 @@ abstract class DiffCache {
 
     /**
      * Parses the jsop diff returned by
-     * {@link #getChanges(RevisionVector, RevisionVector, String, Loader)} and reports the
+     * {@link #getChanges(RevisionVector, RevisionVector, Path, Loader)} and reports the
      * changes by calling the appropriate methods on {@link Diff}.
      *
      * @param jsop the jsop diff to parse.
@@ -134,7 +134,7 @@ abstract class DiffCache {
          * @param path the path of the parent node.
          * @param changes the child node changes.
          */
-        void append(@NotNull String path,
+        void append(@NotNull Path path,
                     @NotNull String changes);
 
         /**

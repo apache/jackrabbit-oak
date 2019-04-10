@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
-import org.h2.mvstore.type.StringDataType;
 
 public class KeyDataType implements DataType {
     
@@ -43,14 +42,12 @@ public class KeyDataType implements DataType {
 
     @Override
     public void write(WriteBuffer buff, Object obj) {
-        String s = type.keyToString(obj);
-        StringDataType.INSTANCE.write(buff, s);
+        type.writeKey(buff, obj);
     }
 
     @Override
     public Object read(ByteBuffer buff) {
-        String s = StringDataType.INSTANCE.read(buff);
-        return type.keyFromString(s);
+        return type.readKey(buff);
     }
 
     @Override

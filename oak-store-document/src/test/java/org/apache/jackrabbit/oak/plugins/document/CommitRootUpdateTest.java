@@ -68,8 +68,8 @@ public class CommitRootUpdateTest {
         throwAfterUpdate.set(true);
         boolean success = false;
         Commit c = ns.newCommit(changes -> {
-            changes.addNode("/foo/node");
-            changes.addNode("/bar/node");
+            changes.addNode(Path.fromString("/foo/node"));
+            changes.addNode(Path.fromString("/bar/node"));
         }, ns.getHeadRevision(), null);
         try {
             c.apply();
@@ -125,7 +125,7 @@ public class CommitRootUpdateTest {
         throwAfterUpdate.set(true);
         boolean success = false;
         Commit c = ns.newCommit(
-                changes -> changes.updateProperty("/foo", "p", "v"),
+                changes -> changes.updateProperty(Path.fromString("/foo"), "p", "v"),
                 ns.getHeadRevision(), null);
         try {
             c.apply();

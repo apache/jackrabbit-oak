@@ -39,6 +39,14 @@ public final class RevisionsKey implements CacheValue, Comparable<RevisionsKey> 
         this.r2 = checkNotNull(r2);
     }
 
+    public RevisionVector getRev1() {
+        return r1;
+    }
+
+    public RevisionVector getRev2() {
+        return r2;
+    }
+
     @Override
     public int getMemory() {
         long size = 32 + (long)r1.getMemory() + (long)r2.getMemory();

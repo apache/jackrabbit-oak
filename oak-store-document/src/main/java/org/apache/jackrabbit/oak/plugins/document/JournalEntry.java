@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -45,8 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 
 /**
@@ -128,7 +127,7 @@ public final class JournalEntry extends Document {
 
     static void applyTo(@NotNull Iterable<String> changedPaths,
                         @NotNull DiffCache diffCache,
-                        @NotNull String path,
+                        @NotNull Path path,
                         @NotNull RevisionVector from,
                         @NotNull RevisionVector to) throws IOException {
         LOG.debug("applyTo: starting for {} from {} to {}", path, from, to);
@@ -206,12 +205,14 @@ public final class JournalEntry extends Document {
         LOG.debug("applyTo: done. totalCnt: {}, deDuplicatedCnt: {}", totalCnt, deDuplicatedCnt);
     }
 
-    private static boolean inScope(TreeNode node, String path) {
-        if (PathUtils.denotesRoot(path)) {
+    private static boolean inScope(TreeNode node, Path path) {
+        if (path.isRoot()) {
             return true;
         }
-        String p = node.getPath();
-        return p.startsWith(path) && (p.length() == path.length() || p.charAt(path.length()) == '/');
+        Path p = node.getPath();
+        int depthDiff = p.getDepth() - path.getDepth();
+        return depthDiff >= 0
+                && Iterables.elementsEqual(path.elements(), p.getAncestor(depthDiff).elements());
     }
 
     /**
@@ -238,7 +239,7 @@ public final class JournalEntry extends Document {
                                    @NotNull Revision to,
                                    @NotNull DocumentStore store)
             throws IOException {
-        return fillExternalChanges(externalChanges, invalidate, ROOT_PATH,
+        return fillExternalChanges(externalChanges, invalidate, Path.ROOT,
                 from, to, store, entry -> {}, null, null);
     }
 
@@ -270,7 +271,7 @@ public final class JournalEntry extends Document {
      */
     static int fillExternalChanges(@NotNull StringSort externalChanges,
                                    @NotNull StringSort invalidate,
-                                   @NotNull String path,
+                                   @NotNull Path path,
                                    @NotNull Revision from,
                                    @NotNull Revision to,
                                    @NotNull DocumentStore store,
@@ -343,7 +344,7 @@ public final class JournalEntry extends Document {
 
     private static void fillFromJournalEntry(@NotNull StringSort externalChanges,
                                              @NotNull StringSort invalidate,
-                                             @NotNull String path,
+                                             @NotNull Path path,
                                              @Nullable ChangeSetBuilder changeSetBuilder,
                                              @Nullable JournalPropertyHandler journalPropertyHandler,
                                              @NotNull JournalEntry d,
@@ -365,9 +366,9 @@ public final class JournalEntry extends Document {
         return Long.parseLong(parts[1], 16);
     }
 
-    void modified(String path) {
+    void modified(Path path) {
         TreeNode node = getChanges();
-        for (String name : PathUtils.elements(path)) {
+        for (String name : path.elements()) {
             if (node.get(name) == null) {
                 numChangedNodes++;
             }
@@ -375,8 +376,8 @@ public final class JournalEntry extends Document {
         }
     }
 
-    void modified(Iterable<String> paths) {
-        for (String p : paths) {
+    void modified(Iterable<Path> paths) {
+        for (Path p : paths) {
             modified(p);
         }
     }
@@ -489,11 +490,11 @@ public final class JournalEntry extends Document {
      * @throws IOException if an exception occurs while adding a path to
      *          {@code sort}. In this case only some paths may have been added.
      */
-    void addTo(final StringSort sort, String path) throws IOException {
+    void addTo(final StringSort sort, Path path) throws IOException {
         TraversingVisitor v = new TraversingVisitor() {
             @Override
-            public void node(TreeNode node, String p) throws IOException {
-                sort.add(p);
+            public void node(TreeNode node, Path p) throws IOException {
+                sort.add(p.toString());
             }
         };
         TreeNode n = getNode(path);
@@ -538,12 +539,12 @@ public final class JournalEntry extends Document {
         TraversingVisitor v = new TraversingVisitor() {
 
             @Override
-            public void node(TreeNode node, String path) throws IOException {
-                sort.add(path);
+            public void node(TreeNode node, Path path) throws IOException {
+                sort.add(path.toString());
             }
         };
         for (JournalEntry e : getInvalidateOnly()) {
-            e.getChanges().accept(v, "/");
+            e.getChanges().accept(v, Path.ROOT);
         }
     }
 
@@ -613,9 +614,9 @@ public final class JournalEntry extends Document {
     }
 
     @Nullable
-    private TreeNode getNode(String path) {
+    private TreeNode getNode(Path path) {
         TreeNode node = getChanges();
-        for (String name : PathUtils.elements(path)) {
+        for (String name : path.elements()) {
             node = node.get(name);
             if (node == null) {
                 return null;
@@ -692,23 +693,15 @@ public final class JournalEntry extends Document {
             return n;
         }
 
-        private String getPath() {
-            return buildPath(new StringBuilder()).toString();
-        }
-
-        private StringBuilder buildPath(StringBuilder sb) {
+        private Path getPath() {
+            Path p;
             if (parent != null) {
-                parent.buildPath(sb);
-                if (parent.parent != null) {
-                    // only add slash if parent is not the root
-                    sb.append("/");
-                }
+                p = new Path(parent.getPath(), name);
             } else {
                 // this is the root
-                sb.append("/");
+                p = Path.ROOT;
             }
-            sb.append(name);
-            return sb;
+            return p;
         }
 
         void parse(JsopReader reader) {
@@ -741,10 +734,10 @@ public final class JournalEntry extends Document {
             return children.get(name);
         }
 
-        void accept(TraversingVisitor visitor, String path) throws IOException {
+        void accept(TraversingVisitor visitor, Path path) throws IOException {
             visitor.node(this, path);
             for (Map.Entry<String, TreeNode> entry : children.entrySet()) {
-                entry.getValue().accept(visitor, concat(path, entry.getKey()));
+                entry.getValue().accept(visitor, new Path(path, entry.getKey()));
             }
         }
 
@@ -773,7 +766,7 @@ public final class JournalEntry extends Document {
 
     private interface TraversingVisitor {
 
-        void node(TreeNode node, String path) throws IOException;
+        void node(TreeNode node, Path path) throws IOException;
     }
 
     private interface MapFactory {

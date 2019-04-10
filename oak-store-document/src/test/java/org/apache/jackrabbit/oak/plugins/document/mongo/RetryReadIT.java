@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -78,15 +79,17 @@ public class RetryReadIT extends AbstractMongoConnectionTest {
 
     @Test
     public void retryQuery() {
-        String fromKey = Utils.getKeyLowerLimit("/foo");
-        String toKey = Utils.getKeyUpperLimit("/foo");
+        Path foo = Path.fromString("/foo");
+        String fromKey = Utils.getKeyLowerLimit(foo);
+        String toKey = Utils.getKeyUpperLimit(foo);
         // must survive two consecutive failures. -> 2 retries
         store.failRead = 2;
         List<NodeDocument> docs = store.query(NODES, fromKey, toKey, 100);
         assertThat(docs, is(empty()));
 
-        fromKey = Utils.getKeyLowerLimit("/bar");
-        toKey = Utils.getKeyUpperLimit("/bar");
+        Path bar = Path.fromString("/bar");
+        fromKey = Utils.getKeyLowerLimit(bar);
+        toKey = Utils.getKeyUpperLimit(bar);
         // must fail with three consecutive failures
         store.failRead = 3;
         try {

@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
@@ -75,8 +76,8 @@ public class QueryHintTest extends AbstractMongoConnectionTest {
         assertTrue(mongoDS.canUseModifiedTimeIdx(10));
 
         mongoDS.query(Collection.NODES,
-                Utils.getKeyLowerLimit("/"),
-                Utils.getKeyUpperLimit("/"),
+                Utils.getKeyLowerLimit(Path.ROOT),
+                Utils.getKeyUpperLimit(Path.ROOT),
                 NodeDocument.MODIFIED_IN_SECS,
                 50,
                 10);

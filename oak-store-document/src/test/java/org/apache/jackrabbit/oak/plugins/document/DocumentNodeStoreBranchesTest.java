@@ -190,10 +190,12 @@ public class DocumentNodeStoreBranchesTest {
         long numCreateOrUpdate = store.getNumCreateOrUpdateCalls(NODES);
         assertThat(numCreateOrUpdate, lessThanOrEqualTo(branchCommits + 1));
 
+        Path bar = Path.fromString("/bar");
         // verify reset cleaned up properly
         for (NodeDocument doc : Utils.getAllDocuments(store)) {
-            String path = doc.getPath();
-            if (path.startsWith("/bar")) {
+            Path p = doc.getPath();
+            if (bar.isAncestorOf(p) || bar.equals(p)) {
+                String path = p.toString();
                 assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
                 assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
                 assertThat(path, doc.getDeleted().keySet(), is(empty()));
@@ -238,10 +240,12 @@ public class DocumentNodeStoreBranchesTest {
             // expected
         }
 
+        Path bar = Path.fromString("/bar");
         // verify reset cleaned up properly
         for (NodeDocument doc : Utils.getAllDocuments(ns.getDocumentStore())) {
-            String path = doc.getPath();
-            if (path.startsWith("/bar")) {
+            Path p = doc.getPath();
+            if (bar.isAncestorOf(p) || bar.equals(p)) {
+                String path = p.toString();
                 assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
                 assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
                 assertThat(path, doc.getDeleted().keySet(), is(empty()));
@@ -295,10 +299,12 @@ public class DocumentNodeStoreBranchesTest {
             // otherwise expected
         }
 
+        Path bar = Path.fromString("/bar");
         // verify reset cleaned up properly
         for (NodeDocument doc : Utils.getAllDocuments(ns.getDocumentStore())) {
-            String path = doc.getPath();
-            if (path.startsWith("/bar")) {
+            Path p = doc.getPath();
+            if (bar.isAncestorOf(p) || bar.equals(p)) {
+                String path = p.toString();
                 assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
                 assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
                 assertThat(path, doc.getDeleted().keySet(), is(empty()));
@@ -353,10 +359,12 @@ public class DocumentNodeStoreBranchesTest {
             // otherwise expected
         }
 
+        Path bar = Path.fromString("/bar");
         // verify reset cleaned up properly
         for (NodeDocument doc : Utils.getAllDocuments(ns.getDocumentStore())) {
-            String path = doc.getPath();
-            if (path.startsWith("/bar")) {
+            Path p = doc.getPath();
+            if (bar.isAncestorOf(p) || bar.equals(p)) {
+                String path = p.toString();
                 assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
                 assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
                 assertThat(path, doc.getDeleted().keySet(), is(empty()));

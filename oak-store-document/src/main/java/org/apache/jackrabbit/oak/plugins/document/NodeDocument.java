@@ -249,6 +249,11 @@ public final class NodeDocument extends Document {
     public static final String SD_MAX_REV_TIME_IN_SECS = "_sdMaxRevTime";
 
     /**
+     * The path prefix for previous documents.
+     */
+    private static final Path PREVIOUS_PREFIX = new Path("p");
+
+    /**
      * Return time in seconds with 5 second resolution
      *
      * @param timestamp time in millis to convert
@@ -496,18 +501,17 @@ public final class NodeDocument extends Document {
      * @return the path of the main document.
      */
     @NotNull
-    public String getMainPath() {
-        String p = getPath();
+    public Path getMainPath() {
+        String p = getPathString();
         if (p.startsWith("p")) {
             p = PathUtils.getAncestorPath(p, 2);
             if (p.length() == 1) {
-                return "/";
+                return Path.ROOT;
             } else {
-                return p.substring(1);
+                p = p.substring(1);
             }
-        } else {
-            return p;
         }
+        return Path.fromString(p);
     }
 
     /**
@@ -647,7 +651,7 @@ public final class NodeDocument extends Document {
      * @return the commit root path or <code>null</code>.
      */
     @Nullable
-    public String getCommitRootPath(Revision revision) {
+    public Path getCommitRootPath(Revision revision) {
         String depth = getCommitRootDepth(revision);
         if (depth != null) {
             return getPathAtDepth(depth);
@@ -917,7 +921,7 @@ public final class NodeDocument extends Document {
             // deleted
             return null;
         }
-        String path = getPath();
+        Path path = getPath();
         List<PropertyState> props = Lists.newArrayList();
         for (String key : keySet()) {
             if (!Utils.isPropertyName(key)) {
@@ -1119,7 +1123,7 @@ public final class NodeDocument extends Document {
      * @return if conflicting change in {@link #DELETED} property is allowed
      */
     private boolean allowConflictingDeleteChange(UpdateOp op) {
-        String path = getPath();
+        String path = getPathString();
         if (!Utils.isHiddenPath(path)) {
             return false;
         }
@@ -1255,7 +1259,7 @@ public final class NodeDocument extends Document {
         if (revision == null) {
             return new PropertyHistory(this, property);
         } else {
-            final String mainPath = getMainPath();
+            final Path mainPath = getMainPath();
             // first try to lookup revision directly
             Map.Entry<Revision, Range> entry = getPreviousRanges().floorEntry(revision);
             if (entry != null) {
@@ -1863,7 +1867,7 @@ public final class NodeDocument extends Document {
         // main document may be stale, evict it from the cache if it is
         // older than one minute. We don't want to invalidate a document
         // too frequently if the document structure is really broken.
-        String path = getMainPath();
+        Path path = getMainPath();
         String id = Utils.getIdFromPath(path);
         NodeDocument doc = store.getIfCached(NODES, id);
         long now = Revision.getCurrentTimestamp();
@@ -1974,7 +1978,7 @@ public final class NodeDocument extends Document {
         if (getLocalRevisions().containsKey(rev)) {
             return this;
         }
-        String commitRootPath;
+        Path commitRootPath;
         String depth = getLocalCommitRoot().get(rev);
         if (depth != null) {
             commitRootPath = getPathAtDepth(depth);
@@ -2004,12 +2008,12 @@ public final class NodeDocument extends Document {
      *              integer.
      */
     @NotNull
-    private String getPathAtDepth(@NotNull String depth) {
+    private Path getPathAtDepth(@NotNull String depth) {
         if (checkNotNull(depth).equals("0")) {
-            return "/";
+            return Path.ROOT;
         }
-        String p = getPath();
-        return PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - Integer.parseInt(depth));
+        Path p = getPath();
+        return p.getAncestor(p.getDepth() - Integer.parseInt(depth));
     }
 
     /**
@@ -2173,7 +2177,13 @@ public final class NodeDocument extends Document {
         return null;
     }
 
-    public String getPath() {
+    @NotNull
+    public Path getPath() {
+        return Path.fromString(getPathString());
+    }
+
+    @NotNull
+    private String getPathString() {
         String p = (String) get(PATH);
         if (p != null) {
             return p;

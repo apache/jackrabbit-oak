@@ -59,10 +59,10 @@ public class CommitTest {
 
         // this commit should fail
         Commit c = ns.newCommit(changes -> {
-            changes.addNode("/foo/baz");
+            changes.addNode(Path.fromString("/foo/baz"));
         }, ns.getHeadRevision(), null);
         try {
-            UpdateOp op = c.getUpdateOperationForNode("/bar");
+            UpdateOp op = c.getUpdateOperationForNode(Path.fromString("/bar"));
             op.setMapEntry("p", c.getRevision(), "v");
             try {
                 c.apply();
@@ -94,7 +94,7 @@ public class CommitTest {
 
         // this commit should fail
         Commit c = ns.newCommit(changes -> {
-            changes.addNode("/foo");
+            changes.addNode(Path.fromString("/foo"));
         }, ns.getHeadRevision(), null);
         try {
             c.apply();
@@ -117,7 +117,7 @@ public class CommitTest {
 
         // this branch commit must fail with a DocumentStoreException
         Commit c = ns.newCommit(changes -> {
-            changes.removeNode("/foo", EMPTY_NODE);
+            changes.removeNode(Path.fromString("/foo"), EMPTY_NODE);
         }, ns.getHeadRevision().asBranchRevision(ns.getClusterId()), null);
         try {
             try {

@@ -36,7 +36,7 @@ class AmnesiaDiffCache extends DiffCache {
     @Override
     public String getChanges(@NotNull RevisionVector from,
                              @NotNull RevisionVector to,
-                             @NotNull String path,
+                             @NotNull Path path,
                              @Nullable Loader loader) {
         if (loader != null) {
             return loader.call();
@@ -49,7 +49,7 @@ class AmnesiaDiffCache extends DiffCache {
     public Entry newEntry(@NotNull RevisionVector from, @NotNull RevisionVector to, boolean local) {
         return new Entry() {
             @Override
-            public void append(@NotNull String path, @NotNull String changes) {
+            public void append(@NotNull Path path, @NotNull String changes) {
             }
 
             @Override
