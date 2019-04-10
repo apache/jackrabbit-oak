@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Map;
 
+import com.mongodb.client.MongoCollection;
+
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -28,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertFalse;
@@ -88,6 +91,28 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         assertThat(info.keySet(), hasItem("clusterNodes.count"));
         assertThat(info.keySet(), hasItem("journal.count"));
         assertThat(info.keySet(), hasItem("settings.count"));
+    }
+
+    @Test
+    public void readOnly() throws Exception {
+        // setup must have created nodes collection with index on _bin
+        MongoCollection<?> mc = mongoConnection.getDatabase()
+                .getCollection(NODES.toString());
+        assertTrue(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
+        mk.dispose();
+        // remove the indexes
+        mongoConnection = connectionFactory.getConnection();
+        assertNotNull(mongoConnection);
+        mc = mongoConnection.getDatabase().getCollection(NODES.toString());
+        mc.dropIndexes();
+        // must be gone now
+        assertFalse(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
+
+        // start a new read-only DocumentNodeStore
+        mk = newBuilder(mongoConnection.getMongoClient(),
+                mongoConnection.getDBName()).setReadOnlyMode().open();
+        // must still not exist when started in read-only mode
+        assertFalse(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
     }
 
     static final class TestStore extends MongoDocumentStore {
