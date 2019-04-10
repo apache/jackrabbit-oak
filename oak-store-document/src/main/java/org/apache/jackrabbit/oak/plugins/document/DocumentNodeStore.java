@@ -615,7 +615,7 @@ public final class DocumentNodeStore
         NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath("/"));
         if (rootDoc == null) {
             if (readOnlyMode) {
-                throw new DocumentStoreException("Unable to initialized a " +
+                throw new DocumentStoreException("Unable to initialize a " +
                         "read-only DocumentNodeStore. The DocumentStore nodes " +
                         "collection does not have a root document.");
             }
