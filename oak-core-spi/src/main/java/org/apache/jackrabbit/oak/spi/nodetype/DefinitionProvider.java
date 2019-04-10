@@ -62,7 +62,7 @@ public interface DefinitionProvider {
      * @throws RepositoryException If another error occurs.
      */
     @NotNull
-    NodeDefinition getDefinition(Tree parent, Tree targetNode)
+    NodeDefinition getDefinition(@NotNull Tree parent, @NotNull Tree targetNode)
             throws ConstraintViolationException, RepositoryException;
 
     /**
@@ -76,8 +76,7 @@ public interface DefinitionProvider {
      * @throws RepositoryException If another error occurs.
      */
     @NotNull
-    PropertyDefinition getDefinition(
-            Tree parent, PropertyState propertyState, boolean exactTypeMatch)
+    PropertyDefinition getDefinition(@NotNull Tree parent, @NotNull PropertyState propertyState, boolean exactTypeMatch)
             throws ConstraintViolationException, RepositoryException;
 
 }
