@@ -272,6 +272,9 @@ public class ImporterImpl implements Importer {
             //TODO find better heuristics?
             EffectiveNodeType ent = effectiveNodeTypeProvider.getEffectiveNodeType(tree);
             PropertyDefinition def = ent.getPropertyDefinition(pi.getName(), pi.getType(), pi.isUnknownMultiple());
+            if (def == null) {
+                throw new ConstraintViolationException("No matching property definition found for " + pi.getName());
+            }
             if (def.isProtected()) {
                 // skip protected property
                 log.debug("Protected property {}", pi.getName());
