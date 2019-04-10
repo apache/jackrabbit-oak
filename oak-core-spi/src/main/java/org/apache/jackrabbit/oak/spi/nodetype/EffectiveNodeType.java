@@ -25,35 +25,40 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface EffectiveNodeType {
-    boolean includesNodeType(String nodeTypeName);
+    boolean includesNodeType(@NotNull String nodeTypeName);
 
-    boolean includesNodeTypes(String[] nodeTypeNames);
+    boolean includesNodeTypes(@NotNull String[] nodeTypeNames);
 
-    boolean supportsMixin(String mixin);
+    boolean supportsMixin(@NotNull String mixin);
 
+    @NotNull
     Iterable<NodeDefinition> getNodeDefinitions();
 
+    @NotNull
     Iterable<PropertyDefinition> getPropertyDefinitions();
 
+    @NotNull
     Iterable<NodeDefinition> getAutoCreateNodeDefinitions();
 
+    @NotNull
     Iterable<PropertyDefinition> getAutoCreatePropertyDefinitions();
 
+    @NotNull
     Iterable<NodeDefinition> getMandatoryNodeDefinitions();
 
+    @NotNull
     Iterable<PropertyDefinition> getMandatoryPropertyDefinitions();
 
     @NotNull
-    Iterable<NodeDefinition> getNamedNodeDefinitions(
-            String oakName);
+    Iterable<NodeDefinition> getNamedNodeDefinitions(@NotNull String oakName);
 
     @NotNull
-    Iterable<PropertyDefinition> getNamedPropertyDefinitions(
-            String oakName);
+    Iterable<PropertyDefinition> getNamedPropertyDefinitions(@NotNull String oakName);
 
     @NotNull
     Iterable<NodeDefinition> getResidualNodeDefinitions();
@@ -61,22 +66,20 @@ public interface EffectiveNodeType {
     @NotNull
     Iterable<PropertyDefinition> getResidualPropertyDefinitions();
 
-    void checkSetProperty(PropertyState property) throws RepositoryException;
+    void checkSetProperty(@NotNull PropertyState property) throws RepositoryException;
 
-    void checkRemoveProperty(PropertyState property) throws RepositoryException;
+    void checkRemoveProperty(@NotNull PropertyState property) throws RepositoryException;
 
-    void checkMandatoryItems(Tree tree) throws ConstraintViolationException;
+    void checkMandatoryItems(@NotNull Tree tree) throws ConstraintViolationException;
 
     void checkOrderableChildNodes() throws UnsupportedRepositoryOperationException;
 
-    PropertyDefinition getPropertyDefinition(
-            String propertyName, boolean isMultiple,
-            int type, boolean exactTypeMatch)
-            throws ConstraintViolationException;
+    @NotNull
+    PropertyDefinition getPropertyDefinition(@NotNull String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws ConstraintViolationException;
 
-    PropertyDefinition getPropertyDefinition(String name, int type, boolean unknownMultiple);
+    @Nullable
+    PropertyDefinition getPropertyDefinition(@NotNull String name, int type, boolean unknownMultiple);
 
-    NodeDefinition getNodeDefinition(
-            String childName, EffectiveNodeType childEffective)
-            throws ConstraintViolationException;
+    @NotNull
+    NodeDefinition getNodeDefinition(@NotNull String childName, @Nullable EffectiveNodeType childEffective) throws ConstraintViolationException;
 }

@@ -40,7 +40,7 @@ public interface EffectiveNodeTypeProvider {
      * @param nodeTypeName The internal oak name of the node type to be tested.
      * @return true if the specified node is of the given node type.
      */
-    boolean isNodeType(Tree tree, String nodeTypeName);
+    boolean isNodeType(@NotNull Tree tree, @NotNull String nodeTypeName);
 
     /**
      * Returns {@code true} if {@code typeName} is of the specified primary node
@@ -65,7 +65,7 @@ public interface EffectiveNodeTypeProvider {
      * @param superName The internal oak name of the super type to be tested for.
      * @return {@code true} if the specified node type is of the given node type.
      */
-    boolean isNodeType(String typeName, String superName);
+    boolean isNodeType(@NotNull String typeName, @NotNull String superName);
 
     /**
      * Calculates and returns the effective node types of the given node.
@@ -77,7 +77,8 @@ public interface EffectiveNodeTypeProvider {
      * @throws RepositoryException if the type information can not be accessed
      * @see <a href="http://www.jcp.org/en/jsr/detail?id=283">JCR 2.0 Specification, Section 3.7.6.5</a>
      */
-    EffectiveNodeType getEffectiveNodeType(Node targetNode) throws RepositoryException;
+    @NotNull
+    EffectiveNodeType getEffectiveNodeType(@NotNull Node targetNode) throws RepositoryException;
 
     /**
      * Calculates and returns the effective node types of the given tree.
@@ -89,5 +90,6 @@ public interface EffectiveNodeTypeProvider {
      * @throws RepositoryException if the type information can not be accessed,
      * @see <a href="http://www.jcp.org/en/jsr/detail?id=283">JCR 2.0 Specification, Section 3.7.6.5</a>
      */
-    EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException;
+    @NotNull
+    EffectiveNodeType getEffectiveNodeType(@NotNull Tree tree) throws RepositoryException;
 }
