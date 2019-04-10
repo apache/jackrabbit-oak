@@ -108,12 +108,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     /**
-     * Enable fast diff operations.
-     */
-    static final boolean FAST_DIFF = Boolean.parseBoolean(
-            System.getProperty("oak.documentMK.fastDiff", "true"));
-
-    /**
      * Number of content updates that need to happen before the updates
      * are automatically purged to the private branch.
      */
