@@ -138,7 +138,7 @@ public class CommitRootUpdateTest {
         boolean success = false;
         Commit c = ns.newCommit(ns.getHeadRevision(), null);
         try {
-            c.updateProperty("/foo", "p", "v");
+            c.updateProperty("/foo", "p", "1");
             c.apply();
             success = true;
         } finally {
