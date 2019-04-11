@@ -51,6 +51,7 @@ public final class NodeTypeRegistry {
 
     private NodeTypeRegistry(final Root root) {
         this.ntMgr =  new ReadWriteNodeTypeManager() {
+            @NotNull
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);

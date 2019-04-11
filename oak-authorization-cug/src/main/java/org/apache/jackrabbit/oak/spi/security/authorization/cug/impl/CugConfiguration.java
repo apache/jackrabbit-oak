@@ -233,6 +233,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     static boolean registerCugNodeTypes(@NotNull final Root root) {
         try {
             ReadOnlyNodeTypeManager ntMgr = new ReadOnlyNodeTypeManager() {
+                @NotNull
                 @Override
                 protected Tree getTypes() {
                     return root.getTree(NodeTypeConstants.NODE_TYPES_PATH);

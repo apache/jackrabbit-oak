@@ -485,7 +485,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private ReadOnlyNodeTypeManager getManager() {
         final Tree types = definition.getParent();
         return new ReadOnlyNodeTypeManager() {
-            @Override @Nullable
+            @NotNull
+            @Override
             protected Tree getTypes() {
                 return types;
             }

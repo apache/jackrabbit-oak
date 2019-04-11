@@ -451,6 +451,7 @@ public class RepositoryUpgrade {
             } else {
                 logger.info("Copying registered node types");
                 NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
+                    @NotNull
                     @Override
                     protected Tree getTypes() {
                         return upgradeRoot.getTree(NODE_TYPES_PATH);
