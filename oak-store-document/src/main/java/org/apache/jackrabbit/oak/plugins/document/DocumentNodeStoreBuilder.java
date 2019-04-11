@@ -98,14 +98,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * Enable or disable the LIRS cache (null to use the default setting for this configuration).
+     * Whether to use the CacheLIRS (default) or the Guava cache implementation.
      */
-    private static final Boolean LIRS_CACHE;
-
-    static {
-        String s = System.getProperty("oak.documentMK.lirsCache");
-        LIRS_CACHE = s == null ? null : Boolean.parseBoolean(s);
-    }
+    private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");
 
     /**
      * Number of content updates that need to happen before the updates
@@ -704,15 +699,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             String module,
             long maxWeight,
             final Set<EvictionListener<K, V>> listeners) {
-        // by default, use the LIRS cache when using the persistent cache,
-        // but don't use it otherwise
-        boolean useLirs = persistentCacheURI != null;
-        // allow to override this by using the system property
-        if (LIRS_CACHE != null) {
-            useLirs = LIRS_CACHE;
-        }
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
-        if (useLirs && maxWeight > 0) {
+        if (LIRS_CACHE && maxWeight > 0) {
             return CacheLIRS.<K, V>newBuilder().
                     module(module).
                     weigher(new Weigher<K, V>() {
