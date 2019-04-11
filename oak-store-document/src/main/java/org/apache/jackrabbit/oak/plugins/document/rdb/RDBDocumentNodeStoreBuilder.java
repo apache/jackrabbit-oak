@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static com.google.common.base.Suppliers.memoize;
+
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
@@ -24,8 +26,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-
-import static com.google.common.base.Suppliers.ofInstance;
 
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
@@ -58,8 +58,8 @@ public class RDBDocumentNodeStoreBuilder
      * @return this
      */
     public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource ds, RDBOptions options) {
-        this.documentStoreSupplier = ofInstance(new RDBDocumentStore(ds, this, options));
-        if(blobStore == null) {
+        this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(ds, this, options));
+        if (blobStore == null) {
             GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
             setGCBlobStore(s);
         }
@@ -73,8 +73,8 @@ public class RDBDocumentNodeStoreBuilder
      * @return this
      */
     public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-        this.documentStoreSupplier = ofInstance(new RDBDocumentStore(documentStoreDataSource, this));
-        if(blobStore == null) {
+        this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(documentStoreDataSource, this));
+        if (blobStore == null) {
             GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
             setGCBlobStore(s);
         }
