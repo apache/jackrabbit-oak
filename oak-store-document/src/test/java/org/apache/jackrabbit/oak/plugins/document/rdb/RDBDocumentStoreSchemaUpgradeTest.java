@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +34,7 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -81,6 +83,22 @@ public class RDBDocumentStoreSchemaUpgradeTest {
             RDBTableMetaData meta = rdb.getTable(Collection.NODES);
             assertEquals(op.getTablePrefix() + "_NODES", meta.getName());
             assertFalse(meta.hasVersion());
+        } finally {
+            if (rdb != null) {
+                rdb.dispose();
+            }
+        }
+    }
+
+    @Test
+    public void initDefaultRO() {
+        RDBOptions op = new RDBOptions().tablePrefix("T00RO").initialSchema(0).upgradeToSchema(0).dropTablesOnClose(true);
+        RDBDocumentStore rdb = null;
+        try {
+            DocumentMK.Builder builder = new DocumentMK.Builder().setReadOnlyMode();
+            rdb = new RDBDocumentStore(this.ds, builder, op);
+            fail("should fail");
+        } catch (DocumentStoreException expected) {
         } finally {
             if (rdb != null) {
                 rdb.dispose();
