@@ -16,20 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.util.Arrays;
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.UnsupportedCallbackException;
-import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginException;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -44,9 +30,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -55,13 +43,33 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-import org.mockito.Mockito;
 
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginException;
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_PRE_AUTH_LOGIN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LoginModuleImplTest extends AbstractSecurityTest {
 
@@ -83,27 +91,18 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         return ConfigurationUtil.getDefaultConfiguration(ConfigurationParameters.EMPTY);
     }
 
-    private User createTestUser() throws RepositoryException, CommitFailedException {
+    private void createTestUser() throws RepositoryException, CommitFailedException {
         if (user == null) {
             UserManager userManager = getUserManager(root);
             user = userManager.createUser(USER_ID, USER_PW);
             root.commit();
         }
-        return user;
     }
 
-    @Test
+    @Test(expected = LoginException.class)
     public void testNullLogin() throws Exception {
-        ContentSession cs = null;
-        try {
-            cs = login(null);
+        try (ContentSession cs = login(null)) {
             fail("Null login should fail");
-        } catch (LoginException e) {
-            // success
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
@@ -116,7 +115,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         }
     }
 
-    @Test
+    @Test(expected = LoginException.class)
     public void testAnonymousLogin() throws Exception {
         String anonymousID = UserUtil.getAnonymousId(getUserConfiguration().getParameters());
 
@@ -127,260 +126,345 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         assertNotNull(anonymous);
         assertFalse(root.getTree(anonymous.getPath()).hasProperty(UserConstants.REP_PASSWORD));
 
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(anonymousID, new char[0]));
+        try (ContentSession cs = login(new SimpleCredentials(anonymousID, new char[0]))) {
             fail("Login with anonymousID should fail since the initial setup doesn't provide a password.");
-        } catch (LoginException e) {
-            // success
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
     @Test
     public void testUserLogin() throws Exception {
-        ContentSession cs = null;
-        try {
-            createTestUser();
-
-            cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()));
+        createTestUser();
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()))) {
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals(USER_ID, authInfo.getUserID());
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
     @Test
     public void testAuthInfoContainsUserId() throws Exception {
-        ContentSession cs = null;
-        try {
-            createTestUser();
-
-            cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()));
+        createTestUser();
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals(user.getID(), authInfo.getUserID());
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
     @Test
     public void testUserLoginIsCaseInsensitive() throws Exception {
-        ContentSession cs = null;
-        try {
-            createTestUser();
-
-            cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()));
+        createTestUser();
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
             AuthInfo authInfo = cs.getAuthInfo();
             UserManager userMgr = getUserManager(root);
             Authorizable auth = userMgr.getAuthorizable(authInfo.getUserID());
             assertNotNull(auth);
             assertTrue(auth.getID().equalsIgnoreCase(USER_ID_CASED));
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
     @Test
     public void testUserLoginIsCaseInsensitive2() throws Exception {
-        ContentSession cs = null;
-        try {
-            createTestUser();
-            cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()));
+        createTestUser();
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()))) {
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals(user.getID(), authInfo.getUserID());
             assertTrue(USER_ID_CASED.equalsIgnoreCase(authInfo.getUserID()));
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
-    @Test
+    @Test(expected = LoginException.class)
     public void testUnknownUserLogin() throws Exception {
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials("unknown", "".toCharArray()));
+        try (ContentSession cs = login(new SimpleCredentials("unknown", "".toCharArray()))) {
             fail("Unknown user must not be able to login");
-        } catch (LoginException e) {
-            // success
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
     @Test
     public void testSelfImpersonation() throws Exception {
-        ContentSession cs = null;
-        try {
-            createTestUser();
-
-            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
-            cs = login(sc);
-
-            AuthInfo authInfo = cs.getAuthInfo();
-            assertEquals(USER_ID, authInfo.getUserID());
-
-            cs.close();
-
-            sc = new SimpleCredentials(USER_ID, new char[0]);
-            ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
-            cs = login(ic);
-
+        createTestUser();
+        AuthInfo authInfo;
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()))) {
             authInfo = cs.getAuthInfo();
             assertEquals(USER_ID, authInfo.getUserID());
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
+        }
+
+        SimpleCredentials sc = new SimpleCredentials(USER_ID, new char[0]);
+        ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
+        try (ContentSession cs = login(ic)) {
+            authInfo = cs.getAuthInfo();
+            assertEquals(USER_ID, authInfo.getUserID());
         }
     }
 
-    @Test
+    @Test(expected = LoginException.class)
     public void testInvalidImpersonation() throws Exception {
-        ContentSession cs = null;
-        try {
-            createTestUser();
-
-            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
-            cs = login(sc);
-
-            AuthInfo authInfo = cs.getAuthInfo();
+        createTestUser();
+        AuthInfo authInfo;
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()))) {
+            authInfo = cs.getAuthInfo();
             assertEquals(USER_ID, authInfo.getUserID());
+        }
 
-            cs.close();
-            cs = null;
-
-            ConfigurationParameters config = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
-            String adminId = UserUtil.getAdminId(config);
-            sc = new SimpleCredentials(adminId, new char[0]);
-            ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
-
-            try {
-                cs = login(ic);
-                fail("User 'test' should not be allowed to impersonate " + adminId);
-            } catch (LoginException e) {
-                // success
-            }
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
+        ConfigurationParameters config = securityProvider.getConfiguration(UserConfiguration.class).getParameters();
+        String adminId = UserUtil.getAdminId(config);
+        SimpleCredentials sc = new SimpleCredentials(adminId, new char[0]);
+        ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
+        // test-user should not be allowed to impersonate admin -> exception expected
+        try (ContentSession cs = login(ic)) {
+            fail("User 'test' should not be allowed to impersonate " + adminId);
         }
     }
 
     @Test
     public void testLoginWithAttributes( ) throws Exception {
-        ContentSession cs = null;
-        try {
-            createTestUser();
-
-            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
-            sc.setAttribute("attr", "value");
-
-            cs = login(sc);
-
+        createTestUser();
+        SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
+        sc.setAttribute("attr", "value");
+        try (ContentSession cs = login(sc)){
             AuthInfo authInfo = cs.getAuthInfo();
             assertTrue(Arrays.asList(authInfo.getAttributeNames()).contains("attr"));
             assertEquals("value", authInfo.getAttribute("attr"));
-
-            cs.close();
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
     @Test
     public void testImpersonationWithAttributes() throws Exception {
-        ContentSession cs = null;
-        try {
-            createTestUser();
+        createTestUser();
+        AuthInfo authInfo;
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()))) {
+            authInfo = cs.getAuthInfo();
+        }
 
-            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PW.toCharArray());
-            cs = login(sc);
-            AuthInfo authInfo = cs.getAuthInfo();
-            cs.close();
-            cs = null;
-
-            sc = new SimpleCredentials(USER_ID, new char[0]);
-            sc.setAttribute("attr", "value");
-            ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
-            cs = login(ic);
-
+        SimpleCredentials sc = new SimpleCredentials(USER_ID, new char[0]);
+        sc.setAttribute("attr", "value");
+        ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
+        try (ContentSession cs = login(ic)) {
             authInfo = cs.getAuthInfo();
             assertTrue(Arrays.asList(authInfo.getAttributeNames()).contains("attr"));
             assertEquals("value", authInfo.getAttribute("attr"));
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
+        }
+    }
+
+    @Test(expected = LoginException.class)
+    public void testImpersonationWithUnsupportedBaseCredentials() throws Exception {
+        Credentials baseCredentials = mock(Credentials.class);
+        ImpersonationCredentials ic = new ImpersonationCredentials(baseCredentials, new AuthInfoImpl(USER_ID, null, null));
+        try (ContentSession cs = login(ic)) {
+            fail("Base credentials of ImpersonationCredentials can only be SimpleCredentials.");
         }
     }
 
     @Test
-    public void testGetNullUserAuthentication() throws Exception {
+    public void testLoginPreAuthenticated() throws Exception {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.authenticate(any(Credentials.class))).thenReturn(true).getMock();
+        when(authentication.getUserId()).thenReturn("uid"); // but getUserPrincipal returns null
+
+        UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+        Map<String, Object> sharedState = Maps.newHashMap();
+        sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
+
+        Subject subject = new Subject();
+        LoginModuleImpl lm = new LoginModuleImpl();
+        lm.initialize(subject, new TestCallbackHandler(uaf), sharedState, Maps.newHashMap());
+        assertTrue(lm.login());
+        assertTrue(lm.commit());
+
+        assertTrue(subject.getPrincipals().isEmpty());
+        // no other public credentials than the AuthInfo
+        assertEquals(1, subject.getPublicCredentials().size());
+        // verify AuthInfo
+        Set<AuthInfo> authInfos = subject.getPublicCredentials(AuthInfo.class);
+        assertFalse(authInfos.isEmpty());
+        assertEquals("uid", authInfos.iterator().next().getUserID());
+    }
+
+    @Test
+    public void testLoginPreAuthenticatedWithReadOnlySubject() throws Exception {
+        Authentication authentication = when(mock(Authentication.class).authenticate(any(Credentials.class))).thenReturn(true).getMock();
+        UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+
+        Map<String, Object> sharedState = Maps.newHashMap();
+        sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
+
+        Subject subject = new Subject();
+        subject.setReadOnly();
+        LoginModuleImpl lm = new LoginModuleImpl();
+        lm.initialize(subject, new TestCallbackHandler(uaf), sharedState, Maps.newHashMap());
+        assertTrue(lm.login());
+        assertTrue(lm.commit());
+
+        assertTrue(subject.getPrincipals().isEmpty());
+        assertTrue(subject.getPublicCredentials().isEmpty());
+    }
+
+    @Test
+    public void testNullUserAuthentication() throws Exception {
         LoginModuleImpl loginModule = new LoginModuleImpl();
-        CallbackHandler cbh = new TestCallbackHandler(Mockito.mock(UserAuthenticationFactory.class));
-        loginModule.initialize(new Subject(), cbh, Maps.<String, Object>newHashMap(), Maps.<String, Object>newHashMap());
+        CallbackHandler cbh = new TestCallbackHandler(mock(UserAuthenticationFactory.class));
+        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
 
         assertFalse(loginModule.login());
         assertFalse(loginModule.commit());
     }
 
     @Test
-    public void testCustomUserAuthentication() throws Exception {
-        LoginModuleImpl loginModule = new LoginModuleImpl();
+    public void testMissingUserAuthenticationFactory() throws Exception {
+        CallbackHandler cbh = callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof RepositoryCallback) {
+                    UserConfiguration uc = when(mock(UserConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.EMPTY).getMock();
+                    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
+                    ((RepositoryCallback) callback).setSecurityProvider(sp);
+                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
+                } else {
+                    throw new UnsupportedCallbackException(callback);
+                }
+            }
+        };
 
-        UserAuthenticationFactory factory = new UserAuthenticationFactory() {
+        LoginModuleImpl loginModule = new LoginModuleImpl();
+        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+
+        assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+    }
+
+    @Test
+    public void testMissingSecurityProviderGuestLogin() throws Exception {
+        CallbackHandler cbh = callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof RepositoryCallback) {
+                    ((RepositoryCallback) callback).setSecurityProvider(null);
+                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
+                } else {
+                    throw new UnsupportedCallbackException(callback);
+                }
+            }
+        };
+
+        LoginModuleImpl loginModule = new LoginModuleImpl();
+        loginModule.initialize(new Subject(false, ImmutableSet.of(), ImmutableSet.of(new GuestCredentials()), ImmutableSet.of()), cbh, Maps.newHashMap(), Maps.newHashMap());
+
+        assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+    }
+
+    @Test
+    public void testMissingSecurityProvider() throws Exception {
+        CallbackHandler cbh = callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof RepositoryCallback) {
+                    ((RepositoryCallback) callback).setSecurityProvider(null);
+                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
+                } else {
+                    throw new UnsupportedCallbackException(callback);
+                }
+            }
+        };
+
+        LoginModuleImpl loginModule = new LoginModuleImpl();
+        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+
+        assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+    }
+
+    @Test
+    public void testMissingRoot() throws Exception {
+        CallbackHandler cbh = callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof RepositoryCallback) {
+                    ((RepositoryCallback) callback).setSecurityProvider(getSecurityProvider());
+                    ((RepositoryCallback) callback).setContentRepository(null);
+                } else {
+                    throw new UnsupportedCallbackException(callback);
+                }
+            }
+        };
+
+        LoginModuleImpl loginModule = new LoginModuleImpl();
+        loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+
+        assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+    }
+
+    @Test
+    public void testMissingCallbackHandler() throws Exception {
+        LoginModuleImpl loginModule = new LoginModuleImpl();
+        loginModule.initialize(new Subject(), null, Maps.newHashMap(), Maps.newHashMap());
+
+        assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+    }
+
+    @Test
+    public void testLoginCustomUserAuthenticationFactory() throws Exception {
+        UserAuthenticationFactory factory = (configuration, root, userId) -> new Authentication() {
+            @Override
+            public boolean authenticate(@Nullable Credentials credentials) {
+                return true;
+            }
+
             @Nullable
             @Override
-            public Authentication getAuthentication(@NotNull UserConfiguration configuration, @NotNull Root root, @Nullable String userId) {
-                return new Authentication() {
-                    @Override
-                    public boolean authenticate(@Nullable Credentials credentials) throws LoginException {
-                        return true;
-                    }
+            public String getUserId() {
+                return null;
+            }
 
-                    @Nullable
-                    @Override
-                    public String getUserId() {
-                        return null;
-                    }
-
-                    @Nullable
-                    @Override
-                    public Principal getUserPrincipal() {
-                        return null;
-                    }
-                };
+            @Nullable
+            @Override
+            public Principal getUserPrincipal() {
+                return null;
             }
         };
 
         CallbackHandler cbh = new TestCallbackHandler(factory);
         SimpleCredentials creds = new SimpleCredentials("loginId", new char[0]);
-        Subject subject = new Subject(false, Sets.<Principal>newHashSet(), ImmutableSet.of(creds), Sets.newHashSet());
+        Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(creds), Sets.newHashSet());
 
-        loginModule.initialize(subject, cbh, Maps.<String, Object>newHashMap(), Maps.<String, Object>newHashMap());
+        LoginModuleImpl loginModule = new LoginModuleImpl();
+        loginModule.initialize(subject, cbh, Maps.newHashMap(), Maps.newHashMap());
+        assertTrue(loginModule.login());
+        assertTrue(loginModule.commit());
+
+        // authinfo falls back to loginId because Authentication.getUserId returned null
+        AuthInfo authInfo = subject.getPublicCredentials(AuthInfo.class).iterator().next();
+        assertEquals("loginId", authInfo.getUserID());
+    }
+
+    @Test
+    public void testMissingUserId() throws Exception {
+        UserAuthenticationFactory factory = (configuration, root, userId) -> new Authentication() {
+            @Override
+            public boolean authenticate(@Nullable Credentials credentials) {
+                return true;
+            }
+
+            @Nullable
+            @Override
+            public String getUserId() {
+                return null;
+            }
+
+            @Nullable
+            @Override
+            public Principal getUserPrincipal() {
+                return null;
+            }
+        };
+
+        CallbackHandler cbh = new TestCallbackHandler(factory);
+        Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(), Sets.newHashSet());
+
+        LoginModuleImpl loginModule = new LoginModuleImpl();
+        loginModule.initialize(subject, cbh, Maps.newHashMap(), Maps.newHashMap());
         assertTrue(loginModule.login());
         assertTrue(loginModule.commit());
 
         AuthInfo authInfo = subject.getPublicCredentials(AuthInfo.class).iterator().next();
-        assertEquals("loginId", authInfo.getUserID());
+        assertNull(authInfo.getUserID());
+        assertTrue(subject.getPrincipals().isEmpty());
     }
 
 
@@ -388,7 +472,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
 
         private final SecurityProvider sp;
 
-        private TestCallbackHandler(@Nullable UserAuthenticationFactory authenticationFactory) {
+        private TestCallbackHandler(@NotNull UserAuthenticationFactory authenticationFactory) {
             ConfigurationParameters params = ConfigurationParameters.of(
                     UserConfiguration.NAME,
                     ConfigurationParameters.of(
@@ -397,7 +481,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         }
 
         @Override
-        public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+        public void handle(Callback[] callbacks) throws UnsupportedCallbackException {
             for (Callback callback : callbacks) {
                 if (callback instanceof RepositoryCallback) {
                     ((RepositoryCallback) callback).setSecurityProvider(sp);
@@ -408,5 +492,4 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
             }
         }
     }
-
 }

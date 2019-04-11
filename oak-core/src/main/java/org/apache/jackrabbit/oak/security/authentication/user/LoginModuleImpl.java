@@ -167,7 +167,9 @@ public final class LoginModuleImpl extends AbstractLoginModule {
                 } else if (userId != null) {
                     principals.addAll(getPrincipals(userId));
                 }
-                subject.getPublicCredentials().add(credentials);
+                if (credentials != null) {
+                    subject.getPublicCredentials().add(credentials);
+                }
                 setAuthInfo(createAuthInfo(principals), subject);
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
@@ -229,6 +231,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         return uid;
     }
 
+    @Nullable
     private String getAnonymousId() {
         SecurityProvider sp = getSecurityProvider();
         if (sp == null) {
