@@ -153,7 +153,7 @@ public class CugValidatorTest extends AbstractCugTest {
                 return root;
             }
 
-            @Nullable
+            @NotNull
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);

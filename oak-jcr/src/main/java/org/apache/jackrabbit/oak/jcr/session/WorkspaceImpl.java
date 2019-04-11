@@ -81,6 +81,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
                 getSession().refresh(true);
             }
 
+            @NotNull
             @Override
             protected Tree getTypes() {
                 return sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);

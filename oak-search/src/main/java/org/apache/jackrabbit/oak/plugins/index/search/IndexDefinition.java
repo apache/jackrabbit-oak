@@ -42,6 +42,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -51,7 +52,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
@@ -774,7 +775,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         }
 
         Map<String, List<IndexingRule>> nt2rules = newHashMap();
-        ReadOnlyNodeTypeManager ntReg = createNodeTypeManager(TreeFactory.createReadOnlyTree(root));
+        ReadOnlyNodeTypeManager ntReg = createNodeTypeManager(RootFactory.createReadOnlyRoot(root));
 
         //Use Tree API to read ordered child nodes
         Tree ruleTree = TreeFactory.createReadOnlyTree(indexRules);
@@ -1593,11 +1594,12 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         }
     }
 
-    private static ReadOnlyNodeTypeManager createNodeTypeManager(final Tree root) {
+    private static ReadOnlyNodeTypeManager createNodeTypeManager(final Root root) {
         return new ReadOnlyNodeTypeManager() {
+            @NotNull
             @Override
             protected Tree getTypes() {
-                return TreeUtil.getTree(root,NODE_TYPES_PATH);
+                return root.getTree(NODE_TYPES_PATH);
             }
 
             @NotNull
