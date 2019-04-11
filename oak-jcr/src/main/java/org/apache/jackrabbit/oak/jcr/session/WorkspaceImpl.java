@@ -76,6 +76,9 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         this.queryManager = new QueryManagerImpl(sessionContext);
         this.versionManager = new VersionManagerImpl(sessionContext);
         this.nodeTypeManager = new ReadWriteNodeTypeManager() {
+
+            private Tree types;
+
             @Override
             protected void refresh() throws RepositoryException {
                 getSession().refresh(true);
@@ -84,7 +87,12 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             @NotNull
             @Override
             protected Tree getTypes() {
-                return sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+                Tree t = types;
+                if (t == null) {
+                    t = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+                    types = t;
+                }
+                return t;
             }
 
             @NotNull
