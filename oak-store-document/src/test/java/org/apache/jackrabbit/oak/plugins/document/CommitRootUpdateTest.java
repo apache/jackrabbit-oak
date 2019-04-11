@@ -125,7 +125,7 @@ public class CommitRootUpdateTest {
         throwAfterUpdate.set(true);
         boolean success = false;
         Commit c = ns.newCommit(
-                changes -> changes.updateProperty(Path.fromString("/foo"), "p", "v"),
+                changes -> changes.updateProperty(Path.fromString("/foo"), "p", "1"),
                 ns.getHeadRevision(), null);
         try {
             c.apply();
