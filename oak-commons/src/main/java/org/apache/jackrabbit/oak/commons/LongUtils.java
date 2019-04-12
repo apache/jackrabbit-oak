@@ -49,6 +49,6 @@ public final class LongUtils {
      * @return The expiration time.
      */
     public static long calculateExpirationTime(long expiration) {
-        return LongUtils.safeAdd(expiration, new Date().getTime());
+        return LongUtils.safeAdd(expiration, System.currentTimeMillis());
     }
 }
