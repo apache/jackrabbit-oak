@@ -15,41 +15,43 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -->
-<schema name="minimal" version="1.5">
+<schema name="minimal" version="1.6">
+
     <types>
         <fieldType name="string" class="solr.StrField"/>
         <fieldType name="descendent_path" class="solr.TextField">
             <analyzer type="index">
-                <tokenizer class="solr.PathHierarchyTokenizerFactory" delimiter="/" />
+                <tokenizer class="solr.PathHierarchyTokenizerFactory" delimiter="/"/>
                 <filter class="solr.PatternCaptureGroupFilterFactory" pattern="((/).*)" preserve_original="false"/>
-                <filter class="solr.RemoveDuplicatesTokenFilterFactory" />
+                <filter class="solr.RemoveDuplicatesTokenFilterFactory"/>
             </analyzer>
             <analyzer type="query">
-                <tokenizer class="solr.KeywordTokenizerFactory" />
+                <tokenizer class="solr.KeywordTokenizerFactory"/>
             </analyzer>
         </fieldType>
         <fieldType name="children_path" class="solr.TextField">
             <analyzer type="index">
                 <tokenizer class="solr.KeywordTokenizerFactory"/>
-                <filter class="solr.ReverseStringFilterFactory" />
+                <filter class="solr.ReverseStringFilterFactory"/>
                 <filter class="solr.LengthFilterFactory" min="2" max="2147483647"/>
-                <filter class="solr.PatternReplaceFilterFactory" pattern="([^\/]+)(\/)" replacement="$2" replace="first"/>
+                <filter class="solr.PatternReplaceFilterFactory" pattern="([^\/]+)(\/)" replacement="$2"
+                        replace="first"/>
                 <filter class="solr.PatternReplaceFilterFactory" pattern="(\/)(.+)" replacement="$2" replace="first"/>
-                <filter class="solr.ReverseStringFilterFactory" />
+                <filter class="solr.ReverseStringFilterFactory"/>
             </analyzer>
             <analyzer type="query">
-                <tokenizer class="solr.KeywordTokenizerFactory" />
+                <tokenizer class="solr.KeywordTokenizerFactory"/>
             </analyzer>
         </fieldType>
         <fieldType name="parent_path" class="solr.TextField">
             <analyzer type="index">
-                <tokenizer class="solr.KeywordTokenizerFactory" />
+                <tokenizer class="solr.KeywordTokenizerFactory"/>
             </analyzer>
             <analyzer type="query">
                 <tokenizer class="solr.KeywordTokenizerFactory"/>
-                <filter class="solr.ReverseStringFilterFactory" />
+                <filter class="solr.ReverseStringFilterFactory"/>
                 <filter class="solr.PatternReplaceFilterFactory" pattern="[^\/]+\/" replacement="" replace="first"/>
-                <filter class="solr.ReverseStringFilterFactory" />
+                <filter class="solr.ReverseStringFilterFactory"/>
             </analyzer>
         </fieldType>
         <fieldType name="text_keepcase" class="solr.TextField" positionIncrementGap="100">
@@ -62,11 +64,11 @@
         </fieldType>
         <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100">
             <analyzer type="index">
-                <tokenizer class="solr.StandardTokenizerFactory"/>
+                <tokenizer class="solr.StandardTokenizerFactory" />
                 <filter class="solr.LowerCaseFilterFactory"/>
             </analyzer>
             <analyzer type="query">
-                <tokenizer class="solr.StandardTokenizerFactory"/>
+                <tokenizer class="solr.StandardTokenizerFactory" />
                 <filter class="solr.LowerCaseFilterFactory"/>
             </analyzer>
         </fieldType>
@@ -115,15 +117,9 @@
 
         <fieldtype name="binary" class="solr.BinaryField"/>
 
-        <fieldType name="point" class="solr.PointType" dimension="2" subFieldSuffix="_d"/>
-
-        <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_coordinate"/>
-
-        <fieldType name="location_rpt" class="solr.SpatialRecursivePrefixTreeFieldType"
-                   geo="true" distErrPct="0.025" maxDistErr="0.000009" units="degrees" />
-
         <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
     </types>
+
     <fields>
         <field name="path_exact" type="string" indexed="true" stored="true"/>
         <field name="path_child" type="children_path" indexed="true" stored="false"/>
@@ -131,12 +127,12 @@
         <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
         <field name="ignored" type="ignored" />
         <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true" termVectors="true"/> <!-- term vectors used for rep:similar -->
-        <field name=":path" type="string" indexed="true" stored="false"/>
+        <field name=":path" type="string" indexed="true" stored="false" />
         <field name=":indexed" type="tdate" indexed="true" stored="false" default="NOW" docValues="true"/>
-        <field name=":suggest-weight" type="tint" indexed="false" stored="false" default="1"  docValues="true"/>
+        <field name=":suggest-weight" type="tint" indexed="false" stored="false" default="1" docValues="true"/>
         <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
         <field name=":spellcheck" type="spellcheck" indexed="true" stored="false" multiValued="true" />
-        <field name="path_collapsed" type="string" indexed="true" stored="true"/>
+        <field name="path_collapsed" type="string" indexed="true" stored="false" docValues="true"/>
         <field name="path_depth" type="tint" indexed="true" stored="false"/>
         <field name="_version_" type="long" indexed="true" stored="true"/>
 
@@ -154,6 +150,7 @@
 
         <dynamicField name="*" type="text_general" indexed="true" stored="false" multiValued="true"/>
     </fields>
+
     <uniqueKey>path_exact</uniqueKey>
     <copyField source="path_exact" dest="path_anc"/>
     <copyField source="path_exact" dest="path_des"/>
@@ -168,4 +165,5 @@
     <copyField source="jcr:description" dest=":spellcheck"/>
     <copyField source="jcr:title" dest=":suggest"/>
     <copyField source="jcr:description" dest=":suggest"/>
+
 </schema>
