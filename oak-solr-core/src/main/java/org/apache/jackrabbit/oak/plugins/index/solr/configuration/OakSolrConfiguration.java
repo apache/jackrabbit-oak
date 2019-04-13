@@ -67,7 +67,7 @@ public interface OakSolrConfiguration {
     String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction);
 
     /**
-     * Provide the commit policy to be used by a given {@link org.apache.solr.client.solrj.SolrServer}
+     * Provide the commit policy to be used by a given {@link org.apache.solr.client.solrj.SolrClient}
      *
      * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration.CommitPolicy}
      */

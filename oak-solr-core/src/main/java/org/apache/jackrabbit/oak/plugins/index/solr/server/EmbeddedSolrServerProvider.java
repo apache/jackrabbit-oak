@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -29,7 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConf
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
-import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.core.CoreContainer;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -70,7 +69,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 String context = httpConfiguration.getContext();
                 JettySolrRunner jettySolrRunner = null;
                 try {
-                    jettySolrRunner = new JettySolrRunner(solrHomePath, context, httpPort, "solrconfig.xml", "schema.xml", true);
+                    jettySolrRunner = new JettySolrRunner(solrHomePath, context, httpPort);
                     if (log.isInfoEnabled()) {
                         log.info("Jetty runner instantiated");
                     }
@@ -246,7 +245,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         return getSolrServer();
     }
 
-    private class HttpWithJettySolrServer extends HttpSolrServer {
+    private class HttpWithJettySolrServer extends HttpSolrClient {
         private final JettySolrRunner jettySolrRunner;
 
         public HttpWithJettySolrServer(String s, JettySolrRunner jettySolrRunner) {
@@ -255,8 +254,8 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         }
 
         @Override
-        public void shutdown() {
-            super.shutdown();
+        public void close() throws IOException {
+            super.close();
             try {
                 if (jettySolrRunner != null) {
                     if (jettySolrRunner.isRunning()) {
