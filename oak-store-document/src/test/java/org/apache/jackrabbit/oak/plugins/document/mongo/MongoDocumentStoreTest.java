@@ -92,6 +92,26 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         assertThat(info.keySet(), hasItem("settings.count"));
     }
 
+    @Test
+    public void readOnly() throws Exception {
+        // setup must have created nodes collection with index on _bin
+        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.HAS_BINARY_FLAG));
+        mk.dispose();
+        // remove the indexes
+        mongoConnection = connectionFactory.getConnection();
+        assertNotNull(mongoConnection);
+        DocumentMK.Builder builder = new DocumentMK.Builder();
+        store = new TestStore(mongoConnection.getDB(), builder);
+        store.getDBCollection(Collection.NODES).dropIndexes();
+        // must be gone now
+        assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.HAS_BINARY_FLAG));
+
+        // start a new read-only DocumentNodeStore
+        mk = newBuilder(mongoConnection.getDB()).setReadOnlyMode().open();
+        // must still not exist when started in read-only mode
+        assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.HAS_BINARY_FLAG));
+    }
+
     static final class TestStore extends MongoDocumentStore {
         TestStore(DB db, DocumentMK.Builder builder) {
             super(db, builder);
