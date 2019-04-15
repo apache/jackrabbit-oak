@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -251,6 +252,29 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         try (ContentSession cs = login(ic)) {
             fail("Base credentials of ImpersonationCredentials can only be SimpleCredentials.");
         }
+    }
+
+    @Test
+    public void LoginUnsupportedCredentials() throws Exception {
+        Credentials unsupportedCredentials = mock(Credentials.class);
+
+        CallbackHandler cbh = callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof RepositoryCallback) {
+                    ((RepositoryCallback) callback).setSecurityProvider(getSecurityProvider());
+                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
+                } else if (callback instanceof CredentialsCallback) {
+                    ((CredentialsCallback) callback).setCredentials(unsupportedCredentials);
+                } else {
+                    throw new UnsupportedCallbackException(callback);
+                }
+            }
+        };
+
+        Subject subject = new Subject(false, ImmutableSet.of(), ImmutableSet.of(unsupportedCredentials), ImmutableSet.of());
+        LoginModuleImpl lm = new LoginModuleImpl();
+        lm.initialize(subject, cbh, Maps.newHashMap(), Maps.newHashMap());
+        assertFalse(lm.login());
     }
 
     @Test
