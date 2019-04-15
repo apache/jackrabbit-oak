@@ -33,6 +33,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
@@ -79,6 +80,31 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         n2.setProperty("jcr:statement", vf.createValue("statement"));
         n2.setProperty("jcr:language", vf.createValue("language"));
 
+        session.save();
+    }
+
+    @Test
+    public void setPrimaryTypeWithMandatoryAutoCreatedChild() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
+
+        NodeTypeTemplate ntt = manager.createNodeTypeTemplate(manager.getNodeType(JcrConstants.NT_QUERY));
+        ntt.setName("rep:test");
+
+        NodeDefinitionTemplate ndt = manager.createNodeDefinitionTemplate();
+        ndt.setName("mandatoryAutoCreated");
+        ndt.setAutoCreated(true);
+        ndt.setMandatory(true);
+        ndt.setDefaultPrimaryTypeName(JcrConstants.NT_UNSTRUCTURED);
+        ndt.setRequiredPrimaryTypeNames(new String[] {JcrConstants.NT_UNSTRUCTURED});
+
+        ntt.getNodeDefinitionTemplates().add(ndt);
+
+        manager.registerNodeType(ntt, true);
+
+        Node node = root.addNode("a", JcrConstants.NT_UNSTRUCTURED);
+        node.setPrimaryType("rep:test");
         session.save();
     }
 
