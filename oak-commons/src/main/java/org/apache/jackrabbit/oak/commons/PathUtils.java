@@ -174,6 +174,9 @@ public final class PathUtils {
      */
     @NotNull
     public static String dropIndexFromName(@NotNull String name) {
+        if (!name.endsWith("]")) {
+            return name;
+        }
         Matcher matcher = SNS_PATTERN.matcher(name);
         if (matcher.matches()) {
             return matcher.group(1);
