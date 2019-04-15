@@ -57,6 +57,7 @@ import javax.jcr.Value;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -93,6 +94,7 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -1363,6 +1365,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         PropertyState state = PropertyStates.createProperty(
                 JCR_PRIMARYTYPE, getOakName(nodeTypeName), NAME);
         dlg.setProperty(state, true, true);
+
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NodeTypeConstants.NODE_TYPES_PATH);
+        TreeUtil.autoCreateItems(
+                dlg.getTree(), typeRoot.getChild(nodeTypeName), typeRoot, sessionDelegate.getAuthInfo().getUserID());
+
         dlg.setOrderableChildren(nt.hasOrderableChildNodes());
     }
 
