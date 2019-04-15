@@ -67,6 +67,7 @@
     <module>oak-it-osgi</module>
     <module>oak-pojosr</module>
     <module>oak-authorization-cug</module>
+    <module>oak-authorization-principalbased</module>
     <module>oak-exercise</module>
     <module>oak-examples</module>
     <module>oak-it</module>
