@@ -261,6 +261,23 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             replicaInfoThread.start();
         }
 
+        if (!readOnly) {
+            ensureIndexes(mongoStatus);
+        }
+
+        this.nodeLocks = new StripedNodeDocumentLocks();
+        this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
+
+        LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
+                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
+                "{}, serverStatus {}",
+                mongoStatus.getVersion(), maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
+                disableIndexHint, db.getWriteConcern(),
+                mongoStatus.getServerDetails());
+
+    }
+
+    private void ensureIndexes(@NotNull MongoStatus mongoStatus) {
         // indexes:
         // the _id field is the primary key, so we don't need to define it
 
@@ -273,11 +290,9 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                     new boolean[]{true, true}, false, false);
         } else if (!hasIndex(nodes, NodeDocument.MODIFIED_IN_SECS, Document.ID)) {
             hasModifiedIdCompoundIndex = false;
-            if (!builder.getReadOnlyMode()) {
-                LOG.warn("Detected an upgrade from Oak version <= 1.2. For optimal " +
-                        "performance it is recommended to create a compound index " +
-                        "for the 'nodes' collection on {_modified:1, _id:1}.");
-            }
+            LOG.warn("Detected an upgrade from Oak version <= 1.2. For optimal " +
+                    "performance it is recommended to create a compound index " +
+                    "for the 'nodes' collection on {_modified:1, _id:1}.");
         }
 
         // index on the _bin flag to faster access nodes with binaries for GC
@@ -293,14 +308,12 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
                 createIndex(nodes, NodeDocument.DELETED_ONCE, true, false, true);
             }
         } else if (!hasIndex(nodes, DELETED_ONCE, MODIFIED_IN_SECS)) {
-            if (!builder.getReadOnlyMode()) {
-                LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
-                        "Revision GC performance it is recommended to create a " +
-                        "partial index for the 'nodes' collection on " +
-                        "{_deletedOnce:1, _modified:1} with a partialFilterExpression " +
-                        "{_deletedOnce:true}. Partial indexes require MongoDB 3.2 " +
-                        "or higher.");
-            }
+            LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
+                    "Revision GC performance it is recommended to create a " +
+                    "partial index for the 'nodes' collection on " +
+                    "{_deletedOnce:1, _modified:1} with a partialFilterExpression " +
+                    "{_deletedOnce:true}. Partial indexes require MongoDB 3.2 " +
+                    "or higher.");
         }
 
         // compound index on _sdType and _sdMaxRevTime
@@ -310,26 +323,14 @@ public class MongoDocumentStore implements DocumentStore, RevisionListener {
             createIndex(nodes, new String[]{SD_TYPE, SD_MAX_REV_TIME_IN_SECS},
                     new boolean[]{true, true}, false, true);
         } else if (!hasIndex(nodes, SD_TYPE, SD_MAX_REV_TIME_IN_SECS)) {
-            if (!builder.getReadOnlyMode()) {
-                LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
-                        "Revision GC performance it is recommended to create a " +
-                        "sparse compound index for the 'nodes' collection on " +
-                        "{_sdType:1, _sdMaxRevTime:1}.");
-            }
+            LOG.warn("Detected an upgrade from Oak version <= 1.6. For optimal " +
+                    "Revision GC performance it is recommended to create a " +
+                    "sparse compound index for the 'nodes' collection on " +
+                    "{_sdType:1, _sdMaxRevTime:1}.");
         }
 
         // index on _modified for journal entries
         createIndex(journal, JournalEntry.MODIFIED, true, false, false);
-
-        this.nodeLocks = new StripedNodeDocumentLocks();
-        this.nodesCache = builder.buildNodeDocumentCache(this, nodeLocks);
-
-        LOG.info("Connected to MongoDB {} with maxReplicationLagMillis {}, " +
-                "maxDeltaForModTimeIdxSecs {}, disableIndexHint {}, " +
-                "{}, serverStatus {}",
-                mongoStatus.getVersion(), maxReplicationLagMillis, maxDeltaForModTimeIdxSecs,
-                disableIndexHint, db.getWriteConcern(),
-                mongoStatus.getServerDetails());
     }
 
     public boolean isReadOnly() {
