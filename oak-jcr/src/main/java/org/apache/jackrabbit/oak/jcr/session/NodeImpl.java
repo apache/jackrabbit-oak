@@ -57,7 +57,6 @@ import javax.jcr.Value;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
