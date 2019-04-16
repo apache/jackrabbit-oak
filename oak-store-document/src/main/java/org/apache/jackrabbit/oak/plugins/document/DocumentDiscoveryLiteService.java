@@ -509,15 +509,11 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         if (lastWrittenRootRevStr == null) {
             boolean warn = false;
             Object oakVersion = clusterNode.get(ClusterNodeInfo.OAK_VERSION_KEY);
-            if (oakVersion!=null && (oakVersion instanceof String)) {
-                try{
-                    Version actual = Version.parseVersion((String) oakVersion);
-                    Version introduced = Version.parseVersion("1.3.5");
-                    if (actual.compareTo(introduced)>=0) {
-                        warn = true;
-                    }
-                } catch(Exception e) {
-                    logger.debug("hasBacklog: couldn't parse version "+oakVersion+" : "+e);
+            if (oakVersion != null && (oakVersion instanceof String)) {
+                try {
+                    warn = versionPredates("1.3.5", (String) oakVersion);
+                } catch (Exception e) {
+                    logger.debug("hasBacklog: couldn't parse version " + oakVersion + " : " + e);
                     warn = true;
                 }
             }
@@ -540,6 +536,17 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
                     clusterNode.getClusterId(), lastKnownRevision, lastWrittenRootRev, hasBacklog);
         }
         return hasBacklog;
+    }
+
+    static boolean versionPredates(String base, String compare) {
+        Version one = Version.parseVersion(substSnapshotPrefix(compare));
+        Version two = Version.parseVersion(substSnapshotPrefix(base));
+        return two.compareTo(one) > 0;
+    }
+
+    private static String substSnapshotPrefix(String version) {
+        String snapshot = "-SNAPSHOT";
+        return version.endsWith(snapshot) ? version.substring(0, version.length() - snapshot.length()) + ".999999" : version;
     }
 
     private ClusterViewDocument doCheckView(final Set<Integer> activeNodes, final Set<Integer> recoveringNodes,
