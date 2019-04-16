@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 
-import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Result;
@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
@@ -40,8 +39,9 @@ public class ExplainResultTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
+        return new Oak()
                 .with(new OpenSecurityProvider())
+                .with(new InitialContent())
                 .with(new PropertyIndexProvider())
                 .with(new PropertyIndexEditorProvider()).createContentRepository();
     }

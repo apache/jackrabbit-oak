@@ -503,7 +503,7 @@ public class QueryImpl implements Query {
                     new PropertyValue[] {
                             PropertyValues.newString(plan),
                             // remove "explain" keyword from query statement to produce explained statement
-                            PropertyValues.newString(statement.replaceFirst("(?i)explain ", ""))
+                            PropertyValues.newString(statement.replaceFirst("(?i)\\bexplain\\s+", ""))
                     },
                     null, null);
             return Arrays.asList(r).iterator();
