@@ -363,22 +363,19 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getCompositeStore(final String name, final File base,
-                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
-                                               final int mounts, final int pathsPerMount) {
-        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount);
+                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping) {
+        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping);
     }
 
-    public static OakFixture getCompositeMemoryStore(final String name, final int mounts, final int pathsPerMount) {
-        return newCompositeMemoryFixture(name, mounts, pathsPerMount);
+    public static OakFixture getCompositeMemoryStore(final String name) {
+        return newCompositeMemoryFixture(name);
     }
 
     public static OakFixture getCompositeMongoStore(String name,
                                                     String uri,
                                                     long cacheSize,
-                                                    boolean dropDBAfterTest,
-                                                    int mounts,
-                                                    int pathsPerMount) {
-        return newCompositeMongoFixture(name, uri, dropDBAfterTest, cacheSize, mounts, pathsPerMount);
+                                                    boolean dropDBAfterTest) {
+        return newCompositeMongoFixture(name, uri, dropDBAfterTest, cacheSize);
     }
 
 

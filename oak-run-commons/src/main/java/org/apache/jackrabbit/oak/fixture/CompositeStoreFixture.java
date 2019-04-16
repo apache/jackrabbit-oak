@@ -51,10 +51,6 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 abstract class CompositeStoreFixture extends OakFixture {
 
-    private final int mounts;
-
-    private final int pathsPerMount;
-
     private static final MountInfoProvider MOUNT_INFO_PROVIDER = Mounts.newBuilder()
             .mount("libs", true, asList(
                     "/oak:index/*$" // pathsSupportingFragments
@@ -64,14 +60,12 @@ abstract class CompositeStoreFixture extends OakFixture {
                     "/jcr:system/rep:permissionStore/oak:mount-libs-crx.default"))
             .build();
 
-    private CompositeStoreFixture(String name, int mounts, int pathsPerMount) {
+    private CompositeStoreFixture(String name) {
         super(name);
-        this.mounts = mounts;
-        this.pathsPerMount = pathsPerMount;
     }
 
-    static OakFixture newCompositeMemoryFixture(String name, int mounts, int pathsPerMount) {
-        return new CompositeStoreFixture(name, mounts, pathsPerMount) {
+    static OakFixture newCompositeMemoryFixture(String name) {
+        return new CompositeStoreFixture(name) {
             @Override
             protected NodeStore getNodeStore() {
                 return new MemoryNodeStore();
@@ -85,8 +79,8 @@ abstract class CompositeStoreFixture extends OakFixture {
     }
 
     static OakFixture newCompositeSegmentFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
-                                                 boolean memoryMapping, int mounts, int pathsPerMount) {
-        return new CompositeStoreFixture(name, mounts, pathsPerMount) {
+                                                 boolean memoryMapping) {
+        return new CompositeStoreFixture(name) {
 
             private FileStore fileStore;
 
@@ -113,10 +107,8 @@ abstract class CompositeStoreFixture extends OakFixture {
     static OakFixture newCompositeMongoFixture(String name,
                                                String uri,
                                                boolean dropDBAfterTest,
-                                               long cacheSize,
-                                               int mounts,
-                                               int pathsPerMount) {
-        return new CompositeStoreFixture(name, mounts, pathsPerMount) {
+                                               long cacheSize) {
+        return new CompositeStoreFixture(name) {
 
             private String database = new MongoClientURI(uri).getDatabase();
             private DocumentNodeStore ns;
