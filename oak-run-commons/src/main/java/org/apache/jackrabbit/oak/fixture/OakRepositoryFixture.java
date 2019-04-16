@@ -122,21 +122,19 @@ public class OakRepositoryFixture implements RepositoryFixture {
     }
 
     public static RepositoryFixture getCompositeStore(File base, int maxFileSizeMB, int cacheSizeMB,
-                                                      final boolean memoryMapping, int mounts, int pathsPerMount) {
+                                                      final boolean memoryMapping) {
         return new OakRepositoryFixture(OakFixture.getCompositeStore(OakFixture.OAK_COMPOSITE_STORE,
-                base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount));
+                base, maxFileSizeMB, cacheSizeMB, memoryMapping));
     }
 
-    public static RepositoryFixture getCompositeMemoryStore(int mounts, int pathsPerMount) {
-        return new OakRepositoryFixture(OakFixture.getCompositeMemoryStore(OakFixture.OAK_COMPOSITE_MEMORY_STORE, mounts, pathsPerMount));
+    public static RepositoryFixture getCompositeMemoryStore() {
+        return new OakRepositoryFixture(OakFixture.getCompositeMemoryStore(OakFixture.OAK_COMPOSITE_MEMORY_STORE));
     }
 
-    public static RepositoryFixture getCompositeMongoStore(String uri, long cacheSize, boolean dropDBAfterTest,
-                                                           int mounts, int pathsPerMount) {
+    public static RepositoryFixture getCompositeMongoStore(String uri, long cacheSize, boolean dropDBAfterTest) {
         return new OakRepositoryFixture(OakFixture.getCompositeMongoStore(
                 OakFixture.OAK_COMPOSITE_MONGO_STORE,
-                uri, cacheSize, dropDBAfterTest,
-                mounts, pathsPerMount)
+                uri, cacheSize, dropDBAfterTest)
         );
     }
 

@@ -174,10 +174,6 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> transientWrites = parser.accepts("transient", "Do not save data.")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
-        OptionSpec<Integer> mounts = parser.accepts("mounts", "Number of mounts for the composite node store.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(2);
-        OptionSpec<Integer> pathsPerMount = parser.accepts("pathsPerMount", "Number of paths per one mount.")
-                .withOptionalArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> vgcMaxAge = parser.accepts("vgcMaxAge", "Continuous DocumentNodeStore VersionGC max age in sec (RDB only)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(-1);
         OptionSpec<Integer> coldSyncInterval = parser.accepts("coldSyncInterval", "interval between sync cycles in sec (Segment-Tar-Cold only)")
@@ -257,10 +253,10 @@ public class BenchmarkRunner {
                         dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
                         fdsCache.value(options), vgcMaxAge.value(options)),
                 OakRepositoryFixture.getCompositeStore(base.value(options), 256, cacheSize,
-                        mmap.value(options), mounts.value(options), pathsPerMount.value(options)),
-                OakRepositoryFixture.getCompositeMemoryStore(mounts.value(options), pathsPerMount.value(options)),
+                        mmap.value(options)),
+                OakRepositoryFixture.getCompositeMemoryStore(),
                 OakRepositoryFixture.getCompositeMongoStore(uri, cacheSize * MB,
-                        dropDBAfterTest.value(options), mounts.value(options), pathsPerMount.value(options))
+                        dropDBAfterTest.value(options))
         };
 
         Benchmark[] allBenchmarks = new Benchmark[] {
