@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import static javax.jcr.security.Privilege.JCR_READ;
+import static org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils.addAccessControlEntry;
+import static org.junit.Assert.assertTrue;
+
 import javax.jcr.Node;
 import javax.jcr.Session;
+
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
  * Benchmark for Node.isNodeType(String).
@@ -26,14 +32,21 @@ public class IsNodeTypeTest extends AbstractTest<Node> {
 
     private static final String NT_FOLDER = "nt:folder";
 
+    private final boolean runAsAdmin;
+
     private String testNodeName = "test" + TEST_ID;
 
     private Node testNode;
+
+    public IsNodeTypeTest(boolean runAsAdmin) {
+        this.runAsAdmin = runAsAdmin;
+    }
 
     @Override
     public void beforeSuite() throws Exception {
         Session session = getRepository().login(getCredentials());
         session.getRootNode().addNode(testNodeName, NT_FOLDER);
+        addAccessControlEntry(session, "/", EveryonePrincipal.getInstance(), new String[] { JCR_READ }, true);
         session.save();
         session.logout();
         testNode = prepareThreadExecutionContext();
@@ -50,7 +63,15 @@ public class IsNodeTypeTest extends AbstractTest<Node> {
 
     @Override
     protected Node prepareThreadExecutionContext() throws Exception {
-        return loginWriter().getRootNode().getNode(testNodeName);
+        return getTestSession().getRootNode().getNode(testNodeName);
+    }
+
+    private Session getTestSession() {
+        if (runAsAdmin) {
+            return loginWriter();
+        } else {
+            return loginAnonymous();
+        }
     }
 
     @Override
@@ -62,7 +83,7 @@ public class IsNodeTypeTest extends AbstractTest<Node> {
     @Override
     protected void runTest(Node executionContext) throws Exception {
         for (int i = 0; i < 100000; i++) {
-            executionContext.isNodeType(NT_FOLDER);
+            assertTrue(executionContext.isNodeType(NT_FOLDER));
         }
     }
 
