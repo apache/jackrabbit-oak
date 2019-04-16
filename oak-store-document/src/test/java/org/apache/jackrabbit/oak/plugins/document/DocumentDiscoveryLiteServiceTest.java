@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -105,4 +107,17 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
         doStartStopFiesta(LOOP_CNT);
     }
 
+    @Test
+    public void versionCompare() {
+        // see OAK-8139
+
+        assertTrue(DocumentDiscoveryLiteService.versionPredates("1.3.5", "1.0.0"));
+        assertTrue(DocumentDiscoveryLiteService.versionPredates("1.3.5", "1.0.10-SNAPSHOT"));
+        assertTrue(DocumentDiscoveryLiteService.versionPredates("1.3.5", "1.3.4"));
+
+        assertFalse(DocumentDiscoveryLiteService.versionPredates("1.3.5", "1.4.0"));
+        assertFalse(DocumentDiscoveryLiteService.versionPredates("1.3.5", "1.14-SNAPSHOT"));
+        assertFalse(DocumentDiscoveryLiteService.versionPredates("1.3.5", "1.4.0"));
+        assertFalse(DocumentDiscoveryLiteService.versionPredates("1.3.5", "4.0.0"));
+    }
 }
