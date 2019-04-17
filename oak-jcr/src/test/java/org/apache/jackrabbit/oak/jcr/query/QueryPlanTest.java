@@ -29,6 +29,7 @@ import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -74,7 +75,8 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         result = q.execute();
         it = result.getRows();
         assertTrue(it.hasNext());
-        String plan = it.nextRow().getValue("plan").getString();
+        Row row = it.nextRow();
+        String plan = row.getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should use the node type index
         assertEquals("[oak:Unstructured] as [a] " + 
@@ -84,6 +86,12 @@ public class QueryPlanTest extends AbstractRepositoryTest {
                 "/* xpath: /jcr:root//element(*, oak:Unstructured) */" + 
                 ", path=//*) where isdescendantnode([a], [/]) */", 
                 plan);
+
+        String sql2 = row.getValue("statement").getString();
+        assertEquals("select [jcr:path], [jcr:score], * " +
+                "from [oak:Unstructured] as a " +
+                "where isdescendantnode(a, '/') " +
+                "/* xpath: /jcr:root//element(*, oak:Unstructured) */", sql2);
 
         String xpath2 = "/jcr:root//element(*, oak:Unstructured)[@jcr:uuid]";
         q = qm.createQuery("explain " + xpath2 + "", "xpath");
