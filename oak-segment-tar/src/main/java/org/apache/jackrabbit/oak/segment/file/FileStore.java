@@ -80,6 +80,7 @@ public class FileStore extends AbstractFileStore {
      */
     private static final String SEGMENT_COUNT = "SEGMENT_COUNT";
 
+
     private static GarbageCollectionStrategy newGarbageCollectionStrategy() {
         if (Boolean.getBoolean("gc.classic")) {
             return new SynchronizedGarbageCollectionStrategy(new DefaultGarbageCollectionStrategy());
@@ -502,6 +503,7 @@ public class FileStore extends AbstractFileStore {
         } catch (ExecutionException | UncheckedExecutionException e) {
             SegmentNotFoundException snfe = asSegmentNotFoundException(e, id);
             snfeListener.notify(id, snfe);
+            stats.notify(id, snfe);
             throw snfe;
         }
     }
