@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import com.google.common.collect.ImmutableSet;
@@ -318,7 +319,7 @@ public class PrincipalManagerImplTest {
 
     @Test
     public void testFindPrincipalsWithOffsetLimit() {
-        PrincipalProvider pp = when(mock(PrincipalProvider.class).findPrincipals(any(), anyBoolean(), anyInt(), anyInt(), anyInt())).thenReturn(Iterators.emptyIterator()).getMock();
+        PrincipalProvider pp = when(mock(PrincipalProvider.class).findPrincipals(any(), anyBoolean(), anyInt(), anyInt(), anyInt())).thenReturn(Collections.emptyIterator()).getMock();
         PrincipalQueryManager pm = new PrincipalManagerImpl(pp);
 
         PrincipalIterator it = pm.findPrincipals("filter", true, PrincipalManager.SEARCH_TYPE_ALL, 5, 2);
