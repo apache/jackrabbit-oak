@@ -25,6 +25,9 @@ import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -32,28 +35,37 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
 
-public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
+public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor, SegmentNotFoundExceptionListener {
     public static final String SEGMENT_REPO_SIZE = "SEGMENT_REPO_SIZE";
     public static final String SEGMENT_WRITES = "SEGMENT_WRITES";
     public static final String JOURNAL_WRITES = "JOURNAL_WRITES";
-    
+    private static final String SNFE_COUNT = "SNFE_COUNT";
+
     private final StatisticsProvider statisticsProvider;
     private final FileStore store;
     private final MeterStats writeStats;
     private final CounterStats repoSize;
     private final MeterStats journalWriteStats;
-    
+    private final CounterStats snfeCountStats;
+
     public FileStoreStats(StatisticsProvider statisticsProvider, FileStore store, long initialSize) {
         this.statisticsProvider = statisticsProvider;
         this.store = store;
         this.writeStats = statisticsProvider.getMeter(SEGMENT_WRITES, StatsOptions.DEFAULT);
         this.repoSize = statisticsProvider.getCounterStats(SEGMENT_REPO_SIZE, StatsOptions.DEFAULT);
         this.journalWriteStats = statisticsProvider.getMeter(JOURNAL_WRITES, StatsOptions.DEFAULT);
+        this.snfeCountStats = statisticsProvider.getCounterStats(SNFE_COUNT, StatsOptions.DEFAULT);
         repoSize.inc(initialSize);
     }
 
     public void init(long initialSize) {
         repoSize.inc(initialSize);
+    }
+
+    //~-----------------------------< SegmentNotFoundExceptionListener >
+    @Override
+    public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) {
+        snfeCountStats.inc();
     }
 
     //~-----------------------------< FileStoreMonitor >
@@ -68,7 +80,7 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
     public void reclaimed(long size) {
         repoSize.dec(size);
     }
-    
+
     @Override
     public void flushed() {
         journalWriteStats.mark();
@@ -110,12 +122,12 @@ public class FileStoreStats implements FileStoreStatsMBean, FileStoreMonitor {
                 IOUtils.humanReadableByteCount(getApproximateSize()),
                 getTarFileCount());
     }
-    
+
     @Override
     public long getJournalWriteStatsAsCount() {
         return journalWriteStats.getCount();
     }
-    
+
     @Override
     public CompositeData getJournalWriteStatsAsCompositeData() {
         return asCompositeData(getTimeSeries(JOURNAL_WRITES), JOURNAL_WRITES);
