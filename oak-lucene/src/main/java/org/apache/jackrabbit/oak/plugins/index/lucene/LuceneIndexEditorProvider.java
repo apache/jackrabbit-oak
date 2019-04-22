@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.*;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirecetoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.IndexingQueue;
@@ -50,8 +54,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -213,7 +219,12 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             }
 
             if (writerFactory == null) {
-                writerFactory = new DefaultIndexWriterFactory(mountInfoProvider, newDirectoryFactory(blobDeletionCallback), writerConfig);
+                COWDirectoryCleanupCallback cowDirectoryCleanupCallback = new COWDirectoryCleanupCallback();
+                indexingContext.registerIndexCommitCallback(cowDirectoryCleanupCallback);
+
+                writerFactory = new DefaultIndexWriterFactory(mountInfoProvider,
+                        newDirectoryFactory(blobDeletionCallback, cowDirectoryCleanupCallback),
+                        writerConfig);
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
@@ -251,8 +262,9 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.inMemoryDocsLimit = inMemoryDocsLimit;
     }
 
-    protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback) {
-        return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback);
+    protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback,
+                                                   COWDirecetoryTracker cowDirectoryTracker) {
+        return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback, cowDirectoryTracker);
     }
 
     private LuceneDocumentHolder getDocumentHolder(CommitContext commitContext){
@@ -287,5 +299,43 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     private static CommitContext getCommitContext(IndexingContext indexingContext) {
         return (CommitContext) indexingContext.getCommitInfo().getInfo().get(CommitContext.NAME);
+    }
+
+    private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirecetoryTracker {
+        private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
+
+        private List<CopyOnWriteDirectory> openedCoWDirectories = Lists.newArrayList();
+        private List<File> reindexingLocalDirectories = Lists.newArrayList();
+
+
+        @Override
+        public void commitProgress(IndexProgress indexProgress) {
+            // we only worry about failed indexing
+            if (indexProgress == IndexProgress.COMMIT_FAILED) {
+                for (CopyOnWriteDirectory d : openedCoWDirectories) {
+                    try {
+                        d.close();
+                    } catch (Exception e) {
+                        LOG.warn("Error occurred while closing {}", d, e);
+                    }
+                }
+
+                for (File f : reindexingLocalDirectories) {
+                    if ( ! FileUtils.deleteQuietly(f)) {
+                        LOG.warn("Failed to delete {}", f);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void registerOpenedDirectory(@NotNull CopyOnWriteDirectory directory) {
+            openedCoWDirectories.add(directory);
+        }
+
+        @Override
+        public void registerReindexingLocalDirectory(@NotNull File dir) {
+            reindexingLocalDirectories.add(dir);
+        }
     }
 }

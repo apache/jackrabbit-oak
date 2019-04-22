@@ -595,7 +595,8 @@ public class IndexCopierTest {
         IndexCopier copier = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-        Directory dir = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        Directory dir = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
 
         byte[] t1 = writeFile(dir, "t1");
 
@@ -613,7 +614,8 @@ public class IndexCopierTest {
         IndexCopier copier = new IndexCopier(sameThreadExecutor(), getWorkDir());
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-        Directory dir = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        Directory dir = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
 
         byte[] t1 = writeFile(dir, "t1");
 
@@ -642,7 +644,8 @@ public class IndexCopierTest {
         //State of remote directory should set before wrapping as later
         //additions would not be picked up given COW assume remote directory
         //to be read only
-        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
 
         assertEquals(newHashSet("t1"), newHashSet(local.listAll()));
         assertEquals(t1.length, local.fileLength("t1"));
@@ -699,7 +702,8 @@ public class IndexCopierTest {
         Directory remote = new CloseSafeDir();
         byte[] t1 = writeFile(remote, "t1");
         byte[] t2 = writeFile(remote, "t2");
-        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
         assertEquals(newHashSet("t1", "t2"), newHashSet(local.listAll()));
 
         byte[] t3 = writeFile(local, "t3");
@@ -749,7 +753,8 @@ public class IndexCopierTest {
             }
         };
         byte[] t1 = writeFile(remote, "t1");
-        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
 
         //Read should be served from remote
         readRemotes.clear();readLocal.clear();
@@ -779,7 +784,8 @@ public class IndexCopierTest {
 
         Directory remote = new CloseSafeDir();
 
-        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
         byte[] t1 = writeFile(local, "t1");
 
         assertTrue(local.fileExists("t1"));
@@ -841,7 +847,8 @@ public class IndexCopierTest {
 
         Directory remote = new CloseSafeDir();
 
-        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
         byte[] t1 = writeFile(local, "t1");
 
         assertTrue(local.fileExists("t1"));
@@ -909,7 +916,8 @@ public class IndexCopierTest {
             }
         };
 
-        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
         toFail.add("t2");
         byte[] t1 = writeFile(local, "t1");
         byte[] t2 = writeFile(local, "t2");
@@ -947,7 +955,8 @@ public class IndexCopierTest {
             }
         };
 
-        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME);
+        final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
         toPause.add("t2");
         byte[] t1 = writeFile(local, "t1");
         byte[] t2 = writeFile(local, "t2");
@@ -1018,7 +1027,8 @@ public class IndexCopierTest {
         };
 
         //Start copying a file to remote via COW
-        Directory cow1 = copier.wrapForWrite(defn, remote2, false, INDEX_DATA_CHILD_NAME);
+        Directory cow1 = copier.wrapForWrite(defn, remote2, false, INDEX_DATA_CHILD_NAME,
+                IndexCopier.COWDirecetoryTracker.NOOP);
         byte[] f2 = writeFile(cow1, "f2");
 
         //Before copy is done to remote lets delete f1 from remote and
@@ -1145,7 +1155,9 @@ public class IndexCopierTest {
         }
 
         @Override
-        protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName) throws IOException {
+        protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName,
+                                                         boolean reindexMode,
+                                                         COWDirecetoryTracker cowDirecetoryTracker) throws IOException {
             return baseDir;
         }
     }
