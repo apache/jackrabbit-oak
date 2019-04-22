@@ -716,6 +716,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         // task will take care of it
         taskSplitter.maybeSplit(beforeCheckpoint, callback.lease);
         IndexUpdate indexUpdate = null;
+        boolean indexingFailed = false;
         try {
             NodeBuilder builder = store.getRoot().builder();
 
@@ -779,9 +780,12 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
 
             corruptIndexHandler.markWorkingIndexes(indexUpdate.getUpdatedIndexPaths());
+        } catch (Exception e) {
+            indexingFailed = true;
+            throw e;
         } finally {
             if (indexUpdate != null) {
-                if (updatePostRunStatus) {
+                if ( !indexingFailed ) {
                     indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED);
                 } else {
                     indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_FAILED);
