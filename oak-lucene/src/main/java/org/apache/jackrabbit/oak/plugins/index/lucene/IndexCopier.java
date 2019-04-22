@@ -56,6 +56,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.NoLockFactory;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,11 +125,17 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return new CopyOnReadDirectory(this, remote, local, prefetchEnabled, indexPath, executor);
     }
 
-    public Directory wrapForWrite(LuceneIndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
-        Directory local = createLocalDirForIndexWriter(definition, dirName);
+    public Directory wrapForWrite(LuceneIndexDefinition definition, Directory remote,
+                                  boolean reindexMode, String dirName,
+                                  COWDirecetoryTracker cowDirecetoryTracker) throws IOException {
+        Directory local = createLocalDirForIndexWriter(definition, dirName, reindexMode, cowDirecetoryTracker);
         String indexPath = definition.getIndexPath();
         checkIntegrity(indexPath, local, remote);
-        return new CopyOnWriteDirectory(this, remote, local, reindexMode, indexPath, executor);
+
+        CopyOnWriteDirectory cowDirectory = new CopyOnWriteDirectory(this, remote, local, reindexMode, indexPath, executor);
+        cowDirecetoryTracker.registerOpenedDirectory(cowDirectory);
+
+        return cowDirectory;
     }
 
     @Override
@@ -148,9 +155,15 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return indexRootDirectory;
     }
 
-    protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName) throws IOException {
+    protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName,
+                                                     boolean reindexMode,
+                                                     COWDirecetoryTracker cowDirecetoryTracker) throws IOException {
         String indexPath = definition.getIndexPath();
         File indexWriterDir = getIndexDir(definition, indexPath, dirName);
+
+        if (reindexMode) {
+            cowDirecetoryTracker.registerReindexingLocalDirectory(indexWriterDir);
+        }
 
         //By design indexing in Oak is single threaded so Lucene locking
         //can be disabled
@@ -636,5 +649,18 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    public interface COWDirecetoryTracker {
+        void registerOpenedDirectory(@NotNull CopyOnWriteDirectory directory);
+        void registerReindexingLocalDirectory(@NotNull File dir);
+
+        COWDirecetoryTracker NOOP = new COWDirecetoryTracker() {
+            @Override
+            public void registerOpenedDirectory(CopyOnWriteDirectory directory) {}
+
+            @Override
+            public void registerReindexingLocalDirectory(File dir) {}
+        };
     }
 }

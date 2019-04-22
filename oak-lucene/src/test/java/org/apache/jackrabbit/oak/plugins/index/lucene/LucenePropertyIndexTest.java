@@ -215,8 +215,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
                 @Override
                 public Directory wrapForWrite(LuceneIndexDefinition definition,
-                                              Directory remote, boolean reindexMode, String dirName) throws IOException {
-                    Directory ret = super.wrapForWrite(definition, remote, reindexMode, dirName);
+                                              Directory remote, boolean reindexMode, String dirName,
+                                              COWDirecetoryTracker cowDirecetoryTracker) throws IOException {
+                    Directory ret = super.wrapForWrite(definition, remote, reindexMode, dirName, cowDirecetoryTracker);
                     cowDir = getFSDirPath(ret);
                     return ret;
                 }

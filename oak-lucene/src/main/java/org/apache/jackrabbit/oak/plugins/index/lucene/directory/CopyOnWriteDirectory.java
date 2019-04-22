@@ -79,6 +79,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     private final CountDownLatch copyDone = new CountDownLatch(1);
     private final boolean reindexMode;
     private final String indexPath;
+    private boolean closed;
 
     /**
      * Current background task
@@ -203,8 +204,16 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         return ref.openInput(context);
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
+
     @Override
     public void close() throws IOException {
+        if (isClosed()) {
+            return;
+        }
+
         int pendingCopies = queue.size();
         addTask(STOP);
 
@@ -257,6 +266,8 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         local.close();
         remote.close();
+
+        closed = true;
     }
 
     @Override
