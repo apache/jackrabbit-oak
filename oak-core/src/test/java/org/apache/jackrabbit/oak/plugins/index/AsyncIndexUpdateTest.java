@@ -74,6 +74,7 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -1934,6 +1935,69 @@ public class AsyncIndexUpdateTest {
         supersedingIndex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(supersedingIndexName);
         assertFalse("Don't keep :disableIndexesOnNextCycle on superseding index after disabling",
                 supersedingIndex.hasProperty(DISABLE_INDEXES_ON_NEXT_CYCLE));
+    }
+
+    @Test
+    public void indexCommitCallback() throws Exception {
+        AtomicBoolean gotFailedCommit = new AtomicBoolean();
+        AtomicBoolean gotSuccessfulCommit = new AtomicBoolean();
+        AtomicBoolean shouldFail = new AtomicBoolean();
+
+        MemoryNodeStore store = new MemoryNodeStore();
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, (type, definition, root, callback) -> {
+            IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
+            indexingContext.registerIndexCommitCallback(indexProgress -> {
+                switch (indexProgress) {
+                    case COMMIT_FAILED:
+                        gotFailedCommit.set(true);
+                        break;
+                    case COMMIT_SUCCEDED:
+                        gotSuccessfulCommit.set(true);
+                        break;
+                }
+            });
+
+            if (shouldFail.get()) {
+                throw new CommitFailedException("indexer-fail", 1, "Explicitly failing while indexing");
+            }
+            return new DefaultEditor();
+        });
+
+        // Make index
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("oak:index").child("fooIndex").setProperty("async", "async").setProperty("type", "foo");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // reset stats
+        gotFailedCommit.set(false);
+        gotSuccessfulCommit.set(false);
+
+        // make some change which should succeed
+        builder = store.getRoot().builder();
+        builder.setProperty("foo", "bar");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+
+        assertTrue("Successful indexing commit must report success", gotSuccessfulCommit.get());
+        assertFalse("Successful indexing commit must not report failure", gotFailedCommit.get());
+
+        // reset stats
+        gotFailedCommit.set(false);
+        gotSuccessfulCommit.set(false);
+
+        // make another change that should fail
+        shouldFail.set(true);
+
+        builder = store.getRoot().builder();
+        builder.setProperty("foo", "bar1");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        async.run();
+
+        assertFalse("Failing indexing must not report success", gotSuccessfulCommit.get());
+        assertTrue("Failing indexing must report failure", gotFailedCommit.get());
     }
 
     private static class TestIndexEditorProvider extends PropertyIndexEditorProvider {
