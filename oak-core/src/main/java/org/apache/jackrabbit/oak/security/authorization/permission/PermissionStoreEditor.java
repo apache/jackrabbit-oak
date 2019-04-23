@@ -93,6 +93,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
     }
 
+    @NotNull
     String getPath() {
         return accessControlledPath;
     }
@@ -101,7 +102,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         return entries.isEmpty();
     }
 
-    void removePermissionEntries(PermissionStoreEditor otherEditor) {
+    void removePermissionEntries(@NotNull PermissionStoreEditor otherEditor) {
         entries.keySet().removeAll(otherEditor.entries.keySet());
     }
 
@@ -215,7 +216,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
     }
 
-    private void updateEntries(NodeBuilder parent, List<AcEntry> list) {
+    private void updateEntries(@NotNull NodeBuilder parent, @NotNull List<AcEntry> list) {
         // remove old entries
         for (String childName : parent.getChildNodeNames()) {
             if (childName.charAt(0) != 'c') {
@@ -266,7 +267,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             this.restrictions = restrictions;
         }
 
-        private void writeToPermissionStore(NodeBuilder parent) {
+        private void writeToPermissionStore(@NotNull NodeBuilder parent) {
             NodeBuilder n = parent.child(String.valueOf(index))
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS, Type.NAME)
                     .setProperty(REP_IS_ALLOW, isAllow)
@@ -276,6 +277,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             }
         }
 
+        @NotNull
         PropertyState getPrivilegeBitsProperty() {
             return JcrAllUtil.asPropertyState(REP_PRIVILEGE_BITS, privilegeBits, bitsProvider);
         }

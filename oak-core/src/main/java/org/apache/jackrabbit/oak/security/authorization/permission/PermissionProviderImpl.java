@@ -172,8 +172,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return cp;
     }
 
-    protected PermissionStore getPermissionStore(Root root, String workspaceName,
-            RestrictionProvider restrictionProvider) {
+    @NotNull
+    protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider) {
         return new PermissionStoreImpl(root, workspaceName, restrictionProvider);
     }
 

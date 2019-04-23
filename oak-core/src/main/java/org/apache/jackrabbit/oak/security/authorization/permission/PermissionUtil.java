@@ -106,6 +106,7 @@ public final class PermissionUtil implements PermissionConstants {
         return path;
     }
 
+    @Nullable
     public static Tree getReadOnlyTree(@Nullable Tree tree, @NotNull Root readOnlyRoot) {
         if (tree instanceof ReadOnly) {
             return tree;

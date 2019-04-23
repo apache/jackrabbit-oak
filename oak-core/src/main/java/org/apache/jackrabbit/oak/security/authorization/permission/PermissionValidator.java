@@ -333,13 +333,13 @@ class PermissionValidator extends DefaultValidator {
         return provider.getAccessControlContext().definesTree(tree);
     }
 
-    private boolean isVersionstorageTree(Tree tree) {
+    private boolean isVersionstorageTree(@NotNull Tree tree) {
         return permission == Permissions.VERSION_MANAGEMENT &&
                 VersionConstants.REP_VERSIONSTORAGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Nullable
-    private Tree getVersionHistoryTree(Tree versionstorageTree) throws CommitFailedException {
+    private Tree getVersionHistoryTree(@NotNull Tree versionstorageTree) throws CommitFailedException {
         Tree versionHistory = null;
         for (Tree child : versionstorageTree.getChildren()) {
             if (VersionConstants.NT_VERSIONHISTORY.equals(TreeUtil.getPrimaryTypeName(child))) {

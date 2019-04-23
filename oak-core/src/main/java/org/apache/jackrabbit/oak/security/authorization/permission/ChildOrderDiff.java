@@ -21,6 +21,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.collect.Sets.newLinkedHashSet;
@@ -44,7 +45,7 @@ final class ChildOrderDiff {
      * reorder happened; {@code null} otherwise.
      */
     @Nullable
-    static String firstReordered(PropertyState before, PropertyState after) {
+    static String firstReordered(@NotNull PropertyState before, @NotNull PropertyState after) {
         Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
         Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));
 
