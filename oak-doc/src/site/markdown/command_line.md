@@ -23,6 +23,10 @@ This tool supports maintenance operations such as backup and compaction.
 
 Some of the documentation of this tool is found at
 https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run
+and some at
+http://jackrabbit.apache.org/oak/docs/query/pre-extract-text.html
+and some at
+http://jackrabbit.apache.org/oak/docs/query/oak-run-indexing.html
 
 #### Compatibility
 
