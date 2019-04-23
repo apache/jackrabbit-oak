@@ -476,7 +476,7 @@ public class IndexCopierCleanupTest {
         @Override
         protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName,
                                                          boolean reindexMode,
-                                                         COWDirecetoryTracker cowDirecetoryTracker) throws IOException {
+                                                         COWDirectoryTracker cowDirectoryTracker) throws IOException {
             return new DelayCopyingSimpleFSDirectory(baseFSDir);
         }
 
@@ -489,7 +489,7 @@ public class IndexCopierCleanupTest {
         }
 
         Directory getCoWDir() throws IOException {
-            return wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, COWDirecetoryTracker.NOOP);
+            return wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, COWDirectoryTracker.NOOP);
         }
     }
 

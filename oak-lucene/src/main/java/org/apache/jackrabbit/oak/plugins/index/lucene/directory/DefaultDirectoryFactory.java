@@ -22,9 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirecetoryTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirectoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -43,18 +42,18 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
     private final IndexCopier indexCopier;
     private final GarbageCollectableBlobStore blobStore;
     private final BlobDeletionCallback blobDeletionCallback;
-    private final COWDirecetoryTracker cowDirecetoryTracker;
+    private final COWDirectoryTracker cowDirectoryTracker;
 
     public DefaultDirectoryFactory(@Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore) {
-        this(indexCopier, blobStore, BlobDeletionCallback.NOOP, COWDirecetoryTracker.NOOP);
+        this(indexCopier, blobStore, BlobDeletionCallback.NOOP, COWDirectoryTracker.NOOP);
     }
     public DefaultDirectoryFactory(@Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore,
                                    @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback,
-                                   @NotNull COWDirecetoryTracker cowDirectoryTracker) {
+                                   @NotNull IndexCopier.COWDirectoryTracker cowDirectoryTracker) {
         this.indexCopier = indexCopier;
         this.blobStore = blobStore;
         this.blobDeletionCallback = blobDeletionCallback;
-        this.cowDirecetoryTracker = cowDirectoryTracker;
+        this.cowDirectoryTracker = cowDirectoryTracker;
     }
 
     @Override
@@ -70,7 +69,7 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
                 Directory d = indexCopier.wrapForRead(indexPath, definition, directory, dirName);
                 d.close();
             }
-            directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName, cowDirecetoryTracker);
+            directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName, cowDirectoryTracker);
         }
         return directory;
     }

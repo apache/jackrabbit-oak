@@ -238,9 +238,9 @@ public class FailedIndexUpdateTest {
         public Directory wrapForWrite(LuceneIndexDefinition definition,
                                                         Directory remote,
                                                         boolean reindexMode, String dirName,
-                                                        COWDirecetoryTracker cowDirecetoryTracker) throws IOException {
+                                                        COWDirectoryTracker cowDirectoryTracker) throws IOException {
             CopyOnWriteDirectory dir = (CopyOnWriteDirectory)
-                    super.wrapForWrite(definition, remote, reindexMode, dirName, cowDirecetoryTracker);
+                    super.wrapForWrite(definition, remote, reindexMode, dirName, cowDirectoryTracker);
 
             String indexPath = definition.getIndexPath();
             dirs.put(indexPath, dir);
