@@ -74,8 +74,29 @@ public class PermissionEntryCacheTest {
         assertNotNull(entries);
         assertFalse(entries.isFullyLoaded());
         assertEquals(0, entries.getSize());
+    }
 
-        entries = inspectEntries(cache, "notInitialized");
+    @Test
+    public void testInitTwice() throws Exception {
+        cache.init("a", 5);
+        cache.init("a", 25);
+
+        PrincipalPermissionEntries entries = inspectEntries(cache, "a");
+        assertNotNull(entries);
+
+        Field f = PrincipalPermissionEntries.class.getDeclaredField("expectedSize");
+        f.setAccessible(true);
+
+        long expectedSize = (long) f.get(entries);
+        assertEquals(5, expectedSize);
+        assertFalse(entries.isFullyLoaded());
+    }
+
+    @Test
+    public void testInitDifferentPrincipal() throws Exception {
+        cache.init("a", 5);
+
+        PrincipalPermissionEntries entries = inspectEntries(cache, "notInitialized");
         assertNull(entries);
     }
 
