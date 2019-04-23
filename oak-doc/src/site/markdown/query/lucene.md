@@ -459,7 +459,7 @@ weight
   See [OAK-6735][OAK-6735] for details.
 : Since 1.10: the default value is now `5`.
   See [OAK-7379][OAK-7379] for details.
-  
+
 <a name="property-names"></a>**Property Names**
 
 Property name can be one of following
@@ -1039,7 +1039,7 @@ For example using the index definition
       - function = "fn:upper-case(@lastName)"
       - propertyIndex = true
       - ordered = true
-    
+
 This allows to search for, and order by, the lower case version of the property "lastName". Example functions:
 
 * fn:upper-case(@data)
@@ -1054,8 +1054,8 @@ This allows to search for, and order by, the lower case version of the property 
 * length([test/data])
 * length(name())
 
-Indexing multi-valued properties is supported. 
-Relative properties are supported (except for ".." and "."). 
+Indexing multi-valued properties is supported.
+Relative properties are supported (except for ".." and ".").
 Range conditions are supported ('>', '>=', '<=', '<').
 
 ### <a name="native-query"></a>Native Query and Index Selection
@@ -1383,21 +1383,34 @@ Specific facet related features for Lucene property index can be configured in a
           - propertyIndex = true
 ```
 
-By default ACL checks are always performed on facets by the Lucene property index however there are a few configuration
-option to configure how ACL checks are done by configuring _secure_ property in the _facets_ configuration node.
+By default, ACL checks are always performed on facets by the Lucene property index.
+This is secure (no information leakage is possible), but can be slow.
+The _secure_ configuration property allows to configure how facet counts are performed.
 `@since Oak 1.6.16, 1.8.10, 1.9.13` `secure` property is a string with allowed values of `secure`, `statistical` and
 `insecure` - `secure` being the default value. Before that `secure` was a boolean property and to maintain compatibility
 `false` maps to `insecure` while `true` (default at the time) maps to `secure`.
+The following configuration options are supported:
 
-For `insecure` facets, the facet counts reported by lucene index are reported back as is.
-For `secure` configuration all results of a query are checked for access permissions and facets returned by index are
-updated accordingly. This can be very bad from performance point of view for large result set.
-As a trade off `statistical` configuration can be used to randomly sample some items (default `1000` configurable via
-`sampleSize`) and check ACL for the random samples. Facet counts returned via index are updated proportionally to the
-percentage of accessible samples that were checked for ACL.
+* `secure` (the default) means all results of a query are checked for access permissions.
+Facets and counts returned by index reflect what is accessible to the given user.
+The query result therefore only reflects information the user has access rights for.
+This can be slow, specially for large result set.
+
+* `insecure` means the facet counts are reported as stored in the index, without performing access rights checks.
+Warning: this setting potentially leaks repository information the user that runs the query may not see.
+It must only be used if either the index is guaranteed to only contain data that is public
+(e.g. a public subtree of the repository), or if the leaked information is not sensitive.
+
+* `statistical` means the data is sampled randomly (default `1000` configurable via
+`sampleSize`), and ACL checks are performed on this sample.
+Facet counts returned are proportional to the percentage of accessible samples that were checked for ACL.
+Warning: this setting potentially leaks repository information the user that runs the query may not see.
+It must only be used if either the index is guaranteed to only contain data that is public
+(e.g. a public subtree of the repository), or if the leaked information is not sensitive.
 Do note that the [beauty of sampling](https://onlinecourses.science.psu.edu/stat100/node/16/) is that a sample size of
-`1000` would have 3% error rate with 95% confidence. But that's a theoretical limit for infinite number of experiments -
-in practice though, a low rate of accessible documents decreases chances to reach that average rate. To have a sense of
+`1000` has an error rate of 3% with 95% confidence, if ACLs are evenly distributed over the sampled data.
+However, often ACLs are not evenly distributed. Also, a low rate of accessible documents
+decreases chances to reach that average rate. To have a sense of
 expectation of error rate, here's how errors looked like in different scenarios of test runs with sample size of 1000
 with error averaged over 1000 random runs for each scenario.
 ```
