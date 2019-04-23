@@ -20,7 +20,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.*;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirecetoryTracker;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirectoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
@@ -263,7 +263,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     }
 
     protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback,
-                                                   COWDirecetoryTracker cowDirectoryTracker) {
+                                                   COWDirectoryTracker cowDirectoryTracker) {
         return new DefaultDirectoryFactory(indexCopier, blobStore, blobDeletionCallback, cowDirectoryTracker);
     }
 
@@ -301,7 +301,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         return (CommitContext) indexingContext.getCommitInfo().getInfo().get(CommitContext.NAME);
     }
 
-    private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirecetoryTracker {
+    private static class COWDirectoryCleanupCallback implements IndexCommitCallback, COWDirectoryTracker {
         private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
 
         private List<CopyOnWriteDirectory> openedCoWDirectories = Lists.newArrayList();

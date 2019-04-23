@@ -127,13 +127,13 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     public Directory wrapForWrite(LuceneIndexDefinition definition, Directory remote,
                                   boolean reindexMode, String dirName,
-                                  COWDirecetoryTracker cowDirecetoryTracker) throws IOException {
-        Directory local = createLocalDirForIndexWriter(definition, dirName, reindexMode, cowDirecetoryTracker);
+                                  COWDirectoryTracker cowDirectoryTracker) throws IOException {
+        Directory local = createLocalDirForIndexWriter(definition, dirName, reindexMode, cowDirectoryTracker);
         String indexPath = definition.getIndexPath();
         checkIntegrity(indexPath, local, remote);
 
         CopyOnWriteDirectory cowDirectory = new CopyOnWriteDirectory(this, remote, local, reindexMode, indexPath, executor);
-        cowDirecetoryTracker.registerOpenedDirectory(cowDirectory);
+        cowDirectoryTracker.registerOpenedDirectory(cowDirectory);
 
         return cowDirectory;
     }
@@ -157,12 +157,12 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName,
                                                      boolean reindexMode,
-                                                     COWDirecetoryTracker cowDirecetoryTracker) throws IOException {
+                                                     COWDirectoryTracker cowDirectoryTracker) throws IOException {
         String indexPath = definition.getIndexPath();
         File indexWriterDir = getIndexDir(definition, indexPath, dirName);
 
         if (reindexMode) {
-            cowDirecetoryTracker.registerReindexingLocalDirectory(indexWriterDir);
+            cowDirectoryTracker.registerReindexingLocalDirectory(indexWriterDir);
         }
 
         //By design indexing in Oak is single threaded so Lucene locking
@@ -651,11 +651,11 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         }
     }
 
-    public interface COWDirecetoryTracker {
+    public interface COWDirectoryTracker {
         void registerOpenedDirectory(@NotNull CopyOnWriteDirectory directory);
         void registerReindexingLocalDirectory(@NotNull File dir);
 
-        COWDirecetoryTracker NOOP = new COWDirecetoryTracker() {
+        COWDirectoryTracker NOOP = new COWDirectoryTracker() {
             @Override
             public void registerOpenedDirectory(CopyOnWriteDirectory directory) {}
 
