@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import com.google.common.base.Objects;
+import org.jetbrains.annotations.NotNull;
 
 final class NumEntries {
 
@@ -48,6 +49,7 @@ final class NumEntries {
         }
     }
 
+    @NotNull
     static NumEntries valueOf(long size, boolean isExact) {
         if (size == 0) {
             // if size is zero we assume that this is the correct value

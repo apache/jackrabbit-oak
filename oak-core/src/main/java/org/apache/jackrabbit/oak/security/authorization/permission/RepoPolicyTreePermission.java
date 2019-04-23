@@ -43,10 +43,11 @@ final class RepoPolicyTreePermission implements TreePermission {
     private RepositoryPermission repoPermission;
     private ReadStatus readStatus;
 
-    RepoPolicyTreePermission(RepositoryPermission repoPermission) {
+    RepoPolicyTreePermission(@NotNull RepositoryPermission repoPermission) {
         this.repoPermission = repoPermission;
     }
 
+    @NotNull
     TreePermission getChildPermission() {
         return this;
     }
@@ -88,6 +89,7 @@ final class RepoPolicyTreePermission implements TreePermission {
         return repoPermission.isGranted(permissions);
     }
 
+    @NotNull
     private ReadStatus getReadStatus() {
         if (readStatus == null) {
             boolean canRead = repoPermission.isGranted(Permissions.READ_ACCESS_CONTROL);

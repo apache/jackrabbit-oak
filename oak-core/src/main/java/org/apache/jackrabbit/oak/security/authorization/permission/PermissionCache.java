@@ -22,7 +22,9 @@ import org.jetbrains.annotations.NotNull;
 
 interface PermissionCache {
 
+    @NotNull
     Collection<PermissionEntry> getEntries(@NotNull String path);
 
+    @NotNull
     Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree);
 }

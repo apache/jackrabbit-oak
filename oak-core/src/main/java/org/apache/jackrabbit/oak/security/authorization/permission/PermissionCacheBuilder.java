@@ -89,6 +89,7 @@ final class PermissionCacheBuilder {
         return existingNames.isEmpty();
     }
 
+    @NotNull
     PermissionCache build() {
         checkState(initialized);
         if (existingNames.isEmpty()) {
@@ -120,7 +121,6 @@ final class PermissionCacheBuilder {
         } else {
             return new DefaultPermissionCache(store, peCache, existingNames);
         }
-
     }
 
     //------------------------------------< PermissionCache Implementations >---
@@ -140,6 +140,7 @@ final class PermissionCacheBuilder {
             this.existingNames = existingNames;
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull String path) {
             Collection<PermissionEntry> ret = new TreeSet<>();
@@ -149,6 +150,7 @@ final class PermissionCacheBuilder {
             return ret;
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             return (accessControlledTree.hasChild(AccessControlConstants.REP_POLICY)) ?
@@ -166,16 +168,18 @@ final class PermissionCacheBuilder {
     private static final class PathEntryMapCache implements PermissionCache {
         private final Map<String, Collection<PermissionEntry>> pathEntryMap;
 
-        PathEntryMapCache(Map<String, Collection<PermissionEntry>> pathEntryMap) {
+        PathEntryMapCache(@NotNull Map<String, Collection<PermissionEntry>> pathEntryMap) {
             this.pathEntryMap = pathEntryMap;
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull String path) {
             Collection<PermissionEntry> entries = pathEntryMap.get(path);
             return (entries != null) ? entries : Collections.<PermissionEntry>emptyList();
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             Collection<PermissionEntry> entries = pathEntryMap.get(accessControlledTree.getPath());
@@ -192,11 +196,13 @@ final class PermissionCacheBuilder {
 
         private static final PermissionCache INSTANCE = new EmptyCache();
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull String path) {
             return Collections.<PermissionEntry>emptyList();
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             return Collections.<PermissionEntry>emptyList();

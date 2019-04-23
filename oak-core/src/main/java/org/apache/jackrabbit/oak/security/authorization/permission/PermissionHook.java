@@ -93,8 +93,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     //---------------------------------------------------------< CommitHook >---
     @NotNull
     @Override
-    public NodeState processCommit(
-            NodeState before, NodeState after, CommitInfo info) {
+    public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) {
         NodeBuilder rootAfter = after.builder();
 
         permissionStore = getPermissionStore(rootAfter);
@@ -130,13 +129,13 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     }
 
     @NotNull
-    private static NodeBuilder getPermissionStore(NodeBuilder rootBuilder) {
+    private static NodeBuilder getPermissionStore(@NotNull NodeBuilder rootBuilder) {
         // permission root has been created during workspace initialization
         return rootBuilder.getChildNode(JCR_SYSTEM).getChildNode(REP_PERMISSION_STORE);
     }
 
     @NotNull
-    private NodeBuilder getPermissionRoot(String path) {
+    private NodeBuilder getPermissionRoot(@NotNull String path) {
         Mount m = mountInfoProvider.getMountByPath(path);
         return permissionStore.getChildNode(MountPermissionProvider.getPermissionRootName(m, workspaceName));
     }
@@ -145,7 +144,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         private final String parentPath;
 
-        private Diff(String parentPath) {
+        private Diff(@NotNull String parentPath) {
             this.parentPath = parentPath;
         }
 
@@ -213,6 +212,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             return true;
         }
 
+        @NotNull
         private PermissionStoreEditor createPermissionStoreEditor(@NotNull String nodeName, @NotNull NodeState nodeState) {
             return new PermissionStoreEditor(parentPath, nodeName, nodeState, getPermissionRoot(parentPath), isACE, isGrantACE, bitsProvider, restrictionProvider, treeProvider);
         }

@@ -47,6 +47,7 @@ class VersionTreePermission implements TreePermission, VersionConstants {
         this.treeProvider = treeProvider;
     }
 
+    @NotNull
     VersionTreePermission createChildPermission(@NotNull Tree versionTree) {
         TreePermission delegatee;
         if (JCR_FROZENNODE.equals(versionTree.getName()) || NT_NAMES.contains(TreeUtil.getPrimaryTypeName(versionTree))) {

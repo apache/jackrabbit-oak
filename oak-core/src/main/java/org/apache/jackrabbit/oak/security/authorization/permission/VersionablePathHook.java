@@ -127,7 +127,7 @@ public class VersionablePathHook implements CommitHook {
                     before, new Diff(versionManager, ntMgr, node, exceptions));
         }
 
-        private boolean setVersionablePath(PropertyState after) {
+        private boolean setVersionablePath(@NotNull PropertyState after) {
             if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(ntMgr)) {
                 NodeBuilder vhBuilder;
                 try {
@@ -158,17 +158,17 @@ public class VersionablePathHook implements CommitHook {
         private final String path;
         private final NodeBuilder builder;
 
-        private Node(NodeBuilder rootBuilder) {
+        private Node(@NotNull NodeBuilder rootBuilder) {
             this.path = "/";
             this.builder = rootBuilder;
         }
 
-        private Node(Node parent, String name) {
+        private Node(@NotNull Node parent, @NotNull String name) {
             this.builder = parent.builder.child(name);
             this.path = PathUtils.concat(parent.path, name);
         }
 
-        private boolean isVersionable(ReadOnlyNodeTypeManager ntMgr) {
+        private boolean isVersionable(@NotNull ReadOnlyNodeTypeManager ntMgr) {
             // this is not 100% correct, because t.getPath() will
             // not return the correct path for node after, but is
             // sufficient to check if it is versionable

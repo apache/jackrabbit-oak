@@ -53,7 +53,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
     private Tree permissionsTree;
     private PrivilegeBitsProvider bitsProvider;
 
-    PermissionStoreImpl(Root root, String permissionRootName, RestrictionProvider restrictionProvider) {
+    PermissionStoreImpl(@NotNull Root root, @NotNull String permissionRootName, @NotNull RestrictionProvider restrictionProvider) {
         this.permissionRootName = permissionRootName;
         this.restrictionProvider = restrictionProvider;
         reset(root);
@@ -169,6 +169,7 @@ class PermissionStoreImpl implements PermissionStore, PermissionConstants {
         }
     }
 
+    @NotNull
     private Collection<PermissionEntry> loadPermissionEntries(@NotNull String path,
                                                               @NotNull Tree tree) {
         Collection<PermissionEntry> ret = new TreeSet<>();

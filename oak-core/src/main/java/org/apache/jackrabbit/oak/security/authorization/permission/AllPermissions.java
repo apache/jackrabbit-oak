@@ -39,6 +39,7 @@ final class AllPermissions implements CompiledPermissions {
     private AllPermissions() {
     }
 
+    @NotNull
     static CompiledPermissions getInstance() {
         return INSTANCE;
     }
