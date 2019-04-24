@@ -21,6 +21,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -36,10 +37,17 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlo
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -50,9 +58,11 @@ import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import static com.google.common.collect.ImmutableSet.of;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -65,6 +75,8 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
     private MongoConnection mongoConnection = null;
 
     private final DataStoreType dataStoreType;
+
+    private FailOnDemandValidatorProvider failOnDemandValidatorProvider;
 
     @BeforeClass
     public static void assumeMongo() {
@@ -117,7 +129,11 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
                 .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName())
                 .setBlobStore(this.blobStore)
                 .getNodeStore();
+
+        failOnDemandValidatorProvider = new FailOnDemandValidatorProvider();
         asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, editorProvider);
+        asyncIndexUpdate.setValidatorProviders(Collections.singletonList(failOnDemandValidatorProvider));
+
         return new Oak(nodeStore)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
@@ -170,6 +186,65 @@ public class ActiveDeletedBlobCollectionIT extends AbstractActiveDeletedBlobTest
         assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
         assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
         assertTrue("Second GC should delete some chunks too", secondGCNumChunks < firstGCNumChunks);
+    }
+
+    @Test
+    public void dontDeleteIfIndexingFailed() throws Exception {
+        createIndex("test1", of("propa"));
+        root.getTree("/oak:index/counter").remove();
+        root.commit();
+        asyncIndexUpdate.run();
+        long initialNumChunks = blobStore.numChunks;
+
+        root.getTree("/").addChild("test").setProperty("propa", "foo");
+        root.commit();
+        asyncIndexUpdate.run();
+        long firstCommitNumChunks = blobStore.numChunks;
+        adbc.purgeBlobsDeleted(0, blobStore);//hack to purge file
+        long time = clock.getTimeIncreasing();
+        long hackPurgeNumChunks = blobStore.numChunks;
+        Assert.assertEquals("Hack purge must not purge any blob (first commit)",
+                firstCommitNumChunks, hackPurgeNumChunks);
+
+        failOnDemandValidatorProvider.shouldFail = true;
+
+        root.getTree("/").addChild("test").setProperty("propa", "foo1");
+        root.commit();
+        asyncIndexUpdate.run();
+        assertTrue("Indexing must have failed", asyncIndexUpdate.isFailing());
+        long secondCommitNumChunks = blobStore.numChunks;
+        adbc.purgeBlobsDeleted(0, blobStore);//hack to purge file
+        hackPurgeNumChunks = blobStore.numChunks;
+        Assert.assertEquals("Hack purge must not purge any blob (second commit)",
+                secondCommitNumChunks, hackPurgeNumChunks);
+
+        adbc.purgeBlobsDeleted(time, blobStore);
+        long firstGCNumChunks = blobStore.numChunks;
+        adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+        long secondGCNumChunks = blobStore.numChunks;
+
+        assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
+        assertTrue("Second commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
+        assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
+        assertEquals("Second GC must not delete chunks as commit failed", firstGCNumChunks, secondGCNumChunks);
+    }
+
+    private static class FailOnDemandValidatorProvider extends ValidatorProvider {
+        boolean shouldFail;
+
+        @Override
+        protected @Nullable Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
+            return new DefaultValidator() {
+                @Override
+                public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
+                    if (shouldFail && FulltextIndexConstants.INDEX_DATA_CHILD_NAME.equals(name)) {
+                        throw new CommitFailedException("failing-validator", 1, "Failed commit as requested");
+                    }
+
+                    return this;
+                }
+            };
+        }
     }
 
 }
