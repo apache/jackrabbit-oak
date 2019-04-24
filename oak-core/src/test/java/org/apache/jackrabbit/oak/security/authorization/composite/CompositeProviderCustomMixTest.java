@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.ReadOnly;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
@@ -49,6 +51,8 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_WRITE;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 
 public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
@@ -93,6 +97,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
         actionMap.put(JCR_NODE_TYPE_MANAGEMENT, JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT);
         actionMap.put(JCR_WRITE, JackrabbitSession.ACTION_ADD_NODE);
 
+        Tree tree = mock(Tree.class, withSettings().extraInterfaces(ReadOnly.class));
         // tests all possible 256 shuffles
         for (CompositionType type : CompositionType.values()) {
             for (Set<String> granted1 : Sets.powerSet(supp1)) {
@@ -101,7 +106,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
                         CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
                         boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
 
-                        boolean result1 = cpp.isGranted(null, null, mapToPermissions(ps, grantMap));
+                        boolean result1 = cpp.isGranted(tree, null, mapToPermissions(ps, grantMap));
                         String err1 = "[isGranted1] Checking " + ps + " in {supported: " + supp1 + ", granted: "
                                 + granted1 + "} " + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
                         assertEquals(err1, expected, result1);

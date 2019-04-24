@@ -94,7 +94,7 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
     @NotNull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        Tree immutableTree = PermissionUtil.getReadOnlyTree(tree, immutableRoot);
+        Tree immutableTree = PermissionUtil.getReadOnlyTreeOrNull(tree, immutableRoot);
 
         PrivilegeBits result = PrivilegeBits.getInstance();
         PrivilegeBits denied = PrivilegeBits.getInstance();
@@ -123,7 +123,7 @@ class CompositePermissionProvider implements AggregatedPermissionProvider {
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, @NotNull String... privilegeNames) {
-        Tree immutableTree = PermissionUtil.getReadOnlyTree(tree, immutableRoot);
+        Tree immutableTree = PermissionUtil.getReadOnlyTreeOrNull(tree, immutableRoot);
         PrivilegeBits privilegeBits = privilegeBitsProvider.getBits(privilegeNames);
         if (privilegeBits.isEmpty()) {
             return true;
