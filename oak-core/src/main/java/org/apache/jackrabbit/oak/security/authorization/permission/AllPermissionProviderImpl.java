@@ -58,8 +58,9 @@ public final class AllPermissionProviderImpl implements PermissionProvider, Aggr
         immutableRoot = providerCtx.getRootProvider().createReadOnlyRoot(root);
     }
 
+    @NotNull
     @Override
-    public @NotNull Set<String> getPrivileges(@Nullable Tree tree) {
+    public Set<String> getPrivileges(@Nullable Tree tree) {
         return ALL;
     }
 
@@ -68,13 +69,15 @@ public final class AllPermissionProviderImpl implements PermissionProvider, Aggr
         return true;
     }
 
+    @NotNull
     @Override
-    public @NotNull RepositoryPermission getRepositoryPermission() {
+    public RepositoryPermission getRepositoryPermission() {
         return RepositoryPermission.ALL;
     }
 
+    @NotNull
     @Override
-    public @NotNull TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreePermission parentPermission) {
         return TreePermission.ALL;
     }
 
@@ -89,34 +92,35 @@ public final class AllPermissionProviderImpl implements PermissionProvider, Aggr
     }
 
     //---------------------------------------< AggregatedPermissionProvider >---
-
+    @NotNull
     @Override
-    public @NotNull PrivilegeBits supportedPrivileges(Tree tree, PrivilegeBits privilegeBits) {
+    public PrivilegeBits supportedPrivileges(@Nullable Tree tree, @Nullable PrivilegeBits privilegeBits) {
         return (privilegeBits != null) ? privilegeBits : new PrivilegeBitsProvider(immutableRoot).getBits(PrivilegeConstants.JCR_ALL);
     }
 
     @Override
-    public long supportedPermissions(Tree tree, PropertyState property, long permissions) {
+    public long supportedPermissions(@Nullable Tree tree, @Nullable PropertyState property, long permissions) {
         return permissions;
     }
 
     @Override
-    public long supportedPermissions(TreeLocation location, long permissions) {
+    public long supportedPermissions(@NotNull TreeLocation location, long permissions) {
         return permissions;
     }
 
     @Override
-    public long supportedPermissions(TreePermission treePermission, PropertyState property, long permissions) {
+    public long supportedPermissions(@NotNull TreePermission treePermission, PropertyState property, long permissions) {
         return permissions;
     }
 
     @Override
-    public boolean isGranted(TreeLocation location, long permissions) {
+    public boolean isGranted(@NotNull TreeLocation location, long permissions) {
         return true;
     }
 
+    @NotNull
     @Override
-    public @NotNull TreePermission getTreePermission(Tree tree, TreeType type, TreePermission parentPermission) {
+    public TreePermission getTreePermission(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreePermission parentPermission) {
         return TreePermission.ALL;
     }
 }
