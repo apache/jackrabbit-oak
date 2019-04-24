@@ -114,6 +114,9 @@ public class AdministrativePermissionProviderTest extends AbstractSecurityTest {
 
         TreeLocation location = TreeLocation.create(testSession.getLatestRoot(), "/test/non/existing/tree");
         assertTrue(((AggregatedPermissionProvider) permissionProvider).isGranted(location, Permissions.ALL));
+
+        location = TreeLocation.create(testSession.getLatestRoot(), "/non/existing/tree");
+        assertTrue(((AggregatedPermissionProvider) permissionProvider).isGranted(location, Permissions.ALL));
     }
 
     @Test
@@ -121,6 +124,6 @@ public class AdministrativePermissionProviderTest extends AbstractSecurityTest {
         assertTrue(permissionProvider instanceof AggregatedPermissionProvider);
         TreeLocation location = TreeLocation.create(testSession.getLatestRoot(), VersionConstants.VERSION_STORE_PATH + "/non/existing/tree");
 
-        assertFalse(((AggregatedPermissionProvider) permissionProvider).isGranted(location, Permissions.ALL));
+        assertTrue(((AggregatedPermissionProvider) permissionProvider).isGranted(location, Permissions.ALL));
     }
 }
