@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -28,7 +27,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
-@Ignore("OAK-8272")
 public class AbandonedBranchTest {
 
     @Rule
