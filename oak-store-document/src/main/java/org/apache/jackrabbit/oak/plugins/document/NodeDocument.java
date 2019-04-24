@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -555,8 +556,8 @@ public final class NodeDocument extends Document {
     /**
      * Purge the  uncommitted revisions of this document with the
      * local cluster node id as returned by the {@link RevisionContext}. These
-     * are the {@link #REVISIONS} entries where {@link Utils#isCommitted(String)}
-     * returns false.
+     * are the {@link #REVISIONS} and {@link #BRANCH_COMMITS} entries where
+     * {@link Utils#isCommitted(String)} returns false.
      *
      * <p>
      *     <bold>Note</bold> - This method should only be invoked upon startup
@@ -570,15 +571,24 @@ public final class NodeDocument extends Document {
     int purgeUncommittedRevisions(RevisionContext context) {
         // only look at revisions in this document.
         // uncommitted revisions are not split off
-        Map<Revision, String> valueMap = getLocalRevisions();
+        Map<Revision, String> localRevisions = getLocalRevisions();
         UpdateOp op = new UpdateOp(getId(), false);
-        int purgeCount = 0;
-        for (Map.Entry<Revision, String> commit : valueMap.entrySet()) {
+        Set<Revision> uniqueRevisions = new HashSet<>();
+        for (Map.Entry<Revision, String> commit : localRevisions.entrySet()) {
             if (!Utils.isCommitted(commit.getValue())) {
                 Revision r = commit.getKey();
                 if (r.getClusterId() == context.getClusterId()) {
-                    purgeCount++;
-                    op.removeMapEntry(REVISIONS, r);
+                    uniqueRevisions.add(r);
+                    removeRevision(op, r);
+                }
+            }
+        }
+        for (Revision r : getLocalBranchCommits()) {
+            String commitValue = localRevisions.get(r);
+            if (!Utils.isCommitted(commitValue)) {
+                if (r.getClusterId() == context.getClusterId()) {
+                    uniqueRevisions.add(r);
+                    removeBranchCommit(op, r);
                 }
             }
         }
@@ -586,7 +596,7 @@ public final class NodeDocument extends Document {
         if (op.hasChanges()) {
             store.findAndUpdate(Collection.NODES, op);
         }
-        return purgeCount;
+        return uniqueRevisions.size();
     }
 
     /**
