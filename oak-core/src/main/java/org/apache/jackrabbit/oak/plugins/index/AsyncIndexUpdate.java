@@ -716,7 +716,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
         // task will take care of it
         taskSplitter.maybeSplit(beforeCheckpoint, callback.lease);
         IndexUpdate indexUpdate = null;
-        boolean indexingFailed = false;
+        boolean indexingFailed = true;
         try {
             NodeBuilder builder = store.getRoot().builder();
 
@@ -772,6 +772,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
             mergeWithConcurrencyCheck(store, validatorProviders, builder, beforeCheckpoint,
                     callback.lease, name);
+            indexingFailed = false;
+
             if (indexUpdate.isReindexingPerformed()) {
                 log.info("[{}] Reindexing completed for indexes: {} in {} ({} ms)",
                         name, indexUpdate.getReindexStats(), 
@@ -780,9 +782,6 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
 
             corruptIndexHandler.markWorkingIndexes(indexUpdate.getUpdatedIndexPaths());
-        } catch (Exception e) {
-            indexingFailed = true;
-            throw e;
         } finally {
             if (indexUpdate != null) {
                 if ( !indexingFailed ) {
