@@ -131,6 +131,34 @@ public class PermissionUtilTest {
     }
 
     @Test
+    public void testGetReadOnlyTreeOrNullFromNull() {
+        Root r = mock(Root.class);
+
+        assertNull(PermissionUtil.getReadOnlyTreeOrNull(null, r));
+        verify(r, never()).getTree(anyString());
+    }
+
+    @Test
+    public void testGetReadOnlyTreeOrNull() {
+        Tree readOnlyTree = mock(Tree.class, withSettings().extraInterfaces(ReadOnly.class));
+        Root r = mock(Root.class);
+
+        assertSame(readOnlyTree, PermissionUtil.getReadOnlyTreeOrNull(readOnlyTree, r));
+        verify(r, never()).getTree(anyString());
+    }
+
+    @Test
+    public void testGetReadOnlyTreeOrNullFromTree() {
+        Tree readOnlyTree = mock(Tree.class, withSettings().extraInterfaces(ReadOnly.class));
+
+        Root r = when(mock(Root.class).getTree("/path")).thenReturn(readOnlyTree).getMock();
+        Tree t = when(mock(Tree.class).getPath()).thenReturn("/path").getMock();
+
+        assertSame(readOnlyTree, PermissionUtil.getReadOnlyTreeOrNull(t, r));
+        verify(r, times(1)).getTree("/path");
+    }
+
+    @Test
     public void testGetReadOnlyTree() {
         Tree readOnlyTree = mock(Tree.class, withSettings().extraInterfaces(ReadOnly.class));
         Root r = mock(Root.class);
