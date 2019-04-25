@@ -218,7 +218,7 @@ final class CompositeTreePermission implements TreePermission {
                     }
                     coveredPermissions |= supported;
                 } else {
-                    for (long p : Permissions.aggregates(permissions)) {
+                    for (long p : Permissions.aggregates(supported)) {
                         boolean aGrant = (property == null) ? tp.isGranted(p) : tp.isGranted(p, property);
                         if (aGrant) {
                             coveredPermissions |= p;
