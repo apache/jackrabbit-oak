@@ -369,14 +369,22 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
-        if (!BATCHUPDATES) {
+        // fall back to sequential mode if batches are turned off using system
+        // property, or the number of update operations is small
+        if (!BATCHUPDATES || updateOps.size() < MINIMALBULKUPDATESIZE) {
             List<T> results = new ArrayList<T>(updateOps.size());
             for (UpdateOp update : updateOps) {
                 results.add(createOrUpdate(collection, update));
             }
             return results;
+        } else {
+            return internalCreateOrUpdate(collection, updateOps);
         }
+    }
 
+    private static int MINIMALBULKUPDATESIZE = 3;
+
+    private <T extends Document> List<T> internalCreateOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
         final Stopwatch watch = startWatch();
         Map<UpdateOp, T> results = new LinkedHashMap<UpdateOp, T>();
         Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
@@ -402,9 +410,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         int i = 0; // iteration count
 
-        // bulk update requires two DB requests, so if we have <= 2 operations
-        // it's better to send them sequentially
-        while (operationsToCover.size() > 2) {
+        while (operationsToCover.size() >= MINIMALBULKUPDATESIZE) {
             // We should try to insert documents only during the first
             // iteration. In the 2nd and 3rd iterations we only deal with
             // conflicting documents, so they already exist in the database
