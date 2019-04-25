@@ -16,7 +16,7 @@
 sudo: false
 env:
   global:
-    - MONGODB=3.6.4
+    - MONGODB=4.0.9
   matrix:
     - MODULE=oak-jcr PROFILE="-PintegrationTesting" UT="-Dsurefire.skip.ut=true" MONGODB_MODE="--single"
     - MODULE=oak-jcr PROFILE="" UT="" MONGODB_MODE="--single"
