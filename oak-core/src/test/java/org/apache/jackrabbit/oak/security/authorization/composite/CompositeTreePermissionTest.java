@@ -20,23 +20,34 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class CompositeTreePermissionTest extends AbstractSecurityTest {
 
@@ -70,8 +81,14 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
         }
     }
 
-    private TreePermission createRootTreePermission(AggregatedPermissionProvider... providers) {
-        return new CompositePermissionProvider(readOnlyRoot, Arrays.asList(providers), Context.DEFAULT, CompositionType.AND, getRootProvider(), getTreeProvider())
+    @NotNull
+    CompositeAuthorizationConfiguration.CompositionType getCompositionType() {
+        return AND;
+    }
+
+    @NotNull
+    TreePermission createRootTreePermission(@NotNull AggregatedPermissionProvider... providers) {
+        return new CompositePermissionProvider(readOnlyRoot, Arrays.asList(providers), Context.DEFAULT, getCompositionType(), getRootProvider(), getTreeProvider())
                 .getTreePermission(rootTree, TreePermission.EMPTY);
     }
 
@@ -140,6 +157,140 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
 
         canRead = f.get(rootTp);
         assertNotNull(canRead);
+    }
+
+    @Test
+    public void testCanReadTwiceAllowed() {
+        TreePermission mockTp = when(mock(TreePermission.class).canRead()).thenReturn(true).getMock();
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+        when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_NODE)).thenReturn(Permissions.ALL);
+
+        TreePermission rootTp = createRootTreePermission(mockPP, fullScopeProvider);
+
+        rootTp.canRead();
+        rootTp.canRead();
+
+        verify(mockTp, times(1)).canRead();
+        verify(mockTp, never()).canReadProperties();
+        verify(mockTp, never()).canRead(any(PropertyState.class));
+        verify(mockTp, never()).canReadAll();
+
+        verify(mockPP, times(1)).getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class));
+        verify(mockPP, times(1)).supportedPermissions(mockTp, null, Permissions.READ_NODE);
+    }
+
+    @Test
+    public void testCanReadTwiceDenied() {
+        TreePermission mockTp = when(mock(TreePermission.class).canRead()).thenReturn(false).getMock();
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+        when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_NODE)).thenReturn(Permissions.ALL);
+
+        TreePermission rootTp = createRootTreePermission(mockPP, fullScopeProvider);
+
+        rootTp.canRead();
+        rootTp.canRead();
+
+        verify(mockTp, times(1)).canRead();
+        verify(mockTp, never()).canReadProperties();
+        verify(mockTp, never()).canRead(any(PropertyState.class));
+        verify(mockTp, never()).canReadAll();
+
+        verify(mockPP, times(1)).getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class));
+        verify(mockPP, times(1)).supportedPermissions(mockTp, null, Permissions.READ_NODE);
+    }
+
+    @Test
+    public void testCanReadUnsupportedPermission() {
+        TreePermission mockTp = when(mock(TreePermission.class).canRead()).thenReturn(true).getMock();
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+        when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_NODE)).thenReturn(Permissions.NO_PERMISSION);
+
+        TreePermission rootTp = createRootTreePermission(mockPP, mockPP);
+
+        assertFalse(rootTp.canRead());
+
+        verify(mockTp, never()).canRead();
+        verify(mockPP, times(2)).getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class));
+        verify(mockPP, times(2)).supportedPermissions(mockTp, null, Permissions.READ_NODE);
+    }
+
+    @Test
+    public void testCanReadPropertyTwice() {
+        PropertyState ps = PropertyStates.createProperty("propName", "value");
+
+        TreePermission mockTp = when(mock(TreePermission.class).canReadProperties()).thenReturn(false).getMock();
+        when(mockTp.canRead(ps)).thenReturn(true);
+
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+        when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_PROPERTY)).thenReturn(Permissions.ALL);
+        when(mockPP.supportedPermissions(mockTp, ps, Permissions.READ_PROPERTY)).thenReturn(Permissions.ALL);
+
+        TreePermission rootTp = createRootTreePermission(mockPP, fullScopeProvider);
+
+        rootTp.canRead(ps);
+        rootTp.canRead(ps);
+
+        verify(mockTp, never()).canRead();
+        verify(mockTp, times(1)).canReadProperties();
+        verify(mockTp, times(2)).canRead(ps);
+        verify(mockTp, never()).canReadAll();
+    }
+
+    @Test
+    public void testCanReadProperties() {
+        PropertyState ps = PropertyStates.createProperty("propName", "value");
+
+        TreePermission mockTp = when(mock(TreePermission.class).canReadProperties()).thenReturn(true).getMock();
+        when(mockTp.canRead(ps)).thenReturn(false);
+
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+        when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_PROPERTY)).thenReturn(Permissions.ALL);
+
+        TreePermission rootTp = createRootTreePermission(mockPP, fullScopeProvider);
+
+        rootTp.canReadProperties();
+        rootTp.canReadProperties();
+        rootTp.canRead(ps);
+
+        verify(mockTp, never()).canRead();
+        verify(mockTp, times(1)).canReadProperties();
+        verify(mockTp, never()).canRead(ps);
+        verify(mockTp, never()).canReadAll();
+    }
+
+    @Test
+    public void testCanReadAll() {
+        TreePermission mockTp = when(mock(TreePermission.class).canReadAll()).thenReturn(true).getMock();
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+        when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_NODE)).thenReturn(Permissions.ALL);
+
+        TreePermission rootTp = createRootTreePermission(mockPP, fullScopeProvider);
+
+        assertFalse(rootTp.canReadAll());
+        verify(mockTp, never()).canReadAll();
+    }
+
+    @Test
+    public void testIsGrantedUncoveredPermissions() {
+        TreePermission mockTp = when(mock(TreePermission.class).isGranted(anyLong())).thenReturn(true).getMock();
+
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+        when(mockPP.supportedPermissions(mockTp, null, Permissions.WRITE)).thenReturn(Permissions.SET_PROPERTY);
+
+        TreePermission rootTp = createRootTreePermission(mockPP, mockPP);
+
+        assertFalse(rootTp.isGranted(Permissions.WRITE));
+
+        verify(mockTp, times(2)).isGranted(Permissions.SET_PROPERTY);
+        verify(mockTp, never()).isGranted(Permissions.WRITE);
+        verify(mockPP, times(2)).supportedPermissions(mockTp, null, Permissions.WRITE);
     }
 
     @Test
