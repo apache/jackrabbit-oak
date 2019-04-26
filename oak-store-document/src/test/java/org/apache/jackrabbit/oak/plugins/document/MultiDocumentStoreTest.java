@@ -17,10 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Collections.synchronizedList;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -29,8 +32,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreJDBC;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -363,6 +370,61 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
             assertNotNull(updated);
             if (prev.getModCount() != null) {
                 assertNotEquals(updated.getModCount(), prev.getModCount());
+            }
+        }
+    }
+
+    @Test
+    public void testTraceLoggingForBulkUpdates() {
+        if (ds instanceof RDBDocumentStore) {
+            int count = 10;
+
+            List<UpdateOp> ops = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                UpdateOp op = new UpdateOp(getIdFromPath("/bulktracelog-" + i), true);
+                ops.add(op);
+                removeMe.add(op.getId());
+            }
+            ds.createOrUpdate(NODES, ops);
+
+            LogCustomizer logCustomizerJDBC = LogCustomizer.forLogger(RDBDocumentStoreJDBC.class.getName()).enable(Level.TRACE)
+                    .matchesRegex("update: batch result.*").create();
+            logCustomizerJDBC.starting();
+            LogCustomizer logCustomizer = LogCustomizer.forLogger(RDBDocumentStore.class.getName()).enable(Level.TRACE)
+                    .matchesRegex("bulkUpdate: success.*").create();
+            logCustomizer.starting();
+
+            try {
+                ops.clear();
+
+                // modify first entry through secondary store
+                String modifiedRow = getIdFromPath("/bulktracelog-" + 0);
+                UpdateOp op2 = new UpdateOp(modifiedRow, false);
+                op2.set("foo", "bar");
+                ds2.createOrUpdate(NODES, op2);
+
+                // delete second entry through secondary store
+                String deletedRow = getIdFromPath("/bulktracelog-" + 1);
+                ds2.remove(NODES, deletedRow);
+
+                for (int i = 0; i < count; i++) {
+                    UpdateOp op = new UpdateOp(getIdFromPath("/bulktracelog-" + i), false);
+                    op.set("foo", "qux");
+                    ops.add(op);
+                    removeMe.add(op.getId());
+                }
+                ds.createOrUpdate(NODES, ops);
+
+                assertTrue(logCustomizer.getLogs().size() == 1);
+                assertTrue(logCustomizer.getLogs().get(0).contains("failure for [" + modifiedRow + ", " + deletedRow + "]"));
+                // System.out.println(logCustomizer.getLogs());
+                assertTrue(logCustomizerJDBC.getLogs().size() == 1);
+                assertTrue(logCustomizerJDBC.getLogs().get(0).contains("0 (for " + modifiedRow + " (1)"));
+                assertTrue(logCustomizerJDBC.getLogs().get(0).contains("0 (for " + deletedRow + " (1)"));
+                // System.out.println(logCustomizerJDBC.getLogs());
+            } finally {
+                logCustomizer.finished();
+                logCustomizerJDBC.finished();
             }
         }
     }

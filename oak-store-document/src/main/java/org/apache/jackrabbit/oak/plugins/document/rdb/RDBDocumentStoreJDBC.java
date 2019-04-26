@@ -333,6 +333,7 @@ public class RDBDocumentStoreJDBC {
 
         Set<String> successfulUpdates = new HashSet<String>();
         List<String> updatedKeys = new ArrayList<String>();
+        List<Long> modCounts = LOG.isTraceEnabled() ? new ArrayList<>() : null;
         int[] batchResults = new int[0];
 
         PreparedStatement stmt = connection.prepareStatement("update " + tmd.getName()
@@ -372,6 +373,9 @@ public class RDBDocumentStoreJDBC {
                 stmt.setObject(si++, modcount - 1, Types.BIGINT);
                 stmt.addBatch();
                 updatedKeys.add(document.getId());
+                if (modCounts != null) {
+                    modCounts.add(modcount);
+                }
 
                 batchIsEmpty = false;
             }
@@ -384,6 +388,20 @@ public class RDBDocumentStoreJDBC {
             batchResults = ex.getUpdateCounts();
         } finally {
             stmt.close();
+        }
+
+        if (!updatedKeys.isEmpty() && LOG.isTraceEnabled()) {
+            StringBuilder br = new StringBuilder(String.format("update: batch result on '%s' (sent: %d, received: %d):", tmd.getName(),
+                    updatedKeys.size(), batchResults.length));
+            String delim = " ";
+            for (int i = 0; i < batchResults.length; i++) {
+                br.append(delim).append(batchResults[i]);
+                if (i < updatedKeys.size()) {
+                    br.append(String.format(" (for %s (%d))", updatedKeys.get(i), modCounts.get(i) - 1));
+                }
+                delim = ", ";
+            }
+            LOG.trace(br.toString());
         }
 
         for (int i = 0; i < batchResults.length; i++) {

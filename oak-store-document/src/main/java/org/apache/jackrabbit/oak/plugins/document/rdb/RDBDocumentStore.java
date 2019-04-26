@@ -429,10 +429,10 @@ public class RDBDocumentStore implements DocumentStore {
             UpdateOp conflictedOp = operationsToCover.remove(updateOp.getId());
             if (conflictedOp != null) {
                 if (collection == Collection.NODES) {
-                    LOG.debug("update conflict on {}, invalidating cache and retrying...", updateOp.getId());
+                    LOG.debug("createOrUpdate: update conflict on {}, invalidating cache and retrying...", updateOp.getId());
                     nodesCache.invalidate(updateOp.getId());
                 } else {
-                    LOG.debug("update conflict on {}, retrying...", updateOp.getId());
+                    LOG.debug("createOrUpdate: update conflict on {}, retrying...", updateOp.getId());
                 }
                 results.put(conflictedOp, createOrUpdate(collection, updateOp));
             } else if (duplicates.contains(updateOp)) {
@@ -524,7 +524,16 @@ public class RDBDocumentStore implements DocumentStore {
                 missingDocs.add(op.getId());
             }
         }
-        oldDocs.putAll(readDocumentsUncached(collection, missingDocs));
+
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("bulkUpdate: cached docs to be updated: {}", dumpKeysAndModcounts(oldDocs));
+        }
+
+        Map<String, T> freshDocs = readDocumentsUncached(collection, missingDocs);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("bulkUpdate: fresh docs to be updated: {}", dumpKeysAndModcounts(freshDocs));
+        }
+        oldDocs.putAll(freshDocs);
 
         try (CacheChangesTracker tracker = obtainTracker(collection, Sets.union(oldDocs.keySet(), missingDocs) )) {
             List<T> docsToUpdate = new ArrayList<T>(updates.size());
@@ -553,6 +562,10 @@ public class RDBDocumentStore implements DocumentStore {
 
                 Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
                 oldDocs.keySet().removeAll(failedUpdates);
+
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("bulkUpdate: success for {}, failure for {}", successfulUpdates, failedUpdates);
+                }
 
                 if (collection == Collection.NODES) {
                     List<NodeDocument> docsToCache = new ArrayList<>();
@@ -2291,6 +2304,23 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
             return false;
+        }
+    }
+
+    @NotNull
+    private static <T extends Document> String dumpKeysAndModcounts(Map<String, T> docs) {
+        if (docs.isEmpty()) {
+            return "-";
+        } else {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, T> e : docs.entrySet()) {
+                Long mc = e.getValue().getModCount();
+                if (sb.length() != 0) {
+                    sb.append(", ");
+                }
+                sb.append(String.format("%s (%s)", e.getKey(), mc == null ? "" : mc.toString()));
+            }
+            return sb.toString();
         }
     }
 
