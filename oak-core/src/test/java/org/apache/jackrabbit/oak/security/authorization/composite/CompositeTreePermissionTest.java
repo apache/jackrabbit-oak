@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import java.lang.reflect.Field;
-import java.util.Arrays;
-
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -34,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import java.lang.reflect.Field;
 
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
 import static org.junit.Assert.assertEquals;
@@ -51,7 +52,6 @@ import static org.mockito.Mockito.when;
 
 public class CompositeTreePermissionTest extends AbstractSecurityTest {
 
-    private Root readOnlyRoot;
     private Tree rootTree;
 
     private AggregatedPermissionProvider fullScopeProvider;
@@ -60,12 +60,12 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        Tree rootNode = root.getTree("/");
+        Tree rootNode = root.getTree(PathUtils.ROOT_PATH);
         TreeUtil.addChild(rootNode, "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         root.commit();
 
-        readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
-        rootTree = readOnlyRoot.getTree("/");
+        Root readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
+        rootTree = readOnlyRoot.getTree(PathUtils.ROOT_PATH);
 
         fullScopeProvider = new FullScopeProvider(readOnlyRoot);
     }
@@ -88,8 +88,7 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
 
     @NotNull
     TreePermission createRootTreePermission(@NotNull AggregatedPermissionProvider... providers) {
-        return new CompositePermissionProvider(readOnlyRoot, Arrays.asList(providers), Context.DEFAULT, getCompositionType(), getRootProvider(), getTreeProvider())
-                .getTreePermission(rootTree, TreePermission.EMPTY);
+        return CompositeTreePermission.create(rootTree, getTreeProvider(), new TreeTypeProvider(Context.DEFAULT), providers, getCompositionType());
     }
 
     private static void assertCompositeTreePermission(boolean expected, @NotNull TreePermission tp) {
@@ -294,8 +293,63 @@ public class CompositeTreePermissionTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testParentNoRecourse() throws Exception {
+    public void testParentNoRecourse() {
         TreePermission rootTp = createRootTreePermission(new NoScopeProvider(root));
         assertSame(TreePermission.NO_RECOURSE, rootTp);
+    }
+
+    @Test
+    public void testCreateWithTreeType() throws Exception {
+        TreePermission mockTp = mock(TreePermission.class);
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+
+        TreePermission parent = createRootTreePermission(mockPP, fullScopeProvider);
+        assertCompositeTreePermission(true, parent);
+
+        Tree t = rootTree.getChild("test");
+        TreePermission tp = CompositeTreePermission.create(t, getTreeProvider(), (CompositeTreePermission) parent, TreeType.INTERNAL);
+        assertCompositeTreePermission(true, tp);
+
+        Field typeF = CompositeTreePermission.class.getDeclaredField("type");
+        typeF.setAccessible(true);
+        assertSame(TreeType.INTERNAL, typeF.get(tp));
+
+        verify(mockPP, times(1)).getTreePermission(rootTree, TreeType.DEFAULT, TreePermission.EMPTY);
+        verify(mockPP, times(1)).getTreePermission(t, TreeType.INTERNAL, mockTp);
+        verify(mockPP, never()).getTreePermission(t, TreeType.DEFAULT, parent);
+    }
+
+    @Test
+    public void testCreateSingleWithInvalidParent() {
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(TreePermission.NO_RECOURSE);
+
+        TreePermission parent = createRootTreePermission(mockPP, fullScopeProvider);
+        Tree t = rootTree.getChild("test");
+        TreePermission tp = CompositeTreePermission.create(t, getTreeProvider(), (CompositeTreePermission) parent, TreeType.DEFAULT);
+        assertCompositeTreePermission(false, tp);
+    }
+
+    @Test
+    public void testCreateMultipleWithInvalidParent() {
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(TreePermission.NO_RECOURSE);
+
+        TreePermission parent = createRootTreePermission(mockPP, fullScopeProvider, fullScopeProvider);
+        Tree t = rootTree.getChild("test");
+        TreePermission tp = CompositeTreePermission.create(t, getTreeProvider(), (CompositeTreePermission) parent, TreeType.DEFAULT);
+        assertCompositeTreePermission(true, tp);
+    }
+
+    @Test
+    public void testCreateWithInvalidParent() {
+        AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+        when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(TreePermission.NO_RECOURSE);
+
+        TreePermission parent = createRootTreePermission(mockPP, mockPP, mockPP);
+        Tree t = rootTree.getChild("test");
+        TreePermission tp = CompositeTreePermission.create(t, getTreeProvider(), (CompositeTreePermission) parent, TreeType.DEFAULT);
+        assertSame(TreePermission.EMPTY, tp);
     }
 }

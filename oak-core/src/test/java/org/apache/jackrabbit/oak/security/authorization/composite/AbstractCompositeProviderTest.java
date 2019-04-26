@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import java.security.Principal;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Session;
-import javax.jcr.security.AccessControlManager;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -52,6 +45,13 @@ import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
+
+import javax.jcr.Session;
+import javax.jcr.security.AccessControlManager;
+import java.security.Principal;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -598,7 +598,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     @Test
-    public void testGetRepositoryPermissionInstance() throws Exception {
+    public void testGetRepositoryPermissionInstance() {
         RepositoryPermission rp = createPermissionProvider().getRepositoryPermission();
         assertTrue(rp.getClass().getName().endsWith("CompositeRepositoryPermission"));
         RepositoryPermission rpO = createPermissionProviderOR().getRepositoryPermission();
@@ -606,7 +606,7 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     }
 
     @Test
-    public void testRepositoryPermissionIsNotGranted() throws Exception {
+    public void testRepositoryPermissionIsNotGranted() {
         RepositoryPermission rp = createPermissionProvider().getRepositoryPermission();
         assertFalse(rp.isGranted(Permissions.PRIVILEGE_MANAGEMENT));
         assertFalse(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT|Permissions.PRIVILEGE_MANAGEMENT));
