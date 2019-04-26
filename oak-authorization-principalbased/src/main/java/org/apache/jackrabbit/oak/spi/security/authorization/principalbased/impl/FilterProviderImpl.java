@@ -44,7 +44,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Implementation of the {@link org.apache.jackrabbit.spi.security.authorization.principalbased.Filter} interface that
+ * Implementation of the {@link org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter} interface that
  * consists of the following two filtering conditions:
  *
  * <ol>
