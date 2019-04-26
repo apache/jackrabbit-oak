@@ -84,13 +84,7 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
     public int compareTo(@NotNull PermissionEntry pe) {
         if (Objects.equal(path, pe.path)) {
             // reverse order
-            if (index == pe.index) {
-                return 0;
-            } else if (index < pe.index) {
-                return 1;
-            } else {
-                return -1;
-            }
+            return Integer.compare(pe.index, index);
         } else {
             final int depth = PathUtils.getDepth(path);
             final int otherDepth = PathUtils.getDepth(pe.path);
