@@ -134,12 +134,12 @@ public class RDBDataSourceFactory {
 
         @Override
         public boolean isWrapperFor(Class<?> c) throws SQLException {
-            return this.ds.isWrapperFor(c);
+            return c.isInstance(this.ds) || this.ds.isWrapperFor(c);
         }
 
         @Override
         public <T> T unwrap(Class<T> c) throws SQLException {
-            return this.ds.unwrap(c);
+            return c.isInstance(this.ds) ? (T) this.ds : this.ds.unwrap(c);
         }
 
         @Override
