@@ -201,9 +201,6 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                          * (or item in the subtree) but that item no longer exists
                          * -> evaluation by path might be more accurate (-> see #isGranted)
                          */
-                        while (!versionableTree.exists()) {
-                            versionableTree = versionableTree.getParent();
-                        }
                         return new VersionTreePermission(tree, buildVersionDelegatee(versionableTree), providerCtx.getTreeProvider());
                     }
                 }
@@ -222,11 +219,13 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     @NotNull
     private TreePermission buildVersionDelegatee(@NotNull Tree versionableTree) {
-        if (!versionableTree.exists()) {
-            return TreePermission.EMPTY;
-        } else if (versionableTree.isRoot()) {
+        while (!versionableTree.exists()) {
+            versionableTree = versionableTree.getParent();
+        }
+        if (versionableTree.isRoot()) {
             return createRootPermission(versionableTree);
         }
+
         TreeType type = typeProvider.getType(versionableTree);
         switch (type) {
             case HIDDEN : return ALL;
