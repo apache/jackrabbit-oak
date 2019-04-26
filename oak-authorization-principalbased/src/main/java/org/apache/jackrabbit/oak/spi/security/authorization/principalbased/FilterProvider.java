@@ -32,7 +32,7 @@ public interface FilterProvider {
     /**
      * Reveals if the given implementation is able to handle access control at the tree defined by the given {@code oakPath}.
      *
-     * @param absPath The absolute oak path to be tested.
+     * @param oakPath The absolute oak path to be tested.
      * @return {@code true} if the given path is supported by this implememntation, {@code false} otherwise.
      */
     boolean handlesPath(@NotNull String oakPath);
