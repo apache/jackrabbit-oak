@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
  * Immutable implementation of the {@code Tree} interface in order to provide
  * the much feature rich API functionality for a given {@code NodeState}.
  *
- * <h2>Tree hierarchy</h2>
+ * <h3>Tree hierarchy</h3>
  * Due to the nature of this {@code Tree} implementation creating a proper
  * hierarchical view of the tree structure is the responsibility of the caller.
  * It is recommended to start with the state of the
@@ -49,7 +49,7 @@ import org.jetbrains.annotations.Nullable;
  * {@link #ImmutableTree(ImmutableTree.ParentProvider, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
  * an specify an appropriate {@code ParentProvider} implementation.
  *
- * <h2>ParentProvider</h2>
+ * <h3>ParentProvider</h3>
  * Apart from create the tree hierarchy in traversal mode this tree implementation
  * allows to instantiate disconnected trees that depending on the use may
  * never or on demand retrieve hierarchy information. The following default
@@ -64,13 +64,13 @@ import org.jetbrains.annotations.Nullable;
  *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()}</li>
  * </ul>
  *
- * <h2>Filtering 'hidden' items</h2>
+ * <h3>Filtering 'hidden' items</h3>
  * This {@code Tree} implementation reflects the item hierarchy as exposed by the
  * underlying {@code NodeState}. In contrast to the mutable implementations it
  * does not filter out 'hidden' items as identified by
  * {@code org.apache.jackrabbit.oak.spi.state.NodeStateUtils#isHidden(String)}.
  *
- * <h2>Equality and hash code</h2>
+ * <h3>Equality and hash code</h3>
  * In contrast to {@link org.apache.jackrabbit.oak.plugins.tree.impl.AbstractMutableTree}
  * the {@code ImmutableTree} implements
  * {@link Object#equals(Object)} and {@link Object#hashCode()}: Two {@code ImmutableTree}s

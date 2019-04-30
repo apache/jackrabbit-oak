@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
  * associated with user are retrieved from a configurable
  * {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider}.
  *
- * <h2>Credentials</h2>
+ * <h3>Credentials</h3>
  *
  * The {@code Credentials} are collected during {@link #login()} using the
  * following logic:
@@ -81,12 +81,12 @@ import org.slf4j.LoggerFactory;
  * The {@link Credentials} obtained during the {@code #login()} are added to
  * the shared state and - upon successful {@code #commit()} to the {@code Subject}.
  *
- * <h2>Principals</h2>
+ * <h3>Principals</h3>
  * Upon successful login the principals associated with the user are calculated
  * (see also {@link AbstractLoginModule#getPrincipals(String)}. These principals
  * are finally added to the subject during {@code #commit()}.
  *
- * <h2>Impersonation</h2>
+ * <h3>Impersonation</h3>
  * Impersonation such as defined by {@link javax.jcr.Session#impersonate(javax.jcr.Credentials)}
  * is covered by this login module by the means of {@link ImpersonationCredentials}.
  * Impersonation will succeed if the {@link ImpersonationCredentials#getBaseCredentials() base credentials}

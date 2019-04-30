@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 /**
- * <h2>Composition support</h2>
+ * <h1>Composition support</h1>
  *
  * <p>This package contains support classes for implementing a composite persistence at the {@linkplain org.apache.jackrabbit.oak.spi.state.NodeStore} level.</p>
  *
- * <h3>Design goals</h3>
+ * <h2>Design goals</h2>
  * <ol>
  *   <li>Transparency of the composition setup. Neither the NodeStores nor the code using a composite
  *       NodeStore should be aware of the specific implementation being used.</li>
@@ -28,7 +28,7 @@
  *   <li>Negligible performance impact. Composition should not add a significat performance overhead.</li>
  * </ol>
  *
- * <h3>Implementation</h3>
+ * <h2>Implementation</h2>
  *
  * <p>The main entry point is the {@link org.apache.jackrabbit.oak.composite.CompositeNodeStore},
  * which wraps one or more NodeStore instances. Also of interest are the {@link org.apache.jackrabbit.oak.composite.CompositeNodeState} and {@link org.apache.jackrabbit.oak.composite.CompositeNodeBuilder}.
@@ -41,7 +41,7 @@
  * <p>Using this approach allows us to always keep related NodeStore, NodeState and NodeBuilder
  * instances isolated from other instances.
  *
- * <h3>Open items</h3>
+ * <h2>Open items</h2>
  *
  * <p>1. Brute-force support for oak:mount nodes.
  *
