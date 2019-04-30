@@ -31,7 +31,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,14 +54,12 @@ public class EntryPredicateTest {
 
     @Test
     public void testPredicateRepositoryLevel() {
-        EntryPredicate pred = new EntryPredicate();
+        EntryPredicate pred = EntryPredicate.create();
         assertNull(pred.getPath());
 
         when(pattern.matches()).thenReturn(true);
 
         assertFalse(pred.apply(null));
-        assertFalse(pred.apply(null, true));
-        assertFalse(pred.apply(null, false));
 
         assertTrue(pred.apply(entry));
         assertTrue(pred.apply(entry, true));
@@ -73,7 +70,7 @@ public class EntryPredicateTest {
 
     @Test
     public void testPredicatePathRespectParent() {
-        EntryPredicate pred = new EntryPredicate(path, true);
+        EntryPredicate pred = EntryPredicate.create(path, true);
         assertEquals(path, pred.getPath());
 
         // pattern neither matches path nor parent path
@@ -89,8 +86,6 @@ public class EntryPredicateTest {
         when(pattern.matches(parentPath)).thenReturn(true);
 
         assertFalse(pred.apply(null));
-        assertFalse(pred.apply(null, true));
-        assertFalse(pred.apply(null, false));
 
         assertTrue(pred.apply(entry));
         assertTrue(pred.apply(entry, true));
@@ -118,7 +113,7 @@ public class EntryPredicateTest {
 
     @Test
     public void testPredicatePathDontRespectParent() {
-        EntryPredicate pred = new EntryPredicate(path, false);
+        EntryPredicate pred = EntryPredicate.create(path, false);
         assertEquals(path, pred.getPath());
 
         // pattern neither matches path nor parent path
@@ -134,8 +129,6 @@ public class EntryPredicateTest {
         when(pattern.matches(parentPath)).thenReturn(true);
 
         assertFalse(pred.apply(null));
-        assertFalse(pred.apply(null, true));
-        assertFalse(pred.apply(null, false));
 
         assertTrue(pred.apply(entry));
         assertTrue(pred.apply(entry, true));
@@ -168,7 +161,7 @@ public class EntryPredicateTest {
         PropertyState ps = mock(PropertyState.class);
         when(ps.getName()).thenReturn("property");
 
-        EntryPredicate pred = new EntryPredicate(tree, ps, true);
+        EntryPredicate pred = EntryPredicate.create(tree, ps, true);
         assertEquals(path, pred.getPath());
 
         // pattern neither matches path nor parent path
@@ -186,8 +179,6 @@ public class EntryPredicateTest {
         when(pattern.matches(parent, null)).thenReturn(true);
 
         assertFalse(pred.apply(null));
-        assertFalse(pred.apply(null, true));
-        assertFalse(pred.apply(null, false));
 
         assertTrue(pred.apply(entry));
         assertTrue(pred.apply(entry, true));
@@ -223,7 +214,7 @@ public class EntryPredicateTest {
         PropertyState ps = mock(PropertyState.class);
         when(ps.getName()).thenReturn("property");
 
-        EntryPredicate pred = new EntryPredicate(tree, ps,false);
+        EntryPredicate pred = EntryPredicate.create(tree, ps,false);
         assertEquals(path, pred.getPath());
 
         // pattern neither matches path nor parent path
@@ -241,8 +232,6 @@ public class EntryPredicateTest {
         when(pattern.matches(parent, null)).thenReturn(true);
 
         assertFalse(pred.apply(null));
-        assertFalse(pred.apply(null, true));
-        assertFalse(pred.apply(null, false));
 
         assertTrue(pred.apply(entry));
         assertTrue(pred.apply(entry, true));
@@ -273,7 +262,7 @@ public class EntryPredicateTest {
 
     @Test
     public void testPredicateRootPath() {
-        EntryPredicate pred = new EntryPredicate(PathUtils.ROOT_PATH, true);
+        EntryPredicate pred = EntryPredicate.create(PathUtils.ROOT_PATH, true);
         assertEquals(PathUtils.ROOT_PATH, pred.getPath());
 
         // pattern doesn't match path
@@ -295,7 +284,7 @@ public class EntryPredicateTest {
 
     @Test
     public void testPredicateRootPathDontRespectParent() {
-        EntryPredicate pred = new EntryPredicate(PathUtils.ROOT_PATH, false);
+        EntryPredicate pred = EntryPredicate.create(PathUtils.ROOT_PATH, false);
         assertEquals(PathUtils.ROOT_PATH, pred.getPath());
 
         // pattern doesn't match path
@@ -320,7 +309,7 @@ public class EntryPredicateTest {
         Tree tree = mockTree(PathUtils.ROOT_PATH, null);
         when(tree.isRoot()).thenReturn(true);
 
-        EntryPredicate pred = new EntryPredicate(tree, null,true);
+        EntryPredicate pred = EntryPredicate.create(tree, null,true);
         assertEquals(PathUtils.ROOT_PATH, pred.getPath());
 
         // pattern doesn't match path
@@ -346,7 +335,7 @@ public class EntryPredicateTest {
         Tree tree = mockTree(PathUtils.ROOT_PATH, null);
         when(tree.isRoot()).thenReturn(true);
 
-        EntryPredicate pred = new EntryPredicate(tree, null,false);
+        EntryPredicate pred = EntryPredicate.create(tree, null,false);
         assertEquals(PathUtils.ROOT_PATH, pred.getPath());
 
         // pattern doesn't match path
