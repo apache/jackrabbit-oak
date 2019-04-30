@@ -72,12 +72,12 @@ import org.jetbrains.annotations.Nullable;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 /**
- * <h1>Read Only Authorization Model</h1>
+ * <h2>Read Only Authorization Model</h2>
  *
  * This authorization module forms part of the training material provided by the
  * <i>oak-exercise</i> module and must not be used in a productive environment!
  *
- * <h2>Overview</h2>
+ * <h3>Overview</h3>
  * This simplistic authorization model is limited to permission evaluation and
  * doesn't support access control management.
  *
@@ -88,7 +88,7 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * There exists a single exception to that rule: For the internal {@link SystemPrincipal}
  * permission evaluation is not enforced by this module i.e. this module is skipped.
  *
- * <h2>Intended Usage</h2>
+ * <h3>Intended Usage</h3>
  * This authorization model is intended to be used in 'AND' combination with the
  * default authorization setup defined by Oak (and optionally additional models
  * such as e.g. <i>oak-authorization-cug</i>.
@@ -96,12 +96,12 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * It is not intended to be used as standalone model as it would grant full read
  * access to everyone.
  *
- * <h2>Limitations</h2>
+ * <h3>Limitations</h3>
  * Experimental model for training purpose and not intended for usage in production.
  *
- * <h2>Key Features</h2>
+ * <h3>Key Features</h3>
  *
- * <h3>Access Control Management</h3>
+ * <h4>Access Control Management</h4>
  *
  * <table style="text-align: left;">
  *     <caption></caption>
@@ -115,7 +115,7 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *     <tr><td>Effective Policies by Principals</td><td>for every set of principals a single effective policy of type {@link NamedAccessControlPolicy}</td></tr>
  * </table>
  *
- * <h3>Permission Evaluation</h3>
+ * <h4>Permission Evaluation</h4>
  *
  * <table>
  *     <caption></caption>
@@ -124,20 +124,20 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  *     <tr><td>Aggregated Permission Provider</td><td>yes</td></tr>
  * </table>
  *
- * <h2>Representation in the Repository</h2>
+ * <h3>Representation in the Repository</h3>
  *
  * There exists no dedicated access control or permission content for this
  * authorization model as it doesn't persist any information into the repository.
  * {@link SecurityConfiguration#getContext()} therefore returns the {@link Context#DEFAULT default}.
  *
- * <h2>Configuration</h2>
+ * <h3>Configuration</h3>
  *
  * This model comes with a single mandatory configurable property:
  *
  * - configurationRanking : {@link  CompositeConfiguration#PARAM_RANKING}, no default value.
  *
  *
- * <h2>Installation Instructions</h2>
+ * <h3>Installation Instructions</h3>
  *
  * The following steps are required to install this authorization model in an OSGi based Oak setup.
  *
