@@ -58,7 +58,7 @@ public class PermissionEntryProviderImplTest {
         // test that PermissionEntryProviderImpl.noExistingNames nevertheless is
         // properly set
         assertFalse(getNoExistingNames(provider));
-        assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(new EntryPredicate()));
+        assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(EntryPredicate.create()));
     }
 
     /**
@@ -79,7 +79,7 @@ public class PermissionEntryProviderImplTest {
         PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
         assertFalse(getNoExistingNames(provider));
 
-        assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(new EntryPredicate()));
+        assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(EntryPredicate.create()));
     }
 
     /**
