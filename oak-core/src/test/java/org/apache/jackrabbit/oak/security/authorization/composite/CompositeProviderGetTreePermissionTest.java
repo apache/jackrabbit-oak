@@ -47,7 +47,7 @@ public class CompositeProviderGetTreePermissionTest extends AbstractSecurityTest
 
     private CompositePermissionProvider createProvider(@NotNull CompositeAuthorizationConfiguration.CompositionType compositionType,
                                                        @NotNull AggregatedPermissionProvider... providers) {
-        return new CompositePermissionProvider(root, ImmutableList.copyOf(providers), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
+        return CompositePermissionProvider.create(root, ImmutableList.copyOf(providers), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
     }
 
     @Test

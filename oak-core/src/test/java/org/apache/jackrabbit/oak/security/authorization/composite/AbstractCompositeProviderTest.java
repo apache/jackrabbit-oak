@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
@@ -252,8 +251,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     CompositePermissionProvider createPermissionProvider(Set<Principal> principals) {
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
-        return new CompositePermissionProvider(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), CompositionType.AND, getRootProvider(), getTreeProvider());
+        return new CompositePermissionProviderAnd(root, getAggregatedProviders(workspaceName, config, principals),
+                config.getContext(), getRootProvider(), getTreeProvider());
     }
 
     CompositePermissionProvider createPermissionProviderOR(Principal... principals) {
@@ -263,8 +262,8 @@ public abstract class AbstractCompositeProviderTest extends AbstractSecurityTest
     CompositePermissionProvider createPermissionProviderOR(Set<Principal> principals) {
         String workspaceName = root.getContentSession().getWorkspaceName();
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
-        return new CompositePermissionProvider(root, getAggregatedProviders(workspaceName, config, principals),
-                config.getContext(), CompositionType.OR, getRootProvider(), getTreeProvider());
+        return new CompositePermissionProviderOr(root, getAggregatedProviders(workspaceName, config, principals),
+                config.getContext(), getRootProvider(), getTreeProvider());
     }
 
     @Test
