@@ -101,7 +101,7 @@ import org.slf4j.LoggerFactory;
  *  session.logout();
  * </pre>
  * 
- * <h3>Internal behavioural details</h3>
+ * <h2>Internal behavioural details</h2>
  * 
  * <p>
  * The related jira ticket is <a href="https://issues.apache.org/jira/browse/OAK-2472">OAK-2472</a>.
