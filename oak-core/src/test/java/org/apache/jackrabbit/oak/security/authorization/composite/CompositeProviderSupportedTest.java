@@ -89,7 +89,7 @@ public class CompositeProviderSupportedTest extends AbstractSecurityTest {
     }
 
     private CompositePermissionProvider createProvider(@NotNull CompositeAuthorizationConfiguration.CompositionType compositionType, @NotNull AggregatedPermissionProvider... aggregated) {
-        return new CompositePermissionProvider(root, ImmutableList.copyOf(aggregated), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
+        return CompositePermissionProvider.create(root, ImmutableList.copyOf(aggregated), Context.DEFAULT, compositionType, getRootProvider(), getTreeProvider());
     }
 
     @Test

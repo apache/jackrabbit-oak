@@ -234,7 +234,7 @@ public class CompositeProviderCustomMixTest extends AbstractSecurityTest {
 
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         List<AggregatedPermissionProvider> composite = ImmutableList.of(a1, a2);
-        return new CompositePermissionProvider(root, composite, config.getContext(), type, getRootProvider(), getTreeProvider());
+        return CompositePermissionProvider.create(root, composite, config.getContext(), type, getRootProvider(), getTreeProvider());
     }
 
     private static class CustomProvider implements AggregatedPermissionProvider {

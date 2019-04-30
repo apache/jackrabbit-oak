@@ -32,16 +32,16 @@ import org.jetbrains.annotations.Nullable;
 
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.AND;
 import static org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration.CompositionType.OR;
+import static org.apache.jackrabbit.oak.security.authorization.composite.Util.doEvaluate;
 
 /**
  * {@code TreePermission} implementation that combines multiple {@code TreePermission}
  * implementations.
  */
-final class CompositeTreePermission implements TreePermission {
+abstract class CompositeTreePermission implements TreePermission {
 
     private final Tree tree;
     private final TreeType type;
-    private final CompositionType compositionType;
 
     private final TreeProvider treeProvider;
     private final TreeTypeProvider typeProvider;
@@ -53,9 +53,10 @@ final class CompositeTreePermission implements TreePermission {
     private Boolean canReadProperties;
 
     private CompositeTreePermission(@NotNull Tree tree, @NotNull TreeType type,
-            @NotNull TreeProvider treeProvider,
-            @NotNull TreeTypeProvider typeProvider, @NotNull AggregatedPermissionProvider[] providers,
-            @NotNull TreePermission[] treePermissions, int cnt, @NotNull CompositionType compositionType) {
+                                    @NotNull TreeProvider treeProvider,
+                                    @NotNull TreeTypeProvider typeProvider,
+                                    @NotNull AggregatedPermissionProvider[] providers,
+                                    @NotNull TreePermission[] treePermissions, int cnt) {
         this.tree = tree;
         this.type = type;
 
@@ -64,7 +65,6 @@ final class CompositeTreePermission implements TreePermission {
         this.providers = providers;
         this.treePermissions = treePermissions;
         this.childSize = providers.length - cnt;
-        this.compositionType = compositionType;
     }
 
     static TreePermission create(@NotNull Tree rootTree,
@@ -85,8 +85,11 @@ final class CompositeTreePermission implements TreePermission {
                     }
                     treePermissions[i] = tp;
                 }
-            return new CompositeTreePermission(rootTree, TreeType.DEFAULT, treeProvider, typeProvider, providers, treePermissions,
-                    cnt, compositionType);
+                if (compositionType == AND) {
+                    return new CompositeTreePermissionAnd(rootTree, TreeType.DEFAULT, treeProvider, typeProvider, providers, treePermissions, cnt);
+                } else {
+                    return new CompositeTreePermissionOr(rootTree, TreeType.DEFAULT, treeProvider, typeProvider, providers, treePermissions, cnt);
+                }
         }
     }
 
@@ -108,11 +111,11 @@ final class CompositeTreePermission implements TreePermission {
             case 1:
                 TreePermission parent = null;
                 for (TreePermission tp : parentPermission.treePermissions) {
-                        if (isValid(tp)) {
-                            parent = tp;
-                            break;
-                        }
+                    if (isValid(tp)) {
+                        parent = tp;
+                        break;
                     }
+                }
                 return (parent == null) ? TreePermission.EMPTY : parent.getChildPermission(childName, childState);
             default:
                 Tree tree = lazyTree.get();
@@ -139,8 +142,11 @@ final class CompositeTreePermission implements TreePermission {
                         j++;
                     }
                 }
-            return new CompositeTreePermission(tree, type, parentPermission.treeProvider, parentPermission.typeProvider, pvds, tps, cnt,
-                    parentPermission.compositionType);
+                if (parentPermission.getCompositionType() == AND) {
+                    return new CompositeTreePermissionAnd(tree, type, parentPermission.treeProvider, parentPermission.typeProvider, pvds, tps, cnt);
+                } else {
+                    return new CompositeTreePermissionOr(tree, type, parentPermission.treeProvider, parentPermission.typeProvider, pvds, tps, cnt);
+                }
         }
     }
 
@@ -172,21 +178,7 @@ final class CompositeTreePermission implements TreePermission {
     @Override
     public boolean canReadProperties() {
         if (canReadProperties == null) {
-            boolean readable = false;
-            for (int i = 0; i < providers.length; i++) {
-                TreePermission tp = treePermissions[i];
-                long supported = providers[i].supportedPermissions(tp, null, Permissions.READ_PROPERTY);
-                if (doEvaluate(supported)) {
-                    readable = tp.canReadProperties();
-                    if (!readable && compositionType == AND) {
-                        break;
-                    }
-                    if (readable && compositionType == OR) {
-                        break;
-                    }
-                }
-            }
-            canReadProperties = readable;
+            canReadProperties = grantsReadProperties();
         }
         return canReadProperties;
     }
@@ -201,23 +193,65 @@ final class CompositeTreePermission implements TreePermission {
         return grantsPermission(permissions, property);
     }
 
+    //---------------------------------------------------------------------------
+    @NotNull
+    abstract CompositionType getCompositionType();
+
+    abstract boolean grantsPermission(long permissions, @Nullable PropertyState property);
+
+    abstract boolean grantsRead(@Nullable PropertyState property);
+
+    abstract boolean grantsReadProperties();
+
+    //---------------------------------------------------------------------------
+
+    int length() {
+        return providers.length;
+    }
+
+    @NotNull
+    AggregatedPermissionProvider provider(int index) {
+        return providers[index];
+    }
+
+    @NotNull
+    TreePermission treePermission(int index) {
+        return treePermissions[index];
+    }
+
     //------------------------------------------------------------< private >---
 
-    private boolean grantsPermission(long permissions, @Nullable PropertyState property) {
-        boolean isGranted = false;
-        long coveredPermissions = Permissions.NO_PERMISSION;
+    private static boolean isValid(@NotNull TreePermission tp) {
+        return NO_RECOURSE != tp;
+    }
 
-        for (int i = 0; i < providers.length; i++) {
-            TreePermission tp = treePermissions[i];
-            long supported = providers[i].supportedPermissions(tp, property, permissions);
-            if (doEvaluate(supported)) {
-                if (compositionType == AND) {
-                    isGranted = (property == null) ? tp.isGranted(supported) : tp.isGranted(supported, property);
-                    if (!isGranted) {
-                        return false;
-                    }
-                    coveredPermissions |= supported;
-                } else {
+    private static TreeType getType(@NotNull Tree tree, @NotNull CompositeTreePermission parent) {
+        return parent.typeProvider.getType(tree, parent.type);
+    }
+
+    //---< OR >-----------------------------------------------------------------
+
+    private static final class CompositeTreePermissionOr extends CompositeTreePermission {
+
+        private CompositeTreePermissionOr(@NotNull Tree tree, @NotNull TreeType type, @NotNull TreeProvider treeProvider, @NotNull TreeTypeProvider typeProvider, @NotNull AggregatedPermissionProvider[] providers, @NotNull TreePermission[] treePermissions, int cnt) {
+            super(tree, type, treeProvider, typeProvider, providers, treePermissions, cnt);
+        }
+
+        @NotNull
+        @Override
+        CompositionType getCompositionType() {
+            return OR;
+        }
+
+        @Override
+        boolean grantsPermission(long permissions, @Nullable PropertyState property) {
+            boolean isGranted = false;
+            long coveredPermissions = Permissions.NO_PERMISSION;
+
+            for (int i = 0; i < length(); i++) {
+                TreePermission tp = treePermission(i);
+                long supported = provider(i).supportedPermissions(tp, property, permissions);
+                if (doEvaluate(supported)) {
                     for (long p : Permissions.aggregates(supported)) {
                         boolean aGrant = (property == null) ? tp.isGranted(p) : tp.isGranted(p, property);
                         if (aGrant) {
@@ -227,40 +261,110 @@ final class CompositeTreePermission implements TreePermission {
                     }
                 }
             }
+            return isGranted && coveredPermissions == permissions;
         }
-        return isGranted && coveredPermissions == permissions;
-    }
 
-    private boolean grantsRead(@Nullable PropertyState property) {
-        if (property != null && canReadProperties()) {
-            return true;
-        }
-        boolean readable = false;
-        for (int i = 0; i < providers.length; i++) {
-            TreePermission tp = treePermissions[i];
-            long supported = providers[i].supportedPermissions(tp, property, (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
-            if (doEvaluate(supported)) {
-                readable = (property == null) ? tp.canRead() : tp.canRead(property);
-                if (!readable && compositionType == AND) {
-                    return false;
-                }
-                if (readable && compositionType == OR) {
-                    return true;
+        @Override
+        boolean grantsRead(@Nullable PropertyState property) {
+            if (property != null && canReadProperties()) {
+                return true;
+            }
+            boolean readable = false;
+            for (int i = 0; i < length(); i++) {
+                TreePermission tp = treePermission(i);
+                long supported = provider(i).supportedPermissions(tp, property, (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
+                if (doEvaluate(supported)) {
+                    readable = (property == null) ? tp.canRead() : tp.canRead(property);
+                    if (readable) {
+                        return true;
+                    }
                 }
             }
+            return readable;
         }
-        return readable;
+
+        @Override
+        boolean grantsReadProperties() {
+            boolean readable = false;
+            for (int i = 0; i < length(); i++) {
+                TreePermission tp = treePermission(i);
+                long supported = provider(i).supportedPermissions(tp, null, Permissions.READ_PROPERTY);
+                if (doEvaluate(supported)) {
+                    readable = tp.canReadProperties();
+                    if (readable) {
+                        break;
+                    }
+                }
+            }
+            return readable;
+        }
     }
 
-    private static boolean doEvaluate(long supportedPermissions) {
-        return supportedPermissions != Permissions.NO_PERMISSION;
-    }
+    //---< AND >----------------------------------------------------------------
 
-    private static boolean isValid(@NotNull TreePermission tp) {
-        return NO_RECOURSE != tp;
-    }
+    private static final class CompositeTreePermissionAnd extends CompositeTreePermission {
 
-    private static TreeType getType(@NotNull Tree tree, @NotNull CompositeTreePermission parent) {
-        return parent.typeProvider.getType(tree, parent.type);
+        private CompositeTreePermissionAnd(@NotNull Tree tree, @NotNull TreeType type,
+                                           @NotNull TreeProvider treeProvider,
+                                           @NotNull TreeTypeProvider typeProvider, @NotNull AggregatedPermissionProvider[] providers,
+                                           @NotNull TreePermission[] treePermissions, int cnt) {
+            super(tree, type, treeProvider, typeProvider, providers, treePermissions, cnt);
+        }
+
+        @NotNull
+        CompositeAuthorizationConfiguration.CompositionType getCompositionType() {
+            return AND;
+        }
+
+        boolean grantsPermission(long permissions, @Nullable PropertyState property) {
+            boolean isGranted = false;
+            long coveredPermissions = Permissions.NO_PERMISSION;
+
+            for (int i = 0; i < length(); i++) {
+                TreePermission tp = treePermission(i);
+                long supported = provider(i).supportedPermissions(tp, property, permissions);
+                if (doEvaluate(supported)) {
+                    isGranted = (property == null) ? tp.isGranted(supported) : tp.isGranted(supported, property);
+                    if (!isGranted) {
+                        return false;
+                    }
+                    coveredPermissions |= supported;
+                }
+            }
+            return isGranted && coveredPermissions == permissions;
+        }
+
+        boolean grantsRead(@Nullable PropertyState property) {
+            if (property != null && canReadProperties()) {
+                return true;
+            }
+            boolean readable = false;
+            for (int i = 0; i < length(); i++) {
+                TreePermission tp = treePermission(i);
+                long supported = provider(i).supportedPermissions(tp, property, (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY);
+                if (doEvaluate(supported)) {
+                    readable = (property == null) ? tp.canRead() : tp.canRead(property);
+                    if (!readable) {
+                        return false;
+                    }
+                }
+            }
+            return readable;
+        }
+
+        boolean grantsReadProperties() {
+            boolean readable = false;
+            for (int i = 0; i < length(); i++) {
+                TreePermission tp = treePermission(i);
+                long supported = provider(i).supportedPermissions(tp, null, Permissions.READ_PROPERTY);
+                if (doEvaluate(supported)) {
+                    readable = tp.canReadProperties();
+                    if (!readable) {
+                        break;
+                    }
+                }
+            }
+            return readable;
+        }
     }
 }
