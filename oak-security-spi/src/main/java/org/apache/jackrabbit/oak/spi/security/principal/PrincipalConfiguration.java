@@ -45,8 +45,8 @@ public interface PrincipalConfiguration extends SecurityConfiguration {
     /**
      * Returns an instance of the OAK {@link PrincipalProvider}.
      *
-     * <h4>Backwards compatibility with Jackrabbit 2.x</h4>
-     * <h5>Configuration of Principal Providers</h5>
+     * <h3>Backwards compatibility with Jackrabbit 2.x</h3>
+     * <h4>Configuration of Principal Providers</h4>
      * In Jackrabbit 2.x the configuration of principal providers was tied to
      * the LoginModule configuration and thus mixing authentication concerns
      * with the principal management. Since OAK makes the {@code PrincipalProvider}
@@ -56,7 +56,7 @@ public interface PrincipalConfiguration extends SecurityConfiguration {
      * {@link org.apache.jackrabbit.oak.spi.security.SecurityProvider} is
      * made available in the {@link org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration}.
      *
-     * <h5>Multiple Sources for Principals</h5>
+     * <h4>Multiple Sources for Principals</h4>
      * In Jackrabbit 2.x it was possible to configure multiple principal providers.
      * As of OAK there is only one single principal provider implementation
      * responsible for a given workspace. If principals originate from different
