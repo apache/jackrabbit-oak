@@ -100,7 +100,7 @@ import com.google.common.collect.Sets;
 /**
  * Implementation of {@link DocumentStore} for relational databases.
  * 
- * <h3 id="apidocs.supported-databases">Supported Databases</h3>
+ * <h2 id="apidocs.supported-databases">Supported Databases</h2>
  * <p>
  * The code is supposed to be sufficiently generic to run with a variety of
  * database implementations. However, the tables are created when required to
@@ -116,7 +116,7 @@ import com.google.common.collect.Sets;
  * <li>Oracle</li>
  * </ul>
  * 
- * <h3 id="apidocs.table-layout">Table Layout</h3>
+ * <h2 id="apidocs.table-layout">Table Layout</h2>
  * <p>
  * Data for each of the DocumentStore's {@link Collection}s is stored in its own
  * database table (with a name matching the collection).
@@ -126,7 +126,7 @@ import com.google.common.collect.Sets;
  * {@link Document} (or a part of one). Additional fields are used for queries,
  * debugging, and concurrency control:
  * <table style="text-align: left;">
- * <caption></caption>
+ * <caption>RDBDocumentStore Column Layout</caption>
  * <thead>
  * <tr>
  * <th>Column</th>
@@ -203,7 +203,7 @@ import com.google.common.collect.Sets;
  * testing, as tables can also be dropped automatically when the store is
  * disposed (this only happens for those tables that have been created on
  * demand).
- * <h4 id="apidocs.versioning">Versioning</h4>
+ * <h3 id="apidocs.versioning">Versioning</h3>
  * <p>
  * The initial database layout used in OAK 1.0 through 1.6 is version 0.
  * <p>
@@ -216,7 +216,7 @@ import com.google.common.collect.Sets;
  * The code deals with both version 0, version 1 and version 2 table layouts. By
  * default, it tries to create version 2 tables, and also tries to upgrade
  * existing version 0 and 1 tables to version 2.
- * <h4>DB-specific information</h4>
+ * <h3>DB-specific information</h3>
  * <p>
  * Databases need to be configured so that:
  * <ul>
@@ -238,11 +238,11 @@ import com.google.common.collect.Sets;
  * command can be used to print out the DDL statements that would have been used for auto-creation
  * and/or automatic schema updates.
  * 
- * <h3>Caching</h3>
+ * <h2>Caching</h2>
  * <p>
  * The cache borrows heavily from the {@link MongoDocumentStore} implementation.
  * 
- * <h3>Queries</h3>
+ * <h2>Queries</h2>
  * <p>
  * The implementation currently supports only three indexed properties: "_bin",
  * "deletedOnce", and "_modified". Attempts to use a different indexed property
