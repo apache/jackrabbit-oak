@@ -30,12 +30,14 @@ import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTes
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
+    @NotNull
     @Override
     protected PrincipalProvider createPrincipalProvider() {
         return new UserPrincipalProvider(root, getUserConfiguration(), namePathMapper);

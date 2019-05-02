@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.principal;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -46,6 +45,7 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -146,9 +146,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         }
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType, offset, limit);
-            Iterator<Principal> principals = Iterators.transform(
-                    Iterators.filter(authorizables, Predicates.notNull()),
-                    new AuthorizableToPrincipal());
+            Iterator<Principal> principals = Iterators.filter(Iterators.transform(authorizables, new AuthorizableToPrincipal()), Objects::nonNull);
 
             // everyone is injected only in complete set, not on pages
             boolean noRange = offset == 0 && limit == Long.MAX_VALUE;
@@ -255,9 +253,9 @@ class PrincipalProviderImpl implements PrincipalProvider {
     private static final class EveryonePredicate implements Predicate<Principal> {
         private boolean servedEveryone = false;
         @Override
-        public boolean apply(@Nullable Principal principal) {
-            String pName = (principal == null) ? null : principal.getName();
-            if (EveryonePrincipal.NAME.equals(pName)) {
+        public boolean apply(Principal principal) {
+            // principal must never be null as the result was already filtered for null.
+            if (EveryonePrincipal.NAME.equals(principal.getName())) {
                 if (servedEveryone) {
                     return false;
                 } else {

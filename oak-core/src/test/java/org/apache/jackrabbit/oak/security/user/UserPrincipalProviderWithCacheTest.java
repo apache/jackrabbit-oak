@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
@@ -103,6 +104,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         );
     }
 
+    @NotNull
     @Override
     protected PrincipalProvider createPrincipalProvider() {
         return createPrincipalProvider(root);
