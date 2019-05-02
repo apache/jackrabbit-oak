@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.nodetype;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -36,6 +39,11 @@ public interface EffectiveNodeTypeProvider {
      * type or mixin type, or a subtype thereof respecting the effective node
      * type of the {@code tree}. Returns {@code false} otherwise.
      *
+     * Note: caution must be taken while calling this api because it doesn't
+     * offer the same strict guarantees as the {@code Node#isNodeType(String)}
+     * method in the case where the session doesn't have access to the
+     * {@code jcr:mixinTypes} property.
+     *
      * @param tree The tree to be tested.
      * @param nodeTypeName The internal oak name of the node type to be tested.
      * @return true if the specified node is of the given node type.
@@ -54,8 +62,29 @@ public interface EffectiveNodeTypeProvider {
      * refer to an existing node type.
      * @throws RepositoryException If the given node type name is invalid or if
      * some other error occurs.
+     * @deprecated use {@link #isNodeType(String, Iterable, String)} instead
      */
-    boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterator<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
+    @Deprecated
+    default boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterator<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException {
+        List<String> mixins = new ArrayList<>();
+        mixinTypes.forEachRemaining(mixins::add);
+        return isNodeType(primaryTypeName, mixins, nodeTypeName);
+    }
+
+    /**
+     * Returns {@code true} if {@code typeName} is of the specified primary node
+     * type or mixin type, or a subtype thereof. Returns {@code false} otherwise.
+     *
+     * @param primaryTypeName  the internal oak name of the node to test
+     * @param mixinTypes the internal oak names of the node to test.
+     * @param nodeTypeName The internal oak name of the node type to be tested.
+     * @return {@code true} if the specified node type is of the given node type.
+     * @throws NoSuchNodeTypeException If the specified node type name doesn't
+     * refer to an existing node type.
+     * @throws RepositoryException If the given node type name is invalid or if
+     * some other error occurs.
+     */
+    boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterable<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
 
     /**
      * Returns {@code true} if {@code typeName} is of the specified primary node

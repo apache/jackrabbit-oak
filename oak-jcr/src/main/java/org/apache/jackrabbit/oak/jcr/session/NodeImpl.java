@@ -938,7 +938,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), getMixinTypeNames(tree), oakName);
+                Iterable<String> mixins = () -> getMixinTypeNames(tree);
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), mixins, oakName);
             }
         });
     }
@@ -1294,7 +1295,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @NotNull
-    private Iterator<String> getMixinTypeNames(@NotNull Tree tree) throws RepositoryException {
+    private Iterator<String> getMixinTypeNames(@NotNull Tree tree) {
         if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadMixinTypes(tree)) {
             return TreeUtil.getMixinTypeNames(tree).iterator();
         } else {
@@ -1312,7 +1313,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         };
     }
 
-    private boolean canReadMixinTypes(@NotNull Tree tree) throws RepositoryException {
+    private boolean canReadMixinTypes(@NotNull Tree tree) {
         return sessionContext.getAccessManager().hasPermissions(
                 tree, EMPTY_MIXIN_TYPES, Permissions.READ_PROPERTY);
     }

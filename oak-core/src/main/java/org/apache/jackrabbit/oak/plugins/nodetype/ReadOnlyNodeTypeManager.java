@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
-import java.util.Iterator;
 import java.util.List;
 
 import javax.jcr.Node;
@@ -285,7 +284,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public boolean isNodeType(@Nullable String primaryTypeName, @NotNull Iterator<String> mixinTypes, @NotNull String nodeTypeName) {
+    public boolean isNodeType(@Nullable String primaryTypeName, @NotNull Iterable<String> mixinTypes, @NotNull String nodeTypeName) {
         // shortcut
         if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
             return true;
@@ -294,8 +293,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         if (primaryTypeName != null && isa(types, primaryTypeName, nodeTypeName)) {
             return true;
         }
-        while (mixinTypes.hasNext()) {
-            if (isa(types, mixinTypes.next(), nodeTypeName)) {
+        for (String mixin : mixinTypes) {
+            if (isa(types, mixin, nodeTypeName)) {
                 return true;
             }
         }
