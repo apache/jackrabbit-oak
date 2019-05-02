@@ -211,7 +211,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                      return new TreePermissionImpl(tree, type, parentPermission);
                 }
             case INTERNAL:
-                return EMPTY;
+                return InternalTreePermission.INSTANCE;
             default:
                 return new TreePermissionImpl(tree, type, parentPermission);
         }
@@ -229,7 +229,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         TreeType type = typeProvider.getType(versionableTree);
         switch (type) {
             case HIDDEN : return ALL;
-            case INTERNAL : return EMPTY;
+            case INTERNAL : return InternalTreePermission.INSTANCE;
             // case VERSION is never expected here
             default:
                 return new TreePermissionImpl(versionableTree, type, buildParentPermission(versionableTree));
@@ -460,6 +460,8 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             return ((TreePermissionImpl) parentPermission).type;
         } else if (parentPermission == TreePermission.EMPTY) {
             return TreeType.DEFAULT;
+        } else if (parentPermission == InternalTreePermission.INSTANCE) {
+            return TreeType.INTERNAL;
         } else if (parentPermission instanceof VersionTreePermission) {
             return TreeType.VERSION;
         } else if (parentPermission instanceof RepoPolicyTreePermission) {
