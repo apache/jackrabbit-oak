@@ -427,6 +427,19 @@ public class Aggregate {
         }
     }
 
+    public static class FunctionInclude extends  PropertyInclude {
+
+        public FunctionInclude(PropertyDefinition pd) {
+            super(pd);
+        }
+
+        @Override
+        public void collectResults(String nodePath, NodeState nodeState, ResultCollector results) {
+            // Do Nothing here - Function includes aren't indexed using aggregate of property parameters of the function itself
+        }
+
+    }
+
     public interface ResultCollector {
         void onResult(NodeIncludeResult result);
 
