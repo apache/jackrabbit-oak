@@ -298,13 +298,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
 
-        // FIXME: wrong TreePermission for child of internal path -> not EMPTY
-//        String[] internalPaths = new String[] {
-//                PERMISSIONS_STORE_PATH,
-//                PathUtils.concat(PERMISSIONS_STORE_PATH, testSession.getWorkspaceName())
-//        };
-        String[] internalPaths = new String[]{
-                PERMISSIONS_STORE_PATH
+        String[] internalPaths = new String[] {
+                PERMISSIONS_STORE_PATH,
+                PathUtils.concat(PERMISSIONS_STORE_PATH, testSession.getWorkspaceName())
         };
         for (String internalPath : internalPaths) {
             Tree internalTree = createReadonlyTree(internalPath);
@@ -317,7 +313,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
             assertTrue(cp.getPrivileges(internalTree).isEmpty());
 
             TreePermission tp = createTreePermission(cp, internalPath);
-            assertSame(TreePermission.EMPTY, tp);
+            assertSame(InternalTreePermission.INSTANCE, tp);
         }
     }
 
