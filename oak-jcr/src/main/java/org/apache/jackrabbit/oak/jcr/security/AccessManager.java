@@ -50,7 +50,7 @@ public class AccessManager {
         });
     }
 
-    public boolean hasPermissions(@NotNull final Tree tree, @Nullable final PropertyState property, final long permissions) throws RepositoryException {
+    public boolean hasPermissions(@NotNull final Tree tree, @Nullable final PropertyState property, final long permissions) {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
             @NotNull
             @Override
