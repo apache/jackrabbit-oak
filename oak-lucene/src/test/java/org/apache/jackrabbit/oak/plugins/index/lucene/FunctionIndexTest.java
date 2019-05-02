@@ -35,6 +35,7 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import ch.qos.logback.classic.Level;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -54,6 +56,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -337,6 +340,228 @@ public class FunctionIndexTest extends AbstractQueryTest {
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo]) DESC",
                 "lucene:test1(/oak:index/test1)", asList("/b", "/c", "/a"));
+    }
+
+    /*
+    <OAK-8166>
+    Given an index def with 2 orderable property definitions(Relative) for same property - one with function and one without
+    Indexer should not fail to index the nodes covered by this index
+     */
+    @Test
+    public void sameOrderableRelativePropertyWithAndWithoutFunction() throws Exception {
+
+        LogCustomizer customLogs = LogCustomizer.forLogger(LuceneIndexEditor.class.getName()).enable(Level.WARN).create();
+        // Create nodes that will be served by the index definition that follows
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+        Tree a = test.addChild("jcr:content");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+        Tree b = a.addChild("n");
+
+        b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        b.setProperty("foo", "bar");
+
+        root.commit();
+
+        // Index def with same property - ordered - one with function and one without
+        Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
+        Tree nonFunc = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:unstructured")
+                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("foo");
+        nonFunc.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        nonFunc.setProperty("name", "jcr:content/n/foo");
+
+        Tree func = luceneIndex.getChild(FulltextIndexConstants.INDEX_RULES)
+                .getChild("nt:unstructured")
+                .getChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("testOak");
+        func.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+
+        // Now do some change in the node that are covered by above index definition
+        try {
+            customLogs.starting();
+            root.getTree("/").getChild("test").getChild("jcr:content").getChild("n").setProperty("foo","bar2");
+            root.commit();
+            Assert.assertFalse(customLogs.getLogs().contains("Failed to index the node [/test]"));
+            Assert.assertTrue(customLogs.getLogs().size() == 0);
+        } finally {
+            customLogs.finished();
+        }
+
+    }
+    /*
+    Given an index def with 2 orderable property definitions(Relative) for same property - one with function and one without
+    Order by should give correct results
+     */
+    @Test
+    public void sameOrderableRelPropWithAndWithoutFunc_checkOrdering() throws Exception {
+
+        // Index def with same property - ordered - one with function and one without
+        Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
+        Tree nonFunc = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("foo");
+        nonFunc.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX,true);
+        nonFunc.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        nonFunc.setProperty("name", "jcr:content/n/foo");
+
+        Tree func = luceneIndex.getChild(FulltextIndexConstants.INDEX_RULES)
+                .getChild("nt:base")
+                .getChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("testOak");
+        func.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(jcr:content/n/@foo)");
+
+        root.commit();
+
+
+        int i = 1;
+        // Create nodes that will be served by the index definition that follows
+        for (String node : asList("a", "c", "b","e","d")) {
+
+            Tree test = root.getTree("/").addChild(node);
+            test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+            Tree a = test.addChild("jcr:content");
+            a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+            Tree b = a.addChild("n");
+
+            b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            b.setProperty("foo", "bar"+i);
+            i++;
+        }
+
+        root.commit();
+
+
+        // Check ordering works for func and non func properties
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by upper([jcr:content/n/foo])",
+                "lucene:upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by [jcr:content/n/foo]",
+                "lucene:upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
+                "lucene:upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by [jcr:content/n/foo] DESC",
+                "lucene:upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+
+
+        // Now we change the value of foo on already indexed nodes and see if changes get indexed properly.
+
+        i = 5;
+        for (String node : asList("a", "c", "b","e","d")) {
+
+            Tree test = root.getTree("/").getChild(node).getChild("jcr:content").getChild("n");
+
+            test.setProperty("foo", "bar" + i);
+            i--;
+        }
+        root.commit();
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by upper([jcr:content/n/foo])",
+                "lucene:upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by [jcr:content/n/foo]",
+                "lucene:upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
+                "lucene:upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+
+        assertOrderedPlanAndQuery(
+                "select * from [nt:base] order by [jcr:content/n/foo] DESC",
+                "lucene:upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+
+    }
+
+    /*
+    Given an index def with 2 orderable property definitions(non-relative) for same property - one with function and one without
+    Indexer should index any changes properly and ordering should work as expected.
+     */
+    @Test
+    public void sameOrderablePropertyWithandWithoutFunction() throws Exception {
+        LogCustomizer customLogs = LogCustomizer.forLogger(LuceneIndexEditor.class.getName()).enable(Level.WARN).create();
+        // Create nodes that will be served by the index definition that follows
+        int i = 1;
+        // Create nodes that will be served by the index definition that follows
+        for (String node : asList("a", "c", "b","e","d")) {
+
+            Tree test = root.getTree("/").addChild(node);
+            test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            test.setProperty("foo", "bar"+i);
+            i++;
+        }
+
+        root.commit();
+
+        // Index def with same property - ordered - one with function and one without
+        Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
+        Tree nonFunc = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("foo");
+        nonFunc.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        nonFunc.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX,true);
+        nonFunc.setProperty("name", "foo");
+
+        Tree func = luceneIndex.getChild(FulltextIndexConstants.INDEX_RULES)
+                .getChild("nt:base")
+                .getChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("testOak");
+        func.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(@foo)");
+
+        // Now do some change in the node that are covered by above index definition
+        try {
+            customLogs.starting();
+             i = 5;
+            for (String node : asList("a", "c", "b","e","d")) {
+
+                Tree test = root.getTree("/").addChild(node);
+                test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+                test.setProperty("foo", "bar"+i);
+                i--;
+            }
+
+            root.commit();
+            Assert.assertFalse(customLogs.getLogs().contains("Failed to index the node [/test]"));
+            Assert.assertTrue(customLogs.getLogs().size() == 0);
+
+            assertOrderedPlanAndQuery(
+                    "select * from [nt:base] order by upper([foo])",
+                    "lucene:upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+
+            assertOrderedPlanAndQuery(
+                    "select * from [nt:base] order by [foo]",
+                    "lucene:upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+
+            assertOrderedPlanAndQuery(
+                    "select * from [nt:base] order by upper([foo]) DESC",
+                    "lucene:upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+
+            assertOrderedPlanAndQuery(
+                    "select * from [nt:base] order by [foo] DESC",
+                    "lucene:upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+
+        } finally {
+            customLogs.finished();
+        }
+
     }
 
 

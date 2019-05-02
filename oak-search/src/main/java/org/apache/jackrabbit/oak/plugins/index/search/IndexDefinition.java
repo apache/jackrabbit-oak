@@ -1183,7 +1183,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                         for (String p : properties) {
                             if (PathUtils.getDepth(p) > 1) {
                                 PropertyDefinition pd2 = new PropertyDefinition(this, p, propDefnNode);
-                                propAggregate.add(new Aggregate.PropertyInclude(pd2));
+                                propAggregate.add(new Aggregate.FunctionInclude(pd2));
                             }
                         }
                         // a function index has no other options
