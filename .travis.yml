@@ -14,6 +14,7 @@
 # limitations under the License.
 
 sudo: false
+dist: trusty
 env:
   global:
     - MONGODB=4.0.9
