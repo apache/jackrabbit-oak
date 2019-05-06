@@ -27,8 +27,6 @@ import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -47,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -162,7 +161,7 @@ public class DocumentNodeStoreBranchesTest {
 
         try {
             ns.merge(nb, new CommitHook() {
-                @Nonnull
+                @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
                                                NodeState after,
@@ -216,7 +215,7 @@ public class DocumentNodeStoreBranchesTest {
         nb.child("foo");
         try {
             ns.merge(nb, new CommitHook() {
-                @Nonnull
+                @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
                                                NodeState after,
@@ -265,7 +264,7 @@ public class DocumentNodeStoreBranchesTest {
         nb.child("foo");
         try {
             ns.merge(nb, new CommitHook() {
-                @Nonnull
+                @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
                                                NodeState after,
@@ -322,7 +321,7 @@ public class DocumentNodeStoreBranchesTest {
         nb.child("foo");
         try {
             ns.merge(nb, new CommitHook() {
-                @Nonnull
+                @NotNull
                 @Override
                 public NodeState processCommit(NodeState before,
                                                NodeState after,
