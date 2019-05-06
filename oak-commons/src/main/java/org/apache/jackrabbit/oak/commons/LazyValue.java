@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import java.util.function.Supplier;
+
 /**
  * An instances of this class represents a lazy value of type {@code T}.
  * {@code LazyValue} implements an evaluate by need semantics:
@@ -24,7 +26,7 @@ package org.apache.jackrabbit.oak.commons;
  * <p>
  * {@code LazyValue} instances are thread safe.
  */
-public abstract class LazyValue<T> {
+public abstract class LazyValue<T> implements Supplier<T> {
     private volatile T value;
 
     /**
@@ -44,6 +46,7 @@ public abstract class LazyValue<T> {
      * Get value. Calls {@link #createValue()} if called for the first time.
      * @return  the value
      */
+    @Override
     public T get () {
         // Double checked locking is fine since Java 5 as long as value is volatile.
         // See http://www.cs.umd.edu/~pugh/java/memoryModel/DoubleCheckedLocking.html
