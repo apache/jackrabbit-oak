@@ -83,7 +83,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.io.Closer;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.EMPTY;
@@ -153,9 +152,9 @@ public class SecurityProviderRegistration {
     private final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration();
     private final CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration();
 
-    private final List<AuthorizableNodeName> authorizableNodeNames = newCopyOnWriteArrayList();
-    private final List<AuthorizableActionProvider> authorizableActionProviders = newCopyOnWriteArrayList();
-    private final List<RestrictionProvider> restrictionProviders = newCopyOnWriteArrayList();
+    private final SortedMap<ServiceReference, AuthorizableNodeName> authorizableNodeNames = Collections.synchronizedSortedMap(new TreeMap<>());
+    private final SortedMap<ServiceReference, AuthorizableActionProvider> authorizableActionProviders = Collections.synchronizedSortedMap(new TreeMap<>());
+    private final SortedMap<ServiceReference, RestrictionProvider> restrictionProviders = Collections.synchronizedSortedMap(new TreeMap<>());
     private final SortedMap<ServiceReference, UserAuthenticationFactory> userAuthenticationFactories = Collections.synchronizedSortedMap(new TreeMap<>());
 
     private RootProvider rootProvider;
@@ -335,19 +334,19 @@ public class SecurityProviderRegistration {
             cardinality = ReferenceCardinality.MULTIPLE,
             policy = ReferencePolicy.DYNAMIC
     )
-    public void bindAuthorizableNodeName(AuthorizableNodeName authorizableNodeName, Map<String, Object> properties) {
+    public void bindAuthorizableNodeName(@NotNull ServiceReference serviceReference, @NotNull AuthorizableNodeName authorizableNodeName) {
         synchronized (this) {
-            authorizableNodeNames.add(authorizableNodeName);
-            addCandidate(properties);
+            authorizableNodeNames.put(serviceReference, authorizableNodeName);
+            addCandidate(serviceReference);
         }
 
         maybeRegister();
     }
 
-    public void unbindAuthorizableNodeName(AuthorizableNodeName authorizableNodeName, Map<String, Object> properties) {
+    public void unbindAuthorizableNodeName(@NotNull ServiceReference serviceReference, @NotNull AuthorizableNodeName authorizableNodeName) {
         synchronized (this) {
-            authorizableNodeNames.remove(authorizableNodeName);
-            removeCandidate(properties);
+            authorizableNodeNames.remove(serviceReference);
+            removeCandidate(serviceReference);
         }
 
         maybeUnregister();
@@ -359,19 +358,19 @@ public class SecurityProviderRegistration {
             cardinality = ReferenceCardinality.MULTIPLE,
             policy = ReferencePolicy.DYNAMIC
     )
-    public void bindAuthorizableActionProvider(AuthorizableActionProvider authorizableActionProvider, Map<String, Object> properties) {
+    public void bindAuthorizableActionProvider(@NotNull ServiceReference serviceReference, @NotNull AuthorizableActionProvider authorizableActionProvider) {
         synchronized (this) {
-            authorizableActionProviders.add(authorizableActionProvider);
-            addCandidate(properties);
+            authorizableActionProviders.put(serviceReference, authorizableActionProvider);
+            addCandidate(serviceReference);
         }
 
         maybeRegister();
     }
 
-    public void unbindAuthorizableActionProvider(AuthorizableActionProvider authorizableActionProvider, Map<String, Object> properties) {
+    public void unbindAuthorizableActionProvider(@NotNull ServiceReference serviceReference, @NotNull AuthorizableActionProvider authorizableActionProvider) {
         synchronized (this) {
-            authorizableActionProviders.remove(authorizableActionProvider);
-            removeCandidate(properties);
+            authorizableActionProviders.remove(serviceReference);
+            removeCandidate(serviceReference);
         }
 
         maybeUnregister();
@@ -383,19 +382,19 @@ public class SecurityProviderRegistration {
             cardinality = ReferenceCardinality.MULTIPLE,
             policy = ReferencePolicy.DYNAMIC
     )
-    public void bindRestrictionProvider(RestrictionProvider restrictionProvider, Map<String, Object> properties) {
+    public void bindRestrictionProvider(@NotNull ServiceReference serviceReference, @NotNull RestrictionProvider restrictionProvider) {
         synchronized (this) {
-            restrictionProviders.add(restrictionProvider);
-            addCandidate(properties);
+            restrictionProviders.put(serviceReference, restrictionProvider);
+            addCandidate(serviceReference);
         }
 
         maybeRegister();
     }
 
-    public void unbindRestrictionProvider(RestrictionProvider restrictionProvider, Map<String, Object> properties) {
+    public void unbindRestrictionProvider(@NotNull ServiceReference serviceReference, @NotNull RestrictionProvider restrictionProvider) {
         synchronized (this) {
-            restrictionProviders.remove(restrictionProvider);
-            removeCandidate(properties);
+            restrictionProviders.remove(serviceReference);
+            removeCandidate(serviceReference);
         }
 
         maybeUnregister();
@@ -571,7 +570,10 @@ public class SecurityProviderRegistration {
 
             @Override
             protected List<RestrictionProvider> getServices() {
-                return newArrayList(restrictionProviders);
+                Collection<RestrictionProvider> values = restrictionProviders.values();
+                synchronized (restrictionProviders) {
+                    return newArrayList(values);
+                }
             }
 
         };
@@ -582,7 +584,10 @@ public class SecurityProviderRegistration {
 
             @Override
             protected List<AuthorizableActionProvider> getServices() {
-                return newArrayList(authorizableActionProviders);
+                Collection<AuthorizableActionProvider> values = authorizableActionProviders.values();
+                synchronized (authorizableActionProviders) {
+                    return newArrayList(values);
+                }
             }
 
         };
@@ -593,7 +598,10 @@ public class SecurityProviderRegistration {
 
             @Override
             protected List<AuthorizableNodeName> getServices() {
-                return newArrayList(authorizableNodeNames);
+                Collection<AuthorizableNodeName> values = authorizableNodeNames.values();
+                synchronized (authorizableNodeNames) {
+                    return newArrayList(values);
+                }
             }
 
         };
