@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
@@ -226,7 +227,7 @@ public class UserImportTest extends AbstractImportTest {
 
         String pwValue = n.getProperty(UserConstants.REP_PASSWORD).getString();
         assertFalse(plainPw.equals(pwValue));
-        assertTrue(pwValue.toLowerCase().startsWith("{sha"));
+        assertTrue(pwValue.toLowerCase().startsWith("{" + PasswordUtil.DEFAULT_ALGORITHM.toLowerCase()));
     }
 
     /**

@@ -50,7 +50,7 @@ public final class PasswordUtil {
     /**
      * @since OAK 1.0
      */
-    private static final String PBKDF2_PREFIX = "PBKDF2";
+    static final String PBKDF2_PREFIX = "PBKDF2";
     
     public static final String DEFAULT_ALGORITHM = "SHA-256";
     public static final int DEFAULT_SALT_SIZE = 8;
@@ -159,7 +159,7 @@ public final class PasswordUtil {
      * the given {@code hashedPassword} string.
      */
     public static boolean isSame(@Nullable String hashedPassword, @NotNull String password) {
-        if (hashedPassword == null) {
+        if (hashedPassword == null || password == null) {
             return false;
         }
         try {
@@ -329,7 +329,11 @@ public final class PasswordUtil {
             if (hashedPwd.charAt(0) == '{' && end > 0 && end < hashedPwd.length()-1) {
                 String algorithm = hashedPwd.substring(1, end);
                 try {
-                    MessageDigest.getInstance(algorithm);
+                    if (algorithm.startsWith(PBKDF2_PREFIX)) {
+                        SecretKeyFactory.getInstance(algorithm);
+                    } else {
+                        MessageDigest.getInstance(algorithm);
+                    }
                     return algorithm;
                 } catch (NoSuchAlgorithmException e) {
                     log.debug("Invalid algorithm detected " + algorithm, e);
