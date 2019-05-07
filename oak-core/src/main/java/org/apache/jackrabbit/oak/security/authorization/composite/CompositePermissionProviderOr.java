@@ -73,8 +73,6 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
         Tree immutableTree = PermissionUtil.getReadOnlyTreeOrNull(tree, getImmutableRoot());
 
         PrivilegeBits result = PrivilegeBits.getInstance();
-        PrivilegeBits denied = PrivilegeBits.getInstance();
-
         PrivilegeBitsProvider bitsProvider = getBitsProvider();
         for (AggregatedPermissionProvider aggregatedPermissionProvider : getPermissionProviders()) {
             PrivilegeBits supported = aggregatedPermissionProvider.supportedPrivileges(immutableTree, null).modifiable();
@@ -85,10 +83,6 @@ final class CompositePermissionProviderOr extends CompositePermissionProvider {
                     result.add(granted);
                 }
             }
-        }
-        // subtract all denied privileges from the result
-        if (!denied.isEmpty()) {
-            result.diff(denied);
         }
         return getBitsProvider().getPrivilegeNames(result);
     }
