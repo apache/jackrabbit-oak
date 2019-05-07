@@ -2367,6 +2367,7 @@ public final class DocumentNodeStore
     }
 
     private void backgroundSplit() {
+        Set<Path> invalidatedPaths = new HashSet<>();
         RevisionVector head = getHeadRevision();
         for (Iterator<String> it = splitCandidates.keySet().iterator(); it.hasNext();) {
             String id = it.next();
@@ -2376,6 +2377,30 @@ public final class DocumentNodeStore
             }
             cleanCollisions(doc, collisionGarbageBatchSize);
             for (UpdateOp op : doc.split(this, head, binarySize)) {
+                Path path = doc.getPath();
+                // add an invalidation journal entry, unless the path
+                // already has a pending _lastRev update or an invalidation
+                // entry was already added in this backgroundSplit() call
+                if (unsavedLastRevisions.get(path) == null
+                        && invalidatedPaths.add(path)) {
+                    // create journal entry for cache invalidation
+                    JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
+                    entry.modified(path);
+                    Revision r = newRevision().asBranchRevision();
+                    UpdateOp journalOp = entry.asUpdateOp(r);
+                    if (store.create(JOURNAL, singletonList(journalOp))) {
+                        changes.invalidate(singletonList(r));
+                        LOG.debug("Journal entry {} created for split of document {}",
+                                journalOp.getId(), path);
+                    } else {
+                        String msg = "Unable to create journal entry " +
+                                journalOp.getId() + " for document invalidation. " +
+                                "Will be retried with next background split " +
+                                "operation.";
+                        throw new DocumentStoreException(msg);
+                    }
+                }
+                // apply the split operations
                 NodeDocument before = null;
                 if (!op.isNew() ||
                         !store.create(Collection.NODES, Collections.singletonList(op))) {

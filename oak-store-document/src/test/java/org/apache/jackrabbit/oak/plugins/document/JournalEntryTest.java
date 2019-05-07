@@ -398,6 +398,20 @@ public class JournalEntryTest {
     }
 
     @Test
+    public void invalidationPathsMarksChanges() {
+        DocumentStore store = new MemoryDocumentStore();
+        JournalEntry entry = JOURNAL.newDocument(store);
+
+        assertFalse("Incorrect hasChanges", entry.hasChanges());
+
+        entry.invalidate(Collections.emptyList());
+        assertFalse("Incorrect hasChanges", entry.hasChanges());
+
+        entry.invalidate(Collections.singleton(Revision.fromString("r123-0-1")));
+        assertTrue("Incorrect hasChanges", entry.hasChanges());
+    }
+
+    @Test
     public void emptyBranchCommit() {
         DocumentStore store = new MemoryDocumentStore();
         JournalEntry entry = JOURNAL.newDocument(store);
