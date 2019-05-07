@@ -527,13 +527,31 @@ public final class JournalEntry extends Document {
     }
 
     /**
-     * @return if this entry has some changes to be pushed
+     * Returns {@code true} if this entry contains any changes to be written
+     * to the journal. The following information is considered a change:
+     * <ul>
+     *     <li>Documents that have been recorded as modified with either
+     *      {@link #modified(Path)} or {@link #modified(Iterable)}.</li>
+     *     <li>Branch commit journal references added with
+     *      {@link #branchCommit(Iterable)}.</li>
+     *     <li>Documents that must be invalidated and have been recorded
+     *      with {@link #invalidate(Iterable)}.</li>
+     * </ul>
+     *
+     * @return if this entry has some changes to be pushed.
      */
     boolean hasChanges() {
-        return numChangedNodes > 0 || hasBranchCommits;
+        return numChangedNodes > 0
+                || hasBranchCommits
+                || hasInvalidateOnlyReferences();
     }
 
     //-----------------------------< internal >---------------------------------
+
+    private boolean hasInvalidateOnlyReferences() {
+        String value = (String) get(INVALIDATE_ONLY);
+        return value != null && !value.isEmpty();
+    }
 
     private void addInvalidateOnlyTo(final StringSort sort) throws IOException {
         TraversingVisitor v = new TraversingVisitor() {
