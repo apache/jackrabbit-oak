@@ -1180,10 +1180,7 @@ public class QueryImpl implements Query {
                 }
                 break;
             case FAIL:
-                if (!potentiallySlowTraversalQueryLogged) {
-                    LOG.warn(message);
-                    potentiallySlowTraversalQueryLogged = true;
-                }
+                LOG.debug(message);
                 throw new IllegalArgumentException(message);
             }
         }
