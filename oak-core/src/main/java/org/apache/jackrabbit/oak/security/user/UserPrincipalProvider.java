@@ -352,7 +352,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
             String str = TreeUtil.getString(principalCache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES);
             if (str == null || str.isEmpty()) {
-                return Collections.emptySet();
+                return new HashSet<>(1);
             }
 
             Set<Principal> groups = new HashSet<>();
