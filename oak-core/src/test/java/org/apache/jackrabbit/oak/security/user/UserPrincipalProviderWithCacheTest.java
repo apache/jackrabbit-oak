@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -416,8 +415,13 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
         // verify that the cache has really been updated
         cache = getCacheTree(systemRoot);
-        assertNotSame(2, new NodeUtil(cache).getLong(CacheConstants.REP_EXPIRATION, 2));
+        assertNotSame(2, TreeUtil.getLong(cache, CacheConstants.REP_EXPIRATION, 2));
         assertEquals("", TreeUtil.getString(cache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES));
+
+        // check that an cached empty membership set doesn't break the retrieval (OAK-8306)
+        principalsAgain = pp.getPrincipals(userId);
+        assertFalse(principals.equals(principalsAgain));
+        assertPrincipals(principalsAgain, EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
     }
 
     @Test
