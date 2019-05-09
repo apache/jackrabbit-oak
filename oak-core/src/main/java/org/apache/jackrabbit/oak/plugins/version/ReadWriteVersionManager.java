@@ -123,8 +123,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      *                                  {@code jcr:uuid} property.
      */
     @NotNull
-    public NodeBuilder getOrCreateVersionHistory(@NotNull NodeBuilder versionable, @NotNull Map<String, Object> infoMap)
-            throws CommitFailedException {
+    public NodeBuilder getOrCreateVersionHistory(@NotNull NodeBuilder versionable, @NotNull Map<String, Object> infoMap) {
         checkNotNull(versionable);
         String vUUID = uuidFromNode(versionable);
         String relPath = getVersionHistoryPath(vUUID);
@@ -161,7 +160,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             vLabels.setProperty(JCR_PRIMARYTYPE, NT_VERSIONLABELS, Type.NAME);
 
             // jcr:rootVersion child node
-            createVersion(node, versionable);
+            createRootVersion(node, versionable);
         } else if (!versionable.hasProperty(JCR_VERSIONHISTORY)) {
             // connect versionable node with existing history
             connectHistory(node.getChildNode(JCR_ROOTVERSION),
@@ -343,6 +342,34 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
     }
 
     /**
+     * Creates the root version in the given version history.
+     *
+     * @param vHistory the version history node.
+     * @param versionable the versionable node.
+     */
+    private void createRootVersion(@NotNull NodeBuilder vHistory,
+                                   @NotNull NodeBuilder versionable) {
+        String versionUUID = UUIDUtils.generateUUID();
+        NodeBuilder version = vHistory.child(JCR_ROOTVERSION);
+        version.setProperty(JCR_UUID, versionUUID, Type.STRING);
+        version.setProperty(JCR_PRIMARYTYPE, NT_VERSION, Type.NAME);
+        version.setProperty(JCR_CREATED, ISO8601.format(Calendar.getInstance()), Type.DATE);
+        version.setProperty(JCR_PREDECESSORS, Collections.emptyList(), Type.REFERENCES);
+        version.setProperty(JCR_SUCCESSORS, Collections.emptyList(), Type.REFERENCES);
+
+        // incomplete frozen node on root-version (don't call create on versionable-state)
+        VersionableState.fromVersion(version, vHistory, versionable, this, getNodeTypeManager());
+
+        // set jcr:isCheckedOut, jcr:versionHistory, jcr:baseVersion and
+        // jcr:predecessors on versionable node
+        versionable.setProperty(JCR_ISCHECKEDOUT, true, Type.BOOLEAN);
+        versionable.setProperty(JCR_VERSIONHISTORY, uuidFromNode(vHistory), Type.REFERENCE);
+        versionable.setProperty(JCR_BASEVERSION, versionUUID, Type.REFERENCE);
+        // set predecessors to base version for the root version
+        versionable.setProperty(JCR_PREDECESSORS, Collections.singletonList(versionUUID), Type.REFERENCES);
+    }
+
+    /**
      * Creates a version in the given version history. If the given version
      * history does not yet have a version, then a root version is created and
      * the versionable node is in a checked out state. Otherwise a version is
@@ -350,28 +377,22 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
      *
      * @param vHistory the version history node.
      * @param versionable the versionable node.
-     * @return the created version (nt:version) node.
      * @throws CommitFailedException if creating the version fails. E.g. because
      * the versionable node contains a OPV item with ABORT.
      */
-    private NodeBuilder createVersion(@NotNull NodeBuilder vHistory,
+    private void createVersion(@NotNull NodeBuilder vHistory,
                                       @NotNull NodeBuilder versionable)
             throws IllegalArgumentException, CommitFailedException {
-        List<String> predecessors;
-        NodeBuilder version;
-        boolean isRootVersion;
         if (!vHistory.hasChildNode(JCR_ROOTVERSION)) {
-            // create root version
-            isRootVersion = true;
-            predecessors = Collections.emptyList();
-            version = vHistory.child(JCR_ROOTVERSION);
-        } else {
-            isRootVersion = false;
-            checkState(versionable.hasProperty(JCR_PREDECESSORS));
-            PropertyState state = versionable.getProperty(JCR_PREDECESSORS);
-            predecessors = ImmutableList.copyOf(state.getValue(Type.REFERENCES));
-            version = vHistory.child(calculateVersion(vHistory, versionable));
+            createRootVersion(vHistory, versionable);
+            return;
         }
+
+        checkState(versionable.hasProperty(JCR_PREDECESSORS));
+        PropertyState state = versionable.getProperty(JCR_PREDECESSORS);
+        List<String> predecessors = ImmutableList.copyOf(state.getValue(Type.REFERENCES));
+        NodeBuilder version = vHistory.child(calculateVersion(vHistory, versionable));
+
         String versionUUID = UUIDUtils.generateUUID();
         version.setProperty(JCR_UUID, versionUUID, Type.STRING);
         version.setProperty(JCR_PRIMARYTYPE, NT_VERSION, Type.NAME);
@@ -383,7 +404,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         for (String id : predecessors) {
             String name = PathUtils.getName(getIdentifierManager().getPath(id));
             NodeBuilder predecessor = vHistory.getChildNode(name);
-            PropertyState state = predecessor.getProperty(JCR_SUCCESSORS);
+            state = predecessor.getProperty(JCR_SUCCESSORS);
             if (state == null) {
                 throw new IllegalStateException("Missing " + JCR_SUCCESSORS +
                         " property on " + predecessor);
@@ -394,27 +415,16 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         }
 
         // jcr:frozenNode of created version
-        VersionableState versionableState = VersionableState.fromVersion(
-                version, vHistory, versionable, this, getNodeTypeManager());
-        if (!isRootVersion) {
-            versionableState.create();
-        }
+        VersionableState versionableState = VersionableState.fromVersion(version, vHistory, versionable, this, getNodeTypeManager());
+        versionableState.create();
 
         // set jcr:isCheckedOut, jcr:versionHistory, jcr:baseVersion and
         // jcr:predecessors on versionable node
-        versionable.setProperty(JCR_ISCHECKEDOUT, isRootVersion, Type.BOOLEAN);
-        versionable.setProperty(JCR_VERSIONHISTORY,
-                uuidFromNode(vHistory), Type.REFERENCE);
+        versionable.setProperty(JCR_ISCHECKEDOUT, false, Type.BOOLEAN);
+        versionable.setProperty(JCR_VERSIONHISTORY, uuidFromNode(vHistory), Type.REFERENCE);
         versionable.setProperty(JCR_BASEVERSION, versionUUID, Type.REFERENCE);
-        if (isRootVersion) {
-            // set predecessors to base version if this is the root version
-            predecessors = Collections.singletonList(versionUUID);
-        } else {
-            // otherwise clear predecessors for check-in
-            predecessors = Collections.emptyList();
-        }
-        versionable.setProperty(JCR_PREDECESSORS, predecessors, Type.REFERENCES);
-        return version;
+        // clear predecessors for check-in
+        versionable.setProperty(JCR_PREDECESSORS, Collections.emptyList(), Type.REFERENCES);
     }
 
     /**
