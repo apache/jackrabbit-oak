@@ -571,7 +571,7 @@ public class Commit {
                 conflictRevisions.add(newestRev);
                 if (op.isNew() && !allowConcurrentAddRemove(before, op)) {
                     conflictMessage = "The node " +
-                            op.getId() + " was already added in revision\n" +
+                            op.getId() + " already existed in revision\n" +
                             formatConflictRevision(newestRev);
                 } else if (baseRevision.isRevisionNewer(newestRev)
                         && (op.isDelete() || isConflicting(before, op))) {
