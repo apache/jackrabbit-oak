@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -39,6 +36,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Collections;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -69,12 +68,7 @@ public class VersionablePathHook implements CommitHook {
         ReadWriteVersionManager vMgr = new ReadWriteVersionManager(vsRoot, rootBuilder);
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(providerCtx.getRootProvider().createReadOnlyRoot(rootBuilder.getNodeState()), NamePathMapper.DEFAULT);
 
-        List<CommitFailedException> exceptions = new ArrayList<>();
-        after.compareAgainstBaseState(before,
-                new Diff(vMgr, ntMgr, new Node(rootBuilder), exceptions));
-        if (!exceptions.isEmpty()) {
-            throw exceptions.get(0);
-        }
+        after.compareAgainstBaseState(before, new Diff(vMgr, ntMgr, new Node(rootBuilder)));
         return rootBuilder.getNodeState();
     }
 
@@ -88,16 +82,13 @@ public class VersionablePathHook implements CommitHook {
         private final ReadWriteVersionManager versionManager;
         private final ReadOnlyNodeTypeManager ntMgr;
         private final Node nodeAfter;
-        private final List<CommitFailedException> exceptions;
 
         private Diff(@NotNull ReadWriteVersionManager versionManager,
                      @NotNull ReadOnlyNodeTypeManager ntMgr,
-                     @NotNull Node node,
-                     @NotNull List<CommitFailedException> exceptions) {
+                     @NotNull Node node) {
             this.versionManager = versionManager;
             this.ntMgr = ntMgr;
             this.nodeAfter = node;
-            this.exceptions = exceptions;
         }
 
         @Override
@@ -124,21 +115,12 @@ public class VersionablePathHook implements CommitHook {
             }
             Node node = new Node(nodeAfter, name);
             return after.compareAgainstBaseState(
-                    before, new Diff(versionManager, ntMgr, node, exceptions));
+                    before, new Diff(versionManager, ntMgr, node));
         }
 
         private boolean setVersionablePath(@NotNull PropertyState after) {
             if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(ntMgr)) {
-                NodeBuilder vhBuilder;
-                try {
-                    vhBuilder = versionManager.getOrCreateVersionHistory(
-                            nodeAfter.builder, Collections.<String, Object>emptyMap());
-                } catch (CommitFailedException e) {
-                    exceptions.add(e);
-                    // stop further comparison
-                    return false;
-                }
-
+                NodeBuilder vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder, Collections.emptyMap());
                 if (!vhBuilder.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
                     vhBuilder.setProperty(
                             JcrConstants.JCR_MIXINTYPES,
