@@ -148,7 +148,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
             if (isValidProtectedParent(protectedParent, policy)) {
                 getAccessControlManager().setPolicy(policy.getPath(), policy);
             } else {
-                log.warn("Protected parent {} does not match path of PrincipalPolicy {}.", protectedParent.getPath(), policy.getOakPath());
+                log.warn("Protected parent {} does not match path of PrincipalAccessControlList {}.", protectedParent.getPath(), policy.getOakPath());
                 getAccessControlManager().removePolicy(policy.getPath(), policy);
             }
         }
@@ -171,7 +171,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
         if (isValidProtectedParent(protectedParent, policy)) {
             getAccessControlManager().setPolicy(policy.getPath(), policy);
         } else {
-            log.warn("Protected parent {} does not match path of PrincipalPolicy {}.", protectedParent.getPath(), policy.getOakPath());
+            log.warn("Protected parent {} does not match path of PrincipalAccessControlList {}.", protectedParent.getPath(), policy.getOakPath());
             getAccessControlManager().removePolicy(policy.getPath(), policy);
         }
         policy = null;
@@ -254,7 +254,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                 }
             }
             if (privs == null) {
-                throw new ConstraintViolationException("Entries for PrincipalPolicy must specify the privileges to be granted.");
+                throw new ConstraintViolationException("Entries for PrincipalAccessControlList must specify the privileges to be granted.");
             }
             privileges = privs;
         }
@@ -291,7 +291,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
         private void applyTo(@NotNull PrincipalPolicyImpl policy) throws RepositoryException {
             if (effectivePath == null) {
                 log.error("Missing rep:effectivePath for entry {} of policy at {}", this, policy.getOakPath());
-                throw new ConstraintViolationException("Entries for PrincipalPolicy must specify an effective path.");
+                throw new ConstraintViolationException("Entries for PrincipalAccessControlList must specify an effective path.");
             }
             policy.addEntry(Strings.emptyToNull(effectivePath), Iterables.toArray(privileges, Privilege.class), restrictions, mvRestrictions);
         }

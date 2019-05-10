@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -29,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.PrincipalPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
@@ -503,8 +503,8 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testOrderBefore() throws Exception {
-        PrincipalPolicy.Entry entryA = policy.getEntries().get(0);
-        PrincipalPolicy.Entry entryB = policy.getEntries().get(1);
+        PrincipalPolicyImpl.Entry entryA = policy.getEntries().get(0);
+        PrincipalPolicyImpl.Entry entryB = policy.getEntries().get(1);
 
         policy.orderBefore(entryB, entryA);
         assertArrayEquals(new AccessControlEntry[] {entryB, entryA}, policy.getAccessControlEntries());
@@ -512,7 +512,7 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testOrderBeforeDestNull() throws Exception {
-        PrincipalPolicy.Entry entry = policy.getEntries().get(0);
+        PrincipalPolicyImpl.Entry entry = policy.getEntries().get(0);
         policy.orderBefore(entry, null);
         assertEquals(entry, policy.getAccessControlEntries()[1]);
     }
@@ -524,14 +524,14 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
 
     @Test(expected = AccessControlException.class)
     public void testOrderBeforeNonExistingSrc() throws Exception {
-        PrincipalPolicy.Entry entry = policy.getEntries().get(0);
+        PrincipalPolicyImpl.Entry entry = policy.getEntries().get(0);
         policy.removeAccessControlEntry(entry);
         policy.orderBefore(entry, null);
     }
 
     @Test(expected = AccessControlException.class)
     public void testOrderBeforeNonExistingDest() throws Exception {
-        PrincipalPolicy.Entry entry = policy.getEntries().get(1);
+        PrincipalPolicyImpl.Entry entry = policy.getEntries().get(1);
         policy.removeAccessControlEntry(entry);
         policy.orderBefore(policy.getEntries().get(0), entry);
     }
@@ -612,8 +612,8 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
     }
 
 
-    private static PrincipalPolicy.Entry invalidEntry(@NotNull PrincipalPolicy.Entry entry) {
-        return new PrincipalPolicy.Entry() {
+    private static PrincipalAccessControlList.Entry invalidEntry(@NotNull PrincipalAccessControlList.Entry entry) {
+        return new PrincipalAccessControlList.Entry() {
             @Override
             public @Nullable String getEffectivePath() {
                 return entry.getEffectivePath();
