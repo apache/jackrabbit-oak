@@ -16,17 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlManager;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -38,16 +30,26 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.JcrAllUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -55,6 +57,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlManager;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -62,6 +75,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Testing the {@code PermissionHook}
@@ -111,6 +130,10 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         }
     }
 
+    private PermissionHook createPermissionHook(@NotNull String wspName) {
+        return new PermissionHook(wspName, RestrictionProvider.EMPTY, Mounts.defaultMountInfoProvider(), getRootProvider(), getTreeProvider());
+    }
+
     private void addACE(@NotNull String path, @NotNull Principal principal, @NotNull String... privilegeNames) throws RepositoryException {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
@@ -152,6 +175,39 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
 
     static protected void assertIndex(int expected, Tree entry) {
         assertEquals(expected, Integer.parseInt(entry.getName()));
+    }
+
+    @NotNull
+    private static Set<String> getAccessControlledPaths(@NotNull Tree principalTree) {
+        Set<String> s = Sets.newHashSet();
+        for (Tree tree : principalTree.getChildren()) {
+            String path = getAccessControlledPath(tree);
+            if (path != null) {
+                s.add(path);
+            }
+            for (Tree child : tree.getChildren()) {
+                if (child.getName().startsWith("c")) {
+                    String childPath = getAccessControlledPath(child);
+                    if (childPath != null) {
+                        s.add(childPath);
+                    }
+                }
+            }
+        }
+        return s;
+    }
+
+    @Nullable
+    private static String getAccessControlledPath(@NotNull Tree t) {
+        PropertyState pathProp = t.getProperty(REP_ACCESS_CONTROLLED_PATH);
+        return (pathProp == null) ? null : pathProp.getValue(Type.STRING);
+
+    }
+
+    private static void assertNumPermissionsProperty(long expectedValue, @NotNull Tree parent) {
+        PropertyState p = parent.getProperty(REP_NUM_PERMISSIONS);
+        assertNotNull(p);
+        assertEquals(expectedValue, p.getValue(Type.LONG).longValue());
     }
 
     @Test
@@ -689,36 +745,117 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         }
     }
 
-    @NotNull
-    private static Set<String> getAccessControlledPaths(@NotNull Tree principalTree) {
-        Set<String> s = Sets.newHashSet();
-        for (Tree tree : principalTree.getChildren()) {
-            String path = getAccessControlledPath(tree);
-            if (path != null) {
-                s.add(path);
-            }
-            for (Tree child : tree.getChildren()) {
-                if (child.getName().startsWith("c")) {
-                    String childPath = getAccessControlledPath(child);
-                    if (childPath != null) {
-                        s.add(childPath);
-                    }
-                }
-            }
-        }
-        return s;
+    @Test
+    public void testPolicyNodeNoLongerOfTypeRepACL() throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+        acMgr.removePolicy(acl.getPath(), acl);
+
+        Tree test = root.getTree(testPath);
+        test.removeProperty(JCR_MIXINTYPES);
+        TreeUtil.addChild(test, AccessControlConstants.REP_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+
+        Tree principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
+        Tree permissionEntry = principalPermissionStore.getChildren().iterator().next();
+        assertTrue(permissionEntry.exists());
+        String path = permissionEntry.getPath();
+
+        root.commit();
+
+        permissionEntry = root.getTree(path);
+        assertFalse(permissionEntry.exists());
     }
 
-    @Nullable
-    private static String getAccessControlledPath(@NotNull Tree t) {
-        PropertyState pathProp = t.getProperty(REP_ACCESS_CONTROLLED_PATH);
-        return (pathProp == null) ? null : pathProp.getValue(Type.STRING);
+    @Test
+    public void testInvalidPolicyNodeBecomesTypeRepACL() throws Exception {
+        Tree t = root.getTree(testPath).getChild("childNode");
+        TreeUtil.addChild(t, AccessControlConstants.REP_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        root.commit();
 
+        Tree principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
+        assertEquals(1, principalPermissionStore.getChildrenCount(10));
+
+        AccessControlManager acMgr = getAccessControlManager(root);
+        t.getChild(REP_POLICY).remove();
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, t.getPath());
+        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ));
+        acMgr.setPolicy(acl.getPath(), acl);
+        root.commit();
+
+        principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
+        assertEquals(2, principalPermissionStore.getChildrenCount(10));
+        Iterable<String> paths = Iterables.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
+
+        assertEquals(ImmutableSet.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
     }
 
-    private static void assertNumPermissionsProperty(long expectedValue, @NotNull Tree parent) {
-        PropertyState p = parent.getProperty(REP_NUM_PERMISSIONS);
-        assertNotNull(p);
-        assertEquals(expectedValue, p.getValue(Type.LONG).longValue());
+    @Test
+    public void testToString() {
+        PermissionHook h1 = createPermissionHook("wspName");
+        PermissionHook h2 = new PermissionHook("default", mock(RestrictionProvider.class), mock(MountInfoProvider.class), mock(RootProvider.class), mock(TreeProvider.class));
+        assertEquals(h1.toString(), h2.toString());
+    }
+
+    @Test
+    public void testHiddenChildNodeAdded() throws Exception {
+        PermissionHook ph = createPermissionHook(adminSession.getWorkspaceName());
+
+        NodeState before = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+        NodeState after = spy(before);
+
+        NodeState child = mock(NodeState.class);
+        Iterable newCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+        Iterable cnes = Iterables.concat(newCnes, before.getChildNodeEntries());
+        when(after.getChildNodeEntries()).thenReturn(cnes);
+        when(after.getChildNode(":hidden")).thenReturn(child);
+
+        ph.processCommit(before, after, new CommitInfo("sid", null));
+
+        verify(child, never()).getProperty(anyString());
+    }
+
+    @Test
+    public void testHiddenChildNodeChanged() {
+        PermissionHook ph = createPermissionHook(adminSession.getWorkspaceName());
+
+        NodeState nodeState = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+
+        NodeState after = spy(nodeState);
+        NodeState before = spy(nodeState);
+
+        NodeState child = mock(NodeState.class);
+        Iterable hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+        Iterable cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+        when(before.getChildNodeEntries()).thenReturn(cnes);
+        when(before.getChildNode(":hidden")).thenReturn(child);
+
+        NodeState child2 = when(mock(NodeState.class).exists()).thenReturn(true).getMock();
+        hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child2));
+        cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+        when(after.getChildNodeEntries()).thenReturn(cnes);
+        when(after.getChildNode(":hidden")).thenReturn(child2);
+
+        ph.processCommit(before, after, new CommitInfo("sid", null));
+
+        verify(child, never()).getProperty(anyString());
+        verify(child2, never()).getProperty(anyString());
+    }
+
+    @Test
+    public void testHiddenChildNodeDeleted() {
+        PermissionHook ph = createPermissionHook(adminSession.getWorkspaceName());
+
+        NodeState after = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+        NodeState before = spy(after);
+
+        NodeState child = mock(NodeState.class);
+        Iterable deletedCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+        Iterable cnes = Iterables.concat(deletedCnes, after.getChildNodeEntries());
+        when(before.getChildNodeEntries()).thenReturn(cnes);
+        when(before.getChildNode(":hidden")).thenReturn(child);
+
+        ph.processCommit(before, after, new CommitInfo("sid", null));
+
+        verify(child, never()).getProperty(anyString());
     }
 }

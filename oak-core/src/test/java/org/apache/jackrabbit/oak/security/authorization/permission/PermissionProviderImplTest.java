@@ -46,6 +46,7 @@ import java.util.Set;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.addChild;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class PermissionProviderImplTest extends AbstractSecurityTest implements AccessControlConstants {
@@ -190,5 +191,12 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
         TreeLocation location = TreeLocation.create(testSession.getLatestRoot(), VersionConstants.VERSION_STORE_PATH + "/non/existing/tree");
 
         assertFalse(pp.isGranted(location, Permissions.READ));
+    }
+
+    @Test
+    public void testAdministrativePrincipalSet() {
+        PermissionProviderImpl pp = createPermissionProvider(adminSession);
+        assertSame(TreePermission.ALL, pp.getTreePermission(root.getTree(PathUtils.ROOT_PATH), TreePermission.EMPTY));
+        assertSame(RepositoryPermission.ALL, pp.getRepositoryPermission());
     }
 }

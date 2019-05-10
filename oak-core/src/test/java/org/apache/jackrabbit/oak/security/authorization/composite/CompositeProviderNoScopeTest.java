@@ -91,7 +91,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Override
     @Test
-    public void testGetTreePermissionInstance() throws Exception {
+    public void testGetTreePermissionInstance() {
         PermissionProvider pp = createPermissionProviderOR();
         TreePermission parentPermission = TreePermission.EMPTY;
 
@@ -105,8 +105,8 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Override
     @Test
-    public void testGetTreePermissionInstanceOR() throws Exception {
-        PermissionProvider pp = createPermissionProvider();
+    public void testGetTreePermissionInstanceOR() {
+        PermissionProvider pp = createPermissionProviderOR();
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
@@ -119,7 +119,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Override
     @Test
-    public void testTreePermissionGetChild() throws Exception {
+    public void testTreePermissionGetChild() {
         List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
@@ -136,7 +136,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
 
     @Override
     @Test
-    public void testTreePermissionGetChildOR() throws Exception {
+    public void testTreePermissionGetChildOR() {
         List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
 
         Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
@@ -152,7 +152,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testGetPrivileges() throws Exception {
+    public void testGetPrivileges() {
         for (String p : defPrivileges.keySet()) {
             Set<String> expected = defPrivileges.get(p);
             Tree tree = readOnlyRoot.getTree(p);
@@ -163,7 +163,21 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testGetPrivilegesAdmin() throws Exception {
+    public void testGetPrivilegesOr() throws Exception {
+        Set<Principal> testPrincipals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        CompositePermissionProvider ccpTestUserOR = createPermissionProviderOR(testPrincipals);
+        PermissionProvider defTestUserOR = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), testPrincipals);
+        for (String p : defPrivileges.keySet()) {
+            Set<String> expected = defPrivileges.get(p);
+            Tree tree = readOnlyRoot.getTree(p);
+
+            assertEquals(p, expected, ccpTestUserOR.getPrivileges(tree));
+            assertEquals(p, defTestUserOR.getPrivileges(tree), ccpTestUserOR.getPrivileges(tree));
+        }
+    }
+
+    @Test
+    public void testGetPrivilegesAdmin() {
         Set<String> expected = ImmutableSet.of(JCR_ALL);
         for (String p : NODE_PATHS) {
             Tree tree = readOnlyRoot.getTree(p);
@@ -174,7 +188,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testGetPrivilegesOnRepo() throws Exception {
+    public void testGetPrivilegesOnRepo() {
         Set<String> expected = ImmutableSet.of(JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT);
 
         assertEquals(expected, cppTestUser.getPrivileges(null));
@@ -182,16 +196,15 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testGetPrivilegesOnRepoAdmin() throws Exception {
+    public void testGetPrivilegesOnRepoAdmin() {
         Set<String> expected = ImmutableSet.of(JCR_ALL);
 
         assertEquals(expected, cppAdminUser.getPrivileges(null));
         assertEquals(defAdminUser.getPrivileges(null), cppAdminUser.getPrivileges(null));
     }
 
-
     @Test
-    public void testHasPrivileges() throws Exception {
+    public void testHasPrivileges() {
         for (String p : defPrivileges.keySet()) {
             Set<String> expected = defPrivileges.get(p);
             Tree tree = readOnlyRoot.getTree(p);
@@ -203,7 +216,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testHasPrivilegesAdmin() throws Exception {
+    public void testHasPrivilegesAdmin() {
         for (String p : NODE_PATHS) {
             Tree tree = readOnlyRoot.getTree(p);
 
@@ -213,7 +226,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testHasPrivilegesOnRepo() throws Exception {
+    public void testHasPrivilegesOnRepo() {
         assertTrue(cppTestUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
         assertTrue(defTestUser.hasPrivileges(null, JCR_NAMESPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
 
@@ -222,7 +235,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testHasPrivilegeOnRepoAdminUser() throws Exception {
+    public void testHasPrivilegeOnRepoAdminUser() {
         assertTrue(cppAdminUser.hasPrivileges(null, JCR_ALL));
         assertTrue(defAdminUser.hasPrivileges(null, JCR_ALL));
 
@@ -231,7 +244,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testIsGranted() throws Exception {
+    public void testIsGranted() {
         for (String p : defPermissions.keySet()) {
             long expected = defPermissions.get(p);
             Tree tree = readOnlyRoot.getTree(p);
@@ -242,7 +255,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testIsGrantedAdmin() throws Exception {
+    public void testIsGrantedAdmin() {
         for (String p : defPermissions.keySet()) {
             Tree tree = readOnlyRoot.getTree(p);
 
@@ -252,7 +265,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testIsGrantedProperty() throws Exception {
+    public void testIsGrantedProperty() {
         for (String p : defPermissions.keySet()) {
             long expected = defPermissions.get(p);
             Tree tree = readOnlyRoot.getTree(p);
@@ -263,7 +276,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testIsGrantedPropertyAdmin() throws Exception {
+    public void testIsGrantedPropertyAdmin() {
         for (String p : defPermissions.keySet()) {
             Tree tree = readOnlyRoot.getTree(p);
 
@@ -273,7 +286,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testIsGrantedAction() throws Exception {
+    public void testIsGrantedAction() {
         for (String p : defActionsGranted.keySet()) {
             String actions = getActionString(defActionsGranted.get(p));
             assertTrue(p + " : " + actions, cppTestUser.isGranted(p, actions));
@@ -282,7 +295,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testIsGrantedAction2() throws Exception {
+    public void testIsGrantedAction2() {
         Map<String, String[]> noAccess = ImmutableMap.<String, String[]>builder().
                 put(ROOT_PATH, new String[] {Session.ACTION_READ}).
                 put(ROOT_PATH + "jcr:primaryType", new String[] {Session.ACTION_READ, Session.ACTION_SET_PROPERTY}).
@@ -301,7 +314,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testIsGrantedActionAdmin() throws Exception {
+    public void testIsGrantedActionAdmin() {
         String allActions = getActionString(ALL_ACTIONS);
         for (String p : defActionsGranted.keySet()) {
             assertTrue(p + " : " + allActions, cppAdminUser.isGranted(p, allActions));
@@ -310,7 +323,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testRepositoryPermissionIsGranted() throws Exception {
+    public void testRepositoryPermissionIsGranted() {
         RepositoryPermission rp = cppTestUser.getRepositoryPermission();
 
         assertTrue(rp.isGranted(Permissions.NAMESPACE_MANAGEMENT));
@@ -319,14 +332,14 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testRepositoryPermissionIsGrantedAdminUser() throws Exception {
+    public void testRepositoryPermissionIsGrantedAdminUser() {
         RepositoryPermission rp = cppAdminUser.getRepositoryPermission();
 
         assertTrue(rp.isGranted(Permissions.ALL));
     }
 
     @Test
-    public void testTreePermissionIsGranted() throws Exception {
+    public void testTreePermissionIsGranted() {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
@@ -340,7 +353,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testTreePermissionIsGrantedProperty() throws Exception {
+    public void testTreePermissionIsGrantedProperty() {
         TreePermission parentPermission = TreePermission.EMPTY;
 
         for (String path : TP_PATHS) {
@@ -354,7 +367,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testTreePermissionCanRead() throws Exception {
+    public void testTreePermissionCanRead() {
         Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
                 put(ROOT_PATH, false).
                 put(TEST_PATH, true).
@@ -381,7 +394,7 @@ public class CompositeProviderNoScopeTest extends AbstractCompositeProviderTest 
     }
 
     @Test
-    public void testTreePermissionCanReadProperty() throws Exception {
+    public void testTreePermissionCanReadProperty() {
         Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().
                 put(ROOT_PATH, false).
                 put(TEST_PATH, true).
