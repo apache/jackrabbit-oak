@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
-import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.PrincipalPolicy;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
@@ -684,8 +683,8 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
 
     @Test(expected = CommitFailedException.class)
     public void testRemoveEmptyPolicyTree() throws Exception {
-        PrincipalPolicy policy = getPrincipalPolicyImpl(systemPrincipal, getAccessControlManager(root));
-        for (AccessControlEntry entry : ((PrincipalPolicyImpl) policy).getEntries()) {
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(systemPrincipal, getAccessControlManager(root));
+        for (AccessControlEntry entry : policy.getEntries()) {
             policy.removeAccessControlEntry(entry);
         }
         getAccessControlManager(root).setPolicy(policy.getPath(), policy);

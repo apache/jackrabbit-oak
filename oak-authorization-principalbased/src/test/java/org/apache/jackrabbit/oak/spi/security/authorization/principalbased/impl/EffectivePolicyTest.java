@@ -20,10 +20,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
-import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.PrincipalPolicy;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,12 +90,12 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
         List<JackrabbitAccessControlEntry> entries = ((ImmutableACL)effective[0]).getEntries();
         assertEquals(2, entries.size());
 
-        assertTrue(entries.get(0) instanceof PrincipalPolicy.Entry);
+        assertTrue(entries.get(0) instanceof PrincipalAccessControlList.Entry);
         assertEquals(validPrincipal, entries.get(0).getPrincipal());
         assertArrayEquals(privilegesFromNames(JCR_READ, REP_WRITE), entries.get(0).getPrivileges());
-        assertEquals(jcrEffectivePath, ((PrincipalPolicy.Entry) entries.get(0)).getEffectivePath());
+        assertEquals(jcrEffectivePath, ((PrincipalAccessControlList.Entry) entries.get(0)).getEffectivePath());
 
-        assertNull(((PrincipalPolicy.Entry) entries.get(1)).getEffectivePath());
+        assertNull(((PrincipalAccessControlList.Entry) entries.get(1)).getEffectivePath());
     }
 
     @Test

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -26,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.PrincipalPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -52,7 +52,7 @@ import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_EFFECTIVE_PATH;
 
-class PrincipalPolicyImpl extends AbstractAccessControlList implements PrincipalPolicy {
+class PrincipalPolicyImpl extends AbstractAccessControlList implements PrincipalAccessControlList {
 
     private static final Logger log = LoggerFactory.getLogger(PrincipalPolicyImpl.class);
 
@@ -92,7 +92,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         return restrictionProvider;
     }
 
-    //----------------------------------------------------< PrincipalPolicy >---
+    //-----------------------------------------< PrincipalAccessControlList >---
 
     @Override
     @NotNull
@@ -216,7 +216,7 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     @Nullable
     private String extractPathFromRestrictions(@Nullable Map<String, Value> restrictions, @NotNull String jcrName) throws RepositoryException {
         if (restrictions == null || !restrictions.containsKey(jcrName)) {
-            throw new AccessControlException("Entries in principal based access control need to have a path specified. Add rep:nodePath restriction or use PrincipalPolicy.addEntry(String, Privilege[], Map, Map) instead.");
+            throw new AccessControlException("Entries in principal based access control need to have a path specified. Add rep:nodePath restriction or use PrincipalAccessControlList.addEntry(String, Privilege[], Map, Map) instead.");
         }
 
         // retrieve path from restrictions and filter that restriction entry for further processing

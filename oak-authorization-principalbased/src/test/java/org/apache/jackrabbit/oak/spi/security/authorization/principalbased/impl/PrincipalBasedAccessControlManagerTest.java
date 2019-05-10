@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.FilterProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.PrincipalPolicy;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -227,7 +227,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
     @Test(expected = AccessControlException.class)
     public void testSetInvalidPolicy() throws Exception {
-        PrincipalPolicy policy = mock(PrincipalPolicy.class);
+        PrincipalAccessControlList policy = mock(PrincipalAccessControlList.class);
         acMgr.setPolicy(validPrincipal.getPath(), policy);
     }
 
@@ -248,7 +248,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
     @Test(expected = AccessControlException.class)
     public void testSetPolicyNullPath() throws Exception {
-        PrincipalPolicy policy = mock(PrincipalPolicy.class);
+        PrincipalAccessControlList policy = mock(PrincipalAccessControlList.class);
         acMgr.setPolicy(null, policy);
     }
 
@@ -325,7 +325,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
     @Test(expected = AccessControlException.class)
     public void testRemoveInvalidPolicy() throws Exception {
-        PrincipalPolicy policy = mock(PrincipalPolicy.class);
+        PrincipalAccessControlList policy = mock(PrincipalAccessControlList.class);
         acMgr.removePolicy(validPrincipal.getPath(), policy);
     }
 
@@ -346,7 +346,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
     @Test(expected = AccessControlException.class)
     public void testRemovePolicyNullPath() throws Exception {
-        PrincipalPolicy policy = mock(PrincipalPolicy.class);
+        PrincipalAccessControlList policy = mock(PrincipalAccessControlList.class);
         acMgr.removePolicy(null, policy);
     }
 
