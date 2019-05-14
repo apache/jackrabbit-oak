@@ -26,14 +26,49 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QueryCondition;
-import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * RDB specific version of MissingLastRevSeeker.
  */
 public class RDBMissingLastRevSeeker extends MissingLastRevSeeker {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RDBMissingLastRevSeeker.class);
+
+    // 1: seek using historical, paging mode
+    // 2: use custom single query directly using RDBDocumentStore API
+    private static final int MODE;
+
+    private static final int DEFAULTMODE = 2;
+
+    static {
+        String propName = "org.apache.jackrabbit.oak.plugins.document.rdb.RDBMissingLastRevSeeker.MODE";
+        String value = System.getProperty(propName, "");
+        switch (value) {
+            case "":
+                MODE = DEFAULTMODE;
+                break;
+            case "1":
+                MODE = 1;
+                break;
+            case "2":
+                MODE = 2;
+                break;
+            default:
+                LOG.error("Ignoring unexpected value '" + value + "' for system property " + propName);
+                MODE = DEFAULTMODE;
+                break;
+        }
+
+        if (DEFAULTMODE != MODE) {
+            LOG.info("Strategy for " + RDBMissingLastRevSeeker.class.getName() + " set to " + MODE + " (via system property "
+                    + propName + ")");
+        }
+    }
+
     private final RDBDocumentStore store;
 
     public RDBMissingLastRevSeeker(RDBDocumentStore store, Clock clock) {
@@ -44,9 +79,14 @@ public class RDBMissingLastRevSeeker extends MissingLastRevSeeker {
     @Override
     @NotNull
     public Iterable<NodeDocument> getCandidates(final long startTime) {
-        List<QueryCondition> conditions = Collections
-                .singletonList(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=", NodeDocument.getModifiedInSecs(startTime)));
-        return store.queryAsIterable(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
-                Integer.MAX_VALUE, null);
+        LOG.debug("Running getCandidates() in mode " + MODE);
+        if (MODE == 1) {
+            return super.getCandidates(startTime);
+        } else {
+            List<QueryCondition> conditions = Collections.singletonList(
+                    new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=", NodeDocument.getModifiedInSecs(startTime)));
+            return store.queryAsIterable(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
+                    Integer.MAX_VALUE, null);
+        }
     }
 }
