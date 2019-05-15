@@ -39,7 +39,7 @@ public class CompositeTokenConfiguration extends CompositeConfiguration<TokenCon
 
     @NotNull
     @Override
-    public TokenProvider getTokenProvider(final Root root) {
+    public TokenProvider getTokenProvider(@NotNull final Root root) {
         List<TokenProvider> providers = Lists.transform(getConfigurations(), new Function<TokenConfiguration, TokenProvider>() {
             @Override
             public TokenProvider apply(TokenConfiguration tokenConfiguration) {

@@ -20,11 +20,15 @@ import javax.jcr.AccessDeniedException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,9 +46,7 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
         super.before();
 
         root = adminSession.getLatestRoot();
-        tokenProvider = new TokenProviderImpl(root,
-                getTokenConfig(),
-                getUserConfiguration());
+        tokenProvider = createTokenProvider(root, getUserConfiguration());
     }
 
     @Override
@@ -54,6 +56,16 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
         } finally {
             super.after();
         }
+    }
+
+    @NotNull
+    TokenProviderImpl createTokenProvider(@NotNull Root root, @NotNull UserConfiguration userConfiguration) {
+        return createTokenProvider(root, getTokenConfig(), userConfiguration, SimpleCredentialsSupport.getInstance());
+    }
+
+    @NotNull
+    TokenProviderImpl createTokenProvider(@NotNull Root root, @NotNull ConfigurationParameters options, @NotNull UserConfiguration userConfiguration, @NotNull CredentialsSupport credentialsSupport) {
+        return new TokenProviderImpl(root, options, userConfiguration, credentialsSupport);
     }
 
     ConfigurationParameters getTokenConfig() {
@@ -77,5 +89,12 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
         tree.setProperty(tokenTree.getProperty(TOKEN_ATTRIBUTE_KEY));
         tree.setProperty(tokenTree.getProperty(TOKEN_ATTRIBUTE_EXPIRY));
         return tree;
+    }
+
+    void waitUntilExpired(@NotNull TokenInfo info) {
+        long now = System.currentTimeMillis();
+        while (!info.isExpired(now)) {
+            now = waitForSystemTimeIncrement(now);
+        }
     }
 }

@@ -207,6 +207,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * @return A new {@code TokenInfo} or {@code null} if the token could not
      *         be created.
      */
+    @Nullable
     @Override
     public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
         String error = "Failed to create login token. {}";
@@ -262,6 +263,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         {@code null} of the corresponding information does not exist or is not
      *         associated with a valid user.
      */
+    @Nullable
     @Override
     public TokenInfo getTokenInfo(@NotNull String token) {
         int pos = token.indexOf(DELIM);

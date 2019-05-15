@@ -16,21 +16,34 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import java.security.Principal;
-import java.util.List;
-
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Test;
 
+import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants.TOKEN_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
@@ -86,5 +99,67 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
     public void testGetTokenProvider() {
         TokenProvider tp = tc.getTokenProvider(root);
         assertTrue(tp instanceof TokenProviderImpl);
+    }
+
+    @Test
+    public void testBindNoCredentialsSupport() {
+        tc.unbindCredentialsSupport(SimpleCredentialsSupport.getInstance());
+
+        // fallback to default: simplecredentials support
+        TokenProvider tp = tc.getTokenProvider(root);
+
+        assertFalse(tp.doCreateToken(new TestCredentialsSupport.Creds()));
+
+        SimpleCredentials sc = new SimpleCredentials("uid", new char[0]);
+        assertFalse(tp.doCreateToken(sc));
+
+        sc.setAttribute(TOKEN_ATTRIBUTE, "");
+        assertTrue(tp.doCreateToken(sc));
+    }
+
+    @Test
+    public void testBindSingleCredentialsSupport() {
+        Credentials creds = mock(Credentials.class);
+        CredentialsSupport cs = mock(CredentialsSupport.class);
+        when(cs.getCredentialClasses()).thenReturn(Collections.singleton(creds.getClass()));
+
+        tc.bindCredentialsSupport(cs);
+
+        TokenProvider tp = tc.getTokenProvider(root);
+        assertFalse(tp.doCreateToken(creds));
+
+        Map attMap = ImmutableMap.of(TOKEN_ATTRIBUTE, "");
+        when(cs.getAttributes(creds)).thenReturn(attMap);
+        assertTrue(tp.doCreateToken(creds));
+
+        assertFalse(tp.doCreateToken(new SimpleCredentials("id", new char[0])));
+
+        verify(cs, times(3)).getCredentialClasses();
+        verify(cs, times(2)).getAttributes(creds);
+    }
+
+    @Test
+    public void testBindMultipleCredentialsSupport() {
+        Credentials creds = mock(Credentials.class);
+        CredentialsSupport cs = mock(CredentialsSupport.class);
+        when(cs.getCredentialClasses()).thenReturn(Collections.singleton(creds.getClass()));
+
+        tc.bindCredentialsSupport(cs);
+        tc.bindCredentialsSupport(new TestCredentialsSupport());
+
+        TokenProvider tp = tc.getTokenProvider(root);
+        assertFalse(tp.doCreateToken(creds));
+
+        Map attMap = ImmutableMap.of(TOKEN_ATTRIBUTE, "");
+        when(cs.getAttributes(creds)).thenReturn(attMap);
+        assertTrue(tp.doCreateToken(creds));
+
+        assertTrue(tp.doCreateToken(new TestCredentialsSupport.Creds()));
+
+        assertFalse(tp.doCreateToken(new SimpleCredentials("id", new char[0])));
+
+        verify(cs, times(4)).getCredentialClasses();
+        verify(cs, times(2)).getAttributes(creds);
+
     }
 }

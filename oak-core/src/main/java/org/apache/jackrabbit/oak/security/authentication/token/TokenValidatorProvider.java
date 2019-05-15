@@ -59,6 +59,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         return new TokenValidator(before, after, commitInfo);
     }
 
+    @NotNull
     private static CommitFailedException constraintViolation(int code, @NotNull String message) {
         return new CommitFailedException(CommitFailedException.CONSTRAINT, code, message);
     }
