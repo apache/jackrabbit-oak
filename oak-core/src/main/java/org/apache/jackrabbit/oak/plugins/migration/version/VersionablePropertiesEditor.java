@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.version;
+package org.apache.jackrabbit.oak.plugins.migration.version;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -49,8 +49,8 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
 import static org.apache.jackrabbit.oak.api.Type.REFERENCES;
 import static org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState.nameProperty;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryNodeState;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryNodeState;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
 /**
  * The VersionablePropertiesEditor adds missing versionable properties.

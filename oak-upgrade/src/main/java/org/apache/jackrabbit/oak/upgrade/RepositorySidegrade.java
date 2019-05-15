@@ -60,9 +60,9 @@ import org.apache.jackrabbit.oak.upgrade.checkpoint.CheckpointRetriever;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils;
 import org.apache.jackrabbit.oak.upgrade.nodestate.MetadataExposingNodeState;
 import org.apache.jackrabbit.oak.upgrade.nodestate.NameFilteringNodeState;
-import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
-import org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil;
-import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionableEditor;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,8 +82,8 @@ import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.DEFAULT_MERGE_
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.calculateEffectiveIncludePaths;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createIndexEditorProvider;
 import static org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade.createTypeEditorProvider;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionCopier.copyVersionStorage;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
 public class RepositorySidegrade {
 

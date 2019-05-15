@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.version;
+package org.apache.jackrabbit.oak.plugins.migration.version;
 
 import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
 
 import java.util.Calendar;
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.plugins.migration.DescendantsIterator;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.upgrade.DescendantsIterator;
 
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getRelativeVersionHistoryPath;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryLastModified;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryNodeState;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getRelativeVersionHistoryPath;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryLastModified;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryNodeState;
 
 /**
  * This class allows to copy the version history, optionally filtering it with a

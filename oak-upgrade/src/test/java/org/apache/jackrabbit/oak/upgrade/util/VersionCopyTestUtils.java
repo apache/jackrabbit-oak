@@ -30,7 +30,7 @@ import javax.jcr.version.VersionManager;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

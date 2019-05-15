@@ -58,7 +58,7 @@ import org.apache.jackrabbit.oak.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils;
 import org.apache.jackrabbit.oak.upgrade.util.VersionCopyTestUtils.VersionCopySetup;
-import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Test;
