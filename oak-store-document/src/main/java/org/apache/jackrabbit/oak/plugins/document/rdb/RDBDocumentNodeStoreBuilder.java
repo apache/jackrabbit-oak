@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 
@@ -96,6 +97,15 @@ public class RDBDocumentNodeStoreBuilder
             return () -> new RDBBlobReferenceIterator(ns, (RDBDocumentStore) store);
         } else {
             return super.createReferencedBlobs(ns);
+        }
+    }
+
+    public MissingLastRevSeeker createMissingLastRevSeeker() {
+        final DocumentStore store = getDocumentStore();
+        if (store instanceof RDBDocumentStore) {
+            return new RDBMissingLastRevSeeker((RDBDocumentStore) store, getClock());
+        } else {
+            return super.createMissingLastRevSeeker();
         }
     }
 }
