@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -52,7 +53,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class SegmentStoreMigrator {
+public class SegmentStoreMigrator implements Closeable  {
 
     private static final Logger log = LoggerFactory.getLogger(SegmentStoreMigrator.class);
 
@@ -176,6 +177,11 @@ public class SegmentStoreMigrator {
             byte[] array = fetchByteArray(graph);
             writer.writeGraph(array);
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        executor.shutdown();
     }
 
     private static class Segment {
