@@ -127,10 +127,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.security.AuthorizableFolderEditor;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
-import org.apache.jackrabbit.oak.upgrade.version.VersionCopyConfiguration;
-import org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil;
-import org.apache.jackrabbit.oak.upgrade.version.VersionableEditor;
-import org.apache.jackrabbit.oak.upgrade.version.VersionablePropertiesEditor;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionCopyConfiguration;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionableEditor;
+import org.apache.jackrabbit.oak.plugins.migration.version.VersionablePropertiesEditor;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QNodeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -149,8 +149,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.upgrade.version.VersionCopier.copyVersionStorage;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionCopier.copyVersionStorage;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
 
 public class RepositoryUpgrade {
 

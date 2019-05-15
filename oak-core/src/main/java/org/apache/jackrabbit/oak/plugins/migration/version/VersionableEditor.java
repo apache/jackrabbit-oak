@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.version;
+package org.apache.jackrabbit.oak.plugins.migration.version;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,10 +38,10 @@ import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.addMixin;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionHistoryBuilder;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.getVersionStorage;
-import static org.apache.jackrabbit.oak.upgrade.version.VersionHistoryUtil.removeVersionProperties;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.addMixin;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryBuilder;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionStorage;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.removeVersionProperties;
 
 /**
  * The VersionableEditor provides two possible ways to handle
