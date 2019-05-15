@@ -35,6 +35,7 @@ final class CommitMarker {
 
     private static final CommitMarker INSTANCE = new CommitMarker();
 
+    @NotNull
     static Map<String, Object> asCommitAttributes() {
         return Collections.<String, Object>singletonMap(CommitMarker.KEY, CommitMarker.INSTANCE);
     }

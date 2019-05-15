@@ -24,6 +24,7 @@ import javax.jcr.Credentials;
 import com.google.common.collect.ImmutableList;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Aggregates a collection of {@link TokenProvider}s into a single
@@ -61,6 +62,7 @@ public final class CompositeTokenProvider implements TokenProvider {
         return false;
     }
 
+    @Nullable
     @Override
     public TokenInfo createToken(@NotNull Credentials credentials) {
         for (TokenProvider tp : providers) {
@@ -72,6 +74,7 @@ public final class CompositeTokenProvider implements TokenProvider {
         return null;
     }
 
+    @Nullable
     @Override
     public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
         for (TokenProvider tp : providers) {
@@ -83,6 +86,7 @@ public final class CompositeTokenProvider implements TokenProvider {
         return null;
     }
 
+    @Nullable
     @Override
     public TokenInfo getTokenInfo(@NotNull String token) {
         for (TokenProvider tp : providers) {
@@ -100,16 +104,19 @@ public final class CompositeTokenProvider implements TokenProvider {
             return false;
         }
 
+        @Nullable
         @Override
         public TokenInfo createToken(@NotNull Credentials credentials) {
             return null;
         }
 
+        @Nullable
         @Override
         public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
             return null;
         }
 
+        @Nullable
         @Override
         public TokenInfo getTokenInfo(@NotNull String token) {
             return null;

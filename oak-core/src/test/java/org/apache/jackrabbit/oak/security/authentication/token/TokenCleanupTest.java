@@ -47,7 +47,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
         assertEquals(expectedNumber, tokenParent.getChildrenCount(expectedNumber*2));
     }
 
-    private void createExpiredTokens(int numberOfTokens) throws Exception {
+    private void createExpiredTokens(int numberOfTokens) {
         for (int i = 0; i < numberOfTokens; i++) {
             TokenInfo tokenInfo = tokenProvider.createToken(userId, ImmutableMap.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 2));
             // wait until the info created has expired
@@ -57,7 +57,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
         }
     }
 
-    private int createTokensUntilCleanup() throws Exception {
+    private int createTokensUntilCleanup() {
         int tkn = 0;
         boolean clean = false;
         while (!clean && tkn < 50) {
@@ -66,13 +66,6 @@ public class TokenCleanupTest extends AbstractTokenTest {
             tkn++;
         }
         return tkn;
-    }
-
-    private void waitUntilExpired(@NotNull TokenInfo info) {
-        long now = System.currentTimeMillis();
-        while (!info.isExpired(now)) {
-            now = waitForSystemTimeIncrement(now);
-        }
     }
 
     @Test

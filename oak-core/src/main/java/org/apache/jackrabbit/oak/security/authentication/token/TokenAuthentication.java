@@ -46,14 +46,14 @@ class TokenAuthentication implements Authentication {
     private final TokenProvider tokenProvider;
     private TokenInfo tokenInfo;
 
-    TokenAuthentication(TokenProvider tokenProvider) {
+    TokenAuthentication(@NotNull TokenProvider tokenProvider) {
         this.tokenProvider = tokenProvider;
     }
 
     //-----------------------------------------------------< Authentication >---
     @Override
     public boolean authenticate(@Nullable Credentials credentials) throws LoginException {
-        if (tokenProvider != null && credentials instanceof TokenCredentials) {
+        if (credentials instanceof TokenCredentials) {
             TokenCredentials tc = (TokenCredentials) credentials;
             if (!validateCredentials(tc)) {
                 throw new LoginException("Invalid token credentials.");
@@ -61,7 +61,7 @@ class TokenAuthentication implements Authentication {
                 return true;
             }
         }
-        // no tokenProvider or other credentials implementation -> not handled here.
+        // other credentials implementation -> not handled here.
         return false;
     }
 
@@ -97,7 +97,7 @@ class TokenAuthentication implements Authentication {
     }
 
     //------------------------------------------------------------< private >---
-    private boolean validateCredentials(TokenCredentials tokenCredentials) {
+    private boolean validateCredentials(@NotNull TokenCredentials tokenCredentials) {
         // credentials without userID -> check if attributes provide
         // sufficient information for successful authentication.
         String token = tokenCredentials.getToken();
