@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommi
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -41,6 +42,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -71,6 +73,8 @@ public class LastRevRecoveryAgent {
     private final MissingLastRevSeeker missingLastRevUtil;
 
     private final Consumer<Integer> afterRecovery;
+
+    private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
 
     public LastRevRecoveryAgent(DocumentStore store,
                                 RevisionContext revisionContext,
@@ -279,11 +283,34 @@ public class LastRevRecoveryAgent {
         Map<String, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
         final JournalEntry changes = JOURNAL.newDocument(store);
 
-        long count = 0;
+        Clock clock = revisionContext.getClock();
+
+        long totalCount = 0;
+        long lastCount = 0;
+        long startOfScan = clock.getTime();
+        long lastLog = startOfScan;
+
         for (NodeDocument doc : suspects) {
-            count++;
-            if (count % 100000 == 0) {
-                log.info("Scanned {} suspects so far...", count);
+            totalCount++;
+            lastCount++;
+
+            long now = clock.getTime();
+            long lastElapsed = now - lastLog;
+            if (lastElapsed >= LOGINTERVALMS) {
+                TimeDurationFormatter df = TimeDurationFormatter.forLogging();
+
+                long totalElapsed = now - startOfScan;
+                long totalRateMin = (totalCount * TimeUnit.MINUTES.toMillis(1)) / totalElapsed;
+                long lastRateMin = (lastCount * TimeUnit.MINUTES.toMillis(1)) / lastElapsed;
+
+                String message = String.format(
+                        "Recovery for cluster node [%d]: %d nodes scanned in %s (~%d/m) - last interval %d nodes in %s (~%d/m)",
+                        clusterId, totalCount, df.format(totalElapsed, TimeUnit.MILLISECONDS), totalRateMin, lastCount,
+                        df.format(lastElapsed, TimeUnit.MILLISECONDS), lastRateMin);
+
+                log.info(message);
+                lastLog = now;
+                lastCount = 0;
             }
 
             Revision currentLastRev = doc.getLastRev().get(clusterId);
@@ -364,7 +391,7 @@ public class LastRevRecoveryAgent {
                     "cluster node [{}]: {}", size, clusterId, updates);
         } else {
             // check deadline before the update
-            if (revisionContext.getClock().getTime() > deadline) {
+            if (clock.getTime() > deadline) {
                 String msg = String.format("Cluster node %d was unable to " +
                         "perform lastRev recovery for clusterId %d within " +
                         "deadline: %s", clusterId, clusterId,
