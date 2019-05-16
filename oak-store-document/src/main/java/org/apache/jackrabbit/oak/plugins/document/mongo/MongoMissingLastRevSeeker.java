@@ -79,7 +79,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
                 start(ClusterNodeInfo.STATE).is(ClusterNodeInfo.ClusterNodeState.ACTIVE.name())
                 .put(ClusterNodeInfo.LEASE_END_KEY).lessThan(clock.getTime());
 
-        return getClusterNodeCollection().findOne(query.get()) != null;
+        return getClusterNodeCollection().findOne(query.get(), null, ReadPreference.primary()) != null;
     }
 
     private DBCollection getNodeCollection() {
