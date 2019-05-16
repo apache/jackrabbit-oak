@@ -39,7 +39,6 @@
       org.apache.jackrabbit.test.api.SessionTest#testMoveLockException
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
-      org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testSetPrimaryType                         <!-- OAK-8246 -->
       org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveVersionableTest#testMoveNodesVersionableAndCheckedIn <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedChildItem
