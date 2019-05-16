@@ -118,7 +118,6 @@ public final class TokenLoginModule extends AbstractLoginModule {
 
     private TokenCredentials tokenCredentials;
     private TokenInfo tokenInfo;
-    private String userId;
     private Principal principal;
 
     //--------------------------------------------------------< LoginModule >---
@@ -136,11 +135,10 @@ public final class TokenLoginModule extends AbstractLoginModule {
             if (authentication.authenticate(tc)) {
                 tokenCredentials = tc;
                 tokenInfo = authentication.getTokenInfo();
-                userId = authentication.getUserId();
                 principal = authentication.getUserPrincipal();
 
                 log.debug("Login: adding login name to shared state.");
-                sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
+                sharedState.put(SHARED_KEY_LOGIN_NAME, tokenInfo.getUserId());
                 return true;
             }
         }
@@ -150,8 +148,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
 
     @Override
     public boolean commit() throws LoginException {
-        if (tokenCredentials != null && userId != null) {
-            Set<? extends Principal> principals = (principal != null) ? getPrincipals(principal) : getPrincipals(userId);
+        if (tokenCredentials != null && tokenInfo != null) {
+            Set<? extends Principal> principals = (principal != null) ? getPrincipals(principal) : getPrincipals(tokenInfo.getUserId());
             updateSubject(tokenCredentials, getAuthInfo(tokenInfo, principals), principals);
             clearState();
             return true;
@@ -174,7 +172,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
                     } else {
                         // failed to create token -> fail commit()
                         onError();
-                        Object logId = (userId != null) ? userId : sharedState.get(SHARED_KEY_LOGIN_NAME);
+                        Object logId = sharedState.get(SHARED_KEY_LOGIN_NAME);
                         log.error("TokenProvider failed to create a login token for user " + logId);
                         throw new LoginException("Failed to create login token for user " + logId);
                     }
@@ -201,7 +199,6 @@ public final class TokenLoginModule extends AbstractLoginModule {
 
         tokenCredentials = null;
         tokenInfo = null;
-        userId = null;
         tokenProvider = null;
     }
 
@@ -240,15 +237,11 @@ public final class TokenLoginModule extends AbstractLoginModule {
      * @param tokenInfo The tokenInfo to retrieve attributes from.
      * @return The {@code AuthInfo} resulting from the successful login.
      */
-    @Nullable
-    private static AuthInfo getAuthInfo(@Nullable TokenInfo tokenInfo, @NotNull Set<? extends Principal> principals) {
-        if (tokenInfo != null) {
-            Map<String, Object> attributes = new HashMap<>();
-            tokenInfo.getPublicAttributes().forEach((key, value) -> attributes.put(key, value));
-            return new AuthInfoImpl(tokenInfo.getUserId(), attributes, principals);
-        } else {
-            return null;
-        }
+    @NotNull
+    private static AuthInfo getAuthInfo(@NotNull TokenInfo tokenInfo, @NotNull Set<? extends Principal> principals) {
+        Map<String, Object> attributes = new HashMap<>();
+        tokenInfo.getPublicAttributes().forEach((key, value) -> attributes.put(key, value));
+        return new AuthInfoImpl(tokenInfo.getUserId(), attributes, principals);
     }
 
     private void updateSubject(@NotNull TokenCredentials tc, @Nullable AuthInfo authInfo,
