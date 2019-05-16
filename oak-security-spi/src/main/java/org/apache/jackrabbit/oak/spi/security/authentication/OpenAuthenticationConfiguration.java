@@ -32,7 +32,7 @@ public class OpenAuthenticationConfiguration extends SecurityConfiguration.Defau
 
     @NotNull
     @Override
-    public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
+    public LoginContextProvider getLoginContextProvider(@NotNull ContentRepository contentRepository) {
         return new LoginContextProvider() {
             @NotNull
             @Override
