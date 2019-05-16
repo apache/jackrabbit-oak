@@ -20,8 +20,12 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -30,55 +34,60 @@ import org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessDSGCFixture;
 import org.apache.jackrabbit.oak.jcr.util.ComponentHolder;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
-
 /**
  * Creates a repository with
- * - SegmentNodeStore, storing data in-memory
+ * - DocumentNodeStore, storing data in mongo (available locally or deloying in docker if available)
  * - an optional DataStore provided by DataStoreFixture
  */
-public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements ComponentHolder,
+public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements ComponentHolder,
     BinaryAccessDSGCFixture {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final DataStoreFixture dataStoreFixture;
-
     private final Table<NodeStore, String, Object> components = HashBasedTable.create();
+    private MongoConnection connection;
+    private final Clock clock;
+    public final MongoConnectionFactory connFactory = new MongoConnectionFactory();
 
-    public SegmentMemoryNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
+    public DocumentMongoNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
         this.dataStoreFixture = dataStoreFixture;
+        this.clock = new Clock.Virtual();
     }
 
     @Override
     public boolean isAvailable() {
+        this.connection = connFactory.getConnection();
+
         // if a DataStore is configured, it must be available for our NodeStore to be available
-        return dataStoreFixture == null || dataStoreFixture.isAvailable();
+        return (dataStoreFixture == null || dataStoreFixture.isAvailable()) && (connection != null);
     }
 
     @Override
     public NodeStore createNodeStore() {
+
         try {
             log.info("Creating NodeStore using " + toString());
+            clock.waitUntil(Revision.getCurrentTimestamp());
 
-            File fileStoreRoot = FixtureUtils.createTempFolder();
-            FileStoreBuilder fileStoreBuilder = FileStoreBuilder.fileStoreBuilder(fileStoreRoot)
-                .withNodeDeduplicationCacheSize(16384)
-                .withMaxFileSize(256)
-                .withMemoryMapping(false);
+            MongoDocumentNodeStoreBuilder documentNodeStoreBuilder =
+                MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder()
+                    .setMongoDB(connection.getMongoClient(), connection.getDBName());
+            documentNodeStoreBuilder.clock(clock);
 
             File dataStoreFolder = null;
             BlobStore blobStore = null;
@@ -91,11 +100,10 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
                 dataStore.init(dataStoreFolder.getAbsolutePath());
 
                 blobStore = new DataStoreBlobStore(dataStore);
-                fileStoreBuilder.withBlobStore(blobStore);
+                documentNodeStoreBuilder.setBlobStore(blobStore);
             }
 
-            FileStore fileStore = fileStoreBuilder.build();
-            NodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+            NodeStore nodeStore = documentNodeStoreBuilder.build();
 
             // track all main components
             if (dataStore != null) {
@@ -105,12 +113,9 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
             if (blobStore != null) {
                 components.put(nodeStore, BlobStore.class.getName(), blobStore);
             }
-            components.put(nodeStore, FileStore.class.getName(), fileStore);
-            components.put(nodeStore, FileStore.class.getName() + ":root", fileStoreRoot);
 
             return nodeStore;
-
-        } catch (IOException | InvalidFileStoreVersionException | RepositoryException e) {
+        } catch (IOException | RepositoryException | InterruptedException e) {
             throw new AssertionError("Cannot create test repo fixture " + toString(), e);
         }
     }
@@ -118,8 +123,9 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
     @Override
     public void dispose(NodeStore nodeStore) {
         try {
-            File fileStoreRoot = (File) components.get(nodeStore, FileStore.class.getName() + ":root");
-            FileUtils.deleteQuietly(fileStoreRoot);
+            if (nodeStore instanceof DocumentNodeStore) {
+                ((DocumentNodeStore)nodeStore).dispose();
+            }
 
             DataStore dataStore = (DataStore) components.get(nodeStore, DataStore.class.getName());
             if (dataStore != null && dataStoreFixture != null) {
@@ -128,22 +134,22 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
                 File dataStoreFolder = (File) components.get(nodeStore, DataStore.class.getName() + ":folder");
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
+            connection.close();
         } finally {
             components.row(nodeStore).clear();
         }
     }
 
     @Override
-    public void compactStore(NodeStore nodeStore) {
-        FileStore fileStore = get(nodeStore, FileStore.class.getName());
-        for (int i = 0; i< SegmentGCOptions.defaultGCOptions().getRetainedGenerations(); i++) {
-            fileStore.compactFull();
-        }
+    public void compactStore(NodeStore nodeStore) throws IOException, InterruptedException {
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(10));
+        VersionGarbageCollector vGC = ((DocumentNodeStore) nodeStore).getVersionGarbageCollector();
+        VersionGarbageCollector.VersionGCStats stats = vGC.gc(0, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public BlobReferenceRetriever getBlobReferenceRetriever(NodeStore nodeStore) {
-        return new SegmentBlobReferenceRetriever(get(nodeStore, FileStore.class.getName()));
+        return new DocumentBlobReferenceRetriever((DocumentNodeStore) nodeStore);
     }
 
     @Override
