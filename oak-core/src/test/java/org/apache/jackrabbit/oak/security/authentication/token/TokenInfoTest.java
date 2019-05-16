@@ -48,7 +48,7 @@ public class TokenInfoTest extends AbstractTokenTest {
 
     @Test
     public void testGetUserId() {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertEquals(userId, info.getUserId());
 
         info = tokenProvider.getTokenInfo(info.getToken());
@@ -57,7 +57,7 @@ public class TokenInfoTest extends AbstractTokenTest {
 
     @Test
     public void testGetToken() {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(info.getToken());
 
         info = tokenProvider.getTokenInfo(info.getToken());
@@ -68,7 +68,7 @@ public class TokenInfoTest extends AbstractTokenTest {
     public void testIsExpired() {
         long loginTime = new Date().getTime();
 
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertFalse(info.isExpired(loginTime));
 
         loginTime = new Date().getTime() + 3600000;
@@ -80,7 +80,7 @@ public class TokenInfoTest extends AbstractTokenTest {
 
     @Test
     public void testMatches() {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(info.matches(new TokenCredentials(info.getToken())));
 
         Map<String,String> attributes = new HashMap<String, String>();
@@ -98,6 +98,12 @@ public class TokenInfoTest extends AbstractTokenTest {
         assertTrue(info.matches(tc));
         tc.setAttribute(".token_ignored", "value");
         assertTrue(info.matches(tc));
+    }
+
+    @Test
+    public void testMatchesCredentialsWithUnsupportedToken() {
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
+        assertFalse(info.matches(new TokenCredentials("invaldToken")));
     }
 
     @Test
@@ -144,20 +150,20 @@ public class TokenInfoTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testRemoveToken() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+    public void testRemoveToken() {
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(info.remove());
     }
 
     @Test
-    public void testRemoveToken2() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+    public void testRemoveToken2() {
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(info.remove());
     }
 
     @Test
     public void testRemoveTokenRemovesNode() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
 
         Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
         Tree tokens = userTree.getChild(TOKENS_NODE_NAME);
@@ -168,8 +174,21 @@ public class TokenInfoTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testResetTokenExpirationExpiredToken() throws Exception {
+    public void testRemoveTokenTreeRemoved() {
         TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        assertNotNull(info);
+
+        Tree tokenTree = getTokenTree(info);
+        assertNotNull(tokenTree);
+        tokenTree.remove();
+
+        // resetting expiration on a token tree that no longer exists should not success
+        assertFalse(info.remove());
+    }
+
+    @Test
+    public void testResetTokenExpirationExpiredToken() {
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
 
         long expiredTime = new Date().getTime() + 7200001;
         assertTrue(info.isExpired(expiredTime));
@@ -177,13 +196,23 @@ public class TokenInfoTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testResetTokenExpiration() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
-
+    public void testResetTokenExpiration() {
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertFalse(info.resetExpiration(new Date().getTime()));
 
         long loginTime = new Date().getTime() + 3600000;
         assertFalse(info.isExpired(loginTime));
         assertTrue(info.resetExpiration(loginTime));
+    }
+
+    @Test
+    public void testResetTokenTreeRemoved() {
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
+        Tree tokenTree = getTokenTree(info);
+        assertNotNull(tokenTree);
+        tokenTree.remove();
+
+        // resetting expiration on a token tree that no longer exists should not success
+        assertFalse(info.resetExpiration(new Date().getTime() + 3600000));
     }
 }

@@ -241,7 +241,7 @@ public abstract class AbstractSecurityTest {
         return new PartialValueFactory(getNamePathMapper());
     }
 
-    protected long waitForSystemTimeIncrement(long old) {
+    protected static long waitForSystemTimeIncrement(long old) {
         while (old == System.currentTimeMillis()) {
             // wait for system timer to move
         }

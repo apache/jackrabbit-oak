@@ -49,7 +49,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
 
         tokenConfiguration.setSecurityProvider(getSecurityProvider());
 
-        context.registerInjectActivateService(tokenConfiguration, ImmutableMap.<String, Object>of(
+        context.registerInjectActivateService(tokenConfiguration, ImmutableMap.of(
                 TokenProvider.PARAM_TOKEN_EXPIRATION, 25,
                 TokenProvider.PARAM_TOKEN_LENGTH, 4));
 
