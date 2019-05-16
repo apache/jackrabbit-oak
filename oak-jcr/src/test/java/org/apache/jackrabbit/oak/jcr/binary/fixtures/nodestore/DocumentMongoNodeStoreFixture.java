@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.RepositoryException;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
+import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
@@ -63,7 +65,7 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
     private MongoConnection connection;
     private final Clock clock;
     public final MongoConnectionFactory connFactory = new MongoConnectionFactory();
-
+    private String db;
     public DocumentMongoNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
         this.dataStoreFixture = dataStoreFixture;
         this.clock = new Clock.Virtual();
@@ -71,7 +73,8 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
 
     @Override
     public boolean isAvailable() {
-        this.connection = connFactory.getConnection();
+        db = UUID.randomUUID().toString();
+        this.connection = connFactory.getConnection(db);
 
         // if a DataStore is configured, it must be available for our NodeStore to be available
         return (dataStoreFixture == null || dataStoreFixture.isAvailable()) && (connection != null);
@@ -134,6 +137,7 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
                 File dataStoreFolder = (File) components.get(nodeStore, DataStore.class.getName() + ":folder");
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
+            MongoUtils.dropDatabase(db);
             connection.close();
         } finally {
             components.row(nodeStore).clear();
