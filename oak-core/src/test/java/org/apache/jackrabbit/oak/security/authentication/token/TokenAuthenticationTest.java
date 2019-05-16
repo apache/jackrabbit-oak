@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import javax.jcr.Credentials;
@@ -27,12 +26,10 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -77,7 +74,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testAuthenticateWithInvalidTokenCredentials() throws Exception {
+    public void testAuthenticateWithInvalidTokenCredentials() {
         try {
             authentication.authenticate(new TokenCredentials(UUID.randomUUID().toString()));
             fail("LoginException expected");
@@ -88,7 +85,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
 
     @Test
     public void testAuthenticate() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(authentication.authenticate(new TokenCredentials(info.getToken())));
     }
 
@@ -104,7 +101,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
 
     @Test
     public void testGetTokenInfoAfterAuthenticate() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         authentication.authenticate(new TokenCredentials(info.getToken()));
 
         TokenInfo info2 = authentication.getTokenInfo();
@@ -115,6 +112,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
     @Test
     public void testAuthenticateNotMatchingToken() {
         TokenInfo info = tokenProvider.createToken(userId, ImmutableMap.of(TokenConstants.TOKEN_ATTRIBUTE + "_mandatory", "val"));
+        assertNotNull(info);
         try {
             authentication.authenticate(new TokenCredentials(info.getToken()));
             fail("LoginException expected");
@@ -129,7 +127,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
                 ConfigurationParameters.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 1),
                 getUserConfiguration());
 
-        TokenInfo info = tp.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tp, userId);
         waitUntilExpired(info);
 
         try {
@@ -150,7 +148,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
 
     @Test
     public void testGetUserId() throws LoginException {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(authentication.authenticate(new TokenCredentials(info.getToken())));
         assertEquals(userId, authentication.getUserId());
     }
@@ -162,7 +160,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
 
     @Test
     public void testGetUserPrincipal() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(authentication.authenticate(new TokenCredentials(info.getToken())));
         assertEquals(getTestUser().getPrincipal(), authentication.getUserPrincipal());
     }
@@ -181,7 +179,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testAuthenticateRefreshToken() throws Exception {
+    public void testAuthenticateRefreshToken() {
         TokenCredentials tc = new TokenCredentials("token");
         TokenProvider tp = mock(TokenProvider.class);
         TokenInfo ti = mock(TokenInfo.class);
@@ -200,7 +198,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testAuthenticateSkipRefreshToken() throws Exception {
+    public void testAuthenticateSkipRefreshToken() {
         TokenCredentials tc = new TokenCredentials("token");
         tc.setAttribute(TokenConstants.TOKEN_SKIP_REFRESH, "");
 

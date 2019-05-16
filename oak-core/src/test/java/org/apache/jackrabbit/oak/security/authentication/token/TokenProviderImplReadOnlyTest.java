@@ -56,8 +56,19 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
         readOnlyTp = new TokenProviderImpl(readOnlyRoot, getTokenConfig(), getUserConfiguration());
     }
 
+    @Override
+    public void after() throws Exception {
+        try {
+            if (cs != null) {
+                cs.close();
+            }
+        } finally {
+            super.after();
+        }
+    }
+
     private String generateToken() throws Exception {
-        TokenInfo info = tokenProvider.createToken(getTestUser().getID(), ImmutableMap.<String, Object>of());
+        TokenInfo info = createTokenInfo(tokenProvider, getTestUser().getID());
         String token = info.getToken();
         readOnlyRoot.refresh();
         return token;
@@ -68,7 +79,7 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
         String userId = getTestUser().getID();
         readOnlyRoot.refresh();
 
-        assertNull(readOnlyTp.createToken(userId, ImmutableMap.<String, Object>of()));
+        assertNull(readOnlyTp.createToken(userId, ImmutableMap.of()));
     }
 
     @Test
@@ -76,7 +87,7 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
         // make sure user already has a token-parent node.
         generateToken();
         // now generate a new token with the read-only root
-        assertNull(readOnlyTp.createToken(getTestUser().getID(), ImmutableMap.<String, Object>of()));
+        assertNull(readOnlyTp.createToken(getTestUser().getID(), ImmutableMap.of()));
     }
 
     @Test
@@ -88,12 +99,14 @@ public class TokenProviderImplReadOnlyTest extends AbstractTokenTest {
     @Test
     public void testRefreshToken() throws Exception {
         TokenInfo readOnlyInfo = readOnlyTp.getTokenInfo(generateToken());
+        assertNotNull(readOnlyInfo);
         assertFalse(readOnlyInfo.resetExpiration(System.currentTimeMillis() + TokenProviderImpl.DEFAULT_TOKEN_EXPIRATION - 100));
     }
 
     @Test
     public void testRemoveToken() throws Exception {
         TokenInfo readOnlyInfo = readOnlyTp.getTokenInfo(generateToken());
+        assertNotNull(readOnlyInfo);
         assertFalse(readOnlyInfo.remove());
     }
 }

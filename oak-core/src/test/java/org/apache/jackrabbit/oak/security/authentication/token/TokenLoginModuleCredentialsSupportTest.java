@@ -118,18 +118,10 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
         SimpleCredentials credentials = (SimpleCredentials) getAdminCredentials();
         credentials.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, "");
 
-        ContentSession cs = null;
-        try {
-            cs = login(credentials);
+        try (ContentSession cs = login(credentials)) {
             assertEquals(credentials.getUserID(), cs.getAuthInfo().getUserID());
             String token = credentials.getAttribute(TokenConstants.TOKEN_ATTRIBUTE).toString();
             assertFalse(token.isEmpty());
-            cs.close();
-        } finally {
-
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 }

@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
@@ -49,7 +48,7 @@ public class TestLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean login() throws LoginException {
+    public boolean login() {
         credentials = getCredentials();
         if (credentials != null) {
             userId = credentialsSupport.getUserId(credentials);
@@ -62,7 +61,7 @@ public class TestLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean commit() throws LoginException {
+    public boolean commit() {
         if (userId != null) {
             subject.getPrincipals().add(EveryonePrincipal.getInstance());
             setAuthInfo(new AuthInfoImpl(userId, credentialsSupport.getAttributes(credentials), subject.getPrincipals()), subject);

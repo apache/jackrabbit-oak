@@ -23,37 +23,52 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl.PARAM_TOKEN_CLEANUP_THRESHOLD;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TokenProviderImplTest extends AbstractTokenTest {
 
@@ -89,7 +104,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testCreateTokenFromInvalidCredentials() throws Exception {
+    public void testCreateTokenFromInvalidCredentials() {
         List<Credentials> invalid = new ArrayList<Credentials>();
         invalid.add(new GuestCredentials());
         invalid.add(new TokenCredentials("sometoken"));
@@ -102,7 +117,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testCreateTokenFromCredentials() throws Exception {
+    public void testCreateTokenFromCredentials() {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
         List<Credentials> valid = new ArrayList<Credentials>();
         valid.add(sc);
@@ -115,7 +130,38 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testCreateTokenFromInvalidUserId() throws Exception {
+    public void testCreateTokenFromCredentialsSetsAttribute() {
+        SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+        tokenProvider.createToken(sc);
+
+        assertArrayEquals(new String[] {TOKEN_ATTRIBUTE}, sc.getAttributeNames());
+    }
+
+    @Test
+    public void testCreateTokenCredentialsSupportDoesntSetAttribute() {
+        SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+
+        CredentialsSupport credentialsSupport = mock(CredentialsSupport.class);
+        when(credentialsSupport.getCredentialClasses()).thenReturn(SimpleCredentialsSupport.getInstance().getCredentialClasses());
+        when(credentialsSupport.getUserId(sc)).thenReturn(SimpleCredentialsSupport.getInstance().getUserId(sc));
+        when(credentialsSupport.setAttributes(any(Credentials.class), any(Map.class))).thenReturn(false);
+
+        TokenProvider tp = createTokenProvider(root, getTokenConfig(), getUserConfiguration(), credentialsSupport);
+        tp.createToken(sc);
+
+        assertEquals(0, sc.getAttributeNames().length);
+    }
+
+    @Test
+    public void testCreateTokenInvalidAlgorithm() {
+        SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+        ConfigurationParameters options = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, "invalid");
+        TokenProvider tp = createTokenProvider(root, options, getUserConfiguration(), SimpleCredentialsSupport.getInstance());
+        assertNull(tp.createToken(sc));
+    }
+
+    @Test
+    public void testCreateTokenFromInvalidUserId() {
         TokenInfo info = tokenProvider.createToken("unknownUserId", Collections.<String, Object>emptyMap());
         assertNull(info);
     }
@@ -127,13 +173,13 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testCreateTokenFromUserId() throws Exception {
+    public void testCreateTokenFromUserId() {
         TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
         assertTokenInfo(info, userId);
     }
 
     @Test
-    public void testTokenNode() throws Exception {
+    public void testTokenNode() {
         Map<String, String> reserved = new HashMap<String, String>();
         reserved.put(TOKEN_ATTRIBUTE, "value");
         reserved.put(TOKEN_ATTRIBUTE_KEY, "value");
@@ -154,6 +200,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         attributes.putAll(privateAttributes);
 
         TokenInfo info = tokenProvider.createToken(userId, attributes);
+        assertNotNull(info);
         Tree tokenTree = getTokenTree(info);
         PropertyState prop = tokenTree.getProperty(TOKEN_ATTRIBUTE_KEY);
         assertNotNull(prop);
@@ -166,7 +213,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         for (String key : reserved.keySet()) {
             PropertyState p = tokenTree.getProperty(key);
             if (p != null) {
-                assertFalse(reserved.get(key).equals(p.getValue(Type.STRING)));
+                assertNotEquals(reserved.get(key), p.getValue(Type.STRING));
             }
         }
 
@@ -180,7 +227,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testGetTokenInfoFromInvalidToken() throws Exception {
+    public void testGetTokenInfoFromInvalidToken() {
         List<String> invalid = new ArrayList<String>();
         invalid.add("/invalid");
         invalid.add(UUID.randomUUID().toString());
@@ -199,7 +246,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
     @Test
     public void testGetTokenInfoFromDisabledUser() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         getTestUser().disable("disabled");
 
         assertNull(tokenProvider.getTokenInfo(info.getToken()));
@@ -208,61 +255,54 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     @Test
     public void testGetTokenInfoFromGroup() throws Exception {
         Group gr = getUserManager(root).createGroup("gr");
-        NodeUtil groupNode = new NodeUtil(root.getTree(gr.getPath()));
-        NodeUtil parent = groupNode.addChild(TokenConstants.TOKENS_NODE_NAME, TokenConstants.TOKENS_NT_NAME);
-        NodeUtil tokenNode = parent.addChild("tokenName", TokenConstants.TOKEN_NT_NAME);
+        Tree groupNode = root.getTree(gr.getPath());
+        Tree parent = TreeUtil.addChild(groupNode, TokenConstants.TOKENS_NODE_NAME, TokenConstants.TOKENS_NT_NAME);
+        Tree tokenNode = TreeUtil.addChild(parent, "tokenName", TokenConstants.TOKEN_NT_NAME);
         String tokenUUID = UUID.randomUUID().toString();
-        tokenNode.setString(JcrConstants.JCR_UUID, tokenUUID);
+        tokenNode.setProperty(JcrConstants.JCR_UUID, tokenUUID);
         String token = tokenUUID + "_generatedKey";
-        tokenNode.setString(TokenConstants.TOKEN_ATTRIBUTE_KEY, token);
+        tokenNode.setProperty(TokenConstants.TOKEN_ATTRIBUTE_KEY, token);
 
         assertNull(tokenProvider.getTokenInfo(token));
     }
 
     @Test
     public void testGetTokenInfoFromRegularNode() throws Exception {
-        NodeUtil node = new NodeUtil(root.getTree("/")).addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
-        NodeUtil parent = node.addChild(TokenConstants.TOKENS_NODE_NAME, TokenConstants.TOKENS_NT_NAME);
-        NodeUtil tokenNode = parent.addChild("tokenName", TokenConstants.TOKEN_NT_NAME);
+        Tree node = TreeUtil.addChild(root.getTree("/"), "testNode", JcrConstants.NT_UNSTRUCTURED);
+        Tree parent = TreeUtil.addChild(node, TokenConstants.TOKENS_NODE_NAME, TokenConstants.TOKENS_NT_NAME);
+        Tree tokenNode = TreeUtil.addChild(parent, "tokenName", TokenConstants.TOKEN_NT_NAME);
         String tokenUUID = UUID.randomUUID().toString();
-        tokenNode.setString(JcrConstants.JCR_UUID, tokenUUID);
+        tokenNode.setProperty(JcrConstants.JCR_UUID, tokenUUID);
         String token = tokenUUID + "_generatedKey";
-        tokenNode.setString(TokenConstants.TOKEN_ATTRIBUTE_KEY, token);
+        tokenNode.setProperty(TokenConstants.TOKEN_ATTRIBUTE_KEY, token);
 
         assertNull(tokenProvider.getTokenInfo(token));
     }
 
     @Test
     public void testGetTokenInfoFromInvalidLocation() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
-        Tree tokenTree = getTokenTree(info);
-
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
-        NodeUtil node = new NodeUtil(root.getTree("/")).addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
+        Tree node = TreeUtil.addChild(root.getTree("/"), "testNode", JcrConstants.NT_UNSTRUCTURED);
         try {
-            createTokenTree(info, node, TOKEN_NT_NAME);
-            tokenTree.remove();
-
+            replaceTokenTree(info, node, TOKEN_NT_NAME);
             assertNull(tokenProvider.getTokenInfo(info.getToken()));
         } finally {
-            node.getTree().remove();
+            node.remove();
             root.commit(CommitMarker.asCommitAttributes());
         }
     }
 
     @Test
     public void testGetTokenInfoFromInvalidLocation2() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
-        Tree tokenTree = getTokenTree(info);
-
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
         Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
-        NodeUtil node = new NodeUtil(userTree).addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
+        Tree node = TreeUtil.addChild(userTree, "testNode", JcrConstants.NT_UNSTRUCTURED);
         try {
-            createTokenTree(info, node, TOKEN_NT_NAME);
-            tokenTree.remove();
+            replaceTokenTree(info, node, TOKEN_NT_NAME);
 
             assertNull(tokenProvider.getTokenInfo(info.getToken()));
         } finally {
@@ -272,16 +312,12 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
     @Test
     public void testGetTokenInfoFromInvalidLocation3() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
-        Tree tokenTree = getTokenTree(info);
-
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
         Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
-        NodeUtil node = new NodeUtil(userTree.getChild(TOKENS_NODE_NAME));
         try {
-            createTokenTree(info, node, JcrConstants.NT_UNSTRUCTURED);
-            tokenTree.remove();
+            replaceTokenTree(info, userTree.getChild(TOKENS_NODE_NAME), JcrConstants.NT_UNSTRUCTURED);
 
             assertNull(tokenProvider.getTokenInfo(info.getToken()));
         } finally {
@@ -291,7 +327,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
     @Test
     public void testGetTokenInfoFromInvalidLocation4() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         Tree tokenTree = getTokenTree(info);
 
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
@@ -299,8 +335,8 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         TokenInfo info2 = null;
         try {
             Tree adminTree = root.getTree(getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID()).getPath());
-            NodeUtil node = new NodeUtil(adminTree).getOrAddChild(TOKENS_NODE_NAME, JcrConstants.NT_UNSTRUCTURED);
-            assertTrue(root.move(tokenTree.getPath(), node.getTree().getPath() + '/' + tokenTree.getName()));
+            Tree node = TreeUtil.getOrAddChild(adminTree, TOKENS_NODE_NAME, JcrConstants.NT_UNSTRUCTURED);
+            assertTrue(root.move(tokenTree.getPath(), node.getPath() + '/' + tokenTree.getName()));
 
             info2 = tokenProvider.getTokenInfo(info.getToken());
             assertNotNull(info2);
@@ -311,14 +347,14 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testGetTokenInfo() throws Exception {
-        String token = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap()).getToken();
+    public void testGetTokenInfo() {
+        String token = createTokenInfo(tokenProvider, userId).getToken();
         TokenInfo info = tokenProvider.getTokenInfo(token);
         assertTokenInfo(info, userId);
     }
 
     @Test
-    public void testCreateTokenWithExpirationParam() throws Exception {
+    public void testCreateTokenWithExpirationParam() {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
         sc.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 100000);
 
@@ -333,7 +369,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testCreateTokenWithInvalidExpirationParam() throws Exception {
+    public void testCreateTokenWithInvalidExpirationParam() {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
         sc.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, "invalid");
 
@@ -343,6 +379,64 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         } catch (NumberFormatException e) {
             // success
         }
+    }
+
+    @Test
+    public void testFailingCleanupExpired() throws Exception {
+        User u = getTestUser();
+        // grant user principal access to read/create tokens but not removing them
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, u.getPath());
+        acl.addAccessControlEntry(u.getPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_MODIFY_PROPERTIES));
+        acMgr.setPolicy(acl.getPath(), acl);
+        root.commit();
+
+        try (ContentSession cs = login(new SimpleCredentials(u.getID(), u.getID().toCharArray()))) {
+            Root testRoot = cs.getLatestRoot();
+            ConfigurationParameters options = ConfigurationParameters.of(PARAM_TOKEN_CLEANUP_THRESHOLD, 1);
+            TokenProvider tp = createTokenProvider(testRoot, options, getUserConfiguration(), SimpleCredentialsSupport.getInstance());
+
+            SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+            sc.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 1);
+
+            TokenInfo info = tp.createToken(sc);
+            waitUntilExpired(info);
+
+            // create new infos until the cleanup is triggered or until max cnt has been reached.
+            // in either case the expired info must still exist
+            TokenInfo ti;
+            int cnt = 0;
+            do {
+                ti = tp.createToken(sc);
+                cnt++;
+            } while (ti.getToken().charAt(0) >= '2' && cnt < 50);
+
+            root.refresh();
+            assertTrue(getTokenTree(info).exists());
+        }
+    }
+
+    @Test
+    public void testCleanupThresholdNotReached() {
+        ConfigurationParameters options = ConfigurationParameters.of(PARAM_TOKEN_CLEANUP_THRESHOLD, 100);
+        TokenProvider tp = createTokenProvider(root, options, getUserConfiguration(), SimpleCredentialsSupport.getInstance());
+
+        SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+        sc.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 1);
+
+        TokenInfo info = tp.createToken(sc);
+        waitUntilExpired(info);
+
+        // create new infos until the cleanup is triggered or until max cnt has been reached.
+        // -> since PARAM_TOKEN_CLEANUP_THRESHOLD is set to 100, the expired token is still not removed
+        TokenInfo ti;
+        int cnt = 0;
+        do {
+            ti = tp.createToken(sc);
+            cnt++;
+        } while (ti.getToken().charAt(0) >= '2' && cnt < 50);
+
+        assertTrue(getTokenTree(info).exists());
     }
 
     /**
@@ -394,7 +488,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-1985">OAK-1985</a>
      */
     @Test
-    public void testTokenValidationIsCaseInsensitive() throws Exception {
+    public void testTokenValidationIsCaseInsensitive() {
         Root root = adminSession.getLatestRoot();
         TokenConfiguration tokenConfig = getSecurityProvider().getConfiguration(TokenConfiguration.class);
         TokenProvider tp = tokenConfig.getTokenProvider(root);
@@ -422,19 +516,15 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     private static class DataFuture {
         public Future<TokenInfo> future;
 
-        public DataFuture(Future<TokenInfo> future) {
+        DataFuture(Future<TokenInfo> future) {
             super();
             this.future = future;
         }
     }
-    
+
+    @NotNull
     private DataFuture createDataFuture(ExecutorService pool , final TokenProvider tp,final String userId, final Map<String, ?> attributes){
-        Future<TokenInfo> future = pool.submit(new Callable<TokenInfo>() {
-            @Override
-            public TokenInfo call() throws Exception {
-                return tp.createToken(userId, attributes);
-            }
-        });
+        Future<TokenInfo> future = pool.submit(() -> tp.createToken(userId, attributes));
         return new DataFuture(future);
     }
 }

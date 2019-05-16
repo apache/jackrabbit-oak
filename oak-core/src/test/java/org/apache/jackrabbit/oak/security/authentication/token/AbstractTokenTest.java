@@ -23,16 +23,20 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
+
+import java.util.Collections;
+
+import static org.junit.Assert.assertNotNull;
 
 /**
  * AbstractTokenTest...
@@ -68,30 +72,41 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
         return new TokenProviderImpl(root, options, userConfiguration, credentialsSupport);
     }
 
+    @NotNull
     ConfigurationParameters getTokenConfig() {
         return ConfigurationParameters.EMPTY;
     }
 
-    @Nullable
+    @NotNull
     Tree getTokenTree(@NotNull TokenInfo info) {
         String token = info.getToken();
         int pos = token.indexOf('_');
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
-        return new IdentifierManager(root).getTree(nodeId);
+        Tree t = new IdentifierManager(root).getTree(nodeId);
+        assertNotNull(t);
+        return t;
     }
 
     @NotNull
-    Tree createTokenTree(@NotNull TokenInfo base, @NotNull NodeUtil parent,
-                         @NotNull String ntName) throws AccessDeniedException {
+    Tree replaceTokenTree(@NotNull TokenInfo base, @NotNull Tree parent,
+                          @NotNull String ntName) throws AccessDeniedException {
         Tree tokenTree = getTokenTree(base);
-        Tree tree = parent.addChild("token", ntName).getTree();
+        Tree tree = TreeUtil.addChild(parent, "token", ntName);
         tree.setProperty(tokenTree.getProperty(JcrConstants.JCR_UUID));
         tree.setProperty(tokenTree.getProperty(TOKEN_ATTRIBUTE_KEY));
         tree.setProperty(tokenTree.getProperty(TOKEN_ATTRIBUTE_EXPIRY));
+        tokenTree.remove();
         return tree;
     }
 
-    void waitUntilExpired(@NotNull TokenInfo info) {
+    @NotNull
+    static TokenInfo createTokenInfo(@NotNull TokenProvider tp, @NotNull String userId) {
+        TokenInfo info = tp.createToken(userId, Collections.emptyMap());
+        assertNotNull(info);
+        return info;
+    }
+
+    static void waitUntilExpired(@NotNull TokenInfo info) {
         long now = System.currentTimeMillis();
         while (!info.isExpired(now)) {
             now = waitForSystemTimeIncrement(now);

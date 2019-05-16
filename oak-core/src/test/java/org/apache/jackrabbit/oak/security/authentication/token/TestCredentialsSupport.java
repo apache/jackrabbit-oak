@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Credentials;

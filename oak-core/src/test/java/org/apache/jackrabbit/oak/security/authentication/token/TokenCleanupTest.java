@@ -37,6 +37,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
         userId = getTestUser().getID();
     }
 
+    @NotNull
     @Override
     ConfigurationParameters getTokenConfig() {
         return ConfigurationParameters.of(TokenProviderImpl.PARAM_TOKEN_CLEANUP_THRESHOLD, 5);
@@ -61,7 +62,7 @@ public class TokenCleanupTest extends AbstractTokenTest {
         int tkn = 0;
         boolean clean = false;
         while (!clean && tkn < 50) {
-            TokenInfo tokenInfo = tokenProvider.createToken(userId, ImmutableMap.of());
+            TokenInfo tokenInfo = createTokenInfo(tokenProvider, userId);
             clean = TokenProviderImpl.shouldRunCleanup(tokenInfo.getToken());
             tkn++;
         }

@@ -61,16 +61,10 @@ public class TokenDefaultLoginModuleTest extends Jackrabbit2ConfigurationTest {
 
     @Test
     public void testNullLogin() throws Exception {
-        ContentSession cs = null;
-        try {
-            cs = login(null);
+        try (ContentSession cs = login(null)) {
             fail("Null login should fail");
         } catch (LoginException e) {
             // success
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 }

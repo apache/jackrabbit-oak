@@ -22,6 +22,7 @@ import java.util.Date;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -37,6 +38,7 @@ public class TokenNoRefreshTest extends AbstractTokenTest {
         userId = getTestUser().getID();
     }
 
+    @NotNull
     @Override
     ConfigurationParameters getTokenConfig() {
         return ConfigurationParameters.of(TokenProvider.PARAM_TOKEN_REFRESH, false);
