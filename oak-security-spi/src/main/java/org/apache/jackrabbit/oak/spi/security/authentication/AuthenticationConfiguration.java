@@ -33,5 +33,5 @@ public interface AuthenticationConfiguration extends SecurityConfiguration {
     String PARAM_CONFIG_SPI_NAME = "org.apache.jackrabbit.oak.authentication.configSpiName";
 
     @NotNull
-    LoginContextProvider getLoginContextProvider(ContentRepository contentRepository);
+    LoginContextProvider getLoginContextProvider(@NotNull ContentRepository contentRepository);
 }

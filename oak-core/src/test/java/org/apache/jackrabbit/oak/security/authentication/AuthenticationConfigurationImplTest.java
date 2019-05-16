@@ -20,19 +20,28 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.lang.reflect.Field;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class AuthenticationConfigurationImplTest {
 
     private final AuthenticationConfigurationImpl authConfiguration = new AuthenticationConfigurationImpl();
-    private final ContentRepository repo = Mockito.mock(ContentRepository.class);
+    private final ContentRepository repo = mock(ContentRepository.class);
 
     @Test
     public void testGetName() {
@@ -52,12 +61,43 @@ public class AuthenticationConfigurationImplTest {
     }
 
     @Test
-    public void testGetLoginCtxProviderWhiteboard() {
-        SecurityProvider sp = Mockito.mock(SecurityProvider.class, Mockito.withSettings().extraInterfaces(WhiteboardAware.class));
-        when(((WhiteboardAware) sp).getWhiteboard()).thenReturn(new DefaultWhiteboard());
-
+    public void testGetLoginCtxProviderWhiteboard() throws Exception {
+        Whiteboard wb = new DefaultWhiteboard();
+        SecurityProvider sp = mock(SecurityProvider.class, Mockito.withSettings().extraInterfaces(WhiteboardAware.class));
+        when(((WhiteboardAware) sp).getWhiteboard()).thenReturn(wb);
         authConfiguration.setSecurityProvider(sp);
 
-        assertNotNull(authConfiguration.getLoginContextProvider(repo));
+        LoginContextProvider lcp = authConfiguration.getLoginContextProvider(repo);
+        assertTrue(lcp instanceof LoginContextProviderImpl);
+
+        Field f = LoginContextProviderImpl.class.getDeclaredField("whiteboard");
+        f.setAccessible(true);
+        assertSame(wb, f.get(lcp));
+    }
+
+    @Test
+    public void testGetLoginCtxProviderWithoutWhiteboard() throws Exception {
+        SecurityProvider sp = mock(SecurityProvider.class);
+        authConfiguration.setSecurityProvider(sp);
+
+        LoginContextProvider lcp = authConfiguration.getLoginContextProvider(repo);
+        assertTrue(lcp instanceof LoginContextProviderImpl);
+
+        Field f = LoginContextProviderImpl.class.getDeclaredField("whiteboard");
+        f.setAccessible(true);
+        assertNull(f.get(lcp));
+    }
+
+    @Test
+    public void testSetLoginModuleMonitor() throws Exception {
+        Field f = AuthenticationConfigurationImpl.class.getDeclaredField("lmMonitor");
+        f.setAccessible(true);
+
+        assertSame(LoginModuleMonitor.NOOP, f.get(authConfiguration));
+
+        LoginModuleMonitor monitor = mock(LoginModuleMonitor.class);
+        authConfiguration.setLoginModuleMonitor(monitor);
+
+        assertSame(monitor, f.get(authConfiguration));
     }
 }

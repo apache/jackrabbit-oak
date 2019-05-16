@@ -133,7 +133,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
      */
     @NotNull
     @Override
-    public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
+    public LoginContextProvider getLoginContextProvider(@NotNull ContentRepository contentRepository) {
         String appName = getParameters().getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
         SecurityProvider provider = getSecurityProvider();
         Whiteboard whiteboard = null;
@@ -142,8 +142,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
         } else {
             log.warn("Unable to obtain whiteboard from SecurityProvider");
         }
-        return new LoginContextProviderImpl(appName, getParameters(), contentRepository, getSecurityProvider(),
-                whiteboard, lmMonitor);
+        return new LoginContextProviderImpl(appName, getParameters(), contentRepository, provider, whiteboard, lmMonitor);
     }
 
     @Override

@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 @ProviderType
 public interface LoginModuleStatsCollector {
 
-    void setLoginModuleMonitor(LoginModuleMonitor lmm);
+    void setLoginModuleMonitor(@NotNull LoginModuleMonitor lmm);
 
 }
