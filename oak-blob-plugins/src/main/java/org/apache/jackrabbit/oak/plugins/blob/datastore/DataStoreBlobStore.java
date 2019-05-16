@@ -724,7 +724,7 @@ public class DataStoreBlobStore
         if (delegate instanceof DataRecordAccessProvider) {
             try {
                 DataRecord record = ((DataRecordAccessProvider) delegate).completeDataRecordUpload(uploadToken);
-                return new BlobStoreBlob(this, record.getIdentifier().toString());
+                return new BlobStoreBlob(this, getBlobId(record));
             }
             catch (DataStoreException | DataRecordUploadException e) {
                 log.warn("Unable to complete direct upload for upload token {}", uploadToken, e);

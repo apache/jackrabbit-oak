@@ -26,18 +26,24 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.jcr.RepositoryException;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.Iterators;
@@ -49,15 +55,25 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
+import org.apache.jackrabbit.oak.api.blob.BlobUpload;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
@@ -128,7 +144,8 @@ public class BlobGCTest {
             }
         };
 
-        TimeLapsedBlobStore blobStore = new TimeLapsedBlobStore();
+        TimeLapsedDataStore dataStore = new TimeLapsedDataStore();
+        DataStoreBlobStore blobStore = new DataStoreBlobStore(dataStore);
         MemoryBlobStoreNodeStore nodeStore = new MemoryBlobStoreNodeStore(blobStore);
         cluster = new Cluster(folder.newFolder(), blobStore, nodeStore, 0);
         closer.register(cluster);
@@ -151,6 +168,7 @@ public class BlobGCTest {
         protected final BlobStoreState blobStoreState;
         private final File root;
         String repoId;
+        protected final TimeLapsedDataStore dataStore;
         protected final GarbageCollectableBlobStore blobStore;
         protected final NodeStore nodeStore;
         private MarkSweepGarbageCollector collector;
@@ -163,6 +181,7 @@ public class BlobGCTest {
         public Cluster(File root, GarbageCollectableBlobStore blobStore, NodeStore nodeStore, int seed) throws Exception {
             this.root = root;
             this.nodeStore = nodeStore;
+            this.dataStore = (TimeLapsedDataStore) ((DataStoreBlobStore) blobStore).getDataStore();
             this.blobStore = blobStore;
             if (SharedDataStoreUtils.isShared(blobStore)) {
                 repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
@@ -264,6 +283,30 @@ public class BlobGCTest {
     public void gc() throws Exception {
         log.info("Starting gc()");
 
+        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(0), false);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertStats(cluster.statsProvider, 1, 0,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), NAME);
+    }
+
+    @Test
+    public void gcWithNoDeleteDirectBinary() throws Exception {
+        log.info("Starting gcWithNoDeleteDirectBinary()");
+
+        setupDirectBinary(1, 0);
+        Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(0), false);
+        assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertStats(cluster.statsProvider, 1, 0,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), NAME);
+    }
+
+    @Test
+    public void gcWithDeleteDirectBinary() throws Exception {
+        log.info("Starting gcWithNoDeleteDirectBinary()");
+
+        setupDirectBinary(5, 2);
         Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(0), false);
         assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
         assertStats(cluster.statsProvider, 1, 0,
@@ -453,6 +496,31 @@ public class BlobGCTest {
         return state;
     }
 
+    protected void setupDirectBinary(int numCreate, int numDelete) throws CommitFailedException {
+        for (int i = 0; i < numCreate; i++) {
+            BlobUpload blobUpload = ((BlobAccessProvider) cluster.blobStore).initiateBlobUpload(100, 1);
+            Blob blob = ((BlobAccessProvider) cluster.blobStore).completeBlobUpload(blobUpload.getUploadToken());
+
+            cluster.blobStoreState.blobsAdded.add(blob.getContentIdentity());
+            cluster.blobStoreState.blobsPresent.add(blob.getContentIdentity());
+            NodeBuilder builder = cluster.nodeStore.getRoot().builder();
+            builder.child("dbu" + i).setProperty("x", blob);
+            cluster.nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            PropertyState property = cluster.nodeStore.getRoot().getChildNode("dbu" + i).getProperty("x");
+            Blob blobReturned = property.getValue(Type.BINARY);
+            ((MemoryBlobStoreNodeStore) cluster.nodeStore).getReferencedBlobs().add(blobReturned.getContentIdentity());
+        }
+
+        for (int i = 0; i < Math.min(numCreate, numDelete); i++) {
+            PropertyState property = cluster.nodeStore.getRoot().getChildNode("dbu" + i).getProperty("x");
+            String blobId = property.getValue(Type.BINARY).getContentIdentity();
+
+            delete("dbu" + i, cluster.nodeStore);
+            ((MemoryBlobStoreNodeStore) cluster.nodeStore).getReferencedBlobs().remove(blobId);
+            cluster.blobStoreState.blobsPresent.remove(blobId);
+        }
+    }
+
     protected Set<String> createBlobs(GarbageCollectableBlobStore blobStore, int count, int size) throws Exception {
         HashSet<String> blobSet = new HashSet<String>();
         for  (int i = 0; i < count; i++) {
@@ -501,6 +569,10 @@ public class BlobGCTest {
 
         public void setReferencedBlobs(Set<String> referencedBlobs) {
             this.referencedBlobs = referencedBlobs;
+        }
+
+        public Set<String> getReferencedBlobs() {
+            return this.referencedBlobs;
         }
 
         @Override
@@ -562,98 +634,59 @@ public class BlobGCTest {
     /**
      * Test in memory DS to store the contents with an increasing time
      */
-    class TimeLapsedBlobStore implements GarbageCollectableBlobStore, SharedDataStore {
+    class TimeLapsedDataStore implements DataStore, MultiDataStoreAware, SharedDataStore, DataRecordAccessProvider {
+        public static final int MIN_RECORD_LENGTH = 50;
+
         private final long startTime;
         Map<String, DataRecord> store;
         Map<String, DataRecord> metadata;
+        Map<String, String> uploadTokens;
 
-        public TimeLapsedBlobStore() {
-            this(System.currentTimeMillis());
-        }
-
-        public TimeLapsedBlobStore(long startTime) {
+        public TimeLapsedDataStore() {
             this.startTime = clock.getTime();
             store = Maps.newHashMap();
             metadata = Maps.newHashMap();
+            uploadTokens = Maps.newHashMap();
         }
 
-        @Override public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
-            return store.keySet().iterator();
-        }
-
-        @Override public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
-            return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
-        }
-
-        @Override public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
-            int count = 0;
-
-            for(String id : chunkIds) {
-                log.info("maxLastModifiedTime {}", maxLastModifiedTime);
-                log.info("store.get(id).getLastModified() {}", store.get(id).getLastModified());
-                if (maxLastModifiedTime <= 0 || store.get(id).getLastModified() < maxLastModifiedTime) {
-                    store.remove(id);
-                    count++;
-                }
-            }
-            return count;
-        }
-
-        @Override public Iterator<String> resolveChunks(String blobId) throws IOException {
-            return Iterators.singletonIterator(blobId);
-        }
-
-        @Override public String writeBlob(InputStream in) throws IOException {
-            return writeBlob(in, new BlobOptions());
-        }
-
-        @Override public String writeBlob(InputStream in, BlobOptions options) throws IOException {
-            try {
-                byte[] data = IOUtils.toByteArray(in);
-                String id = getIdForInputStream(new ByteArrayInputStream(data));
-                id += "#" + data.length;
-                TestRecord rec = new TestRecord(id, data, clock.getTime());
-                store.put(id, rec);
-                log.info("Blob created {} with timestamp {}", rec.id, rec.lastModified);
-                return id;
-            } catch (Exception e) {
-                throw new IOException(e);
-            }
-        }
-
-        private String getIdForInputStream(final InputStream in)
-            throws Exception {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            OutputStream output = new DigestOutputStream(new NullOutputStream(), digest);
-            try {
-                IOUtils.copyLarge(in, output);
-            } finally {
-                IOUtils.closeQuietly(output);
-                IOUtils.closeQuietly(in);
-            }
-            return encodeHexString(digest.digest());
-        }
-
-        @Override public long getBlobLength(String blobId) throws IOException {
-            return ((TestRecord) store.get(blobId)).data.length;
-        }
-
-        @Override public InputStream getInputStream(String blobId) throws IOException {
-            try {
-                return store.get(blobId).getStream();
-            } catch (DataStoreException e) {
-                e.printStackTrace();
+        @Override public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
+            if (store.containsKey(identifier.toString())) {
+                return getRecord(identifier);
             }
             return null;
         }
 
-        @Nullable @Override public String getBlobId(@NotNull String reference) {
-            return reference;
+        @Override public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
+            return store.get(identifier.toString());
         }
 
-        @Nullable @Override public String getReference(@NotNull String blobId) {
-            return blobId;
+        @Override public DataRecord getRecordFromReference(String reference) throws DataStoreException {
+            return getRecord(new DataIdentifier(reference));
         }
+
+        @Override public DataRecord addRecord(InputStream stream) throws DataStoreException {
+            try {
+                byte[] data = IOUtils.toByteArray(stream);
+                String id = getIdForInputStream(new ByteArrayInputStream(data));
+                TestRecord rec = new TestRecord(id, data, clock.getTime());
+                store.put(id, rec);
+                log.info("Blob created {} with timestamp {}", rec.id, rec.lastModified);
+                return rec;
+            } catch (Exception e) {
+                throw new DataStoreException(e);
+            }
+
+        }
+
+        @Override public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
+            return  Iterators.transform(store.keySet().iterator(), input -> new DataIdentifier(input));
+        }
+
+        @Override public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
+            store.remove(identifier.toString());
+        }
+
+        /***************************************** SharedDataStore ***************************************/
 
         @Override public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
             try {
@@ -729,8 +762,55 @@ public class BlobGCTest {
             return store.get(id.toString());
         }
 
-        @Override public Type getType() {
-            return Type.SHARED;
+        @Override public SharedDataStore.Type getType() {
+            return SharedDataStore.Type.SHARED;
+        }
+
+        /**************************** DataRecordAccessProvider *************************/
+
+        @Override public @Nullable URI getDownloadURI(@NotNull DataIdentifier identifier,
+            @NotNull DataRecordDownloadOptions downloadOptions) {
+            return null;
+        }
+
+        @Override
+        public @Nullable DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
+            throws IllegalArgumentException, DataRecordUploadException {
+            String upToken = UUID.randomUUID().toString();
+            Random rand = new Random();
+            InputStream stream = randomStream(rand.nextInt(1000), 100);
+            byte[] data = new byte[0];
+            try {
+                data = IOUtils.toByteArray(stream);
+            } catch (IOException e) {
+                throw new DataRecordUploadException(e);
+            }
+            TestRecord rec = new TestRecord(upToken, data, clock.getTime());
+            store.put(upToken, rec);
+
+            DataRecordUpload uploadRec = new DataRecordUpload() {
+                @Override public @NotNull String getUploadToken() {
+                    return upToken;
+                }
+
+                @Override public long getMinPartSize() {
+                    return maxUploadSizeInBytes;
+                }
+
+                @Override public long getMaxPartSize() {
+                    return maxUploadSizeInBytes;
+                }
+
+                @Override public @NotNull Collection<URI> getUploadURIs() {
+                    return Collections.EMPTY_LIST;
+                }
+            };
+            return uploadRec;
+        }
+
+        @Override public @NotNull DataRecord completeDataRecordUpload(@NotNull String uploadToken)
+            throws IllegalArgumentException, DataRecordUploadException, DataStoreException {
+            return store.get(uploadToken);
         }
 
         class TestRecord implements DataRecord {
@@ -765,33 +845,38 @@ public class BlobGCTest {
             }
         }
 
-        /** No-op **/
-        @Override public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
-            throw new UnsupportedOperationException("readBlob not supported");
+        private String getIdForInputStream(final InputStream in)
+            throws Exception {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            OutputStream output = new DigestOutputStream(new NullOutputStream(), digest);
+            try {
+                IOUtils.copyLarge(in, output);
+            } finally {
+                IOUtils.closeQuietly(output);
+                IOUtils.closeQuietly(in);
+            }
+            return encodeHexString(digest.digest());
         }
 
-        @Override public void setBlockSize(int x) {
+        /*************************************** No Op ***********************/
+        @Override public void init(String homeDir) throws RepositoryException {
         }
 
-        @Override public String writeBlob(String tempFileName) throws IOException {
-            throw new UnsupportedOperationException("getBlockSizeMin not supported");
+        @Override public void updateModifiedDateOnAccess(long before) {
         }
 
-        @Override public int sweep() throws IOException {
-            throw new UnsupportedOperationException("sweep not supported");
+        @Override public int deleteAllOlderThan(long min) throws DataStoreException {
+            return 0;
         }
 
-        @Override public void startMark() throws IOException {
+        @Override public int getMinRecordLength() {
+            return MIN_RECORD_LENGTH;
+        }
+
+        @Override public void close() throws DataStoreException {
         }
 
         @Override public void clearInUse() {
-        }
-
-        @Override public void clearCache() {
-        }
-
-        @Override public long getBlockSizeMin() {
-            throw new UnsupportedOperationException("getBlockSizeMin not supported");
         }
     }
 }
