@@ -67,7 +67,7 @@ public class FilterIterators {
         if (count > maxReadEntries) {
             String message = "The query read or traversed more than " + 
                     maxReadEntries + " nodes.";
-            UnsupportedOperationException e = new UnsupportedOperationException(
+            RuntimeNodeTraversalException e = new RuntimeNodeTraversalException(
                     message + 
                     " To avoid affecting other tasks, processing was stopped.");
             LOG.warn(message, e);
