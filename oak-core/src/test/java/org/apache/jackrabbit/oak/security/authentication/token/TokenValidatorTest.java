@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
 
@@ -513,6 +514,16 @@ public class TokenValidatorTest extends AbstractTokenTest {
         } finally {
             root.refresh();
         }
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testIllegalValidatorSequence() throws Exception {
+        Tree tokenTree = getTokenTree(createTokenInfo(tokenProvider, userId));
+        Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+
+        // illegal sequence of adding nodes and the changing -> must be spotted by the validator
+        Validator v = createValidator(rootTree, rootTree, tokenTree.getParent().getPath(), true);
+        v.childNodeChanged(tokenTree.getName(), mock(NodeState.class), mock(NodeState.class));
     }
 
     @NotNull

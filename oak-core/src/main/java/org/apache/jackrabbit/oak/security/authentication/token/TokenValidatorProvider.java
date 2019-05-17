@@ -39,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 class TokenValidatorProvider extends ValidatorProvider implements TokenConstants {
 
@@ -64,6 +64,12 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         return new CommitFailedException(CommitFailedException.CONSTRAINT, code, message);
     }
 
+    @NotNull
+    private static Tree verifyNotNull(@Nullable Tree tree) {
+        checkState(tree != null);
+        return tree;
+    }
+
     private final class TokenValidator extends DefaultValidator implements TokenConstants {
 
         private final Tree parentBefore;
@@ -74,8 +80,14 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             this(treeProvider.createReadOnlyTree(parentBefore), treeProvider.createReadOnlyTree(parentAfter), commitInfo);
         }
 
-        private TokenValidator(@Nullable Tree parentBefore, @NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
+        private TokenValidator(@NotNull Tree parentBefore, @NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
             this.parentBefore = parentBefore;
+            this.parentAfter = parentAfter;
+            this.commitInfo = commitInfo;
+        }
+
+        private TokenValidator(@NotNull Tree parentAfter, @NotNull CommitInfo commitInfo) {
+            this.parentBefore = null;
             this.parentAfter = parentAfter;
             this.commitInfo = commitInfo;
         }
@@ -116,8 +128,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
 
         @Override
         public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-            Tree tree = checkNotNull(parentAfter.getChild(name));
-
+            Tree tree = parentAfter.getChild(name);
             if (isTokenTree(tree)) {
                 validateTokenTree(tree);
                 // no further validation required
@@ -125,17 +136,17 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             } else if (isTokensParent(tree)) {
                 validateTokensParent(tree);
             }
-            return new VisibleValidator(new TokenValidator(null, tree, commitInfo), true, true);
+            return new VisibleValidator(new TokenValidator(tree, commitInfo), true, true);
         }
 
         @Override
         public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-            Tree beforeTree = (parentBefore == null) ? null : parentBefore.getChild(name);
+            Tree beforeTree = verifyNotNull(parentBefore).getChild(name);
             Tree afterTree = parentAfter.getChild(name);
 
             if (isTokenTree(beforeTree) || isTokenTree(afterTree)) {
                 validateTokenTree(afterTree);
-            } else if (isTokensParent(beforeTree) || isTokensParent(afterTree)) {
+            } else if (isTokensParent(name)) {
                 validateTokensParent(afterTree);
             }
 
@@ -143,6 +154,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
         }
 
         //--------------------------------------------------------< private >---
+
         private void verifyCommitInfo() throws CommitFailedException {
             if (!CommitMarker.isValidCommitInfo(commitInfo)) {
                 throw constraintViolation(63, "Attempt to manually create or change a token node or it's parent.");
@@ -156,8 +168,8 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             }
         }
 
-        private boolean isTokenTree(@Nullable Tree tree) {
-            return tree != null && TOKEN_NT_NAME.equals(TreeUtil.getPrimaryTypeName(tree));
+        private boolean isTokenTree(@NotNull Tree tree) {
+            return TOKEN_NT_NAME.equals(TreeUtil.getPrimaryTypeName(tree));
         }
 
         private void validateTokenTree(@NotNull Tree tokenTree) throws CommitFailedException {
@@ -182,8 +194,12 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
             }
         }
 
-        private boolean isTokensParent(@Nullable Tree tree) {
-            return tree != null && TOKENS_NODE_NAME.equals(tree.getName());
+        private boolean isTokensParent(@NotNull Tree tree) {
+            return isTokensParent(tree.getName());
+        }
+
+        private boolean isTokensParent(@NotNull String name) {
+            return TOKENS_NODE_NAME.equals(name);
         }
 
         private void validateTokensParent(@NotNull Tree tokensParent) throws CommitFailedException {
@@ -197,7 +213,7 @@ class TokenValidatorProvider extends ValidatorProvider implements TokenConstants
 
             String nt = TreeUtil.getPrimaryTypeName(tokensParent);
             if (!TOKENS_NT_NAME.equals(nt)) {
-                log.debug("Unexpected node type of .tokens node " + nt + '.');
+                log.debug("Unexpected node type of .tokens node {}.", nt);
             }
         }
     }
