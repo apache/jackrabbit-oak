@@ -83,6 +83,8 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
      */
     private final StatisticsProvider statisticsProvider;
 
+    private final QueryValidator queryValidator = new QueryValidator();
+
     public QueryEngineSettings() {
         statisticsProvider = StatisticsProvider.NOOP;
     }
@@ -154,6 +156,20 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public StatisticsProvider getStatisticsProvider() {
         return statisticsProvider;
+    }
+
+    @Override
+    public void setQueryValidatorPattern(String key, String pattern, String comment, boolean failQuery) {
+        queryValidator.setPattern(key, pattern, comment, failQuery);
+    }
+
+    @Override
+    public String getQueryValidatorJson() {
+        return queryValidator.getJson();
+    }
+
+    public QueryValidator getQueryValidator() {
+        return queryValidator;
     }
 
     @Override

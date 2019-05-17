@@ -157,6 +157,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
         NodeTypeInfoProvider nodeTypes = context.getNodeTypeInfoProvider();
         QueryEngineSettings settings = context.getSettings();
+        settings.getQueryValidator().checkStatement(statement);
+
         QueryExecutionStats stats = settings.getQueryStatsReporter().getQueryExecution(statement, language);
 
         SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings, stats);
