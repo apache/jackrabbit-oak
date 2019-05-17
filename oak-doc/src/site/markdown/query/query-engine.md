@@ -48,6 +48,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
     * [Index Storage and Manual Inspection](#Index_Storage_and_Manual_Inspection)
     * [SQL-2 Optimisation](#SQL-2_Optimisation)
     * [Additional XPath and SQL-2 Features](#Additional_XPath_and_SQL-2_Features)
+    * [Temporarily Blocking Queries](#Temporarily_Blocking_Queries)
 
 
 ## Overview
@@ -660,5 +661,35 @@ Union for XPath and SQL-2 queries. Examples:
 
 XPath functions "fn:string-length" and "fn:local-name".
 
+### Temporarily Blocking Queries
 
+    @since 1.14.0
+    
+Application code can run bad queries that read a lot of data or consume a lot of memory.
+The best solution is to fix the application, however this can take some time.
+Queries can be blocked at runtime using validator patterns, without having to immediately change the application.
+Validator patterns can be set and inspected using the JMX `QueryEngineSettingsMBean` as follows:
 
+* `setQueryValidatorPattern`: Adds or removes a query pattern.
+* `queryValidatorJson`: Gets the existing patterns, including how often and when last execution occurred.
+
+When adding a new pattern, it is recommended to first set `failQuery` to `false` to verify
+the pattern is correct (only a warning is logged when running matching queries).
+Once the pattern is correct, set `failQuery` to `true`.
+Validator patterns can be stored in the repository under `/oak:index/queryValidator/<patternKey>`
+(nodetype e.g. `nt:unstructured`) as follows:
+
+* `pattern`: The regular expression of the query. Alternatively, a multi-valued string that contains a list of exact parts of the query.
+* `failQuery`: Whether to fail the query (true) or just log a warning (false).
+* `comment`: The pattern comment.
+
+If the pattern is set using the multi-valued string, then the regular expression pattern is constructed from this array of texts.
+In this case, no escaping is needed. Example patterns are:
+
+* `[ "SELECT * FROM", "ORDER BY [name]" ]`: All queries that start and end with the given texts.
+* `"/jcr:root/var/acme/.*"`: All queries that match this regular expression.
+ 
+Patterns are evaluated in alphabetical order.
+They are only read once, at startup.
+
+See also [OAK-8294](https://issues.apache.org/jira/browse/OAK-8294)
