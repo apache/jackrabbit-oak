@@ -757,6 +757,8 @@ public class Oak {
         regs.add(registerMBean(whiteboard, QueryStatsMBean.class,
                 queryEngineSettings.getQueryStats(), QueryStatsMBean.TYPE, "Oak Query Statistics (Extended)"));
 
+        queryEngineSettings.unwrap().getQueryValidator().init(store);
+
         // add index hooks later to prevent the OakInitializer to do excessive indexing
         commitHooks.add(new EditorHook(new IndexUpdateProvider(indexEditors, failOnMissingIndexProvider)));
 
@@ -929,6 +931,16 @@ public class Oak {
         @Override
         public void setFastQuerySize(boolean fastQuerySize) {
             settings.setFastQuerySize(fastQuerySize);
+        }
+
+        @Override
+        public void setQueryValidatorPattern(String key, String pattern, String comment, boolean failQuery) {
+            settings.getQueryValidator().setPattern(key, pattern, comment, failQuery);
+        }
+
+        @Override
+        public String getQueryValidatorJson() {
+            return settings.getQueryValidator().getJson();
         }
 
         public QueryStatsMBean getQueryStats() {
