@@ -376,7 +376,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
         if (defn.hasProperty(ENTRY_COUNT_PROPERTY_NAME)) {
             this.entryCountDefined = true;
-            this.entryCount = defn.getProperty(ENTRY_COUNT_PROPERTY_NAME).getValue(Type.LONG);
+            this.entryCount = getOptionalValue(defn, ENTRY_COUNT_PROPERTY_NAME, DEFAULT_ENTRY_COUNT);
         } else {
             this.entryCountDefined = false;
             this.entryCount = DEFAULT_ENTRY_COUNT;
