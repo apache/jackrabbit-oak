@@ -232,7 +232,7 @@ and then restart the application:
 
 #### Quoting
 
-[Special characters in queries need to be escaped.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping)
+[Special characters in queries need to be escaped.](https://jackrabbit.apache.org/archive/wiki/JCR/EncodingAndEscaping_115513396.html)
 
 However, compared to Jackrabbit 2.x,
 the query parser is now generally more strict about invalid syntax.
@@ -312,7 +312,7 @@ The full-text syntax supported by Jackrabbit Oak is a superset of the JCR specif
 
 By default (that is, using a Lucene index with `compatVersion` 2), Jackrabbit Oak uses the
 [Apache Lucene grammar for fulltext search](https://lucene.apache.org/core/4_7_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html).
-[See also how to escape queries.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping).
+[See also how to escape queries.](https://jackrabbit.apache.org/archive/wiki/JCR/EncodingAndEscaping_115513396.html).
 However, the words `AND` and `NOT` are treated as search terms,  and only `OR` is supported as a keyword. Instead of `NOT`, use `-`.
 Instead of `AND`, just write the terms next to each other (instead of `hello AND world`, just write `hello world`).
 

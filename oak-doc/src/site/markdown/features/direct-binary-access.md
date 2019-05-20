@@ -31,7 +31,7 @@ The following diagram shows the 3 involved parties:  A _remote client_, the Oak-
 
 ![](direct-binary-access-block-diagram.png)
 
-Further background of the design of this feature can be found [on the wiki](https://wiki.apache.org/jackrabbit/Direct%20Binary%20Access).
+Further background of the design of this feature can be found [on the wiki](https://jackrabbit.apache.org/archive/wiki/JCR/Direct-Binary-Access_115513390.html).
  
 ## Requirements
 

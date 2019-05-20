@@ -23,7 +23,7 @@ the codebase. The [README files](https://github.com/apache/jackrabbit-oak/blob/t
 this documentation, and the [Oak mailing list](http://oak.markmail.org/) archives are good places
 to start learning about Oak.
 
-There is also the [Jackrabbit 3 wiki page](http://wiki.apache.org/jackrabbit/Jackrabbit%203), which
+There is also the [Jackrabbit 3 wiki page](https://jackrabbit.apache.org/archive/wiki/JCR/Jackrabbit-3_115513423.html), which
 is mostly outdated though and should only be consulted for historical research.
 
 To get started developing Oak, checkout the sources from [svn](https://svn.apache.org/repos/asf/jackrabbit/oak/trunk), 
