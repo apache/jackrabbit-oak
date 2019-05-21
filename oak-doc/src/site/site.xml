@@ -35,7 +35,7 @@ under the License.
       <item href="architecture/nodestate.html" name="The Node State Model" />
     </menu>
     <menu name="Main APIs">
-      <item href="http://www.day.com/specs/jcr/2.0/index.html" name="JCR API" />
+      <item href="https://docs.adobe.com/docs/en/spec/jcr/2.0/index.html" name="JCR API" />
       <item href="https://jackrabbit.apache.org/jcr/jcr-api.html" name="Jackrabbit API" />
       <item href="oak_api/overview.html" name="Oak API" />
     </menu>

@@ -38,8 +38,10 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.QueryOptions;
+import org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
@@ -56,6 +58,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.jackrabbit.oak.stats.TimerStats;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -75,6 +79,11 @@ public class SelectorImpl extends SourceImpl {
     // The sample rate. Must be a power of 2.
     private static final Long TIMER_SAMPLE_RATE = Long.getLong("oak.query.timerSampleRate", 0x100);
     
+    private static final long SLOW_QUERY_HISTOGRAM = 1;
+    private static final long TOTAL_QUERY_HISTOGRAM = 0;
+    private static final String SLOW_QUERY_PERCENTILE_METRICS_NAME = "SLOW_QUERY_PERCENTILE_METRICS";
+    private static final String SLOW_QUERY_COUNT_NAME = "SLOW_QUERY_COUNT";
+
     private static long timerSampleCounter;
     
     // TODO possibly support using multiple indexes (using index intersection / index merge)
@@ -170,6 +179,8 @@ public class SelectorImpl extends SourceImpl {
     private TimerStats timerDuration;
 
     private CachedTree cachedTree;
+
+    private boolean updateTotalQueryHistogram = true;
 
     public SelectorImpl(NodeTypeInfo nodeTypeInfo, String selectorName) {
         this.nodeTypeInfo = checkNotNull(nodeTypeInfo);
@@ -503,8 +514,15 @@ public class SelectorImpl extends SourceImpl {
     private boolean nextInternal() {
         while (cursor != null && cursor.hasNext()) {
             scanCount++;
-            query.getQueryExecutionStats().scan(1, scanCount, query.getSettings());
-            currentRow = cursor.next();
+            query.getQueryExecutionStats().scan(1, scanCount);
+            try {
+                totalQueryStats(query.getSettings());
+                currentRow = cursor.next();
+            } catch (RuntimeNodeTraversalException e) {
+                addSlowQueryStats(query.getSettings());
+                LOG.warn(e.getMessage() + " for query " + query.getStatement());
+                throw e;
+            }
             if (isParent) {
                 // we must not check whether the _parent_ is readable
                 // for joins of type
@@ -539,6 +557,21 @@ public class SelectorImpl extends SourceImpl {
         cursor = null;
         currentRow = null;
         return false;
+    }
+
+    private void totalQueryStats(QueryEngineSettings queryEngineSettings) {
+        if (updateTotalQueryHistogram) {
+            updateTotalQueryHistogram = false;
+            HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
+            histogramStats.update(TOTAL_QUERY_HISTOGRAM);
+        }
+    }
+
+    private void addSlowQueryStats(QueryEngineSettings queryEngineSettings) {
+        HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
+        histogramStats.update(SLOW_QUERY_HISTOGRAM);
+        CounterStats slowQueryCounter = queryEngineSettings.getStatisticsProvider().getCounterStats(SLOW_QUERY_COUNT_NAME, StatsOptions.METRICS_ONLY);
+        slowQueryCounter.inc();
     }
 
     private boolean evaluateCurrentRow() {

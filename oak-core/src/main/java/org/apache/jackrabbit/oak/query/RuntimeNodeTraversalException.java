@@ -14,9 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.jackrabbit.oak.query;
 
-@Version("4.8.0")
-package org.apache.jackrabbit.oak.api.jmx;
+/**
+ * The exception thrown when traversing too many entries in the result.
+ */
+public class RuntimeNodeTraversalException extends UnsupportedOperationException {
 
-import org.osgi.annotation.versioning.Version;
-
+    public RuntimeNodeTraversalException(String message) {
+        super(message);
+    }
+}

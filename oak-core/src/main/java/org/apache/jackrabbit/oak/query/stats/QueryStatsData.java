@@ -17,10 +17,6 @@
 package org.apache.jackrabbit.oak.query.stats;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.stats.CounterStats;
-import org.apache.jackrabbit.oak.stats.HistogramStats;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 
 public class QueryStatsData {
     
@@ -47,8 +43,6 @@ public class QueryStatsData {
     private long readNanos;
     private long maxTimeNanos;
     private boolean captureStackTraces;
-    private boolean isSlowQuery = false;
-    private boolean updateTotalQueryHistogram = true;
 
     public QueryStatsData(String query, String language) {
         this.query = query;
@@ -183,22 +177,9 @@ public class QueryStatsData {
             maxTimeNanos = Math.max(maxTimeNanos, time);
         }
 
-        public void scan(long count, long max, QueryEngineSettings queryEngineSettings) {
+        public void scan(long count, long max) {
             totalRowsScanned += count;
             maxRowsScanned = Math.max(maxRowsScanned, max);
-            long maxScannedLimit = Math.min(SLOW_QUERY_LIMIT_SCANNED, queryEngineSettings.getLimitReads());
-            if (updateTotalQueryHistogram) {
-                updateTotalQueryHistogram = false;
-                HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
-                histogramStats.update(TOTAL_QUERY_HISTOGRAM);
-            }
-            if (totalRowsScanned >= maxScannedLimit && !isSlowQuery) {
-                isSlowQuery = true;
-                HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
-                histogramStats.update(SLOW_QUERY_HISTOGRAM);
-                CounterStats slowQueryCounter = queryEngineSettings.getStatisticsProvider().getCounterStats(SLOW_QUERY_COUNT_NAME, StatsOptions.METRICS_ONLY);
-                slowQueryCounter.inc();
-            }
         }
     }
 

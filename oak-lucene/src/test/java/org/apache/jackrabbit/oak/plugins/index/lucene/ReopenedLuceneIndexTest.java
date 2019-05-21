@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.RuntimeNodeTraversalException;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -135,7 +136,7 @@ public class ReopenedLuceneIndexTest {
 
     @Test
     public void resultSizeAboveLimitCompatV1() throws Exception {
-        thrown.expect(UnsupportedOperationException.class);
+        thrown.expect(RuntimeNodeTraversalException.class);
         thrown.expectMessage(StringContains.containsString("The query read or traversed more than " + READ_LIMIT + " nodes. To avoid affecting other tasks, processing was stopped."));
 
         // Add more data such that the query genuinely supasses query limit
@@ -146,7 +147,7 @@ public class ReopenedLuceneIndexTest {
 
     @Test
     public void resultSizeAboveLimitCompatV2() throws Exception {
-        thrown.expect(UnsupportedOperationException.class);
+        thrown.expect(RuntimeNodeTraversalException.class);
         thrown.expectMessage(StringContains.containsString("The query read or traversed more than " + READ_LIMIT + " nodes. To avoid affecting other tasks, processing was stopped."));
 
         // Add more data such that the query genuinely supasses query limit

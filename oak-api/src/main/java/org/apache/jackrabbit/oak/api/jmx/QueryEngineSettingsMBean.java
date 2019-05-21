@@ -86,4 +86,32 @@ public interface QueryEngineSettingsMBean {
 
     void setFastQuerySize(boolean fastQuerySize);
 
+    /**
+     * Set or remove a query validator pattern.
+     *
+     * @param key the key
+     * @param pattern the regular expression pattern (empty to remove the
+     *            pattern)
+     * @param comment a comment
+     * @param failQuery whether matching queries should fail (true) or just log
+     *            a warning (false)
+     */
+    @Description("Set or remove a query validator pattern.")
+    void setQueryValidatorPattern(
+            @Description("the key")
+            @Name("key")
+            String key,
+            @Description("the regular expression pattern (empty to remove the pattern)")
+            @Name("pattern")
+            String pattern,
+            @Description("a comment")
+            @Name("comment")
+            String comment,
+            @Description("whether matching queries should fail (true) or just log a warning (false)")
+            @Name("failQuery")
+            boolean failQuery);
+
+    @Description("Get the query validator data as a JSON string.")
+    String getQueryValidatorJson();
+
 }

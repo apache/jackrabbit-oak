@@ -48,6 +48,7 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
     * [Index Storage and Manual Inspection](#Index_Storage_and_Manual_Inspection)
     * [SQL-2 Optimisation](#SQL-2_Optimisation)
     * [Additional XPath and SQL-2 Features](#Additional_XPath_and_SQL-2_Features)
+    * [Temporarily Blocking Queries](#Temporarily_Blocking_Queries)
 
 
 ## Overview
@@ -231,7 +232,7 @@ and then restart the application:
 
 #### Quoting
 
-[Special characters in queries need to be escaped.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping)
+[Special characters in queries need to be escaped.](https://jackrabbit.apache.org/archive/wiki/JCR/EncodingAndEscaping_115513396.html)
 
 However, compared to Jackrabbit 2.x,
 the query parser is now generally more strict about invalid syntax.
@@ -311,7 +312,7 @@ The full-text syntax supported by Jackrabbit Oak is a superset of the JCR specif
 
 By default (that is, using a Lucene index with `compatVersion` 2), Jackrabbit Oak uses the
 [Apache Lucene grammar for fulltext search](https://lucene.apache.org/core/4_7_1/queryparser/org/apache/lucene/queryparser/classic/package-summary.html).
-[See also how to escape queries.](https://wiki.apache.org/jackrabbit/EncodingAndEscaping).
+[See also how to escape queries.](https://jackrabbit.apache.org/archive/wiki/JCR/EncodingAndEscaping_115513396.html).
 However, the words `AND` and `NOT` are treated as search terms,  and only `OR` is supported as a keyword. Instead of `NOT`, use `-`.
 Instead of `AND`, just write the terms next to each other (instead of `hello AND world`, just write `hello world`).
 
@@ -660,5 +661,35 @@ Union for XPath and SQL-2 queries. Examples:
 
 XPath functions "fn:string-length" and "fn:local-name".
 
+### Temporarily Blocking Queries
 
+    @since 1.14.0
+    
+Application code can run bad queries that read a lot of data or consume a lot of memory.
+The best solution is to fix the application, however this can take some time.
+Queries can be blocked at runtime using validator patterns, without having to immediately change the application.
+Validator patterns can be set and inspected using the JMX `QueryEngineSettingsMBean` as follows:
 
+* `setQueryValidatorPattern`: Adds or removes a query pattern.
+* `queryValidatorJson`: Gets the existing patterns, including how often and when last execution occurred.
+
+When adding a new pattern, it is recommended to first set `failQuery` to `false` to verify
+the pattern is correct (only a warning is logged when running matching queries).
+Once the pattern is correct, set `failQuery` to `true`.
+Validator patterns can be stored in the repository under `/oak:index/queryValidator/<patternKey>`
+(nodetype e.g. `nt:unstructured`) as follows:
+
+* `pattern`: The regular expression of the query. Alternatively, a multi-valued string that contains a list of exact parts of the query.
+* `failQuery`: Whether to fail the query (true) or just log a warning (false).
+* `comment`: The pattern comment.
+
+If the pattern is set using the multi-valued string, then the regular expression pattern is constructed from this array of texts.
+In this case, no escaping is needed. Example patterns are:
+
+* `[ "SELECT * FROM", "ORDER BY [name]" ]`: All queries that start and end with the given texts.
+* `"/jcr:root/var/acme/.*"`: All queries that match this regular expression.
+ 
+Patterns are evaluated in alphabetical order.
+They are only read once, at startup.
+
+See also [OAK-8294](https://issues.apache.org/jira/browse/OAK-8294)
