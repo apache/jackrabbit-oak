@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.binary;
 
-import static junit.framework.TestCase.assertNull;
-import static junit.framework.TestCase.assertTrue;
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.getBinary;
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.httpGet;
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.httpPut;
@@ -32,6 +30,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import java.net.HttpURLConnection;
 import java.net.URI;

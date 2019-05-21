@@ -25,7 +25,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import junit.framework.Assert;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 /**

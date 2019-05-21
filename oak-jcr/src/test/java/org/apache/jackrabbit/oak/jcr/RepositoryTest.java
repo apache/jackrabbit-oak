@@ -22,6 +22,7 @@ import static java.util.Arrays.asList;
 import static javax.jcr.ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW;
 import static javax.jcr.Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED;
 import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -29,7 +30,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-import static org.junit.matchers.JUnitMatchers.containsString;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

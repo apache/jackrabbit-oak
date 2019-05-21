@@ -35,7 +35,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 @SuppressWarnings("ALL")
 public class AnnotatedStandardMBeanTest {
