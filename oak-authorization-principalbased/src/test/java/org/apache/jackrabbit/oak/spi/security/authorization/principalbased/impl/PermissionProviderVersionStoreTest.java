@@ -41,11 +41,11 @@ import java.security.Principal;
 import java.util.Map;
 
 import static javax.jcr.Session.ACTION_READ;
-import static junit.framework.TestCase.assertNotNull;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSIONSTORAGE;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 

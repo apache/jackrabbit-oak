@@ -21,9 +21,9 @@ import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import junit.framework.Assert;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.Concurrent;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
