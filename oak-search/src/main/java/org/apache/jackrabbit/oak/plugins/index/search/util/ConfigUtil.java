@@ -36,69 +36,69 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class ConfigUtil {
 
-    private static final String ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE = "Multiple Values provided for property %s in Index Defintion . Single value was expected";
+    private static final String ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE = "Multiple values provided for property %s in index definition . Single value was expected";
 
-    public static boolean getOptionalValue(NodeState definition, String propName, boolean defaultVal){
-        try{
+    public static boolean getOptionalValue(NodeState definition, String propName, boolean defaultVal) {
+        try {
             PropertyState ps = definition.getProperty(propName);
             return ps == null ? defaultVal : ps.getValue(Type.BOOLEAN);
-        }catch(IllegalStateException e ){
+        } catch (IllegalStateException e) {
             throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, propName),e);
         }
     }
 
-    public static int getOptionalValue(NodeState definition, String propName, int defaultVal){
-        try{
+    public static int getOptionalValue(NodeState definition, String propName, int defaultVal) {
+        try {
             PropertyState ps = definition.getProperty(propName);
             return ps == null ? defaultVal : Ints.checkedCast(ps.getValue(Type.LONG));
-        }catch(IllegalStateException e ){
+        } catch (IllegalStateException e) {
             throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, propName),e);
         }
     }
 
-    public static String getOptionalValue(NodeState definition, String propName, String defaultVal){
-        try{
+    public static String getOptionalValue(NodeState definition, String propName, String defaultVal) {
+        try {
             PropertyState ps = definition.getProperty(propName);
             return ps == null ? defaultVal : ps.getValue(Type.STRING);
-        }catch(IllegalStateException e ){
+        } catch (IllegalStateException e) {
             throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, propName),e);
         }
     }
 
-    public static float getOptionalValue(NodeState definition, String propName, float defaultVal){
-        try{
+    public static float getOptionalValue(NodeState definition, String propName, float defaultVal) {
+        try {
             PropertyState ps = definition.getProperty(propName);
             return ps == null ? defaultVal : ps.getValue(Type.DOUBLE).floatValue();
-        }catch(IllegalStateException e ){
+        } catch (IllegalStateException e) {
             throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, propName),e);
         }
     }
 
-    public static double getOptionalValue(NodeState definition, String propName, double defaultVal){
-        try{
+    public static double getOptionalValue(NodeState definition, String propName, double defaultVal) {
+        try {
             PropertyState ps = definition.getProperty(propName);
             return ps == null ? defaultVal : ps.getValue(Type.DOUBLE);
-        }catch(IllegalStateException e ){
+        } catch (IllegalStateException e) {
             throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, propName),e);
         }
 
     }
 
-    public static long getOptionalValue(NodeState definition, String propName, long defaultVal){
-        try{
+    public static long getOptionalValue(NodeState definition, String propName, long defaultVal) {
+        try {
             PropertyState ps = definition.getProperty(propName);
             return ps == null ? defaultVal : ps.getValue(Type.LONG);
-        }catch(IllegalStateException e ){
+        } catch (IllegalStateException e) {
             throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, propName),e);
         }
 
     }
 
     public static String getPrimaryTypeName(NodeState nodeState) {
-        try{
+        try {
             PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
             return (ps == null) ? JcrConstants.NT_BASE : ps.getValue(Type.NAME);
-        }catch(IllegalStateException e){
+        } catch (IllegalStateException e) {
             throw new IllegalStateException(String.format(ILLEGAL_STATE_EXCEPTION_ERROR_MESSAGE, JcrConstants.JCR_PRIMARYTYPE),e);
         }
     }
@@ -113,7 +113,7 @@ public class ConfigUtil {
      * the jcr:content/@jcr:data property to get the binary content
      */
     @Nullable
-    public static Blob getBlob(NodeState state, String resourceName){
+    public static Blob getBlob(NodeState state, String resourceName) {
         NodeState contentNode = state.getChildNode(JcrConstants.JCR_CONTENT);
         checkArgument(contentNode.exists(), "Was expecting to find jcr:content node to read resource %s", resourceName);
         PropertyState property = contentNode.getProperty(JcrConstants.JCR_DATA);

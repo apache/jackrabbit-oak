@@ -286,7 +286,7 @@ public class IndexUpdate implements Editor, PathSource {
                     // We log an error message here and continue - this way the bad index defintion is ignored and doesn't block the async index update
 
                     log.error("Unable to get Index Editor for index at {} . Please correct the index definition " +
-                            "and reindex after correction. Additional Info : {}", indexPath, e.getMessage());
+                            "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
                     continue;
                 }
                 if (editor == null) {
