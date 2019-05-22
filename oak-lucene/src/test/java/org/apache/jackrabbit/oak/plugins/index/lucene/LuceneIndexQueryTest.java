@@ -18,12 +18,12 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static com.google.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
-import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

@@ -18,16 +18,16 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -305,7 +305,7 @@ public class RepositorySidegradeTest {
                     PropertyType.DOUBLE,
                     properties.getProperty("double").getType());
             assertEquals(
-                    Math.PI, properties.getProperty("double").getDouble());
+                    Math.PI, properties.getProperty("double").getDouble(), 0);
             assertEquals(
                     PropertyType.LONG,
                     properties.getProperty("long").getType());
