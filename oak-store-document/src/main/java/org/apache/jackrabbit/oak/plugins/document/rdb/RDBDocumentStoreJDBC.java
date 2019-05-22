@@ -478,7 +478,7 @@ public class RDBDocumentStoreJDBC {
                 byte[] bdata = rs.getBytes(field++);
                 result.add(new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, sdType,
                         sdMaxRevTime, data, bdata));
-                dataTotal += data.length();
+                dataTotal += data == null ? 0 : data.length();
                 bdataTotal += bdata == null ? 0 : bdata.length;
                 PERFLOG.end(pstart, 10, "queried: table={} -> id={}, modcount={}, modified={}, data={}, bdata={}", tmd.getName(), id,
                         modcount, modified, (data == null ? 0 : data.length()), (bdata == null ? 0 : bdata.length));
