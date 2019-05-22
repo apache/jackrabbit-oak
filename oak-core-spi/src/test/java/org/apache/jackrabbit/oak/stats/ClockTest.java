@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

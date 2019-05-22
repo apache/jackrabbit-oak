@@ -33,8 +33,8 @@ import java.util.Set;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertFalse;
-import static org.junit.matchers.JUnitMatchers.hasItem;
 
 
 public class OptimizedChildFetchTest extends BaseDocumentMKTest {
