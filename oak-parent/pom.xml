@@ -646,6 +646,11 @@
         <version>8.5.41</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.tomcat</groupId>
+        <artifactId>tomcat-juli</artifactId>
+        <version>8.5.41</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.jaas</artifactId>
         <version>1.0.2</version>
