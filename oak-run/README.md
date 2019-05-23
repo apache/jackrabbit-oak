@@ -18,7 +18,7 @@ The following runmodes are currently available:
     * garbage         : Identifies blob garbage on a DocumentMK repository
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
-    * recovery        : Run a _lastRev recovery on a MongoMK repository
+    * recovery        : Run a _lastRev recovery on a DocumentMK repository
     * resetclusterid  : Resets the cluster id
     * restore         : Restore a backup of an Oak repository.
     * revisions       : Revision GC on a DocumentMK
@@ -372,13 +372,15 @@ Recovery Mode
 =============
 
 The recovery mode can be used to check the consistency of `_lastRev` fields
-of a MongoMK repository. It can be invoked like this:
+of a DocumentMK repository. It can be invoked like this:
 
     $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun]
+    
+(or, for RDBMK instances, use "jdbc:...").
 
 The following recovery options (with default values) are currently supported:
 
-    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+    --clusterId         - DocumentMK clusterId (default: 0 -> automatic)
 
 The recovery tool will only perform the check and fix for the given clusterId.
 It is therefore recommended to explicitly specify a clusterId. The tool will
