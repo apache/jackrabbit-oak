@@ -374,17 +374,17 @@ Recovery Mode
 The recovery mode can be used to check the consistency of `_lastRev` fields
 of a DocumentMK repository. It can be invoked like this:
 
-    $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun]
+    $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun] --clusterId id
     
 (or, for RDBMK instances, use "jdbc:...").
 
-The following recovery options (with default values) are currently supported:
+The following recovery options are currently supported:
 
-    --clusterId         - DocumentMK clusterId (default: 0 -> automatic)
+    --clusterId         - DocumentMK clusterId (no default)
 
 The recovery tool will only perform the check and fix for the given clusterId.
-It is therefore recommended to explicitly specify a clusterId. The tool will
-fix the documents it identified, unless the `dryRun` keyword is specified.
+The tool will fix the documents it identified, unless the `dryRun` keyword is
+specified.
 
 Garbage
 =======
