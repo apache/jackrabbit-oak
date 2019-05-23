@@ -334,7 +334,7 @@ Like that:
 ~~~
 $ java -cp "oak-run-1.14.0.jar:db2-4.19.77.jar" org.apache.jackrabbit.oak.run.Main clusternodes jdbc:db2://localhost:50276/OAK --rdbjdbcuser user --rdbjdbcpasswd passwd --verbose
 
-Apache Jackrabbit Oak 1.14-SNAPSHOT
+Apache Jackrabbit Oak 1.14.0
 Id    State          Started LeaseEnd Left RecoveryBy      LastRootRev    OakVersion
  1 INACTIVE 20190125T110237Z        -    -          - r16884ad047c-0-1 1.12-SNAPSHOT
 ~~~
