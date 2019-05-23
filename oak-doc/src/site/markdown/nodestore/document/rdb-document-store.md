@@ -306,3 +306,42 @@ older than 1.8 to 1.8 or newer).
   create table DATASTORE_DATA (ID varchar(64) not null primary key, DATA blob(2097152))
 ~~~
 
+## <a name="oak-run"></a> Using oak-run
+
+The `oak-run` JAR file does not include the JDBC driver needed to access the
+database. Thus, a small amount of classpath surgery is needed.
+
+Assuming the following two JAR files are in the current directory:
+
+- oak-run-1.14.0.jar
+- db2-4.19.77.jar
+
+...the invocation would be:
+
+~~~
+$ java -cp "oak-run-1.14.0.jar:db2-4.19.77.jar" org.apache.jackrabbit.oak.run.Main
+~~~
+
+(where the path separator under Windows would be ";").
+
+In general, all commands applicable to a `MongoDocumentStore` should be available
+for `RDBDocumentStore` as well. Simply substitute the "mongdb:..." identifier
+by the JDBC "URL", and also specify DB credentials using `--rdbjdbcuser` and
+`--rdbjdbcpasswd`.
+
+Like that:
+
+~~~
+$ java -cp "oak-run-1.14.0.jar:db2-4.19.77.jar" org.apache.jackrabbit.oak.run.Main clusternodes jdbc:db2://localhost:50276/OAK --rdbjdbcuser user --rdbjdbcpasswd passwd --verbose
+
+Apache Jackrabbit Oak 1.14-SNAPSHOT
+Id    State          Started LeaseEnd Left RecoveryBy      LastRootRev    OakVersion
+ 1 INACTIVE 20190125T110237Z        -    -          - r16884ad047c-0-1 1.12-SNAPSHOT
+~~~
+
+Note that in Oak versions prior to June 2019, `oak-run` also does not contain
+the artefacts `tomcat-jdbc` and `tomcat-juli`, which thus need to be added to
+the classpath as well (see OAK-8341 for details).
+
+
+
