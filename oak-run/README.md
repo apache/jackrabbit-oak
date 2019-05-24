@@ -5,31 +5,31 @@ This jar contains everything you need for a simple Oak installation.
 
 The following runmodes are currently available:
 
-    * backup          : Backup an existing Oak repository.
+    * backup          : Backup an existing Oak repository
     * check           : Check the FileStore for inconsistencies
     * checkpoints     : Manage checkpoints
     * clusternodes    : Display DocumentMK cluster node information
-    * compact         : Segment compaction on a TarMK repository.
-    * console         : Start an interactive console.
+    * compact         : Segment compaction on a TarMK repository
+    * console         : Start an interactive console
     * datastorecacheupgrade : Upgrades the JR2 DataStore cache
     * datastorecheck  : Consistency checker for data store 
     * datastore       : Maintenance operations for the for data store 
-    * debug           : Print status information about an Oak repository.
-    * explore         : Starts a GUI browser based on java swing.
+    * debug           : Print status information about an Oak repository
+    * explore         : Starts a GUI browser based on java swing
+    * export          : Export repository content as json
     * garbage         : Identifies blob garbage on a DocumentMK repository
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
+    * iotrace         : Collect a trace of segment store read accesses 
     * recovery        : Run a _lastRev recovery on a DocumentMK repository
     * resetclusterid  : Resets the cluster id
-    * restore         : Restore a backup of an Oak repository.
+    * restore         : Restore a backup of an Oak repository
     * revisions       : Revision GC on a DocumentMK
-    * server          : Run the Oak Server.
+    * server          : Run the Oak Server
     * tarmkdiff       : Show changes between revisions on TarMk
     * tika            : Performs text extraction
     * unlockUpgrade   : Unlock a DocumentMK upgrade to a newer version
-    * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak.
-    * export          : Export repository content as json
-    * iotrace         : Collect a trace of segment store read accesses 
+    * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak
     
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
