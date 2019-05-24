@@ -833,7 +833,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private <T extends Document> T getIfCached(Collection<T> collection, String id, long modCount) {
         T doc = getIfCached(collection, id);
-        if (doc != null && doc.getModCount() == modCount) {
+        if (doc != null && doc.getModCount() != null && doc.getModCount() == modCount) {
             return doc;
         } else {
             return null;
