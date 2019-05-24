@@ -8,6 +8,7 @@ The following runmodes are currently available:
     * backup          : Backup an existing Oak repository.
     * check           : Check the FileStore for inconsistencies
     * checkpoints     : Manage checkpoints
+    * clusternodes    : Display DocumentMK cluster node information
     * compact         : Segment compaction on a TarMK repository.
     * console         : Start an interactive console.
     * datastorecacheupgrade : Upgrades the JR2 DataStore cache
@@ -366,6 +367,37 @@ Examples:
     $ java -jar oak-run-*.jar server http://localhost:4502 Oak-Mongo --db myOak --clusterIds c1,c2,c3
 
 See the documentation in the `oak-http` component for details about the available functionality.
+
+
+Cluster Nodes
+=============
+
+The clusternodes mode displays information about the status of the cluster nodes
+in a DocumentMK repository. It can be invoked like this:
+
+    $ java -jar oak-run-*.jar clusternodes [options] mongodb://host:port/database
+
+(or, for RDBMK instances, use "jdbc:...").
+
+The following clusternodes options (with default values) are currently supported:
+
+    --clusterId         - DocumentMK clusterId (no default)
+    --raw               - List raw entries in JSON format
+    --verbose           - Be more verbose
+
+Example output for `--verbose`:
+
+~~~
+Id    State          Started LeaseEnd Left RecoveryBy      LastRootRev    OakVersion
+ 1 INACTIVE 20190125T110237Z        -    -          - r16884ad047c-0-1 1.12-SNAPSHOT
+~~~
+
+Note that `RecoveryBy` will display the cluster node id of the node which
+currently recovers this node, or `!` when recovery is needed.
+
+`LeaseEnd` and `Left` will be displayed for active nodes (where `Left` is
+the remaining time for the lease update in seconds; when it gets negative,
+the system is in trouble).
 
 
 Recovery Mode
