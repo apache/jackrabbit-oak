@@ -62,6 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -84,6 +85,8 @@ public class RDBDocumentStoreJDBC {
     private final RDBDocumentSerializer ser;
     private final int queryHitsLimit, queryTimeLimit;
 
+    private static final Long INITIALMODCOUNT = Long.valueOf(1);
+    
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
         this.ser = ser;
@@ -343,7 +346,7 @@ public class RDBDocumentStoreJDBC {
             boolean batchIsEmpty = true;
             for (T document : sortDocuments(documents)) {
                 Long modcount = (Long) document.get(MODCOUNT);
-                if (modcount == 1) {
+                if (INITIALMODCOUNT.equals(modcount)) {
                     continue; // This is a new document. We'll deal with the inserts later.
                 }
 
@@ -414,7 +417,7 @@ public class RDBDocumentStoreJDBC {
         if (upsert) {
             List<T> toBeInserted = new ArrayList<T>(documents.size());
             for (T doc : documents) {
-                if ((Long) doc.get(MODCOUNT) == 1) {
+                if (INITIALMODCOUNT.equals(doc.get(MODCOUNT))) {
                     toBeInserted.add(doc);
                 }
             }
@@ -1111,7 +1114,7 @@ public class RDBDocumentStoreJDBC {
         Collections.sort(result, new Comparator<T>() {
             @Override
             public int compare(T o1, T o2) {
-                return o1.getId().compareTo(o2.getId());
+                return Strings.nullToEmpty(o1.getId()).compareTo(Strings.nullToEmpty(o2.getId()));
             }
         });
         return result;
