@@ -102,7 +102,7 @@ class Utils {
                     .accepts("rdbtableprefix", "RDB table prefix")
                     .withOptionalArg();
             clusterId = parser
-                    .accepts("clusterId", "MongoMK clusterId")
+                    .accepts("clusterId", "DocumentMK clusterId")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(0);
             disableBranchesSpec = parser.
                     accepts("disableBranches", "disable branches");
