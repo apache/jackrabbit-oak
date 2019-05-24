@@ -18,22 +18,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * A blob implementation.
  */
 public class BlobStoreBlob implements Blob {
-    
+    private static final Logger LOG = LoggerFactory.getLogger(BlobStoreBlob.class);
+
     private final BlobStore blobStore;
     private final String blobId;
-    
+
     public BlobStoreBlob(BlobStore blobStore, String blobId) {
         this.blobStore = blobStore;
         this.blobId = blobId;
@@ -45,8 +48,14 @@ public class BlobStoreBlob implements Blob {
         try {
             return blobStore.getInputStream(blobId);
         } catch (IOException e) {
-            throw new RuntimeException("Error occurred while obtaining " +
-                    "InputStream for blobId ["+ blobId +"]",e);
+            LOG.warn("Error occurred while obtaining " +
+                    "InputStream for blobId [" + blobId + "]", e);
+            return new InputStream() {
+                @Override
+                public int read() throws IOException {
+                    throw new IOException(e);
+                }
+            };
         }
     }
 
@@ -59,7 +68,8 @@ public class BlobStoreBlob implements Blob {
         }
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getReference() {
         return blobStore.getReference(blobId);
     }
@@ -83,7 +93,7 @@ public class BlobStoreBlob implements Blob {
     public String toString() {
         return blobId;
     }
-    
+
     @Override
     public int hashCode() {
         return blobId.hashCode();
@@ -93,7 +103,7 @@ public class BlobStoreBlob implements Blob {
     public boolean equals(Object other) {
         if (this == other) {
             return true;
-        } 
+        }
         if (other instanceof BlobStoreBlob) {
             BlobStoreBlob b = (BlobStoreBlob) other;
             // theoretically, the data could be the same  
