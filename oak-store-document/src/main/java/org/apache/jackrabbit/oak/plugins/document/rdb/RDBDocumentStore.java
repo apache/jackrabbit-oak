@@ -1155,8 +1155,7 @@ public class RDBDocumentStore implements DocumentStore {
         ResultSet rs = null;
         try {
             // if the result set metadata provides a table name, use that (the
-            // other one
-            // might be inaccurate due to case insensitivity issues
+            // other one might be inaccurate due to case insensitivity issues)
             String rmetTableName = Strings.nullToEmpty(rmet.getTableName(1)).trim();
             if (!rmetTableName.isEmpty()) {
                 tableName = rmetTableName;
@@ -1183,8 +1182,10 @@ public class RDBDocumentStore implements DocumentStore {
             return dumpIndexData(indices);
         } catch (SQLException ex) {
             // well it was best-effort
-            return String.format("/* exception while retrieving index information: %s, code %d, state %s */", ex.getMessage(),
+            String message = String.format("exception while retrieving index information: %s, code %d, state %s", ex.getMessage(),
                     ex.getErrorCode(), ex.getSQLState());
+            LOG.debug(message, ex);
+            return "/* " + message + "*/";
         } finally {
             closeResultSet(rs);
         }
