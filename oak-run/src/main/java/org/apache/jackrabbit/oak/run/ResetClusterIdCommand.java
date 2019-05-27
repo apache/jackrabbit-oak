@@ -59,13 +59,13 @@ class ResetClusterIdCommand implements Command {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder clusterConfigNode = builder.getChildNode(
                 ClusterRepositoryInfo.CLUSTER_CONFIG_NODE);
-        
+
         if (!clusterConfigNode.exists()) {
             // if it doesn't exist, then there is no way to delete
             System.out.println("clusterId was never set or already deleted.");
             return;
         }
-        
+
         if (!clusterConfigNode.hasProperty(ClusterRepositoryInfo.CLUSTER_ID_PROP)) {
             // the config node exists, but the clusterId not 
             // so again, no way to delete
@@ -80,7 +80,7 @@ class ResetClusterIdCommand implements Command {
 
             System.out.println("clusterId deleted successfully. (old id was " + oldClusterId + ")");
         } catch (CommitFailedException e) {
-            System.err.println("Failed to delete clusterId due to exception: "+e.getMessage());
+            System.err.println("Failed to delete clusterId due to exception: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -115,14 +115,12 @@ class ResetClusterIdCommand implements Command {
                 closer.register(fileStore);
                 store = SegmentNodeStoreBuilders.builder(fileStore).build();
             }
-            
+
             deleteClusterId(store);
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {
             closer.close();
         }
-    
     }
-    
 }
