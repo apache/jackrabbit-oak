@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
@@ -135,6 +136,7 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, refTracker, getSecurityProvider());
     }
 
+    @NotNull
     Tree createUserTree() {
         Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
         Tree userTree = folder.addChild("userTree");
@@ -143,6 +145,7 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return userTree;
     }
 
+    @NotNull
     Tree createSystemUserTree() {
         Tree folder = root.getTree(getUserConfiguration().getParameters().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH));
         Tree userTree = folder.addChild("systemUserTree");
@@ -151,6 +154,7 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return userTree;
     }
 
+    @NotNull
     Tree createGroupTree() throws Exception {
         String groupPath = getUserConfiguration().getParameters().getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
 
@@ -162,7 +166,8 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return groupTree;
     }
 
-    PropInfo createPropInfo(@NotNull String name, final String... values) {
+    @NotNull
+    PropInfo createPropInfo(@Nullable String name, final String... values) {
         List<TextValue> txtValues = Lists.newArrayList();
         for (final String v : values) {
             txtValues.add(new TextValue() {
@@ -185,6 +190,7 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return new PropInfo(name, PropertyType.STRING, txtValues);
     }
 
+    @NotNull
     PropertyDefinition mockPropertyDefinition(@NotNull String declaringNt, boolean mv) throws Exception {
         PropertyDefinition def = Mockito.mock(PropertyDefinition.class);
         when(def.isMultiple()).thenReturn(mv);
@@ -192,6 +198,7 @@ public abstract class UserImporterBaseTest extends AbstractSecurityTest implemen
         return def;
     }
 
+    @NotNull
     NodeInfo createNodeInfo(@NotNull String name, @NotNull String primaryTypeName) {
         return new NodeInfo(name, primaryTypeName, ImmutableList.<String>of(), null);
     }
