@@ -692,9 +692,6 @@ public class ClusterNodeInfo {
     public void performLeaseCheck() throws DocumentStoreException {
         if (leaseCheckMode == LeaseCheckMode.DISABLED) {
             // if leaseCheckDisabled is set we never do the check, so return fast
-
-            // the 'renewed' flag indicates if this instance *ever* renewed the lease after startup
-            // until that is not set, we cannot do the lease check (otherwise startup wouldn't work)
             return;
         }
         if (leaseCheckFailed) {
