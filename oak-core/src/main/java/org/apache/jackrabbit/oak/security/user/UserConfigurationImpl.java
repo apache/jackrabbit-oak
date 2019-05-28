@@ -265,6 +265,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     //-----------------------------------------------------------< internal >---
 
+    @NotNull
     private BlobAccessProvider getBlobAccessProvider() {
         BlobAccessProvider provider = blobAccessProvider;
         if (provider == null) {

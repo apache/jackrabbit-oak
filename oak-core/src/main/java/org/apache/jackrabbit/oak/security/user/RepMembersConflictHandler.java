@@ -153,7 +153,7 @@ class RepMembersConflictHandler implements ThreeWayConflictHandler {
 
     //----------------------------< internal >----------------------------------
 
-    private static void mergeChange(NodeBuilder parent, PropertyState ours, PropertyState theirs, Set<String> base) {
+    private static void mergeChange(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs, @NotNull Set<String> base) {
         PropertyBuilder<String> merged = PropertyBuilder.array(Type.WEAKREFERENCE);
         merged.setName(UserConstants.REP_MEMBERS);
 

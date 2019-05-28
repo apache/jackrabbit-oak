@@ -293,8 +293,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     @NotNull
-    private String getOakPath(@Nullable String relPath) throws RepositoryException {
-        if (relPath == null || relPath.isEmpty() || relPath.charAt(0) == '/') {
+    private String getOakPath(@NotNull String relPath) throws RepositoryException {
+        if (relPath.isEmpty() || relPath.charAt(0) == '/') {
             throw new RepositoryException("Relative path expected. Found " + relPath);
         }
         String oakPath = valueFactory.getNamePathMapper().getOakPath(relPath);
