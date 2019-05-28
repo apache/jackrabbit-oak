@@ -30,10 +30,10 @@ import org.jetbrains.annotations.Nullable;
  * A blob implementation.
  */
 public class BlobStoreBlob implements Blob {
-    
+
     private final BlobStore blobStore;
     private final String blobId;
-    
+
     public BlobStoreBlob(BlobStore blobStore, String blobId) {
         this.blobStore = blobStore;
         this.blobId = blobId;
@@ -46,7 +46,7 @@ public class BlobStoreBlob implements Blob {
             return blobStore.getInputStream(blobId);
         } catch (IOException e) {
             throw new RuntimeException("Error occurred while obtaining " +
-                    "InputStream for blobId ["+ blobId +"]",e);
+                    "InputStream for blobId [" + blobId + "]", e);
         }
     }
 
@@ -59,7 +59,8 @@ public class BlobStoreBlob implements Blob {
         }
     }
 
-    @Override @Nullable
+    @Override
+    @Nullable
     public String getReference() {
         return blobStore.getReference(blobId);
     }
@@ -83,7 +84,7 @@ public class BlobStoreBlob implements Blob {
     public String toString() {
         return blobId;
     }
-    
+
     @Override
     public int hashCode() {
         return blobId.hashCode();
@@ -93,7 +94,7 @@ public class BlobStoreBlob implements Blob {
     public boolean equals(Object other) {
         if (this == other) {
             return true;
-        } 
+        }
         if (other instanceof BlobStoreBlob) {
             BlobStoreBlob b = (BlobStoreBlob) other;
             // theoretically, the data could be the same  
