@@ -103,28 +103,10 @@ class UserAuthentication implements Authentication, UserConstants {
 
         boolean success = false;
         try {
-            UserManager userManager = config.getUserManager(root, NamePathMapper.DEFAULT);
-            Authorizable authorizable = userManager.getAuthorizable(loginId);
-            if (authorizable == null) {
-                // best effort prevent user enumeration timing attacks
-                try {
-                    String hash = PasswordUtil.buildPasswordHash("oak");
-                    PasswordUtil.isSame(hash, "oak");
-                } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
-                    // ignore
-                }
+            User user = getValidUser(config.getUserManager(root, NamePathMapper.DEFAULT), loginId);
+            if (user == null) {
                 return false;
             }
-
-            if (authorizable.isGroup()) {
-                throw new AccountNotFoundException("Not a user " + loginId);
-            }
-
-            User user = (User) authorizable;
-            if (user.isDisabled()) {
-                throw new AccountLockedException("User with ID " + loginId + " has been disabled: "+ user.getDisabledReason());
-            }
-
             if (credentials instanceof SimpleCredentials) {
                 SimpleCredentials creds = (SimpleCredentials) credentials;
                 Credentials userCreds = user.getCredentials();
@@ -133,12 +115,9 @@ class UserAuthentication implements Authentication, UserConstants {
                 }
                 checkSuccess(success, "UserId/Password mismatch.");
 
-                if (isPasswordExpired(user)) {
-                    // change the password if the credentials object has the
-                    // UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD attribute set
-                    if (!changePassword(user, creds)) {
-                        throw new CredentialExpiredException("User password has expired");
-                    }
+                // change the password if the credentials object has the UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD attribute set
+                if (isPasswordExpired(user) && !changePassword(user, creds)) {
+                    throw new CredentialExpiredException("User password has expired");
                 }
             } else if (credentials instanceof ImpersonationCredentials) {
                 ImpersonationCredentials ipCreds = (ImpersonationCredentials) credentials;
@@ -177,6 +156,29 @@ class UserAuthentication implements Authentication, UserConstants {
 
 
     //--------------------------------------------------------------------------
+    @Nullable
+    private static User getValidUser(@NotNull UserManager userManager, @NotNull String loginId) throws RepositoryException, AccountNotFoundException, AccountLockedException {
+        Authorizable authorizable = userManager.getAuthorizable(loginId);
+        if (authorizable == null) {
+            // best effort prevent user enumeration timing attacks
+            try {
+                PasswordUtil.isSame(PasswordUtil.buildPasswordHash("oak"), "oak");
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+                // ignore
+            }
+            return null;
+        }
+
+        if (authorizable.isGroup()) {
+            throw new AccountNotFoundException("Not a user " + loginId);
+        }
+        User user = (User) authorizable;
+        if (user.isDisabled()) {
+            throw new AccountLockedException("User with ID " + loginId + " has been disabled: "+ user.getDisabledReason());
+        }
+        return user;
+    }
+
     private static void checkSuccess(boolean success, String msg) throws LoginException {
         if (!success) {
             throw new FailedLoginException(msg);
