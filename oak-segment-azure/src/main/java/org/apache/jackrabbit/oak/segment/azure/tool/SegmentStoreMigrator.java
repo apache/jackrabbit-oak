@@ -67,6 +67,8 @@ public class SegmentStoreMigrator implements Closeable  {
 
     private final String targetName;
 
+    private final boolean appendMode;
+
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
 
     private SegmentStoreMigrator(Builder builder) {
@@ -74,6 +76,7 @@ public class SegmentStoreMigrator implements Closeable  {
         this.target = builder.target;
         this.sourceName = builder.sourceName;
         this.targetName = builder.targetName;
+        this.appendMode = builder.appendMode;
     }
 
     public void migrate() throws IOException, ExecutionException, InterruptedException {
@@ -98,6 +101,7 @@ public class SegmentStoreMigrator implements Closeable  {
         }
         Collections.reverse(journal);
         try (JournalFileWriter writer = target.getJournalFile().openJournalWriter()) {
+            writer.truncate();
             for (String line : journal) {
                 writer.writeLine(line);
             }
@@ -107,6 +111,9 @@ public class SegmentStoreMigrator implements Closeable  {
     private void migrateGCJournal() throws IOException {
         log.info("{}/gc.log -> {}", sourceName, targetName);
         GCJournalFile targetGCJournal = target.getGCJournalFile();
+        if (appendMode) {
+            targetGCJournal.truncate();
+        }
         for (String line : source.getGCJournalFile().readLines()) {
             targetGCJournal.writeLine(line);
         }
@@ -131,8 +138,13 @@ public class SegmentStoreMigrator implements Closeable  {
                 new FileStoreMonitorAdapter());
         SegmentArchiveManager targetManager = target.createArchiveManager(false, false, new IOMonitorAdapter(),
                 new FileStoreMonitorAdapter());
+        List<String> targetArchives = targetManager.listArchives();
         for (String archiveName : sourceManager.listArchives()) {
             log.info("{}/{} -> {}", sourceName, archiveName, targetName);
+            if (appendMode && targetArchives.contains(archiveName)) {
+                log.info("Already exists, skipping.");
+                continue;
+            }
             try (SegmentArchiveReader reader = sourceManager.forceOpen(archiveName)) {
                 SegmentArchiveWriter writer = targetManager.create(archiveName);
                 try {
@@ -221,6 +233,8 @@ public class SegmentStoreMigrator implements Closeable  {
 
         private String targetName;
 
+        private boolean appendMode;
+
         public Builder withSource(File dir) {
             this.source = new TarPersistence(dir);
             this.sourceName = storeDescription(SegmentStoreType.TAR, dir.getPath());
@@ -254,6 +268,11 @@ public class SegmentStoreMigrator implements Closeable  {
         public Builder withTarget(CloudBlobDirectory dir) throws URISyntaxException, StorageException {
             this.target = new AzurePersistence(dir);
             this.targetName = storeDescription(SegmentStoreType.AZURE, dir.getContainer().getName() + "/" + dir.getPrefix());
+            return this;
+        }
+
+        public Builder setAppendMode() {
+            this.appendMode = true;
             return this;
         }
 

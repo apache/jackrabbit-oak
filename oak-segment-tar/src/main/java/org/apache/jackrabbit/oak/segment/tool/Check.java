@@ -68,22 +68,24 @@ public class Check {
 
         private File path;
 
+        private boolean mmap;
+
         private File journal;
 
         private long debugInterval = Long.MAX_VALUE;
 
         private boolean checkBinaries;
-        
+
         private boolean checkHead;
-        
+
         private Set<String> checkpoints;
-        
+
         private Set<String> filterPaths;
 
         private boolean ioStatistics;
-        
+
         private PrintWriter outWriter;
-        
+
         private PrintWriter errWriter;
 
         private Builder() {
@@ -98,6 +100,20 @@ public class Check {
          */
         public Builder withPath(File path) {
             this.path = checkNotNull(path);
+            return this;
+        }
+
+        /**
+         * Whether to use memory mapped access or file access.
+         *
+         * @param mmap {@code true} for memory mapped access, {@code false} for
+         *             file access {@code null} to determine the access mode
+         *             from the system architecture: memory mapped on 64 bit
+         *             systems, file access on  32 bit systems.
+         * @return this builder.
+         */
+        public Builder withMmap(boolean mmap) {
+            this.mmap = mmap;
             return this;
         }
 
@@ -140,7 +156,7 @@ public class Check {
             this.checkBinaries = checkBinaries;
             return this;
         }
-        
+
         /**
          * Instruct the command to check head state.
          * This parameter is not required and defaults to {@code true}.
@@ -151,12 +167,12 @@ public class Check {
             this.checkHead = checkHead;
             return this;
         }
-        
+
         /**
          * Instruct the command to check specified checkpoints.
-         * This parameter is not required and defaults to "/checkpoints", 
+         * This parameter is not required and defaults to "/checkpoints",
          * i.e. will check all checkpoints when not explicitly overridden.
-         * 
+         *
          * @param checkpoints   checkpoints to be checked
          * @return this builder.
          */
@@ -164,11 +180,11 @@ public class Check {
             this.checkpoints = checkpoints;
             return this;
         }
-        
+
         /**
          * Content paths to be checked. This parameter is not required and
          * defaults to "/".
-         * 
+         *
          * @param filterPaths
          *            paths to be checked
          * @return this builder.
@@ -191,7 +207,7 @@ public class Check {
             this.ioStatistics = ioStatistics;
             return this;
         }
-        
+
         /**
          * The text output stream writer used to print normal output.
          * @param outWriter the output writer.
@@ -199,10 +215,10 @@ public class Check {
          */
         public Builder withOutWriter(PrintWriter outWriter) {
             this.outWriter = outWriter;
-            
+
             return this;
         }
-        
+
         /**
          * The text error stream writer used to print erroneous output.
          * @param errWriter the error writer.
@@ -210,7 +226,7 @@ public class Check {
          */
         public Builder withErrWriter(PrintWriter errWriter) {
             this.errWriter = errWriter;
-            
+
             return this;
         }
 
@@ -245,16 +261,18 @@ public class Check {
 
     private final File path;
 
+    private final boolean mmap;
+
     private final File journal;
 
     private final long debugInterval;
 
     private final boolean checkBinaries;
-    
+
     private final boolean checkHead;
 
     private final Set<String> requestedCheckpoints;
-    
+
     private final Set<String> filterPaths;
 
     private final boolean ioStatistics;
@@ -271,6 +289,7 @@ public class Check {
 
     private Check(Builder builder) {
         this.path = builder.path;
+        this.mmap = builder.mmap;
         this.debugInterval = builder.debugInterval;
         this.checkHead = builder.checkHead;
         this.checkBinaries = builder.checkBinaries;
@@ -293,6 +312,7 @@ public class Check {
         StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
 
         FileStoreBuilder builder = fileStoreBuilder(path)
+            .withMemoryMapping(mmap)
             .withCustomPersistence(new TarPersistence(this.path, this.journal));
 
         if (ioStatistics) {

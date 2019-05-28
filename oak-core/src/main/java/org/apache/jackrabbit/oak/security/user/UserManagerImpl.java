@@ -174,7 +174,7 @@ public class UserManagerImpl implements UserManager {
         User user = new UserImpl(userID, userTree, this);
         onCreate(user, password);
 
-        log.debug("User created: " + userID);
+        log.debug("User created: {}", userID);
         return user;
     }
 
@@ -189,7 +189,7 @@ public class UserManagerImpl implements UserManager {
 
         User user = new SystemUserImpl(userID, userTree, this);
 
-        log.debug("System user created: " + userID);
+        log.debug("System user created: {}", userID);
         return user;
     }
 
@@ -223,7 +223,7 @@ public class UserManagerImpl implements UserManager {
         Group group = new GroupImpl(groupID, groupTree, this);
         onCreate(group);
 
-        log.debug("Group created: " + groupID);
+        log.debug("Group created: {}", groupID);
         return group;
     }
 

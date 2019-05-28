@@ -229,7 +229,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         } else {
             Authorizable a = userManager.getAuthorizable(parent);
             if (a == null) {
-                log.debug("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent an Authorizable.");
+                log.debug("Cannot handle protected PropInfo {}. Node {} doesn't represent an Authorizable.", propInfo, parent);
                 return false;
             }
 
@@ -402,7 +402,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         } // else: parent node is not of type rep:Members or rep:MemberReferencesList
 
         if (auth == null || !auth.isGroup()) {
-            log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Group.");
+            log.debug("Cannot handle protected node {}. It doesn't represent a valid Group, nor does any of its parents.", protectedParent);
             return false;
         } else {
             currentMembership = getMembership(auth.getPath());
@@ -618,7 +618,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
             // handling non-existing members in case of best-effort
             if (!nonExisting.isEmpty()) {
-                log.debug("ImportBehavior.BESTEFFORT: Found " + nonExisting.size() + " entries of rep:members pointing to non-existing authorizables. Adding to rep:members.");
+                log.debug("ImportBehavior.BESTEFFORT: Found {} entries of rep:members pointing to non-existing authorizables. Adding to rep:members.", nonExisting.size());
                 Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();

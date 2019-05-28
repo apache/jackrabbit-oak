@@ -49,12 +49,16 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersT
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.CanReadNonExisting;
+import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.HasItemGetItemIsModifiedTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.PermissionEvaluationTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.PrinicipalBasedReadTest;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
@@ -126,7 +130,7 @@ public class BenchmarkRunner {
         OptionSpec<Integer> noIterations = parser.accepts("noIterations", "Change default 'passwordHashIterations' parameter.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
         OptionSpec<Long> expiration = parser.accepts("expiration", "Expiration time (e.g. principal cache.")
-                        .withOptionalArg().ofType(Long.class).defaultsTo(AbstractLoginTest.NO_CACHE);
+                .withOptionalArg().ofType(Long.class).defaultsTo(AbstractLoginTest.NO_CACHE);
         OptionSpec<Integer> numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
         OptionSpec<Integer> queryMaxCount = parser.accepts("queryMaxCount", "Max number of query results.")
@@ -136,11 +140,19 @@ public class BenchmarkRunner {
         OptionSpec<Integer> numberOfInitialAce = parser.accepts("numberOfInitialAce", "Number of ACE to create before running the test.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AceCreationTest.NUMBER_OF_INITIAL_ACE_DEFAULT);
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
-                        .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+                .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+        OptionSpec<Boolean> entriesForEachPrincipal = parser.accepts("entriesForEachPrincipal", "Create ACEs for each principal (vs rotating).")
+                .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
+        OptionSpec<String> compositionType = parser.accepts("compositionType", "Defines composition type for benchmarks with multiple authorization models.")
+                .withOptionalArg().ofType(String.class)
+                .defaultsTo(CompositeAuthorizationConfiguration.CompositionType.AND.name());
+        OptionSpec<Boolean> useAggregationFilter = parser.accepts("useAggregationFilter", "Run principal-based tests with 'AggregationFilter'")
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> batchSize = parser.accepts("batchSize", "Batch size before persisting operations.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AddMembersTest.DEFAULT_BATCH_SIZE);
         OptionSpec<String> importBehavior = parser.accepts("importBehavior", "Protected Item Import Behavior")
-                                .withOptionalArg().ofType(String.class).defaultsTo(ImportBehavior.NAME_BESTEFFORT);
+                .withOptionalArg().ofType(String.class).defaultsTo(ImportBehavior.NAME_BESTEFFORT);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> concurrency = parser.accepts("concurrency", "Number of test threads.")
@@ -158,7 +170,7 @@ public class BenchmarkRunner {
         OptionSpec<Integer> numberOfUsers = parser.accepts("numberOfUsers")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
         OptionSpec<Boolean> setScope = parser.accepts("setScope", "Whether to use include setScope in the user query.")
-                        .withOptionalArg().ofType(Boolean.class)
+                .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
         OptionSpec<Boolean> reverseOrder = parser.accepts("reverseOrder", "Invert order of configurations in composite setup.")
                 .withOptionalArg().ofType(Boolean.class)
@@ -170,7 +182,7 @@ public class BenchmarkRunner {
         OptionSpec<String> autoMembership = parser.accepts("autoMembership", "Ids of those groups a given external identity automatically become member of.")
                 .withOptionalArg().ofType(String.class).withValuesSeparatedBy(',');
         OptionSpec<Integer> roundtripDelay = parser.accepts("roundtripDelay", "Use simplified principal name lookup from ExtIdRef by specifying roundtrip delay of value < 0.")
-                        .withOptionalArg().ofType(Integer.class).defaultsTo(0);
+                .withOptionalArg().ofType(Integer.class).defaultsTo(0);
         OptionSpec<Boolean> transientWrites = parser.accepts("transient", "Do not save data.")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
@@ -179,23 +191,19 @@ public class BenchmarkRunner {
         OptionSpec<Integer> coldSyncInterval = parser.accepts("coldSyncInterval", "interval between sync cycles in sec (Segment-Tar-Cold only)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(5);
         OptionSpec<Boolean> coldUseDataStore = parser
-                .accepts("useDataStore",
-                        "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
+                .accepts("useDataStore", "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.TRUE);
         OptionSpec<Boolean> coldShareDataStore = parser
-                .accepts("shareDataStore",
-                        "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+                .accepts("shareDataStore", "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
         OptionSpec<Boolean> coldOneShotRun = parser
-                .accepts("oneShotRun",
-                        "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
+                .accepts("oneShotRun", "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
         OptionSpec<Boolean> coldSecure = parser
-                .accepts("secure",
-                        "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
+                .accepts("secure", "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
         
@@ -345,6 +353,33 @@ public class BenchmarkRunner {
                         randomUser.value(options),
                         supportedPaths.values(options),
                         reverseOrder.value(options)),
+            new PrinicipalBasedReadTest(
+                    itemsToRead.value(options),
+                    numberOfInitialAce.value(options),
+                    numberOfUsers.value(options),
+                    entriesForEachPrincipal.value(options),
+                    reverseOrder.value(options),
+                    compositionType.value(options),
+                    useAggregationFilter.value(options),
+                    report.value(options)),
+            new PermissionEvaluationTest(
+                    itemsToRead.value(options),
+                    numberOfInitialAce.value(options),
+                    numberOfUsers.value(options),
+                    entriesForEachPrincipal.value(options),
+                    reverseOrder.value(options),
+                    compositionType.value(options),
+                    useAggregationFilter.value(options),
+                    report.value(options)),
+            new HasItemGetItemIsModifiedTest(
+                    itemsToRead.value(options),
+                    numberOfInitialAce.value(options),
+                    numberOfUsers.value(options),
+                    entriesForEachPrincipal.value(options),
+                    reverseOrder.value(options),
+                    compositionType.value(options),
+                    useAggregationFilter.value(options),
+                    report.value(options)),
             new ConcurrentReadDeepTreeTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
