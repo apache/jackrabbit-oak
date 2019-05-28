@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -76,7 +75,6 @@ public class BranchTest {
         assertModifiedPaths(b.getModifiedPathsUntil(c5));
     }
 
-    @Ignore("OAK-8012")
     @Test
     public void orphanedBranchTest() {
         String rootId = Utils.getIdFromPath("/");

@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -47,7 +46,6 @@ public class OrphanedBranchCleanupTest {
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     // OAK-8012 / OAK-8353
-    @Ignore("OAK-8353")
     @Test
     public void orphanedBranchRace() throws Exception {
         final Semaphore branchCleanupInProgress = new Semaphore(0);
