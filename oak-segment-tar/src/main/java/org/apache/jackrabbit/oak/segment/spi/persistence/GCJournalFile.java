@@ -47,4 +47,8 @@ public interface GCJournalFile {
      */
     List<String> readLines() throws IOException;
 
+    /**
+     * Removes the content of the gc.log
+     */
+    void truncate() throws IOException;
 }
