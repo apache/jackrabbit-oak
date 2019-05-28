@@ -607,11 +607,15 @@ public final class DocumentNodeStore
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
         diffCache = builder.getDiffCache();
-        checkpoints = new Checkpoints(this);
 
         // check if root node exists
         NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath("/"));
         if (rootDoc == null) {
+            if (readOnlyMode) {
+                throw new DocumentStoreException("Unable to initialize a " +
+                        "read-only DocumentNodeStore. The DocumentStore nodes " +
+                        "collection does not have a root document.");
+            }
             // root node is missing: repository is not initialized
             Revision commitRev = newRevision();
             Commit commit = new Commit(this, commitRev, null);
@@ -652,6 +656,8 @@ public final class DocumentNodeStore
                 }
             }
         }
+
+        checkpoints = new Checkpoints(this);
 
         // Renew the lease because it may have been stale
         renewClusterIdLease();

@@ -3641,6 +3641,19 @@ public class DocumentNodeStoreTest {
         );
     }
 
+    @Test
+    public void readOnlyOnEmptyDocumentStore() {
+        DocumentStore store = new MemoryDocumentStore();
+        try {
+            builderProvider.newBuilder().setDocumentStore(store)
+                    .setReadOnlyMode().build();
+            fail("must fail with DocumentStoreException");
+        } catch (Exception e) {
+            // must not hit last line of defence (ReadOnlyDocumentStoreWrapper)
+            assertFalse(Throwables.getRootCause(e) instanceof UnsupportedOperationException);
+        }
+    }
+
     private void getChildNodeCountTest(int numChildren,
                                        Iterable<Long> maxValues,
                                        Iterable<Long> expectedValues)
