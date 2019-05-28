@@ -1814,19 +1814,25 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             return false;
         }
         if (Utils.isCommitted(commitValue)) {
-            if (context.getBranches().getBranch(readRevision) == null
-                    && !readRevision.isBranch()) {
+            Branch b = context.getBranches().getBranch(readRevision);
+            if (b == null) {
+                // readRevision is not from a branch commit, though it may
+                // still be a branch revision when it references the base
+                // of a new branch that has not yet been created. In that
+                // case the branch revision is equivalent with the trunk
+                // revision.
+
                 // resolve commit revision
                 revision = Utils.resolveCommitRevision(revision, commitValue);
-                // readRevision is not from a branch
                 // compare resolved revision as is
                 return !isRevisionNewer(context, revision, readRevision);
             } else {
-                // on same merged branch?
-                if (commitValue.equals(getCommitValue(readRevision.asTrunkRevision()))) {
-                    // compare unresolved revision
-                    return !isRevisionNewer(context, revision, readRevision);
-                }
+                // read revision is on a branch and the change is committed
+                // get the base revision of the branch and check
+                // if change is visible from there
+                Revision baseRev = b.getBase(readRevision);
+                revision = Utils.resolveCommitRevision(revision, commitValue);
+                return !isRevisionNewer(context, revision, baseRev);
             }
         } else {
             // branch commit (not merged)
@@ -1834,9 +1840,23 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 // this is an unmerged branch commit from another cluster node,
                 // hence never visible to us
                 return false;
+            } else {
+                // unmerged branch change with local clusterId
+                Branch b = context.getBranches().getBranch(readRevision);
+                if (b == null) {
+                    // reading on trunk never sees changes on an unmerged branch
+                    return false;
+                } else if (b.containsCommit(revision)) {
+                    // read revision is on the same branch as the
+                    // unmerged branch changes -> compare revisions as is
+                    return !isRevisionNewer(context, revision, readRevision);
+                } else {
+                    // read revision is on a different branch than the
+                    // unmerged branch changes -> never visible
+                    return false;
+                }
             }
         }
-        return includeRevision(context, Utils.resolveCommitRevision(revision, commitValue), readRevision);
     }
 
     /**
@@ -1858,33 +1878,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         }
         return value;
-    }
-
-    private static boolean includeRevision(RevisionContext context,
-                                           Revision x,
-                                           Revision requestRevision) {
-        Branch b = context.getBranches().getBranch(x);
-        if (b != null) {
-            // only include if requested revision is also a branch revision
-            // with a history including x
-            if (b.containsCommit(requestRevision)) {
-                // in same branch, include if the same revision or
-                // requestRevision is newer
-                return x.equalsIgnoreBranch(requestRevision)
-                        || isRevisionNewer(context, requestRevision, x);
-            }
-            // not part of branch identified by requestedRevision
-            return false;
-        }
-        // assert: x is not a branch commit
-        b = context.getBranches().getBranch(requestRevision);
-        if (b != null) {
-            // reset requestRevision to branch base revision to make
-            // sure we don't include revisions committed after branch
-            // was created
-            requestRevision = b.getBase(requestRevision);
-        }
-        return context.getRevisionComparator().compare(requestRevision, x) >= 0;
     }
 
     /**
