@@ -311,7 +311,7 @@ class UserProvider extends AuthorizableBaseProvider {
             Tree colliding = folder.getChild(nodeName);
             String primaryType = TreeUtil.getPrimaryTypeName(colliding);
             if (NT_REP_AUTHORIZABLE_FOLDER.equals(primaryType)) {
-                log.debug("Existing folder node collides with user/group to be created. Expanding path by: " + colliding.getName());
+                log.debug("Existing folder node collides with user/group to be created. Expanding path by: {}", colliding.getName());
                 folder = colliding;
             } else {
                 break;

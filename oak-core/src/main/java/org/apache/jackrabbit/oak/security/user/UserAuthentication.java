@@ -195,22 +195,18 @@ class UserAuthentication implements Authentication, UserConstants {
                 if (newPasswordObject instanceof String) {
                     user.changePassword((String) newPasswordObject);
                     root.commit();
-                    log.debug("User " + loginId + ": changed user password");
+                    log.debug("User {}: changed user password", loginId);
                     return true;
                 } else {
-                    log.warn("Aborted password change for user " + loginId
-                            + ": provided new password is of incompatible type "
-                            + newPasswordObject.getClass().getName());
+                    log.warn("Aborted password change for user {}: provided new password is of incompatible type {}", loginId, newPasswordObject.getClass().getName());
                 }
             }
         } catch (PasswordHistoryException e) {
             credentials.setAttribute(e.getClass().getSimpleName(), e.getMessage());
-            log.error("Failed to change password for user " + loginId, e.getMessage());
-        } catch (RepositoryException e) {
-            log.error("Failed to change password for user " + loginId, e.getMessage());
-        } catch (CommitFailedException e) {
+            log.error("Failed to change password for user {}: {}", loginId, e.getMessage());
+        } catch (RepositoryException | CommitFailedException e) {
             root.refresh();
-            log.error("Failed to change password for user " + loginId, e.getMessage());
+            log.error("Failed to change password for user {}: {}", loginId, e.getMessage());
         }
         return false;
     }
@@ -218,10 +214,10 @@ class UserAuthentication implements Authentication, UserConstants {
     private boolean impersonate(AuthInfo info, User user) {
         try {
             if (user.getID().equals(info.getUserID())) {
-                log.debug("User " + info.getUserID() + " wants to impersonate himself -> success.");
+                log.debug("User {} wants to impersonate himself -> success.", info.getUserID());
                 return true;
             } else {
-                log.debug("User " + info.getUserID() + " wants to impersonate " + user.getID());
+                log.debug("User {} wants to impersonate {}", info.getUserID(), user.getID());
                 Subject subject = new Subject(true, info.getPrincipals(), Collections.emptySet(), Collections.emptySet());
                 return user.getImpersonation().allows(subject);
             }

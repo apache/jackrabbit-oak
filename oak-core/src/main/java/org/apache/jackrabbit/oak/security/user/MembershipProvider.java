@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
@@ -172,7 +171,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
                         }
                     }
                 } else {
-                    log.debug("Not a membership reference property " + propPath);
+                    log.debug("Not a membership reference property {}", propPath);
                 }
                 return next;
             }
@@ -245,7 +244,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             @Override
             protected boolean hasProcessedReference(@NotNull String value) {
                 if (groupContentId.equals(value)) {
-                    log.warn("Cyclic group membership detected for contentId " + groupContentId);
+                    log.warn("Cyclic group membership detected for contentId {}", groupContentId);
                     return false;
                 }
                 return processedRefs.add(value);
@@ -338,7 +337,6 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @param groupTree the group to add the member to
      * @param newMemberTree the tree of the new member
      * @return {@code true} if the member was added
-     * @throws RepositoryException if an error occurs
      */
     boolean addMember(@NotNull Tree groupTree, @NotNull Tree newMemberTree) {
         return writer.addMember(groupTree, getContentID(newMemberTree));
