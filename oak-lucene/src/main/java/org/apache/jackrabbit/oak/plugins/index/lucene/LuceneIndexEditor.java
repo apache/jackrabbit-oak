@@ -57,13 +57,19 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private final LuceneIndexEditorContext context;
 
-    /** Name of this node, or {@code null} for the root node. */
+    /**
+     * Name of this node, or {@code null} for the root node.
+     */
     private final String name;
 
-    /** Parent editor or {@code null} if this is the root editor. */
+    /**
+     * Parent editor or {@code null} if this is the root editor.
+     */
     private final LuceneIndexEditor parent;
 
-    /** Path of this editor, built lazily in {@link #getPath()}. */
+    /**
+     * Path of this editor, built lazily in {@link #getPath()}.
+     */
     private String path;
 
     private boolean propertiesChanged = false;
@@ -96,7 +102,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     private LuceneIndexEditor(LuceneIndexEditor parent, String name,
                               MatcherState matcherState,
                               PathFilter.Result pathFilterResult,
-            boolean isDeleted) {
+                              boolean isDeleted) {
         this.parent = parent;
         this.name = name;
         this.path = null;
@@ -116,7 +122,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (EmptyNodeState.MISSING_NODE == before && parent == null){
+        if (EmptyNodeState.MISSING_NODE == before && parent == null) {
             context.enableReindexMode();
         }
 
@@ -147,7 +153,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             }
         }
 
-        for (Matcher m : matcherState.affectedMatchers){
+        for (Matcher m : matcherState.affectedMatchers) {
             m.markRootDirty();
         }
 
@@ -231,14 +237,14 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 this.context.indexUpdate();
             } catch (IOException e) {
                 CommitFailedException ce = new CommitFailedException("Lucene", 5, "Failed to remove the index entries of"
-                                + " the removed subtree " + path + "for index " + context.getIndexingContext().getIndexPath(), e);
+                        + " the removed subtree " + path + "for index " + context.getIndexingContext().getIndexPath(), e);
                 context.getIndexingContext().indexUpdateFailed(ce);
                 throw ce;
             }
         }
 
         MatcherState ms = getMatcherState(name, before);
-        if (!ms.isEmpty()){
+        if (!ms.isEmpty()) {
             return new LuceneIndexEditor(this, name, ms, filterResult, true);
         }
         return null; // no need to recurse down the removed subtree
@@ -291,11 +297,11 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         List<Matcher> inherited = Lists.newArrayList();
         for (Matcher m : Iterables.concat(matcherState.inherited, currentMatchers)) {
             Matcher result = m.match(name, after);
-            if (result.getStatus() == Matcher.Status.MATCH_FOUND){
+            if (result.getStatus() == Matcher.Status.MATCH_FOUND) {
                 matched.add(result);
             }
 
-            if (result.getStatus() != Matcher.Status.FAIL){
+            if (result.getStatus() != Matcher.Status.FAIL) {
                 inherited.addAll(result.nextSet());
             }
         }
@@ -330,13 +336,13 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         final Set<Matcher> affectedMatchers;
 
         public MatcherState(List<Matcher> matched,
-                            List<Matcher> inherited){
+                            List<Matcher> inherited) {
             this.matched = matched;
             this.inherited = inherited;
 
             //Affected matches would only be used when there are
             //some matched matchers
-            if (matched.isEmpty()){
+            if (matched.isEmpty()) {
                 affectedMatchers = Collections.emptySet();
             } else {
                 affectedMatchers = Sets.newIdentityHashSet();
@@ -390,7 +396,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         return context.getDefinition();
     }
 
-    private boolean isIndexable(){
+    private boolean isIndexable() {
         return indexingRule != null;
     }
 
