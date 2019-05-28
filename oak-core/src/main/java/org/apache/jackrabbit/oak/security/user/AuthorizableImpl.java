@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,17 +184,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     @NotNull
     String getPrincipalName() throws RepositoryException {
-        if (principalName == null) {
-            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
-            if (pNameProp != null) {
-                principalName = pNameProp.getValue(STRING);
-            } else {
-                String msg = "Authorizable without principal name " + id;
-                log.warn(msg);
-                throw new RepositoryException(msg);
-            }
+        String pName = internalGetPrincipalName();
+        if (pName == null) {
+            String msg = "Authorizable without principal name " + id;
+            log.warn(msg);
+            throw new RepositoryException(msg);
         }
-        return principalName;
+        return pName;
     }
 
     /**
@@ -217,10 +214,20 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      *
      * @return {@code true} if this authorizable represents the group everyone
      * is member of; {@code false} otherwise.
-     * @throws RepositoryException If an error occurs.
      */
-    boolean isEveryone() throws RepositoryException {
-        return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName());
+    boolean isEveryone() {
+        return isGroup() && EveryonePrincipal.NAME.equals(internalGetPrincipalName());
+    }
+
+    @Nullable
+    private String internalGetPrincipalName() {
+        if (principalName == null) {
+            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
+            if (pNameProp != null) {
+                principalName = pNameProp.getValue(STRING);
+            }
+        }
+        return principalName;
     }
 
     /**
