@@ -101,7 +101,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
                     return a;
                 }
             } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable " + oakPath);
+                log.debug("Failed to access authorizable {}", oakPath);
             }
             return null;
         }

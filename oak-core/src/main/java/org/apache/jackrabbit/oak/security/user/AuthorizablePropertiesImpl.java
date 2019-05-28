@@ -229,7 +229,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
         Tree parent = propertyLocation.getParent().getTree();
         if (parent == null) {
-            log.debug("Unable to determine definition of authorizable property at " + propertyLocation.getPath());
+            log.debug("Unable to determine definition of authorizable property at {}", propertyLocation.getPath());
             return null;
         }
         ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager().getNodeTypeManager();
@@ -246,8 +246,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager().getNodeTypeManager();
         PropertyDefinition def = nodeTypeManager.getDefinition(parent, property, false);
         if (def.isProtected()) {
-            throw new ConstraintViolationException(
-                    "Attempt to set an protected property " + property.getName());
+            throw new ConstraintViolationException("Attempt to set an protected property " + property.getName());
         }
     }
 

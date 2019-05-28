@@ -70,7 +70,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             for (final String pName : impersonators) {
                 Principal p = principalManager.getPrincipal(pName);
                 if (p == null) {
-                    log.debug("Impersonator " + pName + " does not correspond to a known Principal.");
+                    log.debug("Impersonator {} does not correspond to a known Principal.", pName);
                     p = new PrincipalImpl(pName);
                 }
                 s.add(p);
