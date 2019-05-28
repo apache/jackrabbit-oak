@@ -41,6 +41,7 @@ class SystemUserImpl extends UserImpl {
         }
     }
 
+    @NotNull
     @Override
     public Principal getPrincipal() throws RepositoryException {
         if (isAdmin()) {
