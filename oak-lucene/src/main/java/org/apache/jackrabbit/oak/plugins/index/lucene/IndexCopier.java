@@ -547,7 +547,9 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     }
 
     @Override
-    public long getLocalIndexDirSize() { return indexRootDirectory.getSize(); }
+    public long getLocalIndexDirSize() {
+        return indexRootDirectory.getSize();
+    }
 
     @Override
     public String[] getGarbageDetails() {
