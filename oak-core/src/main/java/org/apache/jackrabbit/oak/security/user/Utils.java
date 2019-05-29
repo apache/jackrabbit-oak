@@ -36,7 +36,7 @@ final class Utils {
      * method treats ".." parent element and "." as current element and
      * resolves them accordingly; in case of a relative path containing parent
      * elements this may lead to tree creating outside the tree structure
-     * defined by this {@code NodeUtil}.
+     * defined by the given {@code Tree}.
      *
      * @param relativePath    A relative OAK path that may contain parent and
      *                        current elements.
