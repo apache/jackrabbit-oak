@@ -59,11 +59,7 @@ public class RDBDocumentNodeStoreBuilder
      * @return this
      */
     public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource ds, RDBOptions options) {
-        this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(ds, this, options));
-        if (blobStore == null) {
-            GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
-            setGCBlobStore(s);
-        }
+        setRDBConnection(ds, ds, options);
         return thisBuilder();
     }
 
@@ -74,9 +70,20 @@ public class RDBDocumentNodeStoreBuilder
      * @return this
      */
     public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-        this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(documentStoreDataSource, this));
+        setRDBConnection(documentStoreDataSource, blobStoreDataSource, new RDBOptions());
+        return thisBuilder();
+    }
+
+    /**
+     * Sets a {@link DataSource}s to use for the RDB document and blob
+     * stores, including {@link RDBOptions}.
+     *
+     * @return this
+     */
+    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource, RDBOptions options) {
+        this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(documentStoreDataSource, this, options));
         if (blobStore == null) {
-            GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
+            GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource, options);
             setGCBlobStore(s);
         }
         return thisBuilder();
