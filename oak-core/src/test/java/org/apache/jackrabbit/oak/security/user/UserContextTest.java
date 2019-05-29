@@ -273,9 +273,20 @@ public class UserContextTest implements UserConstants {
     }
 
     @Test
-    public void testNoTreeDefinesLocation() {
+    public void testNoTreeDefinesLocationReservedEnding() {
         for (String name : Iterables.concat(USER_PROPERTY_NAMES, GROUP_PROPERTY_NAMES)) {
             String path = "/some/path/endingWith/reservedName/" + name;
+            TreeLocation location = Mockito.mock(TreeLocation.class);
+            when(location.getPath()).thenReturn(path);
+
+            assertTrue(path, ctx.definesLocation(location));
+        }
+    }
+
+    @Test
+    public void testNoTreeDefinesLocationIntermediate() {
+        for (String name : new String[] {REP_MEMBERS, REP_MEMBERS_LIST, REP_PWD}) {
+            String path = "/some/path/with/intermediate/" +name+ "/reserved";
             TreeLocation location = Mockito.mock(TreeLocation.class);
             when(location.getPath()).thenReturn(path);
 

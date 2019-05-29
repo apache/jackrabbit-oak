@@ -16,68 +16,176 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.UUID;
-
 import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static javax.jcr.Property.JCR_PRIMARY_TYPE;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UserImplTest extends AbstractSecurityTest {
 
-    private UserManager userMgr;
-    private String uid;
     private User user;
 
     @Override
     @Before
     public void before() throws Exception {
         super.before();
-
-        userMgr = getUserManager(root);
-        uid = "testUser" + UUID.randomUUID();
+        user = getTestUser();
     }
 
     @Override
+    @After
     public void after() throws Exception {
         try {
-            if (user != null) {
-                user.remove();
-                root.commit();
-            }
+            root.refresh();
         } finally {
             super.after();
         }
     }
 
+    @NotNull
+    private User getAdminUser() throws Exception {
+        User admin = getUserManager(root).getAuthorizable(UserConstants.DEFAULT_ADMIN_ID, User.class);
+        assertNotNull(admin);
+        return admin;
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateFromInvalidTree() throws Exception {
+        Tree t = when(mock(Tree.class).getProperty(JCR_PRIMARY_TYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARY_TYPE, NT_REP_GROUP, Type.NAME)).getMock();
+        User u = new UserImpl("uid", t, (UserManagerImpl) getUserManager(root));
+    }
+
+    @Test
+    public void testIsAdmin() {
+        assertFalse(user.isAdmin());
+    }
+
+    @Test
+    public void testAdministratorIsAdmin() throws Exception {
+        assertTrue(getAdminUser().isAdmin());
+    }
+
+    @Test
+    public void testIsSystemUser() {
+        assertFalse(user.isSystemUser());
+    }
+
+    @Test
+    public void testIsGroup() {
+        assertFalse(user.isGroup());
+    }
+
+    @Test
+    public void testRemove() throws Exception {
+        String id = user.getID();
+        user.remove();
+        assertNull(getUserManager(root).getAuthorizable(id, User.class));
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testRemoveAdmin() throws Exception {
+        getAdminUser().remove();
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testChangePasswordToNull() throws Exception {
+        user.changePassword(null);
+    }
+
+    @Test
+    public void testChangePassword() throws Exception {
+        String pwHash = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        assertTrue(PasswordUtil.isSame(pwHash, user.getID()));
+
+        user.changePassword("different");
+        String pwHash2 = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        assertTrue(PasswordUtil.isSame(pwHash2, "different"));
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testChangePasswordWithOldMismatch() throws Exception {
+        user.changePassword("different", "wrongOldPassword");
+    }
+
+    @Test
+    public void testChangePasswordWithOld() throws Exception {
+        String pwHash = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        assertTrue(PasswordUtil.isSame(pwHash, user.getID()));
+
+        user.changePassword("different", user.getID());
+
+        String pwHash2 = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        assertTrue(PasswordUtil.isSame(pwHash2, "different"));
+    }
+
+    @Test
+    public void testDisable() throws Exception {
+        assertNull(user.getDisabledReason());
+        assertFalse(user.isDisabled());
+
+        user.disable("reason");
+        assertEquals("reason", user.getDisabledReason());
+        assertTrue(user.isDisabled());
+
+        user.disable(null);
+        assertNull(user.getDisabledReason());
+        assertFalse(user.isDisabled());
+    }
+
+    @Test
+    public void testDisableNullReason() throws Exception {
+        assertNull(user.getDisabledReason());
+        assertFalse(user.isDisabled());
+
+        user.disable(null);
+
+        assertNull(user.getDisabledReason());
+        assertFalse(user.isDisabled());
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testDisableAdministrator() throws Exception {
+        getAdminUser().disable("reason");
+    }
+
     @Test
     public void testGetCredentials() throws Exception {
-        user = userMgr.createUser(uid, uid);
-        root.commit();
-
         Credentials creds = user.getCredentials();
         assertTrue(creds instanceof CredentialsImpl);
 
         CredentialsImpl cImpl = (CredentialsImpl) creds;
-        assertEquals(uid, cImpl.getUserId());
-        assertTrue(PasswordUtil.isSame(cImpl.getPasswordHash(), uid));
+        assertEquals(user.getID(), cImpl.getUserId());
+        assertTrue(PasswordUtil.isSame(cImpl.getPasswordHash(), user.getID()));
     }
 
     @Test
     public void testGetCredentialsUserWithoutPassword() throws Exception {
-        user = userMgr.createUser(uid, null);
-        root.commit();
+        User u = getUserManager(root).createUser("u"+ UUIDUtils.generateUUID(), null);
 
-        Credentials creds = user.getCredentials();
+        Credentials creds = u.getCredentials();
         assertTrue(creds instanceof UserIdCredentials);
-        assertEquals(uid, ((UserIdCredentials) creds).getUserId());
+        assertEquals(u.getID(), ((UserIdCredentials) creds).getUserId());
     }
 }

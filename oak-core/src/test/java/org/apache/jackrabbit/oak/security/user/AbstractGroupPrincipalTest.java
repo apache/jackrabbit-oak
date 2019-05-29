@@ -16,12 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.List;
-import javax.jcr.RepositoryException;
-
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -30,11 +26,20 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.internal.stubbing.answers.ThrowsException;
+
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
@@ -86,7 +91,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testIsMemberMissingAuthorizable() throws RepositoryException {
+    public void testIsMemberMissingAuthorizable() {
         List<Principal> principals = ImmutableList.of(
                 new PrincipalImpl("name"),
                 new Principal() {
@@ -117,7 +122,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testIsMemberOfEveryoneMissingAuthorizable() throws RepositoryException {
+    public void testIsMemberOfEveryoneMissingAuthorizable() {
         List<Principal> principals = ImmutableList.of(
                 new PrincipalImpl("name"),
                 new Principal() {
@@ -140,16 +145,49 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testMembersInternalError() throws Exception {
+    public void testMembersInternalError() {
         throwing.members();
     }
 
     @Test
-    public void testEveryoneIsMemberOfEveryone() throws RepositoryException {
-        AbstractGroupPrincipal member = Mockito.mock(AbstractGroupPrincipal.class);
+    public void testMembersFiltersNull() throws Exception {
+        List l = new ArrayList();
+        l.add(null);
+        AbstractGroupPrincipal agp = mock(AbstractGroupPrincipal.class);
+        when(agp.getMembers()).thenReturn(l.iterator());
+        when(agp.members()).thenCallRealMethod();
+
+        Enumeration<? extends Principal> members = agp.members();
+        assertFalse(members.hasMoreElements());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testMembersHandlesFailingPrincipalAccess() throws Exception {
+        Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
+        AbstractGroupPrincipal agp = mock(AbstractGroupPrincipal.class);
+        when(agp.getMembers()).thenReturn(Iterators.singletonIterator(a));
+        when(agp.members()).thenCallRealMethod();
+
+        Enumeration<? extends Principal> members = agp.members();
+        assertFalse(members.hasMoreElements());
+    }
+
+    @Test
+    public void testEveryoneIsMemberOfEveryone() {
+        AbstractGroupPrincipal member = mock(AbstractGroupPrincipal.class);
         when(member.getName()).thenReturn(EveryonePrincipal.NAME);
 
         assertFalse(everyoneAgp.isMember(member));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testAddMember() throws Exception {
+        new AGP().addMember(new PrincipalImpl("p"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRemoveMember() throws Exception {
+        new AGP().removeMember(new PrincipalImpl("p"));
     }
 
     private class AGP extends AbstractGroupPrincipal {
@@ -192,9 +230,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
         @Override
         UserManager getUserManager() {
-            UserManager userManager = Mockito.mock(UserManager.class);
-            Mockito.doThrow(RepositoryException.class);
-            return userManager;
+            return mock(UserManager.class, withSettings().defaultAnswer(new ThrowsException(new RepositoryException())));
         }
 
         @Override

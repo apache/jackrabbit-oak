@@ -16,25 +16,39 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Rule;
+import org.junit.Test;
+
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.junit.Test;
-
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_DEFAULT_DEPTH;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class UserConfigurationImplTest extends AbstractSecurityTest {
 
@@ -51,9 +65,21 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
     private static final Integer PASSWORD_HISTORY_SIZE = 12;
     private static final boolean ENABLE_RFC7613_USERCASE_MAPPED_PROFILE = true;
 
+    @Rule
+    public final OsgiContext context = new OsgiContext();
+
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(UserConfiguration.NAME, getParams());
+    }
+
+    @Test
+    public void testActivate() {
+        UserConfiguration userConfiguration = new UserConfigurationImpl(getSecurityProvider());
+        context.registerInjectActivateService(userConfiguration, ImmutableMap.of(PARAM_DEFAULT_DEPTH, "8"));
+
+        ConfigurationParameters params = userConfiguration.getParameters();
+        assertEquals(8, params.getConfigValue(PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH).intValue());
     }
 
     @Test
@@ -77,22 +103,60 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testUserConfigurationWithConstructor() throws Exception {
+    public void testGetConflictHandlers() {
+        UserConfigurationImpl configuration = new UserConfigurationImpl();
+
+        List<ThreeWayConflictHandler> conflictHandlers = configuration.getConflictHandlers();
+        assertEquals(1, conflictHandlers.size());
+        assertTrue(conflictHandlers.get(0) instanceof RepMembersConflictHandler);
+    }
+
+    @Test
+    public void testGetProtectedItemImporters() {
+        UserConfigurationImpl configuration = new UserConfigurationImpl(getSecurityProvider());
+
+        List<ProtectedItemImporter> importers = configuration.getProtectedItemImporters();
+        assertEquals(1, importers.size());
+        assertTrue(importers.get(0) instanceof UserImporter);
+    }
+
+    @Test
+    public void testBlobAccessProviderFromNullWhiteboard() throws Exception {
+        SecurityProvider sp = mock(SecurityProvider.class, withSettings().extraInterfaces(WhiteboardAware.class));
+
+        UserConfigurationImpl uc = new UserConfigurationImpl(sp);
+        uc.setParameters(ConfigurationParameters.EMPTY);
+        uc.setRootProvider(getRootProvider());
+        uc.setTreeProvider(getTreeProvider());
+
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+
+        UserManager um = uc.getUserManager(root, getNamePathMapper());
+        assertTrue(um instanceof UserManagerImpl);
+
+        PartialValueFactory vf = ((UserManagerImpl) um).getPartialValueFactory();
+        Field f = PartialValueFactory.class.getDeclaredField("blobAccessProvider");
+        f.setAccessible(true);
+        assertSame(PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER, f.get(vf));
+    }
+
+    @Test
+    public void testUserConfigurationWithConstructor() {
         UserConfigurationImpl userConfiguration = new UserConfigurationImpl(getSecurityProvider());
         testConfigurationParameters(userConfiguration.getParameters());
     }
 
     @Test
-    public void testUserConfigurationWithSetParameters() throws Exception {
+    public void testUserConfigurationWithSetParameters() {
         UserConfigurationImpl userConfiguration = new UserConfigurationImpl();
         userConfiguration.setParameters(getParams());
         testConfigurationParameters(userConfiguration.getParameters());
     }
     
-    private void testConfigurationParameters(ConfigurationParameters parameters) throws Exception {
+    private void testConfigurationParameters(ConfigurationParameters parameters) {
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH), USER_PATH);
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH), GROUP_PATH);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH), DEFAULT_DEPTH);
+        assertEquals(parameters.getConfigValue(PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH), DEFAULT_DEPTH);
         assertEquals(parameters.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE), IMPORT_BEHAVIOR);
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, PasswordUtil.DEFAULT_ALGORITHM), HASH_ALGORITHM);
         assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, PasswordUtil.DEFAULT_ITERATIONS), HASH_ITERATIONS);
@@ -108,7 +172,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         ConfigurationParameters params = ConfigurationParameters.of(new HashMap<String, Object>() {{
             put(UserConstants.PARAM_USER_PATH, USER_PATH);
             put(UserConstants.PARAM_GROUP_PATH, GROUP_PATH);
-            put(UserConstants.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
+            put(PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
             put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, IMPORT_BEHAVIOR);
             put(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, HASH_ALGORITHM);
             put(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, HASH_ITERATIONS);

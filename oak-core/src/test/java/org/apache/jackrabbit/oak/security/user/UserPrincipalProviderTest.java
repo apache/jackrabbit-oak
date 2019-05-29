@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Enumeration;
-import java.util.Set;
-import java.util.UUID;
-
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -33,6 +33,21 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.api.security.principal.PrincipalManager.SEARCH_TYPE_GROUP;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_USER;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_PRINCIPAL_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
@@ -66,48 +81,64 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
     @Test
     public void testTreeBasedGroupPrincipal() throws Exception {
-        Group group = getUserManager(root).createGroup("testGroup" + UUID.randomUUID());
-        root.commit();
+        Principal principal = principalProvider.getPrincipal(testGroup.getPrincipal().getName());
+        assertTrue(principal instanceof AbstractGroupPrincipal);
+    }
 
-        try {
-            Principal principal = principalProvider.getPrincipal(group.getPrincipal().getName());
-            assertTrue(principal instanceof AbstractGroupPrincipal);
-        } finally {
-            group.remove();
-            root.commit();
-        }
+    @Test
+    public void testTreeBasedGroupPrincipalReflectsMemberChanges() throws Exception {
+        Principal principal = principalProvider.getPrincipal(testGroup.getPrincipal().getName());
+        assertTrue(principal instanceof AbstractGroupPrincipal);
+        AbstractGroupPrincipal agp = (AbstractGroupPrincipal) principal;
+
+        User u = getTestUser();
+        assertTrue(agp.isMember(u));
+
+        testGroup.removeMember(u);
+        assertFalse(agp.isMember(u));
+    }
+
+    @Test
+    public void testTreeBasedGroupPrincipalReflectsRemoval() throws Exception {
+        Principal principal = principalProvider.getPrincipal(testGroup.getPrincipal().getName());
+        assertTrue(principal instanceof AbstractGroupPrincipal);
+        AbstractGroupPrincipal agp = (AbstractGroupPrincipal) principal;
+
+        testGroup.remove();
+        assertFalse(agp.isMember(getTestUser()));
+    }
+
+    @Test
+    public void testTreeBasedGroupPrincipalReflectsChangedType() throws Exception {
+        Principal principal = principalProvider.getPrincipal(testGroup.getPrincipal().getName());
+        assertTrue(principal instanceof AbstractGroupPrincipal);
+        AbstractGroupPrincipal agp = (AbstractGroupPrincipal) principal;
+
+        Tree t = root.getTree(testGroup.getPath());
+        t.setProperty(JCR_PRIMARYTYPE, NT_REP_USER, Type.NAME);
+        assertFalse(agp.isMember(getTestUser()));
     }
 
     @Test
     public void testGetPrincipalsForUser() throws Exception {
-        Group group = getUserManager(root).createGroup("testGroup" + UUID.randomUUID());
-        group.addMember(getTestUser());
-        root.commit();
-
-        try {
-            Set<? extends Principal> principals = principalProvider.getPrincipals(getTestUser().getID());
-            for (Principal p : principals) {
-                String name = p.getName();
-                if (name.equals(getTestUser().getPrincipal().getName())) {
-                    assertTrue(p instanceof TreeBasedPrincipal);
-                } else if (!EveryonePrincipal.NAME.equals(name)) {
-                    assertTrue(p instanceof AbstractGroupPrincipal);
-                }
+        Set<? extends Principal> principals = principalProvider.getPrincipals(getTestUser().getID());
+        for (Principal p : principals) {
+            String name = p.getName();
+            if (name.equals(getTestUser().getPrincipal().getName())) {
+                assertTrue(p instanceof TreeBasedPrincipal);
+            } else if (!EveryonePrincipal.NAME.equals(name)) {
+                assertTrue(p instanceof AbstractGroupPrincipal);
             }
-        } finally {
-            group.remove();
-            root.commit();
         }
     }
 
     @Test
     public void testGetPrincipalsForSystemUser() throws Exception {
-        User systemUser = getUserManager(root).createSystemUser("systemUser" + UUID.randomUUID(), null);
-        Group group = getUserManager(root).createGroup("testGroup" + UUID.randomUUID());
-        group.addMember(systemUser);
-        root.commit();
-
+        User systemUser = null;
         try {
+            systemUser = getUserManager(root).createSystemUser("systemUser" + UUID.randomUUID(), null);
+            testGroup.addMember(systemUser);
+            root.commit();
             Set<? extends Principal> principals = principalProvider.getPrincipals(systemUser.getID());
             for (Principal p : principals) {
                 String name = p.getName();
@@ -118,9 +149,10 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                 }
             }
         } finally {
-            systemUser.remove();
-            group.remove();
-            root.commit();
+            if (systemUser != null) {
+                systemUser.remove();
+                root.commit();
+            }
         }
     }
 
@@ -167,41 +199,89 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
     @Test
     public void testGroupMembers() throws Exception {
-        Group group = getUserManager(root).createGroup("testGroup" + UUID.randomUUID());
-        group.addMember(getTestUser());
-        root.commit();
+        Principal principal = principalProvider.getPrincipal(testGroup.getPrincipal().getName());
+        assertTrue(principal instanceof GroupPrincipal);
 
-        try {
-            Principal principal = principalProvider.getPrincipal(group.getPrincipal().getName());
-
-            assertTrue(principal instanceof GroupPrincipal);
-
-            boolean found = false;
-            Enumeration<? extends Principal> members = ((GroupPrincipal) principal).members();
-            while (members.hasMoreElements() && !found) {
-                found = members.nextElement().equals(getTestUser().getPrincipal());
-            }
-            assertTrue(found);
-        } finally {
-            group.remove();
-            root.commit();
+        boolean found = false;
+        Enumeration<? extends Principal> members = ((GroupPrincipal) principal).members();
+        while (members.hasMoreElements() && !found) {
+            found = members.nextElement().equals(getTestUser().getPrincipal());
         }
+        assertTrue(found);
     }
 
     @Test
     public void testGroupIsMember() throws Exception {
-        Group group = getUserManager(root).createGroup("testGroup" + UUID.randomUUID());
-        group.addMember(getTestUser());
-        root.commit();
+        Principal principal = principalProvider.getPrincipal(testGroup.getPrincipal().getName());
 
+        assertTrue(principal instanceof GroupPrincipal);
+        assertTrue(((GroupPrincipal) principal).isMember(getTestUser().getPrincipal()));
+    }
+
+    @Test
+    public void testMissingUserPrincipalName() throws Exception {
+        User u = getTestUser();
+        Tree t = root.getTree(u.getPath());
+        t.removeProperty(REP_PRINCIPAL_NAME);
+
+        assertTrue(principalProvider.getPrincipals(u.getID()).isEmpty());
+    }
+
+    @Test
+    public void testMissingGroupPrincipalName() throws Exception {
+        Principal p = testGroup.getPrincipal();
+        Tree t = root.getTree(testGroup.getPath());
+        t.removeProperty(REP_PRINCIPAL_NAME);
+
+        assertFalse(principalProvider.getPrincipals(getTestUser().getID()).contains(p));
+    }
+
+    @Test
+    public void testFindWithEmptyHint() throws Exception {
+        List<String> resultNames = getNames(principalProvider.findPrincipals("", PrincipalManager.SEARCH_TYPE_GROUP));
+
+        assertFalse(resultNames.contains(getTestUser().getPrincipal().getName()));
+
+        assertTrue(resultNames.contains(EveryonePrincipal.NAME));
+        assertTrue(resultNames.contains(testGroup.getPrincipal().getName()));
+    }
+
+    @Test
+    public void testFindFullTextWithAndWithoutWildcard() {
+        Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup", true,
+                SEARCH_TYPE_GROUP, 0, -1);
+        Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
+                SEARCH_TYPE_GROUP, 0, -1);
+        assertTrue(Iterators.elementsEqual(i1, i2));
+    }
+
+    @Test
+    public void testFindFiltersDuplicateEveryone() throws Exception {
+        Group everyoneGroup = null;
         try {
-            Principal principal = principalProvider.getPrincipal(group.getPrincipal().getName());
-
-            assertTrue(principal instanceof GroupPrincipal);
-            assertTrue(((GroupPrincipal) principal).isMember(getTestUser().getPrincipal()));
-        } finally {
-            group.remove();
+            UserManager userMgr = getUserManager(root);
+            everyoneGroup = userMgr.createGroup(EveryonePrincipal.NAME);
             root.commit();
+
+            Iterator<? extends Principal> principals = principalProvider.findPrincipals(null, SEARCH_TYPE_GROUP);
+            Iterator filtered = Iterators.filter(principals, (Predicate<Principal>) principal -> EveryonePrincipal.NAME.equals(principal.getName()));
+            assertEquals(1, Iterators.size(filtered));
+        } finally {
+            if (everyoneGroup != null) {
+                everyoneGroup.remove();
+                root.commit();
+            }
+        }
+
+        List<String> expected = Arrays.asList(groupId, groupId2, groupId3);
+        Collections.sort(expected);
+
+        for (int limit = -1; limit < expected.size() + 2; limit++) {
+            Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup", true,
+                    SEARCH_TYPE_GROUP, 0, limit);
+            Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup*", true,
+                    SEARCH_TYPE_GROUP, 0, limit);
+            assertTrue(Iterators.elementsEqual(i1, i2));
         }
     }
 }

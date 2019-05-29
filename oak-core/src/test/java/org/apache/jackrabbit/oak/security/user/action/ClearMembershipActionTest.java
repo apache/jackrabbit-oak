@@ -32,8 +32,6 @@ import static org.junit.Assert.assertTrue;
 /**
  * Integration tests for {@link ClearMembershipAction} including a complete
  * security setup.
- *
- * @see {@link org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipActionTest}
  */
 public class ClearMembershipActionTest extends AbstractSecurityTest {
 
