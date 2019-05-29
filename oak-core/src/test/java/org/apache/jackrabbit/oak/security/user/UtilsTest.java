@@ -25,8 +25,12 @@ import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import javax.jcr.AccessDeniedException;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UtilsTest extends AbstractSecurityTest {
 
@@ -53,16 +57,31 @@ public class UtilsTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testGetOrAddTree() throws Exception {
+    public void testGetOrAddTreeCurrentElement() throws Exception {
         Tree result = Utils.getOrAddTree(tree, ".", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertSame(tree, result);
+    }
 
+    @Test
+    public void testGetOrAddTreeParentElement() throws Exception {
         Tree child = Utils.getOrAddTree(tree, "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        assertEqualPath(root.getTree("/child"), child);
-
         Tree parent = Utils.getOrAddTree(child, "..", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertEqualPath(tree, parent);
+    }
 
+    @Test(expected = IllegalStateException.class)
+    public void testGetOrAddTreeParentElementFromRoot() throws Exception {
+        Utils.getOrAddTree(tree, "..", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    }
+
+    @Test
+    public void testGetOrAddTreeSingleElement() throws Exception {
+        Tree child = Utils.getOrAddTree(tree, "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertEqualPath(root.getTree("/child"), child);
+    }
+
+    @Test
+    public void testGetOrAddTree() throws Exception {
         Map<String, String> map = ImmutableMap.of(
                 "a/b/c", "/a/b/c",
                 "a/../b/c", "/b/c",
@@ -73,5 +92,25 @@ public class UtilsTest extends AbstractSecurityTest {
             Tree t = Utils.getOrAddTree(tree, relPath, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
             assertEqualPath(root.getTree(map.get(relPath)), t);
         }
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testGetOrAddTreeReachesParentOfRoot() throws Exception {
+        Utils.getOrAddTree(tree, "a/../../b", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testGetOrAddTreeTargetNotAccessible() throws Exception {
+        Tree nonExisting = mock(Tree.class);
+        when(nonExisting.exists()).thenReturn(false);
+
+        Tree t = mock(Tree.class);
+        when(t.exists()).thenReturn(true);
+        when(t.getParent()).thenReturn(t);
+        when(t.getChild("a")).thenReturn(t);
+        when(t.getChild("b")).thenReturn(nonExisting);
+        when(t.addChild("b")).thenReturn(nonExisting);
+
+        Utils.getOrAddTree(t, "a/a/b", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
     }
 }
