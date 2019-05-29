@@ -16,24 +16,21 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.AccessDeniedException;
-
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.AccessDeniedException;
 
 final class Utils {
 
     private Utils() {}
 
     /**
-     * TODO: clean up. workaround for OAK-426
-     * <p>
      * Create the tree at the specified relative path including all missing
      * intermediate trees using the specified {@code primaryTypeName}. This
      * method treats ".." parent element and "." as current element and
@@ -58,25 +55,14 @@ final class Utils {
         } else if (relativePath.indexOf('/') == -1) {
             return TreeUtil.getOrAddChild(tree, relativePath, primaryTypeName);
         } else {
-            Tree t = TreeUtil.getTree(tree, relativePath);
-            if (t == null || !t.exists()) {
-                Tree target = tree;
-                for (String segment : Text.explode(relativePath, '/')) {
-                    if (PathUtils.denotesParent(segment)) {
-                        target = target.getParent();
-                    } else if (target.hasChild(segment)) {
-                        target = target.getChild(segment);
-                    } else if (!PathUtils.denotesCurrent(segment)) {
-                        target = TreeUtil.addChild(target, segment, primaryTypeName);
-                    }
-                }
-                if (!target.exists()) {
-                    throw new AccessDeniedException();
-                }
-                return target;
-            } else {
-                return t;
+            for (String element : PathUtils.elements(relativePath)) {
+                if (PathUtils.denotesParent(element)) {
+                    tree = tree.getParent();
+                } else if (!PathUtils.denotesCurrent(element)) {
+                    tree = TreeUtil.getOrAddChild(tree, element, primaryTypeName);
+                }  // else . -> skip to next element
             }
+            return tree;
         }
     }
 
