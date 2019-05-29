@@ -16,17 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 
-import javax.sql.DataSource;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -34,20 +29,16 @@ import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.JsopDiff;
-import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilderBase;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobReferenceIterator;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * A JSON-based wrapper around the NodeStore implementation that stores the
@@ -79,6 +70,11 @@ public class DocumentMK {
 
     DocumentMK(Builder builder) {
         this.nodeStore = builder.getNodeStore();
+        this.store = nodeStore.getDocumentStore();
+    }
+
+    DocumentMK(DocumentNodeStore documentNodeStore) {
+        this.nodeStore = documentNodeStore;
         this.store = nodeStore.getDocumentStore();
     }
 
@@ -477,70 +473,11 @@ public class DocumentMK {
         public Builder() {
         }
 
-        /**
-         * Sets a {@link DataSource} to use for the RDB document and blob
-         * stores.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(DataSource ds) {
-            setRDBConnection(ds, new RDBOptions());
-            return this;
-        }
-
-        /**
-         * Sets a {@link DataSource} to use for the RDB document and blob
-         * stores, including {@link RDBOptions}.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(DataSource ds, RDBOptions options) {
-            this.documentStoreSupplier = ofInstance(new RDBDocumentStore(ds, this, options));
-            if(blobStore == null) {
-                GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
-                setGCBlobStore(s);
-            }
-            return this;
-        }
-
-        /**
-         * Sets a {@link DataSource}s to use for the RDB document and blob
-         * stores.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-            this.documentStoreSupplier = ofInstance(new RDBDocumentStore(documentStoreDataSource, this));
-            if(blobStore == null) {
-                GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
-                setGCBlobStore(s);
-            }
-            return this;
-        }
-
         public DocumentNodeStore getNodeStore() {
             if (nodeStore == null) {
                 nodeStore = build();
             }
             return nodeStore;
-        }
-
-        public VersionGCSupport createVersionGCSupport() {
-            DocumentStore store = getDocumentStore();
-            if (store instanceof RDBDocumentStore) {
-                return new RDBVersionGCSupport((RDBDocumentStore) store);
-            } else {
-                return super.createVersionGCSupport();
-            }
-        }
-
-        public Iterable<ReferencedBlob> createReferencedBlobs(DocumentNodeStore ns) {
-            final DocumentStore store = getDocumentStore();
-            if (store instanceof RDBDocumentStore) {
-                return () -> new RDBBlobReferenceIterator(ns, (RDBDocumentStore) store);
-            } else {
-                return super.createReferencedBlobs(ns);
-            }
         }
 
         /**
