@@ -260,6 +260,7 @@ cacheSegmentCount | 16 | The number of segments in the LIRS cache | 1.0.15, 1.2.
 cacheStackMoveDistance | 16 | The delay to move entries to the head of the queue in the LIRS cache | 1.0.15, 1.2.3, 1.3.0
 sharedDSRepoId | "" | Custom SharedDataStore repositoryId. Used when custom blobstore configured. Should be unique among the repositories sharing the datastore. | 1.2.11
 blobTrackSnapshotIntervalInSecs | 43200 (12 hrs) | The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob tracker][blobtracker]. | 1.5.6 
+updateLimit | 100000 | The number of updates kept in memory until changes are written to a branch in the DocumentStore | 1.7.0  
 leaseCheckMode | STRICT | The lease check mode. `STRICT` is the default and will stop the DocumentNodeStore as soon as the lease expires. `LENIENT` will give the background lease update a chance to renew the lease even when the lease expired. This mode is only recommended for development, e.g. when debugging an application and the lease may expire when the JVM is stopped at a breakpoint. | 1.9.6
 
 Example config file
