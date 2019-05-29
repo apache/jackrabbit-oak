@@ -25,9 +25,9 @@ import java.util.Properties;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 
 /**
@@ -61,11 +61,11 @@ public class OakDocumentRDBRepositoryStub extends BaseRepositoryStub {
         try {
             String prefix = "T" + Long.toHexString(System.currentTimeMillis());
             RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
-            m = new DocumentMK.Builder().
+            m = new RDBDocumentNodeStoreBuilder().
                     memoryCacheSize(64 * 1024 * 1024).
                     setPersistentCache("target/persistentCache,time").
                     setRDBConnection(RDBDataSourceFactory.forJdbcUrl(jdbcUrl, USERNAME, PASSWD), options).
-                    getNodeStore();
+                    build();
             Jcr jcr = new Jcr(m);
             preCreateRepository(jcr);
             this.repository = jcr.createRepository();
