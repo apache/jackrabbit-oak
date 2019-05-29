@@ -23,22 +23,35 @@ import java.util.UUID;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class RDBDocumentNodeStoreBuilderTest {
 
     @Test
-    public void testReadOnly() throws Exception {
+    public void testReadOnlyDS() throws Exception {
         // see OAK-8214
 
         DataSource dataSource = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID(), "", "");
-
-        RDBDocumentNodeStoreBuilder b = RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder();
-        b.setRDBConnection(dataSource);
-        b.setReadOnlyMode();
+        RDBDocumentNodeStoreBuilder b = RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder().setRDBConnection(dataSource).setReadOnlyMode();
 
         try {
             b.getDocumentStore();
+            fail("should not get here");
+        } catch (DocumentStoreException expected) {
+        }
+    }
+
+    @Ignore("OAK-8251")
+    @Test
+    public void testReadOnlyBS() throws Exception {
+        // see OAK-8251
+
+        DataSource dataSource = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID(), "", "");
+        RDBDocumentNodeStoreBuilder b = RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder().setRDBConnection(dataSource).setReadOnlyMode();
+
+        try {
+            b.getBlobStore();
             fail("should not get here");
         } catch (DocumentStoreException expected) {
         }
