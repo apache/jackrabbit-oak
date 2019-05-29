@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.action;
 
-import java.security.Principal;
-import java.util.List;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFactory;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -28,32 +23,34 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AbstractAuthorizableAction;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.UserAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
+import java.security.Principal;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class UserActionTest extends AbstractSecurityTest {
 
-    private CountingUserAction cntAction = new CountingUserAction();
+    private UserAction userAction = mock(UserAction.class);
     private ClearProfileAction clearProfileAction = new ClearProfileAction();
 
-    private final AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-        @Override
-        public @NotNull List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-            return ImmutableList.of(cntAction, clearProfileAction);
-        }
-    };
+    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(userAction, clearProfileAction);
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
@@ -66,14 +63,14 @@ public class UserActionTest extends AbstractSecurityTest {
         User user = getTestUser();
         user.disable("disabled");
 
-        assertEquals(1, cntAction.onDisabledCnt);
-        assertEquals(0, cntAction.onGrantImpCnt);
-        assertEquals(0, cntAction.onRevokeImpCnt);
+        verify(userAction, times(1)).onDisable(user, "disabled", root, getNamePathMapper());
+        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
 
         user.disable(null);
-        assertEquals(2, cntAction.onDisabledCnt);
-        assertEquals(0, cntAction.onGrantImpCnt);
-        assertEquals(0, cntAction.onRevokeImpCnt);
+        verify(userAction, times(1)).onDisable(user, null, root, getNamePathMapper());
+        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
     }
 
     @Test
@@ -83,9 +80,9 @@ public class UserActionTest extends AbstractSecurityTest {
 
         user.getImpersonation().grantImpersonation(p2);
 
-        assertEquals(0, cntAction.onDisabledCnt);
-        assertEquals(1, cntAction.onGrantImpCnt);
-        assertEquals(0, cntAction.onRevokeImpCnt);
+        verify(userAction, never()).onDisable(any(User.class), anyString(), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, times(1)).onGrantImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
     }
 
     @Test
@@ -95,9 +92,9 @@ public class UserActionTest extends AbstractSecurityTest {
 
         user.getImpersonation().revokeImpersonation(p2);
 
-        assertEquals(0, cntAction.onDisabledCnt);
-        assertEquals(0, cntAction.onGrantImpCnt);
-        assertEquals(1, cntAction.onRevokeImpCnt);
+        verify(userAction, never()).onDisable(any(User.class), anyString(), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, never()).onGrantImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
+        verify(userAction, times(1)).onRevokeImpersonation(any(User.class), any(Principal.class), any(Root.class), any(NamePathMapper.class));
     }
 
     @Test
@@ -124,29 +121,6 @@ public class UserActionTest extends AbstractSecurityTest {
         t = root.getTree(user.getPath());
         assertFalse(t.hasProperty(UserConstants.REP_DISABLED));
         assertTrue(t.hasChild("profiles"));
-    }
-
-
-    class CountingUserAction extends AbstractAuthorizableAction implements UserAction  {
-
-        int onDisabledCnt = 0;
-        int onGrantImpCnt = 0;
-        int onRevokeImpCnt = 0;
-
-        @Override
-        public void onDisable(@NotNull User user, @Nullable String disableReason, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
-            onDisabledCnt++;
-        }
-
-        @Override
-        public void onGrantImpersonation(@NotNull User user, @NotNull Principal principal, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
-            onGrantImpCnt++;
-        }
-
-        @Override
-        public void onRevokeImpersonation(@NotNull User user, @NotNull Principal principal, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
-            onRevokeImpCnt++;
-        }
     }
 
     class ClearProfileAction extends AbstractAuthorizableAction implements UserAction {

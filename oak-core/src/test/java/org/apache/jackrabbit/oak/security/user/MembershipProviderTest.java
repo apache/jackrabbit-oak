@@ -16,22 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

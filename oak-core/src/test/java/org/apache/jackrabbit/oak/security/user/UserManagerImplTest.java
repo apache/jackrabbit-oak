@@ -16,26 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -44,14 +31,48 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.security.user.action.GroupAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * @since OAK 1.0
@@ -60,34 +81,21 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     private UserManagerImpl userMgr;
     private String testUserId = "testUser";
-    private Set<String> beforeAuthorizables = new HashSet<String>();
 
     @Before
     public void before() throws Exception {
         super.before();
 
         userMgr = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
-        beforeAuthorizables.clear();
-        Iterator<Authorizable> iter = userMgr.findAuthorizables("jcr:primaryType", null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
-        while (iter.hasNext()) {
-            beforeAuthorizables.add(iter.next().getID());
-        }
     }
 
     @After
     public void after() throws Exception {
-        Iterator<Authorizable> iter = userMgr.findAuthorizables("jcr:primaryType", null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
-        while (iter.hasNext()) {
-            Authorizable auth = iter.next();
-            if (!beforeAuthorizables.remove(auth.getID())) {
-                try {
-                    auth.remove();
-                } catch (RepositoryException e) {
-                    // ignore
-                }
-            }
+        try {
+            root.refresh();
+        } finally {
+            super.after();
         }
-        super.after();
     }
 
     /**
@@ -131,10 +139,44 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testGetAuthorizableByPath() throws Exception {
+        Authorizable authorizable = getTestUser();
+        Authorizable byPath = userMgr.getAuthorizableByPath(authorizable.getPath());
+
+        assertEquals(authorizable.getPath(), byPath.getPath());
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testAuthorizableByUnresolvablePath() throws Exception {
+        NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, ImmutableMap.of("a","internal")));
+        UserManagerImpl um = new UserManagerImpl(root, new PartialValueFactory(mapper), getSecurityProvider());
+        um.getAuthorizableByPath(getTestUser().getPath());
+    }
+
+    @Test
+    public void testGetAuthorizableFromTree() throws Exception {
+        assertNotNull(userMgr.getAuthorizable(root.getTree(getTestUser().getPath())));
+    }
+
+    @Test
+    public void testGetAuthorizableFromNullTree() throws Exception {
+        assertNull(userMgr.getAuthorizable((Tree) null));
+    }
+
+    @Test
+    public void testGetAuthorizableFromNonExistingTree() throws Exception {
+        Tree t = when(mock(Tree.class).exists()).thenReturn(false).getMock();
+        assertNull(userMgr.getAuthorizable(t));
+    }
+
+    @Test
+    public void testGtAuthorizableFromInvalidTree() throws Exception {
+        assertNull(userMgr.getAuthorizable(root.getTree(PathUtils.ROOT_PATH)));
+    }
+
+    @Test
     public void testSetPassword() throws Exception {
         User user = userMgr.createUser(testUserId, "pw");
-        root.commit();
-
         List<String> pwds = new ArrayList<String>();
         pwds.add("pw");
         pwds.add("");
@@ -162,31 +204,8 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void setPasswordNull() throws Exception {
-        User user = userMgr.createUser(testUserId, null);
-        root.commit();
-
-        Tree userTree = root.getTree(user.getPath());
-        try {
-            userMgr.setPassword(userTree, testUserId, null, true);
-            fail("setting null password should fail");
-        } catch (NullPointerException e) {
-            // expected
-        }
-
-        try {
-            userMgr.setPassword(userTree, testUserId, null, false);
-            fail("setting null password should fail");
-        } catch (NullPointerException e) {
-            // expected
-        }
-    }
-
-    @Test
     public void testGetPasswordHash() throws Exception {
         User user = userMgr.createUser(testUserId, null);
-        root.commit();
-
         Tree userTree = root.getTree(user.getPath());
         assertNull(userTree.getProperty(UserConstants.REP_PASSWORD));
     }
@@ -207,14 +226,12 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testEnforceAuthorizableFolderHierarchy() throws RepositoryException, CommitFailedException {
-        User user = userMgr.createUser(testUserId, null);
-        root.commit();
+    public void testEnforceAuthorizableFolderHierarchy() throws Exception {
+        User user = getTestUser();
+        Tree userNode = root.getTree(user.getPath());
 
-        NodeUtil userNode = new NodeUtil(root.getTree(user.getPath()));
-
-        NodeUtil folder = userNode.addChild("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
-        String path = folder.getTree().getPath();
+        Tree folder = TreeUtil.addChild(userNode, "folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
+        String path = folder.getPath();
 
         // authNode - authFolder -> create User
         try {
@@ -233,8 +250,8 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             }
         }
 
-        NodeUtil someContent = userNode.addChild("mystuff", JcrConstants.NT_UNSTRUCTURED);
-        path = someContent.getTree().getPath();
+        Tree someContent = TreeUtil.addChild(userNode, "mystuff", JcrConstants.NT_UNSTRUCTURED);
+        path = someContent.getPath();
         try {
             // authNode - anyNode -> create User
             try {
@@ -254,11 +271,11 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             }
 
             // authNode - anyNode - authFolder -> create User
-            folder = someContent.addChild("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
+            folder = TreeUtil.addChild(someContent,"folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
             root.commit(); // this time save node structure
             try {
                 Principal p = new PrincipalImpl("test4");
-                userMgr.createUser(p.getName(), p.getName(), p, folder.getTree().getPath());
+                userMgr.createUser(p.getName(), p.getName(), p, folder.getPath());
                 root.commit();
 
                 fail("Users may not be nested.");
@@ -296,36 +313,45 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testConcurrentCreateUser() throws Exception {
-        final List<Exception> exceptions = new ArrayList<Exception>();
-        List<Thread> workers = new ArrayList<Thread>();
-        for (int i=0; i<10; i++) {
-            final String userId = "foo-user-" + i;
-            workers.add(new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        ContentSession admin = login(getAdminCredentials());
-                        Root root = admin.getLatestRoot();
-                        UserManager userManager = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
-                        userManager.createUser(userId, "pass");
-                        root.commit();
-                        admin.close();
-                    } catch (Exception e) {
-                        exceptions.add(e);
+        try {
+            final List<Exception> exceptions = new ArrayList<Exception>();
+            List<Thread> workers = new ArrayList<Thread>();
+            for (int i = 0; i < 10; i++) {
+                final String userId = "foo-user-" + i;
+                workers.add(new Thread(new Runnable() {
+                    public void run() {
+                        try {
+                            ContentSession admin = login(getAdminCredentials());
+                            Root root = admin.getLatestRoot();
+                            UserManager userManager = new UserManagerImpl(root, getPartialValueFactory(), getSecurityProvider());
+                            userManager.createUser(userId, "pass", new PrincipalImpl(userId), "relPath");
+                            root.commit();
+                            admin.close();
+                        } catch (Exception e) {
+                            exceptions.add(e);
+                        }
                     }
-                }
-            }));
-        }
-        for (Thread t : workers) {
-            t.start();
-        }
-        for (Thread t : workers) {
-            t.join();
-        }
-        for (Exception e : exceptions) {
-            e.printStackTrace();
-        }
-        if (!exceptions.isEmpty()) {
-            throw exceptions.get(0);
+                }));
+            }
+            for (Thread t : workers) {
+                t.start();
+            }
+            for (Thread t : workers) {
+                t.join();
+            }
+            for (Exception e : exceptions) {
+                e.printStackTrace();
+            }
+            if (!exceptions.isEmpty()) {
+                throw exceptions.get(0);
+            }
+        } finally {
+            root.refresh();
+            Tree t = root.getTree(UserConstants.DEFAULT_USER_PATH + "/relPath");
+            if (t.exists()) {
+                t.remove();
+                root.commit();
+            }
         }
     }
 
@@ -338,18 +364,88 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     @Test
     public void testNewUserHasNoPwdNode() throws Exception {
         String newUserId = "newuser" + UUID.randomUUID();
-        User user = null;
-        try {
-            user = getUserManager(root).createUser(newUserId, newUserId);
-            root.commit();
+        User user = getUserManager(root).createUser(newUserId, newUserId);
 
-            Assert.assertFalse(root.getTree(user.getPath()).hasChild(UserConstants.REP_PWD));
-            Assert.assertFalse(user.hasProperty(UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
-        } finally {
-            if (user != null) {
-                user.remove();
-                root.commit();
+        Assert.assertFalse(root.getTree(user.getPath()).hasChild(UserConstants.REP_PWD));
+        Assert.assertFalse(user.hasProperty(UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateUserWithEmptyId() throws RepositoryException {
+        userMgr.createUser("", null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateUserWithNullId() throws RepositoryException {
+        userMgr.createUser(null, null, new PrincipalImpl("userPrincipalName"), null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateSystemUserWithEmptyId() throws RepositoryException {
+        userMgr.createSystemUser("", null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateSystemUserWithNullId() throws RepositoryException {
+        userMgr.createSystemUser(null, null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateGroupWithEmptyId() throws RepositoryException {
+        userMgr.createGroup("", new PrincipalImpl("groupPrincipalName"), null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateGroupWithNullId() throws RepositoryException {
+        userMgr.createGroup((String) null, new PrincipalImpl("groupPrincipalName"), null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateUserWithEmptyPrincipalName() throws Exception {
+        userMgr.createUser("another", null, new Principal() {
+            @Override
+            public String getName() {
+                return "";
             }
-        }
+        }, null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateGroupWithNullPrincipal() throws Exception {
+        userMgr.createGroup("another", null, null);
+    }
+
+    @Test(expected = AuthorizableExistsException.class)
+    public void testCreateUserWithExistingPrincipal() throws Exception {
+        User u = getTestUser();
+        userMgr.createUser("another", null, u.getPrincipal(), null);
+    }
+
+    @Test(expected = AuthorizableExistsException.class)
+    public void testCreateGroupWithExistingPrincipal() throws Exception {
+        User u = getTestUser();
+        userMgr.createGroup(u.getPrincipal());
+    }
+
+    @Test
+    public void testOnMembersAddedByContentId() throws Exception {
+        GroupAction groupAction = mock(GroupAction.class);
+        List actions = ImmutableList.of(groupAction);
+        AuthorizableActionProvider actionProvider = mock(AuthorizableActionProvider.class);
+        when(actionProvider.getAuthorizableActions(any(SecurityProvider.class))).thenReturn(actions);
+        ConfigurationParameters params = ConfigurationParameters.of(PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
+
+        UserConfiguration uc = when(mock(UserConfiguration.class).getParameters()).thenReturn(params).getMock();
+        SecurityProvider sp = mock(SecurityProvider.class);
+        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+
+        UserManagerImpl um = new UserManagerImpl(root, new PartialValueFactory(getNamePathMapper()), sp);
+
+        Group testGroup = mock(Group.class);
+        Set<String> membersIds = ImmutableSet.of(UUIDUtils.generateUUID());
+
+        um.onGroupUpdate(testGroup, false, true, membersIds, Collections.emptySet());
+        verify(groupAction, times(1)).onMembersAddedContentId(testGroup, membersIds, Collections.emptySet(), root, getNamePathMapper());
+
     }
 }

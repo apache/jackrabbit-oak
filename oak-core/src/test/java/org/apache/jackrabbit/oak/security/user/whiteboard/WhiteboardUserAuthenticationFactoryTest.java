@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.whiteboard;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -27,6 +24,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -53,6 +53,12 @@ public class WhiteboardUserAuthenticationFactoryTest {
     @NotNull
     private UserConfiguration getUserConfiguration() {
         return userConfiguration;
+    }
+
+    @Test
+    public void testNoServiceNoDefault() {
+        WhiteboardUserAuthenticationFactory factory = new WhiteboardUserAuthenticationFactory(null);
+        assertNull(factory.getAuthentication(getUserConfiguration(), root, "userId"));
     }
 
     @Test
