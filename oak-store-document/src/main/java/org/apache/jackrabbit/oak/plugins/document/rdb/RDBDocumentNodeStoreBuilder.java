@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
@@ -82,9 +81,8 @@ public class RDBDocumentNodeStoreBuilder
      */
     public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource, RDBOptions options) {
         this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(documentStoreDataSource, this, options));
-        if (blobStore == null) {
-            GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource, options);
-            setGCBlobStore(s);
+        if (this.blobStoreSupplier == null) {
+            this.blobStoreSupplier = memoize(() -> new RDBBlobStore(blobStoreDataSource, options));
         }
         return thisBuilder();
     }

@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,10 +225,10 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         this.documentStoreSupplier = memoize(() -> new MongoDocumentStore(
                 client, db, MongoDocumentNodeStoreBuilderBase.this));
 
-        if (this.blobStore == null) {
-            GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
-            setGCBlobStore(s);
+        if (this.blobStoreSupplier == null) {
+            this.blobStoreSupplier = memoize(() -> new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L));
         }
+
         return thisBuilder();
     }
 }
