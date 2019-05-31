@@ -44,9 +44,12 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,11 +60,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     /**
      * Creates a {@linkplain RDBBlobStore} instance using the provided
-     * {@link DataSource} using the given {@link RDBOptions}.
+     * {@link DataSource} using the given {@link DocumentNodeStoreBuilder} and
+     * {@link RDBOptions}.
      */
-    public RDBBlobStore(DataSource ds, RDBOptions options) {
+    public RDBBlobStore(@NotNull DataSource ds, @Nullable DocumentNodeStoreBuilder<?> builder, @Nullable RDBOptions options) {
         try {
-            initialize(ds, options);
+            initialize(ds, builder, options == null ? new RDBOptions() : options);
         } catch (Exception ex) {
             throw new DocumentStoreException("initializing RDB blob store", ex);
         }
@@ -69,10 +73,20 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     /**
      * Creates a {@linkplain RDBBlobStore} instance using the provided
-     * {@link DataSource} using default {@link RDBOptions}.
+     * {@link DataSource} using default {@link DocumentNodeStoreBuilder} and the
+     * given {@link RDBOptions}.
      */
-    public RDBBlobStore(DataSource ds) {
-        this(ds, new RDBOptions());
+    public RDBBlobStore(@NotNull DataSource ds, @Nullable RDBOptions options) {
+        this(ds, null, options);
+    }
+
+    /**
+     * Creates a {@linkplain RDBBlobStore} instance using the provided
+     * {@link DataSource} using default {@link DocumentNodeStoreBuilder} and
+     * {@link RDBOptions}.
+     */
+    public RDBBlobStore(@NotNull DataSource ds) {
+        this(ds, null, null);
     }
 
     @Override
@@ -146,10 +160,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     protected String tnData;
     protected String tnMeta;
     private Set<String> tablesToBeDropped = new HashSet<String>();
+    private boolean readOnly;
 
+    private void initialize(DataSource ds, DocumentNodeStoreBuilder<?> builder, RDBOptions options) throws Exception {
 
-    private void initialize(DataSource ds, RDBOptions options) throws Exception {
-
+        this.readOnly = builder == null ? false : builder.getReadOnlyMode();
+ 
         this.tnData = RDBJDBCTools.createTableName(options.getTablePrefix(), "DATASTORE_DATA");
         this.tnMeta = RDBJDBCTools.createTableName(options.getTablePrefix(), "DATASTORE_META");
 
@@ -200,6 +216,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     // table does not appear to exist
                     con.rollback();
 
+                    LOG.debug("trying to read from '" + tableName + "'", ex);
+                    if (this.readOnly) {
+                        throw new SQLException("Would like to create table '" + tableName
+                                + "', but RDBBlobStore has been initialized in 'readonly' mode");
+                    }
+
                     createStatement = con.createStatement();
 
                     if (this.tnMeta.equals(tableName)) {
@@ -244,6 +266,10 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     protected void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
+        if (this.readOnly) {
+            throw new IOException("RDBBlobStore has been initialized in 'readonly' mode");
+        }
+
         try {
             storeBlockInDatabase(digest, level, data);
         } catch (SQLException e) {

@@ -23,7 +23,6 @@ import java.util.UUID;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class RDBDocumentNodeStoreBuilderTest {
@@ -42,7 +41,6 @@ public class RDBDocumentNodeStoreBuilderTest {
         }
     }
 
-    @Ignore("OAK-8251")
     @Test
     public void testReadOnlyBS() throws Exception {
         // see OAK-8251
