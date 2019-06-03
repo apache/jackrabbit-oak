@@ -19,9 +19,6 @@ package org.apache.jackrabbit.oak.run;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -29,17 +26,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import com.google.common.io.Closer;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
-
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-
-import java.io.File;
 
 /**
  * OFFLINE utility to delete the clusterId stored as hidden
@@ -87,35 +73,12 @@ class ResetClusterIdCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        OptionParser parser = new OptionParser();
-        OptionSet options = parser.parse(args);
-
-        if (options.nonOptionArguments().isEmpty()) {
-            System.out.println("usage: resetclusterid {<path>|<mongo-uri>}");
-            System.exit(1);
-        }
-
-        String source = options.nonOptionArguments().get(0).toString();
+        String help = "resetclusterid {<path>|<mongo-uri>|<jdbc-uri>}";
+        Utils.NodeStoreOptions opts = new Utils.NodeStoreOptions(help).parse(args);
 
         Closer closer = Closer.create();
         try {
-            NodeStore store;
-            if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
-                MongoClientURI uri = new MongoClientURI(source);
-                MongoClient client = new MongoClient(uri);
-                final DocumentNodeStore dns = newMongoDocumentNodeStoreBuilder()
-                        .setMongoDB(client, uri.getDatabase())
-                        .build();
-                closer.register(Utils.asCloseable(dns));
-                store = dns;
-            } else {
-                FileStore fileStore = fileStoreBuilder(new File(source))
-                    .withStrictVersionCheck(true)
-                    .build();
-                closer.register(fileStore);
-                store = SegmentNodeStoreBuilders.builder(fileStore).build();
-            }
-
+            NodeStore store = Utils.bootstrapNodeStore(opts, closer);
             deleteClusterId(store);
         } catch (Throwable e) {
             throw closer.rethrow(e);

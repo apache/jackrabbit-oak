@@ -624,7 +624,7 @@ Reset Cluster Id
 Resets the cluster id generated internally. Use the following command after stopping the server
 
     $ java -jar oak-run-*.jar resetclusterid \
-            { /path/to/oak/repository | mongodb://host:port/database }
+            { /path/to/oak/repository | mongodb://host:port/database | jdbc:...}
 
 The cluster id will be removed and will be generated on next server start up.
 
