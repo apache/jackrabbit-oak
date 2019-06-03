@@ -192,7 +192,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 } else {
                     Tree versionableTree = getVersionManager().getVersionable(tree, workspaceName);
                     if (versionableTree == null) {
-                        log.warn("Cannot retrieve versionable node for " + tree.getPath());
+                        log.warn("Cannot retrieve versionable node for {}", tree.getPath());
                         return EMPTY;
                     } else {
                         /*

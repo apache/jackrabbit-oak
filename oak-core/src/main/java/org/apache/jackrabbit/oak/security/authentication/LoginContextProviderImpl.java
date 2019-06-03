@@ -142,7 +142,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
                         loginConfig = null;
                     }
                 } catch (SecurityException e) {
-                    log.info("Failed to retrieve login configuration: using default. " + e);
+                    log.info("Failed to retrieve login configuration: using default. {}", e);
                 }
             }
 

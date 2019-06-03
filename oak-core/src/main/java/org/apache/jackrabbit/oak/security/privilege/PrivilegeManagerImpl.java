@@ -179,7 +179,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
             Set<Privilege> declaredAggregates = new HashSet<>(declaredAggregateNames.size());
             for (String oakName : declaredAggregateNames) {
                 if (oakName.equals(definition.getName())) {
-                    log.warn("Found cyclic privilege aggregation -> ignore declared aggregate " + oakName);
+                    log.warn("Found cyclic privilege aggregation -> ignore declared aggregate {}", oakName);
                     continue;
                 }
                 PrivilegeDefinition def = getPrivilegeDefinition(oakName);

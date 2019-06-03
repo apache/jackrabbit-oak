@@ -233,7 +233,7 @@ public class UserQueryManager {
 
         if (bound != null) {
             if (sortCol == null) {
-                log.warn("Ignoring bound {} since no sort order is specified");
+                log.warn("Ignoring bound {} since no sort order is specified", bound);
             } else {
                 Condition boundCondition = builder.property(sortCol, QueryUtil.getCollation(sortDir), bound);
                 if (condition == null) {
@@ -339,7 +339,7 @@ public class UserQueryManager {
                     return authorizableIds.add(input.getID());
                 }
             } catch (RepositoryException e) {
-                log.debug("Failed to retrieve authorizable ID " + e.getMessage());
+                log.debug("Failed to retrieve authorizable ID {}", e.getMessage());
             }
             return false;
         }
