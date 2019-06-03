@@ -159,6 +159,7 @@
                                     <include>org.apache.jackrabbit.oak.security.user.autosave</include>
                                     <include>org.apache.jackrabbit.oak.security.authentication.user</include>
                                     <include>org.apache.jackrabbit.oak.security.user.whiteboard</include>
+                                    <include>org.apache.jackrabbit.oak.security.authorization</include>
                                 </includes>
                                 <excludes>
                                     <exclude>*Test</exclude>
@@ -196,7 +197,6 @@
                                 <element>PACKAGE</element>
                                 <includes>
                                     <include>org.apache.jackrabbit.oak.security.authentication</include>
-                                    <include>org.apache.jackrabbit.oak.security.authorization</include>
                                     <include>org.apache.jackrabbit.oak.security.user.query</include>
                                     <include>org.apache.jackrabbit.oak.security.privilege</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization.accesscontrol</include>
