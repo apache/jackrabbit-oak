@@ -237,7 +237,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
         if  (numEntries < 0) {
             // numEntries unexpectedly turned negative
-            log.error("NumEntries counter for principal '"+principalName+"' turned negative -> removing 'rep:numPermissions' property.");
+            log.error("NumEntries counter for principal '{}' turned negative -> removing 'rep:numPermissions' property.", principalName);
             principalRoot.removeProperty(REP_NUM_PERMISSIONS);
         } else {
             principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries, Type.LONG);

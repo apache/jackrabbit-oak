@@ -259,7 +259,7 @@ public class AccessControlImporter implements ProtectedNodeImporter, AccessContr
             if (principal == null) {
                 switch (importBehavior) {
                     case ImportBehavior.IGNORE:
-                        log.debug("Unknown principal " + principalName + " -> Ignoring this ACE.");
+                        log.debug("Unknown principal {} -> Ignoring this ACE.", principalName);
                         ignore = true;
                         break;
                     case ImportBehavior.ABORT:
