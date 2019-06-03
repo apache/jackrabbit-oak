@@ -35,8 +35,8 @@
     <!-- enable execution of jacoco and set minimal line coverage -->
     <skip.coverage>false</skip.coverage>
       <minimum.line.coverage>0.77</minimum.line.coverage>
-      <minimum.branch.coverage>0.70</minimum.branch.coverage>  </properties>
-
+      <minimum.branch.coverage>0.70</minimum.branch.coverage>
+  </properties>
   <build>
     <plugins>
       <plugin>
@@ -102,6 +102,121 @@
           </excludes>
         </configuration>
       </plugin>
+        <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>pre-unit-test</id>
+                    <goals>
+                        <goal>prepare-agent</goal>
+                    </goals>
+                    <configuration>
+                        <skip>${skip.coverage}</skip>
+                        <destFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
+                        <propertyName>test.opts.coverage</propertyName>
+                    </configuration>
+                </execution>
+                <execution>
+                    <id>post-unit-test</id>
+                    <phase>test</phase>
+                    <goals>
+                        <goal>report</goal>
+                    </goals>
+                    <configuration>
+                        <skip>${skip.coverage}</skip>
+                        <dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
+                        <outputDirectory>${project.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+                    </configuration>
+                </execution>
+                <execution>
+                    <id>default-check</id>
+                    <goals>
+                        <goal>check</goal>
+                    </goals>
+                    <configuration>
+                        <dataFile>${project.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
+                        <rules>
+                            <rule>
+                                <element>BUNDLE</element>
+                                <limits>
+                                    <limit>
+                                        <counter>LINE</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>${minimum.line.coverage}</minimum>
+                                    </limit>
+                                    <limit>
+                                        <counter>BRANCH</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>${minimum.branch.coverage}</minimum>
+                                    </limit>
+                                </limits>
+                            </rule>
+                            <rule>
+                                <element>PACKAGE</element>
+                                <includes>
+                                    <include>org.apache.jackrabbit.oak.security.principal</include>
+                                    <include>org.apache.jackrabbit.oak.security.user.autosave</include>
+                                    <include>org.apache.jackrabbit.oak.security.authentication.user</include>
+                                    <include>org.apache.jackrabbit.oak.security.user.whiteboard</include>
+                                </includes>
+                                <excludes>
+                                    <exclude>*Test</exclude>
+                                </excludes>
+                                <limits>
+                                    <limit>
+                                        <counter>BRANCH</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>1.0</minimum>
+                                    </limit>
+                                </limits>
+                            </rule>
+                            <rule>
+                                <element>PACKAGE</element>
+                                <includes>
+                                    <include>org.apache.jackrabbit.oak.security.authorization.composite</include>
+                                    <include>org.apache.jackrabbit.oak.security.internal</include>
+                                    <include>org.apache.jackrabbit.oak.security.authorization.permission</include>
+                                    <include>org.apache.jackrabbit.oak.security.user</include>
+                                    <include>org.apache.jackrabbit.oak.security.authentication.token</include>
+                                    <include>org.apache.jackrabbit.oak.security.authorization.restriction</include>
+                                </includes>
+                                <excludes>
+                                    <exclude>*Test</exclude>
+                                </excludes>
+                                <limits>
+                                    <limit>
+                                        <counter>BRANCH</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>0.96</minimum>
+                                    </limit>
+                                </limits>
+                            </rule>
+                            <rule>
+                                <element>PACKAGE</element>
+                                <includes>
+                                    <include>org.apache.jackrabbit.oak.security.authentication</include>
+                                    <include>org.apache.jackrabbit.oak.security.authorization</include>
+                                    <include>org.apache.jackrabbit.oak.security.user.query</include>
+                                    <include>org.apache.jackrabbit.oak.security.privilege</include>
+                                    <include>org.apache.jackrabbit.oak.security.authorization.accesscontrol</include>
+                                </includes>
+                                <excludes>
+                                    <exclude>*Test</exclude>
+                                </excludes>
+                                <limits>
+                                    <limit>
+                                        <counter>BRANCH</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>0.88</minimum>
+                                    </limit>
+                                </limits>
+                            </rule>
+                        </rules>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
     </plugins>
   </build>
 
