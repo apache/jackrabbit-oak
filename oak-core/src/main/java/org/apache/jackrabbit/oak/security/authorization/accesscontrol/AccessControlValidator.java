@@ -302,11 +302,13 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private final class Entry {
 
+        private final boolean isAllow;
         private final String principalName;
         private final PrivilegeBits privilegeBits;
         private final Set<Restriction> restrictions;
 
         private Entry(String path, Tree aceTree) {
+            isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
             principalName = aceTree.getProperty(REP_PRINCIPAL_NAME).getValue(Type.STRING);
             privilegeBits = privilegeBitsProvider.getBits(aceTree.getProperty(REP_PRIVILEGES).getValue(Type.NAMES));
             restrictions = restrictionProvider.readRestrictions(path, aceTree);
@@ -314,7 +316,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
         @Override
         public int hashCode() {
-            return Objects.hashCode(principalName, privilegeBits, restrictions);
+            return Objects.hashCode(principalName, privilegeBits, restrictions, isAllow);
         }
 
         @Override
@@ -324,7 +326,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             }
             if (o instanceof Entry) {
                 Entry other = (Entry) o;
-                return Objects.equal(principalName, other.principalName)
+                return isAllow ==  other.isAllow
+                        && Objects.equal(principalName, other.principalName)
                         && privilegeBits.equals(other.privilegeBits)
                         && restrictions.equals(other.restrictions);
             }
