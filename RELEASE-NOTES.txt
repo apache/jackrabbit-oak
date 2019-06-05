@@ -106,6 +106,7 @@ Bug
     [OAK-8369] - Misplace checkNotNull in CacheValidator
     [OAK-8372] - DeclaredMembershipPredicate contains redundant lookup
     of groupTree
+    [OAK-8382] - release doesn't work any more for oak-run
 
 New Feature
 
@@ -134,6 +135,7 @@ Improvement
     for admin sessions
     [OAK-8241] - Add benchmark for transient Node.setProperty()
     [OAK-8247] - Add non-admin mode for Node.isNodeType() benchmark
+    [OAK-8249] - NodeImpl#isNodeType could load mixin info lazily
     [OAK-8256] - PrincipalManagerImplTest uses Guava beta methods
     [OAK-8263] - Simplify PermissionEntry.compareTo
     [OAK-8265] - Add nullable/notnull annotations to
@@ -142,6 +144,7 @@ Improvement
     and CompositeTreePermission
     [OAK-8270] - Add variant of PermissionUtil.getReadOnlyTree that
     never returns null
+    [OAK-8283] - Make LazyValue implement Supplier
     [OAK-8284] - Improvements to EntryPredicate
     [OAK-8301] - Ensure travis-ci uses trusty image
     [OAK-8304] - VersionablePathHook: Diff.setVersionablePath never
@@ -186,7 +189,6 @@ Task
     [OAK-8240] - Improve test coverage for
     org.apache.jackrabbit.oak.security.authorization.permission
     [OAK-8248] - Update Oak trunk and 1.10 to Jackrabbit 2.18.2
-    [OAK-8255] - update Apache parent pom to version 21
     [OAK-8277] - Run tests on travis-ci.org on MongoDB 4.0.x
     [OAK-8286] - Update jetbrains nullability annotations to 17.0.0
     [OAK-8295] - Update version of jackrabbit dependency
@@ -214,6 +216,7 @@ Task
 Documentation
 
     [OAK-8322] - Create documentation for Oakathons
+
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
