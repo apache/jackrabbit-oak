@@ -228,7 +228,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private void checkValidAccessControlEntry(@NotNull Tree aceNode) throws CommitFailedException {
         Tree parent = aceNode.getParent();
-        if (!parent.exists() || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
+        if (!NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
             throw accessViolation(7, "Isolated access control entry at " + aceNode.getPath());
         }
         checkValidPrincipal(aceNode);
