@@ -31,6 +31,9 @@ import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -91,6 +94,7 @@ import java.util.Set;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -99,6 +103,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for the default {@code AccessControlManager} implementation.
@@ -2211,6 +2220,32 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
                 assertEquals(princ.getName(), ace.getPrincipal().getName());
             }
         }
+    }
+
+    @Test
+    public void testEffectivePolicyIsolatedAce() throws Exception {
+        Root r = spy(root);
+        ContentSession cs = when(spy(adminSession).getLatestRoot()).thenReturn(r).getMock();
+        when(r.getContentSession()).thenReturn(cs);
+
+        Tree testTree = r.getTree(testPath);
+        Tree ace = TreeUtil.addChild(testTree, "ace", NT_REP_GRANT_ACE);
+        ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
+        ace.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
+
+        when(r.getTree(testPath)).thenReturn(testTree);
+
+        ResultRow row = when(mock(ResultRow.class).getPath()).thenReturn(ace.getPath()).getMock();
+        Iterable rows = ImmutableList.of(row);
+        Result res = mock(Result.class);
+        when(res.getRows()).thenReturn(rows).getMock();
+        QueryEngine qe = mock(QueryEngine.class);
+        when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenReturn(res);
+        when(r.getQueryEngine()).thenReturn(qe);
+
+        AccessControlManagerImpl mgr = createAccessControlManager(r, getNamePathMapper());
+        AccessControlPolicy[] policies = mgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
+        assertPolicies(policies, 0);
     }
 
     @Test
