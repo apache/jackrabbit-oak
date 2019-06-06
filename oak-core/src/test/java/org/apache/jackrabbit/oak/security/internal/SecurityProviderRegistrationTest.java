@@ -19,9 +19,14 @@ package org.apache.jackrabbit.oak.security.internal;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
@@ -48,8 +53,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCol
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
@@ -66,12 +75,14 @@ import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 
+import javax.jcr.security.AccessControlPolicy;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
@@ -82,12 +93,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import static org.osgi.framework.Constants.SERVICE_PID;
+import static org.osgi.framework.Constants.SERVICE_RANKING;
 
 public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
@@ -849,5 +863,182 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
 
         registration.unbindTreeProvider(tp);
         assertNull(f.get(registration));
+    }
+
+    @Test
+    public void testBindAggregationFilter() throws Exception {
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("filterId", "a1", "a2"));
+
+        AggregationFilter filter = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.TRUE));
+        ServiceRegistration sr = context.bundleContext().registerService(AggregationFilter.class.getName(), filter, new Hashtable(ImmutableMap.of(SERVICE_PID, "filterId")));
+        registration.bindAggregationFilter(sr.getReference(), filter);
+
+        AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+        JackrabbitAccessControlManager acMgr = mock(JackrabbitAccessControlManager.class);
+        AccessControlPolicy policy = mock(AccessControlPolicy.class);
+        when(acMgr.getEffectivePolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy});
+        when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new AccessControlPolicy[] {policy});
+
+        AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[]{ac1, ac2}) {
+            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+            when(ac.getAccessControlManager(any(Root.class), any(NamePathMapper.class))).thenReturn(acMgr);
+            when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+            when(ac.getContext()).thenReturn(Context.DEFAULT);
+        }
+
+        registration.bindAuthorizationConfiguration(ac1, new Hashtable(ImmutableMap.of(SERVICE_PID, "a1")));
+        registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "a2")));
+
+        SecurityProvider service = context.getService(SecurityProvider.class);
+
+        AuthorizationConfiguration ac = service.getConfiguration(AuthorizationConfiguration.class);
+        assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+
+        PermissionProvider permissionProvider = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+        assertSame(pp, permissionProvider);
+        verify(filter, times(1)).stop(pp, ImmutableSet.of());
+
+        JackrabbitAccessControlManager am = (JackrabbitAccessControlManager) ac.getAccessControlManager(root, getNamePathMapper());
+
+        assertEquals(1, am.getEffectivePolicies(PathUtils.ROOT_PATH).length);
+        verify(filter, times(1)).stop(acMgr, PathUtils.ROOT_PATH);
+
+        assertEquals(1, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
+        verify(filter, times(1)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+    }
+
+    @Test
+    public void testUnbindAggregationFilter() {
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("a1", "a2", "f1"));
+
+        AggregationFilter filter = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.TRUE));
+        ServiceRegistration sr = context.bundleContext().registerService(AggregationFilter.class.getName(), filter, new Hashtable(ImmutableMap.of(SERVICE_PID, "f1")));
+        registration.bindAggregationFilter(sr.getReference(), filter);
+
+        AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+        AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[]{ac1, ac2}) {
+            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+            when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+            when(ac.getContext()).thenReturn(Context.DEFAULT);
+        }
+
+        registration.bindAuthorizationConfiguration(ac1, new Hashtable(ImmutableMap.of(SERVICE_PID, "a1")));
+        registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "a2")));
+
+        AuthorizationConfiguration ac = context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class);
+        assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+
+        PermissionProvider permissionProvider = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+        assertSame(pp, permissionProvider);
+        verify(filter, times(1)).stop(pp, ImmutableSet.of());
+
+        registration.unbindAggregationFilter(sr.getReference(), filter);
+        assertNull(context.getService(SecurityProvider.class));
+
+        registration.modified(configWithRequiredServiceIds("a1", "a2"));
+
+        context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+        // since unbind was called on filter -> no additional calls
+        verify(filter, times(1)).stop(pp, ImmutableSet.of());
+    }
+
+    @Test
+    public void testMultipleEvaluationFilterFalse() throws Exception {
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("f1", "f2", "ac1", "ac2"));
+
+        AggregationFilter filter1 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.FALSE));
+        ServiceRegistration sr1 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter1, new Hashtable(ImmutableMap.of(SERVICE_PID, "f1", SERVICE_RANKING, 100)));
+        registration.bindAggregationFilter(sr1.getReference(), filter1);
+
+        AggregationFilter filter2 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.FALSE));
+        ServiceRegistration sr2 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter2, new Hashtable(ImmutableMap.of(SERVICE_PID, "f2", SERVICE_RANKING, 200)));
+        registration.bindAggregationFilter(sr2.getReference(), filter2);
+
+        AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+        JackrabbitAccessControlManager acMgr = mock(JackrabbitAccessControlManager.class);
+        AccessControlPolicy policy = mock(AccessControlPolicy.class);
+        when(acMgr.getEffectivePolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy});
+        when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new AccessControlPolicy[] {policy});
+
+        AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[]{ac1, ac2}) {
+            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+            when(ac.getAccessControlManager(any(Root.class), any(NamePathMapper.class))).thenReturn(acMgr);
+            when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+            when(ac.getContext()).thenReturn(Context.DEFAULT);
+        }
+
+        registration.bindAuthorizationConfiguration(ac1, new Hashtable(ImmutableMap.of(SERVICE_PID, "ac1")));
+        registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "ac2")));
+
+        AuthorizationConfiguration config = context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class);
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+
+        verify(filter1, times(2)).stop(pp, ImmutableSet.of());
+        verify(filter2, times(2)).stop(pp, ImmutableSet.of());
+
+
+        JackrabbitAccessControlManager am = (JackrabbitAccessControlManager) config.getAccessControlManager(root, getNamePathMapper());
+
+        assertEquals(2, am.getEffectivePolicies(PathUtils.ROOT_PATH).length);
+        verify(filter1, times(2)).stop(acMgr, PathUtils.ROOT_PATH);
+        verify(filter2, times(2)).stop(acMgr, PathUtils.ROOT_PATH);
+
+        assertEquals(2, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
+        verify(filter1, times(2)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+        verify(filter2, times(2)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+    }
+
+    @Test
+    public void testMultipleEvaluationFilterTrue() throws Exception {
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("f1", "f2", "ac1", "ac2"));
+
+        AggregationFilter filter1 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.TRUE));
+        ServiceRegistration sr1 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter1, new Hashtable(ImmutableMap.of(SERVICE_PID, "f1", SERVICE_RANKING, 200)));
+        registration.bindAggregationFilter(sr1.getReference(), filter1);
+
+        AggregationFilter filter2 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.TRUE));
+        ServiceRegistration sr2 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter2, new Hashtable(ImmutableMap.of(SERVICE_PID, "f2", SERVICE_RANKING, 100)));
+        registration.bindAggregationFilter(sr2.getReference(), filter2);
+
+        AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+        JackrabbitAccessControlManager acMgr = mock(JackrabbitAccessControlManager.class);
+        AccessControlPolicy policy = mock(AccessControlPolicy.class);
+        when(acMgr.getEffectivePolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy});
+        when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new AccessControlPolicy[] {policy});
+
+        AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[]{ac1, ac2}) {
+            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+            when(ac.getAccessControlManager(any(Root.class), any(NamePathMapper.class))).thenReturn(acMgr);
+            when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+            when(ac.getContext()).thenReturn(Context.DEFAULT);
+        }
+
+        registration.bindAuthorizationConfiguration(ac1, new Hashtable(ImmutableMap.of(SERVICE_PID, "ac1")));
+        registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "ac2")));
+
+        AuthorizationConfiguration config = context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class);
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+
+        verify(filter1, never()).stop(pp, ImmutableSet.of());
+        verify(filter2, times(1)).stop(pp, ImmutableSet.of());
+
+        JackrabbitAccessControlManager am = (JackrabbitAccessControlManager) config.getAccessControlManager(root, getNamePathMapper());
+
+        assertEquals(1, am.getEffectivePolicies(PathUtils.ROOT_PATH).length);
+        verify(filter1, never()).stop(acMgr, PathUtils.ROOT_PATH);
+        verify(filter2, times(1)).stop(acMgr, PathUtils.ROOT_PATH);
+
+        assertEquals(1, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
+        verify(filter1, never()).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+        verify(filter2, times(1)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+
     }
 }

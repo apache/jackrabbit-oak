@@ -16,31 +16,42 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import java.security.Principal;
-import java.util.Collections;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlManager;
-
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.mockito.Mockito;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlManager;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTest {
 
@@ -146,8 +157,8 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
     public void testMultipleRestrictionProvider() {
         // 2 authorization configuration with different RestrictionProvider
         AuthorizationConfiguration ac = createAuthorizationConfigurationImpl();
-        AuthorizationConfiguration ac2 = Mockito.mock(AuthorizationConfiguration.class);
-        when(ac2.getRestrictionProvider()).thenReturn(Mockito.mock(RestrictionProvider.class));
+        AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+        when(ac2.getRestrictionProvider()).thenReturn(mock(RestrictionProvider.class));
         when(ac2.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
 
         CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac, ac2);
@@ -160,7 +171,7 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
     public void testRedundantRestrictionProvider() {
         // 2 authorization configuration sharing the same RestrictionProvider
         AuthorizationConfiguration ac = createAuthorizationConfigurationImpl();
-        AuthorizationConfiguration ac2 = Mockito.mock(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
         when(ac2.getRestrictionProvider()).thenReturn(ac.getRestrictionProvider());
         when(ac2.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
 
@@ -203,5 +214,48 @@ public class CompositeAuthorizationConfigurationTest extends AbstractSecurityTes
         RestrictionProvider rp = cc.getRestrictionProvider();
         assertFalse(rp instanceof CompositeRestrictionProvider);
         assertSame(RestrictionProvider.EMPTY, rp);
+    }
+
+    @Test
+    public void testDefaultEvaluationFilter() {
+        PermissionProvider pp = mock(PermissionProvider.class, withSettings().extraInterfaces(AggregatedPermissionProvider.class));
+        AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] {ac1, ac2}) {
+            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+            when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+            when(ac.getContext()).thenReturn(Context.DEFAULT);
+        }
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac1, ac2);
+        PermissionProvider permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+        permissionProvider.refresh();
+
+        verify(pp, times(2)).refresh();
+    }
+
+    @Test
+    public void testAbortingEvaluationFilter() {
+        Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
+        AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+        AggregationFilter filter = when(mock(AggregationFilter.class).stop(pp, principalSet)).thenReturn(true).getMock();
+
+        AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+        AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+        for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] {ac1, ac2}) {
+            when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+            when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+            when(ac.getContext()).thenReturn(Context.DEFAULT);
+        }
+        CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac1, ac2);
+        cc.withAggregationFilter(filter);
+
+        PermissionProvider permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), principalSet);
+        permissionProvider.refresh();
+
+        Set<Principal> nonMatchingSet = adminSession.getAuthInfo().getPrincipals();
+        permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), nonMatchingSet);
+        permissionProvider.refresh();
+
+        verify(pp, times(3)).refresh();
     }
 }

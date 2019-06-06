@@ -17,15 +17,18 @@
 package org.apache.jackrabbit.oak.security.internal;
 
 import java.io.Closeable;
+import java.security.Principal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
@@ -49,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeToke
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
@@ -62,6 +67,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
@@ -81,6 +87,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closer;
+
+import javax.jcr.security.AccessControlManager;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
@@ -156,6 +164,7 @@ public class SecurityProviderRegistration {
     private final SortedMap<ServiceReference, AuthorizableActionProvider> authorizableActionProviders = Collections.synchronizedSortedMap(new TreeMap<>());
     private final SortedMap<ServiceReference, RestrictionProvider> restrictionProviders = Collections.synchronizedSortedMap(new TreeMap<>());
     private final SortedMap<ServiceReference, UserAuthenticationFactory> userAuthenticationFactories = Collections.synchronizedSortedMap(new TreeMap<>());
+    private final SortedMap<ServiceReference, AggregationFilter> aggregationFilters = Collections.synchronizedSortedMap(new TreeMap<>());
 
     private RootProvider rootProvider;
     private TreeProvider treeProvider;
@@ -424,6 +433,26 @@ public class SecurityProviderRegistration {
         maybeUnregister();
     }
 
+    @Reference(
+            name = "aggregationFilters", service = AggregationFilter.class,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC)
+    public void bindAggregationFilter(@NotNull ServiceReference serviceReference, @NotNull AggregationFilter aggregationFilter) {
+        synchronized (this) {
+            aggregationFilters.put(serviceReference, aggregationFilter);
+            addCandidate(serviceReference);
+        }
+        maybeRegister();
+    }
+
+    public void unbindAggregationFilter(@NotNull ServiceReference serviceReference, @NotNull AggregationFilter aggregationFilter) {
+        synchronized (this) {
+            aggregationFilters.remove(serviceReference);
+            removeCandidate(serviceReference);
+        }
+        maybeUnregister();
+    }
+
     private void maybeRegister() {
         BundleContext context;
 
@@ -557,6 +586,7 @@ public class SecurityProviderRegistration {
 
         ConfigurationParameters authorizationParams = ConfigurationParameters
                 .of(AccessControlConstants.PARAM_RESTRICTION_PROVIDER, createWhiteboardRestrictionProvider());
+        authorizationConfiguration.withAggregationFilter(createAggregationFilter());
 
         return SecurityProviderBuilder.newBuilder().withRootProvider(rootProvider).withTreeProvider(treeProvider)
                 .with(authenticationConfiguration, EMPTY, privilegeConfiguration, EMPTY, userConfiguration, userParams,
@@ -619,6 +649,49 @@ public class SecurityProviderRegistration {
             }
 
         };
+    }
+
+    private AggregationFilter createAggregationFilter() {
+        List<AggregationFilter> filters;
+        synchronized (aggregationFilters) {
+            filters = newArrayList(aggregationFilters.values());
+        }
+        switch (filters.size()) {
+            case 0: return AggregationFilter.DEFAULT;
+            case 1: return filters.get(0);
+            default:
+                return new AggregationFilter() {
+                    @Override
+                    public boolean stop(@NotNull AggregatedPermissionProvider permissionProvider, @NotNull Set<Principal> principals) {
+                        for (AggregationFilter f : filters) {
+                            if (f.stop(permissionProvider, principals)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public boolean stop(@NotNull JackrabbitAccessControlManager accessControlManager, @NotNull Set<Principal> principals) {
+                        for (AggregationFilter f : filters) {
+                            if (f.stop(accessControlManager, principals)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public boolean stop(@NotNull AccessControlManager accessControlManager, @Nullable String absPath) {
+                        for (AggregationFilter f : filters) {
+                            if (f.stop(accessControlManager, absPath)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                };
+        }
     }
 
     private void addCandidate(Map<String, Object> properties) {
