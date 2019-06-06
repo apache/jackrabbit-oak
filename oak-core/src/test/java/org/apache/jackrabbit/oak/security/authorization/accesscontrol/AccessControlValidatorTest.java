@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
@@ -25,6 +26,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -57,6 +59,8 @@ import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -90,6 +94,7 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
     @After
     public void after() throws Exception {
         try {
+            root.refresh();
             Tree testRoot = root.getTree(testPath);
             if (testRoot.exists()) {
                 testRoot.remove();
@@ -109,6 +114,25 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         return new AccessControlValidatorProvider((AuthorizationConfigurationImpl) cac.getDefaultConfig());
     }
 
+    @NotNull
+    private Validator createRootValidator(@NotNull Tree rootTree) {
+        NodeState ns = getTreeProvider().asNodeState(rootTree);
+        return createValidatorProvider().getRootValidator(ns, ns, new CommitInfo("sid", null));
+    }
+
+    @NotNull
+    private Tree createPolicy(@NotNull Tree tree, boolean createRestrictionNode) throws AccessDeniedException {
+        tree.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+
+        Tree acl = TreeUtil.addChild(tree, REP_POLICY, NT_REP_ACL);
+        acl.setOrderableChildren(true);
+        Tree ace = createACE(acl, aceName, NT_REP_GRANT_ACE, testPrincipal.getName(), JCR_READ);
+        if (createRestrictionNode) {
+            TreeUtil.addChild(ace, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        }
+        return acl;
+    }
+
     private NodeUtil createAcl() throws AccessDeniedException {
         NodeUtil testRoot = getTestRoot();
         testRoot.setNames(JcrConstants.JCR_MIXINTYPES, MIX_REP_ACCESS_CONTROLLABLE);
@@ -124,6 +148,20 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
         ace.setString(REP_PRINCIPAL_NAME, principalName);
         ace.setNames(REP_PRIVILEGES, privilegeNames);
         return ace;
+    }
+
+    @NotNull
+    private static Tree createACE(@NotNull Tree acl, @NotNull String aceName, @NotNull String ntName, @NotNull String principalName, @NotNull String... privilegeNames) throws AccessDeniedException {
+        Tree ace = TreeUtil.addChild(acl, aceName, ntName);
+        ace.setProperty(REP_PRINCIPAL_NAME, principalName);
+        ace.setProperty(REP_PRIVILEGES, ImmutableList.copyOf(privilegeNames), Type.NAMES);
+        return ace;
+    }
+
+    private static CommitFailedException assertCommitFailedException(@NotNull CommitFailedException e, @NotNull String type, int expectedCode) {
+        assertTrue(e.isOfType(type));
+        assertEquals(expectedCode, e.getCode());
+        return e;
     }
 
     @Test
@@ -548,6 +586,68 @@ public class AccessControlValidatorTest extends AbstractSecurityTest implements 
             assertEquals(2, e.getCode());
         } finally {
             root.refresh();
+        }
+    }
+
+
+
+    @Test(expected = CommitFailedException.class)
+    public void testAddEntyWithEmptyPrivileges() throws Exception {
+        Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+        Tree policy = createPolicy(rootTree, false);
+        Tree entry = policy.getChild(aceName);
+        entry.setProperty(REP_PRIVILEGES, ImmutableList.of(), Type.NAMES);
+
+        Validator v = createRootValidator(rootTree);
+        try {
+            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+        } catch (CommitFailedException e) {
+            throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 9);
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testAddEntyWithNullrivileges() throws Exception {
+        Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+        Tree policy = createPolicy(rootTree, false);
+        Tree entry = policy.getChild(aceName);
+        entry.removeProperty(REP_PRIVILEGES);
+
+        Validator v = createRootValidator(rootTree);
+        try {
+            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+        } catch (CommitFailedException e) {
+            throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 9);
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testAddEntyWithEmptyPrincipalName() throws Exception {
+        Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+        Tree policy = createPolicy(rootTree, false);
+        Tree entry = policy.getChild(aceName);
+        entry.setProperty(REP_PRINCIPAL_NAME, "");
+
+        Validator v = createRootValidator(rootTree);
+        try {
+            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+        } catch (CommitFailedException e) {
+            throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 8);
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testAddEntyWithNullPrincipalName() throws Exception {
+        Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+        Tree policy = createPolicy(rootTree, false);
+        Tree entry = policy.getChild(aceName);
+        entry.removeProperty(REP_PRINCIPAL_NAME);
+
+        Validator v = createRootValidator(rootTree);
+        try {
+            v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+        } catch (CommitFailedException e) {
+            throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 8);
         }
     }
 }
