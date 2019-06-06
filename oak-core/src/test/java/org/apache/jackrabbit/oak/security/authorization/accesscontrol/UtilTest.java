@@ -21,19 +21,33 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UtilTest extends AbstractSecurityTest {
 
@@ -63,6 +77,42 @@ public class UtilTest extends AbstractSecurityTest {
     @Test(expected = AccessControlException.class)
     public void testCheckValidPrincipalForEmpty() throws Exception {
         Util.checkValidPrincipal(new PrincipalImpl(""), getPrincipalManager(root));
+    }
+
+    @Test
+    public void testIsAceNonExistingTree() {
+        Tree t = when(mock(Tree.class).exists()).thenReturn(false).getMock();
+        assertFalse(Util.isACE(t, ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper())));
+    }
+
+    @Test
+    public void testIsAceOtherTree() {
+        assertFalse(Util.isACE(root.getTree(PathUtils.ROOT_PATH), ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper())));
+    }
+
+    @Test
+    public void testIsAce() {
+        Tree t = when(mock(Tree.class).exists()).thenReturn(true).getMock();
+        when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_DENY_ACE, Type.NAME));
+        assertTrue(Util.isACE(t, ReadOnlyNodeTypeManager.getInstance(root, getNamePathMapper())));
+    }
+
+    @Test
+    public void testGetImportBehaviorDefault() {
+        AuthorizationConfiguration config = when(mock(AuthorizationConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.EMPTY).getMock();
+        assertSame(ImportBehavior.ABORT, Util.getImportBehavior(config));
+    }
+
+    @Test
+    public void testGetImportBehaviorInvalid() {
+        AuthorizationConfiguration config = when(mock(AuthorizationConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, "invalid")).getMock();
+        assertSame(ImportBehavior.ABORT, Util.getImportBehavior(config));
+    }
+
+    @Test
+    public void testGetImportBehavior() {
+        AuthorizationConfiguration config = when(mock(AuthorizationConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT)).getMock();
+        assertSame(ImportBehavior.BESTEFFORT, Util.getImportBehavior(config));
     }
 
     @Test

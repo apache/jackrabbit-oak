@@ -128,7 +128,7 @@ public class EntryTest extends AbstractAccessControlTest {
             Privilege[] privs = new Privilege[]{
                     acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)
             };
-            createEntry(null, privs, true);
+            createEntry(null, privs, false);
             fail("Principal must not be null");
         } catch (AccessControlException e) {
             // success
