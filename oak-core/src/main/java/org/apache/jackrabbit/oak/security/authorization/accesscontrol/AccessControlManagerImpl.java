@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,7 +46,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -381,7 +379,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Root r = getLatestRoot();
 
         Result aceResult = searchAces(principals, r);
-        Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new AcListComparator());
+        Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new PolicyComparator());
 
         Set<String> paths = Sets.newHashSet();
         Predicate<Tree> predicate = new PrincipalPredicate(principals);
@@ -766,29 +764,6 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         @Override
         public boolean apply(@Nullable Tree aceTree) {
             return aceTree != null && Iterables.contains(principalNames, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
-        }
-    }
-
-    private static final class AcListComparator implements Comparator<JackrabbitAccessControlList> {
-        @Override
-        public int compare(JackrabbitAccessControlList list1, JackrabbitAccessControlList list2) {
-            if (list1.equals(list2)) {
-                return 0;
-            } else {
-                String p1 = list1.getPath();
-                String p2 = list2.getPath();
-
-                if (p1 == null) {
-                    return -1;
-                } else if (p2 == null) {
-                    return 1;
-                } else {
-                    int depth1 = PathUtils.getDepth(p1);
-                    int depth2 = PathUtils.getDepth(p2);
-                    return (depth1 == depth2) ? p1.compareTo(p2) : Ints.compare(depth1, depth2);
-                }
-
-            }
         }
     }
 }
