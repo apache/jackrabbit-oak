@@ -390,7 +390,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
 
             Tree accessControlledTree = r.getTree(Text.getRelativeParent(acePath, 2));
-            if (aclName.isEmpty() || !accessControlledTree.exists()) {
+            if (!POLICY_NODE_NAMES.contains(aclName) || !accessControlledTree.exists()) {
                 log.debug("Isolated access control entry -> ignore query result at {}", acePath);
                 continue;
             }
