@@ -29,7 +29,6 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -43,6 +42,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 abstract class ACL extends AbstractAccessControlList {
 
@@ -99,39 +100,7 @@ abstract class ACL extends AbstractAccessControlList {
             return false;
         }
 
-        for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
-            if (def.isMandatory()) {
-                String jcrName = getNamePathMapper().getJcrName(def.getName());
-                boolean mandatoryPresent;
-                if (def.getRequiredType().isArray()) {
-                    mandatoryPresent = (mvRestrictions != null && mvRestrictions.containsKey(jcrName));
-                } else {
-                    mandatoryPresent = (restrictions != null && restrictions.containsKey(jcrName));
-                }
-                if (!mandatoryPresent) {
-                    throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
-                }
-            }
-        }
-
-        Set<Restriction> rs;
-        if (restrictions == null && mvRestrictions == null) {
-            rs = Collections.emptySet();
-        } else {
-            rs = new HashSet<>();
-            if (restrictions != null) {
-                for (Map.Entry<String, Value> restrEntry : restrictions.entrySet()) {
-                    String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
-                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
-                }
-            }
-            if (mvRestrictions != null) {
-                for (Map.Entry<String, Value[]> restrEntry : mvRestrictions.entrySet()) {
-                    String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
-                    rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
-                }
-            }
-        }
+        Set<Restriction> rs = validateRestrictions((restrictions == null) ? Collections.emptyMap() : restrictions, (mvRestrictions == null) ? Collections.emptyMap() : mvRestrictions);
 
         ACE entry = createACE(principal, getPrivilegeBits(privileges), isAllow, rs);
         if (entries.contains(entry)) {
@@ -194,45 +163,40 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     private boolean internalAddEntry(@NotNull ACE entry) throws RepositoryException {
-        final Principal principal = entry.getPrincipal();
-        List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, new Predicate<ACE>() {
-            @Override
-            public boolean apply(@Nullable ACE ace) {
-                return (ace != null) && ace.getPrincipal().getName().equals(principal.getName());
-            }
-        }));
+        final String principalName = entry.getPrincipal().getName();
+        final Set<Restriction> restrictions = entry.getRestrictions();
+        List<ACE> subList = Lists.newArrayList(Iterables.filter(entries, ace ->
+                principalName.equals(checkNotNull(ace).getPrincipal().getName()) && restrictions.equals(ace.getRestrictions())));
 
         boolean addEntry = true;
         for (ACE existing : subList) {
             PrivilegeBits existingBits = PrivilegeBits.getInstance(existing.getPrivilegeBits());
             PrivilegeBits entryBits = entry.getPrivilegeBits();
-            if (entry.getRestrictions().equals(existing.getRestrictions())) {
-                if (entry.isAllow() == existing.isAllow()) {
-                    if (existingBits.includes(entryBits)) {
-                        // no changes
-                        return false;
-                    } else {
-                        // merge existing and new ace
-                        existingBits.add(entryBits);
-                        int index = entries.indexOf(existing);
-                        entries.remove(existing);
-                        entries.add(index, createACE(existing, existingBits));
-                        addEntry = false;
-                    }
+            if (entry.isAllow() == existing.isAllow()) {
+                if (existingBits.includes(entryBits)) {
+                    // no changes
+                    return false;
                 } else {
-                    // existing is complementary entry -> clean up redundant
-                    // privileges defined by the existing entry
-                    PrivilegeBits updated = PrivilegeBits.getInstance(existingBits).diff(entryBits);
-                    if (updated.isEmpty()) {
-                        // remove the existing entry as the new entry covers all privileges
-                        entries.remove(existing);
-                    } else if (!updated.includes(existingBits)) {
-                        // replace the existing entry having it's privileges adjusted
-                        int index = entries.indexOf(existing);
-                        entries.remove(existing);
-                        entries.add(index, createACE(existing, updated));
-                    } /* else: no collision that requires adjusting the existing entry.*/
+                    // merge existing and new ace
+                    existingBits.add(entryBits);
+                    int index = entries.indexOf(existing);
+                    entries.remove(existing);
+                    entries.add(index, createACE(existing, existingBits));
+                    addEntry = false;
                 }
+            } else {
+                // existing is complementary entry -> clean up redundant
+                // privileges defined by the existing entry
+                PrivilegeBits updated = PrivilegeBits.getInstance(existingBits).diff(entryBits);
+                if (updated.isEmpty()) {
+                    // remove the existing entry as the new entry covers all privileges
+                    entries.remove(existing);
+                } else if (!updated.includes(existingBits)) {
+                    // replace the existing entry having it's privileges adjusted
+                    int index = entries.indexOf(existing);
+                    entries.remove(existing);
+                    entries.add(index, createACE(existing, updated));
+                } /* else: no collision that requires adjusting the existing entry.*/
             }
         }
         // finally add the new entry at the end of the list
@@ -244,5 +208,33 @@ abstract class ACL extends AbstractAccessControlList {
 
     private ACE createACE(@NotNull ACE existing, @NotNull PrivilegeBits newPrivilegeBits) throws RepositoryException {
         return createACE(existing.getPrincipal(), newPrivilegeBits, existing.isAllow(), existing.getRestrictions());
+    }
+
+    @NotNull
+    private Set<Restriction> validateRestrictions(@NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException {
+        Iterable<RestrictionDefinition> mandatoryDefs = Iterables.filter(getRestrictionProvider().getSupportedRestrictions(getOakPath()), RestrictionDefinition::isMandatory);
+        for (RestrictionDefinition def : mandatoryDefs) {
+            String jcrName = getNamePathMapper().getJcrName(def.getName());
+            boolean mandatoryPresent;
+            if (def.getRequiredType().isArray()) {
+                mandatoryPresent = mvRestrictions.containsKey(jcrName);
+            } else {
+                mandatoryPresent = restrictions.containsKey(jcrName);
+            }
+            if (!mandatoryPresent) {
+                throw new AccessControlException("Mandatory restriction " + jcrName + " is missing.");
+            }
+        }
+
+        Set<Restriction> rs = new HashSet<>();
+        for (Map.Entry<String, Value> restrEntry : restrictions.entrySet()) {
+            String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
+            rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
+        }
+        for (Map.Entry<String, Value[]> restrEntry : mvRestrictions.entrySet()) {
+            String oakName = getNamePathMapper().getOakName(restrEntry.getKey());
+            rs.add(getRestrictionProvider().createRestriction(getOakPath(), oakName, restrEntry.getValue()));
+        }
+        return rs;
     }
 }
