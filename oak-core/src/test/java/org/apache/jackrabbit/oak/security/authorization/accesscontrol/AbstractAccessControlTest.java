@@ -31,8 +31,10 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -41,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
@@ -62,8 +63,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
     public void before() throws Exception {
         super.before();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"), getNamePathMapper());
-        rootNode.addChild("testPath", JcrConstants.NT_UNSTRUCTURED);
+        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testPath", JcrConstants.NT_UNSTRUCTURED);
         root.commit();
 
         testPrincipal = getTestUser().getPrincipal();
@@ -89,33 +89,37 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
         }
     }
 
+    @NotNull
     RestrictionProvider getRestrictionProvider() {
         return getConfig(AuthorizationConfiguration.class).getRestrictionProvider();
     }
 
+    @NotNull
     PrivilegeBitsProvider getBitsProvider() {
         return new PrivilegeBitsProvider(root);
     }
 
+    @NotNull
     List<ACE> createTestEntries() throws RepositoryException {
-        List<ACE> entries = new ArrayList(3);
+        List<ACE> entries = new ArrayList<>(3);
         for (int i = 0; i < 3; i++) {
-            entries.add(createEntry(
-                    new PrincipalImpl("testPrincipal" + i), true, null, PrivilegeConstants.JCR_READ));
+            entries.add(createEntry(new PrincipalImpl("testPrincipal" + i), true, null, PrivilegeConstants.JCR_READ));
         }
         return entries;
     }
 
-    ACE createEntry(Principal principal, boolean isAllow, Set<Restriction> restrictions, String... privilegeNames) throws RepositoryException {
+    @NotNull
+    ACE createEntry(@NotNull Principal principal, boolean isAllow, @Nullable Set<Restriction> restrictions, @NotNull String... privilegeNames) throws RepositoryException {
         return createEntry(principal, privilegesFromNames(privilegeNames), isAllow, restrictions);
     }
 
-    ACE createEntry(Principal principal, Privilege[] privileges, boolean isAllow)
-            throws RepositoryException {
+    @NotNull
+    ACE createEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow) throws RepositoryException {
         return createEntry(principal, privileges, isAllow, null);
     }
 
-    ACE createEntry(Principal principal, PrivilegeBits bits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException {
+    @NotNull
+    ACE createEntry(@NotNull Principal principal, @NotNull PrivilegeBits bits, boolean isAllow, @NotNull Set<Restriction> restrictions) throws RepositoryException {
         AccessControlPolicyIterator it = getAccessControlManager(root).getApplicablePolicies(TEST_PATH);
         while (it.hasNext()) {
             AccessControlPolicy policy = it.nextAccessControlPolicy();
@@ -127,30 +131,39 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
         throw new UnsupportedOperationException();
     }
 
+    @NotNull
     private ACE createEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Set<Restriction> restrictions)
             throws RepositoryException {
         ACL acl = createEmptyACL();
         return acl.createACE(principal, getBitsProvider().getBits(privileges, getNamePathMapper()), isAllow, restrictions);
     }
 
+    @NotNull
     ACL createEmptyACL() {
-        return createACL(TEST_PATH, Collections.<ACE>emptyList(), getNamePathMapper(), getRestrictionProvider());
+        return createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider());
     }
 
-    ACL createACL(@NotNull List<ACE> entries) {
-        return createACL(TEST_PATH, entries, namePathMapper, getRestrictionProvider());
-    }
-
+    @NotNull
     ACL createACL(@Nullable String jcrPath,
                   @NotNull List<ACE> entries,
                   @NotNull NamePathMapper namePathMapper) {
         return createACL(jcrPath, entries, namePathMapper, getRestrictionProvider());
     }
 
+    @NotNull
     ACL createACL(@Nullable String jcrPath,
                   @NotNull List<ACE> entries,
                   @NotNull NamePathMapper namePathMapper,
-                  final @NotNull RestrictionProvider restrictionProvider) {
+                  @NotNull RestrictionProvider restrictionProvider) {
+        return createACL(jcrPath, entries, namePathMapper, restrictionProvider, privilegeManager);
+    }
+
+    @NotNull
+    ACL createACL(@Nullable String jcrPath,
+                  @NotNull List<ACE> entries,
+                  @NotNull NamePathMapper namePathMapper,
+                  @NotNull RestrictionProvider restrictionProvider,
+                  @NotNull PrivilegeManager privilegeManager) {
         String path = (jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath);
         return new ACL(path, entries, namePathMapper) {
             @NotNull

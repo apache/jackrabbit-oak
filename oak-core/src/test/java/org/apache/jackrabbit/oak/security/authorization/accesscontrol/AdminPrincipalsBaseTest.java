@@ -27,12 +27,13 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
 public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
@@ -46,8 +47,8 @@ public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"), NamePathMapper.DEFAULT);
-        rootNode.addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
+        Tree rootNode = root.getTree(PathUtils.ROOT_PATH);
+        TreeUtil.addChild(rootNode, "testNode", JcrConstants.NT_UNSTRUCTURED);
 
         administrativePrincipal = getUserManager(root).createGroup(new PrincipalImpl(ADMINISTRATORS_PRINCIPAL_NAME)).getPrincipal();
         root.commit();

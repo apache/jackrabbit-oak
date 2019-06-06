@@ -309,8 +309,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         return new CommitFailedException(ACCESS_CONTROL, code, message);
     }
 
-     @NotNull
-     private ValidationEntry createAceEntry(@Nullable String path, @NotNull Tree aceTree) throws CommitFailedException {
+    @NotNull
+    private ValidationEntry createAceEntry(@Nullable String path, @NotNull Tree aceTree) throws CommitFailedException {
         String principalName = checkValidPrincipal(aceTree);
         PrivilegeBits privilegeBits = privilegeBitsProvider.getBits(getPrivilegeNames(aceTree));
         boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
