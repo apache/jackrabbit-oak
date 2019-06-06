@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.security.authorization.accesscontrol.ValidationEntry;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -84,8 +85,9 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
                 Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), treeProvider.createReadOnlyTree(ace));
 
-                AcEntry entry = new AcEntry(ace, index, isAllow, privilegeBits, restrictions);
-                List<AcEntry> list = entries.computeIfAbsent(entry.principalName, k -> new ArrayList<>());
+                String principalName = Text.escapeIllegalJcrChars(ace.getString(REP_PRINCIPAL_NAME));
+                AcEntry entry = new AcEntry(principalName, index, isAllow, privilegeBits, restrictions);
+                List<AcEntry> list = entries.computeIfAbsent(principalName, k -> new ArrayList<>());
                 list.add(entry);
                 index++;
             }
@@ -244,22 +246,12 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
     }
 
-    private class AcEntry {
+    private class AcEntry extends ValidationEntry {
 
-        private final String principalName;
-        private final PrivilegeBits privilegeBits;
-        private final boolean isAllow;
-        private final Set<Restriction> restrictions;
-        private final int index;
-
-        AcEntry(@NotNull NodeState node, int index,
+        AcEntry(@NotNull String principalName, int index,
                 boolean isAllow, @NotNull PrivilegeBits privilegeBits,
                 @NotNull Set<Restriction> restrictions) {
-            this.index = index;
-            this.principalName = Text.escapeIllegalJcrChars(node.getString(REP_PRINCIPAL_NAME));
-            this.privilegeBits = privilegeBits;
-            this.isAllow = isAllow;
-            this.restrictions = restrictions;
+            super(principalName, privilegeBits, isAllow, restrictions, index);
         }
 
         private void writeToPermissionStore(@NotNull NodeBuilder parent) {
@@ -273,7 +265,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
 
         @NotNull
-        PropertyState getPrivilegeBitsProperty() {
+        private PropertyState getPrivilegeBitsProperty() {
             return JcrAllUtil.asPropertyState(REP_PRIVILEGE_BITS, privilegeBits, bitsProvider);
         }
     }
