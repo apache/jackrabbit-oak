@@ -133,7 +133,7 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
     protected void afterSuite() throws Exception {
         SolrClient solrServer = serverProvider.getSolrServer();
         if (solrServer != null) {
-            solrServer.shutdown();
+            solrServer.close();
         }
     }
 }

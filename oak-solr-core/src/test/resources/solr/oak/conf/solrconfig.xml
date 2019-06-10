@@ -35,7 +35,7 @@
          that you fully re-index after changing this setting as it can
          affect both how text is indexed and queried.
     -->
-    <luceneMatchVersion>5.5.5</luceneMatchVersion>
+    <luceneMatchVersion>6.6.6</luceneMatchVersion>
 
     <!-- lib directives can be used to instruct Solr to load an Jars
        identified and use them to resolve any "plugins" specified in
@@ -910,8 +910,8 @@ current implementation relies on the updateLog feature being enabled. -->
        Admin Handlers - This will register all the standard admin
        RequestHandlers.
     -->
-    <requestHandler name="/admin/"
-                    class="solr.admin.AdminHandlers"/>
+<!--    <requestHandler name="/admin/"-->
+<!--                    class="solr.admin.AdminHandlers"/>-->
     <!-- This single handler is equivalent to the following... -->
     <!--
      <requestHandler name="/admin/luke"       class="solr.admin.LukeRequestHandler" />
