@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 
 /**
- * Configuration parameters for starting a {@link org.apache.solr.client.solrj.SolrServer}
+ * Configuration parameters for starting a {@link org.apache.solr.client.solrj.SolrClient}
  */
 public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<EmbeddedSolrServerProvider> {
 

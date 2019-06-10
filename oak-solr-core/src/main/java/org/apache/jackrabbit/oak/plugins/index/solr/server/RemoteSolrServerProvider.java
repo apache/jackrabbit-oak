@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
@@ -88,12 +89,11 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
         if (server instanceof HttpSolrClient) {
             String url = ((HttpSolrClient) server).getBaseURL();
-            ConcurrentUpdateSolrClient concurrentUpdateSolrServer = new ConcurrentUpdateSolrClient(url, 1000,
-                    Runtime.getRuntime().availableProcessors());
-            concurrentUpdateSolrServer.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
-            concurrentUpdateSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
-            concurrentUpdateSolrServer.blockUntilFinished();
-            server = concurrentUpdateSolrServer;
+            ConcurrentUpdateSolrClient s1 = new ConcurrentUpdateSolrClient.Builder(
+                    url).withQueueSize(1000).withThreadCount(Runtime.getRuntime().availableProcessors()).build();
+            s1.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
+            s1.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
+            server = s1;
         }
         return server;
     }
@@ -106,7 +106,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     private SolrClient initializeWithExistingHttpServer() throws IOException, SolrServerException {
         // try basic Solr HTTP client
-        HttpSolrClient httpSolrServer = new HttpSolrClient(remoteSolrServerConfiguration.getSolrHttpUrls()[0]);
+        HttpSolrClient httpSolrServer = new HttpSolrClient.Builder(remoteSolrServerConfiguration.getSolrHttpUrls()[0]).build();
         httpSolrServer.setConnectionTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
         httpSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
         SolrPingResponse ping = httpSolrServer.ping();
@@ -121,9 +121,11 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     private SolrClient initializeWithCloudSolrServer() throws IOException {
         // try SolrCloud client
-        CloudSolrClient cloudSolrServer = new CloudSolrClient(remoteSolrServerConfiguration.getSolrZkHost());
+        CloudSolrClient cloudSolrServer = new CloudSolrClient.Builder().withZkHost(Arrays.asList(
+                    remoteSolrServerConfiguration.getSolrZkHost().split(","))).build();
         cloudSolrServer.setZkConnectTimeout(remoteSolrServerConfiguration.getConnectionTimeout());
-        cloudSolrServer.setZkClientTimeout(remoteSolrServerConfiguration.getSocketTimeout());
+        cloudSolrServer.setSoTimeout(remoteSolrServerConfiguration.getSocketTimeout());
+
         cloudSolrServer.setIdField(OakSolrConfigurationDefaults.PATH_FIELD_NAME);
 
         if (connectToZK(cloudSolrServer)) {
@@ -216,16 +218,13 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
                     dir = tempDirectory;
                 }
                 log.debug("uploading config from {}", dir);
-                cloudSolrServer.uploadConfig(dir, solrCollection);
+                zkClient.upConfig(dir, solrCollection);
 
                 log.debug("creating collection {}", solrCollection);
 
-                CollectionAdminRequest.Create req = new CollectionAdminRequest.Create();
-                CollectionAdminResponse response = req.setCollectionName(solrCollection)
-                        .setReplicationFactor(remoteSolrServerConfiguration.getSolrReplicationFactor())
-                        .setConfigName(solrCollection)
-                        .setNumShards(remoteSolrServerConfiguration.getSolrShardsNo())
-                        .process(cloudSolrServer);
+                CollectionAdminRequest.Create req = CollectionAdminRequest.Create.createCollection(solrCollection,
+                        remoteSolrServerConfiguration.getSolrShardsNo(),remoteSolrServerConfiguration.getSolrReplicationFactor());
+                CollectionAdminResponse response = req.process(cloudSolrServer);
 
                 log.info("collection creation response {}", response);
 
