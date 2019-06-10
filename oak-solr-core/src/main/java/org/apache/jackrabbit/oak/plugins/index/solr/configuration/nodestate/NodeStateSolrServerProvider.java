@@ -22,7 +22,6 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrServer;
 
 /**
  * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} using configuration stored in a repository
@@ -67,15 +66,15 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
     @Override
     public void close() throws IOException {
         try {
-            getSolrServer().shutdown();
+            getSolrServer().close();
         } catch (Exception e) {
             // do nothing
         } try {
-            getIndexingSolrServer().shutdown();
+            getIndexingSolrServer().close();
         } catch (Exception e) {
             // do nothing
         } try {
-            getSearchingSolrServer().shutdown();
+            getSearchingSolrServer().close();
         } catch (Exception e) {
             // do nothing
         }
