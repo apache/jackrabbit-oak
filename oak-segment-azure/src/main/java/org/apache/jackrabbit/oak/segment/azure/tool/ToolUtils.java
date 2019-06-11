@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
@@ -108,7 +109,7 @@ public class ToolUtils {
         SegmentArchiveManager archiveManager = null;
         try {
             archiveManager = persistence.createArchiveManager(false, false, new IOMonitorAdapter(),
-                    new FileStoreMonitorAdapter());
+                    new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         } catch (IOException e) {
             throw new IllegalArgumentException(
                     "Could not access the Azure Storage. Please verify the path provided!");

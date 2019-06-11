@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 
 /**
  * This type is a main entry point for the segment node store persistence. It's
@@ -44,7 +45,7 @@ public interface SegmentNodeStorePersistence {
      * @throws IOException
      */
     SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor,
-            FileStoreMonitor fileStoreMonitor) throws IOException;
+                                               FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) throws IOException;
 
     /**
      * Check if the segment store already contains any segments
