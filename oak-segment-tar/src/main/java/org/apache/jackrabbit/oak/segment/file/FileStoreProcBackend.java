@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
@@ -55,7 +56,7 @@ class FileStoreProcBackend implements Backend {
     FileStoreProcBackend(AbstractFileStore fileStore, SegmentNodeStorePersistence persistence) throws IOException {
         this.fileStore = fileStore;
         this.persistence = persistence;
-        this.archiveManager = persistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
+        this.archiveManager = persistence.createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
     }
 
     @Override

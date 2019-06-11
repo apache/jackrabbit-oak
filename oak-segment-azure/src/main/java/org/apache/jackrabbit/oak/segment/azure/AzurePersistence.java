@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.*;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
@@ -36,7 +37,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Date;
 import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
 
@@ -49,7 +52,8 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
+    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+        azureRemoteStoreMonitor(remoteStoreMonitor);
         return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor);
     }
 
@@ -109,6 +113,30 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
         }
+    }
+
+    private void azureRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor){
+
+        OperationContext operationContext = new OperationContext();
+
+        operationContext.getGlobalRequestCompletedEventHandler().addListener(new StorageEvent<RequestCompletedEvent>() {
+
+            @Override
+            public void eventOccurred(RequestCompletedEvent eventArg) {
+                Date startDate = eventArg.getRequestResult().getStartDate();
+                Date stopDate = eventArg.getRequestResult().getStopDate();
+                long requestDuration = stopDate.getTime() - startDate.getTime();
+                remoteStoreMonitor.requestDuration(requestDuration, TimeUnit.MILLISECONDS);
+
+                Exception exception = eventArg.getRequestResult().getException();
+
+                if(exception == null){
+                    remoteStoreMonitor.requestCount();
+                }else {
+                    remoteStoreMonitor.requestError();
+                }
+            }
+        });
     }
 
 }
