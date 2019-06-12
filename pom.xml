@@ -37,6 +37,7 @@
 
   <modules>
     <module>oak-parent</module>
+    <module>oak-jackrabbit-api</module>
     <module>oak-commons</module>
     <module>oak-api</module>
     <module>oak-core-spi</module>
