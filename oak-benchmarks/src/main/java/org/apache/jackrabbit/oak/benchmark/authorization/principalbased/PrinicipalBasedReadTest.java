@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.security.internal.SecurityProviderHelper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.AggregationFilterImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.FilterProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.PrincipalBasedAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -264,7 +265,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
             context.registerInjectActivateService(new MountInfoProviderService());
 
             if (useAggregationFilter) {
-                // TODO: register 'AggregationFilter' if 'stop-evaluation' option is set
+                authorizationConfiguration.withAggregationFilter(new AggregationFilterImpl());
             }
 
             // register the authorization configuration to have filterprovider bound to it.
