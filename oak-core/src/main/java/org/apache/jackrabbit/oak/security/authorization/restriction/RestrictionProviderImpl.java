@@ -126,7 +126,7 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
                 } else if (REP_ITEM_NAMES.equals(name)) {
                     patterns.add(new ItemNamePattern(r.getProperty().getValue(Type.NAMES)));
                 } else {
-                    log.debug("Ignoring unsupported restriction " + name);
+                    log.debug("Ignoring unsupported restriction {}", name);
                 }
             }
             return CompositePattern.create(patterns);

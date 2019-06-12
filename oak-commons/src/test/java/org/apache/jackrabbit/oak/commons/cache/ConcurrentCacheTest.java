@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.commons.cache;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import junit.framework.Assert;
 import org.apache.jackrabbit.oak.commons.concurrent.Concurrent;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**

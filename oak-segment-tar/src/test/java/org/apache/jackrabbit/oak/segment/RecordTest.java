@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.Math.min;
 import static java.util.Collections.singletonList;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -30,6 +28,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;

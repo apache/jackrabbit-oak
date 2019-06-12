@@ -26,7 +26,9 @@ import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -36,14 +38,18 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
@@ -53,16 +59,25 @@ import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTest implements AccessControlConstants {
 
-    final NodeInfo aceInfo = new NodeInfo("anyAceName", NT_REP_GRANT_ACE, ImmutableList.of(), null);
+    final NodeInfo aceGrantInfo = new NodeInfo("grantAceName", NT_REP_GRANT_ACE, ImmutableList.of(), null);
+    final NodeInfo aceDenyInfo = new NodeInfo("denyAceName", NT_REP_DENY_ACE, ImmutableList.of(), null);
     final NodeInfo restrInfo = new NodeInfo("anyRestrName", NT_REP_RESTRICTIONS, ImmutableList.of(), null);
     final PropInfo unknownPrincipalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue("unknownPrincipal"));
 
@@ -80,7 +95,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         super.before();
 
         Tree t = root.getTree(PathUtils.ROOT_PATH).addChild("testNode");
-        t.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
+        t.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
 
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, t.getPath());
@@ -120,8 +135,9 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
     abstract String getImportBehavior();
 
-    Session mockJackrabbitSession() throws Exception {
-        JackrabbitSession s = Mockito.mock(JackrabbitSession.class);
+    @NotNull
+    private Session mockJackrabbitSession() throws Exception {
+        JackrabbitSession s = mock(JackrabbitSession.class);
         when(s.getPrincipalManager()).thenReturn(getPrincipalManager(root));
         when(s.getAccessControlManager()).thenReturn(getAccessControlManager(root));
         return s;
@@ -131,11 +147,12 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         return false;
     }
 
-    boolean init() throws Exception {
-        return importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider());
+    void init() throws Exception {
+        importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider());
     }
 
-    TextValue createTextValue(@NotNull String val) {
+    @NotNull
+    private TextValue createTextValue(@NotNull String val) {
         return new TextValue() {
             @Override
             public String getString() {
@@ -156,7 +173,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     }
 
     List<TextValue> createTextValues(@NotNull String... values) {
-        List<TextValue> l = new ArrayList();
+        List<TextValue> l = new ArrayList<>();
         for (String v : values) {
             l.add(createTextValue(v));
         }
@@ -165,8 +182,8 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
     //---------------------------------------------------------------< init >---
     @Test
-    public void testInitNoJackrabbitSession() throws Exception {
-        Session s = Mockito.mock(Session.class);
+    public void testInitNoJackrabbitSession() {
+        Session s = mock(Session.class);
         assertFalse(importer.init(s, root, getNamePathMapper(), false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 
@@ -197,10 +214,23 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         assertTrue(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 
+    @Test
+    public void testInitCausesRepositoryException() {
+        JackrabbitSession s = mock(JackrabbitSession.class, withSettings().defaultAnswer(new Answer() {
+
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                throw new RepositoryException();
+            }
+        }));
+        // session methods are only invoked for session-imports
+        assertEquals(isWorkspaceImport(), importer.init(s, root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
+    }
+
     //--------------------------------------------------------------< start >---
     @Test(expected = IllegalStateException.class)
     public void testStartNotInitialized() throws Exception {
-        importer.start(Mockito.mock(Tree.class));
+        importer.start(mock(Tree.class));
     }
 
     @Test
@@ -230,6 +260,13 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     }
 
     @Test
+    public void testStartAclTreeWrongPrimaryType() throws Exception {
+        init();
+        aclTree.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED);
+        assertFalse(importer.start(aclTree));
+    }
+
+    @Test
     public void testStartRepoPolicyTree() throws Exception {
         init();
 
@@ -248,9 +285,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         init();
 
         Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
-        Tree repoPolicy = accessControlledTree.addChild(REP_REPO_POLICY);
-        repoPolicy.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_ACL, Type.NAME);
-
+        Tree repoPolicy = TreeUtil.addChild(rootTree, REP_REPO_POLICY, NT_REP_ACL);
         assertFalse(importer.start(repoPolicy));
     }
 
@@ -259,16 +294,40 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         init();
 
         TreeUtil.addMixin(accessControlledTree, MIX_REP_REPO_ACCESS_CONTROLLABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
-        Tree repoPolicy = accessControlledTree.addChild(REP_REPO_POLICY);
-        repoPolicy.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_ACL, Type.NAME);
-
+        Tree repoPolicy = TreeUtil.addChild(accessControlledTree, REP_REPO_POLICY, NT_REP_ACL);
         assertFalse(importer.start(repoPolicy));
     }
 
+    @Test
+    public void testStartRepoPolicyTreeWrongPrimaryType() throws Exception {
+        init();
+        TreeUtil.addMixin(accessControlledTree, MIX_REP_REPO_ACCESS_CONTROLLABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        Tree repoPolicy = TreeUtil.addChild(accessControlledTree, REP_REPO_POLICY, NT_OAK_UNSTRUCTURED);
+        assertFalse(importer.start(repoPolicy));
+    }
+
+    @Test
+    public void testStartNoJackrabbitAccessControlList() throws Exception {
+        AccessControlList policy = mock(AccessControlList.class);
+        AccessControlManager acMgr = mock(AccessControlManager.class);
+        when(acMgr.getPolicies(anyString())).thenReturn(new AccessControlPolicy[] {policy});
+        JackrabbitSession s = mock(JackrabbitSession.class);
+        when(s.getAccessControlManager()).thenReturn(acMgr);
+        when(s.getPrincipalManager()).thenReturn(getPrincipalManager(root));
+
+        SecurityProvider sp = mock(SecurityProvider.class);
+        AuthorizationConfiguration ac = spy(getConfig(AuthorizationConfiguration.class));
+        when(ac.getAccessControlManager(root, getNamePathMapper())).thenReturn(acMgr);
+        when(sp.getConfiguration(AuthorizationConfiguration.class)).thenReturn(ac);
+        when(sp.getConfiguration(PrincipalConfiguration.class)).thenReturn(getConfig(PrincipalConfiguration.class));
+
+        importer.init(s, root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), sp);
+        assertFalse(importer.start(aclTree));
+    }
     //--------------------------------------------------< processReferences >---
 
     @Test
-    public void testProcessReferencesIsNoOp() throws Exception {
+    public void testProcessReferencesIsNoOp() {
         importer.processReferences();
         assertFalse(root.hasPendingChanges());
     }
@@ -277,12 +336,12 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
     @Test(expected = IllegalStateException.class)
     public void testStartChildInfoNotInitialized() throws Exception {
-        importer.startChildInfo(Mockito.mock(NodeInfo.class), ImmutableList.of());
+        importer.startChildInfo(mock(NodeInfo.class), ImmutableList.of());
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testStartChildInfoUnknownType() throws Exception {
-        NodeInfo invalidChildInfo = new NodeInfo("anyName", NodeTypeConstants.NT_OAK_UNSTRUCTURED, ImmutableList.of(), null);
+        NodeInfo invalidChildInfo = new NodeInfo("anyName", NT_OAK_UNSTRUCTURED, ImmutableList.of(), null);
         init();
         importer.start(aclTree);
         importer.startChildInfo(invalidChildInfo, ImmutableList.of());
@@ -292,8 +351,8 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testStartNestedAceChildInfo() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of());
-        importer.startChildInfo(aceInfo, ImmutableList.of());
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of());
+        importer.startChildInfo(aceDenyInfo, ImmutableList.of());
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -303,10 +362,11 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         importer.startChildInfo(restrInfo, ImmutableList.of());
     }
 
+    @Test
     public void testStartAceAndRestrictionChildInfo() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of());
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of());
         importer.startChildInfo(restrInfo, ImmutableList.of());
     }
 
@@ -315,7 +375,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
         init();
         importer.start(aclTree);
         PropInfo invalidPrivInfo = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues("jcr:invalidPrivilege"), PropInfo.MultipleStatus.MULTIPLE);
-        importer.startChildInfo(aceInfo, ImmutableList.of(invalidPrivInfo));
+        importer.startChildInfo(aceDenyInfo, ImmutableList.of(invalidPrivInfo));
     }
 
     //-------------------------------------------------------< endChildInfo >---
@@ -336,7 +396,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testEndChildInfoIncompleteAce() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of());
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of());
         importer.endChildInfo();
     }
 
@@ -367,7 +427,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testInvalidRestriction() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo));
 
         PropInfo invalidRestrProp = new PropInfo(REP_GLOB, PropertyType.NAME, createTextValues("glob1", "glob2"), PropInfo.MultipleStatus.MULTIPLE);
         importer.startChildInfo(restrInfo, ImmutableList.of(invalidRestrProp));
@@ -380,7 +440,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testUnknownRestriction() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo));
 
         PropInfo invalidRestrProp = new PropInfo("unknown", PropertyType.STRING, createTextValue("val"));
         importer.startChildInfo(restrInfo, ImmutableList.of(invalidRestrProp));
@@ -393,7 +453,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
     public void testImportSimple() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo));
         importer.endChildInfo();
         importer.end(aclTree);
 
@@ -418,7 +478,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo, globInfo, ntNamesInfo, itemNamesInfo));
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo, globInfo, ntNamesInfo, itemNamesInfo));
         importer.endChildInfo();
         importer.end(aclTree);
 
@@ -436,7 +496,7 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of(principalInfo, privInfo));
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of(principalInfo, privInfo));
         importer.startChildInfo(restrInfo, ImmutableList.of(globInfo, ntNamesInfo, itemNamesInfo));
         importer.endChildInfo();
         importer.endChildInfo();

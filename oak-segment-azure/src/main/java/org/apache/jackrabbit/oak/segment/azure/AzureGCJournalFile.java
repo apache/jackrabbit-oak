@@ -61,4 +61,15 @@ public class AzureGCJournalFile implements GCJournalFile {
             throw new IOException(e);
         }
     }
+
+    @Override
+    public void truncate() throws IOException {
+        try {
+            if (gcJournal.exists()) {
+                gcJournal.delete();
+            }
+        } catch (StorageException e) {
+            throw new IOException(e);
+        }
+    }
 }

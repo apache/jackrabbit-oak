@@ -138,18 +138,7 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
 
     @Test
     public void testGetPrincipalsForGroup() throws Exception {
-        Authorizable group = null;
-        try {
-            group = getUserManager(root).createGroup("testGroup");
-            root.commit();
-
-            assertTrue(principalProvider.getPrincipals(group.getID()).isEmpty());
-        } finally {
-            if (group != null) {
-                group.remove();
-                root.commit();
-            }
-        }
+        assertTrue(principalProvider.getPrincipals(testGroup.getID()).isEmpty());
     }
 
     @Test
@@ -181,19 +170,19 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
     }
 
     @Test
-    public void testGetItemBasedPrincipalNonExisting() throws Exception {
+    public void testGetItemBasedPrincipalNonExisting() {
         assertNull(principalProvider.getItemBasedPrincipal(UserConstants.DEFAULT_GROUP_PATH));
     }
 
     @Test
-    public void testUserPrincipal() throws Exception {
+    public void testUserPrincipal() {
         Principal principal = principalProvider.getPrincipal(userPrincipal.getName());
 
         assertNotNull(principal);
     }
 
     @Test
-    public void testNonExistingPrincipal() throws Exception {
+    public void testNonExistingPrincipal() {
         assertNull(principalProvider.getPrincipal(nonExisting.getName()));
     }
 

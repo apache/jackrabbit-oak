@@ -220,7 +220,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
-        String propName = propInfo.getName();
         if (isPwdNode(parent)) {
             // overwrite any properties generated underneath the rep:pwd node
             // by "UserManagerImpl#setPassword" by the properties defined by
@@ -229,10 +228,11 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         } else {
             Authorizable a = userManager.getAuthorizable(parent);
             if (a == null) {
-                log.debug("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent an Authorizable.");
+                log.debug("Cannot handle protected PropInfo {}. Node {} doesn't represent an Authorizable.", propInfo, parent);
                 return false;
             }
 
+            String propName = propInfo.getName();
             if (REP_AUTHORIZABLE_ID.equals(propName)) {
                 if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
                     return false;
@@ -262,13 +262,10 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 userManager.checkValidPrincipal(principal, a.isGroup());
                 userManager.setPrincipal(parent, principal);
 
-            /*
-             Remember principal of new user/group for further processing
-             of impersonators
-             */
-                if (principals == null) {
-                    principals = new HashMap<>();
-                }
+                /*
+                 Remember principal of new user/group for further processing
+                 of impersonators
+                 */
                 principals.put(principalName, a.getPrincipal());
 
                 return true;
@@ -402,7 +399,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         } // else: parent node is not of type rep:Members or rep:MemberReferencesList
 
         if (auth == null || !auth.isGroup()) {
-            log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Group.");
+            log.debug("Cannot handle protected node {}. It doesn't represent a valid Group, nor does any of its parents.", protectedParent);
             return false;
         } else {
             currentMembership = getMembership(auth.getPath());
@@ -618,7 +615,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
             // handling non-existing members in case of best-effort
             if (!nonExisting.isEmpty()) {
-                log.debug("ImportBehavior.BESTEFFORT: Found " + nonExisting.size() + " entries of rep:members pointing to non-existing authorizables. Adding to rep:members.");
+                log.debug("ImportBehavior.BESTEFFORT: Found {} entries of rep:members pointing to non-existing authorizables. Adding to rep:members.", nonExisting.size());
                 Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();

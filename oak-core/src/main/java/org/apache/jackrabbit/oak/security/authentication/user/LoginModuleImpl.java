@@ -16,20 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.NameCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
-import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -47,6 +33,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginException;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Default login module implementation that authenticates JCR {@code Credentials}

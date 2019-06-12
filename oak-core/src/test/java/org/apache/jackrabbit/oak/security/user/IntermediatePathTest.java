@@ -27,10 +27,10 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
@@ -137,7 +137,7 @@ public class IntermediatePathTest extends AbstractSecurityTest {
 
     @Test
     public void testInvalidAbsolutePaths() throws Exception {
-        new NodeUtil(root.getTree("/")).addChild("testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         List<String> invalidPaths = ImmutableList.of(
                 "/",
                 PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 1),
@@ -181,8 +181,7 @@ public class IntermediatePathTest extends AbstractSecurityTest {
 
     @Test
     public void testRelativePaths() throws Exception {
-        new NodeUtil(root.getTree("/")).addChild("testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-
+        TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         List<String> invalidPaths = ImmutableList.of("..", "../..", "../../..", "../../../testNode","a/b/../../../c");
         for (String relPath : invalidPaths) {
             try {

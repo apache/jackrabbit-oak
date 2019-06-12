@@ -5,30 +5,31 @@ This jar contains everything you need for a simple Oak installation.
 
 The following runmodes are currently available:
 
-    * backup          : Backup an existing Oak repository.
+    * backup          : Backup an existing Oak repository
     * check           : Check the FileStore for inconsistencies
     * checkpoints     : Manage checkpoints
-    * compact         : Segment compaction on a TarMK repository.
-    * console         : Start an interactive console.
+    * clusternodes    : Display DocumentMK cluster node information
+    * compact         : Segment compaction on a TarMK repository
+    * console         : Start an interactive console
     * datastorecacheupgrade : Upgrades the JR2 DataStore cache
     * datastorecheck  : Consistency checker for data store 
     * datastore       : Maintenance operations for the for data store 
-    * debug           : Print status information about an Oak repository.
-    * explore         : Starts a GUI browser based on java swing.
+    * debug           : Print status information about an Oak repository
+    * explore         : Starts a GUI browser based on java swing
+    * export          : Export repository content as json
     * garbage         : Identifies blob garbage on a DocumentMK repository
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
-    * recovery        : Run a _lastRev recovery on a MongoMK repository
+    * iotrace         : Collect a trace of segment store read accesses 
+    * recovery        : Run a _lastRev recovery on a DocumentMK repository
     * resetclusterid  : Resets the cluster id
-    * restore         : Restore a backup of an Oak repository.
+    * restore         : Restore a backup of an Oak repository
     * revisions       : Revision GC on a DocumentMK
-    * server          : Run the Oak Server.
+    * server          : Run the Oak Server
     * tarmkdiff       : Show changes between revisions on TarMk
     * tika            : Performs text extraction
     * unlockUpgrade   : Unlock a DocumentMK upgrade to a newer version
-    * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak.
-    * export          : Export repository content as json
-    * iotrace         : Collect a trace of segment store read accesses 
+    * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak
     
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
@@ -368,33 +369,68 @@ Examples:
 See the documentation in the `oak-http` component for details about the available functionality.
 
 
+Cluster Nodes
+=============
+
+The clusternodes mode displays information about the status of the cluster nodes
+in a DocumentMK repository. It can be invoked like this:
+
+    $ java -jar oak-run-*.jar clusternodes [options] mongodb://host:port/database
+
+(or, for RDBMK instances, use "jdbc:...").
+
+The following clusternodes options (with default values) are currently supported:
+
+    --clusterId         - DocumentMK clusterId (no default)
+    --raw               - List raw entries in JSON format
+    --verbose           - Be more verbose
+
+Example output for `--verbose`:
+
+~~~
+Id    State          Started LeaseEnd Left RecoveryBy      LastRootRev    OakVersion
+ 1 INACTIVE 20190125T110237Z        -    -          - r16884ad047c-0-1 1.12-SNAPSHOT
+~~~
+
+Note that `RecoveryBy` will display the cluster node id of the node which
+currently recovers this node, or `!` when recovery is needed.
+
+`LeaseEnd` and `Left` will be displayed for active nodes (where `Left` is
+the remaining time for the lease update in seconds; when it gets negative,
+the system is in trouble).
+
+
 Recovery Mode
 =============
 
 The recovery mode can be used to check the consistency of `_lastRev` fields
-of a MongoMK repository. It can be invoked like this:
+of a DocumentMK repository. It can be invoked like this:
 
-    $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun]
+    $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun] --clusterId id
+    
+(or, for RDBMK instances, use "jdbc:...").
 
-The following recovery options (with default values) are currently supported:
+The following recovery options are currently supported:
 
-    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+    --clusterId         - DocumentMK clusterId (no default)
 
 The recovery tool will only perform the check and fix for the given clusterId.
-It is therefore recommended to explicitly specify a clusterId. The tool will
-fix the documents it identified, unless the `dryRun` keyword is specified.
+The tool will fix the documents it identified, unless the `dryRun` keyword is
+specified.
 
 Garbage
 =======
 
 The garbage mode can the used to identify blob garbage still referenced by
-documents in a MongoMK repository. It can be invoked like this:
+documents in a DocumentMK repository. It can be invoked like this:
 
     $ java -jar oak-run-*.jar garbage [options] mongodb://host:port/database
 
+(or, for RDBMK instances, use "jdbc:...").
+
 The following recovery options (with default values) are currently supported:
 
-    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+    --clusterId         - DocumentMK clusterId (default: 0 -> automatic)
 
 The tool will scan the store for documents with blob references and print a
 report with the top 100 documents with blob references considered garbage. The
@@ -590,7 +626,7 @@ Reset Cluster Id
 Resets the cluster id generated internally. Use the following command after stopping the server
 
     $ java -jar oak-run-*.jar resetclusterid \
-            { /path/to/oak/repository | mongodb://host:port/database }
+            { /path/to/oak/repository | mongodb://host:port/database | jdbc:...}
 
 The cluster id will be removed and will be generated on next server start up.
 

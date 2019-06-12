@@ -23,12 +23,15 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -38,18 +41,36 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.Map;
+
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class UserImporterTest extends UserImporterBaseTest implements UserConstants {
 
     //---------------------------------------------------------------< init >---
     @Test
-    public void testInitNoJackrabbitSession() throws Exception {
-        Session s = Mockito.mock(Session.class);
+    public void testInitNoJackrabbitSession() {
+        Session s = mock(Session.class);
+        assertFalse(importer.init(s, root, getNamePathMapper(), false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW, new ReferenceChangeTracker(), getSecurityProvider()));
+    }
+
+    @Test
+    public void testInitGetUserManagerFails() throws Exception {
+        Session s = when(mock(JackrabbitSession.class).getUserManager()).thenThrow(new RepositoryException()).getMock();
         assertFalse(importer.init(s, root, getNamePathMapper(), false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 
@@ -63,7 +84,6 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     public void testInitImportUUIDBehaviorRemove() throws Exception {
         assertTrue(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
     }
-
 
     @Test
     public void testInitImportUUIDBehaviorReplace() throws Exception {
@@ -82,7 +102,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
     @Test(expected = IllegalStateException.class)
     public void testHandlePropInfoNotInitialized() throws Exception {
-        importer.handlePropInfo(createUserTree(), Mockito.mock(PropInfo.class), Mockito.mock(PropertyDefinition.class));
+        importer.handlePropInfo(createUserTree(), mock(PropInfo.class), mock(PropertyDefinition.class));
     }
 
     //-----------------------------------------------------< handlePropInfo >---
@@ -90,7 +110,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     @Test
     public void testHandlePropInfoParentNotAuthorizable() throws Exception {
         init();
-        assertFalse(importer.handlePropInfo(root.getTree("/"), Mockito.mock(PropInfo.class), Mockito.mock(PropertyDefinition.class)));
+        assertFalse(importer.handlePropInfo(root.getTree(PathUtils.ROOT_PATH), mock(PropInfo.class), mock(PropertyDefinition.class)));
     }
 
     @Test
@@ -327,7 +347,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     public void testHandleUnknownProperty() throws Exception {
         init();
         Tree userTree = createUserTree();
-        assertFalse(importer.handlePropInfo(userTree, createPropInfo("unknownProperty", "value"), mockPropertyDefinition(NodeTypeConstants.NT_OAK_UNSTRUCTURED, false)));
+        assertFalse(importer.handlePropInfo(userTree, createPropInfo("unknownProperty", "value"), mockPropertyDefinition(NT_OAK_UNSTRUCTURED, false)));
         assertNull(userTree.getProperty("unknownProperty"));
     }
 
@@ -338,7 +358,39 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         importer.processReferences();
     }
 
+    @Test
+    public void testProcessReferencesUnknownReferenceObject() throws Exception {
+        init();
+        Map unknownReferenceObj = Collections.EMPTY_MAP;
+        refTracker.processedReference(unknownReferenceObj);
+
+        importer.processReferences();
+        assertTrue(Iterators.contains(refTracker.getProcessedReferences(), unknownReferenceObj));
+    }
+
     //------------------------------------------------< propertiesCompleted >---
+
+    @Test
+    public void testPropertiesCompletedNonExistingTree() throws Exception {
+        init();
+
+        Tree nonExisting = when(mock(Tree.class).exists()).thenReturn(false).getMock();
+        importer.propertiesCompleted(nonExisting);
+
+        verify(nonExisting, times(2)).exists();
+        verify(nonExisting, never()).getProperty(anyString());
+    }
+
+    @Test
+    public void testPropertiesCompletedInvalidCacheTree() throws Exception {
+        init();
+
+        Tree userTree = createUserTree();
+        Tree cacheTree = TreeUtil.addChild(userTree, CacheConstants.REP_CACHE, NT_OAK_UNSTRUCTURED);
+
+        importer.propertiesCompleted(cacheTree);
+        assertTrue(cacheTree.exists());
+    }
 
     @Test
     public void testPropertiesCompletedClearsCache() throws Exception {
@@ -480,15 +532,31 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     }
 
     @Test
-    public void testStartRepMembersBelowAnyTree() throws Exception {
+    public void testStartRepMembersBelowRootTree() throws Exception {
         init(true);
-        Tree repMembers = root.getTree(PathUtils.ROOT_PATH).addChild("memberTree");
-        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
-
-        repMembers = repMembers.addChild("memberTree");
-        repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
+        Tree repMembers = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "memberTree", NT_REP_MEMBERS);
+        repMembers = TreeUtil.addChild(repMembers, "memberTree", NT_REP_MEMBERS);
+        repMembers = TreeUtil.addChild(repMembers, "memberTree", NT_REP_MEMBERS);
 
         assertFalse(importer.start(repMembers));
+    }
+
+    @Test
+    public void testStartRepMembersBelowAnyTree() throws Exception {
+        init(true);
+        Tree anyTree = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "anyTree", NT_OAK_UNSTRUCTURED);
+        Tree repMembers = TreeUtil.addChild(anyTree, "memberTree", NT_REP_MEMBERS);
+        repMembers = TreeUtil.addChild(repMembers, "memberTree", NT_REP_MEMBERS);
+
+        assertFalse(importer.start(repMembers));
+    }
+
+    @Test
+    public void testStartNonExistingTree() throws Exception {
+        init();
+
+        Tree tree = when(mock(Tree.class).exists()).thenReturn(false).getMock();
+        assertFalse(importer.start(tree));
     }
 
     //-----------------------------------------------------< startChildInfo >---
@@ -531,6 +599,22 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     }
 
     @Test
+    public void testStartChildInfoWithOtherProperty() throws Exception {
+        init(true);
+        Tree groupTree = createGroupTree();
+        Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+
+        importer.start(memberRefList);
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo("otherName", "member1")));
+        importer.processReferences();
+
+        // no members should have been added to the group node
+        assertFalse(groupTree.hasProperty(REP_MEMBERS));
+        assertFalse(memberRefList.getChildren().iterator().hasNext());
+    }
+
+    @Test
     public void testStartRepMembersChildInfo() throws Exception {
         init(true);
         Tree groupTree = createGroupTree();
@@ -549,6 +633,30 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
         importer.start(memberRefList);
-        importer.startChildInfo(createNodeInfo("memberRef", NodeTypeConstants.NT_OAK_UNSTRUCTURED), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
+        importer.startChildInfo(createNodeInfo("memberRef", NT_OAK_UNSTRUCTURED), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
     }
+
+    //-------------------------------------------------------< endChildInfo >---
+    @Test
+    public void testEndChildInfoIsNoop() {
+        importer.endChildInfo();
+    }
+
+    //----------------------------------------------------------------< end >---
+    @Test
+    public void testEnd() throws Exception {
+        init();
+        Tree groupTree = createGroupTree();
+        Tree memberRefList = groupTree.addChild(REP_MEMBERS_LIST);
+        memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
+        importer.start(memberRefList);
+
+        Field f = UserImporter.class.getDeclaredField("currentMembership");
+        f.setAccessible(true);
+        assertNotNull(f.get(importer));
+
+        importer.end(memberRefList);
+        assertNull(f.get(importer));
+    }
+
 }

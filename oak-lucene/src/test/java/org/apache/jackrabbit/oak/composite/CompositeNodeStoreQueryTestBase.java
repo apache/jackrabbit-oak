@@ -52,9 +52,9 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -458,7 +458,7 @@ public class CompositeNodeStoreQueryTestBase {
                         }
                         ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, "sa", "");
 
-                        instance = new DocumentMK.Builder()
+                        instance = new RDBDocumentNodeStoreBuilder()
                                 .setRDBConnection(ds, options).build();
                         instance.setMaxBackOffMillis(0);
 

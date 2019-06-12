@@ -47,9 +47,7 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.proc.Proc.Backend;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
-import org.apache.jackrabbit.oak.segment.spi.monitor.CompositeIOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.*;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTraceLogWriter;
 import org.apache.jackrabbit.oak.segment.tool.iotrace.IOTraceMonitor;
@@ -135,6 +133,9 @@ public class FileStoreBuilder {
     @NotNull
     private final Set<IOMonitor> ioMonitors = newHashSet();
 
+    @NotNull
+    private RemoteStoreMonitor remoteStoreMonitor;
+
     private boolean strictVersionCheck;
 
     private boolean eagerSegmentCaching;
@@ -143,7 +144,8 @@ public class FileStoreBuilder {
 
     /**
      * Create a new instance of a {@code FileStoreBuilder} for a file store.
-     * @param directory  directory where the tar files are stored
+     *
+     * @param directory directory where the tar files are stored
      * @return a new {@code FileStoreBuilder} instance.
      */
     @NotNull
@@ -159,6 +161,7 @@ public class FileStoreBuilder {
 
     /**
      * Specify the {@link BlobStore}.
+     *
      * @param blobStore
      * @return this instance
      */
@@ -170,6 +173,7 @@ public class FileStoreBuilder {
 
     /**
      * Maximal size of the generated tar files in MB.
+     *
      * @param maxFileSize
      * @return this instance
      */
@@ -181,7 +185,8 @@ public class FileStoreBuilder {
 
     /**
      * Size of the segment cache in MB.
-     * @param segmentCacheSize  None negative cache size
+     *
+     * @param segmentCacheSize None negative cache size
      * @return this instance
      */
     @NotNull
@@ -192,7 +197,8 @@ public class FileStoreBuilder {
 
     /**
      * Size of the string cache in MB.
-     * @param stringCacheSize  None negative cache size
+     *
+     * @param stringCacheSize None negative cache size
      * @return this instance
      */
     @NotNull
@@ -203,7 +209,8 @@ public class FileStoreBuilder {
 
     /**
      * Size of the template cache in MB.
-     * @param templateCacheSize  None negative cache size
+     *
+     * @param templateCacheSize None negative cache size
      * @return this instance
      */
     @NotNull
@@ -214,7 +221,8 @@ public class FileStoreBuilder {
 
     /**
      * Number of items to keep in the string deduplication cache
-     * @param stringDeduplicationCacheSize  None negative cache size
+     *
+     * @param stringDeduplicationCacheSize None negative cache size
      * @return this instance
      */
     @NotNull
@@ -225,7 +233,8 @@ public class FileStoreBuilder {
 
     /**
      * Number of items to keep in the template deduplication cache
-     * @param templateDeduplicationCacheSize  None negative cache size
+     *
+     * @param templateDeduplicationCacheSize None negative cache size
      * @return this instance
      */
     @NotNull
@@ -236,7 +245,8 @@ public class FileStoreBuilder {
 
     /**
      * Number of items to keep in the node deduplication cache
-     * @param nodeDeduplicationCacheSize  None negative cache size. Must be a power of 2.
+     *
+     * @param nodeDeduplicationCacheSize None negative cache size. Must be a power of 2.
      * @return this instance
      */
     @NotNull
@@ -247,6 +257,7 @@ public class FileStoreBuilder {
 
     /**
      * Turn memory mapping on or off
+     *
      * @param memoryMapping
      * @return this instance
      */
@@ -258,6 +269,7 @@ public class FileStoreBuilder {
 
     /**
      * Turn off heap access on or off
+     *
      * @param offHeapAccess
      * @return this instance
      */
@@ -269,6 +281,7 @@ public class FileStoreBuilder {
 
     /**
      * Set memory mapping to the default value based on OS properties
+     *
      * @return this instance
      */
     @NotNull
@@ -279,6 +292,7 @@ public class FileStoreBuilder {
 
     /**
      * {@link GCMonitor} for monitoring this files store's gc process.
+     *
      * @param gcMonitor
      * @return this instance
      */
@@ -290,6 +304,7 @@ public class FileStoreBuilder {
 
     /**
      * {@link StatisticsProvider} for collecting statistics related to FileStore
+     *
      * @param statisticsProvider
      * @return this instance
      */
@@ -301,6 +316,7 @@ public class FileStoreBuilder {
 
     /**
      * {@link SegmentGCOptions} the garbage collection options of the store
+     *
      * @param gcOptions
      * @return this instance
      */
@@ -312,6 +328,7 @@ public class FileStoreBuilder {
 
     /**
      * {@link SegmentNotFoundExceptionListener} listener for  {@code SegmentNotFoundException}
+     *
      * @param snfeListener, the actual listener
      * @return this instance
      */
@@ -327,9 +344,16 @@ public class FileStoreBuilder {
         return this;
     }
 
+    @NotNull
+    public FileStoreBuilder withRemoteStoreMonitor(@NotNull RemoteStoreMonitor remoteStoreMonitor) {
+        this.remoteStoreMonitor = remoteStoreMonitor;
+        return this;
+    }
+
     /**
      * Log IO reads at debug level to the passed logger
-     * @param logger  logger for logging IO reads
+     *
+     * @param logger logger for logging IO reads
      * @return this.
      */
     @NotNull
@@ -345,7 +369,8 @@ public class FileStoreBuilder {
      * will fail to start if the store version does not exactly match this Oak version.
      * This is useful to e.g. avoid inadvertent upgrades during when running offline
      * compaction accidentally against an older version of a store.
-     * @param strictVersionCheck  enables strict version checking iff {@code true}.
+     *
+     * @param strictVersionCheck enables strict version checking iff {@code true}.
      * @return this instance
      */
     @NotNull
@@ -514,9 +539,8 @@ public class FileStoreBuilder {
     }
 
     /**
-     * @return  creates or returns the {@code WriterCacheManager} this builder passes or
-     *          passed to the store on {@link #build()}.
-     *
+     * @return creates or returns the {@code WriterCacheManager} this builder passes or
+     * passed to the store on {@link #build()}.
      * @see #withNodeDeduplicationCacheSize(int)
      * @see #withStringDeduplicationCacheSize(int)
      * @see #withTemplateDeduplicationCacheSize(int)
@@ -532,8 +556,15 @@ public class FileStoreBuilder {
 
     IOMonitor getIOMonitor() {
         return ioMonitors.isEmpty()
-            ? new IOMonitorAdapter()
-            : new CompositeIOMonitor(ioMonitors);
+                ? new IOMonitorAdapter()
+                : new CompositeIOMonitor(ioMonitors);
+    }
+
+    RemoteStoreMonitor getRemoteStoreMonitor() {
+        if (remoteStoreMonitor == null) {
+            return new RemoteStoreMonitorAdapter();
+        }
+        return remoteStoreMonitor;
     }
 
     boolean getStrictVersionCheck() {
@@ -569,8 +600,8 @@ public class FileStoreBuilder {
                 int templateCacheSize,
                 int nodeCacheSize) {
             super(RecordCache.factory(stringCacheSize, new StringCacheWeigher()),
-                RecordCache.factory(templateCacheSize, new TemplateCacheWeigher()),
-                PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()));
+                    RecordCache.factory(templateCacheSize, new TemplateCacheWeigher()),
+                    PriorityCache.factory(nodeCacheSize, new NodeCacheWeigher()));
         }
 
         void evictOldGeneration(final int newGeneration) {

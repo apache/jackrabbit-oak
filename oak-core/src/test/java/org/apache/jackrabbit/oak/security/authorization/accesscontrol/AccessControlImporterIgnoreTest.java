@@ -37,7 +37,7 @@ public class AccessControlImporterIgnoreTest extends AccessControlImporterBaseTe
     public void testStartAceChildInfoUnknownPrincipal() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of(unknownPrincipalInfo));
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of(unknownPrincipalInfo));
     }
 
     @Test
@@ -46,7 +46,7 @@ public class AccessControlImporterIgnoreTest extends AccessControlImporterBaseTe
         importer.start(aclTree);
 
         PropInfo privs = new PropInfo(REP_PRIVILEGES, PropertyType.NAME, createTextValues(PrivilegeConstants.JCR_READ));
-        importer.startChildInfo(aceInfo, ImmutableList.of(unknownPrincipalInfo, privs));
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of(unknownPrincipalInfo, privs));
         importer.endChildInfo();
 
         importer.end(aclTree);

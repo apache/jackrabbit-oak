@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.HashSet;

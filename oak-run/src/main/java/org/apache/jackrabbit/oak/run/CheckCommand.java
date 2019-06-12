@@ -34,6 +34,10 @@ class CheckCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
+        OptionSpec<Boolean> mmapArg = parser.accepts("mmap", "use memory mapping for the file store (default: true)")
+            .withOptionalArg()
+            .ofType(Boolean.class)
+            .defaultsTo(true);
         OptionSpec<File> journal = parser.accepts("journal", "journal file")
             .withRequiredArg()
             .ofType(File.class);
@@ -69,6 +73,7 @@ class CheckCommand implements Command {
 
         Check.Builder builder = Check.builder()
             .withPath(options.valueOf(dir))
+            .withMmap(mmapArg.value(options))
             .withDebugInterval(notify.value(options))
             .withCheckBinaries(options.has(bin))
             .withCheckHead(shouldCheckHead(options, head, cp))

@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.split;
 
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.*;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -86,7 +83,7 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     }
 
     private Optional<String> getLastArchive() throws IOException {
-        SegmentArchiveManager manager = roPersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
+        SegmentArchiveManager manager = roPersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         List<String> archives = manager.listArchives();
         if (archives.isEmpty()) {
             return Optional.empty();
@@ -97,14 +94,14 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) throws IOException {
+    public SegmentArchiveManager createArchiveManager(boolean memoryMapping, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) throws IOException {
         if (lastRoArchive.isPresent()) {
             return new SplitSegmentArchiveManager(
-                    roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor),
-                    rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor),
+                    roPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, remoteStoreMonitor),
+                    rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter()),
                     lastRoArchive.get());
         } else {
-            return rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor);
+            return rwPersistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, fileStoreMonitor, new RemoteStoreMonitorAdapter());
         }
     }
 

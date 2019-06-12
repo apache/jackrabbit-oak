@@ -64,7 +64,7 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
     //--------------------------------------------------------------------------
 
     static Map<String, Object> asCommitAttributes() {
-        return Collections.<String, Object>singletonMap(CommitMarker.KEY, CommitMarker.INSTANCE);
+        return Collections.singletonMap(CommitMarker.KEY, CommitMarker.INSTANCE);
     }
 
     private static final class CommitMarker {
@@ -78,10 +78,6 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
         }
 
         private CommitMarker() {}
-    }
-
-    private static CommitFailedException constraintViolation(int code, @NotNull String message) {
-        return new CommitFailedException(CommitFailedException.CONSTRAINT, code, message);
     }
 
     //-----------------------------------------------------< CacheValidator >---
@@ -121,7 +117,7 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         @Override
         public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-            Tree beforeTree = (parentBefore == null) ? null : parentBefore.getChild(name);
+            Tree beforeTree = checkNotNull(parentBefore).getChild(name);
             Tree afterTree = parentAfter.getChild(name);
 
             if (isCache || isCache(beforeTree) || isCache(afterTree)) {
@@ -133,20 +129,20 @@ class CacheValidatorProvider extends ValidatorProvider implements CacheConstants
 
         @Override
         public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-            Tree tree = checkNotNull(parentAfter.getChild(name));
+            Tree tree = parentAfter.getChild(name);
             if (isCache || isCache(tree)) {
                 checkValidCommit();
             }
             return new VisibleValidator(new CacheValidator(null, tree, cachePredicate, isValidCommitInfo), true, true);
         }
 
-        private boolean isCache(@Nullable Tree tree) {
-            return tree != null && (REP_CACHE.equals(tree.getName()) || cachePredicate.apply(tree));
+        private boolean isCache(@NotNull Tree tree) {
+            return (REP_CACHE.equals(tree.getName()) || cachePredicate.apply(tree));
         }
 
         private void checkValidCommit() throws CommitFailedException {
             if (!(isSystem && isValidCommitInfo)) {
-                throw constraintViolation(34, "Attempt to create or change the system maintained cache.");
+                throw new CommitFailedException(CommitFailedException.CONSTRAINT, 34, "Attempt to create or change the system maintained cache.");
             }
         }
     }

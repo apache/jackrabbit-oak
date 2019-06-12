@@ -64,7 +64,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.LocalManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -133,6 +134,7 @@ public class UpgradeIT {
                 .withDirectory(fileStoreHome.getRoot())
                 .withTarRecovery((_1, _2, _3) -> fail("Unexpected recovery"))
                 .withIOMonitor(new IOMonitorAdapter())
+                .withRemoteStoreMonitor((new RemoteStoreMonitorAdapter()))
                 .withReadOnly()
                 .build()) {
 

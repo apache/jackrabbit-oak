@@ -23,7 +23,7 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -174,23 +173,13 @@ class GroupImpl extends AuthorizableImpl implements Group {
         UserManagerImpl userMgr = getUserManager();
         if (isEveryone()) {
             String propName = getUserManager().getNamePathMapper().getJcrName((REP_PRINCIPAL_NAME));
-            return Iterators.filter(
-                    userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE),
-                    new Predicate<Authorizable>() {
-                        @Override
-                        public boolean apply(@Nullable Authorizable authorizable) {
-                            if (authorizable == null) {
-                                return false;
-                            }
-                            if (authorizable.isGroup()) {
-                                try {
-                                    return !((GroupImpl) authorizable).isEveryone();
-                                } catch (RepositoryException e) {
-                                    log.warn("Unable to evaluate if authorizable is the 'everyone' group.", e);
-                                }
-                            }
-                            return true;
+            Iterator<Authorizable> result = Iterators.filter(userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE), Predicates.notNull());
+            return Iterators.filter(result,
+                    authorizable -> {
+                        if (authorizable instanceof AuthorizableImpl) {
+                            return !((AuthorizableImpl) authorizable).isEveryone();
                         }
+                        return true;
                     }
             );
         } else {
@@ -335,7 +324,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
 
         @Override
-        boolean isEveryone() throws RepositoryException {
+        boolean isEveryone() {
             return GroupImpl.this.isEveryone();
         }
 

@@ -173,7 +173,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
                         // failed to create token -> fail commit()
                         onError();
                         Object logId = sharedState.get(SHARED_KEY_LOGIN_NAME);
-                        log.error("TokenProvider failed to create a login token for user " + logId);
+                        log.error("TokenProvider failed to create a login token for user {}", logId);
                         throw new LoginException("Failed to create login token for user " + logId);
                     }
                 }

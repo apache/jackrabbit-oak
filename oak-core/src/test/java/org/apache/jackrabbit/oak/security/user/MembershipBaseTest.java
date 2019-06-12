@@ -41,9 +41,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public abstract class MembershipBaseTest extends AbstractSecurityTest implements UserConstants {
 

@@ -52,12 +52,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
-import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
-import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
-import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
+import org.apache.jackrabbit.oak.segment.file.*;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.split.SplitPersistence;
@@ -228,7 +223,7 @@ class SegmentNodeStoreRegistrar {
             .withMemoryMapping(cfg.getMemoryMapping())
             .withGCMonitor(gcMonitor)
             .withIOMonitor(new MetricsIOMonitor(cfg.getStatisticsProvider()))
-            .withStatisticsProvider(cfg.getStatisticsProvider())
+            .withRemoteStoreMonitor(new MetricsRemoteStoreMonitor(cfg.getStatisticsProvider()))
             .withGCOptions(gcOptions);
 
         if (cfg.hasCustomBlobStore() && cfg.getBlobStore() != null) {

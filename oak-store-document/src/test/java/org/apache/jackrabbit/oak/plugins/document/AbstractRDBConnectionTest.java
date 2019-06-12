@@ -22,6 +22,7 @@ import java.io.File;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
@@ -52,13 +53,13 @@ public class AbstractRDBConnectionTest extends DocumentMKTestBase {
     public void setUpConnection() throws Exception {
         dataSource = RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD);
         Revision.setClock(getTestClock());
-        mk = newBuilder(dataSource).open();
+        mk = new DocumentMK(newBuilder(dataSource).build());
     }
 
-    protected DocumentMK.Builder newBuilder(DataSource db) throws Exception {
+    protected RDBDocumentNodeStoreBuilder newBuilder(DataSource db) throws Exception {
         String prefix = "T" + Long.toHexString(System.currentTimeMillis());
         RDBOptions opt = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
-        return new DocumentMK.Builder().clock(getTestClock()).setRDBConnection(dataSource, opt);
+        return new RDBDocumentNodeStoreBuilder().clock(getTestClock()).setRDBConnection(dataSource, opt);
     }
 
     protected Clock getTestClock() throws InterruptedException {

@@ -102,11 +102,14 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         Authorizable user = otherUserManager.getAuthorizable(testUser.getID());
         Authorizable group = otherUserManager.getAuthorizable(testGroup.getID());
 
+        User differentId = userMgr.createUser(user.getID()+"_", null);
+
         Map<Authorizable, Authorizable> notEqual = new HashMap();
         notEqual.put(testUser, testGroup);
         notEqual.put(user, group);
         notEqual.put(testUser, user);
         notEqual.put(testGroup, group);
+        notEqual.put(testUser, differentId);
 
         for (Map.Entry entry : notEqual.entrySet()) {
             assertFalse(entry.getKey().equals(entry.getValue()));
@@ -150,13 +153,13 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testGetTree() throws Exception {
+    public void testGetTree() {
         Tree t = root.getTree(authorizable.getPath());
         assertEquals(t.getPath(), authorizable.getTree().getPath());
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testGetTreeNotExisting() throws Exception {
+    public void testGetTreeNotExisting() {
         root.getTree(authorizable.getPath()).remove();
 
         // getTree must throw

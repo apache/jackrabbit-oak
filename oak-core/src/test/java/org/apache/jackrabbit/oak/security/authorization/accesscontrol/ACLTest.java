@@ -41,6 +41,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
@@ -72,21 +73,24 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test {@code ACL} implementation.
  */
 public class ACLTest extends AbstractAccessControlTest implements PrivilegeConstants, AccessControlConstants {
 
-    private static void assertACE(JackrabbitAccessControlEntry ace, boolean isAllow, Privilege... privileges) {
+    private static void assertACE(@NotNull JackrabbitAccessControlEntry ace, boolean isAllow, @NotNull Privilege... privileges) {
         assertEquals(isAllow, ace.isAllow());
         assertEquals(Sets.newHashSet(privileges), Sets.newHashSet(ace.getPrivileges()));
     }
 
     @Test
-    public void testGetNamePathMapper() throws Exception {
+    public void testGetNamePathMapper() {
         assertSame(getNamePathMapper(), createEmptyACL().getNamePathMapper());
-        assertSame(NamePathMapper.DEFAULT, createACL(TEST_PATH, ImmutableList.<ACE>of(), NamePathMapper.DEFAULT).getNamePathMapper());
+        assertSame(NamePathMapper.DEFAULT, createACL(TEST_PATH, ImmutableList.of(), NamePathMapper.DEFAULT).getNamePathMapper());
     }
 
     @Test
@@ -96,7 +100,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         NamePathMapper npMapper = new NamePathMapperImpl(nameMapper);
 
         // map of jcr-path to standard jcr-path
-        Map<String, String> paths = new HashMap<String, String>();
+        Map<String, String> paths = new HashMap<>();
         paths.put(null, null);
         paths.put(TEST_PATH, TEST_PATH);
         paths.put("/", "/");
@@ -104,7 +108,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         paths.put("/{http://jackrabbit.apache.org}testPath", "/jr:testPath");
 
         for (String path : paths.keySet()) {
-            AbstractAccessControlList acl = createACL(path, Collections.<ACE>emptyList(), npMapper);
+            AbstractAccessControlList acl = createACL(path, Collections.emptyList(), npMapper);
             assertEquals(paths.get(path), acl.getPath());
         }
     }
@@ -115,7 +119,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
                 singletonMap("oak", "http://jackrabbit.apache.org"),
                 singletonMap("jcr", "http://jackrabbit.apache.org")));
         // map of jcr-path to oak path
-        Map<String, String> paths = new HashMap();
+        Map<String, String> paths = new HashMap<>();
         paths.put(null, null);
         paths.put(TEST_PATH, TEST_PATH);
         paths.put("/", "/");
@@ -127,19 +131,19 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
 
         // test if oak-path is properly set.
         for (String path : paths.keySet()) {
-            AbstractAccessControlList acl = createACL(path, Collections.<ACE>emptyList(), npMapper);
+            AbstractAccessControlList acl = createACL(path, Collections.emptyList(), npMapper);
             assertEquals(paths.get(path), acl.getOakPath());
         }
     }
 
     @Test
-    public void testEmptyAcl() throws RepositoryException {
+    public void testEmptyAcl() {
         AbstractAccessControlList acl = createEmptyACL();
 
         assertNotNull(acl.getAccessControlEntries());
         assertNotNull(acl.getEntries());
 
-        assertTrue(acl.getAccessControlEntries().length == 0);
+        assertEquals(0, acl.getAccessControlEntries().length);
         assertEquals(acl.getAccessControlEntries().length, acl.getEntries().size());
         assertEquals(0, acl.size());
         assertTrue(acl.isEmpty());
@@ -147,13 +151,13 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
 
     @Test
     public void testSize() throws RepositoryException {
-        AbstractAccessControlList acl = createACL(createTestEntries());
+        AbstractAccessControlList acl = createACL(TEST_PATH, createTestEntries(), getNamePathMapper());
         assertEquals(3, acl.size());
     }
 
     @Test
     public void testIsEmpty() throws RepositoryException {
-        AbstractAccessControlList acl = createACL(createTestEntries());
+        AbstractAccessControlList acl = createACL(TEST_PATH, createTestEntries(), getNamePathMapper());
         assertFalse(acl.isEmpty());
     }
 
@@ -172,7 +176,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     }
 
     @Test
-    public void testGetRestrictionNames() throws RepositoryException {
+    public void testGetRestrictionNames() {
         AbstractAccessControlList acl = createEmptyACL();
 
         String[] restrNames = acl.getRestrictionNames();
@@ -185,7 +189,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     }
 
     @Test
-    public void testGetRestrictionType() throws RepositoryException {
+    public void testGetRestrictionType() {
         AbstractAccessControlList acl = createEmptyACL();
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(TEST_PATH)) {
             int reqType = acl.getRestrictionType(getNamePathMapper().getJcrName(def.getName()));
@@ -196,7 +200,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     }
 
     @Test
-    public void testGetRestrictionTypeForUnknownName() throws RepositoryException {
+    public void testGetRestrictionTypeForUnknownName() {
         AbstractAccessControlList acl = createEmptyACL();
         // for backwards compatibility getRestrictionType(String) must return
         // UNDEFINED for a unknown restriction name:
@@ -221,37 +225,20 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         acl.addAccessControlEntry(internal, privilegesFromNames(JCR_READ));
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testNullPrincipal() throws Exception {
-
-        try {
-            acl.addAccessControlEntry(null, privilegesFromNames(JCR_READ));
-            fail("Adding an ACE with null principal should fail");
-        } catch (AccessControlException e) {
-            // success
-        }
+        acl.addAccessControlEntry(null, privilegesFromNames(JCR_READ));
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testEmptyPrincipal() throws Exception {
-
-        try {
-            acl.addAccessControlEntry(new PrincipalImpl(""), privilegesFromNames(JCR_READ));
-            fail("Adding an ACE with empty-named principal should fail");
-        } catch (AccessControlException e) {
-            // success
-        }
+        acl.addAccessControlEntry(new PrincipalImpl(""), privilegesFromNames(JCR_READ));
     }
 
     @Test
-    public void testAddEntriesWithCustomPrincipal()  throws Exception {
+    public void testAddEntriesWithCustomPrincipal() throws Exception {
         Principal oakPrincipal = new PrincipalImpl("anonymous");
-        Principal principal = new Principal() {
-            @Override
-            public String getName() {
-                return "anonymous";
-            }
-        };
+        Principal principal = () -> "anonymous";
 
         assertTrue(acl.addAccessControlEntry(oakPrincipal, privilegesFromNames(JCR_READ)));
         assertTrue(acl.addAccessControlEntry(principal, privilegesFromNames(JCR_READ_ACCESS_CONTROL)));
@@ -262,30 +249,29 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         assertArrayEquals(privilegesFromNames(JCR_READ_ACCESS_CONTROL), acl.getAccessControlEntries()[0].getPrivileges());
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testAddEntryWithoutPrivilege() throws Exception {
-        try {
-            acl.addAccessControlEntry(testPrincipal, new Privilege[0]);
-            fail("Adding an ACE with empty privilege array should fail.");
-        } catch (AccessControlException e) {
-            // success
-        }
-        try {
-            acl.addAccessControlEntry(testPrincipal, null);
-            fail("Adding an ACE with null privileges should fail.");
-        } catch (AccessControlException e) {
-            // success
-        }
+        acl.addAccessControlEntry(testPrincipal, new Privilege[0]);
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
+    public void testAddEntryWithNullPrivilege() throws Exception {
+        acl.addAccessControlEntry(testPrincipal, null);
+    }
+
+    @Test(expected = AccessControlException.class)
     public void testAddEntryWithInvalidPrivilege() throws Exception {
-        try {
-            acl.addAccessControlEntry(testPrincipal, new Privilege[]{new InvalidPrivilege()});
-            fail("Adding an ACE with invalid privileges should fail.");
-        } catch (AccessControlException e) {
-            // success
-        }
+        Privilege invalid = when(mock(Privilege.class).getName()).thenReturn("invalid").getMock();
+        acl.addAccessControlEntry(testPrincipal, new Privilege[]{invalid});
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testAddEntryWithAbstractPrivilege() throws Exception {
+        Privilege abstractPriv = when(mock(Privilege.class).isAbstract()).thenReturn(true).getMock();
+        when(abstractPriv.getName()).thenReturn("privName");
+        PrivilegeManager privMgr = when(mock(PrivilegeManager.class).getPrivilege(anyString())).thenReturn(abstractPriv).getMock();
+        ACL list = createACL(TEST_PATH, Collections.emptyList(), getNamePathMapper(), getRestrictionProvider(), privMgr);
+        list.addAccessControlEntry(testPrincipal, new Privilege[] {abstractPriv});
     }
 
     @Test
@@ -302,14 +288,14 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
 
     @Test
     public void testAddEntry2() throws Exception {
-        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap()));
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Collections.emptyMap()));
         assertFalse(acl.isEmpty());
     }
 
     @Test
     public void testAddEntryTwice() throws Exception {
-        acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap());
-        assertFalse(acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap()));
+        acl.addEntry(testPrincipal, testPrivileges, true, Collections.emptyMap());
+        assertFalse(acl.addEntry(testPrincipal, testPrivileges, true, Collections.emptyMap()));
     }
 
     @Test
@@ -328,48 +314,38 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         assertTrue(acl.isEmpty());
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testRemoveInvalidEntry() throws Exception {
-        try {
-            acl.removeAccessControlEntry(new JackrabbitAccessControlEntry() {
-                public boolean isAllow() {
-                    return false;
-                }
+        acl.removeAccessControlEntry(new JackrabbitAccessControlEntry() {
+            public boolean isAllow() {
+                return false;
+            }
 
-                public String[] getRestrictionNames() {
-                    return new String[0];
-                }
+            public String[] getRestrictionNames() {
+                return new String[0];
+            }
 
-                public Value getRestriction(String restrictionName) {
-                    return null;
-                }
+            public Value getRestriction(String restrictionName) {
+                return null;
+            }
 
-                public Value[] getRestrictions(String restrictionName) {
-                    return null;
-                }
+            public Value[] getRestrictions(String restrictionName) {
+                return null;
+            }
 
-                public Principal getPrincipal() {
-                    return testPrincipal;
-                }
+            public Principal getPrincipal() {
+                return testPrincipal;
+            }
 
-                public Privilege[] getPrivileges() {
-                    return testPrivileges;
-                }
-            });
-            fail("Passing an unknown ACE should fail");
-        } catch (AccessControlException e) {
-            // success
-        }
+            public Privilege[] getPrivileges() {
+                return testPrivileges;
+            }
+        });
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testRemoveNonExisting() throws Exception {
-        try {
-            acl.removeAccessControlEntry(createEntry(testPrincipal, testPrivileges, true));
-            fail("Removing a non-existing ACE should fail.");
-        } catch (AccessControlException e) {
-            // success
-        }
+        acl.removeAccessControlEntry(createEntry(testPrincipal, testPrivileges, true));
     }
 
     @Test
@@ -422,27 +398,37 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         assertEquals(first, acl.getEntries().get(2));
     }
 
-    @Test
-    public void testReorderInvalidEntries() throws Exception {
-        Privilege[] read = privilegesFromNames(JCR_READ, JCR_READ_ACCESS_CONTROL);
-        Privilege[] write = privilegesFromNames(JCR_WRITE);
-
-        acl.addAccessControlEntry(testPrincipal, read);
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
+    @Test(expected = AccessControlException.class)
+    public void testReorderInvalidSourceEntry() throws Exception {
+        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(JCR_READ, JCR_READ_ACCESS_CONTROL));
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_WRITE));
 
         AccessControlEntry invalid = createEntry(testPrincipal, false, null, JCR_WRITE);
-        try {
-            acl.orderBefore(invalid, acl.getEntries().get(0));
-            fail("src entry not contained in list -> reorder should fail.");
-        } catch (AccessControlException e) {
-            // success
-        }
-        try {
-            acl.orderBefore(acl.getEntries().get(0), invalid);
-            fail("dest entry not contained in list -> reorder should fail.");
-        } catch (AccessControlException e) {
-            // success
-        }
+        acl.orderBefore(invalid, acl.getEntries().get(0));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testReorderInvalidSourcDestEntry() throws Exception {
+        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(JCR_READ, JCR_READ_ACCESS_CONTROL));
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_WRITE));
+
+        AccessControlEntry invalid = createEntry(testPrincipal, false, null, JCR_MODIFY_PROPERTIES);
+        acl.orderBefore(acl.getEntries().get(0), invalid);
+    }
+
+    @Test
+    public void testReorderSourceSameAsDest() throws Exception {
+        AbstractAccessControlList acl = createEmptyACL();
+        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(JCR_READ, JCR_READ_ACCESS_CONTROL));
+        acl.addEntry(testPrincipal, privilegesFromNames(JCR_WRITE), false);
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_WRITE));
+
+        AccessControlEntry[] entries = acl.getAccessControlEntries();
+        assertEquals(3, entries.length);
+
+        acl.orderBefore(entries[1], entries[1]);
+
+        assertArrayEquals(entries, acl.getAccessControlEntries());
     }
 
     @Test
@@ -455,7 +441,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         assertTrue(acl.addEntry(testPrincipal, privileges, true));
 
         // expected: only a single allow-entry with both privileges
-        assertTrue(acl.size() == 1);
+        assertEquals(1, acl.size());
         assertACE(acl.getEntries().get(0), true, privileges);
     }
 
@@ -469,7 +455,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         assertFalse(acl.addEntry(testPrincipal, achPrivs, true));
 
         // expected: only a single allow-entry with add_child_nodes + read privilege
-        assertTrue(acl.size() == 1);
+        assertEquals(1, acl.size());
         assertACE(acl.getEntries().get(0), true, privileges);
     }
 
@@ -496,7 +482,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         assertTrue(acl.addEntry(testPrincipal, privileges, false));
 
         // expected: 2 entries one allowing ADD_CHILD_NODES, the other denying READ
-        assertTrue(acl.size() == 2);
+        assertEquals(2, acl.size());
 
         assertACE(acl.getEntries().get(0), true, privilegesFromNames(JCR_ADD_CHILD_NODES));
         assertACE(acl.getEntries().get(1), false, privilegesFromNames(JCR_READ));
@@ -512,7 +498,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         assertTrue(acl.addEntry(testPrincipal, modProperties, false));
 
         // expected: 2 entries with the allow entry being adjusted
-        assertTrue(acl.size() == 2);
+        assertEquals(2, acl.size());
 
         Privilege[] expected = privilegesFromNames(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, JCR_NODE_TYPE_MANAGEMENT);
         assertACE(acl.getEntries().get(0), true, expected);
@@ -543,7 +529,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         // add same privileges for another principal -> must modify as well.
         assertTrue(acl.addAccessControlEntry(everyone, privs));
         // .. 2 entries must be present.
-        assertTrue(acl.getAccessControlEntries().length == 2);
+        assertEquals(2, acl.getAccessControlEntries().length);
         assertEquals(everyone, acl.getAccessControlEntries()[1].getPrincipal());
     }
 
@@ -614,11 +600,11 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         Privilege[] grPriv = privilegesFromNames(REP_WRITE);
         Privilege[] dePriv = privilegesFromNames(JCR_REMOVE_CHILD_NODES);
 
-        acl.addEntry(everyone, grPriv, true, Collections.<String, Value>emptyMap());
-        acl.addEntry(everyone, dePriv, false, Collections.<String, Value>emptyMap());
+        acl.addEntry(everyone, grPriv, true, Collections.emptyMap());
+        acl.addEntry(everyone, dePriv, false, Collections.emptyMap());
 
-        Set<Privilege> allows = new HashSet<Privilege>();
-        Set<Privilege> denies = new HashSet<Privilege>();
+        Set<Privilege> allows = new HashSet<>();
+        Set<Privilege> denies = new HashSet<>();
         AccessControlEntry[] entries = acl.getAccessControlEntries();
         for (AccessControlEntry en : entries) {
             if (everyone.equals(en.getPrincipal()) && en instanceof JackrabbitAccessControlEntry) {
@@ -637,7 +623,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         assertEquals(ImmutableSet.copyOf(expected), allows);
 
         assertEquals(1, denies.size());
-        assertArrayEquals(privilegesFromNames(JCR_REMOVE_CHILD_NODES), denies.toArray(new Privilege[denies.size()]));
+        assertArrayEquals(privilegesFromNames(JCR_REMOVE_CHILD_NODES), denies.toArray(new Privilege[0]));
     }
 
     @Test
@@ -664,11 +650,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         acl.addEntry(testPrincipal, readPriv, false);
 
         assertFalse(acl.addEntry(new PrincipalImpl(testPrincipal.getName()), readPriv, false));
-        assertFalse(acl.addEntry(new Principal() {
-            public String getName() {
-                return testPrincipal.getName();
-            }
-        }, readPriv, false));
+        assertFalse(acl.addEntry(() -> testPrincipal.getName(), readPriv, false));
     }
 
     @Test
@@ -804,37 +786,27 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
         }
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testUnsupportedRestrictions2() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("restr", Type.NAME, false);
 
-        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
-        try {
-            acl.addEntry(testPrincipal, testPrivileges, false, Collections.<String, Value>singletonMap("unsupported", getValueFactory().createValue("value")));
-            fail("Unsupported restriction must be detected.");
-        } catch (AccessControlException e) {
-            // mandatory restriction missing -> success
-        }
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList<>(), namePathMapper, rp);
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("unsupported", getValueFactory().createValue("value")));
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testInvalidRestrictionType() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("restr", Type.NAME, false);
 
-        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
-        try {
-            acl.addEntry(testPrincipal, testPrivileges, false, Collections.<String, Value>singletonMap("restr", getValueFactory().createValue(true)));
-            fail("Invalid restriction type.");
-        } catch (AccessControlException e) {
-            // mandatory restriction missing -> success
-        }
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList<>(), namePathMapper, rp);
+        acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("restr", getValueFactory().createValue(true)));
     }
 
     @Test(expected = AccessControlException.class)
     public void testMandatoryRestrictions() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
 
-        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList<>(), namePathMapper, rp);
         acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.emptyMap());
     }
 
@@ -842,7 +814,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testMandatoryRestrictionsPresent() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
 
-        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList<>(), namePathMapper, rp);
         acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("mandatory", getValueFactory(root).createValue("name", PropertyType.NAME)), Collections.emptyMap());
     }
 
@@ -850,7 +822,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testMandatoryRestrictionsPresentAsMV() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAME, true);
 
-        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList<>(), namePathMapper, rp);
         acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.singletonMap("mandatory", new Value[] {getValueFactory(root).createValue("name", PropertyType.NAME)}));
     }
 
@@ -858,7 +830,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testMandatoryMVRestrictions() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAMES, true);
 
-        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList<>(), namePathMapper, rp);
         acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.emptyMap());
     }
 
@@ -866,7 +838,7 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testMandatoryMVRestrictionsPresentAsSingle() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAMES, true);
 
-        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList<>(), namePathMapper, rp);
         acl.addEntry(testPrincipal, testPrivileges, false, Collections.singletonMap("mandatory", getValueFactory(root).createValue("name", PropertyType.NAME)), Collections.emptyMap());
     }
 
@@ -874,39 +846,11 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
     public void testMandatoryMVRestrictionsPresent() throws Exception {
         RestrictionProvider rp = new TestRestrictionProvider("mandatory", Type.NAMES, true);
 
-        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList(), namePathMapper, rp);
+        JackrabbitAccessControlList acl = createACL(TEST_PATH, new ArrayList<>(), namePathMapper, rp);
         acl.addEntry(testPrincipal, testPrivileges, false, Collections.emptyMap(), Collections.singletonMap("mandatory", new Value[] {getValueFactory(root).createValue("name", PropertyType.NAME)}));
     }
 
     //--------------------------------------------------------------------------
-
-    private class InvalidPrivilege implements Privilege {
-
-        @Override
-        public String getName() {
-            return "invalidPrivilege";
-        }
-
-        @Override
-        public boolean isAbstract() {
-            return false;
-        }
-
-        @Override
-        public boolean isAggregate() {
-            return false;
-        }
-
-        @Override
-        public Privilege[] getDeclaredAggregatePrivileges() {
-            return new Privilege[0];
-        }
-
-        @Override
-        public Privilege[] getAggregatePrivileges() {
-            return new Privilege[0];
-        }
-    }
 
     private final class TestRestrictionProvider extends AbstractRestrictionProvider {
 

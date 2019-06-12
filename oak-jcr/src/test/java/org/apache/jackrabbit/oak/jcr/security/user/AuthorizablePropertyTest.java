@@ -147,7 +147,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testSetPropertyByRelPath() throws NotExecutableException, RepositoryException {
+    public void testSetPropertyByRelPath() throws RepositoryException {
         Value[] v = new Value[] {superuser.getValueFactory().createValue("Super User")};
 
         List<String> relPaths = new ArrayList<String>();
@@ -173,7 +173,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testSetPropertyInvalidRelativePath() throws NotExecutableException, RepositoryException {
+    public void testSetPropertyInvalidRelativePath() throws RepositoryException {
         Value[] v = new Value[] {superuser.getValueFactory().createValue("Super User")};
 
         List<String> invalidPaths = new ArrayList<String>();
@@ -197,51 +197,48 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testGetPropertyByInvalidRelativePath() throws NotExecutableException, RepositoryException {
-        List<String> wrongPaths = new ArrayList<String>();
-        wrongPaths.add("../jcr:primaryType");
-        wrongPaths.add("../../jcr:primaryType");
-        wrongPaths.add("../testing/jcr:primaryType");
-        for (String path : wrongPaths) {
-            assertNull(user.getProperty(path));
-        }
-
+    public void testGetPropertyByInvalidRelativePath() throws RepositoryException {
         List<String> invalidPaths = new ArrayList<String>();
-        invalidPaths.add("/testing/jcr:primaryType");
+        invalidPaths.add("../jcr:primaryType");
+        invalidPaths.add("../../jcr:primaryType");
+        invalidPaths.add("../testing/jcr:primaryType");
         invalidPaths.add("..");
         invalidPaths.add(".");
-        invalidPaths.add(null);
-        for (String invalidPath : invalidPaths) {
-            try {
-                assertNull(user.getProperty(invalidPath));
-            } catch (RepositoryException e) {
-                // success
-            }
+        for (String path : invalidPaths) {
+            assertNull(user.getProperty(path));
         }
     }
 
     @Test
-    public void testHasPropertyByInvalidRelativePath() throws NotExecutableException, RepositoryException {
-        List<String> wrongPaths = new ArrayList<String>();
-        wrongPaths.add("../jcr:primaryType");
-        wrongPaths.add("../../jcr:primaryType");
-        wrongPaths.add("../testing/jcr:primaryType");
-        for (String path : wrongPaths) {
-            assertFalse(user.hasProperty(path));
+    public void testGetPropertyByAbsPath() {
+        try {
+            user.getProperty("/testing/jcr:primaryType");
+            fail();
+        } catch (RepositoryException e) {
+            // success
         }
+    }
 
-
+    @Test
+    public void testHasPropertyByInvalidRelativePath() throws RepositoryException {
         List<String> invalidPaths = new ArrayList<String>();
+        invalidPaths.add("../jcr:primaryType");
+        invalidPaths.add("../../jcr:primaryType");
+        invalidPaths.add("../testing/jcr:primaryType");
         invalidPaths.add("..");
         invalidPaths.add(".");
-        invalidPaths.add(null);
+        for (String path : invalidPaths) {
+            assertFalse(user.hasProperty(path));
+        }
+    }
 
-        for (String invalidPath : invalidPaths) {
-            try {
-                assertFalse(user.hasProperty(invalidPath));
-            } catch (RepositoryException e) {
-                // success
-            }
+    @Test
+    public void testHasPropertyByAbsPath() {
+        try {
+            user.hasProperty("/testing/jcr:primaryType");
+            fail();
+        } catch (RepositoryException e) {
+            // success
         }
     }
 
@@ -314,7 +311,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testGetPropertyNamesByInvalidRelPath() throws NotExecutableException, RepositoryException {
+    public void testGetPropertyNamesByInvalidRelPath() {
         List<String> invalidPaths = new ArrayList<String>();
         invalidPaths.add("");
         invalidPaths.add("/");
@@ -322,8 +319,6 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         invalidPaths.add("../../");
         invalidPaths.add("../testing");
         invalidPaths.add("/testing");
-        invalidPaths.add(null);
-
         for (String invalidRelPath : invalidPaths) {
             try {
                 user.getPropertyNames(invalidRelPath);
@@ -335,7 +330,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testGetNotExistingProperty() throws RepositoryException, NotExecutableException {
+    public void testGetNotExistingProperty() throws RepositoryException {
         String hint = "Fullname";
         String propName = hint;
         int i = 0;
@@ -396,7 +391,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testRemoveNotExistingProperty() throws RepositoryException, NotExecutableException {
+    public void testRemoveNotExistingProperty() throws RepositoryException {
         String hint = "Fullname";
         String propName = hint;
         int i = 0;
@@ -409,7 +404,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testSetSpecialProperties() throws NotExecutableException, RepositoryException {
+    public void testSetSpecialProperties() throws RepositoryException {
         Value v = superuser.getValueFactory().createValue("any_value");
         for (String pName : protectedUserProps.keySet()) {
             try {
@@ -447,7 +442,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     }
 
     @Test
-    public void testRemoveSpecialProperties() throws NotExecutableException, RepositoryException {
+    public void testRemoveSpecialProperties() throws RepositoryException {
         for (String pName : protectedUserProps.keySet()) {
             try {
                 if (user.removeProperty(pName)) {

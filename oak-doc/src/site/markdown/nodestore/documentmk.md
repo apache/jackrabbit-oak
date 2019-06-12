@@ -22,12 +22,13 @@
     * [New in 1.6](#new-1.6)
     * [Backend implementations](#backend-implementations)
     * [Content Model](#content-model)
-    * [Node Content Model](#node-content-model)
-    * [Revisions](#revisions)
+        * [Node Content Model](#node-content-model)
+        * [Revisions](#revisions)
+        * [Commit Root](#commit-root)
+        * [Branches](#branches)
+        * [Sweep Revision](#sweep-revision)
+        * [Previous Documents](#previous-documents)
     * [Clock requirements](#clock-requirements)
-    * [Branches](#branches)
-    * [Previous Documents](#previous-documents)
-    * [Sweep Revision](#sweep-revision)
     * [Node Bundling](#node-bundling)
     * [Background Operations](#background-operations)
         * [Renew Cluster Id Lease](#renew-cluster-id-lease)
@@ -107,7 +108,7 @@ The data can be viewed using the MongoDB shell:
     nodes
     settings
 
-## <a name="node-content-model"></a> Node Content Model
+### <a name="node-content-model"></a> Node Content Model
 
 The `DocumentNodeStore` stores each node in a separate MongoDB document and updates to
 a node are stored by adding new revision/value pairs to the document. This way
@@ -124,7 +125,7 @@ The basic MongoDB document of a node in Oak looks like this:
         "_lastRev" : {
             "r0-0-1" : "r13f3875b5d1-0-1"
         },
-        "_modified" : NumberLong(274208361),
+        "_modified" : NumberLong(1371041805),
         "_modCount" : NumberLong(1),
         "_children" : Boolean(true),
         "_revisions" : {
@@ -188,7 +189,7 @@ result in the following document:
         "_lastRev" : {
             "r0-0-1" : "r13f38818ab6-0-1"
         },
-        "_modified" : NumberLong(274208516),
+        "_modified" : NumberLong(1371042580),
         "_modCount" : NumberLong(2),
         "_revisions" : {
             "r13f3875b5d1-0-1" : "c",
@@ -216,7 +217,7 @@ After the node is deleted the document looks like this:
         "_lastRev" : {
             "r0-0-1" : "r13f38835063-2-1"
         },
-        "_modified" : NumberLong(274208539),
+        "_modified" : NumberLong(1371042695),
         "_modCount" : NumberLong(3),
         "_revisions" : {
             "r13f3875b5d1-0-1" : "c",
@@ -235,7 +236,7 @@ node as deleted in this revision.
 Reading the node in previous revisions is still possible, even if it is now
 marked as deleted as of revision `r13f38835063-2-1`.
 
-## <a name="revisions"></a> Revisions
+### <a name="revisions"></a> Revisions
 
 As seen in the examples above, a revision is a String and may look like this:
 `r13f38835063-2-1`. It consists of three parts:
@@ -244,25 +245,77 @@ As seen in the examples above, a revision is a String and may look like this:
 * A counter to distinguish revisions created with the same timestamp: `-2`
 * The cluster node id where this revision was created: `-1`
 
-## <a name="clock-requirements"></a> Clock requirements
+### <a name="commit-root"></a> Commit Root
 
-Revisions are used by the DocumentNodeStore to identify the sequence of changes done
-on items in the repository. This is also done across cluster nodes for revisions
-with different cluster node ids. This requires the system clocks on the machines
-running Oak and the backend system to approximately in sync. It is recommended
-to run an NTP daemon or some similar service to keep the clock synchronized.
-Oak allows clock differences up to 2 seconds between the machine where Oak is
-running and the machine where the backend store (MongoDB or RDBMS) is running.
-Oak may refuse to start if it detects a larger clock difference. Clock
-differences between the machines running in an Oak cluster will result in
-delayed propagation of changes between cluster nodes and warnings in the log
-files.
+The examples so far showed how changes are committed in the most simple case
+when the scope of the changes is limited to a single node / document. In this
+case the commit information in the `_revisions` sub-document is stored on the
+same document as the changes. When the scope of the commit spans multiple
+documents, the commit information is located on the nearest common ancestor of
+the changed documents. Consider a commit that creates two nodes `/content/en/hello`
+and `/content/de/hallo`. The documents could look like this:
 
-## <a name="branches"></a> Branches
+    {
+        "_id" : "3:/content/en/hello",
+        "_commitRoot" : {
+            "r16b03ec48a2-0-1" : "1"
+        },
+        "_deleted" : {
+            "r16b03ec48a2-0-1" : "false"
+        },
+        "_modCount" : NumberLong(1),
+        "_modified" : NumberLong(1559138945)
+    }
 
-The DocumentNodeStore implementation support branches, which allows a client to
-stage multiple commits and make them visible with a single merge call. A branch
-commit looks very similar to a regular commit, but instead of setting
+    {
+        "_id" : "3:/content/de/hallo",
+        "_commitRoot" : {
+            "r16b03ec48a2-0-1" : "1"
+        },
+        "_deleted" : {
+            "r16b03ec48a2-0-1" : "false"
+        },
+        "_modCount" : NumberLong(1),
+        "_modified" : NumberLong(1559138945)
+    }
+
+The commit information is now located on a different document. The reference
+to the document that contains the commit information is stored as an entry in
+the `_commitRoot` sub-document. In above example, the entry
+`"r16b03ec48a2-0-1" : "1"` tells us which document it is. It's an ancestor of
+the current document with depth one: `1:/content`. There we will find a
+`_revisions` entry with the commit information:
+
+    {
+        "_id" : "1:/content",
+        "_commitRoot" : {
+            "r1672b446f0a-0-1" : "0"
+        },
+        "_deleted" : {
+            "r1672b446f0a-0-1" : "false"
+        },
+        "_modCount" : NumberLong(24),
+        "_modified" : NumberLong(1559138945),
+        "_children" : true,
+        "_lastRev" : {
+            "r0-0-1" : "r16b03ec48a2-0-1"
+        },
+        "_revisions" : {
+            "r16b03ec48a2-0-1" : "c"
+        }
+    }
+
+### <a name="branches"></a> Branches
+
+The DocumentNodeStore implementation support branches, which allows to stage
+multiple commits and make them visible with a single merge call. The
+DocumentNodeStore implementation creates a branch automatically when there
+are more than 100'000 changes pending. This is not something that can be
+controlled by the application code. See also OSGi
+[configuration](../osgi_config.html#document-node-store) for the `DocumentNodeStoreService`.
+
+
+A branch commit looks very similar to a regular commit, but instead of setting
 the value of an entry in `_revisions` to `c` (committed), it marks it with
 the base revision of the branch commit. In contrast to regular commits where
 the commit root is the common ancestor of all nodes modified in a commit, the
@@ -282,7 +335,7 @@ A root node may look like this:
         "_lastRev" : {
             "r0-0-1" : "r13fcda91720-0-1"
         },
-        "_modified" : NumberLong(274708995),
+        "_modified" : NumberLong(1373544975),
         "_modCount" : NumberLong(2),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
@@ -308,7 +361,7 @@ the root node looks like this:
         "_lastRev" : {
             "r0-0-1" : "r13fcda91720-0-1"
         },
-        "_modified" : NumberLong(274708995),
+        "_modified" : NumberLong(1373544975),
         "_modCount" : NumberLong(3),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
@@ -345,7 +398,7 @@ When the branch is later merged, the root node will look like this:
         "_lastRev" : {
             "r0-0-1" : "r13fcda91b12-0-1"
         },
-        "_modified" : NumberLong(274708995),
+        "_modified" : NumberLong(1373544975),
         "_modCount" : NumberLong(4),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
@@ -368,12 +421,57 @@ The same logic is used for changes to other nodes that belong to a branch
 commit. The DocumentNodeStore internally resolves the commit revision for a modification
 before it decides whether a reader is able to see a given change.
 
-## <a name="previous-documents"></a> Previous Documents
+### <a name="sweep-revision"></a> Sweep Revision
 
-Over time the size of a document grows because the DocumentNodeStore adds data to the document
-with every modification, but never deletes anything to keep the history. Old data
-is moved when there are 100 commits to be moved or the document is bigger than
-1 MB. A document with a reference to old data looks like this:
+`@since Oak 1.8`
+
+With Oak 1.8 the concept of a sweep revision was introduced in the
+DocumentNodeStore. The sweep revision of a DocumentNodeStore indicates up to
+which revision non-branch changes are guaranteed to be committed. This allows
+to optimize read operations because a lookup of the commit root document can
+be avoided in most cases. It also means the Revision Garbage Collector can
+remove previous documents that contain `_revisions` entries if they are all
+older than the sweep revision.
+
+The sweep revision is maintained per clusterId on the root document. Below is
+the root document already presented above, amended with the sweep revision.
+
+    {
+        "_deleted" : {
+            "r13fcda88ac0-0-1" : "false",
+        },
+        "_id" : "0:/",
+        "_lastRev" : {
+            "r0-0-1" : "r13fcda91720-0-1"
+        },
+        "_modified" : NumberLong(1373544975),
+        "_modCount" : NumberLong(2),
+        "_revisions" : {
+            "r13fcda88ac0-0-1" : "c",
+            "r13fcda91720-0-1" : "c"
+        },
+        "_sweepRev" : {
+            "r0-0-1" : "r13fcda91720-0-1",
+        },
+        "prop" : {
+            "r13fcda91720-0-1" : "\"foo\""
+        }
+    }
+
+As noted already, the sweep revision does not apply to branch commits. For
+branch commits there is no shortcut to tell whether a change in a given revision
+is committed. For those changes it is always required to look up the commit root
+document and determine the merge revision. This is also the reason why the
+Revision Garbage Collector cannot remove documents with this kind of commit
+information.
+
+### <a name="previous-documents"></a> Previous Documents
+
+Over time the size of a document grows because the DocumentNodeStore adds data
+to the document with every modification, but never deletes anything to keep the
+history. Old data is moved when there are 100 commits to be moved or the
+document is bigger than 1 MB. A document with a reference to old data looks like
+this:
 
     {
         "_deleted" : {
@@ -383,7 +481,7 @@ is moved when there are 100 commits to be moved or the document is bigger than
         "_lastRev" : {
             "r0-0-1" : "r13fcda91b12-0-1"
         },
-        "_modified" : NumberLong(274708995),
+        "_modified" : NumberLong(1373544975),
         "_modCount" : NumberLong(1004),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
@@ -394,7 +492,7 @@ is moved when there are 100 commits to be moved or the document is bigger than
             "r13fcda919eb-0-1" : "true"
         },
         "_prev" : {
-            "r13fcda88ae0-0-1" : "r13fcda91710-0-1"
+            "r13fcda91710-0-1" : "r13fcda88ae0-0-1/0"
         },
         "prop" : {
             "r13fcda91720-0-1" : "\"foo\"",
@@ -406,13 +504,16 @@ The optional sub-document `_prev` contains a list of revision pairs, each
 indicating the range of commit revisions a previous document contains. In
 the above example there is one document with previous commits from
 `r13fcda88ae0-0-1` to `r13fcda91710-0-1`. The id of the previous document
-is derived from the upper bound of the range and the id/path of the current
-document. The id of the previous document for `r13fcda88ae0-0-1` and `0:/`
-is `1:p/r13fcda88ae0-0-1` and may looks like this:
+is derived from the upper bound of the range, the id/path of the current
+document and the height in the previous document tree. More on that later.
+The id of the previous document for `r13fcda91710-0-1` and `0:/` at height zero
+is `2:p/r13fcda91710-0-1/0` and may looks like this:
 
     {
-        "_id" : "1:p/r13fcda88ae0-0-1",
+        "_id" : "2:p/r13fcda91710-0-1/0",
         "_modCount" : NumberLong(1),
+        "_sdType" : NumberLong(70),
+        "_sdMaxRevTime" : NumberLong(1373544975),
         "_revisions" : {
             "r13fcda88ae0-0-1" : "c",
             "r13fcda88af0-0-1" : "c",
@@ -432,21 +533,29 @@ committed and merged `_revisions`. This also means the previous ranges of
 committed data may overlap because branch commits are not moved to previous
 documents until the branch is merged.
 
-## <a name="sweep-revision"></a> Sweep Revision
+Previous documents contain metadata not present on the main document. Each
+previous document has a `_sdType`, which plays a role for the Revision Garbage
+Collector whether a previous document can be collected later. The `_sdType`
+values are defined in the enum [SplitDocType](https://github.com/apache/jackrabbit-oak/blob/jackrabbit-oak-1.12.0/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/NodeDocument.java#L268).
+The term "split document" is used as a synonym for "previous document". The
+most commonly used types are (`_sdType` in parentheses):
 
-`@since Oak 1.8`
+ * DEFAULT(10): contains all kinds of changes and commit information.
+ * INTERMEDIATE(30): an intermediate document that creates a tree of split documents.
+ * DEFAULT_LEAF(50): contains changes from nodes that were leafs in the node tree.
+ * COMMIT_ROOT_ONLY(60): contains only changes where the commit root was not on the document itself.
+ * DEFAULT_NO_BRANCH(70): contains all kind of changes and commit information, except from branches.
 
-With Oak 1.8 the concept of a sweep revision was introduced in the
-DocumentNodeStore. The sweep revision of a DocumentNodeStore indicates up to
-which revision non-branch changes are guaranteed to be committed. This allows
-to optimize read operations because a lookup of the commit root document can
-be avoided in most cases. It also means the Revision Garbage Collector can
-remove previous documents that contain `_revisions` entries if they are all
-older than the sweep revision.
+The Revision Garbage Collection will only collect `_sdType` with values 30, 50,
+60 and 70 when the previous documents are older than 24 hours (this is
+configurable). Previous documents of `_sdType` 10 are currently kept forever.
 
-The sweep revision is maintained per DocumentNodeStore instance on the root
-document. Below is the root document already presented above, amended with the
-sweep revision.
+Over time the main document will accumulate reference to previous documents. To
+prevent unlimited growth of the main document, the DocumentNodeStore will also
+move `_prev` entries to a new previous document of type INTERMEDIATE(30). This
+happens whenever there are 10 `_prev` entries for a clusterId with the same
+height. The first intermediate previous document is therefore created when
+ten previous documents with height 0 exist.
 
     {
         "_deleted" : {
@@ -454,24 +563,98 @@ sweep revision.
         },
         "_id" : "0:/",
         "_lastRev" : {
-            "r0-0-1" : "r13fcda91720-0-1"
+            "r0-0-1" : "r13fcdb0190a-0-1"
         },
-        "_modified" : NumberLong(274708995),
-        "_modCount" : NumberLong(2),
+        "_modified" : NumberLong(1373544975),
+        "_modCount" : NumberLong(2404),
         "_revisions" : {
             "r13fcda88ac0-0-1" : "c",
-            "r13fcda91720-0-1" : "c"
+            "r13fcda919eb-0-1" : "c-r13fcda91b12-0-1"
         },
-        "_sweepRev" : {
-            "r0-0-1" : "r13fcda91720-0-1",
+        "_bc" : {
+            "r13fcda919eb-0-1" : "true"
+        },
+        "_prev" : {
+            "r13fcda91710-0-1" : "r13fcda88ae0-0-1/0",
+            "r13fcda9293a-0-1" : "r13fcda91720-0-1/0",
+            "r13fcdab07a4-0-1" : "r13fcdaa03ab-0-1/0",
+            "r13fcdac4984-0-1" : "r13fcdac0389-0-1/0",
+            "r13fcdac7a91-0-1" : "r13fcdac509a-0-1/0",
+            "r13fcdad0a12-0-1" : "r13fcdac7c41-0-1/0",
+            "r13fcdad940a-0-1" : "r13fcdad302d-0-1/0",
+            "r13fcdae0a94-0-1" : "r13fcdade914-0-1/0",
+            "r13fcdaef0a0-0-1" : "r13fcdae4d03-0-1/0",
+            "r13fcdb0190a-0-1" : "r13fcdaf10f3-0-1/0",
         },
         "prop" : {
-            "r13fcda91720-0-1" : "\"foo\""
+            "r13fcda919eb-0-1" : "\"bar\"",
         }
     }
 
+Above would be turned into:
 
-## <a name="node-bundling"></a> node-bundling
+    {
+        "_deleted" : {
+            "r13fcda88ac0-0-1" : "false",
+        },
+        "_id" : "0:/",
+        "_lastRev" : {
+            "r0-0-1" : "r13fcdb0190a-0-1"
+        },
+        "_modified" : NumberLong(1373544975),
+        "_modCount" : NumberLong(2405),
+        "_revisions" : {
+            "r13fcda88ac0-0-1" : "c",
+            "r13fcda919eb-0-1" : "c-r13fcda91b12-0-1"
+        },
+        "_bc" : {
+            "r13fcda919eb-0-1" : "true"
+        },
+        "_prev" : {
+            "r13fcdb0190a-0-1" : "r13fcda88ae0-0-1/1",
+        },
+        "prop" : {
+            "r13fcda919eb-0-1" : "\"bar\"",
+        }
+    }
+
+And a new intermediate split document:
+
+    {
+        "_id" : "2:p/r13fcdb0190a-0-1/1",
+        "_prev" : {
+            "r13fcda91710-0-1" : "r13fcda88ae0-0-1/0",
+            "r13fcda9293a-0-1" : "r13fcda91720-0-1/0",
+            "r13fcdab07a4-0-1" : "r13fcdaa03ab-0-1/0",
+            "r13fcdac4984-0-1" : "r13fcdac0389-0-1/0",
+            "r13fcdac7a91-0-1" : "r13fcdac509a-0-1/0",
+            "r13fcdad0a12-0-1" : "r13fcdac7c41-0-1/0",
+            "r13fcdad940a-0-1" : "r13fcdad302d-0-1/0",
+            "r13fcdae0a94-0-1" : "r13fcdade914-0-1/0",
+            "r13fcdaef0a0-0-1" : "r13fcdae4d03-0-1/0",
+            "r13fcdb0190a-0-1" : "r13fcdaf10f3-0-1/0",
+        },
+        "_sdType" : NumberLong(40),
+        "_sdMaxRevTime" : NumberLong(1373545435),
+        "_modCount" : NumberLong(1)
+    }
+
+
+## <a name="clock-requirements"></a> Clock requirements
+
+Revisions are used by the DocumentNodeStore to identify the sequence of changes done
+on items in the repository. This is also done across cluster nodes for revisions
+with different cluster node ids. This requires the system clocks on the machines
+running Oak and the backend system to approximately in sync. It is recommended
+to run an NTP daemon or some similar service to keep the clock synchronized.
+Oak allows clock differences up to 2 seconds between the machine where Oak is
+running and the machine where the backend store (MongoDB or RDBMS) is running.
+Oak may refuse to start if it detects a larger clock difference. Clock
+differences between the machines running in an Oak cluster will result in
+delayed propagation of changes between cluster nodes and warnings in the log
+files.
+
+## <a name="node-bundling"></a> Node Bundling
 
 `@since Oak 1.6`
 
