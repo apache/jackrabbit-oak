@@ -31,12 +31,14 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
@@ -47,8 +49,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
@@ -62,11 +67,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.PARAM_ENABLE_AGGREGATION_FILTER;
 
 @Component(
         service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
@@ -80,6 +86,11 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
                 name = "Ranking",
                 description = "Ranking of this configuration in a setup with multiple authorization configurations.")
         int configurationRanking() default 500;
+
+        @AttributeDefinition(
+                name = "Enable AggregationFilter",
+                description = "If enabled effective permission evaluation will stop after this module.")
+        boolean enableAggregationFilter() default false;
     }
 
     /**
@@ -91,6 +102,8 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
      * Reference to service implementing {@link MountInfoProvider}
      */
     private MountInfoProvider mountInfoProvider;
+
+    private ServiceRegistration aggregationFilterRegistration;
 
     @SuppressWarnings("UnusedDeclaration")
     public PrincipalBasedAuthorizationConfiguration() {
@@ -168,14 +181,24 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
 
     //----------------------------------------------------< SCR Integration >---
     @Activate
-    public void activate(@NotNull Configuration configuration, @NotNull Map<String, Object> properties) {
+    public void activate(@NotNull BundleContext context, @NotNull Configuration configuration) {
         checkConflictingMount();
-        setParameters(ConfigurationParameters.of(properties));
+        setParameters(ConfigurationParameters.of(CompositeConfiguration.PARAM_RANKING, configuration.configurationRanking(), PARAM_ENABLE_AGGREGATION_FILTER, configuration.enableAggregationFilter()));
+        if (configuration.enableAggregationFilter()) {
+            registerAggregationFilter(context);
+        } else {
+            unregisterAggregationFilter();
+        }
     }
 
     @Modified
-    public void modified(@NotNull Configuration configuration, @NotNull Map<String, Object> properties) {
-        activate(configuration, properties);
+    public void modified(@NotNull BundleContext context, @NotNull Configuration configuration) {
+        activate(context, configuration);
+    }
+
+    @Deactivate
+    public void deactivate(@NotNull BundleContext context, @NotNull Configuration configuration) {
+        unregisterAggregationFilter();
     }
 
     @Reference(name = "filterProvider", cardinality = ReferenceCardinality.MANDATORY)
@@ -231,5 +254,18 @@ public class PrincipalBasedAuthorizationConfiguration extends ConfigurationBase 
             throw new IllegalStateException("Unable to read node types for principal based authorization", e);
         }
         return false;
+    }
+
+    private void registerAggregationFilter(@NotNull BundleContext context) {
+        if (aggregationFilterRegistration == null) {
+            aggregationFilterRegistration = context.registerService(AggregationFilter.class.getName(), new AggregationFilterImpl(), new Hashtable());
+        }
+    }
+
+    private void unregisterAggregationFilter() {
+        if (aggregationFilterRegistration != null) {
+            aggregationFilterRegistration.unregister();
+            aggregationFilterRegistration = null;
+        }
     }
 }

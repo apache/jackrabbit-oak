@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -30,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
@@ -39,11 +39,14 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Test;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.security.AccessControlManager;
 import java.lang.reflect.Field;
 import java.security.Principal;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 
@@ -51,6 +54,7 @@ import static org.apache.jackrabbit.oak.spi.security.CompositeConfiguration.PARA
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.NT_REP_PRINCIPAL_ENTRY;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.NT_REP_PRINCIPAL_POLICY;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.NT_REP_RESTRICTIONS;
+import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.PARAM_ENABLE_AGGREGATION_FILTER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -58,7 +62,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrincipalBasedTest {
@@ -187,23 +194,77 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
     @Test
     public void testActivate() {
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
-        pbac.activate(mock(PrincipalBasedAuthorizationConfiguration.Configuration.class), ImmutableMap.of(PARAM_RANKING, 50, "invalid", "someValue"));
+
+        BundleContext ctx = mock(BundleContext.class);
+        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+        when(config.configurationRanking()).thenReturn(50);
+        when(config.enableAggregationFilter()).thenReturn(true);
+        pbac.activate(ctx, config);
 
         ConfigurationParameters params = pbac.getParameters();
         assertEquals(50, params.get(PARAM_RANKING));
-        assertEquals("someValue", params.get("invalid"));
+        assertEquals(Boolean.TRUE, params.get(PARAM_ENABLE_AGGREGATION_FILTER));
+
+        verify(ctx, times(1)).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class));
     }
 
     @Test
     public void testModified() {
         PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
-        pbac.activate(mock(PrincipalBasedAuthorizationConfiguration.Configuration.class), ImmutableMap.of(PARAM_RANKING, 50, "invalid", "someValue"));
-        pbac.modified(mock(PrincipalBasedAuthorizationConfiguration.Configuration.class), ImmutableMap.of(PARAM_RANKING, 85, "test", "someValue"));
+
+        ServiceRegistration registrationMock = mock(ServiceRegistration.class);
+        BundleContext ctx = when(mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class))).thenReturn(registrationMock).getMock();
+        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+        when(config.configurationRanking()).thenReturn(50);
+        when(config.enableAggregationFilter()).thenReturn(true);
+        pbac.activate(ctx, config);
+
+        when(config.configurationRanking()).thenReturn(85);
+        when(config.enableAggregationFilter()).thenReturn(true);
+        pbac.modified(ctx, config);
 
         ConfigurationParameters params = pbac.getParameters();
         assertEquals(85, params.get(PARAM_RANKING));
-        assertEquals("someValue", params.get("test"));
-        assertNull(params.get("invalid"));
+        assertEquals(Boolean.TRUE, params.get(PARAM_ENABLE_AGGREGATION_FILTER));
+
+        verify(ctx, times(1)).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class));
+    }
+
+    @Test
+    public void testModified2() {
+        PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
+
+        ServiceRegistration registrationMock = mock(ServiceRegistration.class);
+        BundleContext ctx = when(mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class))).thenReturn(registrationMock).getMock();
+        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+        when(config.configurationRanking()).thenReturn(50);
+        when(config.enableAggregationFilter()).thenReturn(true);
+        pbac.activate(ctx, config);
+
+        when(config.configurationRanking()).thenReturn(85);
+        when(config.enableAggregationFilter()).thenReturn(false);
+        pbac.modified(ctx, config);
+
+        ConfigurationParameters params = pbac.getParameters();
+        assertEquals(85, params.get(PARAM_RANKING));
+        assertEquals(Boolean.FALSE, params.get(PARAM_ENABLE_AGGREGATION_FILTER));
+
+        verify(registrationMock, times(1)).unregister();
+    }
+
+    @Test
+    public void testDeactivate() {
+        PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
+
+        ServiceRegistration registrationMock = mock(ServiceRegistration.class);
+        BundleContext ctx = when(mock(BundleContext.class).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class))).thenReturn(registrationMock).getMock();
+        PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+        when(config.configurationRanking()).thenReturn(50);
+        when(config.enableAggregationFilter()).thenReturn(true);
+        pbac.activate(ctx, config);
+
+        pbac.deactivate(ctx, config);
+        verify(registrationMock, times(1)).unregister();
     }
 
     @Test

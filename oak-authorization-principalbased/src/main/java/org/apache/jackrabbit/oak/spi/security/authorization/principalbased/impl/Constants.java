@@ -69,4 +69,9 @@ interface Constants {
      * null to {@code AccessControlManager.getEffectivePolicies(String)}.
      */
     String REPOSITORY_PERMISSION_PATH = "";
+
+    /**
+     * Name of the optional configuration parameter to enable the {@code AggregationFilter} for this model.
+     */
+    String PARAM_ENABLE_AGGREGATION_FILTER = "enableAggregationFilter";
 }

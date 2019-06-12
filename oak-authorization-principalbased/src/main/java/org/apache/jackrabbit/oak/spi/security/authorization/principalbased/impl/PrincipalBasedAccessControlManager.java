@@ -67,7 +67,6 @@ import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -270,7 +269,6 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
     }
 
     //--------------------------------------------------------------------------
-
     /**
      * Validate the specified {@code principal} taking the configured
      * {@link ImportBehavior} into account.
@@ -300,7 +298,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         return filter.canHandle(Collections.singleton(principal));
     }
 
-    private boolean canHandle(@NotNull Collection<Principal> principals) throws AccessControlException {
+    boolean canHandle(@NotNull Set<Principal> principals) throws AccessControlException {
         for (Principal principal : principals) {
             if (!canHandle(principal)) {
                 return false;
