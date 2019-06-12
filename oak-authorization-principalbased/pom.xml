@@ -51,22 +51,6 @@
                         </Export-Package>
                     </instructions>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>baseline</id>
-                        <goals>
-                            <goal>baseline</goal>
-                        </goals>
-                        <phase>pre-integration-test</phase>
-                        <configuration>
-                            <!--
-                              This is required because there's no prior (stable) version
-                              TODO: Removed post first release
-                            -->
-                            <skip>true</skip>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.rat</groupId>
