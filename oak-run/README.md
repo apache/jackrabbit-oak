@@ -101,9 +101,7 @@ To start the console for a DocumentMK/Mongo repository, use:
 
     $ java -jar oak-run-*.jar console mongodb://host
 
-To start the console for a DocumentMK/RDB repository, use:
-
-    $ java -jar oak-run-*.jar --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
+To start the console for a DocumentMK/RDB repository, see the [documention for oak-run on RDB](https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#oak-run).
     
 To start the console connecting to a repository in read-write mode, use either of:
 
@@ -649,7 +647,7 @@ See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore
 Revisions
 ---------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revisionGC).
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revision-gc).
 
 Export
 ------
