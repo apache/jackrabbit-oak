@@ -1027,10 +1027,13 @@ public class FulltextIndexPlanner {
         @Nullable
         public String transformPath(String path){
             if (isPathTransformed()){
-                // get the base path
-                // ensure the path ends with the given
-                // relative path
-                if (!path.endsWith(parentPathSegment)) {
+                // get the base path ensure the path ends with the given relative path
+                // for fulltext constraint.
+                // For non-fulltext constraint where query engine can evaluate the relative path
+                // condition, we shall take leeway and allow other features of query engine
+                // (like wildcard as a path element) get supported
+                if ( (!nonFullTextConstraints && !path.endsWith(parentPathSegment))
+                        || (nonFullTextConstraints && getDepth(path) < parentDepth) ) {
                     return null;
                 }
                 return getAncestorPath(path, parentDepth);
