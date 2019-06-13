@@ -278,6 +278,11 @@ Examples:
 The "*" stands for any property.
 Using it in a condition requires a relative path. 
 For example: `[./* = 'test']` means where any property matches the word 'test'.
+Relative path fragments can also contain `*` to represent 'any' node at
+that point. `//` is *not* supported as part of relative path. So, `a/*/@test`,
+`*/a/@test`, `a/*/*/@test` etc are valid while `a//@test`, `a/*/b//@test`, etc are
+*not*.
+
 
 "jcr:score()" is the score returned by the index.
 

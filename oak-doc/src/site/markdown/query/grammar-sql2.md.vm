@@ -229,6 +229,10 @@ The selector name is only needed if the query contains multiple selectors.
 
 Property names can be relative, so that for example 'jcr:content/test'
 means the property names 'test' in the child node 'jcr:content'.
+Relative path fragments can also contain `*` to represent 'any' node at
+that point. `//` is *not* supported as part of relative path. So, `a/*/test`,
+`*/a/test`, `a/*/*/test` etc are valid while `a//test`, `a/*/b//test`, etc are
+*not*.
 
 The wildcard '*' means any property.
 
