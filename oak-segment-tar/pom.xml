@@ -160,6 +160,11 @@
         <!-- Dependencies on Oak modules -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-jackrabbit-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-api</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
@@ -204,12 +209,6 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>jackrabbit-jcr-commons</artifactId>
-            <version>${jackrabbit.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.jackrabbit</groupId>
-            <artifactId>jackrabbit-api</artifactId>
             <version>${jackrabbit.version}</version>
             <scope>provided</scope>
         </dependency>
