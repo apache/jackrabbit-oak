@@ -17,30 +17,40 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
+import org.apache.jackrabbit.oak.plugins.tree.impl.RootProviderService;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
+import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderRegistration;
+import org.apache.jackrabbit.oak.security.principal.PrincipalConfigurationImpl;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
+import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.util.Text;
 import org.apache.sling.testing.mock.osgi.ReferenceViolationException;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.AbstractPrincipalBasedTest.SUPPORTED_PATH;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class PrincipalBasedAuthorizationConfigurationOsgiTest {
+public class PrincipalBasedAuthorizationConfigurationOsgiTest extends AbstractPrincipalBasedTest {
 
     @Rule
     public final OsgiContext context = new OsgiContext();
 
     private final PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();
-
-    @NotNull
-    protected PrincipalBasedAuthorizationConfiguration initPrincipalBasedAuthorizationConfiguration() {
-        // create instance without binding mandatory references
-        return new PrincipalBasedAuthorizationConfiguration();
-    }
 
     @Test(expected = ReferenceViolationException.class)
     public void testMissingMandatoryReferences() {
@@ -105,5 +115,37 @@ public class PrincipalBasedAuthorizationConfigurationOsgiTest {
         context.registerInjectActivateService(mipService, ImmutableMap.of("mountedPaths", new String[] {"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
 
         context.registerInjectActivateService(pbac, ImmutableMap.of());
+    }
+
+    @Test
+    public void testEnableAggregationFilter() throws Exception {
+        context.registerInjectActivateService(new FilterProviderImpl(), ImmutableMap.of("path", SUPPORTED_PATH));
+        context.registerInjectActivateService(new MountInfoProviderService(), ImmutableMap.of("mountedPaths", new String[] {"/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH}));
+
+        context.registerInjectActivateService(pbac, ImmutableMap.of(Constants.PARAM_ENABLE_AGGREGATION_FILTER, true));
+        assertNotNull(context.getService(AggregationFilter.class));
+
+        context.registerInjectActivateService(new AuthorizationConfigurationImpl());
+        context.registerInjectActivateService(new AuthenticationConfigurationImpl());
+        context.registerInjectActivateService(new UserConfigurationImpl());
+        context.registerInjectActivateService(new PrivilegeConfigurationImpl());
+        context.registerInjectActivateService(new PrincipalConfigurationImpl());
+        context.registerInjectActivateService(new RootProviderService());
+        context.registerInjectActivateService(new TreeProviderService());
+        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+
+        context.registerInjectActivateService(new SecurityProviderRegistration(), ImmutableMap.of("requiredServicePids", new String[0]));
+        SecurityProvider securityProvider = context.getService(SecurityProvider.class);
+        assertNotNull(securityProvider);
+
+        AuthorizationConfiguration ac = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+        assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+        assertEquals(2, ((CompositeAuthorizationConfiguration) ac).getConfigurations().size());
+
+        PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(getTestSystemUser().getPrincipal()));
+        assertTrue(pp instanceof PrincipalBasedPermissionProvider);
+
+        pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(getTestUser().getPrincipal()));
+        assertTrue(pp instanceof PermissionProviderImpl);
     }
 }

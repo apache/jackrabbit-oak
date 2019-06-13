@@ -994,6 +994,9 @@ described below when oak-run with the `revisions` run mode is invoked without
 parameters or options:
 
     revisions mongodb://host:port/database <sub-command> [options]
+
+(or, for RDBMK instances, use "jdbc:...").    
+    
     where sub-command is one of
       info     give information about the revisions state without performing
                any modifications
