@@ -18,7 +18,7 @@
 Principal Management
 --------------------------------------------------------------------------------
 
-<a href="jcr_api"></a>
+<a name="jcr_api"></a>
 ### JCR API
 
 JCR itself doesn't come with a dedicated principal management API. Nevertheless
@@ -63,7 +63,7 @@ from different source providers.
 - [SystemPrincipal]: built-in principal implementation to mark system internal subjects.
 - [SystemUserPrincipal]: Marker interface to identify principals associated with special system users.
 
-<a href="default_implementation"></a>
+<a name="default_implementation"></a>
 ### Oak Principal Management Implementation
 
 The default implementation of the principal management API basically corresponds
