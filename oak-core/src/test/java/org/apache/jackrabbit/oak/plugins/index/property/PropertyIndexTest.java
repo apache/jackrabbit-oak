@@ -875,7 +875,7 @@ public class PropertyIndexTest {
 
             HOOK.processCommit(before, after, CommitInfo.EMPTY);
             Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
-        } catch (IllegalStateException expected) {
+        } catch (IllegalStateException unexpected) {
             // IllegalStateException not expected here now <OAK-8328>
             assertTrue(false);
         } finally {
