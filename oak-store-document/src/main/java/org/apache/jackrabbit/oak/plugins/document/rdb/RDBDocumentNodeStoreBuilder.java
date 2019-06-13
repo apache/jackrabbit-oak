@@ -82,7 +82,7 @@ public class RDBDocumentNodeStoreBuilder
     public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource, RDBOptions options) {
         this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(documentStoreDataSource, this, options));
         if (this.blobStoreSupplier == null) {
-            this.blobStoreSupplier = memoize(() -> new RDBBlobStore(blobStoreDataSource, options));
+            this.blobStoreSupplier = memoize(() -> new RDBBlobStore(blobStoreDataSource, this, options));
         }
         return thisBuilder();
     }
