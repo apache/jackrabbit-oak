@@ -86,6 +86,11 @@
 
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jackrabbit-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-api</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -113,11 +118,6 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-authorization-cug</artifactId>
       <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-api</artifactId>
-      <version>${jackrabbit.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
