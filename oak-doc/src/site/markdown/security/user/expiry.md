@@ -170,7 +170,7 @@ is fitted with an additional attribute with name `PasswordHistoryException`.
 This attribute may contain the following two values:
 
 - _"New password was found in password history."_ or 
-- _""New password is identical to the current password."_
+- _"New password is identical to the current password."_
 
 #### XML Import
 
