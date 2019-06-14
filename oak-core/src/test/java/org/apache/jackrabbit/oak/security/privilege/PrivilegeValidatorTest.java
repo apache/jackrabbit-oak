@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.Collections;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,6 +28,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -36,19 +37,26 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PrivilegeValidatorTest extends AbstractSecurityTest implements PrivilegeConstants {
 
-    PrivilegeBitsProvider bitsProvider;
-    Tree privilegesTree;
+    private PrivilegeBitsProvider bitsProvider;
+    private Tree privilegesTree;
 
     @Before
     public void before() throws Exception {
@@ -57,9 +65,19 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         privilegesTree = checkNotNull(bitsProvider.getPrivilegesTree());
     }
 
+    @After
+    public void after() throws Exception {
+        try {
+            root.refresh();
+        } finally {
+            super.after();
+        }
+    }
+
+    @NotNull
     private Tree createPrivilegeTree(@NotNull String privName, @NotNull String... aggr) {
         Tree privTree = privilegesTree.addChild(privName);
-        privTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
+        privTree.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
         privTree.setProperty(REP_AGGREGATES, ImmutableSet.copyOf(aggr), Type.NAMES);
         return privTree;
     }
@@ -68,47 +86,45 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         getPrivilegeManager(root).registerPrivilege(privName, false, aggr);
     }
 
-    private static void setPrivilegeBits(Tree tree, String name, long value) {
+    private static void setPrivilegeBits(@NotNull Tree tree, @NotNull String name, long value) {
         tree.setProperty(PropertyStates.createProperty(name, Collections.singleton(value), Type.LONGS));
     }
 
+    @NotNull
     private PrivilegeValidator createPrivilegeValidator() {
         Root immutable = getRootProvider().createReadOnlyRoot(root);
         return new PrivilegeValidator(immutable, immutable, getTreeProvider());
     }
 
-    @Test
-    public void testMissingPrivilegeBits() {
+    private static CommitFailedException assertCommitFailed(@NotNull CommitFailedException e, int code) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(code, e.getCode());
+        return e;
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testMissingPrivilegeBits() throws Exception {
         try {
             createPrivilegeTree("test");
             root.commit();
-            fail("Missing privilege bits property must be detected.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-        } finally {
-            root.refresh();
+            throw assertCommitFailed(e, 21);
         }
     }
 
-    @Test
-    public void testBitsConflict() {
+    @Test(expected = CommitFailedException.class)
+    public void testBitsConflict() throws Exception {
         try {
             Tree privTree = createPrivilegeTree("test");
             bitsProvider.getBits(JCR_READ).writeTo(privTree);
             root.commit();
-            fail("Conflicting privilege bits property must be detected.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(49, e.getCode());
-        } finally {
-            root.refresh();
+            throw assertCommitFailed(e, 49);
         }
     }
 
-    @Test
-    public void testBitsConflictWithAggregation() {
+    @Test(expected = CommitFailedException.class)
+    public void testBitsConflictWithAggregation() throws Exception {
         try {
             Tree privTree = createPrivilegeTree("test");
             privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES,
@@ -116,52 +132,35 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             setPrivilegeBits(privTree, REP_BITS, 340);
 
             root.commit();
-            fail("Privilege bits don't match the aggregation.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(53, e.getCode());
-        } finally {
-            root.refresh();
+            throw assertCommitFailed(e, 53);
         }
-
-
     }
 
-    @Test
-    public void testNextNotUpdated() {
+    @Test(expected = CommitFailedException.class)
+    public void testNextNotUpdated() throws Exception{
         try {
             Tree privTree = createPrivilegeTree("test");
             PrivilegeBits.getInstance(privilegesTree).writeTo(privTree);
 
             root.commit();
-            fail("Outdated rep:next property must be detected.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(43, e.getCode());
-        } finally {
-            root.refresh();
+            throw assertCommitFailed(e, 43);
         }
     }
 
-    @Test
-    public void testChangeNext() {
+    @Test(expected = CommitFailedException.class)
+    public void testChangeNext() throws Exception {
         try {
             setPrivilegeBits(bitsProvider.getPrivilegesTree(), REP_NEXT, 1);
             root.commit();
-            fail("Outdated rep:next property must be detected.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(43, e.getCode());
-        } finally {
-            root.refresh();
+            throw assertCommitFailed(e, 43);
         }
     }
 
-    @Test
-    public void testSingularAggregation() {
+    @Test(expected = CommitFailedException.class)
+    public void testSingularAggregation() throws Exception {
         try {
             Tree privTree = createPrivilegeTree("test");
             privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, Collections.singletonList(JCR_READ), Type.NAMES));
@@ -170,21 +169,17 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             root.commit();
             fail("Aggregation of a single privilege is invalid.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(50, e.getCode());
-        } finally {
-            root.refresh();
+            throw assertCommitFailed(e, 50);
         }
     }
 
     /**
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2413">OAK-2413</a>
      */
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testChildNodeChangedWithChanges() throws CommitFailedException {
         NodeBuilder nb = EmptyNodeState.EMPTY_NODE.builder();
-        nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
+        nb.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
 
         NodeState privilegeDefinition = nb.getNodeState();
         assertTrue(NT_REP_PRIVILEGE.equals(NodeStateUtils.getPrimaryTypeName(privilegeDefinition)));
@@ -193,8 +188,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
         try {
             pv.childNodeChanged("test", privilegeDefinition, EmptyNodeState.EMPTY_NODE);
         } catch (CommitFailedException e) {
-            assertTrue(e.isConstraintViolation());
-            assertEquals(41, e.getCode());
+            throw assertCommitFailed(e, 41);
         }
     }
     /**
@@ -203,16 +197,16 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
     @Test
     public void testChildNodeChangedWithoutChanges() throws CommitFailedException {
         NodeBuilder nb = EmptyNodeState.EMPTY_NODE.builder();
-        nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
+        nb.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
 
         NodeState privilegeDefinition = nb.getNodeState();
-        assertTrue(NT_REP_PRIVILEGE.equals(NodeStateUtils.getPrimaryTypeName(privilegeDefinition)));
+        assertEquals(NT_REP_PRIVILEGE, NodeStateUtils.getPrimaryTypeName(privilegeDefinition));
 
         PrivilegeValidator pv = new PrivilegeValidator(root, root, getTreeProvider());
         assertNull(pv.childNodeChanged("test", privilegeDefinition, privilegeDefinition));
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testAggregatesIncludesJcrAll() throws Exception {
         try {
             Tree privTree = createPrivilegeTree("test");
@@ -220,17 +214,25 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             PrivilegeBits.getInstance(bitsProvider.getBits(JCR_ALL, JCR_READ, JCR_WRITE)).writeTo(privTree);
 
             root.commit();
-            fail("Aggregation containing jcr:all is invalid.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(53, e.getCode());
-        } finally {
-            root.refresh();
+            throw assertCommitFailed(e, 53);
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
+    public void testAggregatesMatchesExisting() throws Exception {
+        try {
+            Tree privTree = createPrivilegeTree("test");
+            privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES));
+            PrivilegeBits.getInstance(bitsProvider.getBits(REP_READ_NODES, REP_READ_PROPERTIES)).writeTo(privTree);
+
+            root.commit();
+        } catch (CommitFailedException e) {
+            throw assertCommitFailed(e, 53);
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
     public void testPropertyChanged() throws Exception {
         try {
             PropertyState before = PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES);
@@ -238,114 +240,167 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
 
             PrivilegeValidator validator = new PrivilegeValidator(root, root, getTreeProvider());
             validator.propertyChanged(before, after);
-            fail("modifying property in privilege store must fail.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(45, e.getCode());
+            throw assertCommitFailed(e, 45);
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testPropertyDeleted() throws Exception {
         try {
             PropertyState before = PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(REP_READ_NODES, REP_READ_PROPERTIES), Type.NAMES);
 
             PrivilegeValidator validator = new PrivilegeValidator(root, root, getTreeProvider());
             validator.propertyDeleted(before);
-            fail("removing property from privilege store must fail.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(46, e.getCode());
+            throw assertCommitFailed(e, 46);
         }
     }
 
-    @Test
-    public void testChildNodeDeleted() {
+    @Test(expected = CommitFailedException.class)
+    public void testChildNodeDeleted() throws Exception {
         try {
             root.getTree(PRIVILEGES_PATH).getChild(JCR_READ).remove();
             root.commit();
-            fail("removing privilege from privilege store must fail.");
         } catch (CommitFailedException e) {
-            // success
-            assertTrue(e.isConstraintViolation());
-            assertEquals(42, e.getCode());
+            throw assertCommitFailed(e, 42);
         }
     }
 
-    @Test
-    public void testPrivBitsMissing() {
+    @Test(expected = CommitFailedException.class)
+    public void testPrivBitsMissing() throws Exception{
         try {
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
-                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
+                    .setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
                     .getNodeState();
 
             PrivilegeValidator validator = createPrivilegeValidator();
             validator.childNodeAdded("test", newDef);
-            fail("missing priv bits must be detected.");
         } catch (CommitFailedException e) {
-            assertTrue(e.isConstraintViolation());
-            assertEquals(48, e.getCode());
+            throw assertCommitFailed(e, 48);
         }
     }
 
-    @Test
-    public void testUnknownAggregate() {
+    @Test(expected = CommitFailedException.class)
+    public void testUnknownAggregate() throws Exception {
         try {
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
-                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
+                    .setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
                     .setProperty(REP_BITS, 8)
                     .setProperty(REP_AGGREGATES, ImmutableList.of("unknown", JCR_READ), Type.NAMES)
                     .getNodeState();
 
             PrivilegeValidator validator = createPrivilegeValidator();
             validator.childNodeAdded("test", newDef);
-            fail("unknown aggregate must be detected.");
         } catch (CommitFailedException e) {
-            assertTrue(e.isConstraintViolation());
-            assertEquals(51, e.getCode());
+            throw assertCommitFailed(e, 51);
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testCircularAggregate() throws Exception {
         try {
             register("test");
 
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
-                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
+                    .setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
                     .setProperty(REP_BITS, 8)
                     .setProperty(REP_AGGREGATES, ImmutableList.of("test", JCR_READ), Type.NAMES)
                     .getNodeState();
 
             PrivilegeValidator validator = createPrivilegeValidator();
             validator.childNodeAdded("test", newDef);
-            fail("circular aggregate must be detected.");
         } catch (CommitFailedException e) {
-            assertTrue(e.isConstraintViolation());
-            assertEquals(52, e.getCode());
+            throw assertCommitFailed(e, 52);
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testCircularAggregate2() throws Exception {
         try {
             register("test");
             register("test2", "test", PrivilegeConstants.JCR_READ);
 
             NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
-                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
+                    .setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE)
                     .setProperty(REP_BITS, 8)
                     .setProperty(REP_AGGREGATES, ImmutableList.of("test2", JCR_READ), Type.NAMES)
                     .getNodeState();
 
             PrivilegeValidator validator = createPrivilegeValidator();
             validator.childNodeAdded("test", newDef);
-            fail("circular aggregate must be detected.");
         } catch (CommitFailedException e) {
-            assertTrue(e.isConstraintViolation());
-            assertEquals(52, e.getCode());
+            throw assertCommitFailed(e, 52);
         }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testInvalidAggregation() throws Exception {
+        Root before = adminSession.getLatestRoot();
+        Tree defsBefore = before.getTree(PRIVILEGES_PATH);
+        defsBefore.getChild(REP_READ_NODES).remove();
+
+        Tree privDefs = root.getTree(PRIVILEGES_PATH);
+        Tree newPriv = TreeUtil.addChild(privDefs, "newPriv", NT_REP_PRIVILEGE);
+        PrivilegeBits.getInstance(PrivilegeBits.BUILT_IN.get(JCR_READ), PrivilegeBits.BUILT_IN.get(JCR_ADD_CHILD_NODES)).writeTo(newPriv);
+        newPriv.setProperty(REP_AGGREGATES, ImmutableList.of(JCR_READ, JCR_ADD_CHILD_NODES), Type.NAMES);
+
+        TreeProvider tp = mock(TreeProvider.class);
+        when(tp.createReadOnlyTree(any(Tree.class), anyString(), any(NodeState.class))).thenReturn(newPriv);
+        try {
+            PrivilegeValidator validator = new PrivilegeValidator(before, root, tp);
+            validator.childNodeAdded("newPriv", getTreeProvider().asNodeState(newPriv));
+        } catch (CommitFailedException e) {
+            throw assertCommitFailed(e, 47);
+        }
+    }
+
+    @Test
+    public void testOtherNodeAdded() throws Exception {
+        NodeState ns = mock(NodeState.class);
+        PrivilegeValidator validator = createPrivilegeValidator();
+        assertNull(validator.childNodeAdded("test", ns));
+
+        when(ns.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME));
+        assertNull(validator.childNodeAdded("test", ns));
+    }
+
+    @Test
+    public void testOtherNodeChanged() throws Exception {
+        NodeState ns = mock(NodeState.class);
+        PrivilegeValidator validator = createPrivilegeValidator();
+        assertNull(validator.childNodeChanged("test", ns, ns));
+
+        when(ns.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME));
+        assertNull(validator.childNodeChanged("test", ns, ns));
+    }
+
+    @Test
+    public void testOtherNodeDeleted() throws Exception {
+        NodeState ns = mock(NodeState.class);
+        PrivilegeValidator validator = createPrivilegeValidator();
+        assertNull(validator.childNodeDeleted("test", ns));
+
+        when(ns.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME));
+        assertNull(validator.childNodeDeleted("test", ns));
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testNonExistingPrivilegeRoot() throws Exception {
+        Tree t = when(mock(Tree.class).exists()).thenReturn(false).getMock();
+        Root r = when(mock(Root.class).getTree(PRIVILEGES_PATH)).thenReturn(t).getMock();
+        PrivilegeValidator validator = new PrivilegeValidator(r, r, getTreeProvider());
+        try {
+            PropertyState ps = PropertyStates.createProperty(REP_NEXT, "any");
+            validator.propertyChanged(ps, ps);
+        } catch (CommitFailedException e) {
+            throw assertCommitFailed(e, 44);
+        }
+    }
+
+    @Test
+    public void testPropertyAdded() {
+        PrivilegeValidator validator = createPrivilegeValidator();
+        validator.propertyAdded(mock(PropertyState.class));
     }
 }
