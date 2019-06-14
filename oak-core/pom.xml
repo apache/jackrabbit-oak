@@ -160,6 +160,7 @@
                                     <include>org.apache.jackrabbit.oak.security.authentication.user</include>
                                     <include>org.apache.jackrabbit.oak.security.user.whiteboard</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization</include>
+                                    <include>org.apache.jackrabbit.oak.security.privilege</include>
                                 </includes>
                                 <excludes>
                                     <exclude>*Test</exclude>
@@ -199,7 +200,6 @@
                                 <includes>
                                     <include>org.apache.jackrabbit.oak.security.authentication</include>
                                     <include>org.apache.jackrabbit.oak.security.user.query</include>
-                                    <include>org.apache.jackrabbit.oak.security.privilege</include>
                                 </includes>
                                 <excludes>
                                     <exclude>*Test</exclude>
@@ -208,7 +208,7 @@
                                     <limit>
                                         <counter>BRANCH</counter>
                                         <value>COVEREDRATIO</value>
-                                        <minimum>0.88</minimum>
+                                        <minimum>0.90</minimum>
                                     </limit>
                                 </limits>
                             </rule>
