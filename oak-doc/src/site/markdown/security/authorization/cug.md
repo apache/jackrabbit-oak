@@ -20,7 +20,7 @@ Managing Access with "Closed User Groups" (CUG)
 
 ### General
 
-The `oak-authorization-cug` module provides a alternative authorization model
+The `oak-authorization-cug` module provides an alternative authorization model
 intended to limit read access to certain paths for a selected, small set of
 `Principal`s.
 
@@ -58,7 +58,7 @@ intended to grant the ability to perform certain actions to a set of
 
 - `PrincipalSetPolicy`
 
-See [Jackrabbit API](http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/authorization/PrincipalSetPolicy.java) 
+See [Jackrabbit API](http://jackrabbit.apache.org/api/2.12/index.html?org/apache/jackrabbit/api/security/authorization/PrincipalSetPolicy.html) 
 for details and the methods exposed by the interface.
 
 <a name="api_extensions"></a>
