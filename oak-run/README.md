@@ -422,13 +422,15 @@ Garbage
 =======
 
 The garbage mode can the used to identify blob garbage still referenced by
-documents in a MongoMK repository. It can be invoked like this:
+documents in a DocumentMK repository. It can be invoked like this:
 
     $ java -jar oak-run-*.jar garbage [options] mongodb://host:port/database
 
+(or, for RDBMK instances, use "jdbc:...").
+
 The following recovery options (with default values) are currently supported:
 
-    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+    --clusterId         - DocumentMK clusterId (default: 0 -> automatic)
 
 The tool will scan the store for documents with blob references and print a
 report with the top 100 documents with blob references considered garbage. The
