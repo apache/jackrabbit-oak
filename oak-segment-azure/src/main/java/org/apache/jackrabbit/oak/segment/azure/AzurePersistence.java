@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.RequestCompletedEvent;
+import com.microsoft.azure.storage.RetryLinearRetry;
 import com.microsoft.azure.storage.StorageEvent;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
@@ -55,6 +56,9 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         this.segmentstoreDirectory = segmentStoreDirectory;
 
         BlobRequestOptions defaultRequestOptions = segmentStoreDirectory.getServiceClient().getDefaultRequestOptions();
+        if (defaultRequestOptions.getRetryPolicyFactory() == null) {
+            defaultRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(5), 5));
+        }
         if (defaultRequestOptions.getMaximumExecutionTimeInMs() == null) {
             defaultRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(30));
         }
