@@ -68,6 +68,14 @@ public class QueryEngineSettingsService {
                         "Note: even if enabled, getSize may still return -1 if the index used does not support the feature." 
         )
         boolean fastQuerySize() default false;
+
+        @AttributeDefinition(
+                name = "Enable Path restrictions for indexes to be used",
+                description = "Enable path restriction while finding indexplan e.g. if we have path restrictions on index definitions," +
+                 "we will not use index if our query can have results from the excluded paths"
+        )
+        boolean enablePathRestrictionsForIndexes() default false;
+
     }
 
     // should be the same as QueryEngineSettings.DEFAULT_QUERY_LIMIT_IN_MEMORY
@@ -114,6 +122,10 @@ public class QueryEngineSettingsService {
         boolean fastQuerySizeSysProp = QueryEngineSettings.DEFAULT_FAST_QUERY_SIZE;
         boolean fastQuerySizeFromConfig = config.fastQuerySize();
         queryEngineSettings.setFastQuerySize(fastQuerySizeFromConfig || fastQuerySizeSysProp);
+
+        boolean enablePathRestrictionsForIndexesSysProp = QueryEngineSettings.DEFAULT_ENABLE_PATH_RESTRICTIONS;
+        boolean enablePathRestrictionsForIndexesFromConfig = config.enablePathRestrictionsForIndexes();
+        queryEngineSettings.setEnablePathRestrictions(enablePathRestrictionsForIndexesFromConfig || enablePathRestrictionsForIndexesSysProp);
 
         log.info("Initialize QueryEngine settings {}", queryEngineSettings);
     }

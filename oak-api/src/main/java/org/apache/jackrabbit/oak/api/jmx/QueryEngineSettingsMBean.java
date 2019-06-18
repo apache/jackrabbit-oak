@@ -87,6 +87,24 @@ public interface QueryEngineSettingsMBean {
     void setFastQuerySize(boolean fastQuerySize);
 
     /**
+     * Whether Path restrictions are enabled while figuring out index plan
+     *
+     * @return true if enabled
+     */
+    boolean isEnablePathRestrictions();
+
+    /**
+     * Enable/Disable evaluating path restriction while figuring out which index should be used
+     *
+     * @param enablePathRestrictions enablePathRestrictions
+     */
+    @Description("Enable/Disable evaluating path restriction while figuring out which index should be used")
+    void setEnablePathRestrictions(
+            @Description("Whether path restrictions be evaluated during index plan evaluation")
+            @Name("enablePathRestrictions")
+                    boolean enablePathRestrictions);
+
+    /**
      * Set or remove a query validator pattern.
      *
      * @param key the key

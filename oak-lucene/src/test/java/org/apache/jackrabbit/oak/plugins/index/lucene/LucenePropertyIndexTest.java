@@ -86,6 +86,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -173,6 +174,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private ResultCountingIndexProvider queryIndexProvider;
 
+    private QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+
     @After
     public void after() {
         new ExecutorCloser(executorService).close();
@@ -199,6 +202,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .with(optionalEditorProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider())
+                .with(queryEngineSettings)
                 .createContentRepository();
     }
 
@@ -863,6 +867,61 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10"), containsString("lucene:test1"));
 
         assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/a", "/test/a/b"));
+    }
+
+    @Test
+    public void pathIncludeWithPathRestrictionsEnabled() throws Exception {
+        try {
+            queryEngineSettings.setEnablePathRestrictions(true);
+            Tree idx = createIndex("test1", of("propa", "propb"));
+            idx.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+            //Do not provide type information
+            root.commit();
+
+            Tree test = root.getTree("/").addChild("test");
+            test.addChild("a").setProperty("propa", 10);
+            test.addChild("a").addChild("b").setProperty("propa", 10);
+            test.addChild("c").setProperty("propa", 10);
+            root.commit();
+
+            assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')"), containsString("lucene:test1"));
+
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/a')", asList("/test/a/b"));
+        } finally {
+            queryEngineSettings.setEnablePathRestrictions(false);
+        }
+    }
+
+    @Test
+    public void pathExcludeWithPathRestrictionsEnabled() throws Exception {
+        try {
+            queryEngineSettings.setEnablePathRestrictions(true);
+            Tree idx = createIndex("test1", of("propa", "propb"));
+            idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+            //Do not provide type information
+            root.commit();
+
+            Tree test = root.getTree("/").addChild("test");
+            test.addChild("a").setProperty("propa", 10);
+            test.addChild("a").addChild("b").setProperty("propa", 10);
+            test.addChild("c").setProperty("propa", 10);
+            test.addChild("c").addChild("d").setProperty("propa", 10);
+            root.commit();
+
+            assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')"), containsString("lucene:test1"));
+
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", asList("/test/c/d"));
+
+            //Make some change and then check
+            Tree testc = root.getTree("/").getChild("test").getChild("c");
+            testc.addChild("e").addChild("f").setProperty("propa", 10);
+            root.commit();
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c')", asList("/test/c/d", "/test/c/e/f"));
+            assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))"), containsString("lucene:test1"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 10 and isDescendantNode('/test/c') and not(isDescendantNode('/test/c/e'))", asList("/test/c/d"));
+        } finally {
+            queryEngineSettings.setEnablePathRestrictions(false);
+        }
     }
 
     @Test

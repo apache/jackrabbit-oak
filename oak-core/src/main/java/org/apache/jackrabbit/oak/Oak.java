@@ -933,6 +933,14 @@ public class Oak {
             settings.setFastQuerySize(fastQuerySize);
         }
 
+        public boolean isEnablePathRestrictions() {
+            return settings.isEnablePathRestrictions();
+        }
+
+        public void setEnablePathRestrictions(boolean enablePathRestrictions) {
+            settings.setEnablePathRestrictions(enablePathRestrictions);
+        }
+
         @Override
         public void setQueryValidatorPattern(String key, String pattern, String comment, boolean failQuery) {
             settings.getQueryValidator().setPattern(key, pattern, comment, failQuery);
