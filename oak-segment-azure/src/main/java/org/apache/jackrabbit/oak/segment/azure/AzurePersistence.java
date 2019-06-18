@@ -65,7 +65,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
-        azureRemoteStoreMonitor(remoteStoreMonitor);
+        attachRemoteStoreMonitor(remoteStoreMonitor);
         return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor);
     }
 
@@ -127,27 +127,28 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         }
     }
 
-    private void azureRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor){
-
-        OperationContext operationContext = new OperationContext();
-
-        operationContext.getGlobalRequestCompletedEventHandler().addListener(new StorageEvent<RequestCompletedEvent>() {
+    private static void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
+        OperationContext.getGlobalRequestCompletedEventHandler().addListener(new StorageEvent<RequestCompletedEvent>() {
 
             @Override
-            public void eventOccurred(RequestCompletedEvent eventArg) {
-                Date startDate = eventArg.getRequestResult().getStartDate();
-                Date stopDate = eventArg.getRequestResult().getStopDate();
-                long requestDuration = stopDate.getTime() - startDate.getTime();
-                remoteStoreMonitor.requestDuration(requestDuration, TimeUnit.MILLISECONDS);
+            public void eventOccurred(RequestCompletedEvent e) {
+                Date startDate = e.getRequestResult().getStartDate();
+                Date stopDate = e.getRequestResult().getStopDate();
 
-                Exception exception = eventArg.getRequestResult().getException();
+                if (startDate != null && stopDate != null) {
+                    long requestDuration = stopDate.getTime() - startDate.getTime();
+                    remoteStoreMonitor.requestDuration(requestDuration, TimeUnit.MILLISECONDS);
+                }
 
-                if(exception == null){
+                Exception exception = e.getRequestResult().getException();
+
+                if (exception == null) {
                     remoteStoreMonitor.requestCount();
-                }else {
+                } else {
                     remoteStoreMonitor.requestError();
                 }
             }
+
         });
     }
 
