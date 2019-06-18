@@ -77,8 +77,7 @@ public class FulltextIndexPlanner {
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
 
-    private static final String FLAG_ENTRY_COUNT = "oak.fulltext.useActualEntryCount";
-    private static final String ENABLE_PATH_RESTRICTIONS = "oak.enablePathRestrictions";
+    private static final String FLAG_ENTRY_COUNT = "oak.fulltext.useActualEntryCount";;
     private static final Logger log = LoggerFactory.getLogger(FulltextIndexPlanner.class);
     private final IndexDefinition definition;
     private final Filter filter;
@@ -87,7 +86,6 @@ public class FulltextIndexPlanner {
     private IndexNode indexNode;
     private PlanResult result;
     protected static boolean useActualEntryCount;
-    private static boolean enablePathRestrictions;
 
     static {
         useActualEntryCount = Boolean.parseBoolean(System.getProperty(FLAG_ENTRY_COUNT, "true"));
@@ -95,8 +93,6 @@ public class FulltextIndexPlanner {
             log.info("System property {} found to be false. IndexPlanner would use a default entryCount of 1000 instead" +
                     " of using the actual entry count", FLAG_ENTRY_COUNT);
         }
-        enablePathRestrictions = Boolean.parseBoolean(System.getProperty(ENABLE_PATH_RESTRICTIONS, "false"));
-        log.info("System property {} found to be {}.", ENABLE_PATH_RESTRICTIONS, enablePathRestrictions );
     }
 
     public FulltextIndexPlanner(IndexNode indexNode,
@@ -157,7 +153,7 @@ public class FulltextIndexPlanner {
         if (wrongIndex()) {
             return null;
         }
-        if (enablePathRestrictions && !isPlanWithValidPathFilter()) {
+        if (filter.getQueryLimits().isEnablePathRestrictions() && !isPlanWithValidPathFilter()) {
             return null;
         }
 

@@ -144,7 +144,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public void setEnablePathRestrictions(boolean enablePathRestrictions) {
         this.enablePathRestrictions = enablePathRestrictions;
-        System.setProperty(OAK_ENABLE_PATH_RESTRICTIONS, String.valueOf(enablePathRestrictions));
     }
 
     public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {

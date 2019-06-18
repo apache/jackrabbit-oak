@@ -28,4 +28,8 @@ public interface QueryLimits {
 
     boolean getFailTraversal();
 
+    default boolean isEnablePathRestrictions() {
+        return false;
+    }
+
 }
