@@ -547,11 +547,6 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     }
 
     @Override
-    public long getLocalIndexDirSize() {
-        return indexRootDirectory.getSize();
-    }
-
-    @Override
     public String[] getGarbageDetails() {
         return toArray(transform(failedToDeleteFiles.values(),
                 new Function<LocalIndexFile, String>() {
