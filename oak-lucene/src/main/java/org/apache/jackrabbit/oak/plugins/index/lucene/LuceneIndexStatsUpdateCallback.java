@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
-import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
@@ -40,21 +39,18 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
 
     private static final String NO_DOCS = "_NO_DOCS";
     private static final String INDEX_SIZE = "_INDEX_SIZE";
-    private static final String LOCAL_INDEX_DIR_SIZE = "LOCAL_INDEX_DIR_SIZE";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final String indexPath;
     private final LuceneIndexMBean luceneIndexMBean;
     private final StatisticsProvider statisticsProvider;
-    private final IndexCopier indexCopier;
 
     LuceneIndexStatsUpdateCallback(String indexPath, @NotNull LuceneIndexMBean luceneIndexMBean,
-                                   @NotNull StatisticsProvider statisticsProvider, @NotNull IndexCopier indexCopier) {
+                                   @NotNull StatisticsProvider statisticsProvider) {
         this.indexPath = indexPath;
         this.luceneIndexMBean = luceneIndexMBean;
         this.statisticsProvider = statisticsProvider;
-        this.indexCopier = indexCopier;
     }
 
     @Override
@@ -73,17 +69,7 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
             HistogramStats indexSizeHistogram = statisticsProvider.getHistogram(indexPath + INDEX_SIZE, StatsOptions.METRICS_ONLY);
             indexSizeHistogram.update(indexSize);
 
-            long localIndexDirSize = indexCopier.getLocalIndexDirSize();
-
-            CounterStats indexDirectorySizeStats = statisticsProvider.getCounterStats(LOCAL_INDEX_DIR_SIZE, StatsOptions.DEFAULT);
-            long deltaInSize = localIndexDirSize - indexDirectorySizeStats.getCount();
-            if (deltaInSize != 0) {
-                indexDirectorySizeStats.inc(deltaInSize);
-                log.debug("index directory size stats updated; size {} delta {}", localIndexDirSize, deltaInSize);
-            }
-
             log.debug("{} stats updated; docCount {}, size {}", indexPath, docCount, indexSize);
-
         } catch (IOException e) {
             log.debug("could not update no_docs/index_size stats for index at {}", indexPath, e);
         }

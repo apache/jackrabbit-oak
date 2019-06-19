@@ -233,8 +233,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             if (propertyIndexUpdateCallback != null) {
                 callbacks.add(propertyIndexUpdateCallback);
             }
-            if (mbean != null && statisticsProvider != null && indexCopier != null) {
-                callbacks.add(new LuceneIndexStatsUpdateCallback(indexPath, mbean, statisticsProvider, indexCopier));
+            if (mbean != null && statisticsProvider != null) {
+                callbacks.add(new LuceneIndexStatsUpdateCallback(indexPath, mbean, statisticsProvider));
             }
 
             if (!callbacks.isEmpty()) {
