@@ -56,8 +56,6 @@ different way to implement something breaking.
 
 ## Version Numbers
 
-*Version Numbers*
-
 - Released versions will be in the format of `Major.Minor.Patch` where,
 as rule of thumb we will increase
 
