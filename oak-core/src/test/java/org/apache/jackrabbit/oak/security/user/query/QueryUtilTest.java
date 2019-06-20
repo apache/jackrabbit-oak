@@ -203,7 +203,7 @@ public class QueryUtilTest {
     }
 
     @Test
-    public void testEscapeForQuery() throws Exception {
+    public void testEscapeForQuery() {
         NamePathMapper namePathMapper = new NamePathMapperImpl(new LocalNameMapper(
                 ImmutableMap.of(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR),
                 ImmutableMap.of("myPrefix", NamespaceRegistry.NAMESPACE_JCR)));
@@ -213,7 +213,7 @@ public class QueryUtilTest {
     }
 
     @Test
-    public void testGetCollation() throws Exception {
+    public void testGetCollation() {
         assertSame(RelationOp.LT, QueryUtil.getCollation(QueryBuilder.Direction.DESCENDING));
         assertSame(RelationOp.GT, QueryUtil.getCollation(QueryBuilder.Direction.ASCENDING));
     }
