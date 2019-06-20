@@ -18,17 +18,18 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class GroupPredicateTest extends AbstractSecurityTest {
@@ -131,8 +132,20 @@ public class GroupPredicateTest extends AbstractSecurityTest {
     public void testGetIdFails() throws Exception {
         GroupPredicate gp = new GroupPredicate(userManager, testGroup.getID(), true);
 
-        Authorizable a = Mockito.mock(Authorizable.class);
+        Authorizable a = mock(Authorizable.class);
         when(a.getID()).thenThrow(new RepositoryException());
+        assertFalse(gp.apply(a));
+    }
+
+    @Test
+    public void testGetMemberIdFails() throws Exception {
+        Authorizable member = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException()).getMock();
+        Group g = when(mock(Group.class).getDeclaredMembers()).thenReturn(Iterators.singletonIterator(member)).getMock();
+        when(g.isGroup()).thenReturn(true);
+        UserManager uMgr = when(mock(UserManager.class).getAuthorizable("g")).thenReturn(g).getMock();
+        Authorizable a = when(mock(Authorizable.class).getID()).thenReturn("a").getMock();
+
+        GroupPredicate gp = new GroupPredicate(uMgr, "g", true);
         assertFalse(gp.apply(a));
     }
 }

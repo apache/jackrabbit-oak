@@ -18,12 +18,16 @@ package org.apache.jackrabbit.oak.security.user.query;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
@@ -40,8 +44,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlManager;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,9 +55,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_ADMIN_ID;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_GROUP_PATH;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_AUTHORIZABLE_ID;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_DISABLED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -71,7 +79,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     private Value v;
 
-    private List<Group> groups = new ArrayList();
+    private List<Group> groups = new ArrayList<>();
 
     @Before
     public void before() throws Exception {
@@ -97,7 +105,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
-            user.removeProperty(propertyName);
+            root.refresh();
             for (Group g : groups) {
                 g.remove();
             }
@@ -218,7 +226,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         root.commit();
 
         for (AuthorizableType type : new AuthorizableType[] {AuthorizableType.AUTHORIZABLE, AuthorizableType.GROUP}) {
-            Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.AUTHORIZABLE, false);
+            Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), type, false);
             assertResultContainsAuthorizables(result, g);
         }
     }
@@ -329,7 +337,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeNotMember() throws Exception {
-        Group g = createGroup("g1", null);
+        createGroup("g1", null);
         user.setProperty(propertyName, v);
         root.commit();
 
@@ -552,5 +560,39 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Iterator<Authorizable> result = uqm.findAuthorizables(REP_AUTHORIZABLE_ID, DEFAULT_ADMIN_ID, AuthorizableType.AUTHORIZABLE);
         assertTrue(result.hasNext());
+    }
+
+    @Test
+    public void testFindReservedProperty() throws Exception {
+        user.setProperty("subtree/"+REP_DISABLED, valueFactory.createValue("disabled"));
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(REP_DISABLED, "disabled", AuthorizableType.USER);
+        assertFalse(result.hasNext());
+
+        user.removeProperty("subtree/"+REP_DISABLED);
+        user.disable("disabled");
+
+        result = queryMgr.findAuthorizables(REP_DISABLED, "disabled", AuthorizableType.USER);
+        assertTrue(result.hasNext());
+    }
+
+    @Test
+    public void testFindResultNotAccessible() throws Exception {
+        user.setProperty("profile/name", valueFactory.createValue("userName"));
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, PathUtils.concat(user.getPath(), "profile"));
+        if (acl != null && acl.addAccessControlEntry(user.getPrincipal(), privilegesFromNames(JCR_READ))) {
+            acMgr.setPolicy(acl.getPath(), acl);
+        }
+        root.commit();
+
+        try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
+            Root r = cs.getLatestRoot();
+            UserManagerImpl uMgr = new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider());
+            UserQueryManager uqm = new UserQueryManager(uMgr, getNamePathMapper(), ConfigurationParameters.EMPTY, r);
+
+            Iterator<Authorizable> result = uqm.findAuthorizables("name", "userName", AuthorizableType.USER);
+            assertFalse(result.hasNext());
+        }
     }
 }
