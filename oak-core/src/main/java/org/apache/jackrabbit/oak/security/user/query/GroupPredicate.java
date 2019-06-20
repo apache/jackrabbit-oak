@@ -26,6 +26,7 @@ import com.google.common.base.Predicate;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +41,7 @@ class GroupPredicate implements Predicate<Authorizable> {
     private final Iterator<Authorizable> membersIterator;
     private final Set<String> memberIds = new HashSet<>();
 
-    GroupPredicate(UserManager userManager, String groupId, boolean declaredMembersOnly) throws RepositoryException {
+    GroupPredicate(@NotNull UserManager userManager, @NotNull String groupId, boolean declaredMembersOnly) throws RepositoryException {
         Authorizable authorizable = userManager.getAuthorizable(groupId);
         Group group = (authorizable == null || !authorizable.isGroup()) ? null : (Group) authorizable;
         if (group != null) {
