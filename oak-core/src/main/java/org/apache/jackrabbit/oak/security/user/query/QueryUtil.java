@@ -21,6 +21,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -48,7 +49,11 @@ public final class QueryUtil {
     @NotNull
     public static String getSearchRoot(AuthorizableType type, ConfigurationParameters config) {
         String path = UserUtil.getAuthorizableRootPath(config, type);
-        return QueryConstants.SEARCH_ROOT_PATH + path;
+        if (PathUtils.denotesRoot(path)) {
+            return QueryConstants.SEARCH_ROOT_PATH;
+        } else {
+            return QueryConstants.SEARCH_ROOT_PATH + path;
+        }
     }
 
     /**

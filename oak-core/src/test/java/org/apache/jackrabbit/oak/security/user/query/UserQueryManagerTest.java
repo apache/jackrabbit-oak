@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -33,17 +24,34 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_ADMIN_ID;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_GROUP_PATH;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_AUTHORIZABLE_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -533,5 +541,16 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
         assertResultContainsAuthorizables(result, g);
+    }
+
+    @Test
+    public void testFindWhenRootTreeIsSearchRoot() throws Exception {
+        ConfigurationParameters config = ConfigurationParameters.of(PARAM_GROUP_PATH, PathUtils.ROOT_PATH);
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(ConfigurationParameters.of(UserConfiguration.NAME, config)).withRootProvider(getRootProvider()).withTreeProvider(getTreeProvider()).build();
+        UserManagerImpl umgr = new UserManagerImpl(root, getPartialValueFactory(), sp);
+        UserQueryManager uqm = new UserQueryManager(umgr, getNamePathMapper(), config, root);
+
+        Iterator<Authorizable> result = uqm.findAuthorizables(REP_AUTHORIZABLE_ID, DEFAULT_ADMIN_ID, AuthorizableType.AUTHORIZABLE);
+        assertTrue(result.hasNext());
     }
 }
