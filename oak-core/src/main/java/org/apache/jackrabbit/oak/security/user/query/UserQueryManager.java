@@ -175,11 +175,8 @@ public class UserQueryManager {
     private String buildXPathStatement(@NotNull String relPath,
                                        @Nullable String value,
                                        @NotNull AuthorizableType type, boolean exact) {
-        StringBuilder stmt = new StringBuilder();
         String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(type, config));
-        if (!"/".equals(searchRoot)) {
-            stmt.append(searchRoot);
-        }
+        StringBuilder stmt = new StringBuilder().append(searchRoot);
 
         String propName = Text.getName(relPath);
         String path;
