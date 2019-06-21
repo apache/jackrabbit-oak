@@ -31,6 +31,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
+
 /**
  * Predicate used to filter authorizables based on their group membership.
  */
@@ -53,7 +55,7 @@ class GroupPredicate implements Predicate<Authorizable> {
 
     @Override
     public boolean apply(@Nullable Authorizable authorizable) {
-        String id = saveGetId(authorizable);
+        String id = getID(authorizable);
         if (id != null) {
             if (memberIds.contains(id)) {
                 return true;
@@ -61,7 +63,7 @@ class GroupPredicate implements Predicate<Authorizable> {
                 // not contained in ids that have already been processed => look
                 // for occurrence in the remaining iterator entries.
                 while (membersIterator.hasNext()) {
-                    String memberId = saveGetId(membersIterator.next());
+                    String memberId = getID(membersIterator.next());
                     if (memberId != null) {
                         memberIds.add(memberId);
                         if (memberId.equals(id)) {
@@ -72,17 +74,5 @@ class GroupPredicate implements Predicate<Authorizable> {
             }
         }
         return false;
-    }
-
-    @Nullable
-    private String saveGetId(@Nullable Authorizable authorizable) {
-        if (authorizable != null) {
-            try {
-                return authorizable.getID();
-            } catch (RepositoryException e) {
-                log.debug("Error while retrieving ID for authorizable {}", authorizable, e);
-            }
-        }
-        return null;
     }
 }
