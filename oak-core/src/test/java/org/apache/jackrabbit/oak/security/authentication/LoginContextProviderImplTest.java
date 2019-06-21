@@ -18,18 +18,23 @@ package org.apache.jackrabbit.oak.security.authentication;
 
 import java.security.Principal;
 import java.security.PrivilegedAction;
+import java.security.Provider;
+import java.security.Security;
 import java.util.HashMap;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
+import javax.security.auth.login.ConfigurationSpi;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
@@ -37,12 +42,16 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvide
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthContext;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LoginContextProviderImplTest extends AbstractSecurityTest {
 
@@ -57,6 +66,28 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
     private LoginContextProviderImpl newLoginContextProviderImpl(ConfigurationParameters params) {
         return new LoginContextProviderImpl(AuthenticationConfiguration.DEFAULT_APP_NAME, params,
                 getContentRepository(), getSecurityProvider(), new DefaultWhiteboard(), LoginModuleMonitor.NOOP);
+    }
+
+    @NotNull
+    private static String addProvider(boolean enableAppName) throws Exception {
+        Provider.Service service = mock(Provider.Service.class);
+        when(service.newInstance(null)).thenReturn(new ConfigurationSpi() {
+            @Override
+            protected AppConfigurationEntry[] engineGetAppConfigurationEntry(String name) {
+                if (enableAppName) {
+                    return new AppConfigurationEntry[]{
+                            new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap<>())
+                    };
+                } else {
+                    return null;
+                }
+            }
+        });
+        String name = "testProvider_"+enableAppName;
+        Provider provider = when(mock(Provider.class).getName()).thenReturn(name).getMock();
+        when(provider.getService("Configuration", "JavaLoginConfig")).thenReturn(service);
+        Security.addProvider(provider);
+        return provider.getName();
     }
 
     @Test
@@ -79,16 +110,12 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
     @Test
     public void testGetPreAuthLoginContext() {
         Subject subject = new Subject(true, ImmutableSet.<Principal>of(), ImmutableSet.of(), ImmutableSet.of());
-        LoginContext ctx = Subject.doAs(subject, new PrivilegedAction<LoginContext>() {
-            @Override
-            public LoginContext run() {
-                try {
-                    return lcProvider.getLoginContext(null, null);
-                } catch (LoginException e) {
-                    throw new RuntimeException();
-                }
+        LoginContext ctx = Subject.doAs(subject, (PrivilegedAction<LoginContext>) () -> {
+            try {
+                return lcProvider.getLoginContext(null, null);
+            } catch (LoginException e) {
+                throw new RuntimeException();
             }
-
         });
 
         assertTrue(ctx instanceof PreAuthContext);
@@ -102,6 +129,28 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
 
         // invalid configuration falls back to default configuration
         LoginContext ctx = provider.getLoginContext(new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()), null);
+        ctx.login();
+    }
+
+    @Test(expected = LoginException.class)
+    public void testGetLoginContextWithIncompleteProvider() throws Exception {
+        String providerName = addProvider(false);
+        ConfigurationParameters params = ConfigurationParameters.of(AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME, providerName);
+        LoginContextProvider provider = newLoginContextProviderImpl(params);
+
+        // no getAppConfigurationEntry not found with configuration
+        LoginContext ctx = provider.getLoginContext(new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()), null);
+        ctx.login();
+    }
+
+    @Test
+    public void testGetLoginContextWithCompleteProvider() throws Exception {
+        String providerName = addProvider(true);
+        ConfigurationParameters params = ConfigurationParameters.of(AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME, providerName);
+        LoginContextProvider lcp = newLoginContextProviderImpl(params);
+
+        // as by configured provider -> guest getAppConfigurationEntry found
+        LoginContext ctx = lcp.getLoginContext(null, adminSession.getWorkspaceName());
         ctx.login();
     }
 
