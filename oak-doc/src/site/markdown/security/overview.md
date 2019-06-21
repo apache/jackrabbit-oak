@@ -41,7 +41,7 @@ The Oak Security Layer
 
  * [Overview](authorization.html)
      * [Access Control Management](accesscontrol.html)
-     * [Permission Evalution](permission.html)
+     * [Permission Evaluation](permission.html)
      * [Combining Multiple Authorization Models](authorization/composite.html)
   
 #### Access Control Management
@@ -77,6 +77,7 @@ The Oak Security Layer
 
  * [Overview](principal.html)
  * [Differences wrt Jackrabbit 2.x](principal/differences.html)
+ * [Principal Management : The Default Implementation](principal.html#default_implementation)
 
 ### User Management
 

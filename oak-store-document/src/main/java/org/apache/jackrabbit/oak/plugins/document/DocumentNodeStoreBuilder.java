@@ -109,7 +109,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
     protected Supplier<DocumentStore> documentStoreSupplier = ofInstance(new MemoryDocumentStore());
-    protected BlobStore blobStore;
+    protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
     private int asyncDelay = 1000;
@@ -294,15 +294,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * @return this
      */
     public T setBlobStore(BlobStore blobStore) {
-        this.blobStore = blobStore;
+        this.blobStoreSupplier = ofInstance(blobStore);
         return thisBuilder();
     }
 
     public BlobStore getBlobStore() {
-        if (blobStore == null) {
-            blobStore = new MemoryBlobStore();
-            configureBlobStore(blobStore);
+        if (blobStoreSupplier == null) {
+            blobStoreSupplier = ofInstance(new MemoryBlobStore());
         }
+        BlobStore blobStore = blobStoreSupplier.get();
+        configureBlobStore(blobStore);
         return blobStore;
     }
 
@@ -738,11 +739,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                     }
                 }).
                 build();
-    }
-
-    protected void setGCBlobStore(GarbageCollectableBlobStore s) {
-        configureBlobStore(s);
-        this.blobStore = s;
     }
 
     /**

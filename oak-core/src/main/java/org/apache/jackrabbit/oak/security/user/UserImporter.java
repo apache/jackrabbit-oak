@@ -220,7 +220,6 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     public boolean handlePropInfo(@NotNull Tree parent, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
-        String propName = propInfo.getName();
         if (isPwdNode(parent)) {
             // overwrite any properties generated underneath the rep:pwd node
             // by "UserManagerImpl#setPassword" by the properties defined by
@@ -233,6 +232,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 return false;
             }
 
+            String propName = propInfo.getName();
             if (REP_AUTHORIZABLE_ID.equals(propName)) {
                 if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
                     return false;
@@ -262,13 +262,10 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 userManager.checkValidPrincipal(principal, a.isGroup());
                 userManager.setPrincipal(parent, principal);
 
-            /*
-             Remember principal of new user/group for further processing
-             of impersonators
-             */
-                if (principals == null) {
-                    principals = new HashMap<>();
-                }
+                /*
+                 Remember principal of new user/group for further processing
+                 of impersonators
+                 */
                 principals.put(principalName, a.getPrincipal());
 
                 return true;

@@ -108,12 +108,8 @@ public class UserManagerImpl implements UserManager {
     //--------------------------------------------------------< UserManager >---
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
-        Authorizable authorizable = null;
         Tree tree = (Strings.isNullOrEmpty(id)) ? null : userProvider.getAuthorizable(id);
-        if (tree != null) {
-            authorizable = getAuthorizable(UserUtil.getAuthorizableId(tree), tree);
-        }
-        return authorizable;
+        return getAuthorizable(tree);
     }
 
     @Override
@@ -379,7 +375,20 @@ public class UserManagerImpl implements UserManager {
         if (tree == null || !tree.exists()) {
             return null;
         }
-        return getAuthorizable(UserUtil.getAuthorizableId(tree), tree);
+        String id = UserUtil.getAuthorizableId(tree);
+        if (id == null) {
+            return null;
+        }
+        if (UserUtil.isType(tree, AuthorizableType.USER)) {
+            if (UserUtil.isSystemUser(tree)) {
+                return new SystemUserImpl(id, tree, this);
+            } else {
+                return new UserImpl(id, tree, this);
+            }
+        } else {
+            // type has already been verified upon retrieving the ID, safe to assume this is a group
+            return new GroupImpl(id, tree, this);
+        }
     }
 
     @Nullable
@@ -418,24 +427,6 @@ public class UserManagerImpl implements UserManager {
     @NotNull
     ConfigurationParameters getConfig() {
         return config;
-    }
-
-    @Nullable
-    private Authorizable getAuthorizable(@Nullable String id, @Nullable Tree tree) throws RepositoryException {
-        if (id == null || tree == null) {
-            return null;
-        }
-        if (UserUtil.isType(tree, AuthorizableType.USER)) {
-            if (UserUtil.isSystemUser(tree)) {
-                return new SystemUserImpl(id, tree, this);
-            } else {
-                return new UserImpl(id, tree, this);
-            }
-        } else if (UserUtil.isType(tree, AuthorizableType.GROUP)) {
-            return new GroupImpl(id, tree, this);
-        } else {
-            throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
-        }
     }
 
     private void checkValidId(@Nullable String id) throws RepositoryException {

@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
-import javax.jcr.Credentials;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.security.auth.login.LoginException;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -35,10 +26,11 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -48,11 +40,17 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.security.auth.login.LoginException;
+import java.util.Iterator;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -95,14 +93,10 @@ public class SystemUserImplTest extends AbstractSecurityTest {
     protected ConfigurationParameters getSecurityConfigParameters() {
         return ConfigurationParameters.of(
                 UserConfiguration.NAME,
-                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, new AuthorizableActionProvider() {
-                    @NotNull
-                    @Override
-                    public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-                        AuthorizableAction action = new AccessControlAction();
-                        action.init(securityProvider, ConfigurationParameters.of(AccessControlAction.USER_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_ALL}));
-                        return ImmutableList.of(action);
-                    }
+                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, (AuthorizableActionProvider) securityProvider -> {
+                    AuthorizableAction action = new AccessControlAction();
+                    action.init(securityProvider, ConfigurationParameters.of(AccessControlAction.USER_PRIVILEGE_NAMES, new String[]{PrivilegeConstants.JCR_ALL}));
+                    return ImmutableList.of(action);
                 }));
     }
 
@@ -118,8 +112,18 @@ public class SystemUserImplTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testIsAdmin() throws Exception {
+        assertFalse(createUser(null).isAdmin());
+    }
+
+    @Test
     public void testIsSystemUser() throws Exception {
         assertTrue(createUser(null).isSystemUser());
+    }
+
+    @Test
+    public void testIsGroup() throws Exception {
+        assertFalse(createUser(null).isGroup());
     }
 
     @Test
@@ -239,15 +243,10 @@ public class SystemUserImplTest extends AbstractSecurityTest {
         }
     }
 
-    @Test
+    @Test(expected = LoginException.class)
     public void testLoginAsSystemUser2() throws Exception {
         User user = createUser(null);
-        try {
-            login(user.getCredentials()).close();
-            fail();
-        } catch (LoginException e) {
-            // success
-        }
+        login(user.getCredentials()).close();
     }
 
     @Test
@@ -256,7 +255,6 @@ public class SystemUserImplTest extends AbstractSecurityTest {
         ContentSession cs = login(new ImpersonationCredentials(new SimpleCredentials(uid, new char[0]), adminSession.getAuthInfo()));
         cs.close();
     }
-
 
     @Test
     public void testImpersonateDisabledSystemUser() throws Exception {
@@ -317,5 +315,16 @@ public class SystemUserImplTest extends AbstractSecurityTest {
 
         Tree t = root.getTree(user.getPath());
         assertFalse(t.hasChild(AccessControlConstants.REP_POLICY));
+    }
+
+    @Test
+    public void testReplacesAdministrator() throws Exception {
+        String adminId = getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+        User admin = userMgr.getAuthorizable(adminId, User.class);
+        root.getTree(admin.getPath()).remove();
+
+        User adminAsSystemUser = userMgr.createSystemUser(adminId, null);
+        assertTrue(adminAsSystemUser.isAdmin());
+        assertTrue(adminAsSystemUser.getPrincipal() instanceof AdminPrincipal);
     }
 }

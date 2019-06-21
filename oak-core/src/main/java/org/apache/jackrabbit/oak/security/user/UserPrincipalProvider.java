@@ -398,8 +398,8 @@ class UserPrincipalProvider implements PrincipalProvider {
      */
     private final class ResultRowToPrincipal implements Function<ResultRow, Principal> {
         @Override
-        public Principal apply(@Nullable ResultRow resultRow) {
-            return (resultRow != null) ? createPrincipal(resultRow.getTree(null)) : null;
+        public Principal apply(ResultRow resultRow) {
+            return createPrincipal(resultRow.getTree(null));
         }
     }
 
@@ -410,9 +410,8 @@ class UserPrincipalProvider implements PrincipalProvider {
     private static final class EveryonePredicate implements Predicate<Principal> {
         private boolean servedEveryone = false;
         @Override
-        public boolean apply(@Nullable Principal principal) {
-            String pName = (principal == null) ? null : principal.getName();
-            if (EveryonePrincipal.NAME.equals(pName)) {
+        public boolean apply(Principal principal) {
+            if (EveryonePrincipal.NAME.equals(principal.getName())) {
                 if (servedEveryone) {
                     return false;
                 } else {

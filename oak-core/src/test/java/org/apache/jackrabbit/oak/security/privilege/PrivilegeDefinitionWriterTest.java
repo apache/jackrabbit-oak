@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -37,7 +38,6 @@ import org.mockito.Mockito;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
 
 public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implements PrivilegeConstants {
@@ -52,29 +52,19 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
         }
     }
 
-    @Test
-    public void testNameCollision() {
-        try {
-            PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
-            writer.writeDefinition(new ImmutablePrivilegeDefinition(JCR_READ, true, null));
-            fail("name collision");
-        } catch (RepositoryException e) {
-            // success
-        }
+    @Test(expected = RepositoryException.class)
+    public void testNameCollision() throws Exception {
+        PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
+        writer.writeDefinition(new ImmutablePrivilegeDefinition(JCR_READ, true, null));
     }
 
-    @Test
+    @Test(expected = RepositoryException.class)
     public void testMissingPrivilegeRoot() throws Exception {
         ContentRepository repo = new Oak().with(new OpenSecurityProvider()).createContentRepository();
-        Root tmpRoot = repo.login(null, null).getLatestRoot();
-        try {
+        try (ContentSession cs = repo.login(null, null)) {
+            Root tmpRoot = cs.getLatestRoot();
             PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(tmpRoot);
             writer.writeDefinition(new ImmutablePrivilegeDefinition("newName", true, null));
-            fail("missing privilege root");
-        } catch (RepositoryException e) {
-            // success
-        } finally {
-            tmpRoot.getContentSession().close();
         }
     }
 
@@ -98,7 +88,6 @@ public class PrivilegeDefinitionWriterTest extends AbstractSecurityTest implemen
     public void testCommitFails() throws Exception {
         Root r = Mockito.spy(root);
         doThrow(new CommitFailedException(CommitFailedException.OAK, 1, "msg")).when(r).commit();
-
 
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(r);
         writer.writeDefinition(new ImmutablePrivilegeDefinition(

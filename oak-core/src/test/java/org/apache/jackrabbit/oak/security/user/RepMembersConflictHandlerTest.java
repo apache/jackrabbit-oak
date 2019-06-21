@@ -16,23 +16,21 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
@@ -41,7 +39,18 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_MEMBER_REFERENCES;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
@@ -386,5 +395,92 @@ public class RepMembersConflictHandlerTest extends AbstractSecurityTest {
         // needed to trigger conflict events in the 'small group' case
         r.getTree(g.getPath()).removeProperty(UserConstants.REP_MEMBERS);
         r.commit();
+    }
+
+    @Test
+    public void testChangeDeletedPropertyRepMembers() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        PropertyState ours = PropertyStates.createProperty(UserConstants.REP_MEMBERS, "value");
+        assertSame(ThreeWayConflictHandler.Resolution.THEIRS, handler.changeDeletedProperty(mock(NodeBuilder.class), ours, mock(PropertyState.class)));
+    }
+
+    @Test
+    public void testChangeDeletedPropertyOther() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        PropertyState ours = PropertyStates.createProperty("any", "value");
+        assertSame(ThreeWayConflictHandler.Resolution.IGNORED, handler.changeDeletedProperty(mock(NodeBuilder.class), ours, mock(PropertyState.class)));
+    }
+
+    @Test
+    public void testDeleteDeletedPropertyRepMembers() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        PropertyState base = PropertyStates.createProperty(UserConstants.REP_MEMBERS, "value");
+        assertSame(ThreeWayConflictHandler.Resolution.MERGED, handler.deleteDeletedProperty(mock(NodeBuilder.class), base));
+    }
+
+    @Test
+    public void testDeleteDeletedPropertyOther() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        PropertyState base = PropertyStates.createProperty("any", "value");
+        assertSame(ThreeWayConflictHandler.Resolution.IGNORED, handler.deleteDeletedProperty(mock(NodeBuilder.class), base));
+    }
+
+    @Test
+    public void testDeleteChangedPropertyRepMembers() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        PropertyState theirs = PropertyStates.createProperty(UserConstants.REP_MEMBERS, "value");
+        assertSame(ThreeWayConflictHandler.Resolution.OURS, handler.deleteChangedProperty(mock(NodeBuilder.class), theirs, mock(PropertyState.class)));
+    }
+
+    @Test
+    public void testDeleteChangedPropertyOther() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        PropertyState theirs = PropertyStates.createProperty("any", "value");
+        assertSame(ThreeWayConflictHandler.Resolution.IGNORED, handler.deleteChangedProperty(mock(NodeBuilder.class), theirs, mock(PropertyState.class)));
+    }
+
+    @Test
+    public void testAddExistingNode() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        assertSame(ThreeWayConflictHandler.Resolution.IGNORED, handler.addExistingNode(mock(NodeBuilder.class), "name", mock(NodeState.class), mock(NodeState.class)));
+    }
+
+    @Test
+    public void testChangeDeletedNodeMemberRef() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        NodeState base = when(mock(NodeState.class).getName(JCR_PRIMARYTYPE)).thenReturn(NT_REP_MEMBER_REFERENCES).getMock();
+        assertSame(ThreeWayConflictHandler.Resolution.THEIRS, handler.changeDeletedNode(mock(NodeBuilder.class), "name", mock(NodeState.class), base));
+    }
+
+    @Test
+    public void testChangeDeletedNodeOther() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        assertSame(ThreeWayConflictHandler.Resolution.IGNORED, handler.changeDeletedNode(mock(NodeBuilder.class), "name", mock(NodeState.class), mock(NodeState.class)));
+    }
+
+    @Test
+    public void testDeleteChangedNodeMemberRef() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        NodeState base = when(mock(NodeState.class).getName(JCR_PRIMARYTYPE)).thenReturn(NT_REP_MEMBER_REFERENCES).getMock();
+        assertSame(ThreeWayConflictHandler.Resolution.OURS, handler.deleteChangedNode(mock(NodeBuilder.class), "name", mock(NodeState.class), base));
+    }
+
+    @Test
+    public void testDeleteChangedNodeOther() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        assertSame(ThreeWayConflictHandler.Resolution.IGNORED, handler.deleteChangedNode(mock(NodeBuilder.class), "name", mock(NodeState.class), mock(NodeState.class)));
+    }
+
+    @Test
+    public void testDeleteDeletedNodeMemberRef() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        NodeState base = when(mock(NodeState.class).getName(JCR_PRIMARYTYPE)).thenReturn(NT_REP_MEMBER_REFERENCES).getMock();
+        assertSame(ThreeWayConflictHandler.Resolution.MERGED, handler.deleteDeletedNode(mock(NodeBuilder.class), "name", base));
+    }
+
+    @Test
+    public void testDeleteDeletedNodeOther() {
+        RepMembersConflictHandler handler = new RepMembersConflictHandler();
+        assertSame(ThreeWayConflictHandler.Resolution.IGNORED, handler.deleteDeletedNode(mock(NodeBuilder.class), "name", mock(NodeState.class)));
     }
 }

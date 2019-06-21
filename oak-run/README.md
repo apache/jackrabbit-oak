@@ -101,9 +101,7 @@ To start the console for a DocumentMK/Mongo repository, use:
 
     $ java -jar oak-run-*.jar console mongodb://host
 
-To start the console for a DocumentMK/RDB repository, use:
-
-    $ java -jar oak-run-*.jar --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
+To start the console for a DocumentMK/RDB repository, see the [documention for oak-run on RDB](https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#oak-run).
     
 To start the console connecting to a repository in read-write mode, use either of:
 
@@ -422,13 +420,15 @@ Garbage
 =======
 
 The garbage mode can the used to identify blob garbage still referenced by
-documents in a MongoMK repository. It can be invoked like this:
+documents in a DocumentMK repository. It can be invoked like this:
 
     $ java -jar oak-run-*.jar garbage [options] mongodb://host:port/database
 
+(or, for RDBMK instances, use "jdbc:...").
+
 The following recovery options (with default values) are currently supported:
 
-    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+    --clusterId         - DocumentMK clusterId (default: 0 -> automatic)
 
 The tool will scan the store for documents with blob references and print a
 report with the top 100 documents with blob references considered garbage. The
@@ -624,7 +624,7 @@ Reset Cluster Id
 Resets the cluster id generated internally. Use the following command after stopping the server
 
     $ java -jar oak-run-*.jar resetclusterid \
-            { /path/to/oak/repository | mongodb://host:port/database }
+            { /path/to/oak/repository | mongodb://host:port/database | jdbc:...}
 
 The cluster id will be removed and will be generated on next server start up.
 
@@ -647,7 +647,7 @@ See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore
 Revisions
 ---------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revisionGC).
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revision-gc).
 
 Export
 ------

@@ -64,20 +64,33 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
     private final Table<NodeStore, String, Object> components = HashBasedTable.create();
     private MongoConnection connection;
     private final Clock clock;
-    public final MongoConnectionFactory connFactory = new MongoConnectionFactory();
+    public MongoConnectionFactory connFactory;
     private String db;
     public DocumentMongoNodeStoreFixture(@Nullable DataStoreFixture dataStoreFixture) {
         this.dataStoreFixture = dataStoreFixture;
         this.clock = new Clock.Virtual();
     }
 
+    /**
+     * Mandatory to be called to initialize the connectionFactory.
+     * Lazy initializes it to limit docker container init only if relevant datastores available.
+     *
+     * @return
+     */
     @Override
     public boolean isAvailable() {
         db = UUID.randomUUID().toString();
-        this.connection = connFactory.getConnection(db);
 
         // if a DataStore is configured, it must be available for our NodeStore to be available
-        return (dataStoreFixture == null || dataStoreFixture.isAvailable()) && (connection != null);
+        if ((dataStoreFixture == null || dataStoreFixture.isAvailable())) {
+            try {
+                this.connFactory = new MongoConnectionFactory();
+                this.connection = connFactory.getConnection(db);
+
+                return (connection != null);
+            } catch (Exception e) {}
+        }
+        return false;
     }
 
     @Override
@@ -126,7 +139,7 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
     @Override
     public void dispose(NodeStore nodeStore) {
         try {
-            if (nodeStore instanceof DocumentNodeStore) {
+            if (nodeStore != null && nodeStore instanceof DocumentNodeStore) {
                 ((DocumentNodeStore)nodeStore).dispose();
             }
 
@@ -138,7 +151,9 @@ public class DocumentMongoNodeStoreFixture extends NodeStoreFixture implements C
                 FileUtils.deleteQuietly(dataStoreFolder);
             }
             MongoUtils.dropDatabase(db);
-            connection.close();
+            if (connection != null) {
+                connection.close();
+            }
         } finally {
             components.row(nodeStore).clear();
         }

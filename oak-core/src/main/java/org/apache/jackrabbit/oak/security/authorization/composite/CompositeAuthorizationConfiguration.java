@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
@@ -112,6 +113,8 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
 
     private CompositionType compositionType = CompositionType.AND;
 
+    private AggregationFilter aggregationFilter = AggregationFilter.DEFAULT;
+
     public CompositeAuthorizationConfiguration() {
         super(AuthorizationConfiguration.NAME);
     }
@@ -124,6 +127,10 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
         this.compositionType = CompositionType.fromString(ct);
     }
 
+    public void withAggregationFilter(@NotNull AggregationFilter aggregationFilter) {
+        this.aggregationFilter = aggregationFilter;
+    }
+
     @NotNull
     @Override
     public AccessControlManager getAccessControlManager(@NotNull final Root root,
@@ -134,8 +141,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
             case 1: return configurations.get(0).getAccessControlManager(root, namePathMapper);
             default:
                 List<AccessControlManager> mgrs = Lists.transform(configurations, authorizationConfiguration -> authorizationConfiguration.getAccessControlManager(root, namePathMapper));
-                return new CompositeAccessControlManager(root, namePathMapper, getSecurityProvider(), mgrs);
-
+                return new CompositeAccessControlManager(root, namePathMapper, getSecurityProvider(), mgrs, aggregationFilter);
         }
     }
 
@@ -172,7 +178,11 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                 for (AuthorizationConfiguration conf : configurations) {
                     PermissionProvider pProvider = conf.getPermissionProvider(root, workspaceName, principals);
                     if (pProvider instanceof AggregatedPermissionProvider) {
-                        aggrPermissionProviders.add((AggregatedPermissionProvider) pProvider);
+                        AggregatedPermissionProvider aggrProvider = (AggregatedPermissionProvider) pProvider;
+                        aggrPermissionProviders.add(aggrProvider);
+                        if (aggregationFilter.stop(aggrProvider, principals)) {
+                            break;
+                        }
                     } else {
                         log.debug("Ignoring permission provider of '{}': Not an AggregatedPermissionProvider", conf.getClass().getName());
                     }

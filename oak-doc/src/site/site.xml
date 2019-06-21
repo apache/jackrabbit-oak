@@ -65,7 +65,64 @@ under the License.
         <item href="query/property-index.html" name="Property Index" />
         <item href="query/solr.html" name="Solr Index" />
       </item>
-      <item href="security/overview.html" name="Security" />
+      <item href="security/overview.html" name="Security" collapse="false">
+        <item href="security/introduction.html" name="Introduction" />
+        <item href="security/authentication.html" name="Authentication" collapse="true">
+          <item href="security/authentication/differences.html" name="Differences" />
+          <item href="security/authentication/default.html" name="Default" />
+          <item href="security/authentication/preauthentication.html" name="Pre-Authentication" />
+          <item href="javascript:void(0)" name="Extensions" collapse="false">
+            <item href="security/authentication/tokenmanagement.html" name="Token"/>
+            <item href="security/authentication/externalloginmodule.html" name="External" collapse="true">
+              <item href="security/authentication/usersync.html" name="Sync" />
+              <item href="security/authentication/identitymanagement.html" name="Identity Management" />
+              <item href="security/authentication/ldap.html" name="LDAP" />
+            </item>
+          </item>
+        </item>
+        <item href="security/authorization.html" name="Authorization" collapse="true">
+          <item href="security/accesscontrol.html" name="Access Control Management" collapse="true">
+            <item href="security/accesscontrol/differences.html" name="Differences" />
+            <item href="security/accesscontrol/default.html" name="Default" />
+            <item href="security/accesscontrol/editing.html" name="Using the API" />
+          </item>
+          <item href="security/permission.html" name="Permission Evaluation" collapse="true">
+            <item href="security/permission/differences.html" name="Differences" />
+            <item href="security/permission/default.html" name="Default" />
+            <item href="security/permission/permissionsandprivileges.html" name="Permissions vs Privileges" />
+          </item>
+          <item href="security/privilege.html" name="Privilege Management" collapse="true">
+            <item href="security/privilege/differences.html" name="Differences" />
+            <item href="security/privilege/default.html" name="Default" />
+            <item href="javascript:void(0)" name="Mappings" collapse="false">
+              <item href="security/privilege/mappingtoitems.html" name="Privileges to API"/>
+              <item href="security/privilege/mappingtoprivileges.html" name="API to Privileges"/>
+            </item>
+          </item>
+          <item href="javascript:void(0)" name="Extensions" collapse="false">
+            <item href="security/authorization/restriction.html" name="Restrictions" />
+            <item href="security/authorization/composite.html" name="Combining Multiple Models" />
+            <item href="security/authorization/cug.html" name="Closed User Groups" />
+          </item>
+        </item>
+        <item href="security/principal.html" name="Principal Management" collapse="true">
+          <item href="security/principal/differences.html" name="Differences" />
+          <item href="security/principal.html#default_implementation" name="Default" />
+        </item>
+        <item href="security/user.html" name="User Management" collapse="true">
+          <item href="security/user/differences.html" name="Differences" />
+          <item href="security/user/default.html" name="Default" collapse="true">
+            <item href="security/user/membership.html" name="Group Membership" />
+            <item href="security/user/authorizableaction.html" name="Authorizable Actions" />
+            <item href="security/user/groupaction.html" name="Group Actions" />
+            <item href="security/user/useraction.html" name="User Actions" />
+            <item href="security/user/authorizablenodename.html" name="Node Name Generation" />
+            <item href="security/user/expiry.html" name="Password Expiry" />
+            <item href="security/user/history.html" name="Password History" />
+          </item>
+          <item href="security/user/query.html" name="Query" />
+        </item>
+      </item>
       <item href="features/atomic-counter.html" name="Atomic Counter" />
       <item href="features/observation.html" name="Observation" />
     </menu>

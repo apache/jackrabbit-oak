@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -49,7 +50,8 @@ public class QueryUtilTest {
 
     private static void assertSearchRoot(@NotNull Map<AuthorizableType, String> mapping, @NotNull ConfigurationParameters params) {
         for (AuthorizableType type : mapping.keySet()) {
-            String expected = QueryConstants.SEARCH_ROOT_PATH + mapping.get(type);
+            String s = mapping.get(type);
+            String expected = (PathUtils.denotesRoot(s)) ? QueryConstants.SEARCH_ROOT_PATH : QueryConstants.SEARCH_ROOT_PATH + s;
             assertEquals(expected, QueryUtil.getSearchRoot(type, params));
         }
     }
@@ -110,6 +112,20 @@ public class QueryUtilTest {
         Map<AuthorizableType, String> paths = ImmutableMap.of(
                 AuthorizableType.USER, "/users",
                 AuthorizableType.GROUP, "/groups",
+                AuthorizableType.AUTHORIZABLE, "/");
+
+        assertSearchRoot(paths, params);
+    }
+
+    @Test
+    public void testGetSearchRootConfiguredPathDenotesRoot() {
+        ConfigurationParameters params = ConfigurationParameters.of(
+                UserConstants.PARAM_USER_PATH, "/users",
+                UserConstants.PARAM_GROUP_PATH, "/");
+
+        Map<AuthorizableType, String> paths = ImmutableMap.of(
+                AuthorizableType.USER, "/users",
+                AuthorizableType.GROUP, "/",
                 AuthorizableType.AUTHORIZABLE, "/");
 
         assertSearchRoot(paths, params);
@@ -187,7 +203,7 @@ public class QueryUtilTest {
     }
 
     @Test
-    public void testEscapeForQuery() throws Exception {
+    public void testEscapeForQuery() {
         NamePathMapper namePathMapper = new NamePathMapperImpl(new LocalNameMapper(
                 ImmutableMap.of(NamespaceRegistry.PREFIX_JCR, NamespaceRegistry.NAMESPACE_JCR),
                 ImmutableMap.of("myPrefix", NamespaceRegistry.NAMESPACE_JCR)));
@@ -197,7 +213,7 @@ public class QueryUtilTest {
     }
 
     @Test
-    public void testGetCollation() throws Exception {
+    public void testGetCollation() {
         assertSame(RelationOp.LT, QueryUtil.getCollation(QueryBuilder.Direction.DESCENDING));
         assertSame(RelationOp.GT, QueryUtil.getCollation(QueryBuilder.Direction.ASCENDING));
     }

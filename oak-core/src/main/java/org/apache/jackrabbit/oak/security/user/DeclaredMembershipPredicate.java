@@ -23,6 +23,8 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -47,7 +49,7 @@ public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
         if (groupTree == null) {
             contentIdIterator = Collections.emptyIterator();
         } else {
-            contentIdIterator = membershipProvider.getDeclaredMemberContentIDs(membershipProvider.getByID(groupId, AuthorizableType.GROUP));
+            contentIdIterator = Iterators.filter(membershipProvider.getDeclaredMemberContentIDs(groupTree), Predicates.notNull());
         }
     }
 
@@ -62,11 +64,9 @@ public class DeclaredMembershipPredicate implements Predicate<Authorizable> {
                 // for occurrence in the remaining iterator entries.
                 while (contentIdIterator.hasNext()) {
                     String memberContentId = contentIdIterator.next();
-                    if (memberContentId != null) {
-                        declaredMemberContentIds.add(memberContentId);
-                        if (memberContentId.equals(id)) {
-                            return true;
-                        }
+                    declaredMemberContentIds.add(memberContentId);
+                    if (memberContentId.equals(id)) {
+                        return true;
                     }
                 }
             }

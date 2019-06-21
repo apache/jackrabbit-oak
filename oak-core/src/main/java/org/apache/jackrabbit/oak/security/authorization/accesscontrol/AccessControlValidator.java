@@ -23,7 +23,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Objects;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
@@ -31,7 +31,6 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS_CONTROL;
@@ -203,10 +203,10 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             throw accessViolation(4, "Invalid policy node at " + policyTree.getPath() + ": Order of children is not stable.");
         }
 
-        Set<Entry> aceSet = Sets.newHashSet();
+        Set<ValidationEntry> aceSet = Sets.newHashSet();
         for (Tree child : policyTree.getChildren()) {
             if (isAccessControlEntry(child)) {
-                if (!aceSet.add(new Entry(parent.getPath(), child))) {
+                if (!aceSet.add(createAceEntry(parent.getPath(), child))) {
                     throw accessViolation(13, "Duplicate ACE '" + child.getPath() + "' found in policy");
                 }
             }
@@ -228,7 +228,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private void checkValidAccessControlEntry(@NotNull Tree aceNode) throws CommitFailedException {
         Tree parent = aceNode.getParent();
-        if (!parent.exists() || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
+        if (!NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
             throw accessViolation(7, "Isolated access control entry at " + aceNode.getPath());
         }
         checkValidPrincipal(aceNode);
@@ -236,20 +236,19 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         checkValidRestrictions(aceNode);
     }
 
-    private void checkValidPrincipal(@NotNull Tree aceNode) throws CommitFailedException {
+    @NotNull
+    private String checkValidPrincipal(@NotNull Tree aceNode) throws CommitFailedException {
         String principalName = TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME);
-        if (principalName == null || principalName.isEmpty()) {
+        if (Strings.isNullOrEmpty(principalName)) {
             throw accessViolation(8, "Missing principal name at " + aceNode.getPath());
         }
         // validity of principal is only a JCR specific contract and will not be
         // enforced on the oak level.
+        return principalName;
     }
 
     private void checkValidPrivileges(@NotNull Tree aceNode) throws CommitFailedException {
-        Iterable<String> privilegeNames = TreeUtil.getStrings(aceNode, REP_PRIVILEGES);
-        if (privilegeNames == null || Iterables.isEmpty(privilegeNames)) {
-            throw accessViolation(9, "Missing privileges at " + aceNode.getPath());
-        }
+        Iterable<String> privilegeNames = getPrivilegeNames(aceNode);
         for (String privilegeName : privilegeNames) {
             try {
                 Privilege privilege = privilegeManager.getPrivilege(privilegeName);
@@ -262,6 +261,15 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
                 throw new IllegalStateException("Failed to read privileges", e);
             }
         }
+    }
+
+    @NotNull
+    private Iterable<String> getPrivilegeNames(@NotNull Tree aceNode) throws CommitFailedException {
+        Iterable<String> privilegeNames = TreeUtil.getNames(aceNode, REP_PRIVILEGES);
+        if (Iterables.isEmpty(privilegeNames)) {
+            throw accessViolation(9, "Missing privileges at " + aceNode.getPath());
+        }
+        return privilegeNames;
     }
 
     private void checkValidRestrictions(@NotNull Tree aceTree) throws CommitFailedException {
@@ -290,45 +298,23 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         }
     }
 
-    private static void checkValidRepoAccessControlled(Tree accessControlledTree) throws CommitFailedException {
+    private static void checkValidRepoAccessControlled(@NotNull Tree accessControlledTree) throws CommitFailedException {
         if (!accessControlledTree.isRoot()) {
             throw accessViolation(12, "Only root can store repository level policies (" + accessControlledTree.getPath() + ')');
         }
     }
 
+    @NotNull
     private static CommitFailedException accessViolation(int code, String message) {
         return new CommitFailedException(ACCESS_CONTROL, code, message);
     }
 
-    private final class Entry {
-
-        private final String principalName;
-        private final PrivilegeBits privilegeBits;
-        private final Set<Restriction> restrictions;
-
-        private Entry(String path, Tree aceTree) {
-            principalName = aceTree.getProperty(REP_PRINCIPAL_NAME).getValue(Type.STRING);
-            privilegeBits = privilegeBitsProvider.getBits(aceTree.getProperty(REP_PRIVILEGES).getValue(Type.NAMES));
-            restrictions = restrictionProvider.readRestrictions(path, aceTree);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(principalName, privilegeBits, restrictions);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            }
-            if (o instanceof Entry) {
-                Entry other = (Entry) o;
-                return Objects.equal(principalName, other.principalName)
-                        && privilegeBits.equals(other.privilegeBits)
-                        && restrictions.equals(other.restrictions);
-            }
-            return false;
-        }
+    @NotNull
+    private ValidationEntry createAceEntry(@Nullable String path, @NotNull Tree aceTree) throws CommitFailedException {
+        String principalName = checkValidPrincipal(aceTree);
+        PrivilegeBits privilegeBits = privilegeBitsProvider.getBits(getPrivilegeNames(aceTree));
+        boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
+        Set<Restriction> restrictions = restrictionProvider.readRestrictions(path, aceTree);
+        return new ValidationEntry(principalName, privilegeBits, isAllow, restrictions);
     }
 }

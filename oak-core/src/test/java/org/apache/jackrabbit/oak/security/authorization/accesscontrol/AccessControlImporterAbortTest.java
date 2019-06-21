@@ -33,6 +33,6 @@ public class AccessControlImporterAbortTest extends AccessControlImporterBaseTes
     public void testStartAceChildInfoUnknownPrincipal() throws Exception {
         init();
         importer.start(aclTree);
-        importer.startChildInfo(aceInfo, ImmutableList.of(unknownPrincipalInfo));
+        importer.startChildInfo(aceGrantInfo, ImmutableList.of(unknownPrincipalInfo));
     }
 }

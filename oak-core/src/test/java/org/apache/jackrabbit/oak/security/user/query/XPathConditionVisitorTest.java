@@ -22,6 +22,8 @@ import javax.jcr.Value;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
@@ -70,14 +72,13 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testVisitNode() throws Exception {
+    public void testVisitNode() {
         visitor.visit(new Condition.Node(SERACH_EXPR));
 
         String s = statement.toString();
         assertFalse(s.contains(SERACH_EXPR));
         assertTrue(s.contains(QueryUtils.escapeForQuery(SERACH_EXPR)));
         assertTrue(s.contains(QueryUtils.escapeForQuery(QueryUtils.escapeNodeName(SERACH_EXPR))));
-
     }
 
     @Test
@@ -139,7 +140,7 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
 
     @Test
     public void testVisitImpersonation() throws Exception {
-        String principalName = getTestUser().getPrincipal().getName();;
+        String principalName = getTestUser().getPrincipal().getName();
         Condition.Impersonation c = new Condition.Impersonation(principalName);
         visitor.visit(c);
 
@@ -157,6 +158,37 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
         String s = statement.toString();
         assertFalse(s.contains(UserConstants.REP_IMPERSONATORS));
         assertTrue(s.contains("@rcj:primaryType='" + UserConstants.NT_REP_USER + "'"));
+    }
+
+    @Test
+    public void testVisitImpersonationGroup() throws Exception {
+        UserManager uMgr = getUserManager(root);
+        Group g = null;
+        try {
+            g = uMgr.createGroup("g");
+            root.commit();
+            Condition.Impersonation c = new Condition.Impersonation(g.getPrincipal().getName());
+            visitor.visit(c);
+
+            String s = statement.toString();
+            assertTrue(s.contains(UserConstants.REP_IMPERSONATORS));
+            assertFalse(s.contains("@rcj:primaryType='" + UserConstants.NT_REP_USER + "'"));
+        } finally {
+            if (g != null) {
+                g.remove();
+                root.commit();
+            }
+        }
+    }
+
+    @Test
+    public void testVisitImpersonationNonExistingPrincipal() {
+        Condition.Impersonation c = new Condition.Impersonation("nonExisting");
+        visitor.visit(c);
+
+        String s = statement.toString();
+        assertTrue(s.contains(UserConstants.REP_IMPERSONATORS));
+        assertFalse(s.contains("@rcj:primaryType='" + UserConstants.NT_REP_USER + "'"));
     }
 
     @Test

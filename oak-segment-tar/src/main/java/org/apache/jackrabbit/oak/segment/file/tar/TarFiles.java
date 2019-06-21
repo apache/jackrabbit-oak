@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
@@ -122,6 +123,8 @@ public class TarFiles implements Closeable {
 
         private FileStoreMonitor fileStoreMonitor;
 
+        private RemoteStoreMonitor remoteStoreMonitor;
+
         private long maxFileSize;
 
         private boolean readOnly;
@@ -166,6 +169,11 @@ public class TarFiles implements Closeable {
             return this;
         }
 
+        public Builder withRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
+            this.remoteStoreMonitor = checkNotNull(remoteStoreMonitor);
+            return this;
+        }
+
         public Builder withMaxFileSize(long maxFileSize) {
             checkArgument(maxFileSize > 0);
             this.maxFileSize = maxFileSize;
@@ -197,6 +205,7 @@ public class TarFiles implements Closeable {
             checkState(tarRecovery != null, "TAR recovery strategy not specified");
             checkState(ioMonitor != null, "I/O monitor not specified");
             checkState(readOnly || fileStoreMonitor != null, "File store statistics not specified");
+            checkState(remoteStoreMonitor != null, "Remote store statistics not specified");
             checkState(readOnly || maxFileSize != 0, "Max file size not specified");
             if (persistence == null) {
                 persistence = new TarPersistence(directory);
@@ -224,6 +233,10 @@ public class TarFiles implements Closeable {
             return fileStoreMonitor;
         }
 
+        public RemoteStoreMonitor getRemoteStoreMonitor() {
+            return remoteStoreMonitor;
+        }
+
         public long getMaxFileSize() {
             return maxFileSize;
         }
@@ -233,7 +246,7 @@ public class TarFiles implements Closeable {
         }
 
         private SegmentArchiveManager buildArchiveManager() throws IOException {
-            return persistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor);
+            return persistence.createArchiveManager(memoryMapping, offHeapAccess, ioMonitor, readOnly && fileStoreMonitor == null ? new FileStoreMonitorAdapter() : fileStoreMonitor, remoteStoreMonitor);
         }
     }
 
@@ -493,7 +506,7 @@ public class TarFiles implements Closeable {
     }
 
     /**
-     * @return  the number of segments in the segment store
+     * @return the number of segments in the segment store
      */
     public int segmentCount() {
         int count = 0;

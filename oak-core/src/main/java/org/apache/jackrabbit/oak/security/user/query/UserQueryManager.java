@@ -175,11 +175,8 @@ public class UserQueryManager {
     private String buildXPathStatement(@NotNull String relPath,
                                        @Nullable String value,
                                        @NotNull AuthorizableType type, boolean exact) {
-        StringBuilder stmt = new StringBuilder();
         String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(type, config));
-        if (!"/".equals(searchRoot)) {
-            stmt.append(searchRoot);
-        }
+        StringBuilder stmt = new StringBuilder().append(searchRoot);
 
         String propName = Text.getName(relPath);
         String path;
@@ -233,7 +230,7 @@ public class UserQueryManager {
 
         if (bound != null) {
             if (sortCol == null) {
-                log.warn("Ignoring bound {} since no sort order is specified");
+                log.warn("Ignoring bound {} since no sort order is specified", bound);
             } else {
                 Condition boundCondition = builder.property(sortCol, QueryUtil.getCollation(sortDir), bound);
                 if (condition == null) {
@@ -339,7 +336,7 @@ public class UserQueryManager {
                     return authorizableIds.add(input.getID());
                 }
             } catch (RepositoryException e) {
-                log.debug("Failed to retrieve authorizable ID " + e.getMessage());
+                log.debug("Failed to retrieve authorizable ID {}", e.getMessage());
             }
             return false;
         }

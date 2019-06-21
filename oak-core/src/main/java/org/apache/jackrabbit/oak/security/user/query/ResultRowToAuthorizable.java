@@ -75,7 +75,7 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
                     authorizable = userManager.getAuthorizable(tree);
                 }
             } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable " + resultPath);
+                log.debug("Failed to access authorizable {}", resultPath);
             }
         }
         return authorizable;

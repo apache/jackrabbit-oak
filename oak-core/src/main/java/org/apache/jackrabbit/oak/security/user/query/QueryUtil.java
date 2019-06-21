@@ -21,6 +21,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -29,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
+
+import static org.apache.jackrabbit.api.security.user.QueryBuilder.Direction.ASCENDING;
 
 /**
  * Common utilities used for user/group queries.
@@ -48,7 +51,11 @@ public final class QueryUtil {
     @NotNull
     public static String getSearchRoot(AuthorizableType type, ConfigurationParameters config) {
         String path = UserUtil.getAuthorizableRootPath(config, type);
-        return QueryConstants.SEARCH_ROOT_PATH + path;
+        if (PathUtils.denotesRoot(path)) {
+            return QueryConstants.SEARCH_ROOT_PATH;
+        } else {
+            return QueryConstants.SEARCH_ROOT_PATH + path;
+        }
     }
 
     /**
@@ -109,14 +116,12 @@ public final class QueryUtil {
     }
 
     @NotNull
-    public static RelationOp getCollation(@NotNull QueryBuilder.Direction direction) throws RepositoryException {
-        switch (direction) {
-            case ASCENDING:
-                return RelationOp.GT;
-            case DESCENDING:
-                return RelationOp.LT;
-            default:
-                throw new RepositoryException("Unknown sort order " + direction);
+    public static RelationOp getCollation(@NotNull QueryBuilder.Direction direction) {
+        if (direction == ASCENDING) {
+            return RelationOp.GT;
+        }else {
+            // DESCENDING
+            return RelationOp.LT;
         }
     }
 }

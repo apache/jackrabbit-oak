@@ -97,7 +97,7 @@ public class XPathQueryBuilderTest extends AbstractSecurityTest {
 
     @Test
     public void testSetSelector() throws Exception {
-        Map<Class<? extends Authorizable>, AuthorizableType> m = new HashMap();
+        Map<Class<? extends Authorizable>, AuthorizableType> m = new HashMap<>();
         m.put(User.class, AuthorizableType.USER);
         m.put(getTestUser().getClass(), AuthorizableType.USER);
         m.put(Authorizable.class, AuthorizableType.AUTHORIZABLE);
