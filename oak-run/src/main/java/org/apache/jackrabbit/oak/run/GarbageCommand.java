@@ -28,7 +28,7 @@ class GarbageCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         Closer closer = Closer.create();
-        String h = "garbage mongodb://host:port/database";
+        String h = "garbage mongodb://host:port/database | jdbc:...";
         try {
             NodeStore store = Utils.bootstrapNodeStore(args, closer, h);
             if (!(store instanceof DocumentNodeStore)) {
