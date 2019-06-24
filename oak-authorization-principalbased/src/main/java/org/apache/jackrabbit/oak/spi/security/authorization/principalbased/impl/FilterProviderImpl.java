@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
@@ -31,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
@@ -43,6 +46,8 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
 
+import static com.google.common.base.Preconditions.checkState;
+
 /**
  * Implementation of the {@link org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter} interface that
  * consists of the following two filtering conditions:
@@ -52,7 +57,7 @@ import java.util.Set;
  *     <li>All principals in the set must be located in the repository below the configured path.</li>
  * </ol>
  */
-@Component(service = {FilterProvider.class})
+@Component(service = {FilterProvider.class}, configurationPolicy = ConfigurationPolicy.REQUIRE)
 @Designate(ocd = FilterProviderImpl.Configuration.class)
 public class FilterProviderImpl implements FilterProvider {
 
@@ -60,7 +65,7 @@ public class FilterProviderImpl implements FilterProvider {
     @interface Configuration {
         @AttributeDefinition(
                 name = "Path",
-                description = "Required path underneath which all filtered principals must be located in the repository.")
+                description = "Required path underneath which all filtered system-user-principals must be located in the repository.")
         String path();
     }
 
@@ -103,9 +108,13 @@ public class FilterProviderImpl implements FilterProvider {
     }
 
     private void setPath(@NotNull Configuration configuration) {
-        this.oakPath = configuration.path();
+        checkState(isValidPath(configuration.path()), "Configured path must be a valid absolute path.");
+        oakPath = configuration.path();
     }
 
+    private static boolean isValidPath(@Nullable String path) {
+        return !Strings.isNullOrEmpty(path) && PathUtils.isAbsolute(path);
+    }
     //-------------------------------------------------------------< Filter >---
 
     private final class FilterImpl implements Filter {

@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -39,6 +41,9 @@ import static org.mockito.Mockito.when;
 public class FilterProviderImplTest {
 
     private static final String PATH = "/supported/path";
+
+    @Rule
+    public final OsgiContext context = new OsgiContext();
 
     private FilterProviderImpl provider = AbstractPrincipalBasedTest.createFilterProviderImpl(PATH);
 
@@ -75,10 +80,33 @@ public class FilterProviderImplTest {
         assertEquals(PATH, fp.getFilterRoot());
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testActivateEmptyPath() {
+        FilterProviderImpl fp = new FilterProviderImpl();
+        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn("").getMock(), Collections.emptyMap());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testActivateNullPath() {
+        FilterProviderImpl fp = new FilterProviderImpl();
+        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(null).getMock(), Collections.emptyMap());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testActivateRelativePath() {
+        FilterProviderImpl fp = new FilterProviderImpl();
+        fp.activate(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn("rel/path").getMock(), Collections.emptyMap());
+    }
+
     @Test
     public void testModified() {
         String modifiedPath = "/modified/path";
         provider.modified(when(mock(FilterProviderImpl.Configuration.class).path()).thenReturn(modifiedPath).getMock(), Collections.emptyMap());
         assertEquals(modifiedPath, provider.getFilterRoot());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testActivateServiceMissingConfiguration() {
+        context.registerInjectActivateService(new FilterProviderImpl());
     }
 }
