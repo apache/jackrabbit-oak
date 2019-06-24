@@ -358,6 +358,16 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
     }
 
     @Test(expected = AccessControlException.class)
+    public void testAddEntryWithRelativePath() throws Exception {
+        emptyPolicy.addEntry("relative/path", privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testAddEntryWithEmptyPath() throws Exception {
+        emptyPolicy.addEntry("", privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE));
+    }
+
+    @Test(expected = AccessControlException.class)
     public void testAddEntryEmptyPrivileges() throws Exception {
         policy.addEntry(testJcrPath, new Privilege[0]);
     }
