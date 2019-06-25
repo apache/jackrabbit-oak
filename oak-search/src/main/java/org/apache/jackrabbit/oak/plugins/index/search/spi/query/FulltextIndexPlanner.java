@@ -1012,6 +1012,14 @@ public class FulltextIndexPlanner {
             return relativize;
         }
 
+        public int getParentDepth() {
+            return parentDepth;
+        }
+
+        public String getParentPathSegment() {
+            return parentPathSegment;
+        }
+
         public boolean isUniquePathsRequired() {
             return uniquePathsRequired;
         }
