@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Iterables.contains;
+import static com.google.common.collect.Iterables.isEmpty;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
@@ -143,6 +144,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
 
         for (String name : types.getChildNodeNames()) {
             mergeSupertypes(types, types.child(name));
+            ensureNtBase(types, types.child(name));
         }
 
         for (String name : types.getChildNodeNames()) {
@@ -221,7 +223,7 @@ class TypeRegistration extends DefaultNodeStateDiff {
                 }
             }
 
-            if (!getBoolean(type, JCR_ISMIXIN)
+            if (!isMixin(type)
                     && !contains(getNames(type, REP_SUPERTYPES), NT_BASE)
                     && !NT_BASE.equals(type.getProperty(JCR_NODETYPENAME).getValue(NAME))) {
                 if (types.hasChildNode(NT_BASE)) {
@@ -237,7 +239,45 @@ class TypeRegistration extends DefaultNodeStateDiff {
         }
     }
 
-    private boolean getBoolean(NodeBuilder builder, String name) {
+    /**
+     * Ensures a primary node type definition that does not extend from any
+     * other primary node type has {@code nt:base} in the {@code jcr:supertypes}
+     * list. Listing {@code nt:base} in this case is not mandatory in a CND, but
+     * is required in {@code jcr:supertypes}.
+     *
+     * @param types the parent node for all node type definitions.
+     * @param type the node type definition to process.
+     */
+    private void ensureNtBase(NodeBuilder types, NodeBuilder type) {
+        if (isMixin(type) || NT_BASE.equals(type.getName(JCR_NODETYPENAME))) {
+            return;
+        }
+        // This is a primary node type.
+        // Make sure jcr:supertypes contains nt:base when needed.
+        Iterable<String> supertypes = getNames(type, JCR_SUPERTYPES);
+        if (isEmpty(supertypes)) {
+            addNameToList(type, JCR_SUPERTYPES, NT_BASE);
+        } else {
+            // is any of the supertypes a primary node type?
+            boolean addNtBase = true;
+            for (String name : supertypes) {
+                NodeBuilder supertype = types.getChildNode(name);
+                if (!isMixin(supertype)) {
+                    addNtBase = false;
+                    break;
+                }
+            }
+            if (addNtBase) {
+                addNameToList(type, JCR_SUPERTYPES, NT_BASE);
+            }
+        }
+    }
+
+    private static boolean isMixin(NodeBuilder type) {
+        return getBoolean(type, JCR_ISMIXIN);
+    }
+
+    private static boolean getBoolean(NodeBuilder builder, String name) {
         PropertyState property = builder.getProperty(name);
         return property != null && property.getValue(BOOLEAN);
     }
