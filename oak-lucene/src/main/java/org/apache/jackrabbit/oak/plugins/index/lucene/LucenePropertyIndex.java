@@ -1054,12 +1054,21 @@ public class LucenePropertyIndex extends FulltextIndex {
                 if (defn.evaluatePathRestrictions()) {
                     BooleanQuery bq = new BooleanQuery();
                     bq.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
-                    bq.add(new BooleanClause(newDepthQuery(path), BooleanClause.Occur.MUST));
+                    bq.add(new BooleanClause(newDepthQuery(path, planResult), BooleanClause.Occur.MUST));
                     qs.add(bq);
                 }
                 break;
             case EXACT:
-                qs.add(new TermQuery(newPathTerm(path)));
+                // For transformed paths, we can only add path restriction if absolute path to property can be
+                // deduced
+                if (planResult.isPathTransformed()) {
+                    String parentPathSegment = planResult.getParentPathSegment();
+                    if ( ! Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
+                        qs.add(new TermQuery(newPathTerm(path + parentPathSegment)));
+                    }
+                } else {
+                    qs.add(new TermQuery(newPathTerm(path)));
+                }
                 break;
             case PARENT:
                 if (denotesRoot(path)) {
@@ -1068,7 +1077,16 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // is no way to say "match no documents" in Lucene
                     qs.add(new TermQuery(new Term(FieldNames.PATH, "///")));
                 } else {
-                    qs.add(new TermQuery(newPathTerm(getParentPath(path))));
+                    // For transformed paths, we can only add path restriction if absolute path to property can be
+                    // deduced
+                    if (planResult.isPathTransformed()) {
+                        String parentPathSegment = planResult.getParentPathSegment();
+                        if ( ! Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
+                            qs.add(new TermQuery(newPathTerm(getParentPath(path) + parentPathSegment)));
+                        }
+                    } else {
+                        qs.add(new TermQuery(newPathTerm(getParentPath(path))));
+                    }
                 }
                 break;
             case NO_RESTRICTION:
@@ -1505,8 +1523,8 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
     }
 
-    private static Query newDepthQuery(String path) {
-        int depth = PathUtils.getDepth(path) + 1;
+    private static Query newDepthQuery(String path, PlanResult planResult) {
+        int depth = PathUtils.getDepth(path) + planResult.getParentDepth() + 1;
         return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
     }
 
