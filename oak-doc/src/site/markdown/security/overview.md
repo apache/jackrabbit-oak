@@ -72,6 +72,7 @@ The Oak Security Layer
 
  * [Restriction Management](authorization/restriction.html)
  * [Managing Access with Closed User Groups (CUG)](authorization/cug.html)
+ * [Managing Access by Principal](authorization/principalbased.html)
 
 ### Principal Management
 
