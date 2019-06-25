@@ -19,14 +19,18 @@ package org.apache.jackrabbit.oak.plugins.document.blob;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoDatabase;
 
+import static org.junit.Assert.fail;
+
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * Tests the {@link MongoBlobStore} implementation.
@@ -68,4 +72,15 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
         super.tearDown();
     }
 
+    @Test
+    public void readOnly() throws Exception {
+        try {
+            MongoUtils.dropCollections(mongoConnection.getDatabase());
+            MongoDocumentNodeStoreBuilder mdnssb = MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder()
+                    .setReadOnlyMode();
+            MongoBlobStore mbs = new MongoBlobStore(mongoConnection.getDatabase(), 0, mdnssb);
+            fail("Read-only instantiation should fail when collection is missing, but got: " + mbs);
+        } catch (RuntimeException expected) {
+        }
+    }
 }

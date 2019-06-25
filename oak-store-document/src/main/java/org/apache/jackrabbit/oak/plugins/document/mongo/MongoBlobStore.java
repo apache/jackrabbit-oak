@@ -27,9 +27,12 @@ import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.UpdateResult;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,24 +74,44 @@ public class MongoBlobStore extends CachingBlobStore {
     private final ReadPreference defaultReadPreference;
     private final MongoCollection<MongoBlob> blobCollection;
     private long minLastModified;
+    private final boolean readOnly;
 
     /**
      * Constructs a new {@code MongoBlobStore}
      *
-     * @param db The DB.
+     * @param db the database
      */
     public MongoBlobStore(MongoDatabase db) {
-        this(db, DEFAULT_CACHE_SIZE);
+        this(db, DEFAULT_CACHE_SIZE, null);
     }
 
+    /**
+     * Constructs a new {@code MongoBlobStore}
+     *
+     * @param db the database
+     * @param cachesize the cachesize
+     * @param builder {@link DocumentNodeStoreBuilder}, supplying further options
+     */
     public MongoBlobStore(MongoDatabase db, long cacheSize) {
+        this(db, cacheSize, null);
+    }
+
+    /**
+     * Constructs a new {@code MongoBlobStore}
+     *
+     * @param db the database
+     * @param cachesize the cache size
+     * @param builder {@link DocumentNodeStoreBuilder}, supplying further options
+     */
+    public MongoBlobStore(@NotNull MongoDatabase db, long cacheSize, @Nullable DocumentNodeStoreBuilder<?> builder) {
         super(cacheSize);
+        readOnly = builder == null ? false : builder.getReadOnlyMode();
         // use a block size of 2 MB - 1 KB, because MongoDB rounds up the
         // space allocated for a record to the next power of two
         // (there is an overhead per record, let's assume it is 1 KB at most)
         setBlockSize(2 * 1024 * 1024 - 1024);
         defaultReadPreference = db.getReadPreference();
-        blobCollection = initBlobCollection(db);
+        blobCollection = initBlobCollection(db, readOnly);
     }
 
     @Override
@@ -181,9 +204,13 @@ public class MongoBlobStore extends CachingBlobStore {
         return (int) num;
     }
 
-    private MongoCollection<MongoBlob> initBlobCollection(MongoDatabase db) {
+    private MongoCollection<MongoBlob> initBlobCollection(MongoDatabase db, boolean readOnly) {
         if (stream(db.listCollectionNames().spliterator(), false)
                 .noneMatch(COLLECTION_BLOBS::equals)) {
+            if (readOnly) {
+                throw new RuntimeException(
+                        "MongoBlobStore instantiated read-only, but collection " + COLLECTION_BLOBS + " not present");
+            }
             db.createCollection(COLLECTION_BLOBS);
         }
         // override the read preference configured with the MongoDB URI
