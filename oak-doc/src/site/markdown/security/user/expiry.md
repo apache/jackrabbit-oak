@@ -195,6 +195,15 @@ potential need to enable password expiry/force initial password change for the
 imported data to make sense, and/or the effect on already existing/overwritten
 data.
 
+With the changes made in the light of [OAK-8408](https://issues.apache.org/jira/browse/OAK-8408) 
+the following rules apply when importing a user without an extra `rep:pw` node:
+
+- if `initialPasswordChange` is enabled, `rep:passwordLastModified` will never be set irrespective if the user node is 
+  new or modified. i.e. the user will be force to change the pw upon login.
+- if `pw-expiry` is enabled, `rep:passwordLastModified` will only be set for a new user node (but not if node gets modified).
+  this ensures that the password will expire but doesn't reset the expiry when changing an existing user with XML import.
+- if both `initialPasswordChange` and `pw-expiry` are enabled, the rules for `initialPasswordChange` apply.
+
 <!-- hidden references -->
 [SimpleCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
 [CredentialExpiredException]: https://docs.oracle.com/javase/7/docs/api/javax/security/auth/login/CredentialExpiredException.html

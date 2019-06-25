@@ -184,14 +184,14 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
         Tree userTree = root.getTree(user.getPath());
         for (String pw : pwds) {
-            userMgr.setPassword(userTree, testUserId, pw, true);
+            userMgr.setPassword(userTree, testUserId, pw, false);
             String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
             assertNotNull(pwHash);
             assertTrue(PasswordUtil.isSame(pwHash, pw));
         }
 
         for (String pw : pwds) {
-            userMgr.setPassword(userTree, testUserId, pw, false);
+            userMgr.setPassword(userTree, testUserId, pw, true);
             String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
             assertNotNull(pwHash);
             if (!pw.startsWith("{")) {

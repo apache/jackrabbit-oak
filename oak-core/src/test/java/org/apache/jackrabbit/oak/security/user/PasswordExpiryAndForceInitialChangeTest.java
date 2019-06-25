@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.UUID;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.CredentialExpiredException;
 
@@ -24,14 +25,17 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_PWD;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -57,6 +61,11 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
         return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, parameters));
     }
 
+    @NotNull
+    private Tree getUserTree(@NotNull User user) throws RepositoryException {
+        return root.getTree(user.getPath());
+    }
+
     @Test
     public void testCreateUser() throws Exception {
         String newUserId = "newuser" + UUID.randomUUID();
@@ -65,7 +74,7 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
             user = getUserManager(root).createUser(newUserId, newUserId);
             root.commit();
 
-            assertFalse(root.getTree(user.getPath()).hasChild(UserConstants.REP_PWD));
+            assertFalse(getUserTree(user).hasChild(UserConstants.REP_PWD));
             assertFalse(user.hasProperty(UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
         } finally {
             if (user != null) {
@@ -93,12 +102,39 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
         User user = getTestUser();
         user.changePassword(userId);
         root.commit();
-        PropertyState p = root.getTree(user.getPath()).getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
+        PropertyState p = getUserTree(user).getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
         long newModTime = p.getValue(Type.LONG);
         assertTrue(newModTime > 0);
 
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         // during user creation pw last modified is set, thus it shouldn't expire
         a.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
+    }
+
+    /**
+     * rep:passwordLastModified must NOT be created otherwise the user might never be forced to change pw upon first login.
+     */
+    @Test
+    public void testSetPasswordImportExistingUser() throws Exception {
+        UserManagerImpl userManager = (UserManagerImpl) getUserManager(root);
+        Tree userTree = getUserTree(getTestUser());
+        assertFalse(userTree.hasChild(REP_PWD));
+
+        userManager.setPassword(userTree, getTestUser().getID(), "pwd", true);
+        assertFalse(userTree.hasChild(REP_PWD));
+    }
+
+    /**
+     * rep:passwordLastModified must NOT be created in accordance to UserManager.createUser
+     */
+    @Test
+    public void testSetPasswordImportNewUser() throws Exception {
+        UserManagerImpl userManager = (UserManagerImpl) getUserManager(root);
+        User u = userManager.createUser("uNew", null);
+        Tree userTree = getUserTree(u);
+        assertFalse(userTree.hasChild(REP_PWD));
+
+        userManager.setPassword(userTree, "uNew", "pwd", true);
+        assertFalse(userTree.hasChild(REP_PWD));
     }
 }
