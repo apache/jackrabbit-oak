@@ -106,7 +106,7 @@ See also section [Pluggability](#pluggability) below.
 #### Access Control Management
 
 The access control management part of the CUG authorization models follows the
-requirements defined by JSR 283 the extensions defined by Jackrabbit API (see section 
+requirements defined by JSR 283 and the extensions defined by Jackrabbit API (see section 
 [Access Control Management](../accesscontrol.html) with the following characterstics:
 
 ##### Supported Privileges
@@ -170,6 +170,7 @@ The CUG authorization module is not designed to be used in combination with non-
 supported paths (see below) is found to be an ancestor of any non-default mount or included therein the activation/modification 
 of the `CugConfiguration` will fail with immediately and log an error.
 
+<a name="representation"></a>
 ### Representation in the Repository
 
 CUG policies defined by this module in a dedicate node name `rep:cugPolicy` of 
