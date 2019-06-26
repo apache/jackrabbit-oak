@@ -85,7 +85,7 @@ class ExternalIdentityImporter implements ProtectedPropertyImporter, ExternalIde
     public void propertiesCompleted(@NotNull Tree protectedParent) {
         if (!isSystemSession) {
             if (protectedParent.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES)) {
-                log.debug("Found reserved property " + REP_EXTERNAL_PRINCIPAL_NAMES + " managed by the system => Removed from imported scope.");
+                log.debug("Found reserved property {} managed by the system => Removed from imported scope.",  REP_EXTERNAL_PRINCIPAL_NAMES);
                 protectedParent.removeProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
                 // force creation of rep:externalPrincipalNames by removing the
                 // rep:lastSynced property as well.

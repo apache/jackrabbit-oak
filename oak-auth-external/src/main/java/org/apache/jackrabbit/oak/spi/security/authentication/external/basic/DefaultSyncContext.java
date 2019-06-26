@@ -671,14 +671,12 @@ public class DefaultSyncContext implements SyncContext {
         Value[] values = auth.getProperty(REP_LAST_SYNCED);
         if (values == null || values.length == 0) {
             if (log.isDebugEnabled()) {
-                log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " not set.",
-                        type, auth.isGroup() ? "group" : "user", auth.getID());
+                log.debug("{} of {} '{}' need sync. {} not set.", type, auth.isGroup() ? "group" : "user", auth.getID(), REP_LAST_SYNCED);
             }
             return true;
         } else if (now - values[0].getLong() > expirationTime) {
             if (log.isDebugEnabled()) {
-                log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " expired ({} > {})",
-                        type, auth.isGroup() ? "group" : "user", auth.getID(), now - values[0].getLong(), expirationTime);
+                log.debug("{} of {} '{}' need sync. {} expired ({} > {})", type, auth.isGroup() ? "group" : "user", auth.getID(), now - values[0].getLong(), expirationTime, REP_LAST_SYNCED);
             }
             return true;
         } else {
