@@ -3330,6 +3330,59 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 "lucene:fooIndex(/oak:index/fooIndex)", asList("/d"));
     }
 
+    @Test
+    public void pathTransformationWithEvaluatePathRestriction() throws Exception {
+        // This test might feel redundant in presence of LuceneIndexPathRestrictionTest, BUT, this test
+        // gets result via query engine so the results is exactly correct. While in LuceneIndexPathRestrictionTest
+        // we're interested in how many constraint could the index resolve.. so those results would be super-set of
+        // what we see here
+
+        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder()
+                .noAsync().evaluatePathRestrictions();
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("fooIndex");
+        idxBuilder.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/").addChild("test");
+        rootTree.addChild("a").addChild("j:c").setProperty("foo", "bar");
+        rootTree.addChild("b").setProperty("foo", "bar");
+        rootTree.addChild("c").addChild("d").addChild("j:c").setProperty("foo", "bar");
+        root.commit();
+
+        // no path restriction
+        assertPlanAndQueryXPath("//*[j:c/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/a", "/test/c/d"));
+        assertPlanAndQueryXPath("//*[*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/a", "/test", "/test/c/d"));
+        assertPlanAndQueryXPath("//*[d/*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/c"));
+
+        // any descendant
+        assertPlanAndQueryXPath("/jcr:root/test//*[j:c/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/a", "/test/c/d"));
+        assertPlanAndQueryXPath("/jcr:root/test//*[*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/a", "/test/c/d"));
+        assertPlanAndQueryXPath("/jcr:root/test//*[d/*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/c"));
+
+        // direct children
+        assertPlanAndQueryXPath("/jcr:root/test/*[j:c/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/a"));
+        assertPlanAndQueryXPath("/jcr:root/test/*[*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/a"));
+        assertPlanAndQueryXPath("/jcr:root/test/*[d/*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/c"));
+
+        // exact path
+        assertPlanAndQueryXPath("/jcr:root/test/a[j:c/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/a"));
+        assertPlanAndQueryXPath("/jcr:root/test/a[*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/a"));
+        assertPlanAndQueryXPath("/jcr:root/test/c[d/*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/test/c"));
+    }
+
     private void assertPlanAndQueryXPath(String query, String planExpectation, List<String> paths) throws ParseException {
         assertXpathPlan(query, planExpectation);
         assertQuery(query, XPATH, paths, false);
