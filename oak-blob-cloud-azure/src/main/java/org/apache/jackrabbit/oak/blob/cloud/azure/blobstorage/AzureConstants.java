@@ -51,6 +51,11 @@ public final class AzureConstants {
     public static final String AZURE_BLOB_CONTAINER_NAME = "container";
 
     /**
+     * Azure create container if doesn't exist
+     */
+    public static final String AZURE_CREATE_CONTAINER = "azureCreateContainer";
+
+    /**
      * Azure blob storage request timeout
      */
     public static final String AZURE_BLOB_REQUEST_TIMEOUT = "socketTimeout";

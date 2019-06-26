@@ -113,6 +113,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private Integer requestTimeout;
     private int httpDownloadURIExpirySeconds = 0; // disabled by default
     private int httpUploadURIExpirySeconds = 0; // disabled by default
+    private boolean createBlobContainer = true;
 
     private Cache<DataIdentifier, URI> httpDownloadURICache;
 
@@ -154,6 +155,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             try {
                 Utils.setProxyIfNeeded(properties);
                 containerName = (String) properties.get(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
+                createBlobContainer = PropertiesUtil.toBoolean(AzureConstants.AZURE_CREATE_CONTAINER, true);
                 connectionString = Utils.getConnectionStringFromProperties(properties);
                 concurrentRequestCount = PropertiesUtil.toInteger(properties.get(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION), 1);
                 LOG.info("Using concurrentRequestsPerOperation={}", concurrentRequestCount);
@@ -164,7 +166,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
                 CloudBlobContainer azureContainer = getAzureContainer();
 
-                if (azureContainer.createIfNotExists()) {
+                if (createBlobContainer && azureContainer.createIfNotExists()) {
                     LOG.info("New container created. containerName={}", containerName);
                 } else {
                     LOG.info("Reusing existing container. containerName={}", containerName);
