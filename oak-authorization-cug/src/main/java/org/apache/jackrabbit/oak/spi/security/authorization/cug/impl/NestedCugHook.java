@@ -243,14 +243,14 @@ class NestedCugHook implements PostValidationHook, CugConstants {
                                 NodeState cugNode = diff.beforeState.getChildNode(REP_CUG_POLICY);
                                 PropertyState ps = cugNode.getProperty(HIDDEN_NESTED_CUGS);
                                 if (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), path)) {
-                                    log.debug("Nested cug property containing " + path + " has also been removed; no reconnect required.");
+                                    log.debug("Nested cug property containing {} has also been removed; no reconnect required.", path);
                                     break;
                                 }
                             }
                             if (diff.isRoot) {
                                 long cnt = removeNestedCugPath(diff.afterBuilder, path, reconnect);
                                 if (cnt < 0) {
-                                    log.warn("Failed to updated nested CUG info for path '" + path + "'.");
+                                    log.warn("Failed to updated nested CUG info for path '{}'.", path);
                                 } else if (cnt == 0) {
                                     diff.afterBuilder.removeProperty(HIDDEN_TOP_CUG_CNT);
                                 } else {
