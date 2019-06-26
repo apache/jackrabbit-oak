@@ -893,7 +893,7 @@ public class IndexPlannerTest {
         FulltextIndexPlanner.PlanResult pr = pr(plan);
         assertTrue(pr.isPathTransformed());
         assertEquals("/a/b", pr.transformPath("/a/b/jcr:content"));
-        assertNull(pr.transformPath("/a/b/c"));
+        assertEquals("/a/b", pr.transformPath("/a/b/c"));
 
         assertTrue(pr.hasProperty("jcr:content/foo"));
         assertFalse(pr.hasProperty("bar"));
@@ -919,6 +919,30 @@ public class IndexPlannerTest {
 
         //Should not return a plan for index rule other than nt:base
         assertNull(plan);
+    }
+
+    @Test
+    public void relativeProperty_WithFulltext() throws Exception {
+        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        defnb.indexRule("nt:base").property("foo").propertyIndex();
+        defnb.indexRule("nt:base").property("bar").analyzed();
+
+        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+        LuceneIndexNode node = createIndexNode(defn);
+
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("/bar"));
+        filter.setFullTextConstraint(FullTextParser.parse("jcr:content/bar", "mountain"));
+
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+
+        FulltextIndexPlanner.PlanResult pr = pr(plan);
+        assertTrue(pr.isPathTransformed());
+        assertFalse(pr.evaluateNonFullTextConstraints());
+        assertEquals("/a/b", pr.transformPath("/a/b/jcr:content"));
+        assertNull(pr.transformPath("/a/b/c"));
     }
 
     @Test
