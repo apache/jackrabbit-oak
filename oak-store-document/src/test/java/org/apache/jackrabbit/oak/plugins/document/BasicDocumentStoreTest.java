@@ -308,6 +308,31 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         result = super.ds.findAndUpdate(Collection.NODES, up);
         assertNotNull(result);
 
+        // OAK-6812
+        up = new UpdateOp(id, false);
+        up.contains(existingProp, true);
+        up.set(existingProp, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        up = new UpdateOp(id, false);
+        up.containsMapEntry(existingRevisionProp, r, true);
+        up.setMapEntry(existingRevisionProp, r, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        up = new UpdateOp(id, false);
+        up.contains(nonExistingProp, false);
+        up.set(existingProp, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
+        up = new UpdateOp(id, false);
+        up.containsMapEntry(nonExistingRevisionProp, r, false);
+        up.setMapEntry(existingRevisionProp, r, "none");
+        result = super.ds.findAndUpdate(Collection.NODES, up);
+        assertNotNull(result);
+
         removeMe.add(id);
     }
 
