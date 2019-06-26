@@ -167,7 +167,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 if (mixins.remove(MIX_REP_CUG_MIXIN)) {
                     tree.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, NAMES);
                 } else {
-                    log.debug("Cannot remove mixin type " + MIX_REP_CUG_MIXIN);
+                    log.debug("Cannot remove mixin type {}", MIX_REP_CUG_MIXIN);
                 }
                 cug.remove();
             }
@@ -264,7 +264,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
             return ImmutableSet.copyOf(Iterables.transform(property.getValue(Type.STRINGS), principalName -> {
                 Principal principal = principalManager.getPrincipal(principalName);
                 if (principal == null) {
-                    log.debug("Unknown principal " + principalName);
+                    log.debug("Unknown principal {}", principalName);
                     principal = new PrincipalImpl(principalName);
                 }
                 return principal;
