@@ -29,7 +29,7 @@ TODO: Explain concepts: MVCC, Oak modules and plugins, key APIs, ...
 
 ## The APIs
 
-* [JCR](http://www.day.com/specs/jcr/2.0/index.html)
+* [JCR](https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/index.html)
 * [Oak API](../oak_api/overview.html)
 * [NodeStore API](../nodestore/overview.html)
 

@@ -245,7 +245,7 @@ XML Import
 ----------
 
 The import behavior for
-[`IMPORT_UUID_CREATE_NEW`](http://www.day.com/maven/jsr170/javadocs/jcr-2.0/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW)
+[`IMPORT_UUID_CREATE_NEW`](https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW)
 in Oak is implemented slightly different compared to Jackrabbit. Jackrabbit 2.x only creates a new
 UUID when it detects an existing conflicting node with the same UUID. Oak always creates a new UUID,
 even if there is no conflicting node. The are mainly two reasons why this is done in Oak:

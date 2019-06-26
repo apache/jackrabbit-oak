@@ -340,6 +340,6 @@ in the `org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfigu
 
 <!-- hidden references -->
 [Principal]: http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html
-[AccessControlPolicy]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/security/AccessControlPolicy.html
+[AccessControlPolicy]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/security/AccessControlPolicy.html
 [CugPolicy]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugPolicy.html
 [CugExclude]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugExclude.html
