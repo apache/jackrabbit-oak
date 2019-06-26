@@ -73,7 +73,7 @@ class JsonRepresentation implements Representation {
     protected JsonGenerator startResponse(HttpServletResponse response)
             throws IOException {
         response.setContentType(type.toString());
-        return factory.createJsonGenerator(response.getOutputStream());
+        return factory.createGenerator(response.getOutputStream());
     }
 
     private static void render(Tree tree, JsonGenerator generator)
