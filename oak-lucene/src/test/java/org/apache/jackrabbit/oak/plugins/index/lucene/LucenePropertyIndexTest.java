@@ -3265,6 +3265,75 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
     }
 
+    @Test
+    public void pathTransformationWithWildcardInRelativePathFragment() throws Exception {
+        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder().noAsync();
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        Tree idx = root.getTree("/").getChild("oak:index").addChild("fooIndex");
+        idxBuilder.build(idx);
+        root.commit();
+
+        Tree rootTree = root.getTree("/");
+        rootTree.addChild("a").addChild("j:c").addChild("foo1").setProperty("foo", "bar");
+        rootTree.addChild("b").addChild("j:c").addChild("foo2").setProperty("foo", "bar");
+        rootTree.addChild("c").addChild("j:c").setProperty("foo", "bar");
+        rootTree.addChild("d").addChild("e").addChild("j:c").addChild("foo3").setProperty("foo", "bar");
+        rootTree.addChild("j:c").addChild("foo4").setProperty("foo", "bar");//a document which doesn't have 2 levels above the property
+        rootTree.addChild("foo5").setProperty("foo", "bar");//a document which doesn't have 2 levels above the property
+        rootTree.addChild("f").setProperty("foo", "bar");//a document which doesn't have 2 levels above the property
+        root.commit();
+
+        // XPaths
+        assertPlanAndQueryXPath("//*[j:c/*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/a", "/b", "/d/e", "/"));
+
+        assertPlanAndQueryXPath("//*[e/j:c/*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/d"));
+
+        assertPlanAndQueryXPath("//*[*/*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/a", "/b", "/d/e", "/"));
+
+        assertPlanAndQueryXPath("//*[*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)",
+                asList("/a/j:c", "/b/j:c", "/c", "/d/e/j:c", "/j:c", "/"));
+
+        assertPlanAndQueryXPath("//*[j:c/*/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/a", "/b", "/d/e", "/"));
+
+        assertPlanAndQueryXPath("//*[*/foo1/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/a"));
+
+        assertPlanAndQueryXPath("//*[*/*/foo3/@foo = 'bar']",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/d"));
+
+        // SQL2s
+        assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [j:c/*/foo] = 'bar'",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/a", "/b", "/d/e", "/"));
+
+        assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [e/j:c/*/foo] = 'bar'",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/d"));
+
+        assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [*/*/foo] = 'bar'",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/a", "/b", "/d/e", "/"));
+
+        assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [*/foo] = 'bar'",
+                "lucene:fooIndex(/oak:index/fooIndex)",
+                asList("/a/j:c", "/b/j:c", "/c", "/d/e/j:c", "/j:c", "/"));
+
+        assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [j:c/*/foo] = 'bar'",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/a", "/b", "/d/e", "/"));
+
+        assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [*/foo1/foo] = 'bar'",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/a"));
+
+        assertPlanAndQuery("SELECT * FROM [nt:base] WHERE [*/*/foo3/foo] = 'bar'",
+                "lucene:fooIndex(/oak:index/fooIndex)", asList("/d"));
+    }
+
+    private void assertPlanAndQueryXPath(String query, String planExpectation, List<String> paths) throws ParseException {
+        assertXpathPlan(query, planExpectation);
+        assertQuery(query, XPATH, paths, false);
+    }
     private void assertPlanAndQuery(String query, String planExpectation, List<String> paths) {
         assertPlanAndQuery(query, planExpectation, paths, false);
     }
