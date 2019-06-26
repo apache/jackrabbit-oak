@@ -293,7 +293,7 @@ public abstract class AbstractLoginModule implements LoginModule {
             if (sc instanceof Credentials) {
                 shared = (Credentials) sc;
             } else {
-                log.debug("Login: Invalid value for share state entry " + SHARED_KEY_CREDENTIALS + ". Credentials expected.");
+                log.debug("Login: Invalid value for share state entry {}. Credentials expected.", SHARED_KEY_CREDENTIALS);
             }
         }
 
