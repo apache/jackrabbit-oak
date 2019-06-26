@@ -23,10 +23,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import javax.jcr.AccessDeniedException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -38,13 +42,21 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
     private final Set<String> names = ImmutableSet.of("a", "b", "c");
     private final ItemNamePattern pattern = new ItemNamePattern(names);
 
+    private static Tree addTree(@NotNull Tree parent, @NotNull String relPath) throws AccessDeniedException {
+        Tree t = parent;
+        for (String elem : PathUtils.elements(relPath)) {
+            t = TreeUtil.addChild(t, elem, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        }
+        return t;
+    }
+
     @Test
     public void testMatchesItem() throws Exception {
 
-        NodeUtil rootTree = new NodeUtil(root.getTree("/"));
+        Tree rootTree = root.getTree("/");
         List<String> matching = ImmutableList.of("a", "b", "c", "d/e/a", "a/b/c/d/b", "test/c");
         for (String relPath : matching) {
-            Tree testTree = rootTree.getOrAddTree(relPath, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
+            Tree testTree = addTree(rootTree, relPath);
 
             assertTrue(pattern.matches(testTree, null));
             assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
@@ -55,7 +67,7 @@ public class ItemNamePatternTest extends AbstractSecurityTest {
 
         List<String> notMatching = ImmutableList.of("d", "b/d", "d/e/f", "c/b/abc");
         for (String relPath : notMatching) {
-            Tree testTree = rootTree.getOrAddTree(relPath, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
+            Tree testTree = addTree(rootTree, relPath);
 
             assertFalse(pattern.matches(testTree, null));
             assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));

@@ -16,17 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import java.util.Set;
-import javax.jcr.PropertyType;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.AccessControlException;
-
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositePattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositeRestrictionProvider;
@@ -35,10 +32,14 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.jcr.PropertyType;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlException;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -90,15 +91,15 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
 
     @Test
     public void testReadRestrictions() throws Exception {
-        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
-        aceNode.setBoolean("boolean", true);
-        aceNode.setValues("longs", new Value[] {vf.createValue(10), vf.createValue(290)});
-        aceNode.setString(REP_GLOB, "*");
-        aceNode.setNames(REP_NT_NAMES); // empty array
-        aceNode.setString("invalid", "val");
-        aceNode.setStrings("invalid2", "val1", "val2", "val3");
+        Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
+        aceNode.setProperty("boolean", true);
+        aceNode.setProperty(PropertyStates.createProperty("longs", ImmutableList.of(vf.createValue(10), vf.createValue(290))));
+        aceNode.setProperty(REP_GLOB, "*");
+        aceNode.setProperty(REP_NT_NAMES, ImmutableSet.of(), Type.NAMES); // empty array
+        aceNode.setProperty("invalid", "val");
+        aceNode.setProperty("invalid2", ImmutableList.of("val1", "val2", "val3"), Type.STRINGS);
 
-        Set<Restriction> restrictions = provider.readRestrictions("/test", aceNode.getTree());
+        Set<Restriction> restrictions = provider.readRestrictions("/test", aceNode);
         assertEquals(4, restrictions.size());
         for (Restriction r : restrictions) {
             String name = r.getDefinition().getName();
@@ -110,21 +111,21 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
 
     @Test
     public void testWriteRestrictions() throws Exception {
-        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
+        Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
         Set<Restriction> restrictions = ImmutableSet.of(
                 provider.createRestriction("/test","boolean", vf.createValue(true)),
                 provider.createRestriction("/test", "longs"),
                 provider.createRestriction("/test", REP_GLOB, vf.createValue("*")),
                 provider.createRestriction("/test", REP_NT_NAMES, vf.createValue("nt:base", PropertyType.NAME), vf.createValue("nt:version", PropertyType.NAME)));
-        provider.writeRestrictions("/test", aceNode.getTree(), restrictions);
+        provider.writeRestrictions("/test", aceNode, restrictions);
     }
 
     @Test
     public void testWriteUnsupportedRestrictions() throws Exception {
-        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
+        Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
         Restriction invalid = new RestrictionImpl(PropertyStates.createProperty("invalid", vf.createValue(true)), false);
         try {
-            provider.writeRestrictions("/test", aceNode.getTree(), ImmutableSet.<Restriction>of(invalid));
+            provider.writeRestrictions("/test", aceNode, ImmutableSet.<Restriction>of(invalid));
             fail("AccessControlException expected");
         } catch (AccessControlException e) {
             // success
@@ -133,38 +134,38 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
 
     @Test
     public void testValidateRestrictions() throws Exception {
-        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
-        NodeUtil rNode = aceNode.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
-        rNode.setBoolean("boolean", true);
-        rNode.setValues("longs", new Value[] {vf.createValue(10), vf.createValue(290)});
-        rNode.setString(REP_GLOB, "*");
-        rNode.setNames(REP_NT_NAMES); // empty array
+        Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
+        Tree rNode = TreeUtil.addChild(aceNode, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        rNode.setProperty("boolean", true);
+        rNode.setProperty(PropertyStates.createProperty("longs", ImmutableList.of(vf.createValue(10), vf.createValue(290))));
+        rNode.setProperty(REP_GLOB, "*");
+        rNode.setProperty(REP_NT_NAMES, ImmutableList.of(), Type.NAMES); // empty array
 
-        provider.validateRestrictions("/test", aceNode.getTree());
+        provider.validateRestrictions("/test", aceNode);
 
         // remove mandatory restriction
         rNode.removeProperty("boolean");
         try {
-            provider.validateRestrictions("/test", aceNode.getTree());
+            provider.validateRestrictions("/test", aceNode);
             fail("validation should detect missing mandatory restrictions");
         } catch (AccessControlException e) {
             // success
         }
 
         // set with wrong type
-        rNode.setName("boolean", "nt:base");
+        rNode.setProperty("boolean", "nt:base", Type.NAME);
         try {
-            provider.validateRestrictions("/test", aceNode.getTree());
+            provider.validateRestrictions("/test", aceNode);
             fail("validation should detect wrong restriction type");
         } catch (AccessControlException e) {
             // success
         } finally {
-            rNode.setBoolean("boolean", true);
+            rNode.setProperty("boolean", true);
         }
 
-        rNode.setStrings(REP_GLOB, "*", "/jcr:content");
+        rNode.setProperty(REP_GLOB, ImmutableList.of("*", "/jcr:content"), Type.STRINGS);
         try {
-            provider.validateRestrictions("/test", aceNode.getTree());
+            provider.validateRestrictions("/test", aceNode);
             fail("validation should detect wrong restriction type (multi vs single valued)");
         } catch (AccessControlException e) {
             // success
@@ -173,25 +174,25 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
 
     @Test
     public void testValidateRestrictionsAtEntryNode() throws Exception {
-        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
-        aceNode.setBoolean("boolean", true);
-        aceNode.setValues("longs", new Value[] {vf.createValue(10), vf.createValue(290)});
-        aceNode.setString(REP_GLOB, "*");
-        aceNode.setNames(REP_NT_NAMES); // empty array
+        Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
+        aceNode.setProperty("boolean", true);
+        aceNode.setProperty(PropertyStates.createProperty("longs", ImmutableList.of(vf.createValue(10), vf.createValue(290))));
+        aceNode.setProperty(REP_GLOB, "*");
+        aceNode.setProperty(REP_NT_NAMES, ImmutableList.of(), Type.NAMES); // empty array
 
-        provider.validateRestrictions("/test", aceNode.getTree());
+        provider.validateRestrictions("/test", aceNode);
     }
 
     @Test
     public void testValidateInvalidRestrictionDef() throws Exception {
         RestrictionProvider rp = CompositeRestrictionProvider.newInstance(rp1, rp3);
 
-        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
-        NodeUtil rNode = aceNode.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
-        rNode.setValues(REP_GLOB, new Value[]{vf.createValue(10), vf.createValue(290)});
+        Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
+        Tree rNode = TreeUtil.addChild(aceNode, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        rNode.setProperty(PropertyStates.createProperty("longs", ImmutableList.of(vf.createValue(10), vf.createValue(290))));
 
         try {
-            rp.validateRestrictions("/test", aceNode.getTree());
+            rp.validateRestrictions("/test", aceNode);
             fail("Validation must detect invalid restriction definition");
         } catch (AccessControlException e) {
             // success
@@ -202,12 +203,12 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
     public void testValidateUnsupportedRestriction() throws Exception {
         RestrictionProvider rp = CompositeRestrictionProvider.newInstance(rp1, rp3);
 
-        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
-        NodeUtil rNode = aceNode.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
-        rNode.setString("unsupported", "value");
+        Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
+        Tree rNode = TreeUtil.addChild(aceNode, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        rNode.setProperty("unsupported", "value");
 
         try {
-            rp.validateRestrictions("/test", aceNode.getTree());
+            rp.validateRestrictions("/test", aceNode);
             fail("Validation must detect unsupported restriction");
         } catch (AccessControlException e) {
             // success
@@ -216,15 +217,15 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
 
     @Test
     public void testGetRestrictionPattern() throws Exception {
-        NodeUtil aceNode = new NodeUtil(root.getTree("/")).addChild("test", NT_REP_GRANT_ACE);
-        NodeUtil rNode = aceNode.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
-        rNode.setString(REP_GLOB, "*");
+        Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
+        Tree rNode = TreeUtil.addChild(aceNode, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        rNode.setProperty(REP_GLOB, "*");
 
-        assertFalse(provider.getPattern("/test", aceNode.getTree()) instanceof CompositePattern);
+        assertFalse(provider.getPattern("/test", aceNode) instanceof CompositePattern);
 
-        rNode.setBoolean("boolean", true);
-        rNode.setValues("longs", new Value[]{vf.createValue(10), vf.createValue(290)});
+        rNode.setProperty("boolean", true);
+        rNode.setProperty(PropertyStates.createProperty("longs", ImmutableList.of(vf.createValue(10), vf.createValue(290))));
 
-        assertTrue(provider.getPattern("/test", rNode.getTree()) instanceof CompositePattern);
+        assertTrue(provider.getPattern("/test", rNode) instanceof CompositePattern);
     }
 }

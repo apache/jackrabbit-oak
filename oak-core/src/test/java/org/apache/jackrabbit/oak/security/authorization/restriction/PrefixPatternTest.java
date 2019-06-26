@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -43,9 +43,9 @@ public class PrefixPatternTest extends AbstractSecurityTest {
     @Test
     public void testMatchesItem() throws Exception {
 
-        NodeUtil rootTree = new NodeUtil(root.getTree("/"));
+        Tree rootTree = root.getTree("/");
         for (String prefix : prefixes) {
-            Tree testTree = rootTree.addChild(prefix + ":name", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
+            Tree testTree = TreeUtil.addChild(rootTree, prefix + ":name", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
             assertTrue(pattern.matches(testTree, null));
             assertTrue(pattern.matches(testTree, PropertyStates.createProperty(prefix + ":f", "anyval")));
@@ -58,7 +58,7 @@ public class PrefixPatternTest extends AbstractSecurityTest {
         List<String> notMatching = ImmutableList.of(NamespaceRegistry.PREFIX_EMPTY, NamespaceRegistry.PREFIX_MIX, "any");
         for (String prefix : notMatching) {
             String name = (prefix.isEmpty()) ? "name" : prefix + ":name";
-            Tree testTree = rootTree.addChild(name, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
+            Tree testTree = TreeUtil.addChild(rootTree, name, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
 
             assertFalse(pattern.matches(testTree, null));
             assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
