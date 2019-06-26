@@ -27,20 +27,18 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class GlobPatternTest {
 
     private static void assertMatch(GlobPattern gp, String testPath, Boolean expectedResult) {
-        Boolean match = Boolean.valueOf(gp.matches(testPath));
+        Boolean match = gp.matches(testPath);
         assertEquals("Pattern : " + gp + "; TestPath : " + testPath, expectedResult, match);
     }
 
     @Test
     public void testMatchesWildcardAll() {
 
-        Map<String,Boolean> tests = new HashMap<String,Boolean>();
+        Map<String,Boolean> tests = new HashMap<>();
 
         // restriction "*" matches /foo, all siblings of foo and foo's and the siblings' descendants
         GlobPattern gp = GlobPattern.create("/a/b/c", "*");
@@ -62,7 +60,7 @@ public class GlobPatternTest {
 
         // restriction "*cat" matches all siblings and descendants of /foo that have a name ending with cat
         gp = GlobPattern.create("/a/b/c", "*e");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/c/e", true);      // descendant with name segment 'e'
         tests.put("/a/b/c/d/e", true);    // descendant with name segment 'e'
@@ -72,8 +70,8 @@ public class GlobPatternTest {
         tests.put("/a/b/chee", true);     // sibling whose name ends with 'e'
         tests.put("/a/b/cd/e", true);     // descendant of sibling named 'e'
         tests.put("/a/b/cd/f/e", true);   // descendant of sibling named 'e'
-        tests.put("/a/b/cd/e", true);     // descendant of sibling with name ending with 'e'
-        tests.put("/a/b/cd/f/e", true);   // descendant of sibling with name ending with 'e'
+        tests.put("/a/b/cd/name", true);     // descendant of sibling with name ending with 'e'
+        tests.put("/a/b/cd/f/name", true);   // descendant of sibling with name ending with 'e'
         // not-matching
         tests.put("/", false);
         tests.put("/a", false);
@@ -94,7 +92,7 @@ public class GlobPatternTest {
 
         // restriction "*/cat" matches all descendants of /foo and foo's siblings that have a name segment "cat"
         gp = GlobPattern.create("/a/b/c", "*/e");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/c/e", true);      // descendant with name segment 'e'
         tests.put("/a/b/c/d/e", true);    // descendant with name segment 'e'
@@ -120,11 +118,11 @@ public class GlobPatternTest {
         // matches target path '/a/b/c/e', all siblings whose name starts with e
         // and child nodes of either.
         gp = GlobPattern.create("/a/b/c/e", "*");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/c/e/f/g/h", true);
         tests.put("/a/b/c/e/d/e/f", true);
-        tests.put("/a/b/c/e/d/e/f", true);
+        tests.put("/a/b/c/e/d/e/g", true);
         tests.put("/a/b/c/e", true);
         tests.put("/a/b/c/e/", true);
         tests.put("/a/b/c/ef", true);
@@ -145,7 +143,7 @@ public class GlobPatternTest {
 
         // all descendants of '/a/b/c/e'
         gp = GlobPattern.create("/a/b/c/e", "/*");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/c/e/f/g/h", true);
         tests.put("/a/b/c/e/d/e/f", true);
@@ -169,7 +167,7 @@ public class GlobPatternTest {
 
         // all descendants of '/a/b/ce'
         gp = GlobPattern.create("/a/b/c", "e/*");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // not-matching
         tests.put("/a/b/ce/f/g/h", true);
         tests.put("/a/b/ce/d/e/f", true);
@@ -190,7 +188,7 @@ public class GlobPatternTest {
 
         // all descendants of '/'
         gp = GlobPattern.create("/", "*");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a", true);
         tests.put("/b/", true);
@@ -207,7 +205,7 @@ public class GlobPatternTest {
 
         // restriction "*cat/*" matches all siblings and descendants of /foo that have an intermediate segment ending with 'cat'
         gp = GlobPattern.create("/a/b/c", "*e/*");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/ceeeeeee/f/g/h", true);
         tests.put("/a/b/cde/d/e/f", true);
@@ -228,7 +226,7 @@ public class GlobPatternTest {
 
         //  restriction /*cat/*  matches all descendants of /foo that have an intermediate segment ending with 'cat'
         gp = GlobPattern.create("/a/b/c", "/*e/*");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/c/d/e/f", true);
         tests.put("/a/b/c/de/f", true);
@@ -238,7 +236,7 @@ public class GlobPatternTest {
         tests.put("/a/b/cde/d/e/f", false);// sibling containing intermediate segment
         tests.put("/a/b/ce/", false);      // ignore trailing / in test path
         tests.put("/a/b/c/d/e/", false);   // ignore trailing / in test path
-        tests.put("/a/b/c/d/e", false);    // no intermediate segment
+        tests.put("/a/b/c/d/f", false);    // no intermediate segment
         tests.put("/a/b/c/d", false);      // missing *e/*
         tests.put("/a/b/c/d/e", false);    // missing /*
         tests.put("/a/b/c/d/f/f", false);  // missing *e
@@ -250,7 +248,7 @@ public class GlobPatternTest {
 
         //  restriction /*cat  matches all children of /a/b/c whose path ends with "cat"
         gp = GlobPattern.create("/a/b/c", "/*cat");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/c/cat", true);
         tests.put("/a/b/c/acat", true);
@@ -272,7 +270,7 @@ public class GlobPatternTest {
 
         //  restriction /*/cat  matches all non-direct descendants of /foo named "cat"
         gp = GlobPattern.create("/a/b/c", "/*/cat");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/c/a/cat", true);
         tests.put("/a/b/c/d/e/f/cat", true);
@@ -298,7 +296,7 @@ public class GlobPatternTest {
         //  restriction /cat* matches all descendant paths of /foo that have the
         //  direct foo-descendant segment starting with "cat"
         gp = GlobPattern.create("/a/b/c", "/cat*");
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         // matching
         tests.put("/a/b/c/cat", true);
         tests.put("/a/b/c/cats", true);
@@ -327,7 +325,7 @@ public class GlobPatternTest {
     @Test
     public void testEmptyRestriction() {
         GlobPattern gp = GlobPattern.create("/", "");
-        Map<String,Boolean> tests = new HashMap<String,Boolean>();
+        Map<String,Boolean> tests = new HashMap<>();
         tests.put("/", true);
 
         tests.put("/a/b/c/d", false);
@@ -338,12 +336,12 @@ public class GlobPatternTest {
         tests.put("/a/b/cde", false);
 
         for (String toTest : tests.keySet()) {
-            assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
+            assertEquals(gp + " : " + toTest, tests.get(toTest), gp.matches(toTest));
         }
 
         gp = GlobPattern.create("/a/b/c", "");
 
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         tests.put("/a/b/c", true);
 
         tests.put("/a/b/c/d", false);
@@ -354,14 +352,14 @@ public class GlobPatternTest {
         tests.put("/a/b/cde", false);
 
         for (String toTest : tests.keySet()) {
-            assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
+            assertEquals(gp + " : " + toTest, tests.get(toTest), gp.matches(toTest));
         }
     }
 
     @Test
     public void testPathRestriction() {
         GlobPattern gp = GlobPattern.create("/a/b/c", "d");
-        Map<String,Boolean> tests = new HashMap<String,Boolean>();
+        Map<String,Boolean> tests = new HashMap<>();
         tests.put("/", false);
         tests.put("/a", false);
         tests.put("/a/b/c", false);
@@ -373,12 +371,12 @@ public class GlobPatternTest {
         tests.put("/a/b/cde", false);
 
         for (String toTest : tests.keySet()) {
-            assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
+            assertEquals(gp + " : " + toTest, tests.get(toTest), gp.matches(toTest));
         }
 
         gp = GlobPattern.create("/a/b/c", "/d");
 
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         tests.put("/", false);
         tests.put("/a", false);
         tests.put("/a/b/c", false);
@@ -390,12 +388,12 @@ public class GlobPatternTest {
         tests.put("/a/b/cde", false);
 
         for (String toTest : tests.keySet()) {
-            assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
+            assertEquals(gp + " : " + toTest, tests.get(toTest), gp.matches(toTest));
         }
 
         gp = GlobPattern.create("/a/b/c", "/d/");
 
-        tests = new HashMap<String,Boolean>();
+        tests = new HashMap<>();
         tests.put("/", false);
         tests.put("/a", false);
         tests.put("/a/b/c", false);
@@ -408,25 +406,20 @@ public class GlobPatternTest {
         tests.put("/a/b/cde", false);
 
         for (String toTest : tests.keySet()) {
-            assertTrue(gp + " : " + toTest, tests.get(toTest) == gp.matches(toTest));
+            assertEquals(gp + " : " + toTest, tests.get(toTest), gp.matches(toTest));
         }
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void testMaxOccurrences() {
         GlobPattern gp = GlobPattern.create("/", "1*/2*/3*/4*/5*/6*/7*/8*/9*/10*/11*/12*/13*/14*/15*/16*/17*/18*/19*/20*/21*");
-        try {
-            gp.matches("/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20/21");
-            fail();
-        } catch (IllegalArgumentException e) {
-            // success
-        };
-        try {
-            gp.matches("/11/22/33/44/55/66/77/88/99/100/111/122/133/144/155/166/177/188/199/200/211");
-            fail();
-        } catch (IllegalArgumentException e) {
-            // success
-        };
+        gp.matches("/1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20/21");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testMaxOccurrences2() {
+        GlobPattern gp = GlobPattern.create("/", "1*/2*/3*/4*/5*/6*/7*/8*/9*/10*/11*/12*/13*/14*/15*/16*/17*/18*/19*/20*/21*");
+        gp.matches("/11/22/33/44/55/66/77/88/99/100/111/122/133/144/155/166/177/188/199/200/211");
     }
 
     @Test

@@ -51,7 +51,7 @@ final class TestProvider extends AbstractRestrictionProvider {
     @Override
     public Set<Restriction> readRestrictions(String oakPath, @NotNull Tree aceTree) {
         if (nonValidatingRead) {
-            Set<Restriction> restrictions = new HashSet();
+            Set<Restriction> restrictions = new HashSet<>();
             for (PropertyState propertyState : getRestrictionsTree(aceTree).getProperties()) {
                 String name = propertyState.getName();
                 if (!JcrConstants.JCR_PRIMARYTYPE.equals(name)) {

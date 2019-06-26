@@ -40,12 +40,12 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -66,10 +66,16 @@ public class ItemNameRestrictionTest extends AbstractSecurityTest {
         super.before();
 
         Tree rootTree = root.getTree("/");
-        NodeUtil f = new NodeUtil(rootTree).getOrAddTree("a/d/b/e/c/f", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        NodeUtil c = f.getParent();
-        c.setString("prop", "value");
-        c.setString("a", "value");
+
+        // "/a/d/b/e/c/f"
+        Tree a = TreeUtil.addChild(rootTree, "a", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree d = TreeUtil.addChild(a, "d", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree b = TreeUtil.addChild(d, "b", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree e = TreeUtil.addChild(b, "e", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree c = TreeUtil.addChild(e, "c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Tree f = TreeUtil.addChild(c, "f", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        c.setProperty("prop", "value");
+        c.setProperty("a", "value");
 
         testPrincipal = getTestUser().getPrincipal();
 
@@ -158,7 +164,7 @@ public class ItemNameRestrictionTest extends AbstractSecurityTest {
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testModifyProperty() throws Exception {
         Root testRoot = testSession.getLatestRoot();
         Tree c = testRoot.getTree("/a/d/b/e/c");
@@ -166,12 +172,10 @@ public class ItemNameRestrictionTest extends AbstractSecurityTest {
         try {
             c.setProperty("a", "anyvalue");
             testRoot.commit();
-            fail();
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessViolation());
-        } finally {
-            testRoot.refresh();
+            throw e;
         }
     }
 
@@ -181,14 +185,14 @@ public class ItemNameRestrictionTest extends AbstractSecurityTest {
 
         List<String> paths = ImmutableList.of("/a", "/a/d/b", "/a/d/b/e/c");
         for (String p : paths) {
-            NodeUtil t = new NodeUtil(testRoot.getTree(p));
-            t.addChild("c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+            Tree t = testRoot.getTree(p);
+            TreeUtil.addChild(t, "c", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
             testRoot.commit();
         }
     }
 
     @Test
-    public void testRemoveTree() throws Exception {
+    public void testRemoveTree() {
         Root testRoot = testSession.getLatestRoot();
         List<String> paths = ImmutableList.of("/a/d/b/e/c", "/a/d/b", "/a");
         for (String p : paths) {
@@ -205,7 +209,7 @@ public class ItemNameRestrictionTest extends AbstractSecurityTest {
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testRemoveTree2() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a");
@@ -225,12 +229,10 @@ public class ItemNameRestrictionTest extends AbstractSecurityTest {
         try {
             testRoot.getTree("/a").remove();
             testRoot.commit();
-            fail();
         } catch (CommitFailedException e) {
             // success
             assertTrue(e.isAccessViolation());
-        } finally {
-            testRoot.refresh();
+            throw e;
         }
     }
 
