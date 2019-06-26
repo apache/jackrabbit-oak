@@ -253,9 +253,9 @@ implementation on various levels:
 <!-- references -->
 [javax.security.auth.spi.LoginModule]: http://docs.oracle.com/javase/6/docs/api/javax/security/auth/spi/LoginModule.html
 [javax.security.auth.login.Configuration]: http://docs.oracle.com/javase/6/docs/api/javax/security/auth/login/Configuration.html
-[javax.jcr.GuestCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
-[javax.jcr.SimpleCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
-[javax.jcr.Repository]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Repository.html
+[javax.jcr.GuestCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
+[javax.jcr.SimpleCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
+[javax.jcr.Repository]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/Repository.html
 [org.apache.jackrabbit.api.JackrabbitRepository]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/JackrabbitRepository.java
 [AuthInfoImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthInfoImpl.html
 [AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/AuthInfo.html

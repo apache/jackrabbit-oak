@@ -2012,7 +2012,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
           - propertyIndex = true
 ```
 
-[1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
+[1]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
 [OAK-1737]: https://issues.apache.org/jira/browse/OAK-1737
 [OAK-2005]: https://issues.apache.org/jira/browse/OAK-2005
@@ -2050,7 +2050,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [lucene-codec]: https://lucene.apache.org/core/4_7_1/core/org/apache/lucene/codecs/Codec.html
 [tika-download]: https://tika.apache.org/download.html
 [oak-run-tika]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#tika
-[jcr-contains]: http://www.day.com/specs/jcr/1.0/6.6.5.2_jcr_contains_Function.html
+[jcr-contains]: https://docs.adobe.com/docs/en/spec/jcr/1.0/6.6.5.2_jcr_contains_Function.html
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
 [score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
 [oak-lucene]: http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/

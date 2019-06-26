@@ -113,7 +113,6 @@ contains the following changes compared to Jackrabbit 2.x:
 
 [TokenLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/token/TokenLoginModule.html
 [TokenCredentials]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/authentication/token/TokenCredentials.java
-[com.day.crx.security.ldap.LDAPLoginModule]: http://dev.day.com/docs/en/crx/current/administering/ldap_authentication.html
 [GuestLoginModule]:/oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/GuestLoginModule.html
 [JSR_333-27]: https://java.net/jira/browse/JSR_333-27
 [ImpersonationCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/ImpersonationCredentials.html

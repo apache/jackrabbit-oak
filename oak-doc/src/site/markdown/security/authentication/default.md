@@ -243,7 +243,7 @@ implementation with extension points:
 - [Identity Management](identitymanagement.html): Further information regarding extenal identity management.
 - [LDAP Integration](ldap.html): How to make use of the `ExternalLoginModule`
   with the LDAP identity provider implementation. This combination is aimed to replace
-  [com.day.crx.security.ldap.LDAPLoginModule], which relies on Jackrabbit internals
+  `com.day.crx.security.ldap.LDAPLoginModule`, which relies on Jackrabbit internals
   and will no longer work with Oak.
 
 ##### ExternalLoginModule
@@ -259,12 +259,11 @@ to be present. The detailed behavior of the `ExternalLoginModule` is described i
 section [External Authentication](externalloginmodule.html).
 
 <!-- hidden references -->
-[GuestCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
-[SimpleCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
+[GuestCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
+[SimpleCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
 [ImpersonationCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/ImpersonationCredentials.html
 [AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/AuthInfo.html
 [GuestLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/GuestLoginModule.html
 [LoginModuleImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/user/LoginModuleImpl.html
-[com.day.crx.security.ldap.LDAPLoginModule]: http://dev.day.com/docs/en/crx/current/administering/ldap_authentication.html
 [AbstractLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AbstractLoginModule.html
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html

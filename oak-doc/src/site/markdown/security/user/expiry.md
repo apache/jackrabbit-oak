@@ -205,7 +205,7 @@ the following rules apply when importing a user without an extra `rep:pw` node:
 - if both `initialPasswordChange` and `pw-expiry` are enabled, the rules for `initialPasswordChange` apply.
 
 <!-- hidden references -->
-[SimpleCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
+[SimpleCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
 [CredentialExpiredException]: https://docs.oracle.com/javase/7/docs/api/javax/security/auth/login/CredentialExpiredException.html
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
 [Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html
