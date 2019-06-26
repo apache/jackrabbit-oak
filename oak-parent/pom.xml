@@ -101,6 +101,10 @@
           <configuration>
             <target>${java.version}</target>
             <source>${java.version}</source>
+            <compilerArgs>
+              <!-- OAK-7310 -->
+              <arg>-Xpkginfo:always</arg>
+            </compilerArgs>
           </configuration>
         </plugin>
         <plugin>
