@@ -89,8 +89,7 @@ public class MongoBlobStore extends CachingBlobStore {
      * Constructs a new {@code MongoBlobStore}
      *
      * @param db the database
-     * @param cachesize the cachesize
-     * @param builder {@link DocumentNodeStoreBuilder}, supplying further options
+     * @param cacheSize the cache size
      */
     public MongoBlobStore(MongoDatabase db, long cacheSize) {
         this(db, cacheSize, null);
@@ -100,7 +99,7 @@ public class MongoBlobStore extends CachingBlobStore {
      * Constructs a new {@code MongoBlobStore}
      *
      * @param db the database
-     * @param cachesize the cache size
+     * @param cacheSize the cache size
      * @param builder {@link DocumentNodeStoreBuilder}, supplying further options
      */
     public MongoBlobStore(@NotNull MongoDatabase db, long cacheSize, @Nullable DocumentNodeStoreBuilder<?> builder) {
