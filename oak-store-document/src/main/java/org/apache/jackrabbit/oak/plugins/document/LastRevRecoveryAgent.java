@@ -28,7 +28,9 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,9 +43,11 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -349,17 +353,23 @@ public class LastRevRecoveryAgent {
             Revision calcLastRev = unsavedParents.get(parentPath);
             Revision knownLastRev = knownLastRevOrModification.get(parentPath);
             if (knownLastRev == null) {
+                List<Path> missingDocuments = new ArrayList<>();
                 // we don't know when the document was last modified with
                 // the given clusterId. need to read from store
-                String id = Utils.getIdFromPath(parentPath);
-                NodeDocument doc = store.find(NODES, id);
+                NodeDocument doc = findNearestAncestorOrSelf(parentPath, missingDocuments);
                 if (doc != null) {
                     Revision lastRev = doc.getLastRev().get(clusterId);
                     Revision lastMod = determineLastModification(doc, clusterId);
                     knownLastRev = Utils.max(lastRev, lastMod);
-                } else {
-                    log.warn("Unable to find document: {}", id);
-                    continue;
+
+                    if (!missingDocuments.isEmpty()
+                            && doc.getLocalMap(DocumentBundlor.META_PROP_PATTERN).isEmpty()) {
+                        // there are missing document and the returned document
+                        // does not have bundled nodes
+                        for (Path p : missingDocuments) {
+                            log.warn("Unable to find document: {}", Utils.getIdFromPath(p));
+                        }
+                    }
                 }
             }
 
@@ -449,6 +459,24 @@ public class LastRevRecoveryAgent {
     }
 
     //--------------------------< internal >------------------------------------
+
+    @Nullable
+    private NodeDocument findNearestAncestorOrSelf(@NotNull Path path,
+                                                   @NotNull List<Path> missingDocuments) {
+        NodeDocument ancestor;
+        for (;;) {
+            ancestor = store.find(NODES, Utils.getIdFromPath(path));
+            if (ancestor != null) {
+                break;
+            }
+            missingDocuments.add(path);
+            path = path.getParent();
+            if (path == null) {
+                break;
+            }
+        }
+        return ancestor;
+    }
 
     /**
      * Retrieves possible candidates which have been modified after the given
