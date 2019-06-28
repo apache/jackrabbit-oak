@@ -84,6 +84,8 @@ public class Check {
 
         private boolean ioStatistics;
 
+        private RepositoryStatistics repoStatistics;
+
         private PrintWriter outWriter;
 
         private PrintWriter errWriter;
@@ -209,6 +211,18 @@ public class Check {
         }
 
         /**
+         * Attach a repository statistics instance to collect info on nodes
+         * and properties checked on head.
+         *
+         * @param repoStatistics instance to collect statistics
+         * @return this builder.
+         */
+        public Builder withRepositoryStatistics(RepositoryStatistics repoStatistics) {
+            this.repoStatistics = repoStatistics;
+            return this;
+        }
+
+        /**
          * The text output stream writer used to print normal output.
          * @param outWriter the output writer.
          * @return this builder.
@@ -259,6 +273,19 @@ public class Check {
 
     }
 
+    public static class RepositoryStatistics {
+        int headNodeCount;
+        int headPropertyCount;
+
+        public int getHeadNodeCount() {
+            return headNodeCount;
+        }
+
+        public int getHeadPropertyCount() {
+            return headPropertyCount;
+        }
+    }
+
     private final File path;
 
     private final boolean mmap;
@@ -277,13 +304,19 @@ public class Check {
 
     private final boolean ioStatistics;
 
+    private RepositoryStatistics repoStatistics;
+
     private final PrintWriter out;
 
     private final PrintWriter err;
 
-    private int nodeCount;
+    private int currentNodeCount;
 
-    private int propertyCount;
+    private int currentPropertyCount;
+
+    private int headNodeCount;
+
+    private int headPropertyCount;
 
     private long lastDebugEvent;
 
@@ -296,6 +329,7 @@ public class Check {
         this.requestedCheckpoints = builder.checkpoints;
         this.filterPaths = builder.filterPaths;
         this.ioStatistics = builder.ioStatistics;
+        this.repoStatistics = builder.repoStatistics;
         this.out = builder.outWriter;
         this.err = builder.errWriter;
         this.journal = journalPath(builder.path, builder.journal);
@@ -329,6 +363,11 @@ public class Check {
                 print("[I/O] Segment read: Number of operations: {0}", ioMonitor.ops.get());
                 print("[I/O] Segment read: Total size: {0} ({1} bytes)", humanReadableByteCount(ioMonitor.bytes.get()), ioMonitor.bytes.get());
                 print("[I/O] Segment read: Total time: {0} ns", ioMonitor.time.get());
+            }
+
+            if (repoStatistics != null) {
+                repoStatistics.headNodeCount = headNodeCount;
+                repoStatistics.headPropertyCount = headPropertyCount;
             }
 
             return 0;
@@ -390,6 +429,8 @@ public class Check {
 
             @Override
             protected void onCheckHead() {
+                headNodeCount = 0;
+                headPropertyCount = 0;
                 print("\nChecking head\n");
             }
 
@@ -424,26 +465,31 @@ public class Check {
             }
 
             @Override
-            protected void onCheckTree(String path) {
-                nodeCount = 0;
-                propertyCount = 0;
+            protected void onCheckTree(String path, boolean head) {
+                currentNodeCount = 0;
+                currentPropertyCount = 0;
                 print("Checking {0}", path);
             }
 
             @Override
-            protected void onCheckTreeEnd() {
-                print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
+            protected void onCheckTreeEnd(boolean head) {
+                if (head) {
+                    headNodeCount += currentNodeCount;
+                    headPropertyCount += currentPropertyCount;
+                }
+
+                print("Checked {0} nodes and {1} properties", currentNodeCount, currentPropertyCount);
             }
 
             @Override
             protected void onCheckNode(String path) {
                 debug("Traversing {0}", path);
-                nodeCount++;
+                currentNodeCount++;
             }
 
             @Override
             protected void onCheckProperty() {
-                propertyCount++;
+                currentPropertyCount++;
             }
 
             @Override
