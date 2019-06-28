@@ -998,6 +998,7 @@ parameters or options:
 (or, for RDBMK instances, use "jdbc:...").    
     
     where sub-command is one of
+    
       info     give information about the revisions state without performing
                any modifications
       collect  perform garbage collection
@@ -1008,7 +1009,7 @@ parameters or options:
     ------                 -----------
     -?, -h, --help         show help
     --cacheSize <Integer>  cache size (default: 0)
-    --clusterId <Integer>  MongoMK clusterId (default: 0)
+    --clusterId <Integer>  DocumentMK clusterId (default: 0)
     --continuous           run continuously (collect only)
     --delay <Double>       introduce delays to reduce impact on
                              system (default: 0.0)
