@@ -103,11 +103,11 @@ public class ConsistencyChecker {
         // Do nothing.
     }
 
-    protected void onCheckTree(String path) {
+    protected void onCheckTree(String path, boolean head) {
         // Do nothing.
     }
 
-    protected void onCheckTreeEnd() {
+    protected void onCheckTreeEnd(boolean head) {
         // Do nothing.
     }
 
@@ -215,25 +215,25 @@ public class ConsistencyChecker {
         return checkNodeAndDescendants(node, path, binaries);
     }
 
-    private String checkTreeConsistency(NodeState root, String path, Set<String> corruptedPaths, boolean binaries) {
+    private String checkTreeConsistency(NodeState root, String path, Set<String> corruptedPaths, boolean binaries, boolean head) {
         String corruptedPath = findFirstCorruptedPathInSet(root, corruptedPaths, binaries);
 
         if (corruptedPath != null) {
             return corruptedPath;
         }
 
-        onCheckTree(path);
+        onCheckTree(path, head);
         corruptedPath = findFirstCorruptedPathInTree(root, path, binaries);
-        onCheckTreeEnd();
+        onCheckTreeEnd(head);
         return corruptedPath;
     }
 
-    private boolean checkPathConsistency(NodeState root, PathToCheck ptc, JournalEntry entry, boolean binaries) {
+    private boolean checkPathConsistency(NodeState root, PathToCheck ptc, JournalEntry entry, boolean binaries, boolean head) {
         if (ptc.journalEntry != null) {
             return true;
         }
 
-        String corruptPath = checkTreeConsistency(root, ptc.path, ptc.corruptPaths, binaries);
+        String corruptPath = checkTreeConsistency(root, ptc.path, ptc.corruptPaths, binaries, head);
 
         if (corruptPath != null) {
             ptc.corruptPaths.add(corruptPath);
@@ -245,11 +245,11 @@ public class ConsistencyChecker {
         return true;
     }
 
-    private boolean checkAllPathsConsistency(NodeState root, List<PathToCheck> paths, JournalEntry entry, boolean binaries) {
+    private boolean checkAllPathsConsistency(NodeState root, List<PathToCheck> paths, JournalEntry entry, boolean binaries, boolean head) {
         boolean result = true;
 
         for (PathToCheck ptc : paths) {
-            if (!checkPathConsistency(root, ptc, entry, binaries)) {
+            if (!checkPathConsistency(root, ptc, entry, binaries, head)) {
                 result = false;
             }
         }
@@ -265,7 +265,7 @@ public class ConsistencyChecker {
         }
 
         onCheckHead();
-        return checkAllPathsConsistency(store.getRoot(), paths, entry, binaries);
+        return checkAllPathsConsistency(store.getRoot(), paths, entry, binaries, true);
     }
 
     private boolean checkCheckpointConsistency(SegmentNodeStore store, String checkpoint, List<PathToCheck> paths, JournalEntry entry, boolean binaries) {
@@ -284,7 +284,7 @@ public class ConsistencyChecker {
             return false;
         }
 
-        return checkAllPathsConsistency(root, paths, entry, binaries);
+        return checkAllPathsConsistency(root, paths, entry, binaries, false);
     }
 
     private boolean checkCheckpointsConsistency(SegmentNodeStore store, Map<String, List<PathToCheck>> paths, JournalEntry entry, boolean binaries) {
@@ -336,7 +336,7 @@ public class ConsistencyChecker {
      * during a full traversal of the tree.
      */
     public String checkTreeConsistency(NodeState root, Set<String> corruptedPaths, boolean binaries) {
-        return checkTreeConsistency(root, "/", corruptedPaths, binaries);
+        return checkTreeConsistency(root, "/", corruptedPaths, binaries, true);
     }
 
     public final ConsistencyCheckResult checkConsistency(
