@@ -73,13 +73,14 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
             HistogramStats indexSizeHistogram = statisticsProvider.getHistogram(indexPath + INDEX_SIZE, StatsOptions.METRICS_ONLY);
             indexSizeHistogram.update(indexSize);
 
+            long milis = System.currentTimeMillis();
             long localIndexDirSize = indexCopier.getLocalIndexDirSize();
-
+            log.info("Time taken to calculate index dir size -" + String.valueOf(System.currentTimeMillis() - milis));
             CounterStats indexDirectorySizeStats = statisticsProvider.getCounterStats(LOCAL_INDEX_DIR_SIZE, StatsOptions.DEFAULT);
             long deltaInSize = localIndexDirSize - indexDirectorySizeStats.getCount();
             if (deltaInSize != 0) {
                 indexDirectorySizeStats.inc(deltaInSize);
-                log.debug("index directory size stats updated; size {} delta {}", localIndexDirSize, deltaInSize);
+                log.info("index directory size stats updated; size {} delta {}", localIndexDirSize, deltaInSize);
             }
 
             log.debug("{} stats updated; docCount {}, size {}", indexPath, docCount, indexSize);
