@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBeanImpl;
@@ -76,9 +77,7 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public static final boolean DEFAULT_FAST_QUERY_SIZE = Boolean.getBoolean(OAK_FAST_QUERY_SIZE);
     private boolean fastQuerySize = DEFAULT_FAST_QUERY_SIZE;
 
-    private static final String OAK_ENABLE_PATH_RESTRICTIONS = "oak.enablePathRestrictions";
-    public static final boolean DEFAULT_ENABLE_PATH_RESTRICTIONS = Boolean.getBoolean(OAK_ENABLE_PATH_RESTRICTIONS);
-    private boolean enablePathRestrictions = DEFAULT_ENABLE_PATH_RESTRICTIONS;
+    private StrictPathRestriction strictPathRestriction = StrictPathRestriction.DISABLE;
 
     private final QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
 
@@ -138,12 +137,12 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         System.setProperty(OAK_FAST_QUERY_SIZE, String.valueOf(fastQuerySize));
     }
 
-    public boolean isEnablePathRestrictions() {
-        return enablePathRestrictions;
+    public String getStrictPathRestriction() {
+        return strictPathRestriction.name();
     }
 
-    public void setEnablePathRestrictions(boolean enablePathRestrictions) {
-        this.enablePathRestrictions = enablePathRestrictions;
+    public void setStrictPathRestriction(String strictPathRestriction) {
+        this.strictPathRestriction = StrictPathRestriction.stringToEnum(strictPathRestriction);
     }
 
     public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {

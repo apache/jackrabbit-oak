@@ -70,11 +70,13 @@ public class QueryEngineSettingsService {
         boolean fastQuerySize() default false;
 
         @AttributeDefinition(
-                name = "Enable Path restrictions for indexes to be used",
-                description = "Enable path restriction while finding indexplan e.g. if we have path restrictions on index definitions," +
-                 "we will not use index if our query can have results from the excluded paths"
+                name = "Enable Strict Path restrictions for indexes to be used",
+                description = "Whether path restrictions of indexes (excludedPaths / includedPaths) are taken into" +
+                        "account during query execution, for Lucene indexes. When enabled, only indexes are considered if" +
+                        "the index path restriction is compatible with the query path restrictions. When disabled, only" +
+                        "the queryPaths of the index is taken into account."
         )
-        boolean enablePathRestrictionsForIndexes() default false;
+        String getStrictPathRestrictionsForIndexes() default DISABLED_STRICT_PATH_RESTRICTION;
 
     }
 
@@ -90,6 +92,7 @@ public class QueryEngineSettingsService {
     static final String QUERY_FAIL_TRAVERSAL = "queryFailTraversal";
     
     static final String QUERY_FAST_QUERY_SIZE = "fastQuerySize";
+    static final String DISABLED_STRICT_PATH_RESTRICTION = "DISABLE";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -122,10 +125,8 @@ public class QueryEngineSettingsService {
         boolean fastQuerySizeSysProp = QueryEngineSettings.DEFAULT_FAST_QUERY_SIZE;
         boolean fastQuerySizeFromConfig = config.fastQuerySize();
         queryEngineSettings.setFastQuerySize(fastQuerySizeFromConfig || fastQuerySizeSysProp);
-
-        boolean enablePathRestrictionsForIndexesSysProp = QueryEngineSettings.DEFAULT_ENABLE_PATH_RESTRICTIONS;
-        boolean enablePathRestrictionsForIndexesFromConfig = config.enablePathRestrictionsForIndexes();
-        queryEngineSettings.setEnablePathRestrictions(enablePathRestrictionsForIndexesFromConfig || enablePathRestrictionsForIndexesSysProp);
+        
+        queryEngineSettings.setStrictPathRestriction(config.getStrictPathRestrictionsForIndexes());
 
         log.info("Initialize QueryEngine settings {}", queryEngineSettings);
     }

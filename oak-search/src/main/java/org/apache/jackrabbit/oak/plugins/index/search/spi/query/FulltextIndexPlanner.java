@@ -34,6 +34,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -77,7 +78,7 @@ public class FulltextIndexPlanner {
      */
     public static final String ATTR_FACET_FIELDS = "oak.facet.fields";
 
-    private static final String FLAG_ENTRY_COUNT = "oak.fulltext.useActualEntryCount";;
+    private static final String FLAG_ENTRY_COUNT = "oak.fulltext.useActualEntryCount";
     private static final Logger log = LoggerFactory.getLogger(FulltextIndexPlanner.class);
     private final IndexDefinition definition;
     private final Filter filter;
@@ -153,7 +154,7 @@ public class FulltextIndexPlanner {
         if (wrongIndex()) {
             return null;
         }
-        if (filter.getQueryLimits().isEnablePathRestrictions() && !isPlanWithValidPathFilter()) {
+        if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.ENABLE.name()) && !isPlanWithValidPathFilter()) {
             return null;
         }
 
@@ -290,6 +291,11 @@ public class FulltextIndexPlanner {
             costPerEntryFactor += sortOrder.size();
 
             IndexPlan.Builder plan = defaultPlan();
+
+            if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.WARN.name()) && !isPlanWithValidPathFilter()) {
+                plan.setLogWarning();
+            }
+            
             if (plan == null) {
                 return null;
             }

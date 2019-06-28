@@ -91,18 +91,32 @@ public interface QueryEngineSettingsMBean {
      *
      * @return true if enabled
      */
-    boolean isEnablePathRestrictions();
+    String getStrictPathRestriction();
 
     /**
-     * Enable/Disable evaluating path restriction while figuring out which index should be used
+     *  Whether path restrictions of indexes (excludedPaths / includedPaths) are taken into account during query execution,
+     *  for Lucene indexes. When enabled, only indexes are considered if the index path restriction is compatible with the
+     *  query path restrictions. When disabled, only the queryPaths of the index is taken into account.
      *
-     * @param enablePathRestrictions enablePathRestrictions
+     * @param pathRestriction Set path restriction: Expected value is either of ENABLE/DISABLE/WARN
+     *                        ENABLE: enable path restriction- Index won't be used if index definition path restrictions are not compatible with query's path restriction
+     *                        DISABLE: path restrictions are not taken into account while querying
+     *                        WARN: path restrictions are not taken into account but a warning will be logged if query path restrictions are not compatible with index path restrictions 
      */
-    @Description("Enable/Disable evaluating path restriction while figuring out which index should be used")
-    void setEnablePathRestrictions(
-            @Description("Whether path restrictions be evaluated during index plan evaluation")
-            @Name("enablePathRestrictions")
-                    boolean enablePathRestrictions);
+    @Description("Whether path restrictions of indexes (excludedPaths / includedPaths) are taken into account during query" +
+            "execution, for Lucene indexes. When enabled, only indexes are considered if the index path restriction is compatible" +
+            "with the query path restrictions. When disabled, only the queryPaths of the index is taken into account.")
+    void setStrictPathRestriction(
+            @Description("Set path restriction: Expected value is either of ENABLE/DISABLE/WARN\n" +
+                    "ENABLE: enable path restriction- Index won't be used if index definition path restrictions are not compatible with query's path restriction\n" +
+                    "DISABLE: path restrictions are not taken into account while querying\n" +
+                    "WARN: path restrictions are not taken into account but a warning will be logged if query path restrictions are not compatible with index path restrictions" +
+             "\nWhether path restrictions of indexes (excludedPaths / includedPaths) are taken into account" +
+                    "during query execution, for Lucene indexes. When enabled, only indexes are considered if the index path" +
+                    "restriction is compatible with the query path restrictions. When disabled, only the queryPaths of the" +
+                    "index is taken into account.")
+            @Name("pathRestriction")
+                    String pathRestriction);
 
     /**
      * Set or remove a query validator pattern.

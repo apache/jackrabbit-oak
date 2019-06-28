@@ -491,9 +491,25 @@ public class QueryImpl implements Query {
         return new ResultImpl(this);
     }
 
+    private boolean logWarning() {
+        if (selectors.size() > 0 &&
+                selectors.get(0).getExecutionPlan() != null &&
+                selectors.get(0).getExecutionPlan().getIndexPlan() != null &&
+                selectors.get(0).getExecutionPlan().getIndexPlan().logWarning()) {
+            return true;
+        }
+        return false;
+    }
+    
     @Override
     public Iterator<ResultRowImpl> getRows() {
         prepare();
+        
+        if (logWarning()){
+            LOG.warn("Index definition of index used have path restrictions and query won't return nodes from" +
+             "those restricted paths");
+        }
+        
         if (explain) {
             String plan = getPlan();
             if (measure) {
