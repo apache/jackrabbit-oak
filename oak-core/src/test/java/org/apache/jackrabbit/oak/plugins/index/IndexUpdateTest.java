@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -32,6 +33,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback.NOOP;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_INCLUDED_PATHS;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -78,7 +82,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
+import org.hamcrest.core.IsCollectionContaining;
 import org.jetbrains.annotations.NotNull;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -1006,6 +1012,68 @@ public class IndexUpdateTest {
 
         assertTrue(customLogs.getLogs().isEmpty());
         customLogs.finished();
+
+    }
+    /*
+    Given 2 index defintions - one with a config error and another ok , the content under second should get indexed
+    while the first with error gets ignored with an error message logged.
+     */
+    @Test
+    public void testConfigErrorInIndexDefintion() throws Exception{
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+        builder.child("testRoot").setProperty("foo", "abc");
+        //Create 2 index def - one with config related error and one without
+
+        NodeBuilder index1 = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex1", true, false, ImmutableSet.of("foo"), null);
+
+        index1.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
+        index1.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex2", true, false, ImmutableSet.of("foo2"), null);
+
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook (for index1)
+        builder.child("test").child("a").setProperty("foo", "abc");
+        builder.child("test").child("a").child("b").setProperty("foo", "abc");
+        //Now for  for index2
+        builder.child("test").child("b").setProperty("foo2","abc");
+        builder.child("test").child("a").child("b").setProperty("foo2", "abc");
+
+        NodeState after = builder.getNodeState();
+        NodeState indexed;
+        try{
+            customLogs.starting();
+            String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/rootIndex1 . " +
+                    "Please correct the index definition and reindex after correction. " +
+                    "Additional Info : No valid include provided. Includes [/test/a/b], Excludes [/test/a]";
+            indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+            Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+        } finally {
+            customLogs.finished();
+        }
+
+        // Now check that the index content nodes doesn't exists and the reindex flag is still set(Since it got skipped)
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+                "rootIndex1");
+        assertFalse(ns.getChildNode(INDEX_CONTENT_NODE_NAME).exists());
+        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertTrue(ps.getValue(Type.BOOLEAN));
+
+        //Now check everything is fine with index2 - indexed data node exists and reindex flag is false
+        NodeState ns2 = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+                "rootIndex2");
+        checkPathExists(ns2,INDEX_CONTENT_NODE_NAME);
+        PropertyState ps2 = ns2.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps2);
+        assertFalse(ps2.getValue(Type.BOOLEAN));
+
+        // next, lookup should work for the index def  2 which did not have any config errors
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("test/b","test/a/b"), find(lookup, "foo2", "abc"));
 
     }
 
