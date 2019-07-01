@@ -687,10 +687,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 throw e;
             }
 
-            // Retrieve all other marked present in the datastore
-            if (blobStore instanceof SharedDataStore) {
-                List<DataRecord> refFiles = ((SharedDataStore) blobStore)
-                        .getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+            if (SharedDataStoreUtils.isShared(blobStore)) {
+                // Retrieve all other marked present in the datastore
+                List<DataRecord> refFiles =
+                    ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
                 if (refFiles.size() > 0) {
                     File temp = new File(root, repoId + UUID.randomUUID().toString());
                     copyFile(fs.getMarkedRefs(), temp);
