@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.TimeZone;
 
 import javax.management.NotCompliantMBeanException;
@@ -27,8 +28,12 @@ import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
@@ -45,6 +50,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     private final DocumentNodeStore nodeStore;
     private final RepositoryStatistics repoStats;
     private final Iterable<ClusterNodeInfoDocument> clusterNodes;
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     DocumentNodeStoreMBeanImpl(DocumentNodeStore nodeStore,
                                RepositoryStatistics repoStats,
@@ -183,5 +189,48 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     private TimeSeries getTimeSeries(String name) {
         return repoStats.getTimeSeries(name, true);
+    }
+
+	@Override
+	public Boolean recover(String path, Integer clusterId) {
+		boolean dryRun = nodeStore.getClusterId() == 0 ;
+		if (path == null) {
+		     log.info("Path not specified in jmx mbean");
+		     return false;
+		}
+		if (clusterId == null) {
+			log.info("Recover clusterId not specified in jmx mbean");
+		    return false;
+		}
+        DocumentStore docStore = nodeStore.getDocumentStore();
+		boolean isActive = false;
+		
+		for(ClusterNodeInfoDocument it : ClusterNodeInfoDocument.all(docStore)) {
+			if (it.getClusterId() == clusterId && it.isActive()) {
+		        isActive = true;
+		    }
+		}
+		
+		if (isActive) {
+			log.info("Cannot run recover on clusterId " + clusterId + " as it's currently active");
+		    return false;
+		}
+		String p = path;
+		for (;;) {
+			log.info("Running recovery on " + p);
+		    List<NodeDocument> childDocs = getChildDocs(p);
+		    nodeStore.getLastRevRecoveryAgent().recover(childDocs, clusterId, dryRun);
+		    if (PathUtils.denotesRoot(p)) {
+		        break;
+		    }
+		    p = PathUtils.getParentPath(p);
+		}
+		return true;
+	}
+	
+	private List<NodeDocument> getChildDocs(String path) {
+        final String to = Utils.getKeyUpperLimit(path);
+        final String from = Utils.getKeyLowerLimit(path);
+        return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
     }
 }
