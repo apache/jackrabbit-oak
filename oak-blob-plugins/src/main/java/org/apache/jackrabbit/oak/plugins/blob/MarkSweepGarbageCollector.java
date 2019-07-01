@@ -1068,9 +1068,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 LOG.warn("Consistency check found [{}] missing blobs", candidates);
 
                 if (candidates > 0) {
-                    LineIterator lineIterator = new LineIterator(new FileReader(consistencyCandidatesAfterGC));
-                    while(lineIterator.hasNext()) {
-                        LOG.warn("Missing Blob [{}]", lineIterator.nextLine());
+                    try (LineIterator lineIterator = new LineIterator(new FileReader(consistencyCandidatesAfterGC))) {
+                        while (lineIterator.hasNext()) {
+                            LOG.warn("Missing Blob [{}]", lineIterator.nextLine());
+                        }
                     }
                     LOG.warn(
                         "Consistency check failure in the the blob store after GC : {}", blobStore);
