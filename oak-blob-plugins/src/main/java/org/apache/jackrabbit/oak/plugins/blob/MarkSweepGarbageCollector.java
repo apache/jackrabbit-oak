@@ -23,12 +23,14 @@ import static org.apache.commons.io.FileUtils.copyFile;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
@@ -116,6 +118,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /** The blob store to be garbage collected. */
     private final GarbageCollectableBlobStore blobStore;
 
+    /** Flag to enable low cost consistency check after DSGC */
+    private boolean checkConsistencyAfterGc;
+
     /** Helper class to mark blob references which **/
     private final BlobReferenceRetriever marker;
 
@@ -167,12 +172,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             String root,
             int batchCount,
             long maxLastModifiedInterval,
+            boolean checkConsistencyAfterGc,
             @Nullable String repositoryId,
             @Nullable Whiteboard whiteboard,
             @Nullable StatisticsProvider statisticsProvider)
             throws IOException {
         this.executor = executor;
         this.blobStore = blobStore;
+        this.checkConsistencyAfterGc = checkConsistencyAfterGc;
         checkNotNull(blobStore, "BlobStore cannot be null");
         this.marker = marker;
         this.batchCount = batchCount;
@@ -204,7 +211,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             long maxLastModifiedInterval,
             @Nullable String repositoryId)
             throws IOException {
-        this(marker, blobStore, executor, root, batchCount, maxLastModifiedInterval, repositoryId, null, null);
+        this(marker, blobStore, executor, root, batchCount, maxLastModifiedInterval, false, repositoryId, null, null);
     }
 
     /**
@@ -219,7 +226,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             @Nullable Whiteboard whiteboard,
             @Nullable StatisticsProvider statisticsProvider)
             throws IOException {
-        this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, maxLastModifiedInterval, repositoryId, whiteboard, statisticsProvider);
+        this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, maxLastModifiedInterval, false, repositoryId, whiteboard, statisticsProvider);
     }
 
     @Override
@@ -506,6 +513,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             closeQuietly(removesWriter);
         }
 
+        if (checkConsistencyAfterGc) {
+            BlobCollectionType.get(blobStore).checkConsistencyAfterGC(blobStore, fs, consistencyStatsCollector, new File(root));
+        }
         BlobCollectionType.get(blobStore).handleRemoves(blobStore, fs.getGarbage(), fs.getMarkedRefs());
 
         if(count != deleted) {
@@ -1004,6 +1014,50 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
          */
         void handleRemoves(GarbageCollectableBlobStore blobStore, File removedIds, File markedRefs) throws IOException {
             FileUtils.forceDelete(removedIds);
+        }
+
+        void checkConsistencyAfterGC(GarbageCollectableBlobStore blobStore, GarbageCollectorFileState fs,
+            OperationStatsCollector consistencyStatsCollector, File root) throws IOException {
+            consistencyStatsCollector.start();
+            Stopwatch sw = Stopwatch.createStarted();
+
+            try {
+                // Remove and spool the remaining ids into a temp file
+                File availAfterGC = new File(fs.getAvailableRefs().getParent(), "availAfterGC");
+                FileLineDifferenceIterator iterator = null;
+                try {
+                    iterator = new FileLineDifferenceIterator(fs.getGarbage(), fs.getAvailableRefs(), null);
+                    writeStrings(iterator, availAfterGC, false);
+                } finally {
+                    if (iterator != null) {
+                        iterator.close();
+                    }
+                }
+
+                LOG.trace("Starting difference phase of the consistency check");
+                FileLineDifferenceIterator iter =
+                    new FileLineDifferenceIterator(availAfterGC, fs.getMarkedRefs(), transformer);
+                File consistencyCandidatesAfterGC = new File(fs.getGcCandidates().getParent(), "consistencyCandidatesAfterGC");
+                // Write the original candidates
+                int candidates = FileIOUtils.writeStrings(iter, consistencyCandidatesAfterGC, true);
+
+                LOG.trace("Ending difference phase of the consistency check");
+                LOG.warn("Consistency check found [{}] missing blobs", candidates);
+
+                if (candidates > 0) {
+                    LineIterator lineIterator = new LineIterator(new FileReader(consistencyCandidatesAfterGC));
+                    while(lineIterator.hasNext()) {
+                        LOG.warn("Missing Blob [{}]", lineIterator.nextLine());
+                    }
+                    LOG.warn(
+                        "Consistency check failure in the the blob store after GC : {}", blobStore);
+                    consistencyStatsCollector.finishFailure();
+                    consistencyStatsCollector.updateNumDeleted(candidates);
+                }
+            } finally {
+                sw.stop();
+                consistencyStatsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+            }
         }
 
         /**

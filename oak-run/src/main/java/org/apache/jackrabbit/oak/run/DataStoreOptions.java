@@ -40,6 +40,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<File> outputDirOpt;
     private final OptionSpec<Boolean> collectGarbage;
     private final OptionSpec<Void> consistencyCheck;
+    private final OptionSpec<Boolean> checkConsistencyAfterGC;
     private final OptionSpec<Integer> batchCount;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
@@ -53,6 +54,10 @@ public class DataStoreOptions implements OptionsBean {
         collectGarbage = parser.accepts("collect-garbage",
             "Performs DataStore Garbage Collection on the repository/datastore defined. An option boolean specifying "
                 + "'markOnly' required if only mark phase of garbage collection is to be executed")
+            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+
+        checkConsistencyAfterGC = parser.accepts("check-consistency-gc",
+            "Performs a consistency check immediately after DSGC")
             .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
 
         consistencyCheck =
@@ -132,6 +137,10 @@ public class DataStoreOptions implements OptionsBean {
 
     public boolean checkConsistency(){
         return options.has(consistencyCheck);
+    }
+
+    public boolean checkConsistencyAfterGC() {
+        return options.has(checkConsistencyAfterGC) && checkConsistencyAfterGC.value(options) ;
     }
 
     public boolean markOnly() {
