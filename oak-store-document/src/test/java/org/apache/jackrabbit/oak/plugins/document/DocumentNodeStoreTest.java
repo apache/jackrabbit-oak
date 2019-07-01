@@ -686,6 +686,25 @@ public class DocumentNodeStoreTest {
         assertTrue(active[0].startsWith(cId2 + "="));
     }
 
+    //OAK-8449
+    @Test
+    public void lastRevisionRecovery() {
+        DocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(1).setDocumentStore(docStore)
+                .getNodeStore();
+        int cId1 = ns1.getClusterId();
+
+        ns1.updateClusterState();
+
+        assertEquals(false, ns1.getMBean().recover(null, cId1));
+        assertEquals(false, ns1.getMBean().recover("/", cId1));
+
+        ns1.dispose();
+
+        assertEquals(true, ns1.getMBean().recover("/", cId1));
+    }
+
     // OAK-2288
     @Test
     public void mergedBranchVisibility() throws Exception {

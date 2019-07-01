@@ -215,6 +215,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 			log.info("Cannot run recover on clusterId " + clusterId + " as it's currently active");
 		    return false;
 		}
+		
 		String p = path;
 		for (;;) {
 			log.info("Running recovery on " + p);
