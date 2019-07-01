@@ -230,8 +230,9 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 	}
 	
 	private List<NodeDocument> getChildDocs(String path) {
-        final String to = Utils.getKeyUpperLimit(path);
-        final String from = Utils.getKeyLowerLimit(path);
+		Path pathRef = new Path(path);
+        final String to = Utils.getKeyUpperLimit(pathRef);
+        final String from = Utils.getKeyLowerLimit(pathRef);
         return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
     }
 }
