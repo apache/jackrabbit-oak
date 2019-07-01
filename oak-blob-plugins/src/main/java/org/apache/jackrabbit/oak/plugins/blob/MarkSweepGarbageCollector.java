@@ -687,6 +687,23 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 throw e;
             }
 
+            // Retrieve all other marked present in the datastore
+            List<DataRecord> refFiles =
+                ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+            if (refFiles.size() > 0) {
+                File temp = new File(root, repoId + UUID.randomUUID().toString());
+                copyFile(fs.getMarkedRefs(), temp);
+
+                // List of files to be merged
+                List<File> files = newArrayList();
+                files.add(temp);
+                for (DataRecord refFile : refFiles) {
+                    File file = copy(refFile.getStream());
+                    files.add(file);
+                }
+                merge(files, fs.getMarkedRefs());
+            }
+
             LOG.trace("Starting difference phase of the consistency check");
             FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
                 fs.getAvailableRefs(),
@@ -695,10 +712,16 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             // If tracking then also filter ids being tracked which are active deletions for lucene
             candidates = BlobCollectionType.get(blobStore).filter(blobStore, iter, fs);
 
+            GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
+
             LOG.trace("Ending difference phase of the consistency check");
             LOG.info("Consistency check found [{}] missing blobs", candidates);
 
             if (candidates > 0) {
+                LineIterator lineIterator = new LineIterator(new FileReader(fs.getGcCandidates()));
+                while(lineIterator.hasNext()) {
+                    LOG.warn("Missing Blob [{}]", lineIterator.nextLine());
+                }
                 LOG.warn("Consistency check failure in the the blob store : {}, check missing candidates in file {}",
                             blobStore, fs.getGcCandidates().getAbsolutePath());
                 consistencyStatsCollector.finishFailure();
