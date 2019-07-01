@@ -688,20 +688,22 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             }
 
             // Retrieve all other marked present in the datastore
-            List<DataRecord> refFiles =
-                ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
-            if (refFiles.size() > 0) {
-                File temp = new File(root, repoId + UUID.randomUUID().toString());
-                copyFile(fs.getMarkedRefs(), temp);
+            if (blobStore instanceof SharedDataStore) {
+                List<DataRecord> refFiles = ((SharedDataStore) blobStore)
+                        .getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+                if (refFiles.size() > 0) {
+                    File temp = new File(root, repoId + UUID.randomUUID().toString());
+                    copyFile(fs.getMarkedRefs(), temp);
 
-                // List of files to be merged
-                List<File> files = newArrayList();
-                files.add(temp);
-                for (DataRecord refFile : refFiles) {
-                    File file = copy(refFile.getStream());
-                    files.add(file);
+                    // List of files to be merged
+                    List<File> files = newArrayList();
+                    files.add(temp);
+                    for (DataRecord refFile : refFiles) {
+                        File file = copy(refFile.getStream());
+                        files.add(file);
+                    }
+                    merge(files, fs.getMarkedRefs());
                 }
-                merge(files, fs.getMarkedRefs());
             }
 
             LOG.trace("Starting difference phase of the consistency check");
