@@ -110,6 +110,7 @@ import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.ra
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -204,9 +205,13 @@ public class BlobGCTest {
         }
 
         public MarkSweepGarbageCollector getCollector(long blobGcMaxAgeInSecs) throws Exception {
+            return getCollector(blobGcMaxAgeInSecs, false);
+        }
+
+        public MarkSweepGarbageCollector getCollector(long blobGcMaxAgeInSecs, boolean checkConsistency) throws Exception {
             collector =
                 new MarkSweepGarbageCollector(referenceRetriever, blobStore, executor, root.getAbsolutePath(), 2048,
-                    blobGcMaxAgeInSecs, repoId, wb, statsProvider);
+                    blobGcMaxAgeInSecs, checkConsistency, repoId, wb, statsProvider);
             return collector;
         }
 
@@ -288,6 +293,20 @@ public class BlobGCTest {
         assertStats(cluster.statsProvider, 1, 0,
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(),
             cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), NAME);
+    }
+
+    @Test
+    public void gcWithConsistencyCheck() throws Exception {
+        log.info("Starting gcWithConsistencyCheck()");
+        ((MemoryBlobStoreNodeStore) cluster.nodeStore).getReferencedBlobs().add("SPURIOUS");
+
+        MarkSweepGarbageCollector collector = cluster.getCollector(0, true);
+        Set<String> existingAfterGC = executeGarbageCollection(cluster, collector, false);
+        assertFalse(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertStats(cluster.statsProvider, 1, 0,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size() + 1,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size() + 1, NAME);
+        assertStatsBean(collector.getConsistencyOperationStats(), 1, 1, 1);
     }
 
     @Test
