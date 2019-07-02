@@ -277,8 +277,18 @@ public class IndexUpdate implements Editor, PathSource {
                     continue;
                 }
 
-                Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
-                        rootState.newCallback(indexPath, shouldReindex, getEstimatedCount(definition)));
+                Editor editor = null;
+                try {
+                    editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
+                            rootState.newCallback(indexPath, shouldReindex, getEstimatedCount(definition)));
+                } catch (IllegalStateException e) {
+                    // This will be caught here in case there is any config related error in the index definition
+                    // where multiple values are assigned to a property that is supposed to be single valued
+                    // We log an error message here and continue - this way the bad index defintion is ignored and doesn't block the async index update
+                    log.error("Unable to get Index Editor for index at {} . Please correct the index definition " +
+                            "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
+                    continue;
+                }
                 if (editor == null) {
                     // if this isn't an async cycle AND definition has "async" property
                     // (and implicitly isIncluded method allows async def in non-async cycle only for nrt/sync defs)

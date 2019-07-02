@@ -342,85 +342,91 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     protected IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
-        this.root = root;
-        this.version = checkNotNull(version);
-        this.uid = uid;
-        this.definition = defn;
-        this.indexPath = checkNotNull(indexPath);
-        this.indexName = indexPath;
-        this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
-        this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
+        try {
+            this.root = root;
+            this.version = checkNotNull(version);
+            this.uid = uid;
+            this.definition = defn;
+            this.indexPath = checkNotNull(indexPath);
+            this.indexName = indexPath;
+            this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
+            this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
 
-        this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
+            this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
 
-        this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
+            this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
 
-        NodeState rulesState = defn.getChildNode(FulltextIndexConstants.INDEX_RULES);
-        if (!rulesState.exists()){
-            rulesState = createIndexRules(defn).getNodeState();
-        }
-
-        this.testMode = getOptionalValue(defn, FulltextIndexConstants.TEST_MODE, false);
-        List<IndexingRule> definedIndexRules = newArrayList();
-        this.indexRules = collectIndexRules(rulesState, definedIndexRules);
-        this.definedRules = ImmutableList.copyOf(definedIndexRules);
-
-        this.fullTextEnabled = hasFulltextEnabledIndexRule(definedIndexRules);
-        this.evaluatePathRestrictions = getOptionalValue(defn, EVALUATE_PATH_RESTRICTION, false);
-
-        String functionName = getOptionalValue(defn, FulltextIndexConstants.FUNC_NAME, null);
-        if (fullTextEnabled && functionName == null){
-            functionName = getDefaultFunctionName();
-        }
-        this.funcName = functionName != null ? "native*" + functionName : null;
-
-        if (defn.hasProperty(ENTRY_COUNT_PROPERTY_NAME)) {
-            this.entryCountDefined = true;
-            this.entryCount = defn.getProperty(ENTRY_COUNT_PROPERTY_NAME).getValue(Type.LONG);
-        } else {
-            this.entryCountDefined = false;
-            this.entryCount = DEFAULT_ENTRY_COUNT;
-        }
-
-        this.maxFieldLength = getOptionalValue(defn, FulltextIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
-        this.costPerEntry = getOptionalValue(defn, FulltextIndexConstants.COST_PER_ENTRY, getDefaultCostPerEntry(version));
-        this.costPerExecution = getOptionalValue(defn, FulltextIndexConstants.COST_PER_EXECUTION, 1.0);
-        this.hasCustomTikaConfig = getTikaConfigNode().exists();
-        this.customTikaMimeTypeMappings = buildMimeTypeMap(definition.getChildNode(TIKA).getChildNode(TIKA_MIME_TYPES));
-        this.maxExtractLength = determineMaxExtractLength();
-        this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
-                DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
-        this.scorerProviderName = getOptionalValue(defn, FulltextIndexConstants.PROP_SCORER_PROVIDER, null);
-        this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
-        this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
-        this.queryPaths = getOptionalStrings(defn, IndexConstants.QUERY_PATHS);
-        this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
-
-        {
-            PropertyState randomPS = defn.getProperty(PROP_RANDOM_SEED);
-            if (randomPS != null && randomPS.getType() == Type.LONG) {
-                randomSeed = randomPS.getValue(Type.LONG);
-            } else {
-                // create a random number
-                randomSeed = UUID.randomUUID().getMostSignificantBits();
+            NodeState rulesState = defn.getChildNode(FulltextIndexConstants.INDEX_RULES);
+            if (!rulesState.exists()){
+                rulesState = createIndexRules(defn).getNodeState();
             }
-        }
-        if (defn.hasChildNode(FACETS)) {
-            NodeState facetsConfig =  defn.getChildNode(FACETS);
-            this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, facetsConfig);
-            this.numberOfTopFacets = getOptionalValue(facetsConfig, PROP_FACETS_TOP_CHILDREN, DEFAULT_FACET_COUNT);
-        } else {
-            this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, null);
-            this.numberOfTopFacets = DEFAULT_FACET_COUNT;
-        }
 
-        this.suggestEnabled = evaluateSuggestionEnabled();
-        this.spellcheckEnabled = evaluateSpellcheckEnabled();
-        this.nrtIndexMode = supportsNRTIndexing(defn);
-        this.syncIndexMode = supportsSyncIndexing(defn);
-        this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
-        this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
-        this.deprecated = getOptionalValue(defn, IndexConstants.INDEX_DEPRECATED, false);
+            this.testMode = getOptionalValue(defn, FulltextIndexConstants.TEST_MODE, false);
+            List<IndexingRule> definedIndexRules = newArrayList();
+            this.indexRules = collectIndexRules(rulesState, definedIndexRules);
+            this.definedRules = ImmutableList.copyOf(definedIndexRules);
+
+            this.fullTextEnabled = hasFulltextEnabledIndexRule(definedIndexRules);
+            this.evaluatePathRestrictions = getOptionalValue(defn, EVALUATE_PATH_RESTRICTION, false);
+
+            String functionName = getOptionalValue(defn, FulltextIndexConstants.FUNC_NAME, null);
+            if (fullTextEnabled && functionName == null) {
+                functionName = getDefaultFunctionName();
+            }
+            this.funcName = functionName != null ? "native*" + functionName : null;
+
+            if (defn.hasProperty(ENTRY_COUNT_PROPERTY_NAME)) {
+                this.entryCountDefined = true;
+                this.entryCount = getOptionalValue(defn, ENTRY_COUNT_PROPERTY_NAME, DEFAULT_ENTRY_COUNT);
+            } else {
+                this.entryCountDefined = false;
+                this.entryCount = DEFAULT_ENTRY_COUNT;
+            }
+
+            this.maxFieldLength = getOptionalValue(defn, FulltextIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
+            this.costPerEntry = getOptionalValue(defn, FulltextIndexConstants.COST_PER_ENTRY, getDefaultCostPerEntry(version));
+            this.costPerExecution = getOptionalValue(defn, FulltextIndexConstants.COST_PER_EXECUTION, 1.0);
+            this.hasCustomTikaConfig = getTikaConfigNode().exists();
+            this.customTikaMimeTypeMappings = buildMimeTypeMap(definition.getChildNode(TIKA).getChildNode(TIKA_MIME_TYPES));
+            this.maxExtractLength = determineMaxExtractLength();
+            this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
+                    DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+            this.scorerProviderName = getOptionalValue(defn, FulltextIndexConstants.PROP_SCORER_PROVIDER, null);
+            this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
+            this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
+            this.queryPaths = getOptionalStrings(defn, IndexConstants.QUERY_PATHS);
+            this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
+
+            {
+                PropertyState randomPS = defn.getProperty(PROP_RANDOM_SEED);
+                if (randomPS != null && randomPS.getType() == Type.LONG) {
+                    randomSeed = randomPS.getValue(Type.LONG);
+                } else {
+                    // create a random number
+                    randomSeed = UUID.randomUUID().getMostSignificantBits();
+                }
+            }
+            if (defn.hasChildNode(FACETS)) {
+                NodeState facetsConfig = defn.getChildNode(FACETS);
+                this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, facetsConfig);
+                this.numberOfTopFacets = getOptionalValue(facetsConfig, PROP_FACETS_TOP_CHILDREN, DEFAULT_FACET_COUNT);
+            } else {
+                this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, null);
+                this.numberOfTopFacets = DEFAULT_FACET_COUNT;
+            }
+
+            this.suggestEnabled = evaluateSuggestionEnabled();
+            this.spellcheckEnabled = evaluateSpellcheckEnabled();
+            this.nrtIndexMode = supportsNRTIndexing(defn);
+            this.syncIndexMode = supportsSyncIndexing(defn);
+            this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
+            this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
+            this.deprecated = getOptionalValue(defn, IndexConstants.INDEX_DEPRECATED, false);
+        } catch (IllegalStateException e) {
+            log.error("Config error for index definition at {} . Please correct the index definition "
+                    + "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
+            throw new IllegalStateException(e);
+        }
     }
 
     public NodeState getDefinitionNodeState() {
