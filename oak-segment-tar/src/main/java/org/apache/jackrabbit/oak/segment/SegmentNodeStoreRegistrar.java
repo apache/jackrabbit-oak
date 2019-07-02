@@ -224,6 +224,7 @@ class SegmentNodeStoreRegistrar {
             .withGCMonitor(gcMonitor)
             .withIOMonitor(new MetricsIOMonitor(cfg.getStatisticsProvider()))
             .withRemoteStoreMonitor(new MetricsRemoteStoreMonitor(cfg.getStatisticsProvider()))
+            .withStatisticsProvider(cfg.getStatisticsProvider())
             .withGCOptions(gcOptions);
 
         if (cfg.hasCustomBlobStore() && cfg.getBlobStore() != null) {
