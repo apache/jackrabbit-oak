@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -1388,7 +1389,7 @@ public class QueryImpl implements Query {
     private static String recomposeStatement(@NotNull QueryImpl query) {
         checkNotNull(query);
         String original = query.getStatement();
-        String origUpper = original.toUpperCase();
+        String origUpper = original.toUpperCase(Locale.ENGLISH);
         StringBuilder recomputed = new StringBuilder();
         final String where = " WHERE ";
         final String orderBy = " ORDER BY ";

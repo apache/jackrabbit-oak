@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import java.util.Locale;
+
 /**
  * Internal constants used in index definition, and index implementations.
  */
@@ -25,11 +27,11 @@ public interface FulltextIndexConstants {
         SYNC, NRT, ASYNC;
 
         public String asyncValueName() {
-            return name().toLowerCase();
+            return name().toLowerCase(Locale.ENGLISH);
         }
 
         public static IndexingMode from(String indexingMode) {
-            return valueOf(indexingMode.toUpperCase());
+            return valueOf(indexingMode.toUpperCase(Locale.ENGLISH));
         }
     }
 

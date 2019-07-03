@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Locale;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -123,7 +124,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
     @NotNull
     @Override
     public CommitPolicy getCommitPolicy() {
-        return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()).toUpperCase());
+        return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()).toUpperCase(Locale.ENGLISH));
     }
 
     @Override
