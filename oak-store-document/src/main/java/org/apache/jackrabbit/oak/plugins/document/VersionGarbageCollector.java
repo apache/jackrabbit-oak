@@ -206,7 +206,8 @@ public class VersionGarbageCollector {
             throws IOException {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         long now = nodeStore.getClock().getTime();
-        VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore, versionStore, options, gcMonitor);
+        VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
+                nodeStore.getClock(), versionStore, options, gcMonitor);
         int estimatedIterations = -1;
         if (rec.suggestedIntervalMs > 0) {
             estimatedIterations = (int)Math.ceil(
@@ -490,7 +491,8 @@ public class VersionGarbageCollector {
         private VersionGCStats gc(long maxRevisionAgeInMillis) throws IOException {
             VersionGCStats stats = new VersionGCStats();
             stats.active.start();
-            VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore, versionStore, options, gcMonitor);
+            VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
+                    nodeStore.getClock(), versionStore, options, gcMonitor);
             GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
             try {
                 if (rec.ignoreDueToCheckPoint) {

@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.Versio
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.stats.Clock;
 
 import com.google.common.collect.Maps;
 
@@ -62,17 +63,18 @@ public class VersionGCRecommendations {
      * It also updates the time interval recommended for the next run.
      *
      * @param maxRevisionAgeMs the minimum age for revisions to be collected
-     * @param dns DocumentNodeStore to use
+     * @param checkpoints checkpoints from {@link DocumentNodeStore}
+     * @param clock clock from {@link DocumentNodeStore}
      * @param vgc VersionGC support class
      * @param options options for running the gc
      * @param gcMonitor monitor class for messages
      */
-    public VersionGCRecommendations(long maxRevisionAgeMs, DocumentNodeStore dns, VersionGCSupport vgc,
+    public VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
             VersionGCOptions options, GCMonitor gcMonitor) {
         this.vgc = vgc;
         this.gcmon = gcMonitor;
 
-        TimeInterval keep = new TimeInterval(dns.getClock().getTime() - maxRevisionAgeMs, Long.MAX_VALUE);
+        TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, Long.MAX_VALUE);
         boolean ignoreDueToCheckPoint = false;
         long deletedOnceCount = 0;
         long suggestedIntervalMs;
@@ -83,7 +85,7 @@ public class VersionGCRecommendations {
         lastOldestTimestamp = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
         if (lastOldestTimestamp == 0) {
             VersionGarbageCollector.log.debug("No lastOldestTimestamp found, querying for the oldest deletedOnce candidate");
-            oldestPossible = vgc.getOldestDeletedOnceTimestamp(dns.getClock(), options.precisionMs) - 1;
+            oldestPossible = vgc.getOldestDeletedOnceTimestamp(clock, options.precisionMs) - 1;
             VersionGarbageCollector.log.debug("lastOldestTimestamp found: {}", Utils.timestampToString(oldestPossible));
         } else {
             oldestPossible = lastOldestTimestamp - 1;
@@ -127,7 +129,7 @@ public class VersionGCRecommendations {
         }
 
         //Check for any registered checkpoint which prevent the GC from running
-        Revision checkpoint = dns.getCheckpoints().getOldestRevisionToKeep();
+        Revision checkpoint = checkpoints.getOldestRevisionToKeep();
         if (checkpoint != null && scope.endsAfter(checkpoint.getTimestamp())) {
             TimeInterval minimalScope = scope.startAndDuration(options.precisionMs);
             if (minimalScope.endsAfter(checkpoint.getTimestamp())) {
