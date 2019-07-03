@@ -219,11 +219,11 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         String p = path;
         for (;;) {
             log.info("Running recovery on " + p);
-            List<NodeDocument> childDocs = getChildDocs(p);
             NodeDocument nodeDocument = docStore.find(Collection.NODES, Utils.getIdFromPath(p));
             if(nodeDocument == null) {
                 throw new DocumentStoreException("Document node with given path = "+ p + " doesnot exist");
             }
+            List<NodeDocument> childDocs = getChildDocs(p);
             sum += nodeStore.getLastRevRecoveryAgent().recover(childDocs, clusterId, dryRun);
             if (PathUtils.denotesRoot(p)) {
                 break;
@@ -234,7 +234,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     }
 
     private List<NodeDocument> getChildDocs(String path) { 
-        Path pathRef = new Path(path); 
+        Path pathRef = Path.fromString(path);
         final String to = Utils.getKeyUpperLimit(pathRef);
         final String from = Utils.getKeyLowerLimit(pathRef);
         return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
