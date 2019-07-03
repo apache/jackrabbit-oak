@@ -3417,7 +3417,7 @@ public final class DocumentNodeStore
         return updateLimit;
     }
     
-    boolean getReadOnlyMode() {
+    boolean isReadOnlyMode() {
         return readOnlyMode;
     }
 }

@@ -53,8 +53,10 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     private final Iterable<ClusterNodeInfoDocument> clusterNodes;
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    DocumentNodeStoreMBeanImpl(DocumentNodeStore nodeStore, RepositoryStatistics repoStats,
-            Iterable<ClusterNodeInfoDocument> clusterNodes) throws NotCompliantMBeanException {
+    DocumentNodeStoreMBeanImpl(DocumentNodeStore nodeStore,
+                               RepositoryStatistics repoStats,
+                               Iterable<ClusterNodeInfoDocument> clusterNodes)
+            throws NotCompliantMBeanException {
         super(DocumentNodeStoreMBean.class);
         this.nodeStore = nodeStore;
         this.repoStats = repoStats;
@@ -83,7 +85,8 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getInactiveClusterNodes() {
-        return toArray(transform(filter(clusterNodes, new Predicate<ClusterNodeInfoDocument>() {
+        return toArray(transform(filter(clusterNodes,
+                new Predicate<ClusterNodeInfoDocument>() {
             @Override
             public boolean apply(ClusterNodeInfoDocument input) {
                 return !input.isActive();
@@ -98,7 +101,8 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getActiveClusterNodes() {
-        return toArray(transform(filter(clusterNodes, new Predicate<ClusterNodeInfoDocument>() {
+        return toArray(transform(filter(clusterNodes,
+                new Predicate<ClusterNodeInfoDocument>() {
             @Override
             public boolean apply(ClusterNodeInfoDocument input) {
                 return input.isActive();
@@ -113,7 +117,8 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getLastKnownRevisions() {
-        return toArray(transform(filter(nodeStore.getHeadRevision(), new Predicate<Revision>() {
+        return toArray(transform(filter(nodeStore.getHeadRevision(),
+                new Predicate<Revision>() {
             @Override
             public boolean apply(Revision input) {
                 return input.getClusterId() != getClusterId();
@@ -143,34 +148,40 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public CompositeData getMergeSuccessHistory() {
-        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_SUCCESS_COUNT, "Merge Success Count");
+        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_SUCCESS_COUNT,
+                "Merge Success Count");
     }
 
     @Override
     public CompositeData getMergeFailureHistory() {
-        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_FAILED_EXCLUSIVE, "Merge failure count");
+        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_FAILED_EXCLUSIVE,
+                "Merge failure count");
     }
 
     @Override
     public CompositeData getExternalChangeCountHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.BGR_NUM_CHANGES_RATE,
-                "Count of nodes modified by other " + "cluster nodes since last background read");
+                "Count of nodes modified by other " +
+                        "cluster nodes since last background read");
     }
 
     @Override
     public CompositeData getBackgroundUpdateCountHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.BGW_NUM_WRITES_RATE,
-                "Count of nodes updated as part of " + "background update");
+                "Count of nodes updated as part of " +
+                        "background update");
     }
 
     @Override
     public CompositeData getBranchCommitHistory() {
-        return getTimeSeriesData(DocumentNodeStoreStats.BRANCH_COMMIT_COUNT, "Branch commit count");
+        return getTimeSeriesData(DocumentNodeStoreStats.BRANCH_COMMIT_COUNT,
+                "Branch commit count");
     }
 
     @Override
     public CompositeData getMergeBranchCommitHistory() {
-        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_BRANCH_COMMIT_COUNT, "Number of merged branch commits");
+        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_BRANCH_COMMIT_COUNT,
+                "Number of merged branch commits");
     }
 
     private CompositeData getTimeSeriesData(String name, String desc) {
@@ -183,7 +194,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public int recover(String path, int clusterId) {
-        boolean dryRun = nodeStore.getReadOnlyMode();
+        boolean dryRun = nodeStore.isReadOnlyMode();
         int sum = 0;
         if (path == null) {
             throw new NullPointerException("Path not specified in jmx mbean");
@@ -208,12 +219,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         String p = path;
         for (;;) {
             log.info("Running recovery on " + p);
-//            List<NodeDocument> childDocs = getChildDocs(p);
-            NodeDocument nodeDocument = docStore.find(Collection.NODES, p);
+            List<NodeDocument> childDocs = getChildDocs(p);
+            NodeDocument nodeDocument = docStore.find(Collection.NODES, Utils.getIdFromPath(p));
             if(nodeDocument == null) {
                 throw new DocumentStoreException("Document node with given path = "+ p + " doesnot exist");
             }
-            sum += nodeStore.getLastRevRecoveryAgent().recover(Arrays.asList(nodeDocument), clusterId, dryRun);
+            sum += nodeStore.getLastRevRecoveryAgent().recover(childDocs, clusterId, dryRun);
             if (PathUtils.denotesRoot(p)) {
                 break;
             }
@@ -222,12 +233,10 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         return sum;
     }
 
-    
-//    private List<NodeDocument> getChildDocs(String path) { 
-//        Path pathRef = new Path(path); 
-//        final String to = Utils.getKeyUpperLimit(pathRef);
-//        final String from = Utils.getKeyLowerLimit(pathRef);
-//        return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
-//    }
-     
+    private List<NodeDocument> getChildDocs(String path) { 
+        Path pathRef = new Path(path); 
+        final String to = Utils.getKeyUpperLimit(pathRef);
+        final String from = Utils.getKeyLowerLimit(pathRef);
+        return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
+    }
 }
