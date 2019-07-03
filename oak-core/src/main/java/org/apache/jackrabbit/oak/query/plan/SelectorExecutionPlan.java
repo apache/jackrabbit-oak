@@ -32,7 +32,7 @@ public class SelectorExecutionPlan implements ExecutionPlan {
     private final double estimatedCost;
     private final QueryIndex index;
     private final IndexPlan plan;
-    private boolean logWarning = false; 
+    private boolean logWarning;
 
     public SelectorExecutionPlan(SelectorImpl selector, QueryIndex index, IndexPlan plan, double estimatedCost) {
         this.selector = selector;

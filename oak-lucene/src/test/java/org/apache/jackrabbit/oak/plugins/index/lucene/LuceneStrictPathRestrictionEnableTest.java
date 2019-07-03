@@ -178,7 +178,6 @@ public class LuceneStrictPathRestrictionEnableTest extends AbstractQueryTest {
 
         Tree idx = createIndex("test1", of("propa", "propb"));
         idx.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a"), Type.STRINGS));
-        //Do not provide type information
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -197,7 +196,6 @@ public class LuceneStrictPathRestrictionEnableTest extends AbstractQueryTest {
     public void pathExcludeWithPathRestrictionsEnabled() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
         idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
-        //Do not provide type information
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");

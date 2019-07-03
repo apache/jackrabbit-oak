@@ -349,7 +349,7 @@ public interface QueryIndex {
          */
         boolean isDeprecated();
         
-        default boolean logWarning(){
+        default boolean logWarning() {
             return false;
         }
 

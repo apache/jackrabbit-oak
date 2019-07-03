@@ -34,7 +34,7 @@ public class AggregateIndexPlan implements IndexPlan {
     
     private Filter filter;
     private boolean pathWithoutPlan;
-    private boolean logWarning = false;
+    private boolean logWarning;
     
     /**
      * The map of terms to plans.
