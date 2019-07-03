@@ -245,7 +245,8 @@ public class VersionGCTest {
             }
         };
 
-        VersionGCRecommendations rec = new VersionGCRecommendations(86400L, ns, localgcsupport, options, new TestGCMonitor());
+        VersionGCRecommendations rec = new VersionGCRecommendations(86400L, ns.getCheckpoints(), ns.getClock(), localgcsupport,
+                options, new TestGCMonitor());
 
         // should select a duration of roughly one month
         long duration= rec.scope.getDurationMs();
@@ -258,7 +259,8 @@ public class VersionGCTest {
         rec.evaluate(stats);
         assertTrue(stats.needRepeat);
 
-        rec = new VersionGCRecommendations(86400L, ns, localgcsupport, options, new TestGCMonitor());
+        rec = new VersionGCRecommendations(86400L, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
+                new TestGCMonitor());
 
         // new duration should be half
         long nduration = rec.scope.getDurationMs();
