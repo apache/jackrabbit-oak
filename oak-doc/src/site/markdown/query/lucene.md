@@ -78,8 +78,8 @@ Following index definition would allow using Lucene index for above query
 ```
 /oak:index/assetType
   - jcr:primaryType = "oak:QueryIndexDefinition"
-  - compatVersion = 2
   - type = "lucene"
+  - compatVersion = 2
   - async = "async"
   + indexRules
     - jcr:primaryType = "nt:unstructured"
@@ -110,8 +110,8 @@ The Lucene index needs to be configured to index all properties
 
     /oak:index/assetType
       - jcr:primaryType = "oak:QueryIndexDefinition"
-      - compatVersion = 2
       - type = "lucene"
+      - compatVersion = 2
       - async = "async"
       + indexRules
         - jcr:primaryType = "nt:unstructured"
@@ -140,12 +140,12 @@ Below is the canonical index definition structure
 
     luceneIndex (oak:QueryIndexDefinition)
       - type (string) = 'lucene' mandatory
+      - compatVersion (long) = 2
       - async (string) = 'async' mandatory
       - blobSize (long) = 32768
       - maxFieldLength (long) = 10000
       - evaluatePathRestrictions (boolean) = false
       - name (string)
-      - compatVersion (long) = 2
       - includedPaths (string) multiple
       - excludedPaths (string) multiple
       - queryPaths (string) multiple = ['/']
@@ -162,6 +162,19 @@ level
 
 type
 : Required and should always be `lucene`
+
+compatVersion
+: Required integer property and should be set to 2
+: By default Oak uses older Lucene index implementation which does not
+  supports property restrictions, index time aggregation etc.
+  To make use of this feature set it to 2.
+  Please note for full text indexing with compatVersion 2,
+  at query time, only the access right of the parent (aggregate) node is checked,
+  and the access right of the child nodes is not checked.
+  If this is a security concern, then compatVersion should not be set,
+  so that query time aggregation is used, in which case the access right
+  of the relevant child is also checked.
+  A compatVersion 2 full text index is usually faster to run queries.
 
 async
 : Required and should always be `async`
@@ -203,25 +216,26 @@ name
 : Optional property
 : Captures the name of the index which is used while logging
 
-compatVersion
-: Required integer property and should be set to 2
-: By default Oak uses older Lucene index implementation which does not
-  supports property restrictions, index time aggregation etc.
-  To make use of this feature set it to 2.
-  Please note for full text indexing with compatVersion 2,
-  at query time, only the access right of the parent (aggregate) node is checked,
-  and the access right of the child nodes is not checked.
-  If this is a security concern, then compatVersion should not be set,
-  so that query time aggregation is used, in which case the access right
-  of the relevant child is also checked.
-  A compatVersion 2 full text index is usually faster to run queries.
-
 [maxFieldLength][OAK-2469]
 : Numbers of terms indexed per field. Defaults to 10000
 
 refresh
 : Optional boolean property
 : Used to refresh the stored index definition. See [Effective Index Definition](#stored-index-definition)
+
+[useIfExists][OAK-7739]
+: Optional string property
+: Only use this index for queries if the given node or property exists.
+  This is specially useful in blue-green deployments, when using the composite node store.
+  For example, if set to `/libs/indexes/acme/@v1`, the index is only used if
+  the given property exists. With a repository where this property is missing,
+  the index is not used. With blue-green deployments, it is possible that
+  two versions of an application are running at the same time, with different `/libs` folders.
+  This settings therefore allows to enable or disable index usage depending on the version in use.
+  (This index is still updated even if the node / property does not exist, 
+  so this setting only affects index usage for queries.)
+  This option is supported for indexes of type `lucene` and `property`.
+  `@since Oak 1.10.0`
 
 #### <a name="indexing-rules"></a> Indexing Rules
 
@@ -2041,6 +2055,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
 [OAK-6735]: https://issues.apache.org/jira/browse/OAK-6735
 [OAK-7379]: https://issues.apache.org/jira/browse/OAK-7379
+[OAK-7739]: https://issues.apache.org/jira/browse/OAK-7739
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
