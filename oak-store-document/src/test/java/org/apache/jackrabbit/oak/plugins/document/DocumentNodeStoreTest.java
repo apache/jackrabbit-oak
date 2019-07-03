@@ -706,7 +706,8 @@ public class DocumentNodeStoreTest {
 
         UpdateOp op = new UpdateOp(Utils.getIdFromPath("/foo"), false);
         op.removeMapEntry("_lastRev", new Revision(0, 0, cId1));
-        docStore.findAndUpdate(Collection.NODES, op);
+
+        assertNotNull(docStore.findAndUpdate(Collection.NODES, op));
 
         DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
                 .setClusterId(2).setDocumentStore(docStore)
