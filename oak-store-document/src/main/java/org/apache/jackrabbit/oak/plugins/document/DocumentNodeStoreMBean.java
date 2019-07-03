@@ -65,8 +65,8 @@ public interface DocumentNodeStoreMBean {
 
     CompositeData getMergeBranchCommitHistory();
     
-    @Description("Trigger revision recovery of nodes below a given path and clusterId.\n" +
-        "returns true if everything went fine else returns false, please check error.log for more information")
+    @Description("Trigger last revision recovery of nodes, below a given path and clusterId.\n" +
+        "Returns number of records updated while performing recovery")
     int recover(
             @Description("the path")
             @Name("path")
