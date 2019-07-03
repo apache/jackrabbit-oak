@@ -1579,10 +1579,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.<String>emptySet();
     }
 
-    private static Set<String> toLowerCase(Set<String> values){
+    private static Set<String> toLowerCase(Set<String> values) {
         Set<String> result = newHashSet();
         for(String val : values){
-            result.add(val.toLowerCase());
+            result.add(val.toLowerCase(Locale.ENGLISH));
         }
         return ImmutableSet.copyOf(result);
     }

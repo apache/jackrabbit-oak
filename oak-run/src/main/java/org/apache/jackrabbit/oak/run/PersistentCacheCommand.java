@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -135,7 +136,7 @@ public class PersistentCacheCommand implements Command {
     }
 
     static void statistics(PrintWriter write, MVMap<String, String> m) {
-        write.println("map: " + m.getName().toLowerCase());
+        write.println("map: " + m.getName().toLowerCase(Locale.ENGLISH));
         write.println("entryCount: " + m.sizeAsLong());
         long keyLen = 0, valueLen = 0;
         for (Entry<String, String> e : m.entrySet()) {
@@ -150,7 +151,7 @@ public class PersistentCacheCommand implements Command {
     }
 
     static void dumpRaw(PrintWriter write, MVMap<String, String> m) {
-        String mapName = m.getName().toLowerCase();
+        String mapName = m.getName().toLowerCase(Locale.ENGLISH);
         // map key value length
         for (Entry<String, String> e : m.entrySet()) {
             String key = e.getKey();
@@ -161,7 +162,7 @@ public class PersistentCacheCommand implements Command {
 
     static void dump(PrintWriter write, MVMap<String, String> m, String path,
             String revision, boolean values) {
-        String mapName = m.getName().toLowerCase();
+        String mapName = m.getName().toLowerCase(Locale.ENGLISH);
         // map,path,revision,p2,value,length
         for (Entry<String, String> e : m.entrySet()) {
             String key = e.getKey();
