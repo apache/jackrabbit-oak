@@ -194,13 +194,7 @@ public class VersionGCTest {
 
     @Test
     public void gcMonitorStatusUpdates() throws Exception {
-        final List<String> statusMessages = Lists.newArrayList();
-        GCMonitor monitor = new GCMonitor.Empty() {
-            @Override
-            public void updateStatus(String status) {
-                statusMessages.add(status);
-            }
-        };
+        TestGCMonitor monitor = new TestGCMonitor();
         gc.setGCMonitor(monitor);
 
         gc.gc(30, TimeUnit.MINUTES);
@@ -208,22 +202,17 @@ public class VersionGCTest {
         List<String> expected = Lists.newArrayList("INITIALIZING",
                 "COLLECTING", "CHECKING", "COLLECTING", "DELETING", "SORTING",
                 "DELETING", "UPDATING", "SPLITS_CLEANUP", "IDLE");
-        assertEquals(expected, statusMessages);
+        assertEquals(expected, monitor.getStatusMessages());
     }
 
     @Test
     public void gcMonitorInfoMessages() throws Exception {
-        final List<String> infoMessages = Lists.newArrayList();
-        GCMonitor monitor = new GCMonitor.Empty() {
-            @Override
-            public void info(String message, Object... arguments) {
-                infoMessages.add(arrayFormat(message, arguments).getMessage());
-            }
-        };
+        TestGCMonitor monitor = new TestGCMonitor();
         gc.setGCMonitor(monitor);
 
         gc.gc(2, TimeUnit.HOURS);
 
+        List<String> infoMessages = monitor.getInfoMessages();
         assertEquals(3, infoMessages.size());
         assertTrue(infoMessages.get(0).startsWith("Start "));
         assertTrue(infoMessages.get(1).startsWith("Looking at revisions"));
@@ -236,6 +225,44 @@ public class VersionGCTest {
         gc.gc(1, TimeUnit.HOURS);
         // must only read once
         assertEquals(1, store.findVersionGC.get());
+    }
+
+    @Test
+    public void recommendationsOnHugeBacklog() throws Exception {
+
+        VersionGCOptions options = gc.getOptions();
+        final long oneYearAgo = ns.getClock().getTime() - TimeUnit.DAYS.toMillis(365);
+        final long twelveTimesTheLimit = options.collectLimit * 12;
+
+        VersionGCSupport localgcsupport = new VersionGCSupport(ns.getDocumentStore()) {
+            @Override
+            public long getOldestDeletedOnceTimestamp(Clock clock, long precisionMs) {
+                return oneYearAgo;
+            }
+            @Override
+            public long getDeletedOnceCount() {
+                return twelveTimesTheLimit;
+            }
+        };
+
+        VersionGCRecommendations rec = new VersionGCRecommendations(86400L, ns, localgcsupport, options, new TestGCMonitor());
+
+        // should select a duration of roughly one month
+        long duration= rec.scope.getDurationMs();
+
+        assertTrue(duration <= TimeUnit.DAYS.toMillis(33));
+        assertTrue(duration >= TimeUnit.DAYS.toMillis(28));
+
+        VersionGCStats stats = new VersionGCStats();
+        stats.limitExceeded = true;
+        rec.evaluate(stats);
+        assertTrue(stats.needRepeat);
+
+        rec = new VersionGCRecommendations(86400L, ns, localgcsupport, options, new TestGCMonitor());
+
+        // new duration should be half
+        long nduration = rec.scope.getDurationMs();
+        assertTrue(nduration == duration / 2);
     }
 
     // OAK-7378
@@ -332,4 +359,46 @@ public class VersionGCTest {
         }
     }
 
+    private class TestGCMonitor implements GCMonitor {
+        final List<String> infoMessages = Lists.newArrayList();
+        final List<String> statusMessages = Lists.newArrayList();
+
+        @Override
+        public void info(String message, Object... arguments) {
+            this.infoMessages.add(arrayFormat(message, arguments).getMessage());
+        }
+
+        @Override
+        public void warn(String message, Object... arguments) {
+        }
+
+        @Override
+        public void error(String message, Exception exception) {
+        }
+
+        @Override
+        public void skipped(String reason, Object... arguments) {
+        }
+
+        @Override
+        public void compacted() {
+        }
+
+        @Override
+        public void cleaned(long reclaimedSize, long currentSize) {
+        }
+
+        @Override
+        public void updateStatus(String status) {
+            this.statusMessages.add(status);
+        }
+
+        public List<String> getInfoMessages() {
+            return this.infoMessages;
+        }
+
+        public List<String> getStatusMessages() {
+            return this.statusMessages;
+        }
+    }
 }
