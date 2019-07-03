@@ -3416,4 +3416,8 @@ public final class DocumentNodeStore
     int getUpdateLimit() {
         return updateLimit;
     }
+    
+    boolean getReadOnlyMode() {
+        return readOnlyMode;
+    }
 }

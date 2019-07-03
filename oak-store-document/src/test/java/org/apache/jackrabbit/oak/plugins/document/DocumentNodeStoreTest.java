@@ -688,21 +688,31 @@ public class DocumentNodeStoreTest {
 
     //OAK-8449
     @Test
-    public void lastRevisionRecovery() {
+    public void lastRevisionRecovery() throws Exception {
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
                 .setClusterId(1).setDocumentStore(docStore)
                 .getNodeStore();
         int cId1 = ns1.getClusterId();
 
-        ns1.updateClusterState();
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.child("foo").child("bar");
+        merge(ns1, builder);
 
-        assertEquals(false, ns1.getMBean().recover(null, cId1));
-        assertEquals(false, ns1.getMBean().recover("/", cId1));
-
+        builder = ns1.getRoot().builder();
+        builder.child("foo").child("bar").setProperty("key", "value");
+        merge(ns1, builder);
         ns1.dispose();
 
-        assertEquals(true, ns1.getMBean().recover("/", cId1));
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/foo"), false);
+        op.removeMapEntry("lastRevision", new Revision(0, 0, cId1));
+        docStore.findAndUpdate(Collection.NODES, op);
+
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(2).setDocumentStore(docStore)
+                .getNodeStore();
+
+        assertEquals(1, ns2.getMBean().recover("/foo", cId1));
     }
 
     // OAK-2288

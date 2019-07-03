@@ -67,11 +67,11 @@ public interface DocumentNodeStoreMBean {
     
     @Description("Trigger revision recovery of nodes below a given path and clusterId.\n" +
         "returns true if everything went fine else returns false, please check error.log for more information")
-    Boolean recover(
+    int recover(
             @Description("the path")
             @Name("path")
             String path, 
             @Description("cluster id")
             @Name("clusterId")
-            Integer clusterId);
+            int clusterId);
 }

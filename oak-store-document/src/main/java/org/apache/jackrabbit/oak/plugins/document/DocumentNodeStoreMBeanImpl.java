@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -52,10 +53,8 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     private final Iterable<ClusterNodeInfoDocument> clusterNodes;
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    DocumentNodeStoreMBeanImpl(DocumentNodeStore nodeStore,
-                               RepositoryStatistics repoStats,
-                               Iterable<ClusterNodeInfoDocument> clusterNodes)
-            throws NotCompliantMBeanException {
+    DocumentNodeStoreMBeanImpl(DocumentNodeStore nodeStore, RepositoryStatistics repoStats,
+            Iterable<ClusterNodeInfoDocument> clusterNodes) throws NotCompliantMBeanException {
         super(DocumentNodeStoreMBean.class);
         this.nodeStore = nodeStore;
         this.repoStats = repoStats;
@@ -84,8 +83,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getInactiveClusterNodes() {
-        return toArray(transform(filter(clusterNodes,
-                new Predicate<ClusterNodeInfoDocument>() {
+        return toArray(transform(filter(clusterNodes, new Predicate<ClusterNodeInfoDocument>() {
             @Override
             public boolean apply(ClusterNodeInfoDocument input) {
                 return !input.isActive();
@@ -100,8 +98,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getActiveClusterNodes() {
-        return toArray(transform(filter(clusterNodes,
-                new Predicate<ClusterNodeInfoDocument>() {
+        return toArray(transform(filter(clusterNodes, new Predicate<ClusterNodeInfoDocument>() {
             @Override
             public boolean apply(ClusterNodeInfoDocument input) {
                 return input.isActive();
@@ -116,8 +113,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public String[] getLastKnownRevisions() {
-        return toArray(transform(filter(nodeStore.getHeadRevision(),
-                new Predicate<Revision>() {
+        return toArray(transform(filter(nodeStore.getHeadRevision(), new Predicate<Revision>() {
             @Override
             public boolean apply(Revision input) {
                 return input.getClusterId() != getClusterId();
@@ -147,40 +143,34 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     @Override
     public CompositeData getMergeSuccessHistory() {
-        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_SUCCESS_COUNT,
-                "Merge Success Count");
+        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_SUCCESS_COUNT, "Merge Success Count");
     }
 
     @Override
     public CompositeData getMergeFailureHistory() {
-        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_FAILED_EXCLUSIVE,
-                "Merge failure count");
+        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_FAILED_EXCLUSIVE, "Merge failure count");
     }
 
     @Override
     public CompositeData getExternalChangeCountHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.BGR_NUM_CHANGES_RATE,
-                "Count of nodes modified by other " +
-                        "cluster nodes since last background read");
+                "Count of nodes modified by other " + "cluster nodes since last background read");
     }
 
     @Override
     public CompositeData getBackgroundUpdateCountHistory() {
         return getTimeSeriesData(DocumentNodeStoreStats.BGW_NUM_WRITES_RATE,
-                "Count of nodes updated as part of " +
-                        "background update");
+                "Count of nodes updated as part of " + "background update");
     }
 
     @Override
     public CompositeData getBranchCommitHistory() {
-        return getTimeSeriesData(DocumentNodeStoreStats.BRANCH_COMMIT_COUNT,
-                "Branch commit count");
+        return getTimeSeriesData(DocumentNodeStoreStats.BRANCH_COMMIT_COUNT, "Branch commit count");
     }
 
     @Override
     public CompositeData getMergeBranchCommitHistory() {
-        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_BRANCH_COMMIT_COUNT,
-                "Number of merged branch commits");
+        return getTimeSeriesData(DocumentNodeStoreStats.MERGE_BRANCH_COMMIT_COUNT, "Number of merged branch commits");
     }
 
     private CompositeData getTimeSeriesData(String name, String desc) {
@@ -191,48 +181,53 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         return repoStats.getTimeSeries(name, true);
     }
 
-	@Override
-	public Boolean recover(String path, Integer clusterId) {
-		boolean dryRun = nodeStore.getClusterId() == 0 ;
-		if (path == null) {
-		     log.info("Path not specified in jmx mbean");
-		     return false;
-		}
-		if (clusterId == null) {
-			log.info("Recover clusterId not specified in jmx mbean");
-		    return false;
-		}
+    @Override
+    public int recover(String path, int clusterId) {
+        boolean dryRun = nodeStore.getReadOnlyMode();
+        int sum = 0;
+        if (path == null) {
+            throw new NullPointerException("Path not specified in jmx mbean");
+        }
+        if (clusterId == 0) {
+            throw new NullPointerException("Recover clusterId not specified in jmx mbean");
+        }
         DocumentStore docStore = nodeStore.getDocumentStore();
-		boolean isActive = false;
-		
-		for(ClusterNodeInfoDocument it : ClusterNodeInfoDocument.all(docStore)) {
-			if (it.getClusterId() == clusterId && it.isActive()) {
-		        isActive = true;
-		    }
-		}
-		
-		if (isActive) {
-			log.info("Cannot run recover on clusterId " + clusterId + " as it's currently active");
-		    return false;
-		}
-		
-		String p = path;
-		for (;;) {
-			log.info("Running recovery on " + p);
-		    List<NodeDocument> childDocs = getChildDocs(p);
-		    nodeStore.getLastRevRecoveryAgent().recover(childDocs, clusterId, dryRun);
-		    if (PathUtils.denotesRoot(p)) {
-		        break;
-		    }
-		    p = PathUtils.getParentPath(p);
-		}
-		return true;
-	}
-	
-	private List<NodeDocument> getChildDocs(String path) {
-		Path pathRef = new Path(path);
-        final String to = Utils.getKeyUpperLimit(pathRef);
-        final String from = Utils.getKeyLowerLimit(pathRef);
-        return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
+        boolean isActive = false;
+
+        for (ClusterNodeInfoDocument it : ClusterNodeInfoDocument.all(docStore)) {
+            if (it.getClusterId() == clusterId && it.isActive()) {
+                isActive = true;
+            }
+        }
+
+        if (isActive) {
+            throw new IllegalStateException(
+                    "Cannot run recover on clusterId " + clusterId + " as it's currently active");
+        }
+
+        String p = path;
+        for (;;) {
+            log.info("Running recovery on " + p);
+//            List<NodeDocument> childDocs = getChildDocs(p);
+            NodeDocument nodeDocument = docStore.find(Collection.NODES, p);
+            if(nodeDocument == null) {
+                throw new DocumentStoreException("Document node with given path = "+ p + " doesnot exist");
+            }
+            sum += nodeStore.getLastRevRecoveryAgent().recover(Arrays.asList(nodeDocument), clusterId, dryRun);
+            if (PathUtils.denotesRoot(p)) {
+                break;
+            }
+            p = PathUtils.getParentPath(p);
+        }
+        return sum;
     }
+
+    
+//    private List<NodeDocument> getChildDocs(String path) { 
+//        Path pathRef = new Path(path); 
+//        final String to = Utils.getKeyUpperLimit(pathRef);
+//        final String from = Utils.getKeyLowerLimit(pathRef);
+//        return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
+//    }
+     
 }
