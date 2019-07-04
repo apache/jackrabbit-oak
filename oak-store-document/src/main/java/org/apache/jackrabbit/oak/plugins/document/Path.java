@@ -80,6 +80,7 @@ public final class Path implements CacheValue, Comparable<Path> {
     public Path(@NotNull String name) {
         this(null, checkNotNull(name), -1);
         checkArgument(!name.isEmpty(), "name cannot be the empty String");
+        checkArgument(name.indexOf('/') == -1, "name must not contain path separator: {}", name);
     }
 
     /**
