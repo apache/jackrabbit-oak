@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.AbstractRestrictionProvider;
@@ -38,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionImpl;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,15 +53,12 @@ import static org.junit.Assert.fail;
  */
 public class AbstractRestrictionProviderTest extends AbstractSecurityTest implements AccessControlConstants {
 
-    private String unsupportedPath = null;
     private String testPath = "/testRoot";
 
     private Value globValue;
     private Value[] nameValues;
-    private Value nameValue;
 
     private ValueFactory valueFactory;
-    private Map<String, ? extends RestrictionDefinition> supported;
     private AbstractRestrictionProvider restrictionProvider;
 
     @Before
@@ -71,7 +68,6 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
 
         valueFactory = new ValueFactoryImpl(root, namePathMapper);
         globValue = valueFactory.createValue("*");
-        nameValue = valueFactory.createValue("nt:file", PropertyType.NAME);
         nameValues = new Value[] {
                 valueFactory.createValue("nt:folder", PropertyType.NAME),
                 valueFactory.createValue("nt:file", PropertyType.NAME)
@@ -80,7 +76,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, Type.STRING, false);
         RestrictionDefinition nts  = new RestrictionDefinitionImpl(REP_NT_NAMES, Type.NAMES, false);
         RestrictionDefinition mand = new RestrictionDefinitionImpl("mandatory", Type.BOOLEAN, true);
-        supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
+        Map<String, ? extends RestrictionDefinition> supported = ImmutableMap.of(glob.getName(), glob, nts.getName(), nts, mand.getName(), mand);
         restrictionProvider = new TestProvider(supported);
     }
 
@@ -95,10 +91,11 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
     }
 
     private Tree getAceTree(Restriction... restrictions) throws Exception {
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
-        NodeUtil tmp = rootNode.addChild("testRoot", JcrConstants.NT_UNSTRUCTURED);
-        Tree ace = tmp.addChild("rep:policy", NT_REP_ACL).addChild("ace0", NT_REP_GRANT_ACE).getTree();
-        restrictionProvider.writeRestrictions(tmp.getTree().getPath(), ace, ImmutableSet.copyOf(restrictions));
+        Tree rootNode = root.getTree("/");
+        Tree tmp = TreeUtil.addChild(rootNode, "testRoot", JcrConstants.NT_UNSTRUCTURED);
+        Tree policy = TreeUtil.addChild(tmp, REP_POLICY, NT_REP_ACL);
+        Tree ace = TreeUtil.addChild(policy, "ace0", NT_REP_GRANT_ACE);
+        restrictionProvider.writeRestrictions(tmp.getPath(), ace, ImmutableSet.copyOf(restrictions));
         return ace;
     }
 
@@ -117,7 +114,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         Restriction r = restrictionProvider.createRestriction(testPath, REP_GLOB, globValue);
         Tree aceTree = getAceTree();
 
-        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.<Restriction>of(r));
+        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.of(r));
 
         assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
         Tree restr = aceTree.getChild(REP_RESTRICTIONS);
@@ -129,7 +126,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         PropertyState ps = PropertyStates.createProperty(REP_GLOB, valueFactory.createValue(false));
         Tree aceTree = getAceTree();
 
-        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.<Restriction>of(new RestrictionImpl(ps, false)));
+        restrictionProvider.writeRestrictions(testPath, aceTree, ImmutableSet.of(new RestrictionImpl(ps, false)));
 
         assertTrue(aceTree.hasChild(REP_RESTRICTIONS));
         Tree restr = aceTree.getChild(REP_RESTRICTIONS);
@@ -157,7 +154,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         Restriction mand = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(true));
         try {
             Tree ace = getAceTree(mand);
-            new NodeUtil(ace).getChild(REP_RESTRICTIONS).setBoolean(REP_GLOB, true);
+            ace.getChild(REP_RESTRICTIONS).setProperty(REP_GLOB, true);
 
             restrictionProvider.validateRestrictions(testPath, ace);
             fail("wrong type with restriction 'rep:glob");
@@ -171,7 +168,7 @@ public class AbstractRestrictionProviderTest extends AbstractSecurityTest implem
         Restriction mand = restrictionProvider.createRestriction(testPath, "mandatory", valueFactory.createValue(true));
         try {
             Tree ace = getAceTree(mand);
-            new NodeUtil(ace).getChild(REP_RESTRICTIONS).setString("Unsupported", "value");
+            ace.getChild(REP_RESTRICTIONS).setProperty("Unsupported", "value");
 
             restrictionProvider.validateRestrictions(testPath, ace);
             fail("wrong type with restriction 'rep:glob");

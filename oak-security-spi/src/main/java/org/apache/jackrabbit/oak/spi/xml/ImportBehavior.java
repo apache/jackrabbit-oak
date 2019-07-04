@@ -63,7 +63,7 @@ public final class ImportBehavior {
         } else if (NAME_ABORT.equalsIgnoreCase(behaviorString)) {
             return ABORT;
         } else {
-            log.error("Invalid behavior " + behaviorString + " -> Using default: ABORT.");
+            log.error("Invalid behavior {} -> Using default: ABORT.", behaviorString);
             return ABORT;
         }
     }

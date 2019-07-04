@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
 
 /**
  * Query manager for user specific searches.
@@ -97,13 +98,7 @@ public class UserQueryManager {
             if (groupId == null) {
                 return result;
             } else {
-                return Iterators.filter(result, authorizable -> {
-                    try {
-                        return authorizable != null && !groupId.equals(authorizable.getID());
-                    } catch (RepositoryException e) {
-                        return false;
-                    }
-                });
+                return Iterators.filter(result, authorizable -> !groupId.equals(getID(authorizable)));
             }
         } else {
             // filtering by group name included in query -> enforce offset and limit on the result set.
@@ -331,14 +326,8 @@ public class UserQueryManager {
 
         @Override
         public boolean apply(@Nullable Authorizable input) {
-            try {
-                if (input != null) {
-                    return authorizableIds.add(input.getID());
-                }
-            } catch (RepositoryException e) {
-                log.debug("Failed to retrieve authorizable ID {}", e.getMessage());
-            }
-            return false;
+            String id = getID(input);
+            return id != null && authorizableIds.add(id);
         }
     }
 }

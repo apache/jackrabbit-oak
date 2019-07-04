@@ -24,7 +24,7 @@ Principal Management
 JCR itself doesn't come with a dedicated principal management API. Nevertheless
 the specification mentions `java.security.Principal` as key feature for access 
 control management but leaves the discovery of principals to the implementation 
-(see [Section 16.5.7](http://www.day.com/specs/jcr/2.0/16_Access_Control_Management.html#16.5.7%20Principal%20Discovery)).
+(see [Section 16.5.7](https://docs.adobe.com/docs/en/spec/jcr/2.0/16_Access_Control_Management.html#16.5.7%20Principal%20Discovery)).
 
 Therefore an API for principal management has been defined as part of the
 extensions present with Jackrabbit API.

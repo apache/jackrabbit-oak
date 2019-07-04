@@ -131,7 +131,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             String name = after.getName();
             if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
                 if (NT_REP_PRINCIPAL_POLICY.equals(before.getValue(Type.STRING)) || NT_REP_PRINCIPAL_POLICY.equals(after.getValue(Type.STRING))) {
-                    throw accessControlViolation(31, "Attempt to change primary type of/to rep:PrincipalPolicy.");
+                    throw accessControlViolation(31, "Attempt to change primary type from/to rep:PrincipalPolicy.");
                 }
             }
         }

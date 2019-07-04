@@ -131,7 +131,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 }
                 auth.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, vs);
             } catch (ExternalIdentityException e) {
-                log.error("Failed to synchronize membership information for external identity " + external.getId(), e);
+                log.error("Failed to synchronize membership information for external identity {}", external.getId(), e);
             }
         }
     }

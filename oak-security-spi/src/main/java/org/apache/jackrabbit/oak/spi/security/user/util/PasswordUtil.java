@@ -337,7 +337,7 @@ public final class PasswordUtil {
                     }
                     return algorithm;
                 } catch (NoSuchAlgorithmException e) {
-                    log.debug("Invalid algorithm detected " + algorithm, e);
+                    log.debug("Invalid algorithm detected {}", algorithm, e);
                 }
             }
         }
@@ -364,7 +364,7 @@ public final class PasswordUtil {
             try {
                 return Integer.parseInt(str);
             } catch (NumberFormatException e) {
-                log.debug("Expected number of iterations. Found: " + str, e);
+                log.debug("Expected number of iterations. Found: {}", str, e);
             }
         }
         // no extra iterations

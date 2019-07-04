@@ -431,7 +431,7 @@ indexes
    definition listing all such properties and restrict it that nodeType. You 
    can the size of index via mbean
 
-[1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
+[1]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-2201]: https://issues.apache.org/jira/browse/OAK-2201
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
 [OAK-2196]: https://issues.apache.org/jira/browse/OAK-2196

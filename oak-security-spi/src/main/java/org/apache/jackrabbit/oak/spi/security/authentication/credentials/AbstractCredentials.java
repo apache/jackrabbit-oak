@@ -112,7 +112,7 @@ public abstract class AbstractCredentials implements Credentials {
      * @param attributes The attributes to be stored
      */
     public void setAttributes(@NotNull Map<String,Object> attributes) {
-        synchronized (attributes) {
+        synchronized (this.attributes) {
             this.attributes.putAll(attributes);
         }
     }

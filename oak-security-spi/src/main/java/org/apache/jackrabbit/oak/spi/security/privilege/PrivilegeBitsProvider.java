@@ -111,7 +111,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
                     nameToBits.put(privilegeName, bitsFromDefTree);
                     bits.add(bitsFromDefTree);
                 } else {
-                    log.debug("Ignoring privilege name " + privilegeName);
+                    log.debug("Ignoring privilege name {}", privilegeName);
                 }
             }
         }

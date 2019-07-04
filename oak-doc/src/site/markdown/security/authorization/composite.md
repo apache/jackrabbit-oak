@@ -42,6 +42,7 @@ in an aggregated setup:
 
 - [PolicyOwner]: Extension to the `AccessControlManager`, that allows a given implementation to claim responsibility for handling certain `AccessControlPolicy` implementations.
 - [AggregatedPermissionProvider]: Subclass of `PermissionProvider` which is mandated for permission evaluation once multiple providers are configured.
+- [AggregationFilter]: Optional add-on to cancel the aggregation (since Oak 1.16)
 
 #### PolicyOwner
 
@@ -69,6 +70,26 @@ this fact by just returning the subset of supported read permissions upon
 `supportedPermissions(Tree, PropertyState, long)`. The aggregated permission provider 
 will consequently not consult this implementation for the evaluation of write 
 permissions and move on to other providers in the aggregate.
+
+#### AggregationFilter
+
+Oak 1.16 introduces an optional add-on that allows for further refine the permission evaluation (and computation of 
+effective policies). Specifically, the interface [AggregationFilter] provides the ability to conditionally stop the 
+aggregation process.
+
+##### Example
+
+The example permission provider present with the [ThreeRolesAuthorizationConfiguration] in _oak-exercise_ will for a given 
+configured subtree apply the following roles to a given `Subject`: no-access, reader, editor and owner. For any path 
+outside of the configure tree this model takes no effect. 
+If this module were to be deployed to an Oak repository installation that already combines CUG-authorization with the 
+default authorization, the aggregated permission evaluation mechanism would require all authorization models to grant 
+permissions below that subtree. This essentially mandates redundant permission setup with all models. An custom `AggregationFilter` 
+however would allow to cancel the aggregation once `ThreeRolesPermissionProvider` completed the evaluation for a given 
+set of principals but would leave aggregation intact otherwise (i.e. permission evaluation outside of the configured path 
+where `ThreeRolesPermissionProvider` is not invoked or for principals that don't match the criteria).
+
+See also [Managing Access by Principal](principalbased.html#details_aggregationfilter) for an implementation example.
 
 <a name="details"></a>
 ### Implementation Details
@@ -176,6 +197,8 @@ might otherwise result in severe security issues and heavily impact overall perf
 <!-- hidden references -->
 [PolicyOwner]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/accesscontrol/PolicyOwner.html
 [AggregatedPermissionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/AggregatedPermissionProvider.html
+[AggregationFilter]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/AggregationFilter.html
 [CompositeAuthorizationConfiguration]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAuthorizationConfiguration.java
 [CompositeAccessControlManager]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositeAccessControlManager.java
 [CompositePermissionProvider]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/composite/CompositePermissionProvider.java
+[ThreeRolesAuthorizationConfiguration]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-exercise/src/main/java/org/apache/jackrabbit/oak/exercise/security/authorization/models/simplifiedroles/ThreeRolesAuthorizationConfiguration.java

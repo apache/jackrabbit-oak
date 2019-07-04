@@ -23,6 +23,7 @@ import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlLi
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
@@ -108,6 +109,9 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
     @Override
     public boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges, @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException {
         String oakPath = (effectivePath == null) ? null : getNamePathMapper().getOakPath(effectivePath);
+        if (oakPath != null && !PathUtils.isAbsolute(oakPath)) {
+            throw new AccessControlException("Absolute path expected. Instead was " + effectivePath);
+        }
         Set<Restriction> rs = validateRestrictions(oakPath, restrictions, mvRestrictions);
         PrivilegeBits privilegeBits = validatePrivileges(privileges);
 

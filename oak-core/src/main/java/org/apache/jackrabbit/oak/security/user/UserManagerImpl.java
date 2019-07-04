@@ -164,7 +164,7 @@ public class UserManagerImpl implements UserManager {
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
         if (password != null) {
-            setPassword(userTree, userID, password, true);
+            setPassword(userTree, userID, password, false);
         }
 
         User user = new UserImpl(userID, userTree, this);
@@ -454,9 +454,9 @@ public class UserManagerImpl implements UserManager {
         authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
     }
 
-    void setPassword(@NotNull Tree userTree, @NotNull String userId, @NotNull String password, boolean forceHash) throws RepositoryException {
+    void setPassword(@NotNull Tree userTree, @NotNull String userId, @NotNull String password, boolean isImport) throws RepositoryException {
         String pwHash;
-        if (forceHash || PasswordUtil.isPlainTextPassword(password)) {
+        if (!isImport || PasswordUtil.isPlainTextPassword(password)) {
             try {
                 pwHash = PasswordUtil.buildPasswordHash(password, config);
             } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
@@ -469,21 +469,23 @@ public class UserManagerImpl implements UserManager {
 
         // set last-modified property if pw-expiry is enabled and the user is not
         // admin. if initial-pw-change is enabled, we don't set the last modified
-        // for new users, in order to force a pw change upon the next login
-        boolean expiryEnabled = passwordExpiryEnabled();
-        boolean forceInitialPwChange = forceInitialPasswordChangeEnabled();
-        boolean isNewUser = userTree.getStatus() == Tree.Status.NEW;
-
-        if (Utils.canHavePasswordExpired(userId, config)
-                // only expiry is enabled, set in all cases
-                && ((expiryEnabled && !forceInitialPwChange)
-                // as soon as force initial pw is enabled, we set in all cases except new users,
-                // irrespective of password expiry being enabled or not
-                || (forceInitialPwChange && !isNewUser))) {
-
+        // for new or imported users, in order to force a pw change upon the next login
+        if (Utils.canHavePasswordExpired(userId, config) && setPasswordLastModified(userTree, isImport)) {
             Tree pwdTree = TreeUtil.getOrAddChild(userTree, UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD);
             // System.currentTimeMillis() may be inaccurate on windows. This is accepted for this feature.
             pwdTree.setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, System.currentTimeMillis(), Type.LONG);
+        }
+    }
+
+    private boolean setPasswordLastModified(@NotNull Tree userTree, boolean isImport) {
+        if (forceInitialPasswordChangeEnabled()) {
+            // initial-pw-change: set last-mod property except for new or imported users (irrespective of pw-expiry configuration)
+            return !(isImport || userTree.getStatus() == Tree.Status.NEW);
+        } else if (passwordExpiryEnabled()) {
+            // only expiry is enabled: set for all user mgt api calls. for user-import only set upon user creation (new tree)
+            return !isImport || userTree.getStatus() == Tree.Status.NEW;
+        } else {
+            return false;
         }
     }
 

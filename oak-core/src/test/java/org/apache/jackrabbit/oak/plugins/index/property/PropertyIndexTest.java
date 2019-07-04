@@ -45,7 +45,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -71,6 +73,8 @@ import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.hamcrest.core.IsCollectionContaining;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -847,6 +851,7 @@ public class PropertyIndexTest {
 
     @Test
     public void testPathExcludeInclude() throws Exception{
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
         NodeState root = INITIAL_CONTENT;
 
         // Add index definition
@@ -863,9 +868,18 @@ public class PropertyIndexTest {
         NodeState after = builder.getNodeState();
 
         try {
+            customLogs.starting();
+            String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/foo . " +
+                    "Please correct the index definition and reindex after correction. " +
+                    "Additional Info : No valid include provided. Includes [/test/a/b], Excludes [/test/a]";
             HOOK.processCommit(before, after, CommitInfo.EMPTY);
-            assertTrue(false);
-        } catch (IllegalStateException expected) {}
+            Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+        } catch (IllegalStateException unexpected) {
+                // IllegalStateException not expected here now <OAK-8328>
+                assertTrue(false);            
+        } finally {
+            customLogs.finished();
+        }
     }
 
     @Test

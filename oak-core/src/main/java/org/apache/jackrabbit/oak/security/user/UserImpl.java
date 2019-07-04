@@ -113,7 +113,7 @@ class UserImpl extends AuthorizableImpl implements User {
 
         pwHistory.updatePasswordHistory(getTree(), password);
 
-        userManager.setPassword(getTree(), getID(),  password, true);
+        userManager.setPassword(getTree(), getID(),  password, false);
     }
 
     @Override

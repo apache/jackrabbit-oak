@@ -101,8 +101,9 @@ under the License.
           </item>
           <item href="javascript:void(0)" name="Extensions" collapse="false">
             <item href="security/authorization/restriction.html" name="Restrictions" />
-            <item href="security/authorization/composite.html" name="Combining Multiple Models" />
+            <item href="security/authorization/composite.html" name="Multiple Models" />
             <item href="security/authorization/cug.html" name="Closed User Groups" />
+            <item href="security/authorization/principalbased.html" name="Principal Based" />
           </item>
         </item>
         <item href="security/principal.html" name="Principal Management" collapse="true">

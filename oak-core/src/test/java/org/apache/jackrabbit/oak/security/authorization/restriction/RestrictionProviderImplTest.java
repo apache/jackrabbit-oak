@@ -24,6 +24,7 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -32,12 +33,13 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositePattern;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,8 +47,10 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link RestrictionProviderImpl}
@@ -96,8 +100,8 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
         map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
 
-        NodeUtil tree = new NodeUtil(root.getTree("/")).getOrAddTree("testPath", JcrConstants.NT_UNSTRUCTURED);
-        Tree restrictions = tree.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS).getTree();
+        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
+        Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
 
         // test restrictions individually
         for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
@@ -128,8 +132,8 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         List<String> itemNames = ImmutableList.of("abc", "jcr:primaryType");
         map.put(PropertyStates.createProperty(REP_ITEM_NAMES, prefixes, Type.NAMES), new ItemNamePattern(itemNames));
 
-        NodeUtil tree = new NodeUtil(root.getTree("/")).getOrAddTree("testPath", JcrConstants.NT_UNSTRUCTURED);
-        Tree restrictions = tree.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS).getTree();
+        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
+        Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
         for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
             restrictions.setProperty(entry.getKey());
         }
@@ -152,14 +156,14 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         List<String> itemNames = ImmutableList.of("abc", "jcr:primaryType");
         map.put(PropertyStates.createProperty(REP_ITEM_NAMES, itemNames, Type.NAMES), new ItemNamePattern(itemNames));
 
-        NodeUtil tree = new NodeUtil(root.getTree("/")).getOrAddTree("testPath", JcrConstants.NT_UNSTRUCTURED);
-        Tree restrictions = tree.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS).getTree();
+        Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
+        Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
 
         // test restrictions individually
         for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
             restrictions.setProperty(entry.getKey());
 
-            RestrictionPattern pattern = provider.getPattern("/testPath", provider.readRestrictions("/testPath", tree.getTree()));
+            RestrictionPattern pattern = provider.getPattern("/testPath", provider.readRestrictions("/testPath", tree));
             assertEquals(entry.getValue(), pattern);
             restrictions.removeProperty(entry.getKey().getName());
         }
@@ -168,13 +172,28 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
         for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
             restrictions.setProperty(entry.getKey());
         }
-        RestrictionPattern pattern = provider.getPattern("/testPath", provider.readRestrictions("/testPath", tree.getTree()));
+        RestrictionPattern pattern = provider.getPattern("/testPath", provider.readRestrictions("/testPath", tree));
         assertTrue(pattern instanceof CompositePattern);
     }
 
     @Test
+    public void testGetPatternFromTreeNullPath() {
+        assertSame(RestrictionPattern.EMPTY, provider.getPattern(null, mock(Tree.class)));
+    }
+
+    @Test
+    public void testGetPatternFromRestrictionsNullPath() {
+        assertSame(RestrictionPattern.EMPTY, provider.getPattern(null, ImmutableSet.of(mock(Restriction.class))));
+    }
+
+    @Test
+    public void testGetPatternFromEmptyRestrictions() {
+        assertSame(RestrictionPattern.EMPTY, provider.getPattern("/testPath", ImmutableSet.of()));
+    }
+
+    @Test(expected = AccessControlException.class)
     public void testValidateGlobRestriction() throws Exception {
-        Tree t = new NodeUtil(root.getTree("/")).addChild("testTree", "nt:unstructured").getTree();
+        Tree t = TreeUtil.getOrAddChild(root.getTree("/"), "testTree", JcrConstants.NT_UNSTRUCTURED);
         String path = t.getPath();
 
         AccessControlManager acMgr = getAccessControlManager(root);
@@ -191,9 +210,6 @@ public class RestrictionProviderImplTest extends AbstractSecurityTest implements
 
             try {
                 provider.validateRestrictions(path, t.getChild(REP_POLICY).getChild("allow"));
-                fail("AccessControlException expected.");
-            } catch (AccessControlException e) {
-                // success
             } finally {
                 acMgr.removePolicy(path, acl);
             }

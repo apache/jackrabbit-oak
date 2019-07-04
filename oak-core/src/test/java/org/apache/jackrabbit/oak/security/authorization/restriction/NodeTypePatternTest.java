@@ -25,8 +25,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -43,9 +43,9 @@ public class NodeTypePatternTest extends AbstractSecurityTest {
     @Test
     public void testMatchesItem() throws Exception {
 
-        NodeUtil rootTree = new NodeUtil(root.getTree("/"));
+        Tree rootTree = root.getTree("/");
         for (String ntName : ntNames) {
-            Tree testTree = rootTree.addChild("name", ntName).getTree();
+            Tree testTree = TreeUtil.addChild(rootTree, "name", ntName);
 
             assertTrue(pattern.matches(testTree, null));
             assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
@@ -57,11 +57,11 @@ public class NodeTypePatternTest extends AbstractSecurityTest {
 
     @Test
     public void testNotMatchesItem() throws Exception {
-        NodeUtil rootTree = new NodeUtil(root.getTree("/"));
+        Tree rootTree = root.getTree("/");
 
         List<String> notMatching = ImmutableList.of(NodeTypeConstants.NT_OAK_RESOURCE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, JcrConstants.NT_VERSION);
         for (String ntName : notMatching) {
-            Tree testTree = rootTree.addChild("name", ntName).getTree();
+            Tree testTree = TreeUtil.addChild(rootTree, "name", ntName);
 
             assertFalse(pattern.matches(testTree, null));
             assertFalse(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));

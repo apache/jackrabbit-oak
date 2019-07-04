@@ -27,6 +27,7 @@ import javax.jcr.Value;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.QueryUtils;
@@ -42,7 +43,10 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class QueryUtilTest {
 
@@ -216,5 +220,22 @@ public class QueryUtilTest {
     public void testGetCollation() {
         assertSame(RelationOp.LT, QueryUtil.getCollation(QueryBuilder.Direction.DESCENDING));
         assertSame(RelationOp.GT, QueryUtil.getCollation(QueryBuilder.Direction.ASCENDING));
+    }
+
+    @Test
+    public void testGetIDNullAuthorizable() {
+        assertNull(QueryUtil.getID(null));
+    }
+
+    @Test
+    public void testGetID() throws RepositoryException {
+        Authorizable a = when(mock(Authorizable.class).getID()).thenReturn("id").getMock();
+        assertEquals("id", QueryUtil.getID(a));
+    }
+
+    @Test
+    public void testGetIDThrowing() throws RepositoryException {
+        Authorizable a = when(mock(Authorizable.class).getID()).thenThrow(new RepositoryException()).getMock();
+        assertNull(QueryUtil.getID(a));
     }
 }

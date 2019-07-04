@@ -226,7 +226,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
                 client, db, MongoDocumentNodeStoreBuilderBase.this));
 
         if (this.blobStoreSupplier == null) {
-            this.blobStoreSupplier = memoize(() -> new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L));
+            this.blobStoreSupplier = memoize(
+                    () -> new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L, MongoDocumentNodeStoreBuilderBase.this));
         }
 
         return thisBuilder();

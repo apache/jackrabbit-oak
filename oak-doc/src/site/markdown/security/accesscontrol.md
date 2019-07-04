@@ -155,7 +155,7 @@ The supported configuration options of the default implementation are described 
 - [Restriction Management](authorization/restriction.html)
 
 <!-- hidden references -->
-[JSR 283]: http://www.day.com/specs/jcr/2.0/16_Access_Control_Management.html
+[JSR 283]: https://docs.adobe.com/docs/en/spec/jcr/2.0/16_Access_Control_Management.html
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html
 [org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-jcr-commons/src/main/java/org/apache/jackrabbit/commons/jackrabbit/authorization/AccessControlUtils.java
 [OAK-1268]: https://issues.apache.org/jira/browse/OAK-1268
