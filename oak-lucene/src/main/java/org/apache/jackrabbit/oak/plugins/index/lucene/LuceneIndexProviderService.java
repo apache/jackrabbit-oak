@@ -280,9 +280,9 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_NAME_ENABLE_SINGLE_BLOB_PER_INDEX_FILE = "enableSingleBlobIndexFiles";
 
-    private static final long PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEAFULT = 300;
+    private static final long PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT = 300;
     @Property(
-            longValue = PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEAFULT,
+            longValue = PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT,
             label = "Lucene Index File System Stats Interval (seconds)",
             description = "Interval (in seconds) for calculation of File System metrics for Lucene Index such as Local Index Directory Size"
     )
@@ -409,7 +409,7 @@ public class LuceneIndexProviderService {
         registerIndexEditor(bundleContext, tracker, mBean, config);
 
         LuceneIndexFileSystemStatistics luceneIndexFSStats = new LuceneIndexFileSystemStatistics(statisticsProvider, indexCopier);
-        oakRegs.add(registerLuceneFileSystemStats(luceneIndexFSStats, PropertiesUtil.toLong(config.get(PROP_INDEX_FILESYSTEM_STATS_INTERVAL),PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEAFULT)));
+        oakRegs.add(registerLuceneFileSystemStats(luceneIndexFSStats, PropertiesUtil.toLong(config.get(PROP_INDEX_FILESYSTEM_STATS_INTERVAL),PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT)));
 
     }
 

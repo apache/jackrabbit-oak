@@ -41,12 +41,10 @@ public class LuceneIndexFileSystemStatistics implements  Runnable {
 
     @Override
     public void run() {
-
         calculateLocalIndexDirSize();
     }
 
     private void calculateLocalIndexDirSize() {
-
         long localIndexDirSize = indexCopier.getLocalIndexDirSize();
         CounterStats indexDirectorySizeStats = statisticsProvider.getCounterStats(LOCAL_INDEX_DIR_SIZE, StatsOptions.DEFAULT);
         long deltaInSize = localIndexDirSize - indexDirectorySizeStats.getCount();
