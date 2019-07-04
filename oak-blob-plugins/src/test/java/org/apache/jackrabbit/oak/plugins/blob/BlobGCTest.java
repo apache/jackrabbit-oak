@@ -110,6 +110,7 @@ import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.ra
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -204,9 +205,13 @@ public class BlobGCTest {
         }
 
         public MarkSweepGarbageCollector getCollector(long blobGcMaxAgeInSecs) throws Exception {
+            return getCollector(blobGcMaxAgeInSecs, false);
+        }
+
+        public MarkSweepGarbageCollector getCollector(long blobGcMaxAgeInSecs, boolean checkConsistency) throws Exception {
             collector =
                 new MarkSweepGarbageCollector(referenceRetriever, blobStore, executor, root.getAbsolutePath(), 2048,
-                    blobGcMaxAgeInSecs, repoId, wb, statsProvider);
+                    blobGcMaxAgeInSecs, checkConsistency, repoId, wb, statsProvider);
             return collector;
         }
 
@@ -291,6 +296,20 @@ public class BlobGCTest {
     }
 
     @Test
+    public void gcWithConsistencyCheck() throws Exception {
+        log.info("Starting gcWithConsistencyCheck()");
+        ((MemoryBlobStoreNodeStore) cluster.nodeStore).getReferencedBlobs().add("SPURIOUS");
+
+        MarkSweepGarbageCollector collector = cluster.getCollector(0, true);
+        Set<String> existingAfterGC = executeGarbageCollection(cluster, collector, false);
+        assertFalse(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+        assertStats(cluster.statsProvider, 1, 0,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size() + 1,
+            cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size() + 1, NAME);
+        assertStatsBean(collector.getConsistencyOperationStats(), 1, 1, 1);
+    }
+
+    @Test
     public void gcWithNoDeleteDirectBinary() throws Exception {
         log.info("Starting gcWithNoDeleteDirectBinary()");
 
@@ -360,6 +379,68 @@ public class BlobGCTest {
         assertEquals(1, missing);
         assertStats(cluster.statsProvider, 1, 1, 1, 0, CONSISTENCY_NAME);
         assertStatsBean(collector.getConsistencyOperationStats(), 1, 1, 1);
+    }
+
+    @Test
+    public void checkConsistencyGlobal() throws Exception {
+        log.info("Staring checkConsistencyGlobal()");
+
+        // Setup a different cluster/repository sharing the blob store
+        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore);
+        Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
+        closer.register(secondCluster);
+
+        // Execute mark on the default cluster
+        executeGarbageCollection(cluster, cluster.getCollector(0), true);
+        MarkSweepGarbageCollector globalCollector = secondCluster.getCollector(0, true);
+        long missing = globalCollector.checkConsistency();
+        assertEquals(0, missing);
+        assertStats(secondCluster.statsProvider, 1, 0, 0, 0, CONSISTENCY_NAME);
+        assertStatsBean(globalCollector.getConsistencyOperationStats(), 1, 0, 0);
+    }
+
+    @Test
+    public void checkConsistencyGlobalFailureOther() throws Exception {
+        log.info("Staring checkConsistencyGlobalFailureOther()");
+
+        // Setup a different cluster/repository sharing the blob store
+        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore);
+        Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
+        closer.register(secondCluster);
+
+        cluster.blobStore
+            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())),
+                0);
+
+        // Execute mark on the default cluster
+        executeGarbageCollection(cluster, cluster.getCollector(0), true);
+        MarkSweepGarbageCollector globalCollector = secondCluster.getCollector(0, true);
+        long missing = globalCollector.checkConsistency();
+        assertEquals(1, missing);
+        assertStats(secondCluster.statsProvider, 1, 1, 1, 0, CONSISTENCY_NAME);
+        assertStatsBean(globalCollector.getConsistencyOperationStats(), 1, 1, 1);
+    }
+
+    @Test
+    public void checkConsistencyGlobalFailure() throws Exception {
+        log.info("Staring checkConsistencyGlobalFailureOther()");
+
+        // Setup a different cluster/repository sharing the blob store
+        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore);
+        Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
+        closer.register(secondCluster);
+
+        secondCluster.blobStore
+            .countDeleteChunks(Lists.newArrayList(Iterators.getLast(secondCluster.blobStoreState.blobsPresent.iterator())),
+                0);
+
+        // Execute mark on the default cluster
+        executeGarbageCollection(cluster, cluster.getCollector(0), true);
+        MarkSweepGarbageCollector globalCollector = secondCluster.getCollector(0, true);
+        long missing = globalCollector.checkConsistency();
+        assertEquals(1, missing);
+        assertStats(secondCluster.statsProvider, 1, 1, 1, 0, CONSISTENCY_NAME);
+        assertStatsBean(globalCollector.getConsistencyOperationStats(), 1, 1, 1);
     }
 
     @Test

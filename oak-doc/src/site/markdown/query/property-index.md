@@ -81,6 +81,18 @@ Optionally you can specify:
 * `reindex` (Boolean): if set to `true`, the full content is re-indexed.
   This can take a long time, and is run synchronously with storing the index
   (except with an async index). See "Reindexing" below for details.
+* `useIfExists` (String), only use this index for queries if the given node or property exists.
+  This is specially useful in blue-green deployments, when using the composite node store.
+  For example, if set to `/libs/indexes/acme/@v1`, the index is only used if
+  the given property exists. With a repository where this property is missing,
+  the index is not used. With blue-green deployments, it is possible that
+  two versions of an application are running at the same time, with different `/libs` folders.
+  This settings therefore allows to enable or disable index usage depending on the version in use.
+  (This index is still updated even if the node / property does not exist, 
+  so this setting only affects index usage for queries.)
+  This option is supported for indexes of type `lucene` and `property`.
+  Since Oak version 1.10.0 (OAK-7739).
+  
 
 Example:
 

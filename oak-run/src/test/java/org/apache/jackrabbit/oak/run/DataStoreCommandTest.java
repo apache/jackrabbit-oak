@@ -294,6 +294,19 @@ public class DataStoreCommandTest {
         testConsistency(dump, data, false);
     }
 
+    @Test
+    public void gcWithConsistency() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
+        storeFixture.close();
+        additionalParams += " --check-consistency-gc true";
+        testGc(dump, data, 0, false);
+
+        assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
+
+        // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
+        assertFileEquals(dump, "consistencyCandidatesAfterGC", data.missingDataStore);
+    }
 
     @Test
     public void gc() throws Exception {
@@ -430,7 +443,6 @@ public class DataStoreCommandTest {
                 data.missingDataStore);
     }
 
-
     private void testGc(File dump, Data data, long maxAge, boolean markOnly) throws Exception {
         List<String> argsList = Lists
             .newArrayList("--collect-garbage", String.valueOf(markOnly), "--max-age", String.valueOf(maxAge),
@@ -438,7 +450,7 @@ public class DataStoreCommandTest {
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath());
         if (!Strings.isNullOrEmpty(additionalParams)) {
-            argsList.add(additionalParams);
+            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
 
         DataStoreCommand cmd = new DataStoreCommand();
