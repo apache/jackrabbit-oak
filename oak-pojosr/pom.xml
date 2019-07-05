@@ -33,7 +33,6 @@
   <properties>
     <skip.deployment>true</skip.deployment>
     <groovy.version>2.3.1</groovy.version>
-    <tika.version>1.5</tika.version>
   </properties>
 
   <build>

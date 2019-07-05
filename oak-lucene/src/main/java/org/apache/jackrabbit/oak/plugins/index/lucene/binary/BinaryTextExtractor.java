@@ -19,9 +19,11 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.binary;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -40,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.BlobByteSource;
 import org.apache.lucene.document.Field;
 import org.apache.tika.config.TikaConfig;
+import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
@@ -48,6 +51,7 @@ import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
@@ -66,6 +70,7 @@ public class BinaryTextExtractor {
      * The media types supported by the parser used.
      */
     private Set<MediaType> supportedMediaTypes;
+    private Set<MediaType> nonIndexedMediaType;
 
     public BinaryTextExtractor(ExtractedTextCache extractedTextCache, IndexDefinition definition, boolean reindex) {
         this.extractedTextCache = extractedTextCache;
@@ -203,8 +208,36 @@ public class BinaryTextExtractor {
     private boolean isSupportedMediaType(String type) {
         if (supportedMediaTypes == null) {
             supportedMediaTypes = getParser().getSupportedTypes(new ParseContext());
+            nonIndexedMediaType = getNonIndexedMediaTypes();
         }
-        return supportedMediaTypes.contains(MediaType.parse(type));
+        MediaType mediaType = MediaType.parse(type);
+        return supportedMediaTypes.contains(mediaType) && !nonIndexedMediaType.contains(mediaType);
+    }
+
+    private Set<MediaType> getNonIndexedMediaTypes() {
+        InputStream configStream = null;
+        String configSource = null;
+        try {
+            if (definition.hasCustomTikaConfig()) {
+                configSource = String.format("Custom config at %s", definition.getIndexPath());
+                configStream = definition.getTikaConfig();
+            } else {
+                URL configUrl = LuceneIndexEditorContext.class.getResource("tika-config.xml");
+                configSource = "Default : tika-config.xml";
+                if (configUrl != null) {
+                    configStream = configUrl.openStream();
+                }
+            }
+
+            if (configStream != null) {
+                return TikaParserConfig.getNonIndexedMediaTypes(configStream);
+            }
+        } catch (TikaException | IOException | SAXException e) {
+            log.warn("Tika configuration not available : " + configSource, e);
+        } finally {
+            IOUtils.closeQuietly(configStream);
+        }
+        return Collections.emptySet();
     }
 
     private static Parser initializeTikaParser(IndexDefinition definition) {
