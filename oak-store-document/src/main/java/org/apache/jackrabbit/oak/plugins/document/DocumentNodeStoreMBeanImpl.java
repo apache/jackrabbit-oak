@@ -25,6 +25,7 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
@@ -196,12 +197,11 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     public int recover(String path, int clusterId) {
         boolean dryRun = nodeStore.isReadOnlyMode();
         int sum = 0;
-        if (path == null) {
-            throw new NullPointerException("Path not specified in jmx mbean");
-        }
-        if (clusterId == 0) {
-            throw new NullPointerException("Recover clusterId not specified in jmx mbean");
-        }
+
+        Preconditions.checkNotNull(path, "Path parameter is passed as NULL");
+        Preconditions.checkArgument(PathUtils.isAbsolute(path), "Path not specified in jmx mbean");
+        Preconditions.checkArgument(clusterId >= 0, "Illegal clusterId specified in jmx mbean");
+
         DocumentStore docStore = nodeStore.getDocumentStore();
         boolean isActive = false;
 
@@ -217,12 +217,12 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         }
 
         String p = path;
+        NodeDocument nodeDocument = docStore.find(Collection.NODES, Utils.getIdFromPath(p));
+        if(nodeDocument == null) {
+            throw new DocumentStoreException("Document node with given path = "+ p + " doesnot exist");
+        }
         for (;;) {
-            log.info("Running recovery on " + p);
-            NodeDocument nodeDocument = docStore.find(Collection.NODES, Utils.getIdFromPath(p));
-            if(nodeDocument == null) {
-                throw new DocumentStoreException("Document node with given path = "+ p + " doesnot exist");
-            }
+            log.info("Running recovery on child documents of path = " + p);
             List<NodeDocument> childDocs = getChildDocs(p);
             sum += nodeStore.getLastRevRecoveryAgent().recover(childDocs, clusterId, dryRun);
             if (PathUtils.denotesRoot(p)) {
