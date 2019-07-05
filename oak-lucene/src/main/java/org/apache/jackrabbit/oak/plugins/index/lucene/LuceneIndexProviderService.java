@@ -409,7 +409,7 @@ public class LuceneIndexProviderService {
         registerIndexEditor(bundleContext, tracker, mBean, config);
 
         LuceneIndexFileSystemStatistics luceneIndexFSStats = new LuceneIndexFileSystemStatistics(statisticsProvider, indexCopier);
-        oakRegs.add(registerLuceneFileSystemStats(luceneIndexFSStats, PropertiesUtil.toLong(config.get(PROP_INDEX_FILESYSTEM_STATS_INTERVAL),PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT)));
+        registerLuceneFileSystemStats(luceneIndexFSStats, PropertiesUtil.toLong(config.get(PROP_INDEX_FILESYSTEM_STATS_INTERVAL),PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT));
 
     }
 
@@ -817,6 +817,14 @@ public class LuceneIndexProviderService {
         log.info("Property index cleaner configured to run every [{}] seconds", cleanerInterval);
     }
 
+    private void registerLuceneFileSystemStats(LuceneIndexFileSystemStatistics luceneIndexFSStats, long delayInSeconds) {
+        Map<String, Object> config = ImmutableMap.<String, Object>of(
+                "scheduler.name", LuceneIndexFileSystemStatistics.class.getName()
+        );
+        oakRegs.add(scheduleWithFixedDelay(whiteboard, luceneIndexFSStats, config, delayInSeconds, false, true));
+        log.info("Lucene FileSystem Statistics calculator configured to run every [{}] seconds", delayInSeconds);
+    }
+
 
     protected void bindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;
@@ -838,10 +846,4 @@ public class LuceneIndexProviderService {
         registerExtractedTextProvider(null);
     }
 
-    private Registration registerLuceneFileSystemStats(LuceneIndexFileSystemStatistics luceneIndexFSStats, long delayInSeconds) {
-        Map<String, Object> config = ImmutableMap.<String, Object>of(
-                "scheduler.name", LuceneIndexFileSystemStatistics.class.getName()
-        );
-        return scheduleWithFixedDelay(whiteboard, luceneIndexFSStats, config, delayInSeconds, false, true);
-    }
 }
