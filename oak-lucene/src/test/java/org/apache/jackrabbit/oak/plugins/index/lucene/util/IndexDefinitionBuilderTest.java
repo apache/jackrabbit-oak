@@ -446,6 +446,34 @@ public class IndexDefinitionBuilderTest {
         assertTrue(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
 
     }
+    
+    @Test
+    public void noReindexOnUseIfExists() throws Exception {
+        builder.indexRule("nt:base").property("foo1");
+
+        NodeState currentNodeState = builder.build();
+        nodeBuilder = currentNodeState.builder();
+
+        // Unset the reindex flag first because first build would have set it .
+        nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+        // Add the "useIfExists" property
+        builder.getBuilderTree().setProperty(IndexConstants.USE_IF_EXISTS, "/oak:index");
+        currentNodeState = builder.build();
+        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
+        assertTrue(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
+
+        // Now test deleting the flag - should also not set the reindexing flag
+        nodeBuilder = currentNodeState.builder();
+
+        nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder.getBuilderTree().removeProperty(IndexConstants.USE_IF_EXISTS);
+
+        currentNodeState = builder.build();
+        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
+        assertTrue(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
+    }
 
     // This is a node for configuration on how faceted search works
     // Everything impacts querty time evauation - so no need of reindexing in case of changes

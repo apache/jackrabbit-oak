@@ -586,6 +586,7 @@ public final class IndexDefinitionBuilder {
         static final List<String> ignorablePropertiesList = of(
                 FulltextIndexConstants.PROP_WEIGHT,
                 FIELD_BOOST,
+                IndexConstants.USE_IF_EXISTS,
                 IndexConstants.QUERY_PATHS,
                 IndexConstants.INDEX_TAGS,
                 FulltextIndexConstants.BLOB_SIZE,
