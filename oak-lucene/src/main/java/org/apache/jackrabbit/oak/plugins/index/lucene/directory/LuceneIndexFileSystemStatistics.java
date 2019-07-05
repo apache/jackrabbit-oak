@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LuceneIndexFileSystemStatistics implements  Runnable {
+public class LuceneIndexFileSystemStatistics implements Runnable {
 
     private final StatisticsProvider statisticsProvider;
     private final IndexCopier indexCopier;
