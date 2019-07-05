@@ -44,6 +44,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -233,19 +234,11 @@ public class VersionGCTest {
         VersionGCOptions options = gc.getOptions();
         final long oneYearAgo = ns.getClock().getTime() - TimeUnit.DAYS.toMillis(365);
         final long twelveTimesTheLimit = options.collectLimit * 12;
+        final long secondsPerDay = TimeUnit.DAYS.toMillis(1);
 
-        VersionGCSupport localgcsupport = new VersionGCSupport(ns.getDocumentStore()) {
-            @Override
-            public long getOldestDeletedOnceTimestamp(Clock clock, long precisionMs) {
-                return oneYearAgo;
-            }
-            @Override
-            public long getDeletedOnceCount() {
-                return twelveTimesTheLimit;
-            }
-        };
+        VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo, twelveTimesTheLimit);
 
-        VersionGCRecommendations rec = new VersionGCRecommendations(86400L, ns.getCheckpoints(), ns.getClock(), localgcsupport,
+        VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport,
                 options, new TestGCMonitor());
 
         // should select a duration of roughly one month
@@ -259,12 +252,64 @@ public class VersionGCTest {
         rec.evaluate(stats);
         assertTrue(stats.needRepeat);
 
-        rec = new VersionGCRecommendations(86400L, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
+        rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
                 new TestGCMonitor());
 
         // new duration should be half
         long nduration = rec.scope.getDurationMs();
         assertTrue(nduration == duration / 2);
+    }
+
+    // OAK-8448: test that after shrinking the scope to the minimum and after
+    // successful runs, scope will be expanded again
+    @Ignore("OAK-8448")
+    @Test
+    public void expandIntervalAgain() throws Exception {
+
+        VersionGCOptions options = gc.getOptions();
+        VersionGCRecommendations rec;
+        VersionGCStats stats;
+        VersionGCSupport localgcsupport;
+        GCMonitor testmonitor = new TestGCMonitor();
+
+        int days = 365;
+        long secondsPerDay = TimeUnit.DAYS.toMillis(1);
+        long oldestDeleted = ns.getClock().getTime() - TimeUnit.DAYS.toMillis(days);
+        // one per second
+        long deletedCount = TimeUnit.DAYS.toSeconds(days);
+
+        localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oldestDeleted, deletedCount);
+
+        // loop until the recommended interval is at 60s (precisionMS)
+        do {
+            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
+                    testmonitor);
+            stats = new VersionGCStats();
+            stats.limitExceeded = true;
+            rec.evaluate(stats);
+            assertTrue(stats.needRepeat);
+        } while (rec.suggestedIntervalMs > options.precisionMs);
+
+        // loop with successful runs (1 node/sec interval deleted) and observe the interval
+        int iterations = 0;
+        int maxiterations = 1000;
+        do {
+            iterations += 1;
+            oldestDeleted = rec.scope.fromMs + rec.scope.getDurationMs();
+            int deleted = (int) (rec.scope.getDurationMs() / TimeUnit.SECONDS.toMillis(1));
+            deletedCount -= deleted;
+            localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oldestDeleted, deletedCount);
+            rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
+                    testmonitor);
+            stats = new VersionGCStats();
+            stats.limitExceeded = false;
+            stats.deletedDocGCCount = deleted;
+            stats.deletedLeafDocGCCount = 0;
+            rec.evaluate(stats);
+        } while (stats.needRepeat && iterations < maxiterations);
+
+        assertTrue("VersionGC should have finished after " + maxiterations + " iterations, but did not. Last scope was: "
+                + rec.scope + ".", !stats.needRepeat);
     }
 
     // OAK-7378
@@ -402,5 +447,20 @@ public class VersionGCTest {
         public List<String> getStatusMessages() {
             return this.statusMessages;
         }
+    }
+
+    private VersionGCSupport fakeVersionGCSupport(final DocumentStore ds, final long oldestDeleted, final long countDeleted) {
+        return new VersionGCSupport(ds) {
+
+            @Override
+            public long getOldestDeletedOnceTimestamp(Clock clock, long precisionMs) {
+                return oldestDeleted;
+            }
+
+            @Override
+            public long getDeletedOnceCount() {
+                return countDeleted;
+            }
+        };
     }
 }
