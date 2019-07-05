@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexFileSystemStatistics;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBuilder;
@@ -279,6 +280,14 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_NAME_ENABLE_SINGLE_BLOB_PER_INDEX_FILE = "enableSingleBlobIndexFiles";
 
+    private static final long PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT = 300;
+    @Property(
+            longValue = PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT,
+            label = "Lucene Index File System Stats Interval (seconds)",
+            description = "Interval (in seconds) for calculation of File System metrics for Lucene Index such as Local Index Directory Size"
+    )
+    private static final String PROP_INDEX_FILESYSTEM_STATS_INTERVAL = "propIndexFSStatsIntervalInSecs";
+
     private final Clock clock = Clock.SIMPLE;
 
     private Whiteboard whiteboard;
@@ -398,6 +407,10 @@ public class LuceneIndexProviderService {
         registerGCMonitor(whiteboard, tracker);
 
         registerIndexEditor(bundleContext, tracker, mBean, config);
+
+        LuceneIndexFileSystemStatistics luceneIndexFSStats = new LuceneIndexFileSystemStatistics(statisticsProvider, indexCopier);
+        registerLuceneFileSystemStats(luceneIndexFSStats, PropertiesUtil.toLong(config.get(PROP_INDEX_FILESYSTEM_STATS_INTERVAL),PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT));
+
     }
 
     private File getIndexCheckDir() {
@@ -804,6 +817,14 @@ public class LuceneIndexProviderService {
         log.info("Property index cleaner configured to run every [{}] seconds", cleanerInterval);
     }
 
+    private void registerLuceneFileSystemStats(LuceneIndexFileSystemStatistics luceneIndexFSStats, long delayInSeconds) {
+        Map<String, Object> config = ImmutableMap.<String, Object>of(
+                "scheduler.name", LuceneIndexFileSystemStatistics.class.getName()
+        );
+        oakRegs.add(scheduleWithFixedDelay(whiteboard, luceneIndexFSStats, config, delayInSeconds, false, true));
+        log.info("Lucene FileSystem Statistics calculator configured to run every [{}] seconds", delayInSeconds);
+    }
+
 
     protected void bindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;
@@ -824,4 +845,5 @@ public class LuceneIndexProviderService {
         this.extractedTextProvider = null;
         registerExtractedTextProvider(null);
     }
+
 }

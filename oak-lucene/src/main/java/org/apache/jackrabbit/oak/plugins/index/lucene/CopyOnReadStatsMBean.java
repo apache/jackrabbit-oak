@@ -69,6 +69,8 @@ public interface CopyOnReadStatsMBean {
 
     String getLocalIndexSize();
 
+    long getLocalIndexDirSize();
+
     String[] getGarbageDetails();
 
     String getGarbageSize();
