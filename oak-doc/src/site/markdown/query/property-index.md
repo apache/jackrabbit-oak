@@ -44,6 +44,10 @@ Optionally you can specify:
   property is added. Ensure you set declaringNodeTypes, 
   otherwise all nodes of the repository are affected (which is most likely not what you want),
   and you are not able to version the node.
+  Only the first 100 characters are used to check for uniqueness.
+  That means, the first 100 characters of the value need to be different; if not, then trying to store is rejected
+  with the exception "Uniqueness constraint violated".
+  This only applies to storing; when querying, all characters are considered.
   * `includedPaths` (String, multi-valued):
     the paths that are included ('/' if not set).
     Since Oak version 1.4 (OAK-3263).

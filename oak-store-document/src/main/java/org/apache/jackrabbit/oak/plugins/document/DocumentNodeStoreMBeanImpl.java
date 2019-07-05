@@ -17,18 +17,25 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.List;
 import java.util.TimeZone;
 
 import javax.management.NotCompliantMBeanException;
 import javax.management.openmbean.CompositeData;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.toArray;
@@ -45,6 +52,7 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
     private final DocumentNodeStore nodeStore;
     private final RepositoryStatistics repoStats;
     private final Iterable<ClusterNodeInfoDocument> clusterNodes;
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     DocumentNodeStoreMBeanImpl(DocumentNodeStore nodeStore,
                                RepositoryStatistics repoStats,
@@ -183,5 +191,52 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
 
     private TimeSeries getTimeSeries(String name) {
         return repoStats.getTimeSeries(name, true);
+    }
+
+    @Override
+    public int recover(String path, int clusterId) {
+        boolean dryRun = nodeStore.isReadOnlyMode();
+        int sum = 0;
+
+        Preconditions.checkNotNull(path, "Path parameter is passed as NULL");
+        Preconditions.checkArgument(PathUtils.isAbsolute(path), "Path not specified in jmx mbean");
+        Preconditions.checkArgument(clusterId >= 0, "Illegal clusterId specified in jmx mbean");
+
+        DocumentStore docStore = nodeStore.getDocumentStore();
+        boolean isActive = false;
+
+        for (ClusterNodeInfoDocument it : ClusterNodeInfoDocument.all(docStore)) {
+            if (it.getClusterId() == clusterId && it.isActive()) {
+                isActive = true;
+            }
+        }
+
+        if (isActive) {
+            throw new IllegalStateException(
+                    "Cannot run recover on clusterId " + clusterId + " as it's currently active");
+        }
+
+        String p = path;
+        NodeDocument nodeDocument = docStore.find(Collection.NODES, Utils.getIdFromPath(p));
+        if(nodeDocument == null) {
+            throw new DocumentStoreException("Document node with given path = "+ p + " doesnot exist");
+        }
+        for (;;) {
+            log.info("Running recovery on child documents of path = " + p);
+            List<NodeDocument> childDocs = getChildDocs(p);
+            sum += nodeStore.getLastRevRecoveryAgent().recover(childDocs, clusterId, dryRun);
+            if (PathUtils.denotesRoot(p)) {
+                break;
+            }
+            p = PathUtils.getParentPath(p);
+        }
+        return sum;
+    }
+
+    private List<NodeDocument> getChildDocs(String path) { 
+        Path pathRef = Path.fromString(path);
+        final String to = Utils.getKeyUpperLimit(pathRef);
+        final String from = Utils.getKeyLowerLimit(pathRef);
+        return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
     }
 }

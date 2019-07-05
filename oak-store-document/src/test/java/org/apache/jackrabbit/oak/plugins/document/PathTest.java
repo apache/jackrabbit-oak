@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -42,6 +43,17 @@ public class PathTest {
     private final Path relFoo = new Path("foo");
     private final Path relFooBar = new Path(relFoo, "bar");
     private final Path relFooBarQuux = new Path(relFooBar, "quux");
+
+    @Test(expected = IllegalArgumentException.class)
+    public void constructorWithAbsolutePathString() {
+        String p = "/foo";
+        try {
+            new Path(p);
+        } catch (Exception e) {
+            assertThat(e.getMessage(), containsString(p));
+            throw e;
+        }
+    }
 
     @Test
     public void equals() {
