@@ -55,7 +55,7 @@
     <slf4j.version>1.7.26</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.3</logback.version>
     <h2.version>1.4.194</h2.version>
-    <tika.version>1.17</tika.version>
+    <tika.version>1.18</tika.version>
     <findbugs.version>3.0.5</findbugs.version>
     <derby.version>10.12.1.1</derby.version>
     <jackson.version>2.9.6</jackson.version>
