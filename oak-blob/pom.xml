@@ -107,7 +107,6 @@
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
-      <version>1.5</version>
     </dependency>
 
     <!--  Optional dependency for jclouds s3 to enable s3 cloud store -->
