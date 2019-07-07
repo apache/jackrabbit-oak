@@ -272,6 +272,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.21.0</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
@@ -290,6 +291,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
+          <version>2.21.0</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
