@@ -686,6 +686,71 @@ public class DocumentNodeStoreTest {
         assertTrue(active[0].startsWith(cId2 + "="));
     }
 
+    //OAK-8449
+    @Test
+    public void lastRevisionRecovery() throws Exception {
+        DocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(1).setDocumentStore(docStore)
+                .getNodeStore();
+        int cId1 = ns1.getClusterId();
+        NodeBuilder builder = ns1.getRoot().builder();
+
+        //Validating null path
+        try {
+            ns1.getMBean().recover(null, cId1);
+            fail("must fail with NullPointerException");
+        } catch (NullPointerException expected) {}
+
+        //Validating empty path
+        try {
+            ns1.getMBean().recover("", cId1);
+            fail("must fail with IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {}
+
+        //Validating negative clusterId
+        try {
+            ns1.getMBean().recover("/foo", -1);
+            fail("must fail with IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {}
+
+        //Validating recovery on active node
+        try {
+            ns1.getMBean().recover("/foo", cId1);
+            fail("must fail with IllegalStateException");
+        } catch (IllegalStateException expected) {}
+
+        builder.child("foo").child("bar");
+        merge(ns1, builder);
+
+        builder = ns1.getRoot().builder();
+        builder.child("foo").child("bar").setProperty("key", "value");
+        merge(ns1, builder);
+        ns1.dispose();
+
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/foo"), false);
+        op.removeMapEntry("_lastRev", new Revision(0, 0, cId1));
+        assertNotNull(docStore.findAndUpdate(Collection.NODES, op));
+
+        //Validate no. of affected paths in readOnlyMode
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(2).setDocumentStore(docStore).setReadOnlyMode()
+                .getNodeStore();
+        assertEquals(1, ns2.getMBean().recover("/foo", cId1));
+
+        //Validate no. of recovered paths
+        DocumentNodeStore ns3 = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(3).setDocumentStore(docStore)
+                .getNodeStore();
+        assertEquals(1, ns3.getMBean().recover("/foo", cId1));
+
+        //Validating recovery on non existing path
+        try {
+            ns2.getMBean().recover("/foo1", cId1);
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException expected) {}
+    }
+
     // OAK-2288
     @Test
     public void mergedBranchVisibility() throws Exception {
