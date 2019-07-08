@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.io.File.createTempFile;
+import static java.util.Comparator.comparing;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
@@ -702,7 +703,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                         File file = copy(refFile.getStream());
                         files.add(file);
                     }
-                    merge(files, fs.getMarkedRefs());
+                    merge(files, fs.getMarkedRefs(), comparing(s -> s.split(DELIM)[0]));
                 }
             }
 

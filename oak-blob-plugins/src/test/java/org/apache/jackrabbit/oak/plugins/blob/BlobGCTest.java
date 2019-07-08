@@ -94,6 +94,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.internal.util.collections.Iterables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -386,10 +387,11 @@ public class BlobGCTest {
         log.info("Staring checkConsistencyGlobal()");
 
         // Setup a different cluster/repository sharing the blob store
-        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore);
+        MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore, true);
         Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
         closer.register(secondCluster);
 
+        secondCluster.blobStoreState.blobsPresent.add(Iterables.firstOf(cluster.blobStoreState.blobsPresent));
         // Execute mark on the default cluster
         executeGarbageCollection(cluster, cluster.getCollector(0), true);
         MarkSweepGarbageCollector globalCollector = secondCluster.getCollector(0, true);
@@ -642,10 +644,16 @@ public class BlobGCTest {
      */
     public static class MemoryBlobStoreNodeStore extends MemoryNodeStore {
         private final BlobStore blobStore;
+        private final boolean fakePath;
         Set<String> referencedBlobs;
 
         public MemoryBlobStoreNodeStore(BlobStore blobStore) {
+            this(blobStore, false);
+        }
+
+        public MemoryBlobStoreNodeStore(BlobStore blobStore, boolean fakePath) {
             this.blobStore = blobStore;
+            this.fakePath = fakePath;
         }
 
         public void setReferencedBlobs(Set<String> referencedBlobs) {
@@ -669,8 +677,8 @@ public class BlobGCTest {
 
         public BlobReferenceRetriever getBlobReferenceRetriever() {
             return collector -> {
-                for(String id : referencedBlobs) {
-                    collector.addReference(id, null);
+                for (String id : referencedBlobs) {
+                    collector.addReference(id, (fakePath ? UUID.randomUUID().toString() : null));
                 }
             };
         }
