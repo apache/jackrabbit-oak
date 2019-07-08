@@ -56,25 +56,33 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.AzureDataStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.S3DataStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.DocumentMongoNodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.nodestore.SegmentMemoryNodeStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessDSGCFixture;
 import org.apache.jackrabbit.oak.jcr.binary.util.Content;
+import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runners.Parameterized;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
+    private static Logger LOG = LoggerFactory.getLogger(BinaryAccessDSGCIT.class);
+
     private static final String TEST_ROOT = "testroot";
     private static final long BINARY_SIZE = 1024*1024;
 
@@ -83,17 +91,24 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
     private static final String DIRECT_UPLOAD_1 = "du1";
     private static final String DIRECT_UPLOAD_2 = "du2";
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
     @Parameterized.Parameters(name = "{0}")
     public static Iterable<?> dataStoreFixtures() {
         Collection<NodeStoreFixture> fixtures = new ArrayList<>();
         fixtures.add(new SegmentMemoryNodeStoreFixture(new S3DataStoreFixture()));
+        fixtures.add(new DocumentMongoNodeStoreFixture(new S3DataStoreFixture()));
+
         fixtures.add(new SegmentMemoryNodeStoreFixture(new AzureDataStoreFixture()));
+        fixtures.add(new DocumentMongoNodeStoreFixture(new AzureDataStoreFixture()));
+
         return fixtures;
     }
 
     public BinaryAccessDSGCIT(NodeStoreFixture fixture) {
         // reuse NodeStore (and DataStore) across all tests in this class
-        super(fixture, true);
+        super(fixture, false);
     }
 
     private Session session;
@@ -190,8 +205,6 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
     private MarkSweepGarbageCollector getGarbageCollector()
             throws DataStoreException, IOException {
         DataStoreBlobStore blobStore = (DataStoreBlobStore) getNodeStoreComponent(BlobStore.class);
-        FileStore fileStore = getNodeStoreComponent(FileStore.class);
-        File fileStoreRoot = getNodeStoreComponent(FileStore.class.getName() + ":root");
         
         if (null == garbageCollector) {
             String repoId = ClusterRepositoryInfo.getOrCreateId(getNodeStore());
@@ -200,11 +213,12 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
             if (null == executor) {
                 executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
             }
+            BlobReferenceRetriever referenceRetriever = ((BinaryAccessDSGCFixture) fixture).getBlobReferenceRetriever(getNodeStore());
             garbageCollector = new MarkSweepGarbageCollector(
-                    new SegmentBlobReferenceRetriever(fileStore),
+                    referenceRetriever,
                     blobStore,
                     executor,
-                    fileStoreRoot.getAbsolutePath(),
+                    folder.newFolder().getAbsolutePath(),
                     2048,
                     0,
                     repoId
@@ -225,6 +239,8 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
     @Test
     public void testGC() throws Exception {
+        LOG.info("Starting testGC [{}]", fixture);
+
         Map<String, Content> binaryContent = Maps.newHashMap();
         Map<String, Binary> binaries = Maps.newHashMap();
 
@@ -256,7 +272,6 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
         }
         session.save();
 
-
         // Verify that they are deleted from repo
         for (String path : deletedBinaryPaths) {
             assertFalse(session.nodeExists(toAbsolutePath(path)));
@@ -267,7 +282,7 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
 
 
         // Run DSGC
-        compactFileStore();
+        ((BinaryAccessDSGCFixture) fixture).compactStore(getNodeStore());
         MarkSweepGarbageCollector garbageCollector = getGarbageCollector();
         garbageCollector.collectGarbage(false);
 
