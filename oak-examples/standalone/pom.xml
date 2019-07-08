@@ -256,6 +256,10 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>${spring.boot.version}</version>
+        <configuration>
+          <!-- see https://stackoverflow.com/questions/42082131/maven-surefire-verify-java-lang-classnotfoundexception -->
+          <classifier>exec</classifier>
+        </configuration>
         <executions>
           <execution>
             <goals>
