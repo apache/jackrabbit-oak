@@ -42,7 +42,6 @@ public class VersionGCRecommendations {
     final long maxCollect;
     final long deleteCandidateCount;
     final long lastOldestTimestamp;
-    final long originalCollectLimit;
 
     private final long precisionMs;
     final long suggestedIntervalMs;
@@ -72,17 +71,15 @@ public class VersionGCRecommendations {
      */
     public VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
             VersionGCOptions options, GCMonitor gcMonitor) {
+        this.vgc = vgc;
+        this.gcmon = gcMonitor;
+
+        TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, Long.MAX_VALUE);
         boolean ignoreDueToCheckPoint = false;
         long deletedOnceCount = 0;
         long suggestedIntervalMs;
         long oldestPossible;
         long collectLimit = options.collectLimit;
-
-        this.vgc = vgc;
-        this.gcmon = gcMonitor;
-        this.originalCollectLimit = options.collectLimit;
-
-        TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, Long.MAX_VALUE);
 
         Map<String, Long> settings = getLongSettings();
         lastOldestTimestamp = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
@@ -181,26 +178,16 @@ public class VersionGCRecommendations {
             // success, we would not expect to encounter revisions older than this in the future
             setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs);
 
-            int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
-            double usedFraction;
-            double allowedFraction = 0.66;
-
             if (maxCollect <= 0) {
-                usedFraction = count / (double) this.originalCollectLimit;
-            } else {
-                usedFraction = count / (double) maxCollect;
-            }
-
-            if (scope.getDurationMs() == suggestedIntervalMs) {
-                if (usedFraction < allowedFraction) {
+                VersionGarbageCollector.log.debug("successful run without effective limit, keeping recommendations");
+            } else if (scope.getDurationMs() == suggestedIntervalMs) {
+                int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
+                double used = count / (double) maxCollect;
+                if (used < 0.66) {
                     long nextDuration = (long) Math.ceil(suggestedIntervalMs * 1.5);
-                    VersionGarbageCollector.log.debug(
-                            "successful run using {}% of limit, raising recommended interval to {} seconds",
-                            Math.round(usedFraction * 1000) / 10.0, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
+                    VersionGarbageCollector.log.debug("successful run using {}% of limit, raising recommended interval to {} seconds",
+                            Math.round(used*1000)/10.0, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
                     setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
-                } else {
-                    VersionGarbageCollector.log.debug("not increasing limit: collected {} documents ({}% >= {}% limit)", count,
-                            usedFraction, allowedFraction);
                 }
             } else {
                 VersionGarbageCollector.log.debug("successful run not following recommendations, keeping them");
