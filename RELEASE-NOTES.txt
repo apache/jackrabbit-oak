@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.24
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.26
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.24 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.26 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
@@ -15,25 +15,19 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.4.24
+Changes in Oak 1.4.26
 ---------------------
 
 Bug
 
-    [OAK-6895] - Suggest directory lookup (query) isn't closed
-    [OAK-6972] - DefaultIndexReader closes suggest directory multiple times
-    [OAK-7630] - Suggest directory update doesn't close AnalyzingInfixSuggester after building
-    [OAK-7935] - RDB*Store: createOrUpdate may fail on stale cache when document was removed on different instance
+    [OAK-8012] - Unmerged branch changes visible after restart
+    [OAK-8123] - Build failure with Maven 3.6.0
+    [OAK-8133] - Word SHA1 no longer allowed
 
-Improvement
+Test
 
-    [OAK-7854] - Add liveliness monitoring for FileStore background operations
-    [OAK-7925] - OakUpgrade for RDBMK: user name and password must match
-
-Task
-
-    [OAK-7868] - Update Oak 1.4 and 1.2 to Jackrabbit 2.12.10
-
+    [OAK-5027] - Test utils for commonly used functionality
+    [OAK-8353] - Additional test for OAK-8012
     
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
