@@ -74,7 +74,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 
@@ -175,7 +174,6 @@ public class NodeTypeRegistryTest {
     }
 
     // OAK-7886
-    @Ignore("OAK-7886")
     @Test
     public void reRegisterNtResource() throws Exception {
         NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
