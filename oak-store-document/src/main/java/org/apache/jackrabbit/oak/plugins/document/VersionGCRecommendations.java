@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
@@ -33,6 +35,8 @@ import com.google.common.collect.Maps;
  * Gives a recommendation about parameters for the next revision garbage collection run.
  */
 public class VersionGCRecommendations {
+
+    private static final Logger log = LoggerFactory.getLogger(VersionGCRecommendations.class);
 
     private final VersionGCSupport vgc;
     private final GCMonitor gcmon;
@@ -87,9 +91,9 @@ public class VersionGCRecommendations {
         Map<String, Long> settings = getLongSettings();
         lastOldestTimestamp = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
         if (lastOldestTimestamp == 0) {
-            VersionGarbageCollector.log.debug("No lastOldestTimestamp found, querying for the oldest deletedOnce candidate");
+            log.debug("No lastOldestTimestamp found, querying for the oldest deletedOnce candidate");
             oldestPossible = vgc.getOldestDeletedOnceTimestamp(clock, options.precisionMs) - 1;
-            VersionGarbageCollector.log.debug("lastOldestTimestamp found: {}", Utils.timestampToString(oldestPossible));
+            log.debug("lastOldestTimestamp found: {}", Utils.timestampToString(oldestPossible));
         } else {
             oldestPossible = lastOldestTimestamp - 1;
         }
@@ -102,13 +106,13 @@ public class VersionGCRecommendations {
             suggestedIntervalMs = Math.max(suggestedIntervalMs, options.precisionMs);
             if (suggestedIntervalMs < scope.getDurationMs()) {
                 scope = scope.startAndDuration(suggestedIntervalMs);
-                VersionGarbageCollector.log.debug("previous runs recommend a {} sec duration, scope now {}",
+                log.debug("previous runs recommend a {} sec duration, scope now {}",
                         TimeUnit.MILLISECONDS.toSeconds(suggestedIntervalMs), scope);
             }
         } else if (scope.getDurationMs() <= options.precisionMs) {
             // the scope is smaller than the minimum precision
             // -> no need to refine the scope
-            VersionGarbageCollector.log.debug("scope <= precision ({} ms)", options.precisionMs);
+            log.debug("scope <= precision ({} ms)", options.precisionMs);
         } else {
             /* Need to guess. Count the overall number of _deletedOnce documents. If those
              * are more than we want to collect in a single run, reduce the time scope so
@@ -122,12 +126,12 @@ public class VersionGCRecommendations {
                     suggestedIntervalMs = (long) Math.floor((scope.getDurationMs() + maxRevisionAgeMs) / chunks);
                     if (suggestedIntervalMs < scope.getDurationMs()) {
                         scope = scope.startAndDuration(suggestedIntervalMs);
-                        VersionGarbageCollector.log.debug("deletedOnce candidates: {} found, {} preferred, scope now {}",
+                        log.debug("deletedOnce candidates: {} found, {} preferred, scope now {}",
                                 deletedOnceCount, preferredLimit, scope);
                     }
                 }
             } catch (UnsupportedOperationException ex) {
-                VersionGarbageCollector.log.debug("check on upper bounds of delete candidates not supported, skipped");
+                log.debug("check on upper bounds of delete candidates not supported, skipped");
             }
         }
 
@@ -136,13 +140,12 @@ public class VersionGCRecommendations {
         if (checkpoint != null && scope.endsAfter(checkpoint.getTimestamp())) {
             TimeInterval minimalScope = scope.startAndDuration(options.precisionMs);
             if (minimalScope.endsAfter(checkpoint.getTimestamp())) {
-                VersionGarbageCollector.log.warn("Ignoring RGC run because a valid checkpoint [{}] exists inside minimal scope {}.",
+                log.warn("Ignoring RGC run because a valid checkpoint [{}] exists inside minimal scope {}.",
                         checkpoint.toReadableString(), minimalScope);
                 ignoreDueToCheckPoint = true;
             } else {
                 scope = scope.notLaterThan(checkpoint.getTimestamp() - 1);
-                VersionGarbageCollector.log.debug("checkpoint at [{}] found, scope now {}",
-                        Utils.timestampToString(checkpoint.getTimestamp()), scope);
+                log.debug("checkpoint at [{}] found, scope now {}", Utils.timestampToString(checkpoint.getTimestamp()), scope);
             }
         }
 
@@ -150,7 +153,7 @@ public class VersionGCRecommendations {
             // If we have narrowed the collect time interval down as much as we can, no
             // longer enforce a limit. We need to get through this.
             collectLimit = 0;
-            VersionGarbageCollector.log.debug("time interval <= precision ({} ms), disabling collection limits", options.precisionMs);
+            log.debug("time interval <= precision ({} ms), disabling collection limits", options.precisionMs);
         }
 
         this.precisionMs = options.precisionMs;
@@ -194,16 +197,15 @@ public class VersionGCRecommendations {
             if (scope.getDurationMs() == suggestedIntervalMs) {
                 if (usedFraction < allowedFraction) {
                     long nextDuration = (long) Math.ceil(suggestedIntervalMs * 1.5);
-                    VersionGarbageCollector.log.debug(
-                            "successful run using {}% of limit, raising recommended interval to {} seconds",
+                    log.debug("successful run using {}% of limit, raising recommended interval to {} seconds",
                             Math.round(usedFraction * 1000) / 10.0, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
                     setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
                 } else {
-                    VersionGarbageCollector.log.debug("not increasing limit: collected {} documents ({}% >= {}% limit)", count,
-                            usedFraction, allowedFraction);
+                    log.debug("not increasing limit: collected {} documents ({}% >= {}% limit)", count, usedFraction,
+                            allowedFraction);
                 }
             } else {
-                VersionGarbageCollector.log.debug("successful run not following recommendations, keeping them");
+                log.debug("successful run not following recommendations, keeping them");
             }
             stats.needRepeat = !scopeIsComplete;
         }
