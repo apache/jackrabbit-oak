@@ -44,7 +44,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -262,7 +261,6 @@ public class VersionGCTest {
 
     // OAK-8448: test that after shrinking the scope to the minimum and after
     // successful runs, scope will be expanded again
-    @Ignore("OAK-8448")
     @Test
     public void expandIntervalAgain() throws Exception {
 
