@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.10.2
+Release Notes -- Apache Jackrabbit Oak -- Version 1.10.3
 
 Introduction
 ------------
@@ -7,14 +7,14 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.10.2 is a patch release that contains fixes and
+Jackrabbit Oak 1.10.3 is a patch release that contains fixes and
 improvements over Oak 1.10. Jackrabbit Oak 1.10.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.10.2
+Changes in Oak 1.10.3
 ---------------------
 
 For more detailed information about all the changes in this and other
@@ -22,38 +22,132 @@ Oak releases, please see the Oak issue tracker at
 
   https://issues.apache.org/jira/browse/OAK
 
+Technical task
+
+    [OAK-8002] - RDBDocumentStore: add RDB-specific
+    MissingLastRevSeeker
+    [OAK-8083] - RDB*Store: add SQLServer specific documentation
+    [OAK-8147] - RDBBlobStore: add perf logging for JDBC read
+    operations
+    [OAK-8200] - MongoDocumentStore in ReadOnly mode should never
+    modify persistence
+    [OAK-8201] - RDBDocumentStore in ReadOnly mode should never modify
+    persistence
+    [OAK-8251] - RDBBlobStore instantiated from ReadOnly
+    DocumentNodeStore should never modify persistence
+    [OAK-8257] - RDBDocumentStore: improve trace logging of batch
+    operations
+    [OAK-8273] - RDBDocumentStore: createOrUpdate with less than 3 ops
+    suboptimal
+    [OAK-8307] - RDBDocumentStore: add DEBUG logging when fetching
+    index metadata fails
+    [OAK-8311] - RDBDocumentStore: allow to turn off RDB-specific
+    MissingLastRevSeeker
+    [OAK-8332] - update Tomcat JDBC dependency to 8.5.41
+    [OAK-8337] - RDBDocumentStore: refactor index dumping code
+    [OAK-8338] - RDBDocumentStoreJDBC: fix theoretically possible NPE
+    in perflogging code
+    [OAK-8346] - RDBDocumentStore*: fix several potential but
+    improbable NPEs
+    [OAK-8349] - RDBDocumentStore*: "reset clusterId tool" in oak-run
+    [OAK-8368] - RDBDocumentNodeStoreBuilder: refactor
+    setRDBConnection for consistency
+    [OAK-8371] - Stop using deprecated DocumentMK.Builder in RDB tests
+    [OAK-8375] - DocumentNodeStoreBuilder should not instantiate
+    BlobStore instance before "build()"
+    [OAK-8378] - rdb/oak-run: update usage and documentation for
+    garbage command
+
 Bug
 
-    [OAK-6749] - Segment-Tar standby sync fails with "in-memory" blobs present in the source repo
-    [OAK-8013] - [Direct Binary Access] DataRecordDownloadOptions creates invalid Content-Disposition headers - Workaround
-    [OAK-8051] - PersistentCache: error during open can lead to incomplete initialization and subsequent NPEs
-    [OAK-8063] - The cold standby client doesn't correctly handle backward references
-    [OAK-8092] - The cold standby server cannot handle blob requests for long blob IDs
-    [OAK-8095] - VersionStorageEditor can prevent upgrade of version store
-    [OAK-8106] - High memory usage when large branch is reset
-    [OAK-8108] - Branch reset does not remove all branch commit entries
-    [OAK-8122] - MongoDocumentStore init may fail with authentication
-    [OAK-8124] - Sidegrade operation doesn't run security-related commit hooks
+    [OAK-8024] - oak-http generates invalid html
+    [OAK-8089] - DocumentNodeStore dispose can fail when duration of
+    final background ops exceeds lease time
+    [OAK-8133] - Word SHA1 no longer allowed
+    [OAK-8139] - DocumentDiscoveryLiteService hasBacklog silencing
+    must support maven version format
+    [OAK-8199] - DocumentStore in ReadOnly mode should never modify
+    persistence
+    [OAK-8207] - Read-only DocumentNodeStore tries to create root
+    document
+    [OAK-8214] - RDBDocumentStore may not inherit ReadOnly flag from
+    DocumentNodeStore
+    [OAK-8220] - CommitRootUpdateTest creates malformed value
+    [OAK-8223] - javadoc-plugin fails with java11
+    [OAK-8232] - Node#setPrimaryType(String) does not create child
+    nodes defined as autoCreated
+    [OAK-8246] - Test failure:
+    NodeSetPrimaryTypeTest.testSetPrimaryType()
+    [OAK-8258] - Active deletion can delete blobs despite indexing
+    cycle deleting them failed
+    [OAK-8271] - Lucene path transformed result doesn't accomodate
+    wildcards in relative path
+    [OAK-8278] - RDBDataSourceFactory.CloseableDataSource doesn't
+    implement java.sql.Wrapper correctly
+    [OAK-8306] - Empty PrincipalProvider cache breaks membership
+    collection
+    [OAK-8314] - BlobIds created with direct uploads lack length
+    suffix
+    [OAK-8351] - Long running RGC remove and getmore operations
+    [OAK-8394] - Fix BinaryAccessDSGCIT failing intermittently for
+    Mongo
+    [OAK-8437] - direct children, exact, and parent path restrictions
+    don't work when path transformation takes place
+    [OAK-8459] - Intermittent issue with MongoStatusTest
+
+New Feature
+
+    [OAK-8146] - oak-run support for inspecting clusterNodeInfo
 
 Improvement
 
-    [OAK-8084] - LogCustomizer should allow instantiation with Java class (in addition to class name)
-    [OAK-8088] - Add refresh head revision time to background update stats
+    [OAK-8111] - Create read-only DocumentNodeStore for oak-run
+    recovery dry run
+    [OAK-8135] - HTTP service may not select correct media type if
+    multiple are specified in Accept header field
+    [OAK-8185] - Improve CompositeNodeStore fixture
+    [OAK-8205] - Add benchmark for Node.isNodeType()
+    [OAK-8241] - Add benchmark for transient Node.setProperty()
+    [OAK-8301] - Ensure travis-ci uses trusty image
+    [OAK-8310] - Potentially misleading conflict exception message
+    [OAK-8363] - Remove obsolete comment
+
+Test
+
+    [OAK-8353] - Additional test for OAK-8012
 
 Task
 
-    [OAK-8085] - Upgrade spotbugs to 3.1.11
-    [OAK-8112] - Change log pattern to have complete date for oak-run datastore command
-    [OAK-8115] - Allow disabling of BlobTracker when not required
-    [OAK-8118] - Index selected properties to enhance feature vector similarity search results
-    [OAK-8119] - Let similarity search rerank use distance as exact score
-
-Technical task
-
-    [OAK-8071] - Logging to detect commits carrying over from previous GC generation can block other threads from committing
-    [OAK-8080] - RDB*Store: move DB-specific config hints from Javadoc into oak-doc
-    [OAK-8087] - RDB*Store: update mssql-jdbc driver reference to 7.2.1.jre8
-
+    [OAK-7902] - Update osgi-mock to 2.3.10
+    [OAK-8072] - Aggregate jcr:content result nodes as their parent
+    [OAK-8098] - oak-examples/webapp: update spring boot dependency to
+    1.5.19
+    [OAK-8120] - Update http components to 4.5.7/4.4.11
+    [OAK-8163] - examples: update Tomcat dependency to 7.0.93
+    [OAK-8179] - Update jacoco to 0.8.3
+    [OAK-8180] - Update mockito to 2.25.1
+    [OAK-8196] - Update httpclient/mime dependencies to 4.5.8
+    [OAK-8197] - Update Oak 1.10 and trunk to Jackrabbit 2.18.1
+    [OAK-8208] - oak-run/rdb: add --rdbtableprefix option
+    [OAK-8235] - Upgrade Solr to version 6.6.6
+    [OAK-8248] - Update Oak trunk and 1.10 to Jackrabbit 2.18.2
+    [OAK-8277] - Run tests on travis-ci.org on MongoDB 4.0.x
+    [OAK-8286] - Update jetbrains nullability annotations to 17.0.0
+    [OAK-8290] - Update org.apache.felix.framework for jdk13
+    [OAK-8296] - DocumentNodeStoreBranchesTest uses
+    javax.annotation.Nonnull
+    [OAK-8312] - MissingLastRevSeeker and NodeDocumentSweeper: improve
+    progress logging
+    [OAK-8331] - Update Tika dependency to 1.21
+    [OAK-8334] - Update Jackson dependency to 2.9.9
+    [OAK-8335] - get rid of junit deprecation warnings
+    [OAK-8341] - Include tomcat-jdbc/juli in oak-run
+    [OAK-8345] - oak-run: cleanup command list and documentation
+    [OAK-8348] - Update surefire/failsafe dependencies to 2.22.2
+    [OAK-8350] - Update animal-sniffer dependency to 1.18
+    [OAK-8376] - update commons-codec dependency to 1.12
+    [OAK-8414] - Update jar-plugin dependency to 3.1.2
+    [OAK-8464] - Update javadoc-plugin to 3.1.1
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.10.x release.
