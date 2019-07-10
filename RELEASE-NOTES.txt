@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.14
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.15
 
 Introduction
 ------------
@@ -7,106 +7,26 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.14 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.15 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.14
+Changes in Oak 1.8.15
 ---------------------
-
-Technical task
-
-    [OAK-6812] - UpdateOp Condition: be consistent about the support
-    for non-revision properties
-    [OAK-7896] - RDB*Store: update mysql driver reference to 8.0.13
-    [OAK-7970] - RDB*Store: add profile for DB2 11.1 JDBC driver
-    [OAK-7971] - RDB*Store: update DB2 JDBC reference to 4.19.77
-    [OAK-8002] - RDBDocumentStore: add RDB-specific
-    MissingLastRevSeeker
-    [OAK-8074] - RDB*Store: update mysql-connector-java dependency to
-    8.0.15
-    [OAK-8080] - RDB*Store: move DB-specific config hints from Javadoc
-    into oak-doc
-    [OAK-8083] - RDB*Store: add SQLServer specific documentation
-    [OAK-8087] - RDB*Store: update mssql-jdbc driver reference to
-    7.2.1.jre8
-    [OAK-8147] - RDBBlobStore: add perf logging for JDBC read
-    operations
-    [OAK-8307] - RDBDocumentStore: add DEBUG logging when fetching
-    index metadata fails
-    [OAK-8311] - RDBDocumentStore: allow to turn off RDB-specific
-    MissingLastRevSeeker
-    [OAK-8332] - update Tomcat JDBC dependency to 8.5.41
-    [OAK-8337] - RDBDocumentStore: refactor index dumping code
-    [OAK-8338] - RDBDocumentStoreJDBC: fix theoretically possible NPE
-    in perflogging code
-    [OAK-8346] - RDBDocumentStore*: fix several potential but
-    improbable NPEs
-    [OAK-8349] - RDBDocumentStore*: "reset clusterId tool" in oak-run
-    [OAK-8368] - RDBDocumentNodeStoreBuilder: refactor
-    setRDBConnection for consistency
-    [OAK-8371] - Stop using deprecated DocumentMK.Builder in RDB tests
-    [OAK-8378] - rdb/oak-run: update usage and documentation for
-    garbage command
 
 Bug
 
-    [OAK-7155] - Executor in S3DataStoreFactory is not shut down
-    [OAK-7378] - Continuous Revision GC counts _deletedOnce with every
-    run
-    [OAK-7543] - MissingLastRevSeekerTest fails on MongoDB with
-    secondary preferred
-    [OAK-7564] - Commit fails when forced journal push throws
-    exception
-    [OAK-7886] - Re-registering node type may corrupt registry
-    [OAK-7956] - Conflict may leave behind _collisions entry
-    [OAK-8024] - oak-http generates invalid html
-    [OAK-8207] - Read-only DocumentNodeStore tries to create root
-    document
-    [OAK-8271] - Lucene path transformed result doesn't accomodate
-    wildcards in relative path
-    [OAK-8437] - direct children, exact, and parent path restrictions
-    don't work when path transformation takes place
-
-Improvement
-
-    [OAK-7213] - Avoid call for child node when bundle contains all
-    children
-    [OAK-7310] - Empty package-info.java causes unnecessary rebuild
-    [OAK-8135] - HTTP service may not select correct media type if
-    multiple are specified in Accept header field
-    [OAK-8310] - Potentially misleading conflict exception message
-
-Test
-
-    [OAK-8353] - Additional test for OAK-8012
+    [OAK-8223] - javadoc-plugin fails with java11
+    [OAK-8351] - Long running RGC remove and getmore operations
 
 Task
 
-    [OAK-7220] - add benchmark focused on string write performance
-    [OAK-7787] - oak-it: NoClassDefFoundError in log with Java 11
-    [OAK-7842] - solr: suppress problematic commons-fileupload
-    dependency
-    [OAK-8163] - examples: update Tomcat dependency to 7.0.93
-    [OAK-8179] - Update jacoco to 0.8.3
-    [OAK-8180] - Update mockito to 2.25.1
-    [OAK-8196] - Update httpclient/mime dependencies to 4.5.8
-    [OAK-8208] - oak-run/rdb: add --rdbtableprefix option
     [OAK-8235] - Upgrade Solr to version 6.6.6
-    [OAK-8286] - Update jetbrains nullability annotations to 17.0.0
-    [OAK-8290] - Update org.apache.felix.framework for jdk13
-    [OAK-8312] - MissingLastRevSeeker and NodeDocumentSweeper: improve
-    progress logging
-    [OAK-8331] - Update Tika dependency to 1.21
-    [OAK-8334] - Update Jackson dependency to 2.9.9
-    [OAK-8341] - Include tomcat-jdbc/juli in oak-run
-    [OAK-8348] - Update surefire/failsafe dependencies to 2.22.2
-    [OAK-8350] - Update animal-sniffer dependency to 1.18
-    [OAK-8376] - update commons-codec dependency to 1.12
-    [OAK-8414] - Update jar-plugin dependency to 3.1.2
+    [OAK-8464] - Update javadoc-plugin to 3.1.1
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.8.x release.
