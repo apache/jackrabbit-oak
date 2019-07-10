@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Abstract base class for {@link PropertyState} implementations
@@ -49,6 +49,7 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
      * @param name  The name of the property state
      * @param type  The type of the property state
      * @return  The new property state
+     * @throws IllegalArgumentException if @code type.isArray()} is {@code false}.
      */
     public static PropertyState emptyProperty(String name, final Type<?> type) {
         if (!type.isArray()) {
@@ -78,13 +79,13 @@ public abstract class EmptyPropertyState extends AbstractPropertyState {
 
     /**
      * @return An empty list if {@code type.isArray()} is {@code true}.
-     * @throws IllegalArgumentException {@code type.isArray()} is {@code false}.
+     * @throws IllegalStateException {@code type.isArray()} is {@code false}.
      */
     @SuppressWarnings("unchecked")
     @NotNull
     @Override
     public <T> T getValue(Type<T> type) {
-        checkArgument(type.isArray(), "Type must be an array type");
+        checkState(type.isArray(), "Type must be an array type");
         return (T) Collections.emptyList();
     }
 

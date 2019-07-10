@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -149,14 +150,15 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     }
 
     /**
+     * @throws IllegalStateException if {@code type.isArray()} is {@code false}.
      * @throws IllegalArgumentException if {@code type} is not one of the
-     * values defined in {@link Type} or if {@code type.isArray()} is {@code false}.
+     * values defined in {@link Type}
      */
     @SuppressWarnings("unchecked")
     @NotNull
     @Override
     public <S> S getValue(Type<S> type) {
-        checkArgument(type.isArray(), "Type must be an array type");
+        checkState(type.isArray(), "Type must be an array type");
         if (getType() == type) {
             return (S) values;
         }

@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static org.junit.Assert.*;
+
 import java.util.Calendar;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -32,12 +34,76 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.Lists;
 
 public class PropertyStatesTest {
 
     private final NamePathMapper namePathMapper = Mockito.mock(NamePathMapper.class);
     private final PartialValueFactory valueFactory = new PartialValueFactory(namePathMapper);
+    
+    @Test
+    public void emptyPropertyStateTest() {
+        PropertyState s = EmptyPropertyState.emptyProperty("test", Type.STRINGS);
+        assertEquals("test", s.getName());
+        assertFalse(s.getValue(Type.STRINGS).iterator().hasNext());
+        assertTrue(s.isArray());
+        assertEquals(Type.STRINGS, s.getType());
+        assertEquals(0, s.count());
+        try {        
+            s.getValue(Type.STRING, 0);
+            fail();
+        } catch (IndexOutOfBoundsException e) {
+            // expected
+        }
+        try {        
+            s.size();
+            fail();
+        } catch (IllegalStateException e) {
+            // expected
+        }
+        try {        
+            s.size(0);
+            fail();
+        } catch (IndexOutOfBoundsException e) {
+            // expected
+        }
+        try {
+            s.getValue(Type.STRING);
+            fail();
+        } catch (IllegalStateException e) {
+            // expected
+        }
+    }
+    
+    @Test(expected = IllegalArgumentException.class)
+    public void emptyPropertyStateNotArrayTest() {
+        EmptyPropertyState.emptyProperty("test", Type.STRING);
+    }
+    
+    @Test
+    public void multiPropertyStateTest() {
+        MultiStringPropertyState s = new MultiStringPropertyState("test", Lists.newArrayList("hello", "world"));
+        assertEquals(Type.STRINGS, s.getType());
+        assertEquals("test", s.getName());
+        assertTrue(s.getValue(Type.STRINGS).iterator().hasNext());
+        assertEquals(2, s.count());
+        assertEquals("hello".length(), s.size(0));
+        assertEquals("world".length(), s.size(1));
+        assertEquals("hello", s.getValue(Type.STRING, 0));
+        assertEquals("world", s.getValue(Type.STRING, 1));
+        try {
+            s.getValue(Type.STRING);
+            fail();
+        } catch (IllegalStateException e) {
+            // expected
+        } 
+        try {        
+            s.size();
+            fail();
+        } catch (IllegalStateException e) {
+            // expected
+        }        
+    }
 
     @Test
     public void namePropertyFromNameValue() throws RepositoryException {
