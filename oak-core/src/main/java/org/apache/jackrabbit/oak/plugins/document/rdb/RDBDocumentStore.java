@@ -563,8 +563,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private void invalidateNodesCache(String id, boolean remove) {
-        Lock lock = locks.acquire(id);
-        try {
+        try (CacheLock lock = acquireLockFor(id)) {
             if (remove) {
                 nodesCache.invalidate(id);
             } else {
@@ -574,8 +573,6 @@ public class RDBDocumentStore implements DocumentStore {
                     entry.markUpToDate(0);
                 }
             }
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -1153,8 +1150,7 @@ public class RDBDocumentStore implements DocumentStore {
                 }
             }
             try {
-                Lock lock = locks.acquire(id);
-                try {
+                try (CacheLock lock = acquireLockFor(id)) {
                     // caller really wants the cache to be cleared
                     if (maxCacheAge == 0) {
                         invalidateNodesCache(id, true);
@@ -1187,8 +1183,6 @@ public class RDBDocumentStore implements DocumentStore {
                         doc = wrap(ndoc);
                         nodesCache.put(doc);
                     }
-                } finally {
-                    lock.unlock();
                 }
                 return castAsT(unwrap(doc));
             } catch (ExecutionException e) {
@@ -1302,12 +1296,10 @@ public class RDBDocumentStore implements DocumentStore {
             maintainUpdateStats(collection, update.getId());
             addUpdateCounters(update);
             T doc = createNewDocument(collection, oldDoc, update);
-            Lock l = locks.acquire(update.getId());
             final Stopwatch watch = startWatch();
             boolean success = false;
             int retries = maxRetries;
-            try {
-
+            try (CacheLock lock = acquireLockFor(update.getId())) {
                 while (!success && retries > 0) {
                     long lastmodcount = modcountOf(oldDoc);
                     success = updateDocument(collection, doc, update, lastmodcount);
@@ -1360,7 +1352,6 @@ public class RDBDocumentStore implements DocumentStore {
 
                 return oldDoc;
             } finally {
-                l.unlock();
                 int numOfAttempts = maxRetries - retries - 1;
                 stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection,
                         update.getId(), false, success, numOfAttempts);
@@ -1428,14 +1419,11 @@ public class RDBDocumentStore implements DocumentStore {
                     // and a tracker is present
                     long lastmodified = modifiedOf(doc);
                     if (lastmodified == row.getModified() && lastmodified >= 1) {
-                        Lock lock = locks.acquire(row.getId());
-                        try {
+                        try (CacheLock lock = acquireLockFor(row.getId())) {
                             if (!tracker.mightBeenAffected(row.getId())) {
                                 // otherwise mark it as fresh
                                 ((NodeDocument) doc).markUpToDate(now);
                             }
-                        } finally {
-                            lock.unlock();
                         }
                     }
                     else {
@@ -1957,6 +1945,24 @@ public class RDBDocumentStore implements DocumentStore {
     private <T extends Document> DocumentStoreException handleException(String message, Exception ex, Collection<T> collection,
             String id) {
         return handleException(message, ex, collection, Collections.singleton(id));
+    }
+
+    private CacheLock acquireLockFor(String id) {
+        return new CacheLock(this.locks, id);
+    }
+
+    private static class CacheLock implements AutoCloseable {
+
+        private final Lock lock;
+
+        public CacheLock(NodeDocumentLocks locks, String id) {
+            this.lock = locks.acquire(id);
+        }
+
+        @Override
+        public void close() {
+            lock.unlock();
+        }
     }
 
     // slightly extended query support
