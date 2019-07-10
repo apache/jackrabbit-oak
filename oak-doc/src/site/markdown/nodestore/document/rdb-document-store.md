@@ -344,4 +344,64 @@ the artefacts `tomcat-jdbc` and `tomcat-juli`, which thus need to be added to
 the classpath as well (see OAK-8341 for details).
 
 
+## <a name="reading-log-files"></a> Reading Log Files
+
+There are certain log messages to look out for when investigating problems,
+and also some that may cause unneeded confusion.
+
+See below.
+
+### <a name="startup-messages"></a> Startup Message
+
+Such as:
+
+~~~
+16:26:28.172 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database PostgreSQL 10.6 (10.6), using driver: PostgreSQL JDBC Driver 42.2.5 (42.2), connecting to: jdbc:postgresql:oak, properties: {datcollate=C, pg_encoding_to_char(encoding)=UTF8}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), .nodes: id varchar(512), modified int8, hasbinary int2, deletedonce int2, modcount int8, cmodcount int8, dsize int8, version int2, sdtype int2, sdmaxrevtime int8, data varchar(16384), bdata bytea(2147483647) /* {bytea=-2, int2=5, int8=-5, varchar=12} */ /* index nodes_mod on public.nodes (modified ASC) other (#0, p1), unique index nodes_pkey on public.nodes (id ASC) other (#0, p1), index nodes_sdm on public.nodes (sdmaxrevtime ASC) other (#0, p1), index nodes_sdt on public.nodes (sdtype ASC) other (#0, p1), index nodes_vsn on public.nodes (version ASC) other (#0, p1) */
+~~~
+
+The information dumped here is essential for diagnosing issues and should be
+included in all bug reports. It includes:
+
+- Oak's version number
+- Database type and version
+- JDBC driver and version
+- JDBC "URL"
+- certain DB-specific properties
+- JDBC transaction isolation level
+- schema for "NODES" table (other tables are not reported; they ought to be the same)
+- information on database indices
+
+### <a name="long-running-queries"></a> "Long Running Queries"
+
+RDBDocumentStore will log an INFO message when a query takes longer than 10s,
+which frequently indicates a configuration problem.
+
+~~~
+INFO  ... org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreJDBC - Long running query on NODES with 100 hits (limited to 100), elapsed time 11361ms (configured QUERYTIMELIMIT 10000), params minid 'null' maxid 'null' excludeKeyPatterns [] conditions [_modified >= 1554909530] limit 100. Result range: '0:/'...'12:/...'. Read 26126 chars from DATA and 0 bytes from BDATA. Check calling method.
+java.lang.Exception: call stack
+~~~
+
+The call stack is dumped to identify the piece of code that executed the query.
+It is important to understand that this is not an error, it is just logged
+for diagnostic purposes.
+
+
+### <a name="tomcat-jdbc-pool-interceptor"></a> Tomcat JDBC Pool Interceptor Messages
+
+When using the Tomcat JDBC connection pool, by default "slow" and "failed"
+queries will be logged on WARN level. The latter category is a bit problematic,
+as what Tomcat thinks is a failure might be completely normal and expected
+behavior. For instance:
+
+~~~
+WARN [...] org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport Failed Query Report SQL=update NODES set MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, VERSION = 2, DATA = CASE WHEN LEN(DATA) < ? THEN (DATA + CAST(? AS nvarchar(4000))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END where ID = ? and MODCOUNT = ?; time=1 ms;
+~~~
+
+This just indicates that an update operation that was made conditional did not
+happen because the condition was not met.
+
+Another example are insert operations, which are done "optimistically", and will
+automatically be retried as updates upon failure.
+
+
 
