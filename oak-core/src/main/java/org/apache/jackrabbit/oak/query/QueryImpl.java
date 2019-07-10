@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -133,8 +134,17 @@ public class QueryImpl implements Query {
     SourceImpl source;
     private String statement;
     final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
+    
+    /**
+     * The map of indexes (each selector uses one index)
+     */
     final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
+    
+    /**
+     * The list of selectors of this query. For a join, there can be multiple selectors.
+     */
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
+    
     ConstraintImpl constraint;
 
     /**
@@ -492,9 +502,40 @@ public class QueryImpl implements Query {
         return new ResultImpl(this);
     }
 
+    /**
+     * If one of the indexes wants a warning to be logged due to path mismatch,
+     * then get the warning message. Otherwise, return null.
+     * 
+     * @return null (in the normal case) or the list of index plan names (if
+     *         some index wants a warning to be logged)
+     */
+    private String getWarningForPathFilterMismatch() {
+        StringBuilder buff = null;
+        for (SelectorImpl s : selectors) {
+            if (s.getExecutionPlan() != null &&
+                    s.getExecutionPlan().getIndexPlan() != null &&
+                    s.getExecutionPlan().getIndexPlan().logWarningForPathFilterMismatch()) {
+                if (buff == null) {
+                    buff = new StringBuilder();
+                }
+                if (buff.length() > 0) {
+                    buff.append(", ");
+                }
+                buff.append(s.getExecutionPlan().getIndexPlanName());
+            }
+        }
+        return buff == null ? null : buff.toString();
+    }
+    
     @Override
     public Iterator<ResultRowImpl> getRows() {
         prepare();
+        String warn = getWarningForPathFilterMismatch();
+        if (warn != null) {
+            LOG.warn("Index definition of index used have path restrictions and query won't return nodes from " +
+             "those restricted paths; query={}, plan={}", statement, warn);
+        }
+        
         if (explain) {
             String plan = getPlan();
             if (measure) {

@@ -34,6 +34,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -150,6 +152,9 @@ public class FulltextIndexPlanner {
         log.trace("Evaluating plan with index definition {}", definition);
 
         if (wrongIndex()) {
+            return null;
+        }
+        if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.ENABLE.name()) && !isPlanWithValidPathFilter()) {
             return null;
         }
 
@@ -286,6 +291,11 @@ public class FulltextIndexPlanner {
             costPerEntryFactor += sortOrder.size();
 
             IndexPlan.Builder plan = defaultPlan();
+
+            if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.WARN.name()) && !isPlanWithValidPathFilter()) {
+                plan.setLogWarningForPathFilterMismatch(true);
+            }
+            
             if (plan == null) {
                 return null;
             }
@@ -331,6 +341,12 @@ public class FulltextIndexPlanner {
         //TODO Support for property existence queries
 
         return null;
+    }
+
+    private boolean isPlanWithValidPathFilter() {
+        String pathFilter = filter.getPath();
+        PathFilter definitionPathFilter = definition.getPathFilter();
+        return definitionPathFilter.areAllDescendantsIncluded(pathFilter);
     }
 
     private boolean matchesValuePattern(PropertyRestriction pr, PropertyDefinition pd) {
