@@ -411,6 +411,7 @@ public class Oak {
         this.queryEngineSettings.setFullTextComparisonWithoutIndex(settings.getFullTextComparisonWithoutIndex());
         this.queryEngineSettings.setLimitInMemory(settings.getLimitInMemory());
         this.queryEngineSettings.setLimitReads(settings.getLimitReads());
+        this.queryEngineSettings.setStrictPathRestriction(settings.getStrictPathRestriction());
         return this;
     }
 
@@ -931,6 +932,14 @@ public class Oak {
         @Override
         public void setFastQuerySize(boolean fastQuerySize) {
             settings.setFastQuerySize(fastQuerySize);
+        }
+
+        public String getStrictPathRestriction() {
+            return settings.getStrictPathRestriction();
+        }
+
+        public void setStrictPathRestriction(String strictPathRestriction) {
+            settings.setStrictPathRestriction(strictPathRestriction);
         }
 
         @Override

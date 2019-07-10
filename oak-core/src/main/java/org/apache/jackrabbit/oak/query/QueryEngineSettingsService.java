@@ -68,6 +68,16 @@ public class QueryEngineSettingsService {
                         "Note: even if enabled, getSize may still return -1 if the index used does not support the feature." 
         )
         boolean fastQuerySize() default false;
+
+        @AttributeDefinition(
+                name = "Enable Strict Path restrictions for indexes to be used",
+                description = "Whether path restrictions of indexes (excludedPaths / includedPaths) are taken into" +
+                        "account during query execution, for Lucene indexes. When enabled, only indexes are considered if" +
+                        "the index path restriction is compatible with the query path restrictions. When disabled, only" +
+                        "the queryPaths of the index is taken into account."
+        )
+        String getStrictPathRestrictionsForIndexes() default DISABLED_STRICT_PATH_RESTRICTION;
+
     }
 
     // should be the same as QueryEngineSettings.DEFAULT_QUERY_LIMIT_IN_MEMORY
@@ -82,6 +92,7 @@ public class QueryEngineSettingsService {
     static final String QUERY_FAIL_TRAVERSAL = "queryFailTraversal";
     
     static final String QUERY_FAST_QUERY_SIZE = "fastQuerySize";
+    static final String DISABLED_STRICT_PATH_RESTRICTION = "DISABLE";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -114,6 +125,8 @@ public class QueryEngineSettingsService {
         boolean fastQuerySizeSysProp = QueryEngineSettings.DEFAULT_FAST_QUERY_SIZE;
         boolean fastQuerySizeFromConfig = config.fastQuerySize();
         queryEngineSettings.setFastQuerySize(fastQuerySizeFromConfig || fastQuerySizeSysProp);
+        
+        queryEngineSettings.setStrictPathRestriction(config.getStrictPathRestrictionsForIndexes());
 
         log.info("Initialize QueryEngine settings {}", queryEngineSettings);
     }

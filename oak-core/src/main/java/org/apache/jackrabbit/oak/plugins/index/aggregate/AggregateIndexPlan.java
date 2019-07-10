@@ -34,6 +34,7 @@ public class AggregateIndexPlan implements IndexPlan {
     
     private Filter filter;
     private boolean pathWithoutPlan;
+    private boolean logWarning;
     
     /**
      * The map of terms to plans.
@@ -138,6 +139,11 @@ public class AggregateIndexPlan implements IndexPlan {
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean logWarning() {
+        return logWarning;
     }
 
     /**

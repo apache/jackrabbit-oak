@@ -86,6 +86,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -173,6 +174,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private ResultCountingIndexProvider queryIndexProvider;
 
+    private QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
+
     @After
     public void after() {
         new ExecutorCloser(executorService).close();
@@ -199,6 +202,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .with(optionalEditorProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider())
+                .with(queryEngineSettings)
                 .createContentRepository();
     }
 
@@ -863,32 +867,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10"), containsString("lucene:test1"));
 
         assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/a", "/test/a/b"));
-    }
-
-    @Test
-    public void pathExclude() throws Exception{
-        Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
-        //Do not provide type information
-        root.commit();
-
-        Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", 10);
-        test.addChild("a").addChild("b").setProperty("propa", 10);
-        test.addChild("c").setProperty("propa", 10);
-        root.commit();
-
-        assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 10"), containsString("lucene:test1"));
-
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/c"));
-
-        //Make some change and then check
-        test = root.getTree("/").getChild("test");
-        test.addChild("a").addChild("e").setProperty("propa", 10);
-        test.addChild("f").setProperty("propa", 10);
-        root.commit();
-
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 10", asList("/test/c", "/test/f"));
     }
 
     //OAK-4516

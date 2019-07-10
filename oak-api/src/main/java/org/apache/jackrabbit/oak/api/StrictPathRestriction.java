@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,12 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/**
- * Oak repository API
- */
-@Version("3.2.0")
 package org.apache.jackrabbit.oak.api;
 
-import org.osgi.annotation.versioning.Version;
+import java.util.Locale;
 
+public enum StrictPathRestriction {
+    ENABLE,
+    WARN,
+    DISABLE;
+
+    public static StrictPathRestriction stringToEnum(String strictPathRestrictionInString) {
+    // OAK-260 : Locale english is being used explicitly. (DISABLE[in turkish]  = DİSABLE[in English]--- Mind the dot above I)
+        return StrictPathRestriction.valueOf(strictPathRestrictionInString.toUpperCase(Locale.ENGLISH));
+    }
+
+}
