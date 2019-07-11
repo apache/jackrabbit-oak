@@ -24,14 +24,12 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 
-@Ignore("OAK-8473")
 public class RecoveryCommandTest {
 
     @Rule
