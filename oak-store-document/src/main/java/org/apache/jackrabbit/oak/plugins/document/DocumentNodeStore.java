@@ -693,6 +693,7 @@ public final class DocumentNodeStore
             // this may be long running if there is no sweep revision
             // for this clusterId (upgrade from Oak <= 1.6).
             // it is therefore important the lease thread is running already.
+            runBackgroundUpdateOperations();
             backgroundSweep();
 
             backgroundUpdateThread.start();
