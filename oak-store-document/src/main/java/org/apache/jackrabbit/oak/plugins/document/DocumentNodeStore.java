@@ -689,11 +689,14 @@ public final class DocumentNodeStore
         clusterUpdateThread.start();
         backgroundReadThread.start();
         if (!readOnlyMode) {
+            //OAK-8466 - background sweep may take too much time if cluster node got crashed sometime without updating 
+            //_lastRev. Hence triggering below function to update _lastRev, just before triggering sweep
+            runBackgroundUpdateOperations();
+
             // perform an initial document sweep if needed
             // this may be long running if there is no sweep revision
             // for this clusterId (upgrade from Oak <= 1.6).
             // it is therefore important the lease thread is running already.
-            runBackgroundUpdateOperations();
             backgroundSweep();
 
             backgroundUpdateThread.start();
