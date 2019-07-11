@@ -17,10 +17,12 @@
 package org.apache.jackrabbit.oak.run;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -43,9 +45,15 @@ public class RevisionsCommandCustomBlobStoreTest {
         assumeTrue(MongoUtils.isAvailable());
     }
 
+    private DocumentNodeStore ns;
+
+    @Before
+    public void before() {
+        ns = createDocumentNodeStore();
+    }
+
     @Test
-    public void recovery() throws Exception {
-        createDocumentNodeStore();
+    public void info() throws Exception {
         RevisionsCommand cmd = new RevisionsCommand();
         cmd.execute(
                 MongoUtils.URL,
@@ -53,11 +61,42 @@ public class RevisionsCommandCustomBlobStoreTest {
         );
     }
 
-    private void createDocumentNodeStore() {
+    @Test
+    public void collect() throws Exception {
+        RevisionsCommand cmd = new RevisionsCommand();
+        cmd.execute(
+                MongoUtils.URL,
+                "collect"
+        );
+    }
+
+    @Test
+    public void reset() throws Exception {
+        RevisionsCommand cmd = new RevisionsCommand();
+        cmd.execute(
+                MongoUtils.URL,
+                "reset"
+        );
+    }
+
+    @Test
+    public void sweep() throws Exception {
+        int clusterId = ns.getClusterId();
+        ns.dispose();
+        RevisionsCommand cmd = new RevisionsCommand();
+        cmd.execute(
+                "--clusterId",
+                String.valueOf(clusterId),
+                MongoUtils.URL,
+                "sweep"
+        );
+    }
+
+    private DocumentNodeStore createDocumentNodeStore() {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
-        builderProvider.newBuilder().setBlobStore(new MemoryBlobStore())
+        return builderProvider.newBuilder().setBlobStore(new MemoryBlobStore())
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 }
