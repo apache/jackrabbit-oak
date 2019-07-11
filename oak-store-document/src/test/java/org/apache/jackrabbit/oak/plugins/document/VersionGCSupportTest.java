@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -128,8 +127,8 @@ public class VersionGCSupportTest {
     }
 
     @Test
-    @Ignore("OAK-8476")
     public void findOldest() {
+        // see OAK-8476
         long secs = 123456;
         long offset = SECONDS.toMillis(secs);
         Revision r = new Revision(offset, 0, 1);
