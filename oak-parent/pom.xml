@@ -311,7 +311,7 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>2.11</version>
+            <version>3.0.0</version>
           </plugin>
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
@@ -373,7 +373,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.3</version>
+          <version>3.7.1</version>
           <configuration>
             <generateReports>false</generateReports>
             <skip>true</skip>
@@ -390,7 +390,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-scm-publish-plugin</artifactId>
-          <version>1.0-beta-2</version>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -1015,7 +1015,7 @@
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-resources-plugin</artifactId>
-              <version>3.0.2</version>
+              <version>3.1.0</version>
               <executions>
                 <execution>
                   <id>default</id>
