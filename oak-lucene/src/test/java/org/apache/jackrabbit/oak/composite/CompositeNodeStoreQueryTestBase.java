@@ -30,12 +30,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -102,8 +97,8 @@ import com.google.common.collect.Lists;
 @RunWith(Parameterized.class)
 public class CompositeNodeStoreQueryTestBase {
 
-    private final NodeStoreKind nodeStoreRoot;
-    private final NodeStoreKind mounts;
+    protected final NodeStoreKind nodeStoreRoot;
+    protected final NodeStoreKind mounts;
 
     private final List<NodeStoreRegistration> registrations = newArrayList();
 
@@ -139,7 +134,7 @@ public class CompositeNodeStoreQueryTestBase {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
             { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
-            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
+            //{ NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
 //            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
 //            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT}
         });
@@ -263,6 +258,37 @@ public class CompositeNodeStoreQueryTestBase {
             .with(new ReferenceEditorProvider().with(mip))
             .with(new ReferenceIndexProvider().with(mip));
         return oak;
+    }
+
+    protected ContentRepository createRepository(NodeStore store, MountInfoProvider mip) {
+        return getOakRepo(store, mip).createContentRepository();
+    }
+
+    Oak getOakRepo(NodeStore store, MountInfoProvider mip) {
+
+        try {
+            indexCopier = new IndexCopier(executorService, temporaryFolder.getRoot());
+        } catch (IOException e) {
+            throw new RuntimeException();
+        }
+        DefaultIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, indexCopier);
+        indexTracker = new IndexTracker(indexReaderFactory);
+
+        LuceneIndexProvider luceneIndexProvider =
+                new LuceneIndexProvider(indexTracker);
+        LuceneIndexEditorProvider luceneIndexEditor =
+                new LuceneIndexEditorProvider(indexCopier, indexTracker, null, null, mip);
+        return new Oak(store).with(new InitialContent())
+                .with(new OpenSecurityProvider())
+                .with(new PropertyIndexEditorProvider().with(mip))
+                .with(new NodeCounterEditorProvider().with(mip))
+                .with(new PropertyIndexProvider().with(mip))
+                .with(luceneIndexEditor)
+                .with((QueryIndexProvider) luceneIndexProvider)
+                .with((Observer) luceneIndexProvider)
+                .with(new NodeTypeIndexProvider().with(mip))
+                .with(new ReferenceEditorProvider().with(mip))
+                .with(new ReferenceIndexProvider().with(mip));
     }
 
     protected List<String> executeQuery(String query, String language) {
@@ -492,10 +518,42 @@ public class CompositeNodeStoreQueryTestBase {
         void close() throws Exception;
     }
 
-    private NodeStore register(NodeStoreRegistration reg) throws Exception {
+    protected NodeStore register(NodeStoreRegistration reg) throws Exception {
         registrations.add(reg);
 
         return reg.get();
+    }
+
+
+    // Just a mock to demonstrate how upgrades will work with Composite Store
+    class CompositeStoreLB {
+        List<CompositeNodeStore> listCompositeStores = new ArrayList<>();
+
+        CompositeNodeStore activeNodeStore ;
+
+        public void addStoreToLB(CompositeNodeStore store) {
+            listCompositeStores.add(store);
+        }
+
+        public void removeStoreFromLB(CompositeNodeStore store) {
+            listCompositeStores.remove(store);
+        }
+
+        public CompositeNodeStore getActiveNodeStore() {
+            return activeNodeStore;
+        }
+
+        public void setActiveNodeStore(CompositeNodeStore store) {
+            this.activeNodeStore = store;
+        }
+
+        public void setRandomActiveNodeStore() {
+            if (listCompositeStores.size() > 0) {
+                Random random = new Random();
+                this.activeNodeStore = listCompositeStores.get(random.nextInt(listCompositeStores.size()));
+            }
+        }
+
     }
 
 }
