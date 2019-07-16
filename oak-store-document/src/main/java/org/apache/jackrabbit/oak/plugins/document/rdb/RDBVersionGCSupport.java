@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -177,9 +178,10 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
         LOG.debug("getOldestDeletedOnceTimestamp() <- start");
         try {
-            modifiedMs = store.getMinValue(Collection.NODES, NodeDocument.MODIFIED_IN_SECS, null, null,
+            long modifiedSec = store.getMinValue(Collection.NODES, NodeDocument.MODIFIED_IN_SECS, null, null,
                     RDBDocumentStore.EMPTY_KEY_PATTERN,
                     Collections.singletonList(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1)));
+            modifiedMs = TimeUnit.SECONDS.toMillis(modifiedSec);
         } catch (DocumentStoreException ex) {
             LOG.debug("getMinValue(MODIFIED)", ex);
         }

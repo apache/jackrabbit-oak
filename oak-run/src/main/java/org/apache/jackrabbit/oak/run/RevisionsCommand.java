@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.Versio
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -222,6 +223,7 @@ public class RevisionsCommand implements Command {
         // this prevents the DocumentNodeStore from writing a new
         // clusterId to the clusterNodes and nodes collections
         builder.setReadOnlyMode();
+        useMemoryBlobStore(builder);
         // create a version GC that operates on a read-only DocumentNodeStore
         // and a GC support with a writable DocumentStore
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport);
@@ -385,6 +387,7 @@ public class RevisionsCommand implements Command {
             return;
         }
         builder.setReadOnlyMode();
+        useMemoryBlobStore(builder);
         DocumentNodeStore ns = builder.build();
         closer.register(asCloseable(ns));
         MissingLastRevSeeker seeker = builder.createMissingLastRevSeeker();
@@ -397,5 +400,17 @@ public class RevisionsCommand implements Command {
 
     private String fmtDuration(long ts) {
         return TimeDurationFormatter.forLogging().format(ts, TimeUnit.MILLISECONDS);
+    }
+
+    private void useMemoryBlobStore(DocumentNodeStoreBuilder builder) {
+        // The revisions command does not have options for the blob store
+        // and the DocumentNodeStoreBuilder by default assumes the blobs
+        // are stored in the same location as the documents. That is,
+        // either in MongoDB or RDB, which is not necessarily the case and
+        // can cause an exception when the blob store implementation starts
+        // read-only on a database that does not have the required
+        // collection. Use an in-memory blob store instead, because the
+        // revisions command does not read blobs anyway.
+        builder.setBlobStore(new MemoryBlobStore());
     }
 }
