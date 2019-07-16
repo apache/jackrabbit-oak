@@ -34,6 +34,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.jcr.Repository;
 import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
@@ -134,7 +136,7 @@ public class CompositeNodeStoreQueryTestBase {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
             { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
-            //{ NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
+            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
 //            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
 //            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT}
         });
@@ -264,6 +266,10 @@ public class CompositeNodeStoreQueryTestBase {
         return getOakRepo(store, mip).createContentRepository();
     }
 
+    protected Repository createJCRRepository(NodeStore store, MountInfoProvider mip) {
+        return new Jcr(getOakRepo(store, mip)).createRepository();
+    }
+
     Oak getOakRepo(NodeStore store, MountInfoProvider mip) {
 
         try {
@@ -276,19 +282,30 @@ public class CompositeNodeStoreQueryTestBase {
 
         LuceneIndexProvider luceneIndexProvider =
                 new LuceneIndexProvider(indexTracker);
-        LuceneIndexEditorProvider luceneIndexEditor =
-                new LuceneIndexEditorProvider(indexCopier, indexTracker, null, null, mip);
-        return new Oak(store).with(new InitialContent())
-                .with(new OpenSecurityProvider())
-                .with(new PropertyIndexEditorProvider().with(mip))
-                .with(new NodeCounterEditorProvider().with(mip))
-                .with(new PropertyIndexProvider().with(mip))
-                .with(luceneIndexEditor)
-                .with((QueryIndexProvider) luceneIndexProvider)
-                .with((Observer) luceneIndexProvider)
-                .with(new NodeTypeIndexProvider().with(mip))
-                .with(new ReferenceEditorProvider().with(mip))
-                .with(new ReferenceIndexProvider().with(mip));
+        LuceneIndexEditorProvider luceneIndexEditor;
+
+        if (mip == null ){
+            luceneIndexEditor = new LuceneIndexEditorProvider();
+            return new Oak(store).with(new InitialContent())
+                    .with(new OpenSecurityProvider())
+                    .with(luceneIndexEditor)
+                    .with((QueryIndexProvider) luceneIndexProvider)
+                    .with((Observer) luceneIndexProvider);
+        } else {
+            luceneIndexEditor = new LuceneIndexEditorProvider(indexCopier, indexTracker, null, null, mip);
+            return new Oak(store).with(new InitialContent())
+                    .with(new OpenSecurityProvider())
+                    .with(new PropertyIndexEditorProvider().with(mip))
+                    .with(new NodeCounterEditorProvider().with(mip))
+                    .with(new PropertyIndexProvider().with(mip))
+                    .with(luceneIndexEditor)
+                    .with((QueryIndexProvider) luceneIndexProvider)
+                    .with((Observer) luceneIndexProvider)
+                    .with(new NodeTypeIndexProvider().with(mip))
+                    .with(new ReferenceEditorProvider().with(mip))
+                    .with(new ReferenceIndexProvider().with(mip));
+        }
+
     }
 
     protected List<String> executeQuery(String query, String language) {
@@ -524,36 +541,5 @@ public class CompositeNodeStoreQueryTestBase {
         return reg.get();
     }
 
-
-    // Just a mock to demonstrate how upgrades will work with Composite Store
-    class CompositeStoreLB {
-        List<CompositeNodeStore> listCompositeStores = new ArrayList<>();
-
-        CompositeNodeStore activeNodeStore ;
-
-        public void addStoreToLB(CompositeNodeStore store) {
-            listCompositeStores.add(store);
-        }
-
-        public void removeStoreFromLB(CompositeNodeStore store) {
-            listCompositeStores.remove(store);
-        }
-
-        public CompositeNodeStore getActiveNodeStore() {
-            return activeNodeStore;
-        }
-
-        public void setActiveNodeStore(CompositeNodeStore store) {
-            this.activeNodeStore = store;
-        }
-
-        public void setRandomActiveNodeStore() {
-            if (listCompositeStores.size() > 0) {
-                Random random = new Random();
-                this.activeNodeStore = listCompositeStores.get(random.nextInt(listCompositeStores.size()));
-            }
-        }
-
-    }
 
 }
