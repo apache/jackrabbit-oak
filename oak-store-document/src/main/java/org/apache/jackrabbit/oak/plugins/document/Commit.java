@@ -789,6 +789,18 @@ public class Commit {
         cacheEntry.done();
     }
 
+    void markChanged(Path path) {
+        while (true) {
+            if (!modifiedNodes.add(path)) {
+                break;
+            }
+            path = path.getParent();
+            if (path == null) {
+                break;
+            }
+        }
+    }
+
     /**
      * Apply the changes of a node to the cache.
      *
@@ -815,18 +827,6 @@ public class Commit {
             w.tag('^').key(p.getName()).object().endObject();
         }
         cacheEntry.append(path, w.toString());
-    }
-
-    private void markChanged(Path path) {
-        while (true) {
-            if (!modifiedNodes.add(path)) {
-                break;
-            }
-            path = path.getParent();
-            if (path == null) {
-                break;
-            }
-        }
     }
 
     private boolean isBundled(Path path) {

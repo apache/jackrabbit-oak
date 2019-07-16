@@ -756,45 +756,42 @@ public class DocumentNodeStoreTest {
     //OAK-8466
     @Test
     public void lastRevisionUpdateOnNodeRestart() throws Exception {
-        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        MemoryDocumentStore store = new MemoryDocumentStore();
 
+        int clusterId = 1;
         DocumentNodeStore dns1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore)
-                .setAsyncDelay(0).setClusterId(1)
+                .setDocumentStore(store)
+                .setAsyncDelay(0).setClusterId(clusterId)
                 .getNodeStore();
-
-        DocumentStore store = dns1.getDocumentStore();
-        int cId1 = dns1.getClusterId();
         dns1.dispose();
 
         NodeDocument beforeRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(beforeRootDoc);
-        Revision beforeLastRev = beforeRootDoc.getLastRev().get(cId1);
+        Revision beforeLastRev = beforeRootDoc.getLastRev().get(clusterId);
 
         Clock clock = new Clock.Virtual();
         long now = System.currentTimeMillis();
+        // DocumentNodeStore refreshes the head revision and _lastRev
+        // when there was no commit for one minute
         clock.waitUntil( now + TimeUnit.MINUTES.toMillis(1));
         long timeBeforeStartup = clock.getTime();
         ClusterNodeInfo.setClock(clock);
         Revision.setClock(clock);
 
-        dns1 = builderProvider.newBuilder()
-                .setDocumentStore(docStore).clock(clock)
-                .setAsyncDelay(0).setClusterId(1)
+        builderProvider.newBuilder()
+                .setDocumentStore(store).clock(clock)
+                .setAsyncDelay(0).setClusterId(clusterId)
                 .getNodeStore();
 
-        store = dns1.getDocumentStore();
         NodeDocument afterRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(afterRootDoc);
-        Revision afterLastRev = afterRootDoc.getLastRev().get(cId1);
+        Revision afterLastRev = afterRootDoc.getLastRev().get(clusterId);
 
         assertThat("lastRev must be greater or equal '" + Utils.timestampToString(timeBeforeStartup) + "', but was '" 
             + Utils.timestampToString(afterLastRev.getTimestamp()) + "'", afterLastRev.getTimestamp(), 
             OrderingComparison.greaterThanOrEqualTo(timeBeforeStartup));
-        assertNotEquals("Last revision should be updated after 1 minute even background thread is not running", beforeLastRev, afterLastRev);
-
-        ClusterNodeInfo.resetClockToDefault();
-        Revision.resetClockToDefault();
+        assertNotEquals("Last revision should be updated after 1 minute even if background thread is not running",
+                beforeLastRev, afterLastRev);
     }
 
     // OAK-2288

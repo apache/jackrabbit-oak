@@ -2457,22 +2457,23 @@ public final class DocumentNodeStore
         if (isDisposed.get() || isDisableBranches()) {
             return;
         }
+        DocumentNodeState rootState = getRoot();
         // check if local head revision is outdated and needs an update
         // this ensures the head and sweep revisions are recent and the
         // revision garbage collector can remove old documents
-        Revision head = getHeadRevision().getRevision(clusterId);
-        NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
-        Revision lastRev = rootDoc.getLastRev().get(clusterId);
-        if ((head != null && head.getTimestamp() + ONE_MINUTE_MS < clock.getTime()) || 
-                (lastRev != null && lastRev.getTimestamp() + ONE_MINUTE_MS < clock.getTime())) {
+        Revision head = rootState.getRootRevision().getRevision(clusterId);
+        Revision lastRev = rootState.getLastRevision().getRevision(clusterId);
+        long now = clock.getTime();
+        if ((head != null && head.getTimestamp() + ONE_MINUTE_MS < now) ||
+                (lastRev != null && lastRev.getTimestamp() + ONE_MINUTE_MS < now)) {
             // head was not updated for more than a minute
             // create an empty commit that updates the head
             boolean success = false;
             Commit c = newTrunkCommit(nop -> {}, getHeadRevision());
             try {
+                c.markChanged(ROOT);
                 done(c, false, CommitInfo.EMPTY);
                 success = true;
-                unsavedLastRevisions.put(ROOT, getHeadRevision().getRevision(clusterId));
             } finally {
                 if (!success) {
                     canceled(c);
