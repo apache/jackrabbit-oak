@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
+import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.CoreMatchers.is;
@@ -117,6 +118,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.hamcrest.number.OrderingComparison;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
@@ -749,6 +751,50 @@ public class DocumentNodeStoreTest {
             ns2.getMBean().recover("/foo1", cId1);
             fail("must fail with DocumentStoreException");
         } catch (DocumentStoreException expected) {}
+    }
+
+    //OAK-8466
+    @Test
+    public void lastRevisionUpdateOnNodeRestart() throws Exception {
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+
+        DocumentNodeStore dns1 = builderProvider.newBuilder()
+                .setDocumentStore(docStore)
+                .setAsyncDelay(0).setClusterId(1)
+                .getNodeStore();
+
+        DocumentStore store = dns1.getDocumentStore();
+        int cId1 = dns1.getClusterId();
+        dns1.dispose();
+
+        NodeDocument beforeRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(beforeRootDoc);
+        Revision beforeLastRev = beforeRootDoc.getLastRev().get(cId1);
+
+        Clock clock = new Clock.Virtual();
+        long now = System.currentTimeMillis();
+        clock.waitUntil( now + TimeUnit.MINUTES.toMillis(1));
+        long timeBeforeStartup = clock.getTime();
+        ClusterNodeInfo.setClock(clock);
+        Revision.setClock(clock);
+
+        dns1 = builderProvider.newBuilder()
+                .setDocumentStore(docStore).clock(clock)
+                .setAsyncDelay(0).setClusterId(1)
+                .getNodeStore();
+
+        store = dns1.getDocumentStore();
+        NodeDocument afterRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(afterRootDoc);
+        Revision afterLastRev = afterRootDoc.getLastRev().get(cId1);
+
+        assertThat("lastRev must be greater or equal '" + Utils.timestampToString(timeBeforeStartup) + "', but was '" 
+            + Utils.timestampToString(afterLastRev.getTimestamp()) + "'", afterLastRev.getTimestamp(), 
+            OrderingComparison.greaterThanOrEqualTo(timeBeforeStartup));
+        assertNotEquals("Last revision should be updated after 1 minute even background thread is not running", beforeLastRev, afterLastRev);
+
+        ClusterNodeInfo.resetClockToDefault();
+        Revision.resetClockToDefault();
     }
 
     // OAK-2288

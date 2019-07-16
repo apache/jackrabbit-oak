@@ -2461,7 +2461,10 @@ public final class DocumentNodeStore
         // this ensures the head and sweep revisions are recent and the
         // revision garbage collector can remove old documents
         Revision head = getHeadRevision().getRevision(clusterId);
-        if (head != null && head.getTimestamp() + ONE_MINUTE_MS < clock.getTime()) {
+        NodeDocument rootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+        Revision lastRev = rootDoc.getLastRev().get(clusterId);
+        if ((head != null && head.getTimestamp() + ONE_MINUTE_MS < clock.getTime()) || 
+                (lastRev != null && lastRev.getTimestamp() + ONE_MINUTE_MS < clock.getTime())) {
             // head was not updated for more than a minute
             // create an empty commit that updates the head
             boolean success = false;
@@ -2469,6 +2472,7 @@ public final class DocumentNodeStore
             try {
                 done(c, false, CommitInfo.EMPTY);
                 success = true;
+                unsavedLastRevisions.put(ROOT, getHeadRevision().getRevision(clusterId));
             } finally {
                 if (!success) {
                     canceled(c);
