@@ -203,7 +203,7 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         result = compositeRepoV2.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo = 'bar']", "xpath").execute();
         assertThat(result.getRows().next().toString(),
                 containsString("/* traverse \"//*\" where ([a].[foo] = 'bar'"));
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("/jcr:root//*[@foo = 'bar']", "xpath").execute();
+        result = compositeRepoV2.getCompositeQueryManager().createQuery("/jcr:root//*[@foo = 'bar'] order by jcr:path", "xpath").execute();
 
         // Check that proper nodes are returned by the query even after traversal from both readonly version 2 and global read write parts
         assertEquals("/content-foo/node-0, /content-foo/node-1, " +
@@ -343,13 +343,18 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         } else {
             setupIndexAndContentInReadOnlyV2(indexName, indexedProperty, compositeRepo.getVersion());
         }
+        ///////////////////////////////////////////////////////////////////////////////////////////
+        // Need to restart the composite repo after changes done to the read only part - needed for segement node store
+        // Other wise the changes in read only repo are not visible to the cached reader.
+        compositeRepo = restartCompositeRepo(compositeRepo.getVersion());
+        ///////////////////////////////////////////////////////////////////////////////////////////
 
         // Need to save the composite session and login again for query to return results frorm read only part
         compositeRepo.getCompositeSession().save();
 
         compositeRepo.login();
-
         QueryResult result = compositeRepo.getCompositeQueryManager().createQuery("explain /jcr:root//*[@" + indexedProperty + " = 'bar']", "xpath").execute();
+
 
         assertThat(result.getRows().next().toString(),
                 containsString("/* lucene:" + indexName + "(/oak:index/" + indexName + ") " + indexedProperty + ":bar"));
@@ -428,6 +433,21 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
 
     private Node addOrGetNode(Node parent, String path, String primaryType) throws Exception{
         return parent.hasNode(path) ? parent.getNode(path) : parent.addNode(path, primaryType);
+    }
+
+    private CompositeRepo restartCompositeRepo(int version) throws Exception{
+        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+        if (version == VERSION_1) {
+            compositeRepoV1.cleanup();
+            nonDefaultStores.add(new MountedNodeStore(mipV1.getMountByName("readOnlyv1"), readOnlyStoreV1));
+            storeV1 = new CompositeNodeStore(mipV1, globalStore, nonDefaultStores);
+            return compositeRepoV1 =  new CompositeRepo(createJCRRepository(storeV1, mipV1), VERSION_1);
+        } else {
+            compositeRepoV2.getClass();
+            nonDefaultStores.add(new MountedNodeStore(mipV2.getMountByName("readOnlyv2"), readOnlyStoreV2));
+            storeV2 = new CompositeNodeStore(mipV2, globalStore, nonDefaultStores);
+            return compositeRepoV2 =  new CompositeRepo(createJCRRepository(storeV2, mipV2), VERSION_2);
+        }
     }
 
     private class CompositeRepo {

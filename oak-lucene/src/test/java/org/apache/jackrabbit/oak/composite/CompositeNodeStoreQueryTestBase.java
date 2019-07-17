@@ -136,7 +136,7 @@ public class CompositeNodeStoreQueryTestBase {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
             { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
-            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
+            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT}
 //            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
 //            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT}
         });
