@@ -102,7 +102,7 @@ public interface PrincipalAccessControlList extends JackrabbitAccessControlList 
      * control related exception occurs.
      * @throws RepositoryException If another error occurs
      */
-    boolean addEntry(@NotNull String effectivePath, @NotNull Privilege[] privileges) throws RepositoryException;
+    boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges) throws RepositoryException;
 
     /**
      * Adds an access control entry to this policy consisting of the specified {@code effectivePath}, the specified
@@ -136,7 +136,7 @@ public interface PrincipalAccessControlList extends JackrabbitAccessControlList 
      * if some other access control related exception occurs.
      * @throws RepositoryException If another error occurs
      */
-    boolean addEntry(@NotNull String effectivePath, @NotNull Privilege[] privileges, @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException;
+    boolean addEntry(@Nullable String effectivePath, @NotNull Privilege[] privileges, @NotNull Map<String, Value> restrictions, @NotNull Map<String, Value[]> mvRestrictions) throws RepositoryException;
 
     /**
      * Extension of the {@link JackrabbitAccessControlEntry} that additionally defines the target object where this entry
