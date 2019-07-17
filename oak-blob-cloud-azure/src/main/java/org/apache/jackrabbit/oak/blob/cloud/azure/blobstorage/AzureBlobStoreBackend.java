@@ -765,7 +765,26 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     URI createHttpDownloadURI(@NotNull DataIdentifier identifier,
                               @NotNull DataRecordDownloadOptions downloadOptions) {
         URI uri = null;
+
+        // When running unit test from Maven, it doesn't always honor the @NotNull decorators
+        if (null == identifier) throw new NullPointerException("identifier");
+        if (null == downloadOptions) throw new NullPointerException("downloadOptions");
+        
         if (httpDownloadURIExpirySeconds > 0) {
+
+            // Check if this identifier exists.  If not, we want to return null
+            // even if the identifier is in the download URI cache.
+            try {
+                if (! exists(identifier)) {
+                    LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
+                    return null;
+                }
+            }
+            catch (DataStoreException e) {
+                LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
+                return null;
+            }
+
             if (null != httpDownloadURICache) {
                 uri = httpDownloadURICache.getIfPresent(identifier);
             }

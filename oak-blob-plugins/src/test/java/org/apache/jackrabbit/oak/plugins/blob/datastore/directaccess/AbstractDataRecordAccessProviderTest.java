@@ -81,10 +81,21 @@ public abstract class AbstractDataRecordAccessProviderTest {
     // Direct download tests
     //
     @Test
-    public void testGetDownloadURIProvidesValidURI() {
-        DataIdentifier id = new DataIdentifier("testIdentifier");
-        URI uri = getDataStore().getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
-        assertNotNull(uri);
+    public void testGetDownloadURIProvidesValidURIIT() throws DataStoreException {
+        DataRecord record = null;
+        ConfigurableDataRecordAccessProvider dataStore = getDataStore();
+        try {
+            InputStream testStream = randomStream(0, 256);
+            record = doSynchronousAddRecord((DataStore) dataStore, testStream);
+            DataIdentifier id = record.getIdentifier();
+            URI uri = getDataStore().getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
+            assertNotNull(uri);
+        }
+        finally {
+            if (null != record) {
+                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            }
+        }
     }
 
     @Test
@@ -217,6 +228,20 @@ public abstract class AbstractDataRecordAccessProviderTest {
             }
             dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
         }
+    }
+
+    @Test
+    public void testGetDownloadURINonexistentBlobFailsIT() throws DataStoreException {
+        ConfigurableDataRecordAccessProvider dataStore = getDataStore();
+        InputStream testStream = randomStream(0, 256);
+
+        DataRecord record = doSynchronousAddRecord((DataStore) dataStore, testStream);
+
+        doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+
+        URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+
+        assertNull(uri);
     }
 
     //
