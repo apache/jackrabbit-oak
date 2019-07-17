@@ -89,7 +89,7 @@ public class DocumentNodeStoreStatsCollectorIT {
     @Test
     public void doneBackgroundUpdate() {
         nodeStore.runBackgroundUpdateOperations();
-        verify(statsCollector).doneBackgroundUpdate(any(BackgroundWriteStats.class));
+        verify(statsCollector,times(2)).doneBackgroundUpdate(any(BackgroundWriteStats.class));
     }
 
     @Test

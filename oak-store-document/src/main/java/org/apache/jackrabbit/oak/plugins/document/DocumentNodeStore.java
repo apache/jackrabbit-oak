@@ -689,6 +689,10 @@ public final class DocumentNodeStore
         clusterUpdateThread.start();
         backgroundReadThread.start();
         if (!readOnlyMode) {
+            //OAK-8466 - background sweep may take too much time if cluster node got crashed sometime without updating 
+            //_lastRev. Hence triggering below function to update _lastRev, just before triggering sweep
+            runBackgroundUpdateOperations();
+
             // perform an initial document sweep if needed
             // this may be long running if there is no sweep revision
             // for this clusterId (upgrade from Oak <= 1.6).
@@ -2453,16 +2457,21 @@ public final class DocumentNodeStore
         if (isDisposed.get() || isDisableBranches()) {
             return;
         }
+        DocumentNodeState rootState = getRoot();
         // check if local head revision is outdated and needs an update
         // this ensures the head and sweep revisions are recent and the
         // revision garbage collector can remove old documents
-        Revision head = getHeadRevision().getRevision(clusterId);
-        if (head != null && head.getTimestamp() + ONE_MINUTE_MS < clock.getTime()) {
+        Revision head = rootState.getRootRevision().getRevision(clusterId);
+        Revision lastRev = rootState.getLastRevision().getRevision(clusterId);
+        long now = clock.getTime();
+        if ((head != null && head.getTimestamp() + ONE_MINUTE_MS < now) ||
+                (lastRev != null && lastRev.getTimestamp() + ONE_MINUTE_MS < now)) {
             // head was not updated for more than a minute
             // create an empty commit that updates the head
             boolean success = false;
             Commit c = newTrunkCommit(nop -> {}, getHeadRevision());
             try {
+                c.markChanged(ROOT);
                 done(c, false, CommitInfo.EMPTY);
                 success = true;
             } finally {
