@@ -17,6 +17,10 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Iterables.filter;
+import static java.lang.Thread.currentThread;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -91,10 +95,6 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Iterables.filter;
-import static java.lang.Thread.currentThread;
 
 /**
  * A data store backend that stores data on Amazon S3.
@@ -737,6 +737,21 @@ public class S3Backend extends AbstractSharedBackend {
                               @NotNull DataRecordDownloadOptions downloadOptions) {
         if (httpDownloadURIExpirySeconds <= 0) {
             // feature disabled
+            return null;
+        }
+
+        // When running unit test from Maven, it doesn't always honor the @NotNull decorators
+        if (null == identifier) throw new NullPointerException("identifier");
+        if (null == downloadOptions) throw new NullPointerException("downloadOptions");
+
+        try {
+            if (! exists(identifier)) {
+                LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
+                return null;
+            }
+        }
+        catch (DataStoreException e) {
+            LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
             return null;
         }
 
