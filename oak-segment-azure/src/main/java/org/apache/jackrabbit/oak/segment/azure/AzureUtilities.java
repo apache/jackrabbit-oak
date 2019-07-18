@@ -35,6 +35,8 @@ import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -80,7 +82,7 @@ public final class AzureUtilities {
             blob.download(new ByteBufferOutputStream(buffer));
             buffer.flip();
         } catch (StorageException e) {
-            throw new IOException(e);
+            throw new RepositoryNotReachableException(e);
         }
     }
 

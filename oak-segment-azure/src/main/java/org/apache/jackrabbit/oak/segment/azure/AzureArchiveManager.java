@@ -53,11 +53,11 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private static final Logger log = LoggerFactory.getLogger(AzureSegmentArchiveReader.class);
 
-    private final CloudBlobDirectory cloudBlobDirectory;
+    protected final CloudBlobDirectory cloudBlobDirectory;
 
-    private final IOMonitor ioMonitor;
+    protected final IOMonitor ioMonitor;
 
-    private final FileStoreMonitor monitor;
+    protected final FileStoreMonitor monitor;
 
     public AzureArchiveManager(CloudBlobDirectory cloudBlobDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
         this.cloudBlobDirectory = cloudBlobDirectory;
@@ -207,7 +207,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     }
 
 
-    private CloudBlobDirectory getDirectory(String archiveName) throws IOException {
+    protected CloudBlobDirectory getDirectory(String archiveName) throws IOException {
         try {
             return cloudBlobDirectory.getDirectoryReference(archiveName);
         } catch (URISyntaxException e) {
