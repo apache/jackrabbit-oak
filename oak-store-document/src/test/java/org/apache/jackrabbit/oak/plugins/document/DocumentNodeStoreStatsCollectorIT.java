@@ -88,6 +88,7 @@ public class DocumentNodeStoreStatsCollectorIT {
 
     @Test
     public void doneBackgroundUpdate() {
+        Mockito.clearInvocations(statsCollector);
         nodeStore.runBackgroundUpdateOperations();
         verify(statsCollector).doneBackgroundUpdate(any(BackgroundWriteStats.class));
     }
