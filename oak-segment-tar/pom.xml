@@ -45,6 +45,7 @@
                 <configuration>
                     <instructions>
                         <Export-Package>
+                        	org.apache.jackrabbit.oak.segment.spi,
                             org.apache.jackrabbit.oak.segment.spi.monitor,
                             org.apache.jackrabbit.oak.segment.spi.persistence
                         </Export-Package>

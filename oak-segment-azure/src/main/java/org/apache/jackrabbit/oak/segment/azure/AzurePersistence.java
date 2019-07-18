@@ -50,7 +50,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
-    private final CloudBlobDirectory segmentstoreDirectory;
+    protected final CloudBlobDirectory segmentstoreDirectory;
 
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
         this.segmentstoreDirectory = segmentStoreDirectory;
