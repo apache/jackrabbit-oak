@@ -30,7 +30,12 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -459,7 +464,8 @@ public class CompositeNodeStoreQueryTestBase {
                         String directoryName = name != null ? "segment-" + name : "segment";
                         storePath = new File("target/classes/" + directoryName);
 
-                        String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
+                        //String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
+                        String blobStoreDirectoryName = "blob" ;
                         blobStorePath = "target/classes/" + blobStoreDirectoryName;
 
                         BlobStore blobStore = new FileBlobStore(blobStorePath);

@@ -30,14 +30,21 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.jcr.*;
+
+import javax.jcr.Node;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 import java.util.ArrayList;
 import java.util.List;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.*;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
