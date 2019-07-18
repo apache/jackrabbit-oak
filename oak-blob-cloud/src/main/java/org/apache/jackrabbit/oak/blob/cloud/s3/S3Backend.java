@@ -941,26 +941,10 @@ public class S3Backend extends AbstractSharedBackend {
             final Date expiration = new Date();
             expiration.setTime(expiration.getTime() + expirySeconds * 1000);
 
-            GeneratePresignedUrlRequest request = null;
-            if (properties.getProperty(S3Constants.S3_ENCRYPTION)
-                    .equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
-                if(properties.getProperty(S3Constants.S3_SSE_KMS_KEYID) != null) {
-                    request = new GeneratePresignedUrlRequest(bucket, key)
-                            .withMethod(method)
-                            .withExpiration(expiration)
-                            .withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm())
-                            .withKmsCmkId(properties.getProperty(S3Constants.S3_SSE_KMS_KEYID));
-                } else {
-                    request = new GeneratePresignedUrlRequest(bucket, key)
-                            .withMethod(method)
-                            .withExpiration(expiration)
-                            .withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-                }
-            } else {
-                    request = new GeneratePresignedUrlRequest(bucket, key)
-                            .withMethod(method)
-                            .withExpiration(expiration);
-            }
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
+                                                        .withMethod(method)
+                                                        .withExpiration(expiration);
+            request = s3ReqDecorator.decorate(request);
             for (Map.Entry<String, String> e : reqParams.entrySet()) {
                 request.addRequestParameter(e.getKey(), e.getValue());
             }

@@ -38,10 +38,11 @@ public class S3RequestDecorator {
     SSEAwsKeyManagementParams sseParams;
 
     public S3RequestDecorator(Properties props) {
-        if (props.getProperty(S3Constants.S3_ENCRYPTION) != null) {
-            this.dataEncryption = dataEncryption.valueOf(props.getProperty(S3Constants.S3_ENCRYPTION));
+        String encryptionType = props.getProperty(S3Constants.S3_ENCRYPTION);
+        if (encryptionType != null) {
+            this.dataEncryption = dataEncryption.valueOf(encryptionType);
 
-            if (props.getProperty(S3Constants.S3_ENCRYPTION).equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
+            if (encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
                 String keyId = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
                 sseParams = new SSEAwsKeyManagementParams();
                 if (!StringUtils.isNullOrEmpty(keyId)) {
@@ -55,18 +56,14 @@ public class S3RequestDecorator {
      * Set encryption in {@link PutObjectRequest}
      */
     public PutObjectRequest decorate(PutObjectRequest request) {
-        ObjectMetadata metadata;
+        ObjectMetadata metadata = request.getMetadata() == null
+                                      ? new ObjectMetadata()
+                                      : request.getMetadata();
         switch (getDataEncryption()) {
             case SSE_S3:
-                metadata = request.getMetadata() == null
-                                ? new ObjectMetadata()
-                                : request.getMetadata();
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
                 break;
             case SSE_KMS:
-                metadata = request.getMetadata() == null
-                                ? new ObjectMetadata()
-                                : request.getMetadata();
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 /*Set*/
                 request.withSSEAwsKeyManagementParams(sseParams);
@@ -82,18 +79,14 @@ public class S3RequestDecorator {
      * Set encryption in {@link CopyObjectRequest}
      */
     public CopyObjectRequest decorate(CopyObjectRequest request) {
-        ObjectMetadata metadata;
+        ObjectMetadata metadata = request.getNewObjectMetadata() == null
+                                      ? new ObjectMetadata()
+                                      : request.getNewObjectMetadata();;
         switch (getDataEncryption()) {
             case SSE_S3:
-                metadata = request.getNewObjectMetadata() == null
-                                ? new ObjectMetadata()
-                                : request.getNewObjectMetadata();
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
                 break;
             case SSE_KMS:
-                metadata = request.getNewObjectMetadata() == null
-                                ? new ObjectMetadata()
-                                : request.getNewObjectMetadata();
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 request.withSSEAwsKeyManagementParams(sseParams);
                 break;
@@ -105,18 +98,14 @@ public class S3RequestDecorator {
     }
 
     public InitiateMultipartUploadRequest decorate(InitiateMultipartUploadRequest request) {
-        ObjectMetadata metadata;
+        ObjectMetadata metadata = request.getObjectMetadata() == null
+                                      ? new ObjectMetadata()
+                                      : request.getObjectMetadata();;
         switch (getDataEncryption()) {
             case SSE_S3:
-                metadata = request.getObjectMetadata() == null
-                                ? new ObjectMetadata()
-                                : request.getObjectMetadata();
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
                 break;
             case SSE_KMS:
-                metadata = request.getObjectMetadata() == null
-                                ? new ObjectMetadata()
-                                : request.getObjectMetadata();
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 request.withSSEAwsKeyManagementParams(sseParams);
                 break;
@@ -127,10 +116,21 @@ public class S3RequestDecorator {
         return request;
     }
 
+    public GeneratePresignedUrlRequest decorate(GeneratePresignedUrlRequest request) {
+        switch (getDataEncryption()) {
+          case SSE_KMS:
+              String keyId = getSSEParams().getAwsKmsKeyId();
+              request = request.withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
+              if (keyId != null)
+                  request = request.withKmsCmkId(keyId);
+        }
+        return request;
+    }
 
     private SSEAwsKeyManagementParams getSSEParams() {
         return this.sseParams;
     }
+
     private DataEncryption getDataEncryption() {
         return this.dataEncryption;
     }

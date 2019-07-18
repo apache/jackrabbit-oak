@@ -114,11 +114,6 @@ public final class S3Constants {
     public static final String S3_SSE_KMS_KEYID = "kmsKeyId";
 
     /**
-     *  Constant to set Signature Type to V4 for AWS KMS
-     */
-    public static final String AWS_S3_V4_SIGNType = "AWSS3V4SignerType";
-
-    /**
      *  Constant to set proxy host.
      */
     public static final String PROXY_HOST = "proxyHost";

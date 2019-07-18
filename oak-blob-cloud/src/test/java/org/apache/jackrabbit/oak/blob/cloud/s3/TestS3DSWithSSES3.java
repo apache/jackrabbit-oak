@@ -81,6 +81,9 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
             props.setProperty(S3Constants.S3_RENAME_KEYS, "true");
             ds = createDataStore();
 
+            Assert.assertNotEquals(null, ds);
+            rec = ds.getRecord(rec.getIdentifier());
+            Assert.assertNotEquals(null, rec);
             rec = ds.getRecord(rec.getIdentifier());
             Assert.assertEquals(data.length, rec.getLength());
             assertRecord(data, rec);
