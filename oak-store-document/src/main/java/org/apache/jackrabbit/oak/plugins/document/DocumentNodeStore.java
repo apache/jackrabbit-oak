@@ -689,6 +689,15 @@ public final class DocumentNodeStore
         clusterUpdateThread.start();
         backgroundReadThread.start();
         if (!readOnlyMode) {
+            // OAK-8466 - background sweep may take a long time if there is no
+            // sweep revision for this clusterId. When this process is suddenly
+            // stopped while performing the sweep, a recovery will be needed
+            // starting at the timestamp of _lastRev for this clusterId, which
+            // is potentially old and the recovery will be expensive. Hence
+            // triggering below function to update _lastRev, just before
+            // triggering sweep
+            runBackgroundUpdateOperations();
+
             // perform an initial document sweep if needed
             // this may be long running if there is no sweep revision
             // for this clusterId (upgrade from Oak <= 1.6).
@@ -2453,16 +2462,21 @@ public final class DocumentNodeStore
         if (isDisposed.get() || isDisableBranches()) {
             return;
         }
+        DocumentNodeState rootState = getRoot();
         // check if local head revision is outdated and needs an update
         // this ensures the head and sweep revisions are recent and the
         // revision garbage collector can remove old documents
-        Revision head = getHeadRevision().getRevision(clusterId);
-        if (head != null && head.getTimestamp() + ONE_MINUTE_MS < clock.getTime()) {
+        Revision head = rootState.getRootRevision().getRevision(clusterId);
+        Revision lastRev = rootState.getLastRevision().getRevision(clusterId);
+        long oneMinuteAgo = clock.getTime() - ONE_MINUTE_MS;
+        if ((head != null && head.getTimestamp() < oneMinuteAgo) ||
+                (lastRev != null && lastRev.getTimestamp() < oneMinuteAgo)) {
             // head was not updated for more than a minute
             // create an empty commit that updates the head
             boolean success = false;
             Commit c = newTrunkCommit(nop -> {}, getHeadRevision());
             try {
+                c.markChanged(ROOT);
                 done(c, false, CommitInfo.EMPTY);
                 success = true;
             } finally {
