@@ -103,6 +103,16 @@ public final class S3Constants {
     public static final String S3_ENCRYPTION_SSE_S3 = "SSE_S3";
 
     /**
+     *  Constant to set SSE_KMS encryption.
+     */
+    public static final String S3_ENCRYPTION_SSE_KMS = "SSE_KMS";
+
+    /**
+     *  Constant to set keyID for SSE_KMS encryption.
+     */
+    public static final String S3_SSE_KMS_KEYID = "kmsKeyId";
+
+    /**
      *  Constant to set proxy host.
      */
     public static final String PROXY_HOST = "proxyHost";

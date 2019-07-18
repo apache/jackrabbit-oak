@@ -65,6 +65,8 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.SSEAlgorithm;
+import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -818,7 +820,7 @@ public class S3Backend extends AbstractSharedBackend {
             else {
                 // multi-part
                 InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucket, blobId);
-                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(req);
+                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(s3ReqDecorator.decorate(req));
                 uploadId = res.getUploadId();
 
                 long numParts;
@@ -940,9 +942,9 @@ public class S3Backend extends AbstractSharedBackend {
             expiration.setTime(expiration.getTime() + expirySeconds * 1000);
 
             GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
-                    .withMethod(method)
-                    .withExpiration(expiration);
-
+                                                        .withMethod(method)
+                                                        .withExpiration(expiration);
+            request = s3ReqDecorator.decorate(request);
             for (Map.Entry<String, String> e : reqParams.entrySet()) {
                 request.addRequestParameter(e.getKey(), e.getValue());
             }
