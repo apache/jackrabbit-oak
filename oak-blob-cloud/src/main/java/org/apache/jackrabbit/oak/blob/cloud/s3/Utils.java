@@ -220,6 +220,7 @@ public final class Utils {
         cc.setSocketTimeout(socketTimeOut);
         cc.setMaxConnections(maxConnections);
         cc.setMaxErrorRetry(maxErrorRetry);
+
         return cc;
     }
 

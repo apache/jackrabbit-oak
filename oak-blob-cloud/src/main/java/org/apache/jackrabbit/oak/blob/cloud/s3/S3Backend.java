@@ -65,6 +65,8 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.SSEAlgorithm;
+import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 import com.amazonaws.services.s3.transfer.Copy;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -310,8 +312,7 @@ public class S3Backend extends AbstractSharedBackend {
                 }
                 LOG.debug("[{}]'s exists, lastmodified = [{}]", key,
                     objectMetaData.getLastModified().getTime());
-                CopyObjectRequest copReq = new CopyObjectRequest(bucket, key,
-                    bucket, key);
+                CopyObjectRequest copReq = new CopyObjectRequest(bucket, key, bucket, key);
                 copReq.setNewObjectMetadata(objectMetaData);
                 Copy copy = tmx.copy(s3ReqDecorator.decorate(copReq));
                 try {
@@ -321,14 +322,13 @@ public class S3Backend extends AbstractSharedBackend {
                     throw new DataStoreException("Could not upload " + key, e2);
                 }
             }
-
             if (objectMetaData == null) {
                 try {
                     // start multipart parallel upload using amazon sdk
                     Upload up = tmx.upload(s3ReqDecorator.decorate(new PutObjectRequest(
-                        bucket, key, file)));
-                    // wait for upload to finish
+                            bucket, key, file)));
                     up.waitForUploadResult();
+                    // wait for upload to finish
                     LOG.debug("synchronous upload to identifier [{}] completed.", identifier);
                 } catch (Exception e2 ) {
                     throw new DataStoreException("Could not upload " + key, e2);
@@ -472,9 +472,8 @@ public class S3Backend extends AbstractSharedBackend {
 
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-
             Upload upload = tmx.upload(s3ReqDecorator
-                .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input, new ObjectMetadata())));
+                      .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input, new ObjectMetadata())));
             upload.waitForUploadResult();
         } catch (InterruptedException e) {
             LOG.error("Error in uploading", e);
@@ -494,9 +493,8 @@ public class S3Backend extends AbstractSharedBackend {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-
             Upload upload = tmx.upload(s3ReqDecorator
-                .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input)));
+                    .decorate(new PutObjectRequest(bucket, addMetaKeyPrefix(name), input)));
             upload.waitForUploadResult();
         } catch (InterruptedException e) {
             LOG.error("Exception in uploading metadata file {}", new Object[] {input, e});
@@ -818,9 +816,8 @@ public class S3Backend extends AbstractSharedBackend {
             else {
                 // multi-part
                 InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucket, blobId);
-                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(req);
+                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(s3ReqDecorator.decorate(req));
                 uploadId = res.getUploadId();
-
                 long numParts;
                 if (maxNumberOfURIs > 1) {
                     long requestedPartSize = (long) Math.ceil(((double) maxUploadSizeInBytes) / ((double) maxNumberOfURIs));
@@ -908,7 +905,6 @@ public class S3Backend extends AbstractSharedBackend {
                     uploadId,
                     eTags
             );
-
             s3service.completeMultipartUpload(completeReq);
         }
         // else do nothing - single-put upload is already complete
@@ -939,10 +935,26 @@ public class S3Backend extends AbstractSharedBackend {
             final Date expiration = new Date();
             expiration.setTime(expiration.getTime() + expirySeconds * 1000);
 
-            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
-                    .withMethod(method)
-                    .withExpiration(expiration);
-
+            GeneratePresignedUrlRequest request = null;
+            if (properties.getProperty(S3Constants.S3_ENCRYPTION)
+                    .equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
+                if(properties.getProperty(S3Constants.S3_SSE_KMS_KEYID) != null) {
+                    request = new GeneratePresignedUrlRequest(bucket, key)
+                            .withMethod(method)
+                            .withExpiration(expiration)
+                            .withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm())
+                            .withKmsCmkId(properties.getProperty(S3Constants.S3_SSE_KMS_KEYID));
+                } else {
+                    request = new GeneratePresignedUrlRequest(bucket, key)
+                            .withMethod(method)
+                            .withExpiration(expiration)
+                            .withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
+                }
+            } else {
+                    request = new GeneratePresignedUrlRequest(bucket, key)
+                            .withMethod(method)
+                            .withExpiration(expiration);
+            }
             for (Map.Entry<String, String> e : reqParams.entrySet()) {
                 request.addRequestParameter(e.getKey(), e.getValue());
             }

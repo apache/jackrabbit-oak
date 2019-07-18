@@ -54,7 +54,6 @@ public class S3DataRecordAccessProviderIT extends AbstractDataRecordAccessProvid
         assumeTrue(isS3Configured() && !isNullOrEmpty(System.getProperty("test.opts.memory")));
         dataStore = (S3DataStore) getS3DataStore(getFixtures().get(0), S3DataStoreUtils.getS3Config(),
             homeDir.newFolder().getAbsolutePath());
-
         dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
         dataStore.setDirectUploadURIExpirySeconds(expirySeconds);
     }

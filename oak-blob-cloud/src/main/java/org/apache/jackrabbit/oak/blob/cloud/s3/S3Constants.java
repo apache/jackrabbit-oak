@@ -17,6 +17,7 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import com.amazonaws.services.s3.model.SSEAlgorithm;
 /**
  * Defined Amazon S3 constants.
  */
@@ -101,6 +102,21 @@ public final class S3Constants {
      *  Constant to set SSE_S3 encryption.
      */
     public static final String S3_ENCRYPTION_SSE_S3 = "SSE_S3";
+
+    /**
+     *  Constant to set SSE_KMS encryption.
+     */
+    public static final String S3_ENCRYPTION_SSE_KMS = "SSE_KMS";
+
+    /**
+     *  Constant to set keyID for SSE_KMS encryption.
+     */
+    public static final String S3_SSE_KMS_KEYID = "kmsKeyId";
+
+    /**
+     *  Constant to set Signature Type to V4 for AWS KMS
+     */
+    public static final String AWS_S3_V4_SIGNType = "AWSS3V4SignerType";
 
     /**
      *  Constant to set proxy host.
