@@ -75,6 +75,7 @@
     <module>oak-segment-tar</module>
     <module>oak-segment-azure</module>
     <module>oak-benchmarks</module>
+    <module>oak-search-elastic</module>
   </modules>
 
   <scm>

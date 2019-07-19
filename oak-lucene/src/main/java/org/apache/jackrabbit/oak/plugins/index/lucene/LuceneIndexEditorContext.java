@@ -64,7 +64,7 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
     }
 
     @Override
-    public LuceneIndexWriter getWriter() throws IOException {
+    public LuceneIndexWriter getWriter() {
         return (LuceneIndexWriter)super.getWriter();
     }
 
