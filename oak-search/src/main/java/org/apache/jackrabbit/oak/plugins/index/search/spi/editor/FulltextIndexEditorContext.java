@@ -126,7 +126,7 @@ public abstract class FulltextIndexEditorContext<D> {
     return new FulltextBinaryTextExtractor(extractedTextCache, definition, reindex);
   }
 
-  public FulltextIndexWriter<D> getWriter() throws IOException {
+  public FulltextIndexWriter<D> getWriter() {
     if (writer == null) {
       //Lazy initialization so as to ensure that definition is based
       //on latest NodeBuilder state specially in case of reindexing
