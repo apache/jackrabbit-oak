@@ -113,7 +113,7 @@ upon startup. For example:
 
 Creating a database called `OAK`:
 
-(to be done)
+...is different compared to other databases. See https://docs.oracle.com/cd/B28359_01/server.111/b28310/create003.htm for more information. Defaults should work.
 
 To verify, check the INFO level log message written by `RDBDocumentStore`
 upon startup. For example:
