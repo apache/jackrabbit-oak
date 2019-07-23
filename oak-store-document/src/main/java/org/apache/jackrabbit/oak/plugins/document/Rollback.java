@@ -23,6 +23,7 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.partition;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 /**
@@ -32,7 +33,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 class Rollback {
 
     static final Rollback FAILED = new Rollback(Revision.newRevision(0),
-            Collections.emptyList(), "") {
+            Collections.emptyList(), "", 1) {
 
         @Override
         void perform(@NotNull DocumentStore store) throws DocumentStoreException {
@@ -41,7 +42,7 @@ class Rollback {
     };
 
     static final Rollback NONE = new Rollback(Revision.newRevision(0),
-            Collections.emptyList(), "") {
+            Collections.emptyList(), "", 1) {
 
         @Override
         void perform(@NotNull DocumentStore store) throws DocumentStoreException {
@@ -54,19 +55,24 @@ class Rollback {
 
     private final String commitRootId;
 
+    private final int batchSize;
+
     /**
      * Creates a new rollback for the given commit revision.
      *
      * @param revision the commit revision.
      * @param changed the changes to revert.
      * @param commitRootId the id of the commit root document.
+     * @param batchSize the batch size for the rollback operations.
      */
     Rollback(@NotNull Revision revision,
              @NotNull List<UpdateOp> changed,
-             @NotNull String commitRootId) {
+             @NotNull String commitRootId,
+             int batchSize) {
         this.revision = revision;
         this.changed = checkNotNull(changed);
         this.commitRootId = checkNotNull(commitRootId);
+        this.batchSize = batchSize;
     }
 
     /**
@@ -89,7 +95,9 @@ class Rollback {
             reverse.setNew(false);
             reverseOps.add(reverse);
         }
-        store.createOrUpdate(NODES, reverseOps);
+        for (List<UpdateOp> ops : partition(reverseOps, batchSize)) {
+            store.createOrUpdate(NODES, ops);
+        }
         removeCollisionMarker(store, commitRootId);
     }
 
