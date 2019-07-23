@@ -81,6 +81,7 @@ Improvement
     [OAK-8453] - Refactor VersionGarbageCollector to extract Recommendations class
     [OAK-8462] - Adding / changing "useIfExists" should not cause reindex
     [OAK-8466] - Old inactive clusterIds may trigger expensive recovery
+    [OAK-8489] - Reduce memory usage of in-memory commit
 
 Test
 
