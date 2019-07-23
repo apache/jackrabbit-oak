@@ -29,9 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -44,8 +42,8 @@ import static com.google.common.base.Objects.equal;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Lists.partition;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.MOD_COUNT;
@@ -331,7 +329,9 @@ public class Commit {
             }
         }
 
-        rollback = new Rollback(revision, opLog, Utils.getIdFromPath(commitRootPath));
+        rollback = new Rollback(revision, opLog,
+                Utils.getIdFromPath(commitRootPath),
+                nodeStore.getCreateOrUpdateBatchSize());
 
         for (Path p : bundledNodes.keySet()){
             markChanged(p);
@@ -363,9 +363,12 @@ public class Commit {
             if (conditionalCommit(changedNodes, commitValue)) {
                 success = true;
             } else {
-                List<NodeDocument> oldDocs = store.createOrUpdate(NODES, changedNodes);
-                checkConflicts(oldDocs, changedNodes);
-                checkSplitCandidate(oldDocs);
+                int batchSize = nodeStore.getCreateOrUpdateBatchSize();
+                for (List<UpdateOp> updates : partition(changedNodes, batchSize)) {
+                    List<NodeDocument> oldDocs = store.createOrUpdate(NODES, updates);
+                    checkConflicts(oldDocs, updates);
+                    checkSplitCandidate(oldDocs);
+                }
 
                 // finally write the commit root (the commit root might be written
                 // twice, first to check if there was a conflict, and only then to

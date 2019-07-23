@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
@@ -193,6 +194,13 @@ public final class DocumentNodeStore
      * How many collision entries to collect in a single call.
      */
     private int collisionGarbageBatchSize = Integer.getInteger("oak.documentMK.collisionGarbageBatchSize", 1000);
+
+    /**
+     * The number of updates to batch with a single call to
+     * {@link DocumentStore#createOrUpdate(Collection, List)}.
+     */
+    private final int createOrUpdateBatchSize =
+            Integer.getInteger("oak.documentMK.createOrUpdateBatchSize", 1000);
 
     /**
      * The document store without potentially lease checking wrapper.
@@ -1714,7 +1722,9 @@ public final class DocumentNodeStore
                     new ResetDiff(previous.asTrunkRevision(), operations));
             LOG.debug("reset: applying {} operations", operations.size());
             // apply reset operations
-            store.createOrUpdate(NODES, new ArrayList<>(operations.values()));
+            for (List<UpdateOp> ops : partition(operations.values(), getCreateOrUpdateBatchSize())) {
+                store.createOrUpdate(NODES, ops);
+            }
         }
         store.findAndUpdate(NODES, rootOp);
         // clean up in-memory branch data
@@ -2439,6 +2449,10 @@ public final class DocumentNodeStore
     @NotNull
     RevisionVector getSweepRevisions() {
         return sweepRevisions;
+    }
+
+    int getCreateOrUpdateBatchSize() {
+        return createOrUpdateBatchSize;
     }
 
     //-----------------------------< internal >---------------------------------

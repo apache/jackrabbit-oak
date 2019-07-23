@@ -37,6 +37,7 @@ import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -3973,6 +3974,72 @@ public class DocumentNodeStoreTest {
         } catch (Exception e) {
             // must not hit last line of defence (ReadOnlyDocumentStoreWrapper)
             assertFalse(Throwables.getRootCause(e) instanceof UnsupportedOperationException);
+        }
+    }
+
+    @Test
+    public void partitionedUpdates() throws Exception {
+        AtomicInteger maxBatchSize = new AtomicInteger(0);
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
+                maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
+                return super.createOrUpdate(collection, updateOps);
+            }
+        };
+        // set batch size to half the update limit
+        int batchSize = DocumentNodeStoreBuilder.UPDATE_LIMIT / 2;
+        System.setProperty("oak.documentMK.createOrUpdateBatchSize",
+                String.valueOf(batchSize));
+        try {
+            DocumentNodeStore ns = builderProvider.newBuilder()
+                    .setAsyncDelay(0).setDocumentStore(store).build();
+            NodeBuilder builder = ns.getRoot().builder();
+            for (int i = 0; i < DocumentNodeStoreBuilder.UPDATE_LIMIT; i++) {
+                builder.child("c-" + i);
+            }
+            merge(ns, builder);
+            assertThat(maxBatchSize.get(), greaterThan(0));
+            assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
+        } finally {
+            System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
+        }
+    }
+
+    @Test
+    public void partitionedReset() {
+        AtomicInteger maxBatchSize = new AtomicInteger(0);
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
+                maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
+                return super.createOrUpdate(collection, updateOps);
+            }
+        };
+        // set batch size to half the update limit
+        int batchSize = DocumentNodeStoreBuilder.UPDATE_LIMIT / 2;
+        System.setProperty("oak.documentMK.createOrUpdateBatchSize",
+                String.valueOf(batchSize));
+        try {
+            DocumentNodeStore ns = builderProvider.newBuilder()
+                    .setAsyncDelay(0).setDocumentStore(store).build();
+            DocumentNodeStoreBranch branch = ns.createBranch(ns.getRoot());
+            NodeBuilder builder = branch.getBase().builder();
+            for (int i = 0; i < DocumentNodeStoreBuilder.UPDATE_LIMIT * 2; i++) {
+                builder.child("c-" + i).setProperty("p", "a");
+            }
+            branch.setRoot(builder.getNodeState());
+            branch.persist();
+
+            maxBatchSize.set(0);
+            ns.reset(asDocumentNodeState(branch.getHead()).getRootRevision(),
+                    asDocumentNodeState(branch.getBase()).getRootRevision().asBranchRevision(ns.getClusterId()));
+            assertThat(maxBatchSize.get(), greaterThan(0));
+            assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
+        } finally {
+            System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
         }
     }
 

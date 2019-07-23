@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -26,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
@@ -41,7 +43,9 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.isFinalCommitRootUpdate;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -127,6 +131,28 @@ public class RollbackTest {
     @Test
     public void rollbackNone() {
         Rollback.NONE.perform(new MemoryDocumentStore());
+    }
+
+    @Test
+    public void batchSize() {
+        AtomicInteger maxBatchSize = new AtomicInteger(0);
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
+                maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
+                return super.createOrUpdate(collection, updateOps);
+            }
+        };
+        int batchSize = 100;
+        List<UpdateOp> updates = new ArrayList<>();
+        for (int i = 0; i < batchSize * 2; i++) {
+            updates.add(new UpdateOp("id-" + i, false));
+        }
+        new Rollback(Revision.newRevision(1),
+                updates, "id", batchSize).perform(store);
+        assertThat(maxBatchSize.get(), greaterThan(0));
+        assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
     }
 
     private class TestStore extends MemoryDocumentStore {
