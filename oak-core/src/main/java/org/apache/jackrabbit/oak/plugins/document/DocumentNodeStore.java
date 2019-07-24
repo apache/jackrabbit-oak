@@ -149,6 +149,11 @@ public final class DocumentNodeStore
             Boolean.getBoolean("oak.disableJournalDiff");
 
     /**
+     * How many collision entries to collect in a single call.
+     */
+    private int collisionGarbageBatchSize = Integer.getInteger("oak.documentMK.collisionGarbageBatchSize", 1000);
+
+    /**
      * The document store without potentially lease checking wrapper.
      */
     private final DocumentStore nonLeaseCheckingStore;
@@ -1742,7 +1747,7 @@ public final class DocumentNodeStore
             long time = start;
             // clean orphaned branches and collisions
             cleanOrphanedBranches();
-            cleanCollisions();
+            cleanRootCollisions();
             long cleanTime = clock.getTime() - time;
             time = clock.getTime();
             // split documents (does not create new revisions)
@@ -2002,16 +2007,19 @@ public final class DocumentNodeStore
             store.findAndUpdate(NODES, op);
         }
     }
-    
-    private void cleanCollisions() {
+
+    private void cleanRootCollisions() {
         String id = Utils.getIdFromPath("/");
         NodeDocument root = store.find(NODES, id);
-        if (root == null) {
-            return;
+        if (root != null) {
+            cleanCollisions(root, Integer.MAX_VALUE);
         }
+    }
+
+    private void cleanCollisions(NodeDocument doc, int limit) {
         RevisionVector head = getHeadRevision();
-        Map<Revision, String> map = root.getLocalMap(NodeDocument.COLLISIONS);
-        UpdateOp op = new UpdateOp(id, false);
+        Map<Revision, String> map = doc.getLocalMap(NodeDocument.COLLISIONS);
+        UpdateOp op = new UpdateOp(doc.getId(), false);
         for (Revision r : map.keySet()) {
             if (r.getClusterId() == clusterId) {
                 // remove collision if there is no active branch with
@@ -2021,11 +2029,15 @@ public final class DocumentNodeStore
                 if (branches.getBranchCommit(r) == null 
                         && !head.isRevisionNewer(r)) {
                     NodeDocument.removeCollision(op, r);
+                    if (--limit <= 0) {
+                        break;
+                    }
                 }
             }
         }
         if (op.hasChanges()) {
-            LOG.debug("Removing collisions {}", op.getChanges().keySet());
+            LOG.debug("Removing collisions {} on {}",
+                    op.getChanges().keySet(), doc.getId());
             store.findAndUpdate(NODES, op);
         }
     }
@@ -2038,6 +2050,7 @@ public final class DocumentNodeStore
             if (doc == null) {
                 continue;
             }
+            cleanCollisions(doc, collisionGarbageBatchSize);
             for (UpdateOp op : doc.split(this, head)) {
                 NodeDocument before = null;
                 if (!op.isNew() ||
