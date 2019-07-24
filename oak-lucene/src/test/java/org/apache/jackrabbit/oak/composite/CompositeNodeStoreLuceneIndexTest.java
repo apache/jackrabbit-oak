@@ -26,11 +26,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -38,7 +35,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-import java.util.ArrayList;
 import java.util.List;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
@@ -53,34 +49,14 @@ import static org.junit.Assert.assertThat;
 @SuppressWarnings("ConstantConditions")
 public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTestBase{
 
-    // version 1
-    private NodeStore readOnlyStoreV1;
-    private Repository readOnlyRepositoryV1;
-    private CompositeNodeStore storeV1;
-    private MountInfoProvider mipV1;
-    private JackrabbitSession readOnlyV1Session;
-    private Node readOnly1Root;
-
-
-    // version 2
-    private NodeStore readOnlyStoreV2;
-    private Repository readOnlyRepositoryV2;
-    private CompositeNodeStore storeV2;
-    private MountInfoProvider mipV2;
-    private JackrabbitSession readOnlyV2Session;
-    private Node readOnly2Root;
-
+    private static String READ_ONLY_MOUNT_V1_NAME = "readOnlyv1";
+    private static String READ_ONLY_MOUNT_V2_NAME = "readOnlyv2";
     // JCR repository
-
     private CompositeRepo compositeRepoV1;
     private CompositeRepo compositeRepoV2;
     private static final int VERSION_1 = 1;
     private static final int VERSION_2 = 2;
 
-
-
-    List<JackrabbitSession> sessions = new ArrayList<>();
-    List<Repository> repositories = new ArrayList<>();
 
     public CompositeNodeStoreLuceneIndexTest(NodeStoreKind root, NodeStoreKind mounts) {
         super(root, mounts);
@@ -90,47 +66,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     @Before
     public void initStore() throws Exception {
         globalStore = register(nodeStoreRoot.create(null));
-        readOnlyStoreV1 = register(mounts.create("readOnlyv1"));
-        readOnlyStoreV2 = register(mounts.create("readOnlyv2"));
-
-        initMounts();
-        readOnlyRepositoryV1 = createJCRRepository(readOnlyStoreV1, mipV1);
-        readOnlyV1Session = (JackrabbitSession) readOnlyRepositoryV1.login(new SimpleCredentials("admin", "admin".toCharArray()));
-        readOnly1Root = readOnlyV1Session.getRootNode();
-
-        Node libs = readOnly1Root.addNode("libs", NT_UNSTRUCTURED);
-        libs.setPrimaryType(NT_UNSTRUCTURED);
-
-        readOnlyRepositoryV2 = createJCRRepository(readOnlyStoreV2, mipV2);
-        readOnlyV2Session = (JackrabbitSession) readOnlyRepositoryV2.login(new SimpleCredentials("admin", "admin".toCharArray()));
-        readOnly2Root = readOnlyV2Session.getRootNode();
-        libs = readOnly2Root.addNode("libs", NT_UNSTRUCTURED);
-        libs.setPrimaryType(NT_UNSTRUCTURED);
-        readOnlyV2Session.save();
-
-        repositories.add(readOnlyRepositoryV1);
-        repositories.add(readOnlyRepositoryV2);
-        sessions.add(readOnlyV1Session);
-        sessions.add(readOnlyV2Session);
-
-    }
-
-    void initMounts() throws Exception {
-
-        mipV1 = Mounts.newBuilder().readOnlyMount("readOnlyv1", "/libs").build();
-        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
-        nonDefaultStores.add(new MountedNodeStore(mipV1.getMountByName("readOnlyv1"), readOnlyStoreV1));
-
-        // This will be V1
-        storeV1 = new CompositeNodeStore(mipV1, globalStore, nonDefaultStores);
-
-        compositeRepoV1 =  new CompositeRepo(createJCRRepository(storeV1, mipV1), VERSION_1);
-
-        // Now Setting up mount info for V2 - and creating stoveV2 - the corresponding JCR repo can be created in individual tests later on
-        mipV2 = Mounts.newBuilder().readOnlyMount("readOnlyv2", "/libs").build();
-        List<MountedNodeStore> nonDefaultStores2 = Lists.newArrayList();
-                nonDefaultStores2.add(new MountedNodeStore(mipV2.getMountByName("readOnlyv2"), readOnlyStoreV2));
-        storeV2 = new CompositeNodeStore(mipV2, globalStore, nonDefaultStores2);
+        compositeRepoV1 = new CompositeRepo(READ_ONLY_MOUNT_V1_NAME, VERSION_1);
+        compositeRepoV1.initCompositeRepo();
     }
 
     /*
@@ -144,7 +81,7 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
      */
     @Test
     public void luceneIndexAddAndReindex() throws Exception {
-        setupIndexAndContentInComposite("luceneTest", "foo", compositeRepoV1); // This should create indexes in readonly and read write parts of repo and content convered by them and check if index is used properly
+        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo");// This should create indexes in readonly and read write parts of repo and content convered by them and check if index is used properly
 
         // Now we reindex and see everything works fine
         long reindexCount = compositeRepoV1.getCompositeRoot().getNode(INDEX_DEFINITIONS_NAME).getNode("luceneTest").getProperty(REINDEX_COUNT).getValue().getLong();
@@ -162,17 +99,19 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
      */
     @Test
     public void luceneRemoveIndex() throws Exception {
-        setupIndexAndContentInComposite("luceneTest", "foo", compositeRepoV1);
+        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo");
 
-        readOnly2Root.getNode("libs").addNode("node-foo-0").setProperty("foo","bar");
-        readOnlyV2Session.save();
+        compositeRepoV2 = new CompositeRepo(READ_ONLY_MOUNT_V2_NAME, VERSION_2);
 
-        // Now we already have a read only V2 setup in the before method that doesn't have the lucene index and also doesn't have the
+        compositeRepoV2.getReadOnlyRoot().getNode("libs").addNode("node-foo-0").setProperty("foo","bar");
+        compositeRepoV2.getReadOnlySession().save();
+
+        compositeRepoV2.initCompositeRepo();
+
+        // Now we  have a read only V2 setup that doesn't have the lucene index and also doesn't have the
         // USE_IF_EXISTS node that would enable the index .
-        // So now we create a composite store repository with this read only version - this will act as 2nd version of composite app
-        // We use the same global read write store as used in V1
-
-        compositeRepoV2 =  new CompositeRepo(createJCRRepository(storeV2, mipV2), VERSION_2);
+        // So now composite repo V2 - this will act as 2nd version of composite app
+        // This uses same global read write store as used in V1
 
 
         QueryResult result = compositeRepoV2.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo = 'bar']", "xpath").execute();
@@ -231,16 +170,17 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     public void updateLuceneIndex() throws Exception {
 
         // Create 2 index defintions in Version 1
-        setupIndexAndContentInComposite("luceneTest", "foo", compositeRepoV1); // A
-        setupIndexAndContentInComposite("luceneTest2", "foo2", compositeRepoV1); //B
+        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo"); // A
+        compositeRepoV1.setupIndexAndContentInRepo("luceneTest2", "foo2"); //B
 
         // Now initialize V2 composite Repo
 
-        compositeRepoV2 =  new CompositeRepo(createJCRRepository(storeV2, mipV2), VERSION_2);
+        compositeRepoV2 =  new CompositeRepo(READ_ONLY_MOUNT_V2_NAME, VERSION_2);
+        compositeRepoV2.initCompositeRepo();
 
         // Now Create 2 index definitons in Version 2 - one supposed to replace B and one entirely new
-        setupIndexAndContentInComposite("luceneTest3", "foo3", compositeRepoV2); // C
-        setupIndexAndContentInComposite("luceneTest2_V2", "foo2", compositeRepoV2); //B2
+        compositeRepoV2.setupIndexAndContentInRepo("luceneTest3", "foo3"); // C
+        compositeRepoV2.setupIndexAndContentInRepo("luceneTest2_V2", "foo2"); //B2
 
         // Check V2 now uses luceneTest2_V2 for foo2 and no index for foo i.e traversal
 
@@ -314,106 +254,7 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         compositeRepoV2.cleanup();
     }
 
-    @After
-    public void cleanup() throws Exception {
-        for (JackrabbitSession session : sessions) session.logout();
-        for (Repository repo : repositories) shutdown(repo);
-    }
-
-    private void setupIndexAndContentInComposite(String indexName, String indexedProperty, CompositeRepo compositeRepo) throws Exception {
-
-        // Add Index def to both read only (V1) and read-write(global/shared) parts
-
-        Repository compositeRepository;
-        JackrabbitSession compositeSession;
-        Node compositeRoot;
-        QueryManager queryManager;
-
-        String versionProp = (compositeRepo.getVersion() == VERSION_1) ? "@v1" : "@v2";
-
-        createLuceneIndex(compositeRepo.getCompositeSession(), indexName, indexedProperty);
-        compositeRepo.getCompositeRoot().getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(IndexConstants.USE_IF_EXISTS, "/libs/indexes/" + indexName + "/" + versionProp);
-        compositeRepo.getCompositeRoot().getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
-
-        // Add some content to read write now
-
-        Node n1 = addOrGetNode(compositeRepo.getCompositeRoot(), "content-" + indexedProperty, NT_UNSTRUCTURED);
-        for (int i = 0; i < 2; i++) {
-            Node n2 = addOrGetNode(n1, "node-" + i, NT_UNSTRUCTURED);
-            n2.setProperty(indexedProperty, "bar");
-            n2.setPrimaryType(NT_UNSTRUCTURED);
-        }
-
-        compositeRepo.getCompositeSession().save();
-        if (compositeRepo.getVersion() == VERSION_1) {
-            setupIndexAndContentInReadOnlyV1(indexName, indexedProperty, compositeRepo.getVersion());
-        } else {
-            setupIndexAndContentInReadOnlyV2(indexName, indexedProperty, compositeRepo.getVersion());
-        }
-        ///////////////////////////////////////////////////////////////////////////////////////////
-        // Need to restart the composite repo after changes done to the read only part - needed for segement node store
-        // Other wise the changes in read only repo are not visible to the cached reader.
-        compositeRepo = restartCompositeRepo(compositeRepo.getVersion());
-        ///////////////////////////////////////////////////////////////////////////////////////////
-
-        // Need to save the composite session and login again for query to return results frorm read only part
-        compositeRepo.getCompositeSession().save();
-
-        compositeRepo.login();
-        QueryResult result = compositeRepo.getCompositeQueryManager().createQuery("explain /jcr:root//*[@" + indexedProperty + " = 'bar']", "xpath").execute();
-
-
-        assertThat(result.getRows().next().toString(),
-                containsString("/* lucene:" + indexName + "(/oak:index/" + indexName + ") " + indexedProperty + ":bar"));
-
-        result = compositeRepo.getCompositeQueryManager().createQuery("/jcr:root//*[@" + indexedProperty + " = 'bar'] order by @jcr:path", "xpath").execute();
-
-
-        assertEquals("/content-" + indexedProperty + "/node-0, /content-" + indexedProperty + "/node-1, " +
-        "/libs/node-" + indexName + "-0, /libs/node-" + indexName + "-1, /libs/node-" + indexName + "-2", getResult(result,"jcr:path"));
-
-        // ****This point we have V1 of our app with index properly configured in read only V1 and and global read write****
-    }
-
-    void setupIndexAndContentInReadOnlyV1(String indexName, String indexedProperty, int version) throws Exception {
-        String versionProp = (version == VERSION_1) ? "@v1" : "@v2";
-        // Add some content to read-only v1 repo
-        for (int i = 0; i < 3; i++) {
-            Node b = readOnly1Root.getNode("libs").addNode("node-" + indexName + "-" + i, NT_UNSTRUCTURED);
-            b.setProperty(indexedProperty, "bar");
-            b.setPrimaryType(NT_UNSTRUCTURED);
-        }
-
-        // index creation
-        createLuceneIndex(readOnlyV1Session, indexName, indexedProperty);
-        readOnly1Root.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(IndexConstants.USE_IF_EXISTS, "/libs/indexes/" + indexName + "/@" + versionProp);
-        readOnly1Root.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN,true);
-
-        // Add /libs/indexes/luceneTest/@v1 to make this index usable/enabled
-        addOrGetNode(readOnly1Root.getNode("libs"), "indexes", NT_UNSTRUCTURED).addNode(indexName, NT_UNSTRUCTURED).setProperty(versionProp.replace("@", ""), true);
-        readOnlyV1Session.save();
-    }
-
-    void setupIndexAndContentInReadOnlyV2(String indexName, String indexedProperty, int version) throws Exception {
-        String versionProp = (version == 1) ? "@v1" : "@v2";
-        // Add some content to read-only v1 repo
-        for (int i = 0; i < 3; i++) {
-            Node b = readOnly2Root.getNode("libs").addNode("node-" + indexName + "-" + i, NT_UNSTRUCTURED);
-            b.setProperty(indexedProperty, "bar");
-            b.setPrimaryType(NT_UNSTRUCTURED);
-        }
-
-        // index creation
-        createLuceneIndex(readOnlyV2Session, indexName, indexedProperty);
-        readOnly2Root.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(IndexConstants.USE_IF_EXISTS, "/libs/indexes/" + indexName + "/@" + versionProp);
-        readOnly2Root.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN,true);
-
-        // Add /libs/indexes/luceneTest/@v1 to make this index usable/enabled
-        addOrGetNode(readOnly2Root.getNode("libs"), "indexes", NT_UNSTRUCTURED).addNode(indexName, NT_UNSTRUCTURED).setProperty(versionProp.replace("@", ""), true);
-        readOnlyV2Session.save();
-    }
-
-    private String getResult(QueryResult result, String propertyName) throws RepositoryException {
+    private static String getResult(QueryResult result, String propertyName) throws RepositoryException {
         StringBuilder buff = new StringBuilder();
         RowIterator it = result.getRows();
         while (it.hasNext()) {
@@ -425,7 +266,7 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         return buff.toString();
     }
 
-    private void createLuceneIndex(JackrabbitSession session, String name, String property) throws Exception {
+    private static void createLuceneIndex(JackrabbitSession session, String name, String property) throws Exception {
 
         Node n = session.getRootNode().getNode(INDEX_DEFINITIONS_NAME);
         n = n.addNode(name);
@@ -438,23 +279,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         session.save();
     }
 
-    private Node addOrGetNode(Node parent, String path, String primaryType) throws Exception{
+    private static Node addOrGetNode(Node parent, String path, String primaryType) throws Exception {
         return parent.hasNode(path) ? parent.getNode(path) : parent.addNode(path, primaryType);
-    }
-
-    private CompositeRepo restartCompositeRepo(int version) throws Exception{
-        List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
-        if (version == VERSION_1) {
-            compositeRepoV1.cleanup();
-            nonDefaultStores.add(new MountedNodeStore(mipV1.getMountByName("readOnlyv1"), readOnlyStoreV1));
-            storeV1 = new CompositeNodeStore(mipV1, globalStore, nonDefaultStores);
-            return compositeRepoV1 =  new CompositeRepo(createJCRRepository(storeV1, mipV1), VERSION_1);
-        } else {
-            compositeRepoV2.getClass();
-            nonDefaultStores.add(new MountedNodeStore(mipV2.getMountByName("readOnlyv2"), readOnlyStoreV2));
-            storeV2 = new CompositeNodeStore(mipV2, globalStore, nonDefaultStores);
-            return compositeRepoV2 =  new CompositeRepo(createJCRRepository(storeV2, mipV2), VERSION_2);
-        }
     }
 
     private class CompositeRepo {
@@ -464,12 +290,20 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         private QueryManager queryManager;
         private int version;
 
-        public Repository getCompositeRepository() {
-            return compositeRepository;
+        private NodeStore readOnlyStore;
+        private Repository readOnlyRepository;
+        private CompositeNodeStore store;
+        private MountInfoProvider mip;
+        private JackrabbitSession readOnlySession;
+        private Node readOnlyRoot;
+        private String readOnlyMountName;
+
+        public Node getReadOnlyRoot() {
+            return readOnlyRoot;
         }
 
-        public int getVersion() {
-            return version;
+        public JackrabbitSession getReadOnlySession() {
+            return readOnlySession;
         }
 
         public JackrabbitSession getCompositeSession() {
@@ -484,23 +318,119 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             return queryManager;
         }
 
-        CompositeRepo(Repository compositeRepository, int version) throws Exception{
-            this.compositeRepository = compositeRepository;
+        CompositeRepo (String readOnlyMountName, int version) throws Exception {
+            this.readOnlyMountName = readOnlyMountName;
             this.version = version;
+            this.readOnlyStore= register(mounts.create(readOnlyMountName));
+
+            this.mip = Mounts.newBuilder().readOnlyMount(readOnlyMountName, "/libs").build();
+
+            initReadOnlySeedRepo();
+            List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+            nonDefaultStores.add(new MountedNodeStore(this.mip.getMountByName(readOnlyMountName), readOnlyStore));
+            this.store = new CompositeNodeStore(this.mip, globalStore, nonDefaultStores);
+
+        }
+
+        private void initCompositeRepo() throws Exception {
+            compositeRepository =  createJCRRepository(this.store, this.mip);
             compositeSession = (JackrabbitSession) compositeRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
             compositeRoot = compositeSession.getRootNode();
             queryManager = compositeSession.getWorkspace().getQueryManager();
         }
 
-        private void login() throws Exception{
+        private void initReadOnlySeedRepo() throws Exception {
+            readOnlyRepository = createJCRRepository(readOnlyStore, this.mip);
+            readOnlySession = (JackrabbitSession) readOnlyRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+            readOnlyRoot = readOnlySession.getRootNode();
+            Node libs = readOnlyRoot.addNode("libs", NT_UNSTRUCTURED);
+            libs.setPrimaryType(NT_UNSTRUCTURED);
+        }
+
+        private void setupIndexAndContentInRepo(String indexName, String indexedProperty) throws Exception {
+
+            String versionProp = (version == VERSION_1) ? "@v1" : "@v2";
+            createLuceneIndex(compositeSession, indexName, indexedProperty);
+            compositeRoot.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(IndexConstants.USE_IF_EXISTS, "/libs/indexes/" + indexName + "/" + versionProp);
+            compositeRoot.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
+
+            // Add some content to read write now
+
+            Node n1 = addOrGetNode(compositeRoot, "content-" + indexedProperty, NT_UNSTRUCTURED);
+            for (int i = 0; i < 2; i++) {
+                Node n2 = addOrGetNode(n1, "node-" + i, NT_UNSTRUCTURED);
+                n2.setProperty(indexedProperty, "bar");
+                n2.setPrimaryType(NT_UNSTRUCTURED);
+            }
+
+            compositeSession.save();
+            setupIndexAndContentInReadOnly(indexName, indexedProperty);
+            ///////////////////////////////////////////////////////////////////////////////////////////
+            // Need to restart the composite repo after changes done to the read only part - needed for segement node store
+            // Other wise the changes in read only repo are not visible to the cached reader.
+            restartRepo();
+            ///////////////////////////////////////////////////////////////////////////////////////////
+
+            // Need to save the composite session and login again for query to return results frorm read only part
+            compositeSession.save();
+
+            login();
+            QueryResult result = queryManager.createQuery("explain /jcr:root//*[@" + indexedProperty + " = 'bar']", "xpath").execute();
+
+
+            assertThat(result.getRows().next().toString(),
+                    containsString("/* lucene:" + indexName + "(/oak:index/" + indexName + ") " + indexedProperty + ":bar"));
+
+            result = queryManager.createQuery("/jcr:root//*[@" + indexedProperty + " = 'bar'] order by @jcr:path", "xpath").execute();
+
+
+            assertEquals("/content-" + indexedProperty + "/node-0, /content-" + indexedProperty + "/node-1, " +
+                    "/libs/node-" + indexName + "-0, /libs/node-" + indexName + "-1, /libs/node-" + indexName + "-2", getResult(result,"jcr:path"));
+
+        }
+
+        private void setupIndexAndContentInReadOnly(String indexName, String indexedProperty) throws Exception {
+            String versionProp = (version == 1) ? "@v1" : "@v2";
+            // Add some content to read-only  repo
+            for (int i = 0; i < 3; i++) {
+                Node b = readOnlyRoot.getNode("libs").addNode("node-" + indexName + "-" + i, NT_UNSTRUCTURED);
+                b.setProperty(indexedProperty, "bar");
+                b.setPrimaryType(NT_UNSTRUCTURED);
+            }
+
+            // index creation
+            createLuceneIndex(readOnlySession, indexName, indexedProperty);
+            readOnlyRoot.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(IndexConstants.USE_IF_EXISTS, "/libs/indexes/" + indexName + "/@" + versionProp);
+            readOnlyRoot.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN,true);
+
+            // Add /libs/indexes/luceneTest/@v1 to make this index usable/enabled
+            addOrGetNode(readOnlyRoot.getNode("libs"), "indexes", NT_UNSTRUCTURED).addNode(indexName, NT_UNSTRUCTURED).setProperty(versionProp.replace("@", ""), true);
+            readOnlySession.save();
+        }
+
+        private void restartRepo() throws Exception {
+            compositeSession.logout();
+            shutdown(compositeRepository);
+
+            List<MountedNodeStore> nonDefaultStores = Lists.newArrayList();
+            nonDefaultStores.add(new MountedNodeStore(this.mip.getMountByName(readOnlyMountName), readOnlyStore));
+            this.store = new CompositeNodeStore(this.mip, globalStore, nonDefaultStores);
+            compositeRepository =  createJCRRepository(this.store, this.mip);
+            login();
+        }
+
+        private void login() throws Exception {
             compositeSession = (JackrabbitSession) compositeRepository.login(new SimpleCredentials("admin", "admin".toCharArray()));
             compositeRoot = compositeSession.getRootNode();
             queryManager = compositeSession.getWorkspace().getQueryManager();
         }
 
         private void cleanup() {
-            this.compositeSession.logout();
-            shutdown(this.compositeRepository);
+            compositeSession.logout();
+            shutdown(compositeRepository);
+            readOnlySession.logout();
+            shutdown(readOnlyRepository);
         }
+
     }
 }
