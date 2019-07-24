@@ -108,6 +108,10 @@ Task
     [OAK-8478] - remove unneeded javadoc plugin version number from reactor pom
     [OAK-8479] - update rat plugin to 0.13
     [OAK-8486] - update jackson-databind dependency to 2.9.9.1
+    [OAK-8501] - oak-examples/webapp: update htmlunit dependency to 2.35.0
+    [OAK-8502] - oak-examples/standalone: update spring boot dependency to 1.5.21
+    [OAK-8503] - oak-benchmarks: update commons-compress dependency to 1.18
+    [OAK-8504] - oak-run: update groovy dependency to 2.4.17
 
 Technical task
 
