@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import java.io.InputStream;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -47,6 +48,8 @@ import org.jetbrains.annotations.NotNull;
 public final class ImmutableRoot implements Root, ReadOnly {
 
     private final ImmutableTree rootTree;
+    private final AuthInfo authInfo;
+    private final String wspName;
 
     public ImmutableRoot(@NotNull NodeState rootState) {
         this(new ImmutableTree(rootState));
@@ -55,8 +58,13 @@ public final class ImmutableRoot implements Root, ReadOnly {
     public ImmutableRoot(@NotNull Root root) {
         if (root instanceof MutableRoot) {
             rootTree = new ImmutableTree(((MutableRoot) root).getBaseState());
+            authInfo = root.getContentSession().getAuthInfo();
+            wspName = root.getContentSession().getWorkspaceName();
         } else if (root instanceof ImmutableRoot) {
-            rootTree = ((ImmutableRoot) root).getTree("/");
+            ImmutableRoot ir = (ImmutableRoot) root;
+            rootTree = ir.getTree(PathUtils.ROOT_PATH);
+            authInfo = ir.authInfo;
+            wspName = ir.wspName;
         } else {
             throw new IllegalArgumentException("Unsupported Root implementation: " + root.getClass());
         }
@@ -65,6 +73,8 @@ public final class ImmutableRoot implements Root, ReadOnly {
     public ImmutableRoot(@NotNull ImmutableTree rootTree) {
         checkArgument(rootTree.isRoot());
         this.rootTree = rootTree;
+        this.authInfo = AuthInfo.EMPTY;
+        this.wspName = null;
     }
 
     public static ImmutableRoot getInstance(@NotNull Root root) {
@@ -145,7 +155,26 @@ public final class ImmutableRoot implements Root, ReadOnly {
     @NotNull
     @Override
     public ContentSession getContentSession() {
-        throw new UnsupportedOperationException();
+        return new ContentSession() {
+            @Override
+            public @NotNull AuthInfo getAuthInfo() {
+                return authInfo;
+            }
+
+            @Override
+            public String getWorkspaceName() {
+                return wspName;
+            }
+
+            @Override
+            public @NotNull Root getLatestRoot() {
+                return ImmutableRoot.this;
+            }
+
+            @Override
+            public void close() {
+            }
+        };
     }
 
 }

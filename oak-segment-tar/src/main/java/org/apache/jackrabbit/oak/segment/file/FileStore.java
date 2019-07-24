@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.CounterStats;
@@ -502,6 +503,12 @@ public class FileStore extends AbstractFileStore {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentCache.getSegment(id, () -> readSegmentUncached(tarFiles, id));
         } catch (ExecutionException | UncheckedExecutionException e) {
+            if (e.getCause() instanceof RepositoryNotReachableException) {
+                RepositoryNotReachableException re = (RepositoryNotReachableException) e.getCause();
+                log.warn("Unable to access repository", re);
+                throw re;
+            }
+
             SegmentNotFoundException snfe = asSegmentNotFoundException(e, id);
             snfeListener.notify(id, snfe);
             stats.notify(id, snfe);

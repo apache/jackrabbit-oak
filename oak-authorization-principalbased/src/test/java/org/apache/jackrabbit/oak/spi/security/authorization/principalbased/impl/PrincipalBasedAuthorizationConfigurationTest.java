@@ -171,6 +171,18 @@ public class PrincipalBasedAuthorizationConfigurationTest extends AbstractPrinci
     }
 
     @Test
+    public void testGetPermissionProvider2() throws Exception {
+        PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();
+        pbac.bindFilterProvider(getFilterProvider());
+        pbac.setSecurityProvider(getSecurityProvider());
+        pbac.setRootProvider(getRootProvider());
+
+        Set<Principal> principals = ImmutableSet.of(getTestSystemUser().getPrincipal());
+        PermissionProvider pp = pbac.getPermissionProvider(root, "wspName", principals);
+        assertTrue(pp instanceof PrincipalBasedPermissionProvider);
+    }
+
+    @Test
     public void testGetAccessControlManager() {
         PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();
         pbac.setSecurityProvider(getSecurityProvider());

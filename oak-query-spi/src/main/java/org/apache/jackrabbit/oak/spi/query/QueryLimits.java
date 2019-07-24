@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import org.apache.jackrabbit.oak.api.StrictPathRestriction;
+
 public interface QueryLimits {
 
     long getLimitInMemory();
@@ -27,5 +29,9 @@ public interface QueryLimits {
     boolean getFullTextComparisonWithoutIndex();
 
     boolean getFailTraversal();
+
+    default String getStrictPathRestriction() {
+        return StrictPathRestriction.DISABLE.name();
+    }
 
 }

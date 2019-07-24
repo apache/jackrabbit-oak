@@ -50,7 +50,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 /**
  * A utility to build index definitions.
  */
-public final class IndexDefinitionBuilder {
+public class IndexDefinitionBuilder {
     private final NodeBuilder builder;
     private final Tree tree;
     private final Map<String, IndexRule> rules = Maps.newHashMap();
@@ -159,8 +159,12 @@ public final class IndexDefinitionBuilder {
     private void setType() {
         PropertyState type = tree.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
         if (type == null || !"disabled".equals(type.getValue(Type.STRING))) {
-            tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, "fulltext");
+            tree.setProperty(IndexConstants.TYPE_PROPERTY_NAME, getIndexType());
         }
+    }
+
+    protected String getIndexType() {
+        return "fulltext";
     }
 
     //~--------------------------------------< IndexRule >

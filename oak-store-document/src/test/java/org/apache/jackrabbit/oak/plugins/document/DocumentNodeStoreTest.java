@@ -31,11 +31,13 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
+import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -117,6 +119,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.hamcrest.number.OrderingComparison;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
@@ -749,6 +752,47 @@ public class DocumentNodeStoreTest {
             ns2.getMBean().recover("/foo1", cId1);
             fail("must fail with DocumentStoreException");
         } catch (DocumentStoreException expected) {}
+    }
+
+    //OAK-8466
+    @Test
+    public void lastRevisionUpdateOnNodeRestart() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+
+        int clusterId = 1;
+        DocumentNodeStore dns1 = builderProvider.newBuilder()
+                .setDocumentStore(store)
+                .setAsyncDelay(0).setClusterId(clusterId)
+                .getNodeStore();
+        dns1.dispose();
+
+        NodeDocument beforeRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(beforeRootDoc);
+        Revision beforeLastRev = beforeRootDoc.getLastRev().get(clusterId);
+
+        Clock clock = new Clock.Virtual();
+        long now = System.currentTimeMillis();
+        // DocumentNodeStore refreshes the head revision and _lastRev
+        // when there was no commit for one minute
+        clock.waitUntil( now + TimeUnit.MINUTES.toMillis(1));
+        long timeBeforeStartup = clock.getTime();
+        ClusterNodeInfo.setClock(clock);
+        Revision.setClock(clock);
+
+        builderProvider.newBuilder()
+                .setDocumentStore(store).clock(clock)
+                .setAsyncDelay(0).setClusterId(clusterId)
+                .getNodeStore();
+
+        NodeDocument afterRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(afterRootDoc);
+        Revision afterLastRev = afterRootDoc.getLastRev().get(clusterId);
+
+        assertThat("lastRev must be greater or equal '" + Utils.timestampToString(timeBeforeStartup) + "', but was '" 
+            + Utils.timestampToString(afterLastRev.getTimestamp()) + "'", afterLastRev.getTimestamp(), 
+            OrderingComparison.greaterThanOrEqualTo(timeBeforeStartup));
+        assertNotEquals("Last revision should be updated after 1 minute even if background thread is not running",
+                beforeLastRev, afterLastRev);
     }
 
     // OAK-2288
@@ -3930,6 +3974,72 @@ public class DocumentNodeStoreTest {
         } catch (Exception e) {
             // must not hit last line of defence (ReadOnlyDocumentStoreWrapper)
             assertFalse(Throwables.getRootCause(e) instanceof UnsupportedOperationException);
+        }
+    }
+
+    @Test
+    public void partitionedUpdates() throws Exception {
+        AtomicInteger maxBatchSize = new AtomicInteger(0);
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
+                maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
+                return super.createOrUpdate(collection, updateOps);
+            }
+        };
+        // set batch size to half the update limit
+        int batchSize = DocumentNodeStoreBuilder.UPDATE_LIMIT / 2;
+        System.setProperty("oak.documentMK.createOrUpdateBatchSize",
+                String.valueOf(batchSize));
+        try {
+            DocumentNodeStore ns = builderProvider.newBuilder()
+                    .setAsyncDelay(0).setDocumentStore(store).build();
+            NodeBuilder builder = ns.getRoot().builder();
+            for (int i = 0; i < DocumentNodeStoreBuilder.UPDATE_LIMIT; i++) {
+                builder.child("c-" + i);
+            }
+            merge(ns, builder);
+            assertThat(maxBatchSize.get(), greaterThan(0));
+            assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
+        } finally {
+            System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
+        }
+    }
+
+    @Test
+    public void partitionedReset() {
+        AtomicInteger maxBatchSize = new AtomicInteger(0);
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
+                maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
+                return super.createOrUpdate(collection, updateOps);
+            }
+        };
+        // set batch size to half the update limit
+        int batchSize = DocumentNodeStoreBuilder.UPDATE_LIMIT / 2;
+        System.setProperty("oak.documentMK.createOrUpdateBatchSize",
+                String.valueOf(batchSize));
+        try {
+            DocumentNodeStore ns = builderProvider.newBuilder()
+                    .setAsyncDelay(0).setDocumentStore(store).build();
+            DocumentNodeStoreBranch branch = ns.createBranch(ns.getRoot());
+            NodeBuilder builder = branch.getBase().builder();
+            for (int i = 0; i < DocumentNodeStoreBuilder.UPDATE_LIMIT * 2; i++) {
+                builder.child("c-" + i).setProperty("p", "a");
+            }
+            branch.setRoot(builder.getNodeState());
+            branch.persist();
+
+            maxBatchSize.set(0);
+            ns.reset(asDocumentNodeState(branch.getHead()).getRootRevision(),
+                    asDocumentNodeState(branch.getBase()).getRootRevision().asBranchRevision(ns.getClusterId()));
+            assertThat(maxBatchSize.get(), greaterThan(0));
+            assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
+        } finally {
+            System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
         }
     }
 

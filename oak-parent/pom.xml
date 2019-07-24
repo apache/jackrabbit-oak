@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.16-SNAPSHOT</version>
+  <version>1.18-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -283,7 +283,7 @@
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.12</version>
+          <version>0.13</version>
           <configuration>
             <consoleOutput>true</consoleOutput>
           </configuration>
@@ -677,7 +677,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson.version}.1<!--OAK-8486--></version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -1051,7 +1051,7 @@
         <dependency>
           <groupId>mysql</groupId>
           <artifactId>mysql-connector-java</artifactId>
-          <version>8.0.15</version>
+          <version>8.0.16</version>
         </dependency>
       </dependencies>
     </profile>
@@ -1061,7 +1061,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.5</version>
+          <version>42.2.6</version>
         </dependency>
       </dependencies>
     </profile>
@@ -1081,7 +1081,7 @@
         <dependency>
           <groupId>com.microsoft.sqlserver</groupId>
           <artifactId>mssql-jdbc</artifactId>
-          <version>7.2.1.jre8</version>
+          <version>7.2.2.jre8</version>
         </dependency>
       </dependencies>
     </profile>

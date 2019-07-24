@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 
 import com.google.common.io.Closer;
 
@@ -53,6 +54,16 @@ class RecoveryCommand implements Command {
                 System.err.println("Recovery only available for DocumentNodeStore backed by MongoDB or RDB persistence");
                 System.exit(1);
             }
+
+            // The recovery command does not have options for the blob store
+            // and the DocumentNodeStoreBuilder by default assumes the blobs
+            // are stored in the same location as the documents. That is,
+            // either in MongoDB or RDB, which is not necessarily the case and
+            // can cause an exception when the blob store implementation starts
+            // read-only on a database that does not have the required
+            // collection. Use an in-memory blob store instead, because the
+            // recovery command does not read blobs anyway.
+            builder.setBlobStore(new MemoryBlobStore());
 
             // dryRun implies readonly repo
             boolean dryRun = Arrays.asList(args).contains("dryRun");

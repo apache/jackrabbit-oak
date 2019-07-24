@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
@@ -193,6 +194,13 @@ public final class DocumentNodeStore
      * How many collision entries to collect in a single call.
      */
     private int collisionGarbageBatchSize = Integer.getInteger("oak.documentMK.collisionGarbageBatchSize", 1000);
+
+    /**
+     * The number of updates to batch with a single call to
+     * {@link DocumentStore#createOrUpdate(Collection, List)}.
+     */
+    private final int createOrUpdateBatchSize =
+            Integer.getInteger("oak.documentMK.createOrUpdateBatchSize", 1000);
 
     /**
      * The document store without potentially lease checking wrapper.
@@ -689,6 +697,15 @@ public final class DocumentNodeStore
         clusterUpdateThread.start();
         backgroundReadThread.start();
         if (!readOnlyMode) {
+            // OAK-8466 - background sweep may take a long time if there is no
+            // sweep revision for this clusterId. When this process is suddenly
+            // stopped while performing the sweep, a recovery will be needed
+            // starting at the timestamp of _lastRev for this clusterId, which
+            // is potentially old and the recovery will be expensive. Hence
+            // triggering below function to update _lastRev, just before
+            // triggering sweep
+            runBackgroundUpdateOperations();
+
             // perform an initial document sweep if needed
             // this may be long running if there is no sweep revision
             // for this clusterId (upgrade from Oak <= 1.6).
@@ -1705,7 +1722,9 @@ public final class DocumentNodeStore
                     new ResetDiff(previous.asTrunkRevision(), operations));
             LOG.debug("reset: applying {} operations", operations.size());
             // apply reset operations
-            store.createOrUpdate(NODES, new ArrayList<>(operations.values()));
+            for (List<UpdateOp> ops : partition(operations.values(), getCreateOrUpdateBatchSize())) {
+                store.createOrUpdate(NODES, ops);
+            }
         }
         store.findAndUpdate(NODES, rootOp);
         // clean up in-memory branch data
@@ -2432,6 +2451,10 @@ public final class DocumentNodeStore
         return sweepRevisions;
     }
 
+    int getCreateOrUpdateBatchSize() {
+        return createOrUpdateBatchSize;
+    }
+
     //-----------------------------< internal >---------------------------------
 
     private BackgroundWriteStats backgroundWrite() {
@@ -2453,16 +2476,21 @@ public final class DocumentNodeStore
         if (isDisposed.get() || isDisableBranches()) {
             return;
         }
+        DocumentNodeState rootState = getRoot();
         // check if local head revision is outdated and needs an update
         // this ensures the head and sweep revisions are recent and the
         // revision garbage collector can remove old documents
-        Revision head = getHeadRevision().getRevision(clusterId);
-        if (head != null && head.getTimestamp() + ONE_MINUTE_MS < clock.getTime()) {
+        Revision head = rootState.getRootRevision().getRevision(clusterId);
+        Revision lastRev = rootState.getLastRevision().getRevision(clusterId);
+        long oneMinuteAgo = clock.getTime() - ONE_MINUTE_MS;
+        if ((head != null && head.getTimestamp() < oneMinuteAgo) ||
+                (lastRev != null && lastRev.getTimestamp() < oneMinuteAgo)) {
             // head was not updated for more than a minute
             // create an empty commit that updates the head
             boolean success = false;
             Commit c = newTrunkCommit(nop -> {}, getHeadRevision());
             try {
+                c.markChanged(ROOT);
                 done(c, false, CommitInfo.EMPTY);
                 success = true;
             } finally {
