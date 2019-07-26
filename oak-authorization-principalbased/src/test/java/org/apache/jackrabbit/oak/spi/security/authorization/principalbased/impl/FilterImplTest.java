@@ -126,11 +126,21 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         assertFalse(filter.canHandle(Collections.singleton(principal)));
     }
 
-//    @Test
-//    public void testCanHandleItemBasedSystemUserPrincipalSupportedPath() {
-//        Principal principal = new TestPrincipal("name", PathUtils.concat(supportedPath, "oak:path/to/oak:principal"));
-//        assertTrue(filter.canHandle(Collections.singleton(principal)));
-//    }
+    @Test
+    public void testCanHandleMovedItemBasedSystemUserPrincipal() throws Exception {
+        Principal principal = getTestSystemUser().getPrincipal();
+        assertTrue(filter.canHandle(Collections.singleton(principal)));
+
+        String oakPath = filter.getOakPath(principal);
+        assertEquals(getNamePathMapper().getOakPath(getTestSystemUser().getPath()), oakPath);
+
+        String destPath = oakPath + "_moved";
+        root.move(oakPath, destPath);
+
+        Principal movedPrincipal = new TestPrincipal(principal.getName(), destPath);
+        assertTrue(filter.canHandle(Collections.singleton(movedPrincipal)));
+        assertEquals(destPath, filter.getOakPath(movedPrincipal));
+    }
 
     @Test
     public void testCanHandleGetPathThrows() {
