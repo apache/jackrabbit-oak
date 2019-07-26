@@ -90,7 +90,7 @@ public class AbstractPrincipalBasedTest extends AbstractSecurityTest {
         try {
             root.refresh();
             if (testSystemUser != null) {
-                testSystemUser.remove();
+                getUserManager(root).getAuthorizable(testSystemUser.getID()).remove();
                 root.commit();
             }
         } finally {
