@@ -34,19 +34,6 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>baseline</id>
-            <goals>
-              <goal>baseline</goal>
-            </goals>
-            <phase>pre-integration-test</phase>
-              <configuration>
-                <comparisonArtifactId>jackrabbit-api</comparisonArtifactId>
-                <comparisonVersion>2.18.2</comparisonVersion>
-              </configuration>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
