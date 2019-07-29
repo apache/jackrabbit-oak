@@ -76,7 +76,7 @@ public class VersionGarbageCollector {
     private static final int PROGRESS_BATCH_SIZE = 10000;
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
-    static final Logger log = LoggerFactory.getLogger(VersionGarbageCollector.class);
+    private static final Logger log = LoggerFactory.getLogger(VersionGarbageCollector.class);
 
     /**
      * Split document types which can be safely garbage collected
