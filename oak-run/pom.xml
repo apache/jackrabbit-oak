@@ -32,7 +32,7 @@
 
   <properties>
     <jetty.version>8.2.0.v20160908</jetty.version>
-    <groovy.version>2.4.7</groovy.version>
+    <groovy.version>2.4.17</groovy.version>
     <!--
       Size History:
       + 51 MB AWS java sdk update (OAK-7536)
