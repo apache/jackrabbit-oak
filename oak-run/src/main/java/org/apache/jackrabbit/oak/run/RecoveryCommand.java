@@ -18,7 +18,6 @@
 package org.apache.jackrabbit.oak.run;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
