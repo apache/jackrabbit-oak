@@ -76,7 +76,7 @@ class ResetClusterIdCommand implements Command {
         String help = "resetclusterid {<path>|<mongo-uri>|<jdbc-uri>}";
         Utils.NodeStoreOptions opts = new Utils.NodeStoreOptions(help).parse(args);
 
-        Closer closer = Closer.create();
+        Closer closer = Utils.createCloserWithShutdownHook();
         try {
             NodeStore store = Utils.bootstrapNodeStore(opts, closer);
             deleteClusterId(store);

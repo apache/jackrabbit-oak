@@ -1,0 +1,201 @@
+diff --git a/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/Commit.java b/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/Commit.java
+index 815f72a421..9a5a49232f 100644
+--- a/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/Commit.java
++++ b/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/Commit.java
+@@ -789,6 +789,18 @@ public class Commit {
+         cacheEntry.done();
+     }
+ 
++    void markChanged(Path path) {
++        while (true) {
++            if (!modifiedNodes.add(path)) {
++                break;
++            }
++            path = path.getParent();
++            if (path == null) {
++                break;
++            }
++        }
++    }
++
+     /**
+      * Apply the changes of a node to the cache.
+      *
+@@ -817,18 +829,6 @@ public class Commit {
+         cacheEntry.append(path, w.toString());
+     }
+ 
+-    private void markChanged(Path path) {
+-        while (true) {
+-            if (!modifiedNodes.add(path)) {
+-                break;
+-            }
+-            path = path.getParent();
+-            if (path == null) {
+-                break;
+-            }
+-        }
+-    }
+-
+     private boolean isBundled(Path path) {
+         return bundledNodes.containsKey(path);
+     }
+diff --git a/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStore.java b/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStore.java
+index a49f8bd0f8..6de68995ef 100644
+--- a/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStore.java
++++ b/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStore.java
+@@ -689,6 +689,10 @@ public final class DocumentNodeStore
+         clusterUpdateThread.start();
+         backgroundReadThread.start();
+         if (!readOnlyMode) {
++            //OAK-8466 - background sweep may take too much time if cluster node got crashed sometime without updating 
++            //_lastRev. Hence triggering below function to update _lastRev, just before triggering sweep
++            runBackgroundUpdateOperations();
++
+             // perform an initial document sweep if needed
+             // this may be long running if there is no sweep revision
+             // for this clusterId (upgrade from Oak <= 1.6).
+@@ -2453,16 +2457,21 @@ public final class DocumentNodeStore
+         if (isDisposed.get() || isDisableBranches()) {
+             return;
+         }
++        DocumentNodeState rootState = getRoot();
+         // check if local head revision is outdated and needs an update
+         // this ensures the head and sweep revisions are recent and the
+         // revision garbage collector can remove old documents
+-        Revision head = getHeadRevision().getRevision(clusterId);
+-        if (head != null && head.getTimestamp() + ONE_MINUTE_MS < clock.getTime()) {
++        Revision head = rootState.getRootRevision().getRevision(clusterId);
++        Revision lastRev = rootState.getLastRevision().getRevision(clusterId);
++        long now = clock.getTime();
++        if ((head != null && head.getTimestamp() + ONE_MINUTE_MS < now) ||
++                (lastRev != null && lastRev.getTimestamp() + ONE_MINUTE_MS < now)) {
+             // head was not updated for more than a minute
+             // create an empty commit that updates the head
+             boolean success = false;
+             Commit c = newTrunkCommit(nop -> {}, getHeadRevision());
+             try {
++                c.markChanged(ROOT);
+                 done(c, false, CommitInfo.EMPTY);
+                 success = true;
+             } finally {
+diff --git a/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreStatsCollectorIT.java b/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreStatsCollectorIT.java
+index 2e54f6b1c0..e010ab559f 100644
+--- a/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreStatsCollectorIT.java
++++ b/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreStatsCollectorIT.java
+@@ -89,7 +89,7 @@ public class DocumentNodeStoreStatsCollectorIT {
+     @Test
+     public void doneBackgroundUpdate() {
+         nodeStore.runBackgroundUpdateOperations();
+-        verify(statsCollector).doneBackgroundUpdate(any(BackgroundWriteStats.class));
++        verify(statsCollector,times(2)).doneBackgroundUpdate(any(BackgroundWriteStats.class));
+     }
+ 
+     @Test
+diff --git a/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreTest.java b/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreTest.java
+index 59d7e8815b..033c12811f 100644
+--- a/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreTest.java
++++ b/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/DocumentNodeStoreTest.java
+@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
+ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
+ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
+ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
++import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
+ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
+ import static org.hamcrest.CoreMatchers.everyItem;
+ import static org.hamcrest.CoreMatchers.is;
+@@ -117,6 +118,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+ import org.apache.jackrabbit.oak.spi.state.NodeState;
+ import org.apache.jackrabbit.oak.spi.state.NodeStore;
+ import org.apache.jackrabbit.oak.stats.Clock;
++import org.hamcrest.number.OrderingComparison;
+ import org.jetbrains.annotations.NotNull;
+ import org.jetbrains.annotations.Nullable;
+ import org.junit.AfterClass;
+@@ -751,6 +753,47 @@ public class DocumentNodeStoreTest {
+         } catch (DocumentStoreException expected) {}
+     }
+ 
++    //OAK-8466
++    @Test
++    public void lastRevisionUpdateOnNodeRestart() throws Exception {
++        MemoryDocumentStore store = new MemoryDocumentStore();
++
++        int clusterId = 1;
++        DocumentNodeStore dns1 = builderProvider.newBuilder()
++                .setDocumentStore(store)
++                .setAsyncDelay(0).setClusterId(clusterId)
++                .getNodeStore();
++        dns1.dispose();
++
++        NodeDocument beforeRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
++        assertNotNull(beforeRootDoc);
++        Revision beforeLastRev = beforeRootDoc.getLastRev().get(clusterId);
++
++        Clock clock = new Clock.Virtual();
++        long now = System.currentTimeMillis();
++        // DocumentNodeStore refreshes the head revision and _lastRev
++        // when there was no commit for one minute
++        clock.waitUntil( now + TimeUnit.MINUTES.toMillis(1));
++        long timeBeforeStartup = clock.getTime();
++        ClusterNodeInfo.setClock(clock);
++        Revision.setClock(clock);
++
++        builderProvider.newBuilder()
++                .setDocumentStore(store).clock(clock)
++                .setAsyncDelay(0).setClusterId(clusterId)
++                .getNodeStore();
++
++        NodeDocument afterRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
++        assertNotNull(afterRootDoc);
++        Revision afterLastRev = afterRootDoc.getLastRev().get(clusterId);
++
++        assertThat("lastRev must be greater or equal '" + Utils.timestampToString(timeBeforeStartup) + "', but was '" 
++            + Utils.timestampToString(afterLastRev.getTimestamp()) + "'", afterLastRev.getTimestamp(), 
++            OrderingComparison.greaterThanOrEqualTo(timeBeforeStartup));
++        assertNotEquals("Last revision should be updated after 1 minute even if background thread is not running",
++                beforeLastRev, afterLastRev);
++    }
++
+     // OAK-2288
+     @Test
+     public void mergedBranchVisibility() throws Exception {
+diff --git a/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/SimpleTest.java b/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/SimpleTest.java
+index c90086065c..40f5281492 100644
+--- a/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/SimpleTest.java
++++ b/oak-store-document/src/test/java/org/apache/jackrabbit/oak/plugins/document/SimpleTest.java
+@@ -105,25 +105,25 @@ public class SimpleTest {
+         String rev4 = mk.commit("/test", "^\"a/x\":1", null, null);
+ 
+         String r0 = mk.getNodes("/", rev0, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/@r0-0-1\",\":childNodeCount\":0}", r0);
++        assertEquals("{\":id\":\"/@r1-0-1\",\":childNodeCount\":0}", r0);
+         String r1 = mk.getNodes("/", rev1, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/@r1-0-1\",\"test\":{},\":childNodeCount\":1}", r1);
++        assertEquals("{\":id\":\"/@r2-0-1\",\"test\":{},\":childNodeCount\":1}", r1);
+         String r2 = mk.getNodes("/", rev2, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/@r2-0-1\",\"test\":{},\":childNodeCount\":1}", r2);
++        assertEquals("{\":id\":\"/@r3-0-1\",\"test\":{},\":childNodeCount\":1}", r2);
+         String r3;
+         r3 = mk.getNodes("/", rev3, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/@r3-0-1\",\"test\":{},\":childNodeCount\":1}", r3);
++        assertEquals("{\":id\":\"/@r4-0-1\",\"test\":{},\":childNodeCount\":1}", r3);
+         r3 = mk.getNodes("/test", rev3, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/test@r3-0-1\",\"a\":{},\"b\":{},\":childNodeCount\":2}", r3);
++        assertEquals("{\":id\":\"/test@r4-0-1\",\"a\":{},\"b\":{},\":childNodeCount\":2}", r3);
+         String r4;
+         r4 = mk.getNodes("/", rev4, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/@r4-0-1\",\"test\":{},\":childNodeCount\":1}", r4);
++        assertEquals("{\":id\":\"/@r5-0-1\",\"test\":{},\":childNodeCount\":1}", r4);
+         r4 = mk.getNodes("/test", rev4, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/test@r4-0-1\",\"a\":{},\"b\":{},\":childNodeCount\":2}", r4);
++        assertEquals("{\":id\":\"/test@r5-0-1\",\"a\":{},\"b\":{},\":childNodeCount\":2}", r4);
+         r4 = mk.getNodes("/test/a", rev4, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/test/a@r4-0-1\",\"x\":1,\":childNodeCount\":0}", r4);
++        assertEquals("{\":id\":\"/test/a@r5-0-1\",\"x\":1,\":childNodeCount\":0}", r4);
+         r4 = mk.getNodes("/test/b", rev4, 0, 0, Integer.MAX_VALUE, ":id");
+-        assertEquals("{\":id\":\"/test/b@r3-0-1\",\":childNodeCount\":0}", r4);
++        assertEquals("{\":id\":\"/test/b@r4-0-1\",\":childNodeCount\":0}", r4);
+     }
+ 
+     @Test
