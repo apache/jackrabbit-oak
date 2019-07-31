@@ -108,7 +108,7 @@ public class DataStoreCommand implements Command {
         logCliArgs(args);
 
         boolean success = false;
-        try (Closer closer = Utils.createCloserWithShutdownHook()) {
+        try (Closer closer = Closer.create()) {
             opts.setTempDirectory(dataStoreOpts.getWorkDir().getAbsolutePath());
             NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
             closer.register(fixture);
@@ -152,7 +152,7 @@ public class DataStoreCommand implements Command {
     private void execute(NodeStoreFixture fixture,  DataStoreOptions dataStoreOpts, Options opts, Closer closer)
         throws Exception {
 
-        try (Closer metricsCloser = Utils.createCloserWithShutdownHook()) {
+        try (Closer metricsCloser = Closer.create()) {
             MetricsExporterFixture metricsExporterFixture =
                 MetricsExporterFixtureProvider.create(dataStoreOpts, fixture.getWhiteboard());
             metricsCloser.register(metricsExporterFixture);

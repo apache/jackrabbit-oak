@@ -50,7 +50,7 @@ class CheckpointsCommand implements Command {
 
         boolean success = false;
         Checkpoints cps;
-        Closer closer = Utils.createCloserWithShutdownHook();
+        Closer closer = Closer.create();
         try {
             String op = "list";
             if (options.nonOptionArguments().size() >= 2) {

@@ -45,7 +45,17 @@ class RecoveryCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         MapFactory.setInstance(new MapDBMapFactory());
-        Closer closer = Utils.createCloserWithShutdownHook();
+        Closer closer = Closer.create();
+        //Register a JVM shutdwon hook to close Closer so that it will free clusterId, if only not freed
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                try {
+                    closer.close();
+                } catch (IOException e) {
+                    e.printStackTrace(System.err);
+                }
+            }
+        });
         String h = "recovery mongodb://host:port/database|jdbc:... { dryRun }";
 
         try {
