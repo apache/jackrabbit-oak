@@ -341,6 +341,19 @@ class Utils {
         };
     }
 
+    static Closer createCloserWithShutdownHook() {
+        Closer closer = Closer.create();
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                try {
+                    closer.close();
+                } catch (IOException e) {
+                    e.printStackTrace(System.err);
+                }
+            }
+        });
+        return closer;
+    }
 
     private static Properties loadAndTransformProps(String cfgPath) throws IOException {
         Dictionary dict = ConfigurationHandler.read(new FileInputStream(cfgPath));
