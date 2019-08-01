@@ -246,7 +246,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
             for (PropInfo prop : propInfos) {
                 String oakName = getOakName(prop.getName());
                 if (REP_EFFECTIVE_PATH.equals(oakName) && PropertyType.PATH == prop.getType()) {
-                    effectivePath = prop.getTextValue().getString();
+                    effectivePath = extractEffectivePath(prop);
                 } else if (REP_PRIVILEGES.equals(oakName) && PropertyType.NAME == prop.getType()) {
                     privs = getPrivileges(Iterables.transform(prop.getTextValues(), textValue -> textValue.getString()));
                 } else {
@@ -275,7 +275,7 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                 if (REP_NODE_PATH.equals(getOakName(restrictionName))) {
                     checkState(effectivePath == null, "Attempt to overwrite rep:effectivePath property with rep:nodePath restriction.");
                     log.debug("Extracting rep:effectivePath from rep:nodePath restriction.");
-                    effectivePath = prop.getTextValue().getString();
+                    effectivePath = extractEffectivePath(prop);
                 } else {
                     int targetType = policy.getRestrictionType(restrictionName);
                     List<Value> values = prop.getValues(targetType);
@@ -286,6 +286,20 @@ class PrincipalPolicyImporter implements ProtectedNodeImporter, ProtectedPropert
                     }
                 }
             }
+        }
+
+        /**
+         * Work around the fact that {@link org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl#getJcrName(String)}
+         * transforms an empty path value to the current element ("."), which is not a valid path for {@code rep:effectivePath},
+         * which expects an absolute path or null.
+         *
+         * @param prop The prop info containing the effective path.
+         * @return An empty string if the text value of the given property info is "." or the text value otherwise.
+         * @throws RepositoryException
+         */
+        private String extractEffectivePath(@NotNull PropInfo prop) throws RepositoryException {
+            String ep = prop.getTextValue().getString();
+            return (PathUtils.denotesCurrent(ep)) ? "" : ep;
         }
 
         private void applyTo(@NotNull PrincipalPolicyImpl policy) throws RepositoryException {

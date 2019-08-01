@@ -21,16 +21,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.UUID;
+
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.junit.Assert.assertNotEquals;
 
 public class ImportTest extends AbstractJCRTest {
 
@@ -247,5 +249,21 @@ public class ImportTest extends AbstractJCRTest {
             // success
             assertEquals("No matching property definition found for jcr:data", e.getMessage());
         }
+    }
+
+    public void testNewNamespaceWithPrefixConflict() throws Exception {
+        String ns1 = "urn:uuid:" + UUID.randomUUID().toString();
+        String ns2 = "urn:uuid:" + UUID.randomUUID().toString();
+        String xml = "<sv:node sv:name='resourceName' xmlns:sv='http://www.jcp.org/jcr/sv/1.0'>" + "<sv:property xmlns:foo='" + ns1
+                + "' sv:name='foo:test' sv:type='String'><sv:value>a</sv:value></sv:property>" + "<sv:property xmlns:foo='" + ns2
+                + "' sv:name='foo:test' sv:type='String'><sv:value>b</sv:value></sv:property>" + "</sv:node>";
+        superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        Node n = superuser.getNode(path);
+        n = n.getNode("resourceName");
+        Property p1 = n.getProperty("{" + ns1 + "}test");
+        assertEquals("a", p1.getString());
+        Property p2 = n.getProperty("{" + ns2 + "}test");
+        assertEquals("b", p2.getString());
+        assertNotEquals(p1.getName(), p2.getName());
     }
 }

@@ -48,6 +48,14 @@ import org.slf4j.LoggerFactory;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
 
+    private static int RETRY_ATTEMPTS = Integer.getInteger("segment.azure.retry.attempts", 5);
+
+    private static int RETRY_BACKOFF_SECONDS = Integer.getInteger("segment.azure.retry.backoff", 5);
+
+    private static int TIMEOUT_EXECUTION = Integer.getInteger("segment.timeout.execution", 30);
+
+    private static int TIMEOUT_INTERVAL = Integer.getInteger("segment.timeout.interval", 1);
+
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
     protected final CloudBlobDirectory segmentstoreDirectory;
@@ -57,13 +65,19 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
         BlobRequestOptions defaultRequestOptions = segmentStoreDirectory.getServiceClient().getDefaultRequestOptions();
         if (defaultRequestOptions.getRetryPolicyFactory() == null) {
-            defaultRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(5), 5));
+            if (RETRY_ATTEMPTS > 0) {
+                defaultRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(RETRY_BACKOFF_SECONDS), RETRY_ATTEMPTS));
+            }
         }
         if (defaultRequestOptions.getMaximumExecutionTimeInMs() == null) {
-            defaultRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(30));
+            if (TIMEOUT_EXECUTION > 0) {
+                defaultRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_EXECUTION));
+            }
         }
         if (defaultRequestOptions.getTimeoutIntervalInMs() == null) {
-            defaultRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(1));
+            if (TIMEOUT_INTERVAL > 0) {
+                defaultRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_INTERVAL));
+            }
         }
     }
 

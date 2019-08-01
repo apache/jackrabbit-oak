@@ -62,6 +62,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
     private final IndexCopier indexCopier;
     private final Directory remote;
     private final Directory local;
+    private final boolean prefetch;
     private final String indexPath;
     private final Executor executor;
     private final AtomicBoolean closed = new AtomicBoolean();
@@ -75,6 +76,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         this.executor = executor;
         this.remote = remote;
         this.local = local;
+        this.prefetch = prefetch;
         this.indexPath = indexPath;
 
         if (prefetch) {
@@ -106,7 +108,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 return files.get(name).openLocalInput(context);
             } else {
                 indexCopier.readFromRemote(true);
-                log.trace(
+                logRemoteAccess(
                         "[{}] opening existing remote file as local version is not valid {}",
                         indexPath, name);
                 return remote.openInput(name, context);
@@ -136,7 +138,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
             return toPut.openLocalInput(context);
         }
 
-        log.trace("[{}] opening new remote file {}", indexPath, name);
+        logRemoteAccess("[{}] opening new remote file {}", indexPath, name);
         indexCopier.readFromRemote(true);
         return remote.openInput(name, context);
     }
@@ -223,7 +225,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
                                 indexPath, name, local, localLength, remoteLength);
                         indexCopier.foundInvalidFile();
                     } else {
-                        log.trace("[{}] Found in progress copy of file {}. Would read from remote", indexPath, name);
+                        logRemoteAccess("[{}] Found in progress copy of file {}. Would read from remote", indexPath, name);
                     }
                 } else {
                     reference.markValid();
@@ -345,6 +347,14 @@ public class CopyOnReadDirectory extends FilterDirectory {
             log.debug(
                     "[{}] Following files have been removed from Lucene index directory {}",
                     indexPath, filesToBeDeleted);
+        }
+    }
+
+    private void logRemoteAccess(String format, Object o1, Object o2) {
+        if (prefetch) {
+            log.warn(format, o1, o2);
+        } else {
+            log.trace(format, o1, o2);
         }
     }
 

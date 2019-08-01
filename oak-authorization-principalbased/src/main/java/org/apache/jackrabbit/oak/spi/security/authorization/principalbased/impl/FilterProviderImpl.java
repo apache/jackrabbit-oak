@@ -169,7 +169,8 @@ public class FilterProviderImpl implements FilterProvider {
             }
 
             String principalName = principal.getName();
-            if (validatedPrincipalNamesPathMap.containsKey(principalName)) {
+            String path = validatedPrincipalNamesPathMap.get(principalName);
+            if (path != null && isValidMapEntry(principal, path)) {
                 return true;
             }
 
@@ -182,6 +183,25 @@ public class FilterProviderImpl implements FilterProvider {
             }
         }
 
+        /**
+         * Besteffort validation if the given entry in 'validatedPrincipalNamesPathMap' is points to the correct path.
+         * Note, that this will just be performed for instances of {@code ItemBasedPrincipal}, where obtaining the path
+         * doesn't require looking up the principal again.
+         *
+         * @param principal The target principal to be validated
+         * @param oakPath The Oak path stored in 'validatedPrincipalNamesPathMap' for the given principal.
+         * @return {@code true}, if the principal is an instance of {@code ItemBasedPrincipal}, whose Oak path is equal
+         * to the given {@code oakPath} and {@code false} if the paths are not equal. For any other types of principal
+         * this method will return {@code true} in order to avoid excessive principal lookup.
+         */
+        private boolean isValidMapEntry(@NotNull Principal principal, @NotNull String oakPath) {
+            if (principal instanceof ItemBasedPrincipal) {
+                return oakPath.equals(getOakPath((ItemBasedPrincipal) principal));
+            } else {
+                return true;
+            }
+        }
+
         @Nullable
         private String getPrincipalPath(@NotNull Principal principal) {
             String prinicpalOakPath = null;
@@ -189,8 +209,9 @@ public class FilterProviderImpl implements FilterProvider {
                 prinicpalOakPath = getOakPath((ItemBasedPrincipal) principal);
             }
             if (prinicpalOakPath == null || !root.getTree(prinicpalOakPath).exists()) {
-                // given principal is not ItemBasedPrincipal or it has been obtained with a different name-path-mapper
-                // making the conversion to oak-path return null -> try obtaining principal by name
+                // the given principal is not ItemBasedPrincipal or it has been obtained with a different name-path-mapper
+                // (making the conversion to oak-path return null) or it has been moved and the path no longer points to
+                // an existing tree -> try looking up principal by name
                 Principal p = principalProvider.getPrincipal(principal.getName());
                 if (p instanceof ItemBasedPrincipal) {
                     prinicpalOakPath = getOakPath((ItemBasedPrincipal) p);

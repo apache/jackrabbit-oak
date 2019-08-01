@@ -22,11 +22,13 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.After;
@@ -40,7 +42,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.security.AccessControlEntry;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.security.Principal;
 import java.util.List;
@@ -59,6 +63,7 @@ import static org.apache.jackrabbit.oak.spi.security.authorization.principalbase
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_RESTRICTIONS;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -495,5 +500,23 @@ public abstract class ImportBaseTest extends AbstractPrincipalBasedTest {
         assertEquals(1, policy.size());
         PrincipalPolicyImpl.EntryImpl entry = policy.getEntries().get(0);
         assertEquals("*", entry.getRestriction(REP_GLOB).getString());
+    }
+
+    @Test
+    public void testExportImport() throws Exception {
+        JackrabbitAccessControlManager acmgr = getAccessControlManager();
+        PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, acmgr);
+        policy.addEntry("/content", AccessControlUtils.privilegesFromNames(acmgr, PrivilegeConstants.JCR_READ));
+        policy.addEntry(null, AccessControlUtils.privilegesFromNames(acmgr, PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT));
+        AccessControlEntry[] expected = policy.getAccessControlEntries();
+        acmgr.setPolicy(policy.getPath(), policy);
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        adminSession.exportSystemView(PathUtils.concat(policy.getPath(), REP_PRINCIPAL_POLICY), output, true, false);
+        adminSession.refresh(false);
+
+        adminSession.importXML(policy.getPath(), new ByteArrayInputStream(((ByteArrayOutputStream) output).toByteArray()), ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+        policy = getPrincipalPolicyImpl(testPrincipal, acmgr);
+        assertArrayEquals(expected, policy.getAccessControlEntries());
     }
 }
