@@ -45,6 +45,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("ConstantConditions")
 public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTestBase{
@@ -81,7 +82,7 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
      */
     @Test
     public void luceneIndexAddAndReindex() throws Exception {
-        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo");// This should create indexes in readonly and read write parts of repo and content convered by them and check if index is used properly
+        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo", false);// This should create indexes in readonly and read write parts of repo and content convered by them and check if index is used properly
 
         // Now we reindex and see everything works fine
         long reindexCount = compositeRepoV1.getCompositeRoot().getNode(INDEX_DEFINITIONS_NAME).getNode("luceneTest").getProperty(REINDEX_COUNT).getValue().getLong();
@@ -89,6 +90,20 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         compositeRepoV1.getCompositeSession().save();
         assertEquals(compositeRepoV1.getCompositeRoot().getNode(INDEX_DEFINITIONS_NAME).getNode("luceneTest").getProperty(REINDEX_COUNT).getValue().getLong(), reindexCount + 1);
         compositeRepoV1.cleanup();
+    }
+    /*
+    Given a composite node store , trying to create an index in read-write part
+    with the same index node already existing in the read only part already
+    we should get OakConstraint001 . This is the current behaviour , but can be worked upon (improved) in the future .
+     */
+    @Test
+    public void luceneIndexInReadWriteWithIndexExistinginReadOnly() {
+        try {
+            compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo", true);
+            assertTrue(false);
+        }catch (Exception e) {
+            assert(e.getLocalizedMessage().contains("OakConstraint0001: /oak:index/luceneTest/:oak:mount-readOnlyv1-index-data[[]]: The primary type null does not exist"));
+        }
     }
 
     /*
@@ -99,7 +114,7 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
      */
     @Test
     public void luceneRemoveIndex() throws Exception {
-        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo");
+        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo", false);
 
         compositeRepoV2 = new CompositeRepo(READ_ONLY_MOUNT_V2_NAME, VERSION_2);
 
@@ -170,8 +185,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     public void updateLuceneIndex() throws Exception {
 
         // Create 2 index defintions in Version 1
-        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo"); // A
-        compositeRepoV1.setupIndexAndContentInRepo("luceneTest2", "foo2"); //B
+        compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo", false); // A
+        compositeRepoV1.setupIndexAndContentInRepo("luceneTest2", "foo2", false); //B
 
         // Now initialize V2 composite Repo
 
@@ -179,8 +194,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         compositeRepoV2.initCompositeRepo();
 
         // Now Create 2 index definitons in Version 2 - one supposed to replace B and one entirely new
-        compositeRepoV2.setupIndexAndContentInRepo("luceneTest3", "foo3"); // C
-        compositeRepoV2.setupIndexAndContentInRepo("luceneTest2_V2", "foo2"); //B2
+        compositeRepoV2.setupIndexAndContentInRepo("luceneTest3", "foo3", false); // C
+        compositeRepoV2.setupIndexAndContentInRepo("luceneTest2_V2", "foo2", false); //B2
 
         // Check V2 now uses luceneTest2_V2 for foo2 and no index for foo i.e traversal
 
@@ -347,9 +362,14 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             libs.setPrimaryType(NT_UNSTRUCTURED);
         }
 
-        private void setupIndexAndContentInRepo(String indexName, String indexedProperty) throws Exception {
+        private void setupIndexAndContentInRepo(String indexName, String indexedProperty, boolean createIndexInReadOnlyFirst) throws Exception {
 
             String versionProp = (version == VERSION_1) ? "@v1" : "@v2";
+
+            if (createIndexInReadOnlyFirst) {
+                setupIndexAndContentInReadOnly(indexName, indexedProperty);
+            }
+
             createLuceneIndex(compositeSession, indexName, indexedProperty);
             compositeRoot.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(IndexConstants.USE_IF_EXISTS, "/libs/indexes/" + indexName + "/" + versionProp);
             compositeRoot.getNode(INDEX_DEFINITIONS_NAME).getNode(indexName).setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
@@ -364,7 +384,9 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             }
 
             compositeSession.save();
-            setupIndexAndContentInReadOnly(indexName, indexedProperty);
+            if (!createIndexInReadOnlyFirst) {
+                setupIndexAndContentInReadOnly(indexName, indexedProperty);
+            }
             ///////////////////////////////////////////////////////////////////////////////////////////
             // Need to restart the composite repo after changes done to the read only part - needed for segement node store
             // Other wise the changes in read only repo are not visible to the cached reader.
