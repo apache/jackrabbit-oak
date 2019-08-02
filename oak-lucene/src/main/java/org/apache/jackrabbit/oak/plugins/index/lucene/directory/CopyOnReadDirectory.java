@@ -67,6 +67,11 @@ public class CopyOnReadDirectory extends FilterDirectory {
     private final Executor executor;
     private final AtomicBoolean closed = new AtomicBoolean();
 
+    // exported as package private to be useful in tests
+    static final String WAIT_OTHER_COPY_SYSPROP_NAME = "cor.waitCopyMillis";
+
+    long waitOtherCopyTimeoutMillis = Long.getLong(WAIT_OTHER_COPY_SYSPROP_NAME, TimeUnit.SECONDS.toMillis(30));
+
     private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
 
     public CopyOnReadDirectory(IndexCopier indexCopier, Directory remote, Directory local, boolean prefetch,
@@ -212,19 +217,24 @@ public class CopyOnReadDirectory extends FilterDirectory {
                             name, humanReadableByteCount(fileSize));
                 }
             } else {
-                long localLength = local.fileLength(name);
                 long remoteLength = remote.fileLength(name);
+
+                LocalIndexFile file = new LocalIndexFile(local, name, remoteLength, true);
+                // as a local file exists, attempt a wait for completion of any potential ongoing concurrent copy
+                indexCopier.waitForCopyCompletion(file, waitOtherCopyTimeoutMillis);
+
+                long localLength = local.fileLength(name);
 
                 //Do a simple consistency check. Ideally Lucene index files are never
                 //updated but still do a check if the copy is consistent
                 if (localLength != remoteLength) {
-                    LocalIndexFile file = new LocalIndexFile(local, name, remoteLength, true);
                     if (!indexCopier.isCopyInProgress(file)) {
                         log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. " +
                                         "Content would be read from remote file only",
                                 indexPath, name, local, localLength, remoteLength);
                         indexCopier.foundInvalidFile();
                     } else {
+
                         logRemoteAccess("[{}] Found in progress copy of file {}. Would read from remote", indexPath, name);
                     }
                 } else {

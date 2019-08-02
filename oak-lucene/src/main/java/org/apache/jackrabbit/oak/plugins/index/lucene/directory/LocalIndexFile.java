@@ -111,7 +111,7 @@ public final class LocalIndexFile {
         return actualSize() * 1.0f / size * 100;
     }
 
-    private long actualSize(){
+    public long actualSize(){
         return dir != null ? new File(dir, name).length() : 0;
     }
 
