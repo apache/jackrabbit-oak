@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,6 +44,7 @@ import javax.management.openmbean.TabularType;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Monitor;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
@@ -98,6 +100,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private final AtomicLong downloadTime = new AtomicLong();
     private final AtomicLong uploadTime = new AtomicLong();
 
+    private final Monitor copyCompletionMonitor = new Monitor();
 
     private final Map<String, String> indexPathVersionMapping = newConcurrentMap();
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
@@ -356,8 +359,61 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return copyInProgressFiles.contains(file);
     }
 
+    /**
+     * Waits for maximum of {@code timeoutMillis} while checking if {@code file} isn't being copied already.
+     * The method can return before {@code timeoutMillis} if it got interrupted. So, if the method reports false,
+     * caller should apply its own logic to see if a wait should be repeated or not.
+     * @param file
+     * @param timeoutMillis
+     */
+    public void waitForCopyCompletion(LocalIndexFile file, long timeoutMillis) {
+        final Monitor.Guard notCopyingGuard = new Monitor.Guard(copyCompletionMonitor) {
+            @Override
+            public boolean isSatisfied() {
+                return !isCopyInProgress(file);
+            }
+        };
+        long localLength = file.actualSize();
+        long lastLocalLength = localLength;
+
+        boolean notCopying = !isCopyInProgress(file);
+        while (!notCopying) {
+            try {
+                if (log.isDebugEnabled()) {
+                    log.debug("Checking for copy completion of {} - {}", file.getKey(), file.copyLog());
+                }
+                notCopying = copyCompletionMonitor.enterWhen(notCopyingGuard, timeoutMillis, TimeUnit.MILLISECONDS);
+                if (notCopying) {
+                    copyCompletionMonitor.leave();
+                }
+            } catch (InterruptedException e) {
+                // ignore
+            }
+
+            localLength = file.actualSize();
+
+            // Break out if local file length hasn't changed since last we checked.
+            // Do note that our assumption is that our monitor would return false only on timeout.
+            // BUT that's not true and the monitor could be interrupted as well. We are ignoring that
+            // gotcha explicitly as we don't really want to over complicate here for a rare race of
+            // concurrent copying and avoid reading from remote.
+            if (localLength <= lastLocalLength) {
+                log.warn("Breaking out of waiting for copy to finish as current local length ({})" +
+                                " hasn't increased from {}",
+                        localLength, lastLocalLength);
+                break;
+            }
+            lastLocalLength = localLength;
+        }
+    }
+
     public void doneCopy(LocalIndexFile file, long start) {
-        copyInProgressFiles.remove(file);
+        copyCompletionMonitor.enter();
+        try {
+            copyInProgressFiles.remove(file);
+        } finally {
+            copyCompletionMonitor.leave();
+        }
         copyInProgressCount.decrementAndGet();
         copyInProgressSize.addAndGet(-file.getSize());
 
