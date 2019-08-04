@@ -46,6 +46,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public final class IndexDefinitionBuilder {
@@ -382,8 +383,18 @@ public final class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule facets(){
+            propTree.setProperty(LuceneIndexConstants.PROP_FACETS, true);
+            return this;
+        }
+
         public PropertyRule weight(int weight){
             propTree.setProperty(LuceneIndexConstants.PROP_WEIGHT, weight);
+            return this;
+        }
+
+        public PropertyRule boost(float boost){
+            propTree.setProperty(FIELD_BOOST, (double)boost, Type.DOUBLE);
             return this;
         }
 
