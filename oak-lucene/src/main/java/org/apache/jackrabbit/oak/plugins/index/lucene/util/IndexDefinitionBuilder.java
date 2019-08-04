@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -137,7 +139,10 @@ public final class IndexDefinitionBuilder {
     }
 
     public NodeState build(){
+        // make sure to check for reindex required before checking for refresh as refresh optimizes a bit using
+        // that assumption (we have tests that fail if the order is swapped btw)
         setReindexFlagIfRequired();
+        setRefreshFlagIfRequired();
         return builder.getNodeState();
     }
 
@@ -162,6 +167,16 @@ public final class IndexDefinitionBuilder {
         if (!reindexRequired && !SelectiveEqualsDiff.equals(initial, builder.getNodeState()) && autoManageReindexFlag){
             tree.setProperty("reindex", true);
             reindexRequired = true;
+        }
+    }
+
+    private void setRefreshFlagIfRequired() {
+        // Utilize the fact that reindex requirement is checked before checking for refresh
+        // It serves 2 purposes:
+        // * avoids setting up refresh if reindex is already set
+        // * avoid calling SelectiveEqualDiff#equal again
+        if (!isReindexRequired() && !initial.equals(builder.getNodeState())) {
+            tree.setProperty(LuceneIndexConstants.PROP_REFRESH_DEFN, true);
         }
     }
 
@@ -552,6 +567,20 @@ public final class IndexDefinitionBuilder {
     }
 
     static class SelectiveEqualsDiff extends EqualsDiff {
+        // Properties for which changes shouldn't auto set the reindex flag
+        static final List<String> ignorablePropertiesList = of(
+                LuceneIndexConstants.PROP_WEIGHT,
+                FIELD_BOOST,
+                IndexConstants.QUERY_PATHS,
+                IndexConstants.INDEX_TAGS,
+                LuceneIndexConstants.BLOB_SIZE,
+                LuceneIndexConstants.COST_PER_ENTRY,
+                LuceneIndexConstants.COST_PER_EXECUTION);
+        static final List<String> ignorableFacetConfigProps = of(
+                LuceneIndexConstants.PROP_SECURE_FACETS,
+                LuceneIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,
+                LuceneIndexConstants.PROP_FACETS_TOP_CHILDREN);
+
         public static boolean equals(NodeState before, NodeState after) {
             return before.exists() == after.exists()
                     && after.compareAgainstBaseState(before, new SelectiveEqualsDiff());
@@ -563,8 +592,56 @@ public final class IndexDefinitionBuilder {
                 Set<String> asyncBefore = getAsyncValuesWithoutNRT(before);
                 Set<String> asyncAfter = getAsyncValuesWithoutNRT(after);
                 return asyncBefore.equals(asyncAfter);
+            } else if (ignorablePropertiesList.contains(before.getName()) || ignorableFacetConfigProps.contains(before.getName())) {
+                return true;
             }
             return false;
+        }
+
+        @Override
+        public boolean propertyAdded(PropertyState after) {
+            if(ignorablePropertiesList.contains(after.getName()) || ignorableFacetConfigProps.contains(after.getName())) {
+                return true;
+            }
+            return super.propertyAdded(after);
+        }
+
+        @Override
+        public boolean propertyDeleted(PropertyState before) {
+            if(ignorablePropertiesList.contains(before.getName()) || ignorableFacetConfigProps.contains(before.getName())) {
+                return true;
+            }
+            return super.propertyDeleted(before);
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            if(name.equals(LuceneIndexConstants.PROP_FACETS)) {
+                // This here makes sure any new property under FACETS that might be added in future and if so might require
+                // reindexing - then addition of  facet node (/facet/foo) with such property lead to auto set of reindex flag
+                for(PropertyState property : after.getProperties()) {
+                    if(!ignorableFacetConfigProps.contains(property.getName())) {
+                        return super.childNodeAdded(name, after);
+                    }
+                }
+                return true;
+            }
+            return super.childNodeAdded(name, after);
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            if (name.equals(LuceneIndexConstants.PROP_FACETS)) {
+                // This here makes sure any new property under FACETS that might be added in future and if so might require
+                // reindexing - then deletion of facet node  with such property lead to auto set of reindex flag
+                for(PropertyState property : before.getProperties()) {
+                    if(!ignorableFacetConfigProps.contains(property.getName())) {
+                        return super.childNodeAdded(name, before);
+                    }
+                }
+                return true;
+            }
+            return super.childNodeDeleted(name, before);
         }
 
         private Set<String> getAsyncValuesWithoutNRT(PropertyState state){
