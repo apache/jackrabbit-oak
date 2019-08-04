@@ -964,5 +964,13 @@ public class IndexDefinitionBuilderTest {
         assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo4"));
+
+        builder = new IndexDefinitionBuilder(EMPTY_NODE.builder());
+        builder.addTags("foo5");
+        state = builder.build();
+        tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
+        assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
+        assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
+                Matchers.containsInAnyOrder("foo5"));
     }
 }
