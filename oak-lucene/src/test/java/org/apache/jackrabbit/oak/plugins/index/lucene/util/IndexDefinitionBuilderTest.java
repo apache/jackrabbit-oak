@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.util.Iterator;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -33,12 +34,14 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.AGGREGATES;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
@@ -302,7 +305,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
         builder = new IndexDefinitionBuilder(nodeBuilder);
-        builder.getBuilderTree().setProperty(stringProperty(IndexConstants.INDEX_TAGS, of("foo1", "foo2")));
+        builder.tags("foo1", "foo2");
 
         currentNodeState = builder.build();
         assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
@@ -312,10 +315,19 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
         builder = new IndexDefinitionBuilder(nodeBuilder);
 
-        builder.getBuilderTree().setProperty(stringProperty(IndexConstants.INDEX_TAGS, of("foo2", "foo3")));
+        builder.tags("foo2", "foo3");
         currentNodeState = builder.build();
         assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
         assertTrue(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
+
+        nodeBuilder = currentNodeState.builder();
+        nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
+        builder = new IndexDefinitionBuilder(nodeBuilder);
+
+        builder.addTags("foo2");
+        currentNodeState = builder.build();
+        assertFalse(currentNodeState.getBoolean(REINDEX_PROPERTY_NAME));
+        assertFalse(currentNodeState.getBoolean(PROP_REFRESH_DEFN));
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
@@ -899,5 +911,58 @@ public class IndexDefinitionBuilderTest {
         assertTrue(foo2.exists());
         assertFalse("Incorrectly existing facets property",
                 foo2.hasProperty(PROP_FACETS));
+    }
+
+    @Test
+    public void tags() {
+        NodeState state = EMPTY_NODE;
+
+        builder = new IndexDefinitionBuilder(state.builder());
+        builder.tags("foo");
+        state = builder.build();
+        Iterable<String> tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
+        assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
+        assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
+                Matchers.containsInAnyOrder("foo"));
+
+        builder = new IndexDefinitionBuilder(state.builder());
+        builder.addTags("foo");
+        state = builder.build();
+        tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
+        assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
+        assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
+                Matchers.containsInAnyOrder("foo"));
+
+        builder = new IndexDefinitionBuilder(state.builder());
+        builder.addTags("foo", "foo1");
+        state = builder.build();
+        tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
+        assertEquals("Unexpected number of tags", 2, Iterables.size(tags));
+        assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
+                Matchers.containsInAnyOrder("foo", "foo1"));
+
+        builder = new IndexDefinitionBuilder(state.builder());
+        builder.addTags("foo2");
+        state = builder.build();
+        tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
+        assertEquals("Unexpected number of tags", 3, Iterables.size(tags));
+        assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
+                Matchers.containsInAnyOrder("foo", "foo1", "foo2"));
+
+        builder = new IndexDefinitionBuilder(state.builder());
+        builder.addTags("foo2", "foo3");
+        state = builder.build();
+        tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
+        assertEquals("Unexpected number of tags", 4, Iterables.size(tags));
+        assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
+                Matchers.containsInAnyOrder("foo", "foo1", "foo2", "foo3"));
+
+        builder = new IndexDefinitionBuilder(state.builder());
+        builder.tags("foo4");
+        state = builder.build();
+        tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
+        assertEquals("Unexpected number of tags", 1, Iterables.size(tags));
+        assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
+                Matchers.containsInAnyOrder("foo4"));
     }
 }
