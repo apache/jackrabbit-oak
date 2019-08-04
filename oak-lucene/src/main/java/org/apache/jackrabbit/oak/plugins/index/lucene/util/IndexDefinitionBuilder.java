@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -149,7 +150,10 @@ public final class IndexDefinitionBuilder {
     }
 
     public IndexDefinitionBuilder addTags(String ... additionalTagVals) {
-        Set<String> currTags = Sets.newHashSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
+        Set<String> currTags = Collections.emptySet();
+        if (tree.hasProperty(INDEX_TAGS)) {
+            currTags = Sets.newHashSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
+        }
         Set<String> tagVals = Sets.newHashSet(Iterables.concat(currTags, asList(additionalTagVals)));
         boolean noAdditionalTags = currTags.containsAll(tagVals);
         if (!noAdditionalTags) {
