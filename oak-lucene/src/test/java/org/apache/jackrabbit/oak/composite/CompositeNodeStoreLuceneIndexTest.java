@@ -101,7 +101,7 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         try {
             compositeRepoV1.setupIndexAndContentInRepo("luceneTest", "foo", true);
             assertTrue(false);
-        }catch (Exception e) {
+        } catch (Exception e) {
             assert(e.getLocalizedMessage().contains("OakConstraint0001: /oak:index/luceneTest/:oak:mount-readOnlyv1-index-data[[]]: The primary type null does not exist"));
         }
     }
@@ -129,25 +129,25 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         // This uses same global read write store as used in V1
 
 
-        QueryResult result = compositeRepoV2.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo = 'bar']", "xpath").execute();
+        QueryResult result = compositeRepoV2.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
 
         // Check query traverses - and doesn't use the index available in read-write part
         // since it is now disabled as path corresponding to useIfExists property is not present in new read only lib
         assertThat(result.getRows().next().toString(),
                 containsString("/* traverse \"//*\" where ([a].[foo] = 'bar'"));
 
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath").execute();
+        result = compositeRepoV2.executeQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath");
 
         // Check that proper nodes are returned by the query even after traversal from both readonly version 2 and global read write parts
         assertEquals("/content-foo/node-0, /content-foo/node-1, " +
                 "/libs/node-foo-0", getResult(result,"jcr:path"));
 
         // Now just for sake of completeness - check that the index is still used if we use V1 of composite app.
-        result = compositeRepoV1.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo = 'bar']", "xpath").execute();
+        result = compositeRepoV1.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
                 containsString("/* lucene:luceneTest(/oak:index/luceneTest) foo:bar"));
 
-        result = compositeRepoV1.getCompositeQueryManager().createQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath").execute();
+        result = compositeRepoV1.executeQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath");
 
 
         assertEquals("/content-foo/node-0, /content-foo/node-1, " +
@@ -161,10 +161,10 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
 
         compositeRepoV2.getCompositeRoot().getNode(INDEX_DEFINITIONS_NAME).getNode("luceneTest").remove();
 
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo = 'bar']", "xpath").execute();
+        result = compositeRepoV2.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
                 containsString("/* traverse \"//*\" where ([a].[foo] = 'bar'"));
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("/jcr:root//*[@foo = 'bar'] order by jcr:path", "xpath").execute();
+        result = compositeRepoV2.executeQuery("/jcr:root//*[@foo = 'bar'] order by jcr:path", "xpath");
 
         // Check that proper nodes are returned by the query even after traversal from both readonly version 2 and global read write parts
         assertEquals("/content-foo/node-0, /content-foo/node-1, " +
@@ -199,33 +199,33 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
 
         // Check V2 now uses luceneTest2_V2 for foo2 and no index for foo i.e traversal
 
-        QueryResult result = compositeRepoV2.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo = 'bar']", "xpath").execute();
+        QueryResult result = compositeRepoV2.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
                 containsString("/* traverse \"//*\" where ([a].[foo] = 'bar'"));
 
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath").execute();
+        result = compositeRepoV2.executeQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath");
 
         // Check that proper nodes are returned by the query even after traversal from both readonly version 2 and global read write parts
         assertEquals("/content-foo/node-0, /content-foo/node-1", getResult(result,"jcr:path"));
 
         // Checking for prop foo2 now
 
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo2 = 'bar']", "xpath").execute();
+        result = compositeRepoV2.executeQuery("explain /jcr:root//*[@foo2 = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
                 containsString("/* lucene:luceneTest2_V2(/oak:index/luceneTest2_V2) foo2:bar"));
 
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("/jcr:root//*[@foo2 = 'bar'] order by @jcr:path", "xpath").execute();
+        result = compositeRepoV2.executeQuery("/jcr:root//*[@foo2 = 'bar'] order by @jcr:path", "xpath");
 
         assertEquals("/content-foo2/node-0, /content-foo2/node-1, " +
                 "/libs/node-luceneTest2_V2-0, /libs/node-luceneTest2_V2-1, /libs/node-luceneTest2_V2-2", getResult(result,"jcr:path"));
 
 
         // Checking for foo3 now - new index on V2
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo3 = 'bar']", "xpath").execute();
+        result = compositeRepoV2.executeQuery("explain /jcr:root//*[@foo3 = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
                 containsString("/* lucene:luceneTest3(/oak:index/luceneTest3) foo3:bar"));
 
-        result = compositeRepoV2.getCompositeQueryManager().createQuery("/jcr:root//*[@foo3 = 'bar'] order by @jcr:path", "xpath").execute();
+        result = compositeRepoV2.executeQuery("/jcr:root//*[@foo3 = 'bar'] order by @jcr:path", "xpath");
 
         // Check that proper nodes are returned by the query even after traversal from both readonly version 2 and global read write parts
         assertEquals("/content-foo3/node-0, /content-foo3/node-1, " +
@@ -235,33 +235,33 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
 
         // Now check that the V1 instance still uses B for foo2 , A for foo and traverses for foo3
 
-        result = compositeRepoV1.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo = 'bar']", "xpath").execute();
+        result = compositeRepoV1.executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
                 containsString("/* lucene:luceneTest(/oak:index/luceneTest) foo:bar"));
 
-        result = compositeRepoV1.getCompositeQueryManager().createQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath").execute();
+        result = compositeRepoV1.executeQuery("/jcr:root//*[@foo = 'bar'] order by @jcr:path", "xpath");
 
         assertEquals("/content-foo/node-0, /content-foo/node-1, " +
                 "/libs/node-luceneTest-0, /libs/node-luceneTest-1, /libs/node-luceneTest-2", getResult(result,"jcr:path"));
 
         // foo 2 check
 
-        result = compositeRepoV1.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo2 = 'bar']", "xpath").execute();
+        result = compositeRepoV1.executeQuery("explain /jcr:root//*[@foo2 = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
                 containsString("/* lucene:luceneTest2(/oak:index/luceneTest2) foo2:bar"));
 
-        result = compositeRepoV1.getCompositeQueryManager().createQuery("/jcr:root//*[@foo2 = 'bar'] order by @jcr:path", "xpath").execute();
+        result = compositeRepoV1.executeQuery("/jcr:root//*[@foo2 = 'bar'] order by @jcr:path", "xpath");
 
         assertEquals("/content-foo2/node-0, /content-foo2/node-1, " +
                 "/libs/node-luceneTest2-0, /libs/node-luceneTest2-1, /libs/node-luceneTest2-2", getResult(result,"jcr:path"));
 
         // foo 3 check
         compositeRepoV1.login();
-        result = compositeRepoV1.getCompositeQueryManager().createQuery("explain /jcr:root//*[@foo3 = 'bar']", "xpath").execute();
+        result = compositeRepoV1.executeQuery("explain /jcr:root//*[@foo3 = 'bar']", "xpath");
         assertThat(result.getRows().next().toString(),
                 containsString("/* traverse \"//*\" where ([a].[foo3] = 'bar'"));
 
-        result = compositeRepoV1.getCompositeQueryManager().createQuery("/jcr:root//*[@foo3 = 'bar'] order by @jcr:path", "xpath").execute();
+        result = compositeRepoV1.executeQuery("/jcr:root//*[@foo3 = 'bar'] order by @jcr:path", "xpath");
 
         assertEquals("/content-foo3/node-0, /content-foo3/node-1", getResult(result,"jcr:path"));
 
@@ -329,10 +329,6 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             return compositeRoot;
         }
 
-        public QueryManager getCompositeQueryManager() {
-            return queryManager;
-        }
-
         CompositeRepo (String readOnlyMountName, int version) throws Exception {
             this.readOnlyMountName = readOnlyMountName;
             this.version = version;
@@ -397,13 +393,13 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             compositeSession.save();
 
             login();
-            QueryResult result = queryManager.createQuery("explain /jcr:root//*[@" + indexedProperty + " = 'bar']", "xpath").execute();
+            QueryResult result = executeQuery("explain /jcr:root//*[@" + indexedProperty + " = 'bar']", "xpath");
 
 
             assertThat(result.getRows().next().toString(),
                     containsString("/* lucene:" + indexName + "(/oak:index/" + indexName + ") " + indexedProperty + ":bar"));
 
-            result = queryManager.createQuery("/jcr:root//*[@" + indexedProperty + " = 'bar'] order by @jcr:path", "xpath").execute();
+            result = executeQuery("/jcr:root//*[@" + indexedProperty + " = 'bar'] order by @jcr:path", "xpath");
 
 
             assertEquals("/content-" + indexedProperty + "/node-0, /content-" + indexedProperty + "/node-1, " +
@@ -452,6 +448,10 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
             shutdown(compositeRepository);
             readOnlySession.logout();
             shutdown(readOnlyRepository);
+        }
+
+        private QueryResult executeQuery(String queryString, String queryLanguage) throws Exception {
+            return queryManager.createQuery(queryString, queryLanguage).execute();
         }
 
     }
