@@ -117,9 +117,9 @@ class RecoveryCommand implements Command {
             if (docs instanceof Closeable) {
                 closer.register((Closeable) docs);
             }
+
             agent.recover(docs, builder.getClusterId(), dryRun);
         } catch (Throwable e) {
-        	System.out.println("Exception in recovery = "+e.getMessage());
             throw closer.rethrow(e);
         } finally {
             closer.close();
