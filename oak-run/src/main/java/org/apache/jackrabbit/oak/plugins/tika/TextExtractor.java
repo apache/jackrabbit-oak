@@ -253,10 +253,16 @@ class TextExtractor implements Closeable {
                 stream.close();
             }
         } catch (LinkageError e) {
-            // Capture and ignore errors caused by extraction libraries
+            // Capture errors caused by extraction libraries
             // not being present. This is equivalent to disabling
             // selected media types in configuration, so we can simply
             // ignore these errors.
+            log.debug("Failed to extract text from a binary property: {}."
+                            + " This often happens when some media types are disabled by configuration."
+                            + " The stack trace is included to flag some 'unintended' failures",
+                    path, e);
+            parserErrorCount.incrementAndGet();
+            return ERROR_TEXT;
         } catch (Throwable t) {
             // Capture and report any other full text extraction problems.
             // The special STOP exception is used for normal termination.
@@ -268,6 +274,8 @@ class TextExtractor implements Closeable {
                         + " worry about. The stack trace is included to"
                         + " help improve the text extraction feature.", t);
                 return ERROR_TEXT;
+            } else {
+                parserError.debug("Extracted text size exceeded configured limit({})", maxExtractedLength);
             }
         }
         String result = handler.toString();
