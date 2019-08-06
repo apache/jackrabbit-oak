@@ -149,6 +149,11 @@ public class AzureJournalFile implements JournalFile {
             } else {
                 currentBlob = blobs.get(0);
             }
+            try {
+                currentBlob.downloadAttributes();
+            } catch (StorageException e) {
+                throw new IOException(e);
+            }
             Integer bc = currentBlob.getProperties().getAppendBlobCommittedBlockCount();
             blockCount = bc == null ? 0 : bc;
         }
