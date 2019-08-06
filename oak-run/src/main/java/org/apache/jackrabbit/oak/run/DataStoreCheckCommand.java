@@ -119,7 +119,7 @@ public class DataStoreCheckCommand implements Command {
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
                 + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose]";
 
-        try (Closer closer = Closer.create()) {
+        try (Closer closer = Utils.createCloserWithShutdownHook()) {
             // Options for operations requested
             OptionSpecBuilder idOp = parser.accepts("id", "Get ids");
             OptionSpecBuilder refOp = parser.accepts("ref", "Get references");
