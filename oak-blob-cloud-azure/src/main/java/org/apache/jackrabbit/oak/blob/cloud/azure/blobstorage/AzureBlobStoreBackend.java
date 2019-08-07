@@ -949,30 +949,33 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         DataRecordUploadToken uploadToken = DataRecordUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
         String key = uploadToken.getBlobId();
         DataIdentifier blobId = new DataIdentifier(getIdentifierName(key));
-        try {
-            if (uploadToken.getUploadId().isPresent()) {
-                // An existing upload ID means this is a multi-part upload
-                CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
-                List<BlockEntry> blocks = blob.downloadBlockList(
-                        BlockListingFilter.UNCOMMITTED,
-                        AccessCondition.generateEmptyCondition(),
-                        null,
-                        null);
-                blob.commitBlockList(blocks);
-            }
-            // else do nothing - single put is already complete
 
-            if (! exists(blobId)) {
+        if (! exists(blobId)) {
+            try {
+                if (uploadToken.getUploadId().isPresent()) {
+                    // An existing upload ID means this is a multi-part upload
+                    CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
+                    List<BlockEntry> blocks = blob.downloadBlockList(
+                            BlockListingFilter.UNCOMMITTED,
+                            AccessCondition.generateEmptyCondition(),
+                            null,
+                            null);
+                    blob.commitBlockList(blocks);
+                }
+                // else do nothing - single put is already complete
+
+                if (!exists(blobId)) {
+                    throw new DataRecordUploadException(
+                            String.format("Unable to finalize direct write of binary %s", blobId));
+                }
+            } catch (URISyntaxException | StorageException e) {
                 throw new DataRecordUploadException(
-                        String.format("Unable to finalize direct write of binary %s", blobId));
+                        String.format("Unable to finalize direct write of binary %s", blobId),
+                        e
+                );
             }
         }
-        catch (URISyntaxException | StorageException e) {
-            throw new DataRecordUploadException(
-                    String.format("Unable to finalize direct write of binary %s", blobId),
-                    e
-            );
-        }
+        // else return the already existing record for this blob ID
 
         return getRecord(blobId);
     }

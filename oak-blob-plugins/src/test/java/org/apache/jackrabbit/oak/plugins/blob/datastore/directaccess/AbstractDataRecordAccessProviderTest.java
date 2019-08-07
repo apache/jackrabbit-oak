@@ -29,9 +29,11 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -486,6 +488,35 @@ public abstract class AbstractDataRecordAccessProviderTest {
             fail();
         }
         catch (IllegalArgumentException e) { }
+    }
+
+    @Test
+    public void testCompleteAlreadyUploadedBinaryReturnsSameBinaryIT() throws DataStoreException, DataRecordUploadException, IOException {
+        DataRecordAccessProvider ds = getDataStore();
+        DataRecord uploadedRecord = null;
+        try {
+            DataRecordUpload uploadContext = ds.initiateDataRecordUpload(ONE_MB, 1);
+            InputStream uploadStream = randomStream(0, ONE_MB);
+            URI uploadURI = uploadContext.getUploadURIs().iterator().next();
+            doHttpsUpload(uploadStream, ONE_MB, uploadURI);
+            uploadedRecord = ds.completeDataRecordUpload(uploadContext.getUploadToken());
+            assertEquals(ONE_MB, uploadedRecord.getLength());
+
+            DataRecord secondRecord = ds.completeDataRecordUpload(uploadContext.getUploadToken());
+
+            assertEquals(uploadedRecord.getIdentifier(), secondRecord.getIdentifier());
+            assertEquals(uploadedRecord.getLength(), secondRecord.getLength());
+            StringWriter original = new StringWriter();
+            IOUtils.copy(uploadedRecord.getStream(), original, Charset.forName("UTF-8"));
+            StringWriter second = new StringWriter();
+            IOUtils.copy(secondRecord.getStream(), second, Charset.forName("UTF-8"));
+            assertEquals(original.toString(), second.toString());
+        }
+        finally {
+            if (null != uploadedRecord) {
+                doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
+            }
+        }
     }
 
     @Test

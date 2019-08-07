@@ -906,33 +906,37 @@ public class S3Backend extends AbstractSharedBackend {
 
         DataRecordUploadToken uploadToken = DataRecordUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
         String blobId = uploadToken.getBlobId();
-        if (uploadToken.getUploadId().isPresent()) {
-            // An existing upload ID means this is a multi-part upload
-            String uploadId = uploadToken.getUploadId().get();
-            ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, blobId, uploadId);
-            PartListing listing = s3service.listParts(listPartsRequest);
-            List<PartETag> eTags = Lists.newArrayList();
-            for (PartSummary partSummary : listing.getParts()) {
-                PartETag eTag = new PartETag(partSummary.getPartNumber(), partSummary.getETag());
-                eTags.add(eTag);
+        DataIdentifier dataIdentifier = new DataIdentifier(getIdentifierName(blobId));
+
+        if (! exists(dataIdentifier)) {
+            if (uploadToken.getUploadId().isPresent()) {
+                // An existing upload ID means this is a multi-part upload
+                String uploadId = uploadToken.getUploadId().get();
+                ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, blobId, uploadId);
+                PartListing listing = s3service.listParts(listPartsRequest);
+                List<PartETag> eTags = Lists.newArrayList();
+                for (PartSummary partSummary : listing.getParts()) {
+                    PartETag eTag = new PartETag(partSummary.getPartNumber(), partSummary.getETag());
+                    eTags.add(eTag);
+                }
+
+                CompleteMultipartUploadRequest completeReq = new CompleteMultipartUploadRequest(
+                        bucket,
+                        blobId,
+                        uploadId,
+                        eTags
+                );
+
+                s3service.completeMultipartUpload(completeReq);
             }
-
-            CompleteMultipartUploadRequest completeReq = new CompleteMultipartUploadRequest(
-                    bucket,
-                    blobId,
-                    uploadId,
-                    eTags
-            );
-
-            s3service.completeMultipartUpload(completeReq);
-        }
-        // else do nothing - single-put upload is already complete
+            // else do nothing - single-put upload is already complete
 
 
-        if (! s3service.doesObjectExist(bucket, blobId)) {
-            throw new DataRecordUploadException(
-                    String.format("Unable to finalize direct write of binary %s", blobId)
-            );
+            if (!s3service.doesObjectExist(bucket, blobId)) {
+                throw new DataRecordUploadException(
+                        String.format("Unable to finalize direct write of binary %s", blobId)
+                );
+            }
         }
 
         return getRecord(new DataIdentifier(getIdentifierName(blobId)));

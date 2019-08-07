@@ -42,7 +42,7 @@ class ClusterNodesCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        Closer closer = Closer.create();
+        Closer closer = Utils.createCloserWithShutdownHook();
         try {
             String h = "clusternodes mongodb://host:port/database|jdbc:...";
             ClusterNodesOptions options = new ClusterNodesOptions(h).parse(args);

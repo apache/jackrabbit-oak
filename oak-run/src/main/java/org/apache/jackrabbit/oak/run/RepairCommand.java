@@ -28,7 +28,7 @@ class RepairCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        Closer closer = Closer.create();
+        Closer closer = Utils.createCloserWithShutdownHook();
         String h = "repair mongodb://host:port/database path";
         try {
             NodeStore store = Utils.bootstrapNodeStore(args, closer, h);

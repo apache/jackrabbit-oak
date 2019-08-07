@@ -44,7 +44,7 @@ class RecoveryCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         MapFactory.setInstance(new MapDBMapFactory());
-        Closer closer = Closer.create();
+        Closer closer = Utils.createCloserWithShutdownHook();
         String h = "recovery mongodb://host:port/database|jdbc:... { dryRun }";
 
         try {
