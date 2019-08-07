@@ -65,7 +65,35 @@
           </systemPropertyVariables>
         </configuration>
       </plugin>
+      <!-- Inspired from
+      https://stackoverflow.com/questions/26281322/mavenfailed-to-execute-goal-org-apache-maven-pluginsmaven-resources-plugin2-7
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <configuration>
+          <nonFilteredFileExtensions>
+            <nonFilteredFileExtension>txt</nonFilteredFileExtension>
+            <nonFilteredFileExtension>rtf</nonFilteredFileExtension>
+            <nonFilteredFileExtension>doc</nonFilteredFileExtension>
+            <nonFilteredFileExtension>docx</nonFilteredFileExtension>
+          </nonFilteredFileExtensions>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.shared</groupId>
+            <artifactId>maven-filtering</artifactId>
+            <version>1.3</version>
+          </dependency>
+        </dependencies>
+      </plugin>
     </plugins>
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <filtering>true</filtering>
+      </testResource>
+    </testResources>
   </build>
 
   <dependencies>
@@ -176,6 +204,12 @@
       <groupId>org.ops4j.pax.url</groupId>
       <artifactId>pax-url-aether</artifactId>
       <version>1.5.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.ops4j.pax.url</groupId>
+      <artifactId>pax-url-wrap</artifactId>
+      <version>2.6.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
