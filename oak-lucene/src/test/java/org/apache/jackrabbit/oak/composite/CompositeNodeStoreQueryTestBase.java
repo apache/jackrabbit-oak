@@ -31,14 +31,15 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.jcr.Repository;
 import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
@@ -52,6 +53,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
@@ -102,8 +104,8 @@ import com.google.common.collect.Lists;
 @RunWith(Parameterized.class)
 public class CompositeNodeStoreQueryTestBase {
 
-    private final NodeStoreKind nodeStoreRoot;
-    private final NodeStoreKind mounts;
+    protected final NodeStoreKind nodeStoreRoot;
+    protected final NodeStoreKind mounts;
 
     private final List<NodeStoreRegistration> registrations = newArrayList();
 
@@ -139,7 +141,7 @@ public class CompositeNodeStoreQueryTestBase {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
             { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
-            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
+            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT}
 //            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
 //            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT}
         });
@@ -263,6 +265,52 @@ public class CompositeNodeStoreQueryTestBase {
             .with(new ReferenceEditorProvider().with(mip))
             .with(new ReferenceIndexProvider().with(mip));
         return oak;
+    }
+
+    protected ContentRepository createRepository(NodeStore store, MountInfoProvider mip) {
+        return getOakRepo(store, mip).createContentRepository();
+    }
+
+    protected Repository createJCRRepository(NodeStore store, MountInfoProvider mip) {
+        return new Jcr(getOakRepo(store, mip)).createRepository();
+    }
+
+    Oak getOakRepo(NodeStore store, MountInfoProvider mip) {
+
+        try {
+            indexCopier = new IndexCopier(executorService, temporaryFolder.getRoot());
+        } catch (IOException e) {
+            throw new RuntimeException();
+        }
+        DefaultIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, indexCopier);
+        indexTracker = new IndexTracker(indexReaderFactory);
+
+        LuceneIndexProvider luceneIndexProvider =
+                new LuceneIndexProvider(indexTracker);
+        LuceneIndexEditorProvider luceneIndexEditor;
+
+        if (mip == null ){
+            luceneIndexEditor = new LuceneIndexEditorProvider();
+            return new Oak(store).with(new InitialContent())
+                    .with(new OpenSecurityProvider())
+                    .with(luceneIndexEditor)
+                    .with((QueryIndexProvider) luceneIndexProvider)
+                    .with((Observer) luceneIndexProvider);
+        } else {
+            luceneIndexEditor = new LuceneIndexEditorProvider(indexCopier, indexTracker, null, null, mip);
+            return new Oak(store).with(new InitialContent())
+                    .with(new OpenSecurityProvider())
+                    .with(new PropertyIndexEditorProvider().with(mip))
+                    .with(new NodeCounterEditorProvider().with(mip))
+                    .with(new PropertyIndexProvider().with(mip))
+                    .with(luceneIndexEditor)
+                    .with((QueryIndexProvider) luceneIndexProvider)
+                    .with((Observer) luceneIndexProvider)
+                    .with(new NodeTypeIndexProvider().with(mip))
+                    .with(new ReferenceEditorProvider().with(mip))
+                    .with(new ReferenceIndexProvider().with(mip));
+        }
+
     }
 
     protected List<String> executeQuery(String query, String language) {
@@ -416,7 +464,8 @@ public class CompositeNodeStoreQueryTestBase {
                         String directoryName = name != null ? "segment-" + name : "segment";
                         storePath = new File("target/classes/" + directoryName);
 
-                        String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
+                        //String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
+                        String blobStoreDirectoryName = "blob" ;
                         blobStorePath = "target/classes/" + blobStoreDirectoryName;
 
                         BlobStore blobStore = new FileBlobStore(blobStorePath);
@@ -492,10 +541,11 @@ public class CompositeNodeStoreQueryTestBase {
         void close() throws Exception;
     }
 
-    private NodeStore register(NodeStoreRegistration reg) throws Exception {
+    protected NodeStore register(NodeStoreRegistration reg) throws Exception {
         registrations.add(reg);
 
         return reg.get();
     }
+
 
 }
