@@ -94,6 +94,8 @@
           <excludes>
             <exclude>**/test.txt</exclude>
             <exclude>**/test.rtf</exclude>
+            <exclude>**/test.doc</exclude>
+            <exclude>**/test.docx</exclude>
           </excludes>
         </configuration>
       </plugin>
