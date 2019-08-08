@@ -171,6 +171,15 @@ public interface JackrabbitValueFactory extends ValueFactory {
      * If the {@code uploadToken} is unreadable or invalid,
      * an {@link IllegalArgumentException} will be thrown.
      *
+     * This method is idempotent.  Calling the method more than one time with the
+     * same upload token must not cause an existing binary to be modified; thus
+     * if a prior call with this upload token succeeded in creating the binary,
+     * subsequent calls with the same upload token have no effect on the binary.
+     * This method should always return the binary that was uploaded with this
+     * upload token, even in subsequent calls with the same upload token
+     * (in other words, calling this method twice with the same upload token
+     * results in the same binary being returned both times).
+     *
      * @param uploadToken A String identifying the upload transaction.
      *
      * @return The uploaded {@link Binary}, or {@code null} if the
