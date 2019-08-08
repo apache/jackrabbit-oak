@@ -87,6 +87,16 @@
           </dependency>
         </dependencies>
       </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/test.txt</exclude>
+            <exclude>**/test.rtf</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
     <testResources>
       <testResource>
