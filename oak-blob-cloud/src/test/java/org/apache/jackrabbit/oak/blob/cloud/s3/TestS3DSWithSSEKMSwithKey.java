@@ -37,7 +37,7 @@ public class TestS3DSWithSSEKMSwithKey extends TestS3Ds {
         protected static long ONE_MB = ONE_KB * ONE_KB;
         protected static long TEN_MB = ONE_MB * 10;
         protected static long ONE_HUNDRED_MB = ONE_MB * 100;
-        protected static long ONE_GB = ONE_HUNDRED_MB * 10;
+        protected static long ONE_GB = ONE_MB * ONE_MB;
 
         @Override
         @Before
@@ -87,14 +87,10 @@ public class TestS3DSWithSSEKMSwithKey extends TestS3Ds {
         }
 
         @Test
-        public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordUploadException {
-            ConfigurableDataRecordAccessProvider ds = null;
-            try {
-                ds = (ConfigurableDataRecordAccessProvider) createDataStore();
-            } catch (RepositoryException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+        public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordUploadException,
+                RepositoryException {
+            ConfigurableDataRecordAccessProvider ds
+                = (ConfigurableDataRecordAccessProvider) createDataStore();
             long uploadSize = ONE_GB * 50;
             int expectedNumURIs = 5000;
             DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
