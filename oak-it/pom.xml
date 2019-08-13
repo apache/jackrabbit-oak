@@ -38,6 +38,7 @@
   <modules>
     <module>mk</module>
     <module>osgi</module>
+    <module>cluster</module>
   </modules>
 
 </project>
