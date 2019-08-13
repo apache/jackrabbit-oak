@@ -126,15 +126,24 @@ public class IndexRootDirectory {
         }
     }
 
+    private int totalLocalIndexes(Map<String, List<LocalIndexDir>> mapping){
+        int size = 0;
+        for ( Map.Entry<String, List<LocalIndexDir>> e : mapping.entrySet()) {
+            size += e.getValue().size();
+        }
+        return size;
+    }
+
     /**
      * Returns the most recent directory for each index. If for an index 2 versions are present
      * then it would return the most recent version
      */
     public List<LocalIndexDir> getAllLocalIndexes() throws IOException {
         Map<String, List<LocalIndexDir>> mapping = getIndexesPerPath();
-        List<LocalIndexDir> result = Lists.newArrayListWithCapacity(mapping.size());
+        int totalLocalIndexes =  totalLocalIndexes(mapping);
+        List<LocalIndexDir> result = Lists.newArrayListWithCapacity(totalLocalIndexes);
         for (Map.Entry<String, List<LocalIndexDir>> e : mapping.entrySet()){
-            result.add(e.getValue().get(0));
+            result.addAll(e.getValue());
         }
         return result;
     }
@@ -228,7 +237,7 @@ public class IndexRootDirectory {
             pathToDirMap.get(localIndexDir.getJcrPath()).add(localIndexDir);
         }
 
-        Map<String, List<LocalIndexDir>> result = Maps.newHashMap();
+        Map<String, List<LocalIndexDir>> result = Maps.newTreeMap();
         for (Map.Entry<String, Collection<LocalIndexDir>> e : pathToDirMap.asMap().entrySet()){
             List<LocalIndexDir> sortedDirs = new ArrayList<>(e.getValue());
             Collections.sort(sortedDirs, Collections.<LocalIndexDir>reverseOrder());
