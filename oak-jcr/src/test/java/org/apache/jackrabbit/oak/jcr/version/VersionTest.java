@@ -65,6 +65,27 @@ public class VersionTest extends AbstractJCRTest {
                 superuser.getNodeByUUID(uuid) instanceof Version);
     }
 
+    public void testGetNodeByTraversal() throws RepositoryException {
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(mixVersionable);
+        superuser.save();
+        VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+        Version version = vMgr.getBaseVersion(n.getPath());
+
+        NodeIterator siblings = version.getParent().getNodes();
+        boolean found = false;
+        while (siblings.hasNext()) {
+            Node sibling = siblings.nextNode();
+            if (version.getIdentifier().equals(sibling.getIdentifier())) {
+                found = true;
+                assertTrue("Child iterator did not return Version object for a nt:version node.",
+                        sibling instanceof Version);
+                break;
+            }
+        }
+        assertTrue("Version node could not be found by traversing from its parent.", found);
+    }
+
     public void testVersionFromQuery()
             throws RepositoryException, NotExecutableException {
         Node n = testRootNode.addNode(nodeName1, testNodeType);
