@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -35,7 +34,6 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-@Ignore
 public class AddNodesInBranchCommitWithRecoveryTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(AddNodesInBranchCommitWithRecoveryTest.class);

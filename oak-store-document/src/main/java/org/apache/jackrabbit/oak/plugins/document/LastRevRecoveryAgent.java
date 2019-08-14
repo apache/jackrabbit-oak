@@ -159,6 +159,15 @@ public class LastRevRecoveryAgent {
                     startTime = sweepRev.getTimestamp();
                     reason = "sweepRev: " + sweepRev.toString();
                 }
+                // are there branch commits that were merged right before the
+                // process crashed and the recovery needs to go further back?
+                // go through branch commits before startTime and check if their
+                // merge revision is newer than startTime
+                Revision bc = getEarliestBranchCommitMergedAround(root, startTime, clusterId);
+                if (bc != null) {
+                    startTime = bc.getTimestamp();
+                    reason = "branchRev: " + bc.toString();
+                }
 
                 return recoverCandidates(nodeInfo, startTime, waitUntil, reason);
             }
@@ -459,6 +468,38 @@ public class LastRevRecoveryAgent {
     }
 
     //--------------------------< internal >------------------------------------
+
+    /**
+     * Get the earliest branch commit before {@code timeMillis} that has been
+     * merged after {@code timeMillis}. This method only considers branch
+     * commits performed by {@code clusterId}.
+     *
+     * @param doc the document to check for branch commits.
+     * @param timeMillis a time in milliseconds since start of the epoch.
+     * @param clusterId a clusterId.
+     * @return earliest branch commit or {@code null} if there is none matching
+     *          the criteria.
+     */
+    @Nullable
+    private Revision getEarliestBranchCommitMergedAround(@NotNull NodeDocument doc,
+                                                         long timeMillis,
+                                                         int clusterId) {
+        Revision earliest = null;
+        for (Revision bc : doc.getLocalBranchCommits()) {
+            if (bc.getClusterId() != clusterId) {
+                continue;
+            }
+            String cv = revisionContext.getCommitValue(bc, doc);
+            if (isCommitted(cv)) {
+                Revision mergeRevision = resolveCommitRevision(bc, cv);
+                if (mergeRevision.getTimestamp() > timeMillis
+                        && bc.getTimestamp() < timeMillis) {
+                    earliest = Utils.min(earliest, bc);
+                }
+            }
+        }
+        return earliest;
+    }
 
     @Nullable
     private NodeDocument findNearestAncestorOrSelf(@NotNull Path path,
