@@ -69,7 +69,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
 
     private Directory firstCoR = null;
     private List<Future<String>> leechingCoRFutures = Lists.newArrayList();
-    private List<Directory> leechingCoRs = Lists.newArrayList();
+    private List<Directory> leechingCoRs = Collections.synchronizedList(Lists.newArrayList());
 
     private CountDownLatch firstCoRBlocker;
     private Future<String> firstCoRFutre;
@@ -80,7 +80,6 @@ public class ConcurrentCopyOnReadDirectoryTest {
     @Before
     public void setup() throws Exception {
         System.setProperty(WAIT_OTHER_COPY_SYSPROP_NAME, String.valueOf(TimeUnit.MILLISECONDS.toMillis(30)));
-        executorService = Executors.newFixedThreadPool(5);
 
         // normal remote directory
         remote = new RAMDirectory() {
