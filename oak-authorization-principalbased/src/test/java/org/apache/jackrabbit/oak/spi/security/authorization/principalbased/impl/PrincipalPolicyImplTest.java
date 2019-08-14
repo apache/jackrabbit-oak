@@ -67,7 +67,6 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -583,44 +582,6 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
         assertSame(principal, entry.getPrincipal());
         assertTrue(entry.isAllow());
     }
-
-    @Test
-    public void testEntryHashCode() throws Exception {
-        PrincipalPolicyImpl.EntryImpl entryA = policy.getEntries().get(0);
-        PrincipalPolicyImpl.EntryImpl entryB = policy.getEntries().get(1);
-        assertNotEquals(entryA.hashCode(), entryB.hashCode());
-
-        // same entry -> same hash
-        assertEquals(entryA.hashCode(), policy.getEntries().get(0).hashCode());
-
-        // equivalent entry on different policy -> same hash
-        emptyPolicy.addEntry(entryB.getEffectivePath(), entryB.getPrivileges(), Collections.emptyMap(), Collections.emptyMap());
-        assertEquals(entryB.hashCode(), emptyPolicy.getEntries().get(0).hashCode());
-
-        // different restrictions -> different hash
-        emptyPolicy.addEntry(entryA.getEffectivePath(), entryA.getPrivileges(), createGlobRestriction("*"), Collections.emptyMap());
-        assertNotEquals(entryA.hashCode(), emptyPolicy.getEntries().get(1).hashCode());
-    }
-
-    @Test
-    public void testEntryEquals() throws Exception {
-        PrincipalPolicyImpl.EntryImpl entryA = policy.getEntries().get(0);
-        PrincipalPolicyImpl.EntryImpl entryB = policy.getEntries().get(1);
-        assertNotEquals(entryA, entryB);
-        assertNotEquals(entryB, entryA);
-
-        assertEquals(entryA, entryA);
-        assertEquals(entryA, policy.getEntries().get(0));
-
-        // equivalent entry on different policy -> same hash
-        emptyPolicy.addEntry(entryB.getEffectivePath(), entryB.getPrivileges(), Collections.emptyMap(), Collections.emptyMap());
-        assertEquals(entryB, emptyPolicy.getEntries().get(0));
-
-        // different restrictions -> different hash
-        emptyPolicy.addEntry(entryA.getEffectivePath(), entryA.getPrivileges(), createGlobRestriction("*"), Collections.emptyMap());
-        assertNotEquals(entryA, emptyPolicy.getEntries().get(1));
-    }
-
 
     private static PrincipalAccessControlList.Entry invalidEntry(@NotNull PrincipalAccessControlList.Entry entry) {
         return new PrincipalAccessControlList.Entry() {
