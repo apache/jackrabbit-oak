@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -24,8 +23,8 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -260,26 +259,10 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
 
     //--------------------------------------------------------------< Entry >---
 
-    final class EntryImpl extends ACE implements Entry {
-
-        private final String oakPath;
-
-        private int hashCode;
+    final class EntryImpl extends AbstractEntry {
 
         private EntryImpl(@Nullable String oakPath, @NotNull PrivilegeBits privilegeBits, @NotNull  Set<Restriction> restrictions) throws AccessControlException {
-            super(principal, privilegeBits, true, restrictions, getNamePathMapper());
-            this.oakPath = oakPath;
-        }
-
-        @Nullable
-        String getOakPath() {
-            return oakPath;
-        }
-
-        @Override
-        @Nullable
-        public String getEffectivePath() {
-            return (oakPath == null) ? null : getNamePathMapper().getJcrPath(oakPath);
+            super(oakPath, principal, privilegeBits, restrictions, PrincipalPolicyImpl.this.getNamePathMapper());
         }
 
         @Override
@@ -289,27 +272,8 @@ class PrincipalPolicyImpl extends AbstractAccessControlList implements Principal
         }
 
         @Override
-        public int hashCode() {
-            if (hashCode == 0) {
-                hashCode = Objects.hashCode(oakPath, principal.getName(), getPrivilegeBits(), Boolean.TRUE, getRestrictions());
-            }
-            return hashCode;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) {
-                return true;
-            }
-            if (obj instanceof EntryImpl) {
-                EntryImpl other = (EntryImpl) obj;
-                return equivalentPath(other.oakPath) && super.equals(obj);
-            }
-            return false;
-        }
-
-        private boolean equivalentPath(@Nullable String otherPath) {
-            return (oakPath == null) ? otherPath == null : oakPath.equals(otherPath);
+        @NotNull NamePathMapper getNamePathMapper() {
+            return PrincipalPolicyImpl.this.getNamePathMapper();
         }
     }
 }

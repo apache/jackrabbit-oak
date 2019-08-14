@@ -18,13 +18,15 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,9 +36,11 @@ import javax.jcr.security.AccessControlPolicy;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_NT_NAMES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_WRITE;
@@ -44,6 +48,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
 
@@ -65,9 +71,15 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
         acMgr = createAccessControlManager(root);
         validPrincipal = getTestSystemUser().getPrincipal();
 
+        // create 2 entries for 'validPrincipal'
+        // - jcrEffectivePath : read, write
+        // - null : namespaceMgt
         PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(validPrincipal, jcrEffectivePath, JCR_READ, REP_WRITE);
         addPrincipalBasedEntry(policy, null, JCR_NAMESPACE_MANAGEMENT);
 
+        // create 2 entries for 'validPrincipal2'
+        // - jcrEffectivePath : read
+        // - root : lifecycleMgt
         policy = (PrincipalPolicyImpl) acMgr.getApplicablePolicies(validPrincipal2)[0];
         Map<String, Value> restrictions = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue("/*/glob"));
         policy.addEntry(jcrEffectivePath, privilegesFromNames(JCR_READ), restrictions, ImmutableMap.of());
@@ -85,9 +97,9 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
     public void testEffectivePolicyByPrincipal() throws Exception {
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
         assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ImmutableACL);
+        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
 
-        List<JackrabbitAccessControlEntry> entries = ((ImmutableACL)effective[0]).getEntries();
+        List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
         assertEquals(2, entries.size());
 
         assertTrue(entries.get(0) instanceof PrincipalAccessControlList.Entry);
@@ -99,53 +111,78 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
     }
 
     @Test
+    public void testEffectivePolicyByPrincipal2() throws Exception {
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal2));
+        assertEquals(1, effective.length);
+        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+
+        List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
+        assertEquals(2, entries.size());
+
+        assertTrue(entries.get(0) instanceof PrincipalAccessControlList.Entry);
+        assertEquals(validPrincipal2, entries.get(0).getPrincipal());
+        assertArrayEquals(privilegesFromNames(JCR_READ), entries.get(0).getPrivileges());
+        assertEquals(jcrEffectivePath, ((PrincipalAccessControlList.Entry) entries.get(0)).getEffectivePath());
+
+        assertEquals(validPrincipal2, entries.get(1).getPrincipal());
+        assertArrayEquals(privilegesFromNames(JCR_LIFECYCLE_MANAGEMENT), entries.get(1).getPrivileges());
+        assertEquals(PathUtils.ROOT_PATH, ((PrincipalAccessControlList.Entry) entries.get(1)).getEffectivePath());
+    }
+
+    @Test
     public void testEffectivePolicyByPath() throws Exception {
-        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(getNamePathMapper().getJcrPath(TEST_OAK_PATH));
+        String path = getNamePathMapper().getJcrPath(TEST_OAK_PATH);
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(path);
         assertEquals(2, effective.length);
 
-        for (AccessControlPolicy effectivePolicy : effective) {
-            assertTrue(effectivePolicy instanceof ImmutableACL);
+        for (AccessControlPolicy policy : effective) {
+            assertTrue(policy instanceof ImmutablePrincipalPolicy);
+            ImmutablePrincipalPolicy effectivePolicy = (ImmutablePrincipalPolicy) policy;
 
-            ImmutableACL acl = (ImmutableACL) effectivePolicy;
-            if (jcrEffectivePath.equals(acl.getPath())) {
-                List<JackrabbitAccessControlEntry> entries = acl.getEntries();
-                assertEquals(2, entries.size());
+            // filter expected entries: only entries that take effect at the target path should be taken into consideration
+            ImmutablePrincipalPolicy byPrincipal = (ImmutablePrincipalPolicy) acMgr.getEffectivePolicies(ImmutableSet.of(effectivePolicy.getPrincipal()))[0];
+            Set<JackrabbitAccessControlEntry> expected = ImmutableSet.copyOf(Iterables.filter(byPrincipal.getEntries(), entry -> {
+                String effectivePath = ((PrincipalAccessControlList.Entry) entry).getEffectivePath();
+                return effectivePath != null && Text.isDescendantOrEqual(effectivePath, path);
+            }));
 
-                for (JackrabbitAccessControlEntry entry : entries) {
-                    if (validPrincipal.equals(entry.getPrincipal())) {
-                        assertArrayEquals(privilegesFromNames(JCR_READ, REP_WRITE), entry.getPrivileges());
-                        assertEquals(0, entry.getRestrictionNames().length);
-                    } else {
-                        assertEquals(validPrincipal2, entry.getPrincipal());
-                        assertArrayEquals(privilegesFromNames(JCR_READ), entry.getPrivileges());
-                        assertArrayEquals(new String[] {getNamePathMapper().getJcrName(REP_GLOB)}, entry.getRestrictionNames());
-                    }
-                }
-            } else {
-                assertEquals(PathUtils.ROOT_PATH, acl.getPath());
-
-                List<JackrabbitAccessControlEntry> entries = acl.getEntries();
-                assertEquals(1, entries.size());
-
-                JackrabbitAccessControlEntry entry = entries.get(0);
-                assertTrue(entry instanceof ACE);
-                assertArrayEquals(privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), entry.getPrivileges());
-                assertEquals(1, ((ACE) entry).getRestrictions().size());
-                assertArrayEquals(new String[] {getNamePathMapper().getJcrName(REP_NT_NAMES)}, entry.getRestrictionNames());
+            assertEquals(expected.size(), effectivePolicy.size());
+            List<JackrabbitAccessControlEntry> entries = effectivePolicy.getEntries();
+            for (JackrabbitAccessControlEntry entry : expected) {
+                assertTrue(entries.contains(entry));
             }
         }
+    }
+
+    @Test
+    public void testEffectivePolicyByPathVerifiesPrincipals() throws Exception {
+        PrincipalManager principalMgr = mock(PrincipalManager.class);
+        when(principalMgr.getPrincipal(validPrincipal.getName())).thenReturn(null);
+        when(principalMgr.getPrincipal(validPrincipal2.getName())).thenReturn(new PrincipalImpl(validPrincipal2.getName()));
+
+        MgrProvider provider = mock(MgrProvider.class);
+        when(provider.getPrincipalManager()).thenReturn(principalMgr);
+        when(provider.getRoot()).thenReturn(root);
+        when(provider.getSecurityProvider()).thenReturn(securityProvider);
+        when(provider.getNamePathMapper()).thenReturn(getNamePathMapper());
+
+        PrincipalBasedAccessControlManager acm = new PrincipalBasedAccessControlManager(provider, getFilterProvider());
+        AccessControlPolicy[] effective = acm.getEffectivePolicies(getNamePathMapper().getJcrPath(TEST_OAK_PATH));
+        assertEquals(0, effective.length);
     }
 
     @Test
     public void testEffectivePolicyByNullPath() throws Exception {
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies((String) null);
         assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ImmutableACL);
+        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+        assertEquals(validPrincipal, ((ImmutablePrincipalPolicy)effective[0]).getPrincipal());
 
-        List<JackrabbitAccessControlEntry> entries = ((ImmutableACL)effective[0]).getEntries();
+        List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
         assertEquals(1, entries.size());
 
-        assertTrue(entries.get(0) instanceof ACE);
+        assertTrue(entries.get(0) instanceof PrincipalAccessControlList.Entry);
+        assertNull(((PrincipalAccessControlList.Entry)entries.get(0)).getEffectivePath());
         assertEquals(validPrincipal, entries.get(0).getPrincipal());
         assertArrayEquals(privilegesFromNames(JCR_NAMESPACE_MANAGEMENT), entries.get(0).getPrivileges());
     }

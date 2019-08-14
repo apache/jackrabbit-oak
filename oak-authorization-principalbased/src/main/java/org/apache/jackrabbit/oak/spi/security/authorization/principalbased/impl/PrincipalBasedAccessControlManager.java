@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -36,17 +36,14 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.FilterProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
@@ -68,11 +65,11 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 /**
  * Implementation of the {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager}
@@ -182,15 +179,17 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             QueryEngine queryEngine = getLatestRoot().getQueryEngine();
             Result result = queryEngine.executeQuery(stmt.toString(), Query.XPATH, QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
 
-            Map<String, List<JackrabbitAccessControlEntry>> m = new TreeMap<>();
+            Map<Principal, List<AbstractEntry>> m = new HashMap<>();
             for (ResultRow row : result.getRows()) {
                 Tree entryTree = row.getTree(null);
-                String effectivePath = row.getValue(REP_EFFECTIVE_PATH).getValue(Type.STRING);
-                List<JackrabbitAccessControlEntry> entries = m.computeIfAbsent(effectivePath, s -> new ArrayList<>());
-                entries.add(createEffectiveEntry(entryTree, effectivePath));
+                AbstractEntry entry = createEffectiveEntry(entryTree);
+                if (entry != null) {
+                    List<AbstractEntry> entries = m.computeIfAbsent(entry.getPrincipal(), s -> new ArrayList<>());
+                    entries.add(entry);
+                }
             }
-            Iterable<ImmutableACL> acls = Iterables.transform(m.entrySet(), entry -> new ImmutableACL(entry.getKey(), entry.getValue(), mgrProvider.getRestrictionProvider(), getNamePathMapper()));
-            return Iterables.toArray(acls, ImmutableACL.class);
+            Iterable<PrincipalAccessControlList> acls = Iterables.transform(m.entrySet(), entry -> new ImmutablePrincipalPolicy(entry.getKey(), filter.getOakPath(entry.getKey()), entry.getValue(), mgrProvider.getRestrictionProvider(), getNamePathMapper()));
+            return Iterables.toArray(acls, PrincipalAccessControlList.class);
         } catch (ParseException e) {
             String msg = "Error while collecting effective policies at " +absPath;
             log.error(msg, e);
@@ -344,7 +343,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             }
         }
         if (isEffectivePolicy && policy != null) {
-            return (policy.isEmpty()) ? null : new ImmutableACL(policy);
+            return (policy.isEmpty()) ? null : new ImmutablePrincipalPolicy(policy);
         } else {
             return policy;
         }
@@ -368,23 +367,28 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         return paths;
     }
 
-    @NotNull
-    private JackrabbitAccessControlEntry createEffectiveEntry(@NotNull Tree entryTree, @NotNull String effectivePath) throws AccessControlException {
+    @Nullable
+    private AbstractEntry createEffectiveEntry(@NotNull Tree entryTree) throws AccessControlException {
         String principalName = TreeUtil.getString(entryTree.getParent(), AccessControlConstants.REP_PRINCIPAL_NAME);
+        Principal principal = principalManager.getPrincipal(principalName);
+        if (principal == null || !filter.canHandle(Collections.singleton(principal))) {
+            return null;
+        }
+        String oakPath = Strings.emptyToNull(TreeUtil.getString(entryTree, REP_EFFECTIVE_PATH));
         PrivilegeBits bits = privilegeBitsProvider.getBits(entryTree.getProperty(Constants.REP_PRIVILEGES).getValue(Type.NAMES));
-        Set<Restriction> restrictions = mgrProvider.getRestrictionProvider().readRestrictions(effectivePath, entryTree);
-        return new EffectiveEntry(new PrincipalImpl(principalName), bits, true, restrictions, getNamePathMapper());
-    }
+        Set<Restriction> restrictions = mgrProvider.getRestrictionProvider().readRestrictions(oakPath, entryTree);
+        NamePathMapper npMapper = getNamePathMapper();
+        return new AbstractEntry(oakPath, principal, bits, restrictions, npMapper) {
+            @Override
+            @NotNull NamePathMapper getNamePathMapper() {
+                return npMapper;
+            }
 
-    private final class EffectiveEntry extends ACE {
-        private EffectiveEntry(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions, NamePathMapper namePathMapper) throws AccessControlException {
-            super(principal, privilegeBits, isAllow, restrictions, namePathMapper);
-        }
-
-        @Override
-        public Privilege[] getPrivileges() {
-            Set<String> names =  privilegeBitsProvider.getPrivilegeNames(getPrivilegeBits());
-            return Utils.privilegesFromOakNames(names, mgrProvider.getPrivilegeManager(), getNamePathMapper());
-        }
+            @Override
+            public Privilege[] getPrivileges() {
+                Set<String> names =  privilegeBitsProvider.getPrivilegeNames(getPrivilegeBits());
+                return Utils.privilegesFromOakNames(names, mgrProvider.getPrivilegeManager(), getNamePathMapper());
+            }
+        };
     }
 }
