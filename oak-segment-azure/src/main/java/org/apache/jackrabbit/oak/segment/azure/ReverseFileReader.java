@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
 
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import static java.lang.Math.min;
@@ -65,7 +67,11 @@ public class ReverseFileReader {
         if (buffer.length > 0) {
             fileOffset -= buffer.length;
             try {
-                blob.downloadRangeToByteArray(fileOffset, Long.valueOf(buffer.length), buffer, 0);
+                OperationContext opContext = new OperationContext();
+                HashMap<String, String> userHeaders = new HashMap<>();
+                userHeaders.put("If-Match", "*");
+                opContext.setUserHeaders(userHeaders);
+                blob.downloadRangeToByteArray(fileOffset, Long.valueOf(buffer.length), buffer, 0, null, null, opContext);
             } catch (StorageException e) {
                 throw new IOException(e);
             }
