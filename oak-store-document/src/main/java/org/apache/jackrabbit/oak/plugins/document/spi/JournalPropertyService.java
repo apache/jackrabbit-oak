@@ -25,11 +25,10 @@ package org.apache.jackrabbit.oak.plugins.document.spi;
  */
 public interface JournalPropertyService {
 
-    JournalPropertyBuilder newBuilder();
+    JournalPropertyBuilder<JournalProperty> newBuilder();
 
     /**
      * Name of the journal property
      */
     String getName();
-
 }
