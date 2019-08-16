@@ -216,7 +216,7 @@ public class VersionGCTest {
         final List<String> infoMessages = Lists.newArrayList();
         GCMonitor monitor = new GCMonitor.Empty() {
             @Override
-            public void info(String message, Object[] arguments) {
+            public void info(String message, Object... arguments) {
                 infoMessages.add(arrayFormat(message, arguments).getMessage());
             }
         };
