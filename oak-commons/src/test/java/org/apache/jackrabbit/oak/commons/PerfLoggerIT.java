@@ -22,8 +22,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -134,7 +134,7 @@ public class PerfLoggerIT {
             verify(logger, times(1)).trace(anyString());
         }
         if (shouldLogEnd) {
-            verify(logger, times(1)).trace(anyString(), any(Object[].class));
+            verify(logger, times(1)).trace(anyString(), (Object[])any());
         }
     }
 
@@ -142,7 +142,7 @@ public class PerfLoggerIT {
         verify(logger, times(enabled)).isDebugEnabled();
 
         if (shouldLog) {
-            verify(logger, times(1)).debug(anyString(), any(Object[].class));
+            verify(logger, times(1)).debug(anyString(), (Object[])any());
         }
     }
 
@@ -150,7 +150,7 @@ public class PerfLoggerIT {
         verify(logger, times(enabled)).isInfoEnabled();
 
         if (shouldLog) {
-            verify(logger, times(1)).info(anyString(), any(Object[].class));
+            verify(logger, times(1)).info(anyString(), (Object[])any());
         }
     }
 }
