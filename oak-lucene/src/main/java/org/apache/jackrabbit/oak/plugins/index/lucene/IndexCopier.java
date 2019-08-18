@@ -387,7 +387,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                     copyCompletionMonitor.leave();
                 }
             } catch (InterruptedException e) {
-                // ignore
+                // ignore and reset interrupt flag
+                Thread.currentThread().interrupt();
             }
 
             localLength = file.actualSize();
