@@ -361,8 +361,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     /**
      * Waits for maximum of {@code timeoutMillis} while checking if {@code file} isn't being copied already.
-     * The method can return before {@code timeoutMillis} if it got interrupted. So, if the method reports false,
-     * caller should apply its own logic to see if a wait should be repeated or not.
+     * The method can return before {@code timeoutMillis} if it got interrupted. So, if required then the
+     * caller should check using {@code isCopyInProgress} and wait again.
      * @param file
      * @param timeoutMillis
      */
