@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.api.security.principal;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.RepositoryException;
 
 /**
@@ -35,5 +37,6 @@ public interface ItemBasedPrincipal extends JackrabbitPrincipal {
      * @throws RepositoryException If an error occurs while retrieving the
      * <code>Item</code> path.
      */
+    @NotNull
     String getPath() throws RepositoryException;
 }
