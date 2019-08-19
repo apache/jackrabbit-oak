@@ -27,6 +27,8 @@ import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -46,6 +48,7 @@ public interface JackrabbitAccessControlList extends JackrabbitAccessControlPoli
      * @see #addEntry(Principal, Privilege[], boolean, Map)
      * @throws RepositoryException If an error occurs.
      */
+    @NotNull
     String[] getRestrictionNames() throws RepositoryException;
 
     /**
@@ -57,7 +60,7 @@ public interface JackrabbitAccessControlList extends JackrabbitAccessControlPoli
      * @return expected {@link javax.jcr.PropertyType property type}.
      * @throws RepositoryException If an error occurs.
      */
-    int getRestrictionType(String restrictionName) throws RepositoryException;
+    int getRestrictionType(@NotNull String restrictionName) throws RepositoryException;
 
     /**
      * Returns <code>true</code> if the restriction is multivalued; <code>false</code>
@@ -72,7 +75,7 @@ public interface JackrabbitAccessControlList extends JackrabbitAccessControlPoli
      * @throws RepositoryException If an error occurs.
      * @see #addEntry(Principal, Privilege[], boolean, Map, Map)
      */
-    boolean isMultiValueRestriction(String restrictionName) throws RepositoryException;
+    boolean isMultiValueRestriction(@NotNull String restrictionName) throws RepositoryException;
 
     /**
      * Returns <code>true</code> if this policy does not yet define any
@@ -103,7 +106,7 @@ public interface JackrabbitAccessControlList extends JackrabbitAccessControlPoli
      * @throws RepositoryException If another error occurs.
      * @see AccessControlList#addAccessControlEntry(Principal, Privilege[])
      */
-    boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow)
+    boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow)
             throws AccessControlException, RepositoryException;
 
     /**
@@ -131,8 +134,8 @@ public interface JackrabbitAccessControlList extends JackrabbitAccessControlPoli
      * @throws RepositoryException If another error occurs.
      * @see AccessControlList#addAccessControlEntry(Principal, Privilege[])
      */
-    boolean addEntry(Principal principal, Privilege[] privileges,
-                     boolean isAllow, Map<String, Value> restrictions)
+    boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+                     boolean isAllow, @Nullable Map<String, Value> restrictions)
             throws AccessControlException, RepositoryException;
 
     /**
@@ -164,9 +167,9 @@ public interface JackrabbitAccessControlList extends JackrabbitAccessControlPoli
      * @see AccessControlList#addAccessControlEntry(Principal, Privilege[])
      * @since 2.8
      */
-    boolean addEntry(Principal principal, Privilege[] privileges,
-                     boolean isAllow, Map<String, Value> restrictions,
-                     Map<String, Value[]> mvRestrictions)
+    boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+                     boolean isAllow, @Nullable  Map<String, Value> restrictions,
+                     @Nullable Map<String, Value[]> mvRestrictions)
             throws AccessControlException, RepositoryException;
 
     /**
@@ -187,6 +190,6 @@ public interface JackrabbitAccessControlList extends JackrabbitAccessControlPoli
      * @throws UnsupportedRepositoryOperationException If ordering is not supported.
      * @throws RepositoryException If another error occurs.
      */
-    void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry)
+    void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry)
             throws AccessControlException, UnsupportedRepositoryOperationException, RepositoryException;
 }

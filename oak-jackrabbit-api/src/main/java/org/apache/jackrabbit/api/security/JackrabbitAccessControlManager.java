@@ -28,6 +28,8 @@ import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Set;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -54,7 +56,8 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * @throws RepositoryException if another error occurs.
      * @see JackrabbitAccessControlPolicy#getPath()
      */
-    JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException;
+    @NotNull
+    JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException;
 
     /**
      * Returns the <code>AccessControlPolicy</code> objects that have been set
@@ -72,7 +75,8 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * policies by principal is not supported.
      * @throws RepositoryException If another error occurs.
      */
-    JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException;
+    @NotNull
+    JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException;
 
     /**
      * Returns the <code>AccessControlPolicy</code> objects that are in effect
@@ -89,7 +93,8 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * policies by principal is not supported.
      * @throws RepositoryException If another error occurs.
      */
-    AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException;
+    @NotNull
+    AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException;
 
     /**
      * Returns whether the given set of <code>Principal</code>s has the specified
@@ -125,7 +130,7 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * <code>READ_ACCESS_CONTROL</code> privilege for the <code>absPath</code> node.
      * @throws RepositoryException  if another error occurs.
      */
-    public boolean hasPrivileges(String absPath, Set<Principal> principals, Privilege[] privileges)
+    public boolean hasPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals, @NotNull Privilege[] privileges)
             throws PathNotFoundException, AccessDeniedException, RepositoryException;
 
     /**
@@ -163,6 +168,7 @@ public interface JackrabbitAccessControlManager extends AccessControlManager {
      * privilege for the <code>absPath</code> node.
      * @throws RepositoryException  if another error occurs.
      */
-    public Privilege[] getPrivileges(String absPath, Set<Principal> principals)
+    @NotNull
+    public Privilege[] getPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals)
             throws PathNotFoundException, AccessDeniedException, RepositoryException;
 }

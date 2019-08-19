@@ -18,5 +18,5 @@
 /**
  * Jackrabbit extensions for access control.
  */
-@org.osgi.annotation.versioning.Version("2.4.0")
+@org.osgi.annotation.versioning.Version("2.4.1")
 package org.apache.jackrabbit.api.security;

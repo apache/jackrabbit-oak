@@ -18,6 +18,7 @@ package org.apache.jackrabbit.api.security;
 
 import javax.jcr.security.AccessControlPolicy;
 
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -33,5 +34,6 @@ public interface JackrabbitAccessControlPolicy extends AccessControlPolicy {
      *
      * @return the path of the node this policy has been created for.
      */
+    @Nullable
     String getPath();
 }
