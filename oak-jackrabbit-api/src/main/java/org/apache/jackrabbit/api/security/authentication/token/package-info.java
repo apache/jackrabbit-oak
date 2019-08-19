@@ -18,5 +18,5 @@
 /**
  * Token credentials.
  */
-@org.osgi.annotation.versioning.Version("2.3")
+@org.osgi.annotation.versioning.Version("2.3.1")
 package org.apache.jackrabbit.api.security.authentication.token;

@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.api.security.authentication.token;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.Credentials;
 import java.util.HashMap;
 
@@ -37,7 +40,7 @@ public final class TokenCredentials implements Credentials {
      * @throws IllegalArgumentException If the specified token is <code>null</code>
      * or empty string.
      */
-    public TokenCredentials(String token) throws IllegalArgumentException {
+    public TokenCredentials(@NotNull String token) throws IllegalArgumentException {
         if (token == null || token.length() == 0) {
             throw new IllegalArgumentException("Invalid token '" + token + "'");
         }
@@ -49,6 +52,7 @@ public final class TokenCredentials implements Credentials {
      * 
      * @return the token.
      */
+    @NotNull
     public String getToken() {
         return token;
     }
@@ -59,7 +63,7 @@ public final class TokenCredentials implements Credentials {
      * @param name  a <code>String</code> specifying the name of the attribute
      * @param value the <code>Object</code> to be stored
      */
-    public void setAttribute(String name, String value) {
+    public void setAttribute(@NotNull String name, @Nullable String value) {
         // name cannot be null
         if (name == null) {
             throw new IllegalArgumentException("name cannot be null");
@@ -84,7 +88,8 @@ public final class TokenCredentials implements Credentials {
      * @return an <code>Object</code> containing the value of the attribute, or
      *         <code>null</code> if the attribute does not exist
      */
-    public String getAttribute(String name) {
+    @Nullable
+    public String getAttribute(@NotNull String name) {
         synchronized (attributes) {
             return (attributes.get(name));
         }
@@ -96,7 +101,7 @@ public final class TokenCredentials implements Credentials {
      * @param name a <code>String</code> specifying the name of the attribute to
      *             remove
      */
-    public void removeAttribute(String name) {
+    public void removeAttribute(@NotNull String name) {
         synchronized (attributes) {
             attributes.remove(name);
         }
@@ -109,6 +114,7 @@ public final class TokenCredentials implements Credentials {
      *
      * @return a string array containing the names of the stored attributes
      */
+    @NotNull
     public String[] getAttributeNames() {
         synchronized (attributes) {
             return attributes.keySet().toArray(new String[attributes.keySet().size()]);
