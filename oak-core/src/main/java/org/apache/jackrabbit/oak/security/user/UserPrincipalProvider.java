@@ -508,23 +508,24 @@ class UserPrincipalProvider implements PrincipalProvider {
             super(principalName, "", namePathMapper, root, config);
         }
 
-        @Nullable
+        @NotNull
         @Override
-        String getOakPath() {
-            String groupPath = getPath();
-            return (groupPath == null) ? null : getNamePathMapper().getOakPath(getPath());
+        String getOakPath() throws RepositoryException {
+            String oakPath = getNamePathMapper().getOakPath(getPath());
+            if (oakPath == null) {
+                throw new RepositoryException("Failed to retrieve path of group principal " + getName());
+            }
+            return oakPath;
         }
 
-        @Nullable
+        @NotNull
         @Override
-        public String getPath() {
-            try {
-                org.apache.jackrabbit.api.security.user.Group gr = getGroup();
-                return (gr == null) ? null : gr.getPath();
-            } catch (RepositoryException e) {
-                log.error("Failed to retrieve path from group principal: {}", e.getMessage());
-                return null;
+        public String getPath() throws RepositoryException {
+            org.apache.jackrabbit.api.security.user.Group gr = getGroup();
+            if (gr == null) {
+                throw new RepositoryException("Failed to retrieve path of group principal " + getName());
             }
+            return gr.getPath();
         }
 
         @Override

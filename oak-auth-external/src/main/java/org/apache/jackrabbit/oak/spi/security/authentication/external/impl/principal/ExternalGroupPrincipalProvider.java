@@ -324,7 +324,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
 
         @Override
-        public boolean isMember(Principal member) {
+        public boolean isMember(@NotNull Principal member) {
             if (GroupPrincipals.isGroup(member)) {
                 return false;
             }
@@ -355,6 +355,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             return false;
         }
 
+        @NotNull
         @Override
         public Enumeration<? extends Principal> members() {
             Result result = findPrincipals(getName(), true);

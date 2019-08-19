@@ -34,10 +34,11 @@ class GroupPrincipalWrapper extends PrincipalImpl implements GroupPrincipal {
     }
 
     @Override
-    public boolean isMember(Principal member) {
+    public boolean isMember(@NotNull Principal member) {
         return group.isMember(member);
     }
 
+    @NotNull
     @Override
     public Enumeration<? extends Principal> members() {
         return GroupPrincipals.transform(group.members());

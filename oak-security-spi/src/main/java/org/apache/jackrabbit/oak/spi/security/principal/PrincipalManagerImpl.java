@@ -79,8 +79,9 @@ public class PrincipalManagerImpl implements PrincipalQueryManager, PrincipalMan
         return everyone;
     }
 
+    @NotNull
     @Override
-    public PrincipalIterator findPrincipals(String simpleFilter, boolean fullText, int searchType, long offset, long limit) {
+    public PrincipalIterator findPrincipals(@Nullable String simpleFilter, boolean fullText, int searchType, long offset, long limit) {
         return new PrincipalIteratorAdapter(principalProvider.findPrincipals(simpleFilter, fullText, searchType, offset, limit));
     }
 }

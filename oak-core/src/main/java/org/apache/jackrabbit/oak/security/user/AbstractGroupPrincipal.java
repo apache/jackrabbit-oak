@@ -61,7 +61,7 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
 
     //--------------------------------------------------------------< Group >---
     @Override
-    public boolean isMember(Principal principal) {
+    public boolean isMember(@NotNull Principal principal) {
         boolean isMember = false;
         try {
             // shortcut for everyone group -> avoid collecting all members
@@ -82,6 +82,7 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
         return isMember;
     }
 
+    @NotNull
     @Override
     public Enumeration<? extends Principal> members() {
         final Iterator<Authorizable> members;

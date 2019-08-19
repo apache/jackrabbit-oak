@@ -54,6 +54,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     public TestPrincipalProvider(String... principalNames) {
         this.exposesEveryone = true;
         this.principals = Maps.toMap(ImmutableSet.copyOf(principalNames), input -> new ItemBasedPrincipal() {
+            @NotNull
             @Override
             public String getPath() {
                 return "/path/to/principal/" + input;
@@ -175,10 +176,11 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         }
 
         @Override
-        public boolean isMember(Principal member) {
+        public boolean isMember(@NotNull Principal member) {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public Enumeration<? extends Principal> members() {
             return members;

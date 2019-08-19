@@ -21,6 +21,7 @@ import java.util.Enumeration;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -130,10 +131,11 @@ public class EveryonePrincipalTest  {
     private class OtherEveryoneGroup extends OtherEveryone implements GroupPrincipal {
 
         @Override
-        public boolean isMember(Principal principal) {
+        public boolean isMember(@NotNull Principal principal) {
             return true;
         }
 
+        @NotNull
         @Override
         public Enumeration<? extends Principal> members() {
             throw new UnsupportedOperationException();

@@ -216,7 +216,12 @@ class UserProvider extends AuthorizableBaseProvider {
     @Nullable
     Tree getAuthorizableByPrincipal(@NotNull Principal principal) {
         if (principal instanceof TreeBasedPrincipal) {
-            return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
+            try {
+                return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
+            } catch (RepositoryException e) {
+                // getting oakpath fails -> try searching below
+                log.debug(e.getMessage());
+            }
         }
 
         // NOTE: in contrast to JR2 the extra shortcut for ID==principalName

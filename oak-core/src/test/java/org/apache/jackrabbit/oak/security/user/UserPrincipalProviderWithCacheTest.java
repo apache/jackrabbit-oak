@@ -46,6 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
@@ -327,7 +328,12 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
             assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);
 
             assertTrue(p instanceof TreeBasedPrincipal);
-            assertNull(((TreeBasedPrincipal) p).getPath());
+            try {
+                ((TreeBasedPrincipal) p).getPath();
+                fail("RepositoryException expected");
+            } catch (RepositoryException e) {
+                // success
+            }
 
             GroupPrincipal principalGroup = (GroupPrincipal) p;
             assertFalse(principalGroup.isMember(getTestUser().getPrincipal()));
