@@ -427,6 +427,7 @@ public class ExternalGroupPrincipalProviderTest extends AbstractPrincipalTest {
         ExternalGroupPrincipalProvider p = new ExternalGroupPrincipalProvider(root,
                 getSecurityProvider().getConfiguration(UserConfiguration.class), NamePathMapper.DEFAULT,
                 ImmutableMap.of(idp.getName(), new String[0])) {
+            @NotNull
             @Override
             public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
                 return in.iterator();

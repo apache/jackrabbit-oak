@@ -28,6 +28,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalQueryManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This implementation of {@code PrincipalManager} delegates back to a
@@ -46,7 +47,7 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
     }
 
     @Override
-    public boolean hasPrincipal(final String principalName) {
+    public boolean hasPrincipal(@NotNull final String principalName) {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPrincipal") {
             @NotNull
             @Override
@@ -56,8 +57,9 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
         });
     }
 
+    @Nullable
     @Override
-    public Principal getPrincipal(final String principalName) {
+    public Principal getPrincipal(@NotNull final String principalName) {
         try {
             return delegate.performNullable(new SessionOperation<Principal>("getPrincipal") {
                 @Override
@@ -70,8 +72,9 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
         }
     }
 
+    @NotNull
     @Override
-    public PrincipalIterator findPrincipals(final String simpleFilter) {
+    public PrincipalIterator findPrincipals(@Nullable final String simpleFilter) {
         return delegate.safePerform(new SessionOperation<PrincipalIterator>("findPrincipals") {
             @NotNull
             @Override
@@ -81,8 +84,9 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
         });
     }
 
+    @NotNull
     @Override
-    public PrincipalIterator findPrincipals(final String simpleFilter, final int searchType) {
+    public PrincipalIterator findPrincipals(@Nullable final String simpleFilter, final int searchType) {
         return delegate.safePerform(new SessionOperation<PrincipalIterator>("findPrincipals") {
             @NotNull
             @Override
@@ -92,6 +96,7 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
         });
     }
 
+    @NotNull
     @Override
     public PrincipalIterator getPrincipals(final int searchType) {
         return delegate.safePerform(new SessionOperation<PrincipalIterator>("getPrincipals") {
@@ -103,8 +108,9 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
         });
     }
 
+    @NotNull
     @Override
-    public PrincipalIterator getGroupMembership(final Principal principal) {
+    public PrincipalIterator getGroupMembership(@NotNull final Principal principal) {
         return delegate.safePerform(new SessionOperation<PrincipalIterator>("getGroupMembership") {
             @NotNull
             @Override
@@ -114,6 +120,7 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
         });
     }
 
+    @NotNull
     @Override
     public Principal getEveryone() {
         return delegate.safePerform(new SessionOperation<Principal>("getEveryone") {
@@ -125,8 +132,9 @@ public class PrincipalManagerDelegator implements PrincipalManager, PrincipalQue
         });
     }
 
+    @NotNull
     @Override
-    public PrincipalIterator findPrincipals(String simpleFilter, boolean fullText, int searchType, long offset, long limit) {
+    public PrincipalIterator findPrincipals(@Nullable String simpleFilter, boolean fullText, int searchType, long offset, long limit) {
         return delegate.safePerform(new SessionOperation<PrincipalIterator>("findPrincipals") {
             @NotNull
             @Override

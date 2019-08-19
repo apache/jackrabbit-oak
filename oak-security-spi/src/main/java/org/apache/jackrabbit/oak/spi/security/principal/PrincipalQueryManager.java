@@ -20,6 +20,8 @@ import java.security.Principal;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -49,5 +51,6 @@ public interface PrincipalQueryManager {
      * @return a <code>PrincipalIterator</code> over the <code>Principal</code>s
      * matching the given filter and search type.
      */
-    PrincipalIterator findPrincipals(String simpleFilter, boolean fullText, int searchType, long offset, long limit);
+    @NotNull
+    PrincipalIterator findPrincipals(@Nullable String simpleFilter, boolean fullText, int searchType, long offset, long limit);
 }

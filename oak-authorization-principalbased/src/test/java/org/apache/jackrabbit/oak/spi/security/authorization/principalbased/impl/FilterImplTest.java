@@ -105,6 +105,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         Principal principal = getTestSystemUser().getPrincipal();
         assertFalse(filter.canHandle(Collections.singleton((AdminPrincipal) () -> principal.getName())));
         assertFalse(filter.canHandle(Collections.singleton((new ItemBasedPrincipal() {
+            @NotNull
             @Override
             public String getPath() throws RepositoryException {
                 return ((ItemBasedPrincipal) principal).getPath();
@@ -151,7 +152,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     /**
      * Test that the filter can deal with principals that have been accessed with a different {@code NamePathMapper}.
      * This might actually occure with {@code AbstractAccessControlManager#hasPrivilege} and {@code AbstractAccessControlManager#getPrivileges},
-     * when a {@link PermissionProvider} is built from the principal set passed to the Jackrabbit API methods (and not from
+     * when a {@code PermissionProvider} is built from the principal set passed to the Jackrabbit API methods (and not from
      * principals obtained on the system level when populating the {@code Subject}.
      */
     @Test
@@ -301,6 +302,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
             this.name = name;
         }
 
+        @NotNull
         @Override
         public String getPath() throws RepositoryException {
             if (jcrPath != null) {

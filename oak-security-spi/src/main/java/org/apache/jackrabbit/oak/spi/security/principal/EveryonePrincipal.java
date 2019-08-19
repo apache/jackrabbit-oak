@@ -22,6 +22,7 @@ import java.util.Enumeration;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Built-in principal group that has every other principal as member.
@@ -57,10 +58,11 @@ public final class EveryonePrincipal implements JackrabbitPrincipal, Group, Grou
 
     //------------------------------------------------------< GroupPrincipal >---
     @Override
-    public boolean isMember(Principal member) {
+    public boolean isMember(@NotNull Principal member) {
         return !member.equals(this);
     }
 
+    @NotNull
     @Override
     public Enumeration<? extends Principal> members() {
         throw new UnsupportedOperationException("Not implemented.");

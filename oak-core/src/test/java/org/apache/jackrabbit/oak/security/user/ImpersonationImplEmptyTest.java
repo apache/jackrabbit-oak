@@ -43,10 +43,11 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
 
     final GroupPrincipal groupPrincipal = new GroupPrincipal() {
         @Override
-        public boolean isMember(Principal member) {
+        public boolean isMember(@NotNull Principal member) {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public Enumeration<? extends Principal> members() {
             throw new UnsupportedOperationException();

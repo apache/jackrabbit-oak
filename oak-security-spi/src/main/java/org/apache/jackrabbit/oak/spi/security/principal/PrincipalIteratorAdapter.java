@@ -23,6 +23,7 @@ import java.util.Iterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorDecorator;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Principal specific {@code RangeIteratorAdapter} implementing the
@@ -61,6 +62,7 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator implements 
      *
      * @return next policy.
      */
+    @NotNull
     @Override
     public Principal nextPrincipal() {
         return (Principal) next();

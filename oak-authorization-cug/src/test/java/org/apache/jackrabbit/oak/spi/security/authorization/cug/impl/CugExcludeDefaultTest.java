@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -84,6 +85,7 @@ public class CugExcludeDefaultTest {
         Set<Principal> principals = new HashSet<>();
         principals.add(new PrincipalImpl("test"));
         principals.add(new ItemBasedPrincipal() {
+            @NotNull
             @Override
             public String getPath() {
                 return "/path";

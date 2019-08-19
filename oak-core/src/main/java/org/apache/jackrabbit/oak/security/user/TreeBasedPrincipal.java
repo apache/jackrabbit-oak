@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 
+import javax.jcr.RepositoryException;
+
 /**
  * TreeBasedPrincipal...
  */
@@ -40,17 +42,20 @@ class TreeBasedPrincipal extends PrincipalImpl implements ItemBasedPrincipal {
         this.path = oakPath;
     }
 
-    String getOakPath() {
+    @NotNull
+    String getOakPath() throws RepositoryException {
         return path;
     }
 
+    @NotNull
     NamePathMapper getNamePathMapper() {
         return pathMapper;
     }
 
     //-------------------------------------------------< ItemBasedPrincipal >---
+    @NotNull
     @Override
-    public String getPath() {
+    public String getPath() throws RepositoryException {
         return pathMapper.getJcrPath(path);
     }
 }
