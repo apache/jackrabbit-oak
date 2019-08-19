@@ -23,6 +23,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -68,7 +70,8 @@ public interface UserManager {
      * @throws RepositoryException If an error occurs.
      * @see Authorizable#getID()
      */
-    Authorizable getAuthorizable(String id) throws RepositoryException;
+    @Nullable
+    Authorizable getAuthorizable(@NotNull String id) throws RepositoryException;
 
     /**
      * Get the Authorizable of a specific type by its id.
@@ -80,7 +83,8 @@ public interface UserManager {
      * @throws AuthorizableTypeException If an authorizable exists but is not of the requested type.
      * @throws RepositoryException If an error occurs
      */
-    <T extends Authorizable> T getAuthorizable(String id, Class<T> authorizableClass) throws AuthorizableTypeException, RepositoryException;
+    @Nullable
+    <T extends Authorizable> T getAuthorizable(@NotNull String id, @NotNull Class<T> authorizableClass) throws AuthorizableTypeException, RepositoryException;
 
     /**
      * Get the Authorizable by its Principal.
@@ -89,7 +93,8 @@ public interface UserManager {
      * @return Authorizable or <code>null</code>, if not present.
      * @throws RepositoryException If an error occurs.
      */
-    Authorizable getAuthorizable(Principal principal) throws RepositoryException;
+    @Nullable
+    Authorizable getAuthorizable(@NotNull Principal principal) throws RepositoryException;
 
     /**
      * In accordance to {@link org.apache.jackrabbit.api.security.user.Authorizable#getPath()}
@@ -102,7 +107,8 @@ public interface UserManager {
      * @throws RepositoryException If another error occurs.
      * @see org.apache.jackrabbit.api.security.user.Authorizable#getPath()
      */
-    Authorizable getAuthorizableByPath(String path) throws UnsupportedRepositoryOperationException, RepositoryException;
+    @Nullable
+    Authorizable getAuthorizableByPath(@NotNull String path) throws UnsupportedRepositoryOperationException, RepositoryException;
 
     /**
      * Returns all <code>Authorizable</code>s that have a
@@ -121,7 +127,8 @@ public interface UserManager {
      * @throws RepositoryException If an error occurs.
      * @see Authorizable#getProperty(String)
      */
-    Iterator<Authorizable> findAuthorizables(String relPath, String value) throws RepositoryException;
+    @NotNull
+    Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value) throws RepositoryException;
 
     /**
      * Returns all <code>Authorizable</code>s that have a
@@ -146,7 +153,8 @@ public interface UserManager {
      * @return An iterator of <code>Authorizable</code>.
      * @throws RepositoryException If an error occurs.
      */
-    Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException;
+    @NotNull
+    Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value, int searchType) throws RepositoryException;
 
     /**
      * Return {@link Authorizable}s that match a specific {@link Query}.
@@ -155,7 +163,8 @@ public interface UserManager {
      * @return  Iterator of authorizables witch match the <code>query</code>.
      * @throws RepositoryException  If an error occurs.
      */
-    Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException;
+    @NotNull
+    Iterator<Authorizable> findAuthorizables(@NotNull Query query) throws RepositoryException;
 
     /**
      * Creates an User for the given userID / password pair; neither of the
@@ -171,7 +180,8 @@ public interface UserManager {
      * in use or another Authorizable with the same principal name exists.
      * @throws RepositoryException If another error occurs.
      */
-    User createUser(String userID, String password) throws AuthorizableExistsException, RepositoryException;
+    @NotNull
+    User createUser(@NotNull String userID, @Nullable String password) throws AuthorizableExistsException, RepositoryException;
 
     /**
      * Creates an User for the given parameters. If the implementation is not
@@ -192,8 +202,9 @@ public interface UserManager {
      * @throws RepositoryException If the current Session is
      * not allowed to create users or some another error occurs.
      */
-    User createUser(String userID, String password, Principal principal,
-                    String intermediatePath) throws AuthorizableExistsException, RepositoryException;
+    @NotNull
+    User createUser(@NotNull String userID, @Nullable String password, @NotNull Principal principal,
+                    @Nullable String intermediatePath) throws AuthorizableExistsException, RepositoryException;
 
 
     /**
@@ -218,7 +229,8 @@ public interface UserManager {
      * @throws AuthorizableExistsException if an Authorizable with this id already exists.
      * @throws RepositoryException If another error occurs.
      */
-    User createSystemUser(String userID, String intermediatePath) throws AuthorizableExistsException, RepositoryException;
+    @NotNull
+    User createSystemUser(@NotNull String userID, @Nullable String intermediatePath) throws AuthorizableExistsException, RepositoryException;
 
     /**
      * Creates a Group for the given groupID, which must not be <code>null</code>.
@@ -234,7 +246,8 @@ public interface UserManager {
      * {@link Authorizable#getID() ID} or principal name already exists.
      * @throws RepositoryException If another error occurs.
      */
-    Group createGroup(String groupID) throws AuthorizableExistsException, RepositoryException;
+    @NotNull
+    Group createGroup(@NotNull String groupID) throws AuthorizableExistsException, RepositoryException;
 
     /**
      * Creates a new <code>Group</code> that is based on the given principal.
@@ -248,7 +261,8 @@ public interface UserManager {
      * already in use with another Authorizable.
      * @throws RepositoryException If another error occurs.
      */
-    Group createGroup(Principal principal) throws AuthorizableExistsException, RepositoryException;
+    @NotNull
+    Group createGroup(@NotNull Principal principal) throws AuthorizableExistsException, RepositoryException;
 
     /**
      * Same as {@link #createGroup(String, Principal, String)} where the
@@ -263,7 +277,8 @@ public interface UserManager {
      * already in use with another Authorizable.
      * @throws RepositoryException If another error occurs.
      */
-    Group createGroup(Principal principal, String intermediatePath) throws AuthorizableExistsException, RepositoryException;
+    @NotNull
+    Group createGroup(@NotNull Principal principal, @Nullable String intermediatePath) throws AuthorizableExistsException, RepositoryException;
 
     /**
      * Creates a new <code>Group</code> that is based on the given id, principal
@@ -281,7 +296,8 @@ public interface UserManager {
      * in use with another Authorizable.
      * @throws RepositoryException If another error occurs.
      */
-    Group createGroup(String groupID, Principal principal, String intermediatePath) throws AuthorizableExistsException, RepositoryException;
+    @NotNull
+    Group createGroup(@NotNull String groupID, @NotNull Principal principal, @Nullable String intermediatePath) throws AuthorizableExistsException, RepositoryException;
 
     /**
      * If any write operations executed through the User API are automatically

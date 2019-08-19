@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.api.security.user;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
@@ -38,6 +40,7 @@ public interface Impersonation {
      * object has been created for.
      * @throws RepositoryException If an error occurs.
      */
+    @NotNull
     PrincipalIterator getImpersonators() throws RepositoryException;
 
     /**
@@ -48,7 +51,7 @@ public interface Impersonation {
      * granted to it, false otherwise.
      * @throws RepositoryException If an error occurs.
      */
-    boolean grantImpersonation(Principal principal) throws RepositoryException;
+    boolean grantImpersonation(@NotNull Principal principal) throws RepositoryException;
 
     /**
      * @param principal The principal that should no longer be allowed to
@@ -57,7 +60,7 @@ public interface Impersonation {
      * the given principal; false otherwise.
      * @throws RepositoryException If an error occurs.
      */
-    boolean revokeImpersonation(Principal principal) throws RepositoryException;
+    boolean revokeImpersonation(@NotNull Principal principal) throws RepositoryException;
 
     /**
      * Test if the given subject (i.e. any of the principals it contains) is
@@ -68,5 +71,5 @@ public interface Impersonation {
      * Subject to impersonate.
      * @throws RepositoryException If an error occurs.
      */
-    boolean allows(Subject subject) throws RepositoryException;
+    boolean allows(@NotNull Subject subject) throws RepositoryException;
 }

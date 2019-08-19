@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.api.security.user;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Credentials;
 
@@ -47,12 +50,14 @@ public interface User extends Authorizable {
      * @return <code>Credentials</code> for this user.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
+    @NotNull
     Credentials getCredentials() throws RepositoryException;
 
     /**
      * @return <code>Impersonation</code> for this <code>User</code>.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
+    @NotNull
     Impersonation getImpersonation() throws RepositoryException;
 
     /**
@@ -61,7 +66,7 @@ public interface User extends Authorizable {
      * @param password The new password.
      * @throws RepositoryException If an error occurs.
      */
-    void changePassword(String password) throws RepositoryException;
+    void changePassword(@Nullable String password) throws RepositoryException;
 
     /**
      * Change the password of this user.
@@ -71,7 +76,7 @@ public interface User extends Authorizable {
      * @throws RepositoryException If the old password doesn't match or if
      * an error occurs.
      */
-    void changePassword(String password, String oldPassword) throws RepositoryException;
+    void changePassword(@Nullable String password, @NotNull String oldPassword) throws RepositoryException;
 
     /**
      * Disable this user thus preventing future login if the <code>reason</code>
@@ -83,7 +88,7 @@ public interface User extends Authorizable {
      * <code>null</code> if the user account should be enabled again.
      * @throws RepositoryException If an error occurs.
      */
-    void disable(String reason) throws RepositoryException;
+    void disable(@Nullable String reason) throws RepositoryException;
 
     /**
      * Returns <code>true</code> if this user is disabled, <code>false</code>
@@ -103,5 +108,6 @@ public interface User extends Authorizable {
      * if this user is not disabled.
      * @throws RepositoryException If an error occurs.
      */
+    @Nullable
     String getDisabledReason() throws RepositoryException;
 }

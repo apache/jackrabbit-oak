@@ -17,6 +17,9 @@
 
 package org.apache.jackrabbit.api.security.user;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.Value;
 
 public interface QueryBuilder<T> {
@@ -45,7 +48,7 @@ public interface QueryBuilder<T> {
      *
      * @param selector  The selector for the query
      */
-    void setSelector(Class<? extends Authorizable> selector);
+    void setSelector(@NotNull Class<? extends Authorizable> selector);
 
     /**
      * Set the scope for the query. If set, the query will only return members of a specific group.
@@ -54,7 +57,7 @@ public interface QueryBuilder<T> {
      * @param declaredOnly  If <code>true</code> only declared members of the groups are returned.
      * Otherwise indirect memberships are also considered. 
      */
-    void setScope(String groupName, boolean declaredOnly);
+    void setScope(@NotNull String groupName, boolean declaredOnly);
 
     /**
      * Set the condition for the query. The query only includes {@link Authorizable}s
@@ -62,7 +65,7 @@ public interface QueryBuilder<T> {
      * 
      * @param condition  Condition upon which <code>Authorizables</code> are included in the query result
      */
-    void setCondition(T condition);
+    void setCondition(@NotNull T condition);
 
     /**
      * Set the sort order of the {@link Authorizable}s returned by the query.
@@ -76,7 +79,7 @@ public interface QueryBuilder<T> {
      * @param ignoreCase  Ignore character case in sort if <code>true</code>. Note: For <code>false</code>
      * sorting is done lexicographically even for non string properties.
      */
-    void setSortOrder(String propertyName, Direction direction, boolean ignoreCase);
+    void setSortOrder(@NotNull String propertyName, @NotNull Direction direction, boolean ignoreCase);
 
     /**
      * Set the sort order of the {@link Authorizable}s returned by the query.
@@ -88,7 +91,7 @@ public interface QueryBuilder<T> {
      * @param propertyName  The name of the property to sort on
      * @param direction  Direction to sort. Either {@link Direction#ASCENDING} or {@link Direction#DESCENDING}
      */
-    void setSortOrder(String propertyName, Direction direction); 
+    void setSortOrder(@NotNull String propertyName, @NotNull Direction direction);
 
     /**
      * Set limits for the query. The limits consists of a bound and a maximal
@@ -102,7 +105,7 @@ public interface QueryBuilder<T> {
      * for no bound
      * @param maxCount  Maximal number of results to return. -1 for no limit.
      */
-    void setLimit(Value bound, long maxCount);
+    void setLimit(@Nullable Value bound, long maxCount);
 
     /**
      * Set limits for the query. The limits consists of an offset and a maximal
@@ -129,7 +132,8 @@ public interface QueryBuilder<T> {
      * @param pattern Pattern to match the name of an authorizable.
      * @return  A condition
      */
-    T nameMatches(String pattern);
+    @NotNull
+    T nameMatches(@NotNull String pattern);
 
     /**
      * Create a condition which holds if the node of an {@link Authorizable} has a
@@ -142,7 +146,8 @@ public interface QueryBuilder<T> {
      * @param value  Value to compare the property at <code>relPath</code> to
      * @return  A condition
      */
-    T neq(String relPath, Value value);
+    @NotNull
+    T neq(@NotNull String relPath, @NotNull Value value);
 
     /**
      * Create a condition which holds if the node of an {@link Authorizable} has a
@@ -155,7 +160,8 @@ public interface QueryBuilder<T> {
      * @param value  Value to compare the property at <code>relPath</code> to
      * @return  A condition
      */
-    T eq(String relPath, Value value);
+    @NotNull
+    T eq(@NotNull String relPath, @NotNull Value value);
 
     /**
      * Create a condition which holds if the node of an {@link Authorizable} has a
@@ -168,7 +174,8 @@ public interface QueryBuilder<T> {
      * @param value  Value to compare the property at <code>relPath</code> to
      * @return  A condition
      */
-    T lt(String relPath, Value value);
+    @NotNull
+    T lt(@NotNull String relPath, @NotNull Value value);
 
     /**
      * Create a condition which holds if the node of an {@link Authorizable} has a
@@ -181,7 +188,8 @@ public interface QueryBuilder<T> {
      * @param value  Value to compare the property at <code>relPath</code> to
      * @return  A condition
      */
-    T le(String relPath, Value value);
+    @NotNull
+    T le(@NotNull String relPath, @NotNull Value value);
 
     /**
      * Create a condition which holds if the node of an {@link Authorizable} has a
@@ -194,7 +202,8 @@ public interface QueryBuilder<T> {
      * @param value  Value to compare the property at <code>relPath</code> to
      * @return  A condition
      */
-    T gt(String relPath, Value value);
+    @NotNull
+    T gt(@NotNull String relPath, @NotNull Value value);
 
     /**
      * Create a condition which holds if the node of an {@link Authorizable} has a
@@ -207,7 +216,8 @@ public interface QueryBuilder<T> {
      * @param value  Value to compare the property at <code>relPath</code> to
      * @return  A condition
      */
-    T ge(String relPath, Value value);
+    @NotNull
+    T ge(@NotNull String relPath, @NotNull Value value);
 
     /**
      * Create a condition which holds if the node of an {@link Authorizable} has a
@@ -219,7 +229,8 @@ public interface QueryBuilder<T> {
      * @param relPath  Relative path from the authorizable's node to the property
      * @return  A condition
      */
-    T exists(String relPath);
+    @NotNull
+    T exists(@NotNull String relPath);
 
     /**
      * Create a condition which holds if the node of an {@link Authorizable} has a
@@ -235,7 +246,8 @@ public interface QueryBuilder<T> {
      * @param pattern  Pattern to match the property at <code>relPath</code> against
      * @return  A condition
      */
-    T like(String relPath, String pattern);
+    @NotNull
+    T like(@NotNull String relPath, @NotNull String pattern);
 
     /**
      * Create a full text search condition. The condition holds if the node of an
@@ -253,7 +265,8 @@ public interface QueryBuilder<T> {
      * @param searchExpr  A full text search expression
      * @return  A condition
      */
-    T contains(String relPath, String searchExpr);
+    @NotNull
+    T contains(@NotNull String relPath, @NotNull String searchExpr);
 
     /**
      * Create a condition which holds for {@link Authorizable}s which can impersonate as
@@ -262,7 +275,8 @@ public interface QueryBuilder<T> {
      * @param name  Name of an authorizable
      * @return  A condition
      */
-    T impersonates(String name);
+    @NotNull
+    T impersonates(@NotNull String name);
 
     /**
      * Return a condition which holds if <code>condition</code> does not hold.
@@ -270,7 +284,8 @@ public interface QueryBuilder<T> {
      * @param condition  Condition to negate
      * @return  A condition
      */
-    T not(T condition);
+    @NotNull
+    T not(@NotNull T condition);
 
     /**
      * Return a condition which holds if both sub conditions hold.
@@ -279,7 +294,8 @@ public interface QueryBuilder<T> {
      * @param condition2  second sub condition
      * @return  A condition
      */
-    T and(T condition1, T condition2);
+    @NotNull
+    T and(@NotNull T condition1, @NotNull T condition2);
 
     /**
      * Return a condition which holds if any of the two sub conditions hold.
@@ -288,5 +304,6 @@ public interface QueryBuilder<T> {
      * @param condition2  second sub condition
      * @return  A condition
      */
-    T or(T condition1, T condition2);
+    @NotNull
+    T or(@NotNull T condition1, @NotNull T condition2);
 }

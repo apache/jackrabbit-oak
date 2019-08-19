@@ -17,6 +17,8 @@
 
 package org.apache.jackrabbit.api.security.user;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * A query to match {@link Authorizable}s. Pass an instance of this interface to
  * {@link UserManager#findAuthorizables(Query)}.
@@ -46,5 +48,5 @@ public interface Query {
      * @param builder  A query builder for building the query.
      * @param <T>  Opaque type of the query builder.
      */
-    <T> void build(QueryBuilder<T> builder);
+    <T> void build(@NotNull QueryBuilder<T> builder);
 }

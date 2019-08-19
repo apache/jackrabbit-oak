@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.api.security.user;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.security.Principal;
 import java.util.Iterator;
 
@@ -65,6 +68,7 @@ public interface Authorizable {
      * @return Name of this <code>Authorizable</code>.
      * @throws RepositoryException if an error occurs.
      */
+    @NotNull
     String getID() throws RepositoryException;
 
     /**
@@ -76,12 +80,14 @@ public interface Authorizable {
      * @return a representation as Principal.
      * @throws RepositoryException If an error occurs.
      */
+    @NotNull
     Principal getPrincipal() throws RepositoryException;
 
     /**
      * @return all {@link Group}s, this Authorizable is declared member of.
      * @throws RepositoryException If an error occurs.
      */
+    @NotNull
     Iterator<Group> declaredMemberOf() throws RepositoryException;
 
     /**
@@ -89,6 +95,7 @@ public interface Authorizable {
      *         indirect group membership.
      * @throws RepositoryException If an error occurs.
      */
+    @NotNull
     Iterator<Group> memberOf() throws RepositoryException;
 
     /**
@@ -114,6 +121,7 @@ public interface Authorizable {
      * name.
      * @see #hasProperty(String)
      */
+    @NotNull
     Iterator<String> getPropertyNames() throws RepositoryException;
 
     /**
@@ -126,7 +134,8 @@ public interface Authorizable {
      * @see #getProperty(String)
      * @see #hasProperty(String)
      */
-    Iterator<String> getPropertyNames(String relPath) throws RepositoryException;
+    @NotNull
+    Iterator<String> getPropertyNames(@NotNull String relPath) throws RepositoryException;
 
     /**
      * Tests if a the property with specified name exists.
@@ -136,7 +145,7 @@ public interface Authorizable {
      * @throws RepositoryException If an error occurs.
      * @see #getProperty(String)
      */
-    boolean hasProperty(String relPath) throws RepositoryException;
+    boolean hasProperty(@NotNull String relPath) throws RepositoryException;
 
     /**
      * Set an arbitrary property to this <code>Authorizable</code>.
@@ -145,7 +154,7 @@ public interface Authorizable {
      * @param value The desired value.
      * @throws RepositoryException If the specified property could not be set.
      */
-    void setProperty(String relPath, Value value) throws RepositoryException;
+    void setProperty(@NotNull String relPath, @Nullable Value value) throws RepositoryException;
 
     /**
      * Set an arbitrary property to this <code>Authorizable</code>.
@@ -154,7 +163,7 @@ public interface Authorizable {
      * @param value The desired property values.
      * @throws RepositoryException If the specified property could not be set.
      */
-    void setProperty(String relPath, Value[] value) throws RepositoryException;
+    void setProperty(@NotNull String relPath, @Nullable Value[] value) throws RepositoryException;
 
     /**
      * Returns the values for the properties with the specified name or
@@ -165,7 +174,8 @@ public interface Authorizable {
      *         if no such property exists.
      * @throws RepositoryException If an error occurs.
      */
-    Value[] getProperty(String relPath) throws RepositoryException;
+    @Nullable
+    Value[] getProperty(@NotNull String relPath) throws RepositoryException;
 
     /**
      * Removes the property with the given name.
@@ -175,7 +185,7 @@ public interface Authorizable {
      *         removed; false if no such property was present.
      * @throws RepositoryException If an error occurs.
      */
-    boolean removeProperty(String relPath) throws RepositoryException;
+    boolean removeProperty(@NotNull String relPath) throws RepositoryException;
 
     /**
      * Returns a JCR path if this authorizable instance is associated with an
@@ -196,5 +206,6 @@ public interface Authorizable {
      * @throws RepositoryException If an error occurs while retrieving the
      * <code>Item</code> path.
      */
+    @NotNull
     String getPath() throws UnsupportedRepositoryOperationException, RepositoryException;
 }
