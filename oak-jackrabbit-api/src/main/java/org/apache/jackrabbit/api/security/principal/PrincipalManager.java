@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.api.security.principal;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.security.Principal;
 
 /**
@@ -75,7 +78,7 @@ public interface PrincipalManager {
      * @return return <code>true</code> if the principal with this name is known
      *         to this manager; <code>false</code> otherwise.
      */
-    boolean hasPrincipal(String principalName);
+    boolean hasPrincipal(@NotNull String principalName);
 
     /**
      * Returns the principal with the given name if is known to this manager
@@ -89,7 +92,8 @@ public interface PrincipalManager {
      * principal with the given name does not exist or is not accessible
      * for the editing session.
      */
-    Principal getPrincipal(String principalName);
+    @Nullable
+    Principal getPrincipal(@NotNull String principalName);
 
     /**
      * Gets the principals matching a simple filter expression applied against
@@ -102,7 +106,8 @@ public interface PrincipalManager {
      * @return a <code>PrincipalIterator</code> over the <code>Principal</code>s
      * matching the given filter.
      */
-    PrincipalIterator findPrincipals(String simpleFilter);
+    @NotNull
+    PrincipalIterator findPrincipals(@Nullable String simpleFilter);
 
     /**
      * Gets the principals matching a simple filter expression applied against
@@ -122,7 +127,8 @@ public interface PrincipalManager {
      * @return a <code>PrincipalIterator</code> over the <code>Principal</code>s
      * matching the given filter and search type.
      */
-    PrincipalIterator findPrincipals(String simpleFilter, int searchType);
+    @NotNull
+    PrincipalIterator findPrincipals(@Nullable String simpleFilter, int searchType);
 
     /**
      * Returns all <code>Principal</code>s matching the specified search type.
@@ -136,6 +142,7 @@ public interface PrincipalManager {
      * @return a <code>PrincipalIterator</code> over all the <code>Principal</code>s
      * matching the given search type.
      */
+    @NotNull
     PrincipalIterator getPrincipals(int searchType);
 
     /**
@@ -149,7 +156,8 @@ public interface PrincipalManager {
      * @param principal the principal to return it's membership from.
      * @return an iterator returning all groups the given principal is member of.
      */
-    PrincipalIterator getGroupMembership(Principal principal);
+    @NotNull
+    PrincipalIterator getGroupMembership(@NotNull Principal principal);
 
     /**
      * Returns the <code>Principal</code> which is implicitly applied to
@@ -157,5 +165,6 @@ public interface PrincipalManager {
      *
      * @return the 'everyone' principal
      */
+    @NotNull
     Principal getEveryone();
 }

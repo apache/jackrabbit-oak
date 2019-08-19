@@ -19,6 +19,7 @@ package org.apache.jackrabbit.api.security.principal;
 import java.security.Principal;
 import java.util.Enumeration;
 
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -37,7 +38,7 @@ public interface GroupPrincipal extends Principal {
      * @return true if the principal is a member of this group,
      * false otherwise.
      */
-    public boolean isMember(Principal member);
+    boolean isMember(@NotNull Principal member);
 
     /**
      * Returns an enumeration of the members in the group. This includes both
@@ -47,6 +48,7 @@ public interface GroupPrincipal extends Principal {
      *
      * @return an enumeration of the group members.
      */
-    public Enumeration<? extends Principal> members();
+    @NotNull
+    Enumeration<? extends Principal> members();
 
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.api.security.principal;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.RangeIterator;
 import java.security.Principal;
 
@@ -29,6 +31,7 @@ public interface PrincipalIterator extends RangeIterator {
      * 
      * @return the next principal
      */
+    @NotNull
     Principal nextPrincipal();
 
 }
