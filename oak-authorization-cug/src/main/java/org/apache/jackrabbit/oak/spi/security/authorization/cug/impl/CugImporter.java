@@ -107,14 +107,12 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
                         case ImportBehavior.IGNORE:
                             log.debug("Ignoring unknown principal with name '{}'.", principalName);
                             break;
-                        case ImportBehavior.ABORT:
-                            throw new AccessControlException("Unknown principal '" + principalName + "'.");
                         case ImportBehavior.BESTEFFORT:
                             log.debug("Importing unknown principal '{}'", principalName);
                             principalNames.add(principalName);
                             break;
-                        default:
-                            throw new IllegalArgumentException("Invalid import behavior " + importBehavior);
+                        default: // ImportBehavior.ABORT
+                            throw new AccessControlException("Unknown principal '" + principalName + "'.");
                     }
                 } else {
                     principalNames.add(principalName);

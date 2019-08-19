@@ -16,25 +16,24 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import javax.jcr.ImportUUIDBehavior;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.nodetype.PropertyDefinition;
-
-import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
-import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.junit.Test;
-import org.mockito.Mockito;
+
+import javax.jcr.ImportUUIDBehavior;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class CugImporterTest extends AbstractCugTest {
 
@@ -48,31 +47,58 @@ public class CugImporterTest extends AbstractCugTest {
 
     @Test(expected = IllegalStateException.class)
     public void testInitTwice() {
-        Session session = Mockito.mock(Session.class);
+        Session session = mock(Session.class);
         assertTrue(importer.init(session, root, getNamePathMapper(), true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW, new ReferenceChangeTracker(), getSecurityProvider()));
         importer.init(session, root, getNamePathMapper(), true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW, new ReferenceChangeTracker(), getSecurityProvider());
     }
 
     @Test
-    public void testInvalidPropInfo() throws Exception {
+    public void testInitFailsToRetrievePrincipalManager() throws Exception {
+        JackrabbitSession s = mock(JackrabbitSession.class);
+        when(s.getPrincipalManager()).thenThrow(new RepositoryException());
+
+        assertFalse(importer.init(s, root, getNamePathMapper(), false, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));
+    }
+
+    @Test
+    public void testHandlePropertyNonCugParent() throws Exception {
         createCug(root, SUPPORTED_PATH, "principalName");
-        Tree parent = root.getTree(SUPPORTED_PATH);
-        PropInfo propInfo = new PropInfo(JcrConstants.JCR_PRIMARYTYPE, PropertyType.STRING, ImmutableList.of(new TextValue() {
-            @Override
-            public String getString() {
-                return "principalName";
-            }
+        Tree nonCugParent = root.getTree(SUPPORTED_PATH);
+        assertFalse(importer.handlePropInfo(nonCugParent, mock(PropInfo.class), mock(PropertyDefinition.class)));
+    }
 
-            @Override
-            public Value getValue(int targetType) throws RepositoryException {
-                return getValueFactory(root).createValue("principalName", PropertyType.STRING);
-            }
+    @Test
+    public void testHandlePropertyUnsupportedNamePropInfo() throws Exception {
+        createCug(root, SUPPORTED_PATH, "principalName");
+        Tree cugParent = root.getTree(SUPPORTED_PATH).getChild(REP_CUG_POLICY);
+        PropInfo propInfo = when(mock(PropInfo.class).getName()).thenReturn("unsupportedPropName").getMock();
+        assertFalse(importer.handlePropInfo(cugParent, propInfo, mock(PropertyDefinition.class)));
+    }
 
-            @Override
-            public void dispose() {
-            }
-        }));
-        PropertyDefinition propDef = Mockito.mock(PropertyDefinition.class);
-        assertFalse(importer.handlePropInfo(parent, propInfo, propDef));
+    @Test
+    public void testHandlePropertySingleValuePropDef() throws Exception {
+        createCug(root, SUPPORTED_PATH, "principalName");
+        Tree cugParent = root.getTree(SUPPORTED_PATH).getChild(REP_CUG_POLICY);
+
+        PropInfo propInfo = when(mock(PropInfo.class).getName()).thenReturn(REP_PRINCIPAL_NAMES).getMock();
+
+        PropertyDefinition propDef = when(mock(PropertyDefinition.class).isMultiple()).thenReturn(false).getMock();
+        assertFalse(importer.handlePropInfo(cugParent, propInfo, propDef));
+    }
+
+    @Test
+    public void testHandlePropertyPropDefWithWrongDeclaringNt() throws Exception {
+        createCug(root, SUPPORTED_PATH, "principalName");
+        Tree cugParent = root.getTree(SUPPORTED_PATH).getChild(REP_CUG_POLICY);
+
+        PropInfo propInfo = when(mock(PropInfo.class).getName()).thenReturn(REP_PRINCIPAL_NAMES).getMock();
+
+        NodeType nt = when(mock(NodeType.class).getName()).thenReturn(NodeTypeConstants.NT_UNSTRUCTURED).getMock();
+
+        PropertyDefinition propDef = mock(PropertyDefinition.class);
+        when(propDef.isMultiple()).thenReturn(true);
+        when(propDef.getDeclaringNodeType()).thenReturn(nt);
+
+        assertFalse(importer.handlePropInfo(cugParent, propInfo, propDef));
     }
 }
