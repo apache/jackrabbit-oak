@@ -34,6 +34,7 @@ public interface Group extends Authorizable {
      * members of this Group.
      * @throws RepositoryException If an error occurs.
      */
+    @NotNull
     Iterator<Authorizable> getDeclaredMembers() throws RepositoryException;
 
     /**
@@ -42,6 +43,7 @@ public interface Group extends Authorizable {
      * that are indirect group members.
      * @throws RepositoryException If an error occurs.
      */
+    @NotNull
     Iterator<Authorizable> getMembers() throws RepositoryException;
 
     /**
@@ -50,7 +52,7 @@ public interface Group extends Authorizable {
      * @return  <code>true</code> if the Authorizable to test is a direct member
      * @throws RepositoryException  If an error occurs.
      */
-    boolean isDeclaredMember(Authorizable authorizable) throws RepositoryException;
+    boolean isDeclaredMember(@NotNull Authorizable authorizable) throws RepositoryException;
     
     /**
      * @param authorizable The <code>Authorizable</code> to test.
@@ -58,7 +60,7 @@ public interface Group extends Authorizable {
      * of this Group.
      * @throws RepositoryException If an error occurs.
      */
-    boolean isMember(Authorizable authorizable) throws RepositoryException;
+    boolean isMember(@NotNull Authorizable authorizable) throws RepositoryException;
 
     /**
      * Add a member to this Group.
@@ -71,7 +73,7 @@ public interface Group extends Authorizable {
      * group itself or for some implementation specific constraint).
      * @throws RepositoryException If an error occurs.
      */
-    boolean addMember(Authorizable authorizable) throws RepositoryException;
+    boolean addMember(@NotNull Authorizable authorizable) throws RepositoryException;
 
     /**
      * Add one or more member(s) to this Group. Note, that an implementation may
@@ -89,6 +91,7 @@ public interface Group extends Authorizable {
      * @throws RepositoryException If one of the specified memberIds is invalid or
      * if some other error occurs.
      */
+    @NotNull
     Set<String> addMembers(@NotNull String... memberIds) throws RepositoryException;
 
     /**
@@ -99,7 +102,7 @@ public interface Group extends Authorizable {
      * @return true if the Authorizable was successfully removed. False otherwise.
      * @throws RepositoryException If an error occurs.
      */
-    boolean removeMember(Authorizable authorizable) throws RepositoryException;
+    boolean removeMember(@NotNull Authorizable authorizable) throws RepositoryException;
 
     /**
      * Remove one or several members from this Group. Note, that an implementation
@@ -115,5 +118,6 @@ public interface Group extends Authorizable {
      * @throws RepositoryException If one of the specified memberIds is invalid
      * or if some other error occurs.
      */
+    @NotNull
     Set<String> removeMembers(@NotNull String... memberIds) throws RepositoryException;
 }
