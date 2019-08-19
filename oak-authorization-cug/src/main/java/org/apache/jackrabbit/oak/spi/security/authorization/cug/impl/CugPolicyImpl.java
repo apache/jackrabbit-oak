@@ -138,11 +138,6 @@ class CugPolicyImpl implements CugPolicy {
 
         boolean isValid = true;
         switch (importBehavior) {
-            case ImportBehavior.ABORT:
-                if (!principalManager.hasPrincipal(name)) {
-                    throw new AccessControlException("Unknown principal " + name);
-                }
-                break;
             case ImportBehavior.IGNORE:
                 if (!principalManager.hasPrincipal(name)) {
                     log.debug("Ignoring unknown principal {}", name);
@@ -152,8 +147,10 @@ class CugPolicyImpl implements CugPolicy {
             case ImportBehavior.BESTEFFORT:
                 log.debug("Best effort: don't verify existence of principals.");
                 break;
-            default:
-                throw new IllegalStateException("Unsupported import behavior " + importBehavior);
+            default: //ImportBehavior.ABORT
+                if (!principalManager.hasPrincipal(name)) {
+                    throw new AccessControlException("Unknown principal " + name);
+                }
         }
         return isValid;
     }

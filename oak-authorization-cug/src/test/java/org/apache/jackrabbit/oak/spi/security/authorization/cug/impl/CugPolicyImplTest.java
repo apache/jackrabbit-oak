@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
@@ -41,7 +40,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
 
 public class CugPolicyImplTest extends AbstractSecurityTest {
 
@@ -76,13 +78,9 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     }
 
     private Principal getExcludedPrincipal() {
-        return new SystemUserPrincipal() {
-            @Override
-            public String getName() {
-                return "excluded";
-            }
-        };
+        return (SystemUserPrincipal) () -> "excluded";
     }
+    
     @Test
     public void testPrincipalSetPolicy() {
         assertTrue(createCugPolicy(principals) instanceof PrincipalSetPolicy);
