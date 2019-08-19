@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.api.security.authorization;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
@@ -38,6 +41,7 @@ public interface PrivilegeManager {
      * @return all registered privileges.
      * @throws RepositoryException If an error occurs.
      */
+    @NotNull
     Privilege[] getRegisteredPrivileges() throws RepositoryException;
 
     /**
@@ -48,7 +52,8 @@ public interface PrivilegeManager {
      * @throws javax.jcr.security.AccessControlException If no privilege with the given name exists.
      * @throws javax.jcr.RepositoryException If another error occurs.
      */
-    Privilege getPrivilege(String privilegeName) throws AccessControlException, RepositoryException;
+    @NotNull
+    Privilege getPrivilege(@NotNull String privilegeName) throws AccessControlException, RepositoryException;
 
     /**
      * Creates and registers a new custom privilege with the specified
@@ -70,7 +75,8 @@ public interface PrivilegeManager {
      * to any implementation specific constraint violations or if persisting the
      * custom privilege fails.
      */
-    Privilege registerPrivilege(String privilegeName, boolean isAbstract,
-                                String[] declaredAggregateNames)
+    @NotNull
+    Privilege registerPrivilege(@NotNull String privilegeName, boolean isAbstract,
+                                @Nullable String[] declaredAggregateNames)
             throws AccessDeniedException, NamespaceException, RepositoryException;
 }

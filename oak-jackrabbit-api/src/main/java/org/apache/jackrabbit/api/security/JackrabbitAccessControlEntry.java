@@ -21,6 +21,8 @@ import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.security.AccessControlEntry;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
@@ -43,6 +45,7 @@ public interface JackrabbitAccessControlEntry extends AccessControlEntry {
      * @return the names of the restrictions
      * @throws RepositoryException if an error occurs.
      */
+    @NotNull
     String[] getRestrictionNames() throws RepositoryException;
 
     /**
@@ -60,7 +63,8 @@ public interface JackrabbitAccessControlEntry extends AccessControlEntry {
      * @throws RepositoryException if an error occurs.
      * @see #getRestrictions(String)
      */
-    Value getRestriction(String restrictionName) throws ValueFormatException, RepositoryException;
+    @Nullable
+    Value getRestriction(@NotNull String restrictionName) throws ValueFormatException, RepositoryException;
 
     /**
      * Return the values of the restriction with the specified name or
@@ -77,5 +81,6 @@ public interface JackrabbitAccessControlEntry extends AccessControlEntry {
      * @throws RepositoryException if an error occurs.
      * @see #getRestriction(String)
      */
-    Value[] getRestrictions(String restrictionName) throws RepositoryException;
+    @Nullable
+    Value[] getRestrictions(@NotNull String restrictionName) throws RepositoryException;
 }
