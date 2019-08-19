@@ -23,6 +23,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Default implementation for a system user.
@@ -58,12 +59,12 @@ class SystemUserImpl extends UserImpl {
     }
 
     @Override
-    public void changePassword(String password) throws RepositoryException {
+    public void changePassword(@Nullable String password) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("system user");
     }
 
     @Override
-    public void changePassword(String password, String oldPassword) throws RepositoryException {
+    public void changePassword(@Nullable String password, @NotNull String oldPassword) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException("system user");
     }
 }

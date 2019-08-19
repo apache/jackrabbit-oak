@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 /**
@@ -193,7 +194,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testAny() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) { /* any */ }
+            public <T> void build(@NotNull QueryBuilder<T> builder) { /* any */ }
         });
 
         assertSameElements(result, authorizables.iterator());
@@ -208,7 +209,7 @@ public class UserQueryTest extends AbstractUserTest {
 
         for (final Class<? extends Authorizable> s : selectors) {
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     builder.setSelector(s);
                 }
             });
@@ -228,7 +229,7 @@ public class UserQueryTest extends AbstractUserTest {
         Group[] groups = new Group[]{mammals, vertebrates, apes};
         for (final Group g : groups) {
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     try {
                         builder.setScope(g.getID(), true);
                     } catch (RepositoryException e) {
@@ -247,7 +248,7 @@ public class UserQueryTest extends AbstractUserTest {
         Group[] groups = new Group[]{mammals, vertebrates, apes};
         for (final Group g : groups) {
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     try {
                         builder.setScope(g.getID(), false);
                     } catch (RepositoryException e) {
@@ -266,7 +267,7 @@ public class UserQueryTest extends AbstractUserTest {
         Group[] groups = new Group[]{mammals, vertebrates, apes};
         for (final Group g : groups) {
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     try {
                         builder.setSelector(User.class);
                         builder.setScope(g.getID(), false);
@@ -291,7 +292,7 @@ public class UserQueryTest extends AbstractUserTest {
         Group[] groups = new Group[]{mammals, vertebrates, apes};
         for (final Group g : groups) {
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     try {
                         builder.setSelector(Group.class);
                         builder.setScope(g.getID(), true);
@@ -323,7 +324,7 @@ public class UserQueryTest extends AbstractUserTest {
             }
 
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     builder.setScope(EveryonePrincipal.NAME, true);
                 }
             });
@@ -341,7 +342,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testNameMatch() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches("a%"));
             }
         });
@@ -382,7 +383,7 @@ public class UserQueryTest extends AbstractUserTest {
 
         // search for the authorizable ID
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches("moloch"));
             }
         });
@@ -393,7 +394,7 @@ public class UserQueryTest extends AbstractUserTest {
 
         // search for the principal name (basically just for backwards compatibility)
         result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches("MolochHorridus"));
             }
         });
@@ -404,7 +405,7 @@ public class UserQueryTest extends AbstractUserTest {
 
         // search for the node name
         result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches("thorny_dragon"));
             }
         });
@@ -417,7 +418,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testFindProperty1() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         eq("@canFly", vf.createValue(true)));
             }
@@ -442,7 +443,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testFindProperty2() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         gt("profile/@weight", vf.createValue(2000.0)));
             }
@@ -467,7 +468,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testFindProperty3() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         eq("@numberOfLegs", vf.createValue(8)));
             }
@@ -492,7 +493,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testPropertyExistence() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         exists("@poisonous"));
             }
@@ -517,7 +518,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testPropertyLike() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         like("profile/@food", "m%"));
             }
@@ -547,7 +548,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testContains1() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         contains(".", "gold"));
             }
@@ -561,7 +562,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testContains2() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         contains("@color", "gold"));
             }
@@ -575,7 +576,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testContains3() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.contains("profile/.", "grass"));
             }
         });
@@ -588,7 +589,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testContains4() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         contains("profile/@food", "grass"));
             }
@@ -602,7 +603,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testCondition1() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         and(builder.
                                 eq("profile/@cute", vf.createValue(true)), builder.
@@ -632,7 +633,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testCondition2() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         or(builder.
                                 eq("profile/@food", vf.createValue("mice")), builder.
@@ -660,7 +661,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testImpersonation() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         impersonates("jackrabbit"));
             }
@@ -674,7 +675,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testImpersonationWithBackslash() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         impersonates("foo\\bar"));
             }
@@ -689,7 +690,7 @@ public class UserQueryTest extends AbstractUserTest {
     public void testAdminImpersonation() throws Exception {
         final String adminPrincipalName = userMgr.getAuthorizable(superuser.getUserID()).getPrincipal().getName();
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.impersonates(adminPrincipalName));
             }
         });
@@ -702,7 +703,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testSortOrderIgnoreCaseDescending() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         exists("@color"));
                 builder.setSortOrder("@color", QueryBuilder.Direction.DESCENDING, true);
@@ -724,7 +725,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testSortOrderRespectCaseDescending() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         exists("@color"));
                 builder.setSortOrder("@color", QueryBuilder.Direction.DESCENDING, false);
@@ -746,7 +747,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testSortOrderRespectCaseAscendingDoubleValue() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         exists("profile/@weight"));
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING, false);
@@ -771,7 +772,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test
     public void testSortOrderIgnoreCaseAscending() throws Exception {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.exists("@continent"));
                 builder.setSortOrder("@continent", QueryBuilder.Direction.ASCENDING, true);
             }
@@ -795,7 +796,7 @@ public class UserQueryTest extends AbstractUserTest {
     @Test()
     public void testSortOrderRespectCaseAscending() throws Exception {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.exists("@continent"));
                 builder.setSortOrder("@continent", QueryBuilder.Direction.ASCENDING, false);
             }
@@ -822,14 +823,14 @@ public class UserQueryTest extends AbstractUserTest {
             final long offset = offsets[k];
             final long count = counts[k];
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
                     builder.setLimit(offset, count);
                 }
             });
 
             Iterator<Authorizable> expected = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
                 }
             });
@@ -868,7 +869,7 @@ public class UserQueryTest extends AbstractUserTest {
         long[] counts = {4, 0, 100000};
         for (final long count : counts) {
             Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-                public <T> void build(QueryBuilder<T> builder) {
+                public <T> void build(@NotNull QueryBuilder<T> builder) {
                     builder.setCondition(builder.
                             eq("profile/@cute", vf.createValue(true)));
                     builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING, false);
@@ -902,7 +903,7 @@ public class UserQueryTest extends AbstractUserTest {
         final int count = 10000;
 
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setScope("vertebrates", false);
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
                 builder.setLimit(offset, count);
@@ -910,7 +911,7 @@ public class UserQueryTest extends AbstractUserTest {
         });
 
         Iterator<Authorizable> expected = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setScope("vertebrates", false);
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
             }
@@ -927,7 +928,7 @@ public class UserQueryTest extends AbstractUserTest {
         final int count = 22;
 
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setScope("vertebrates", false);
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
                 builder.setLimit(offset, count);
@@ -935,7 +936,7 @@ public class UserQueryTest extends AbstractUserTest {
         });
 
         Iterator<Authorizable> expected = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setScope("vertebrates", false);
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
             }
@@ -951,14 +952,14 @@ public class UserQueryTest extends AbstractUserTest {
         final long countjr2 = -1; // in jackrabbit -1 could be used to set no limit
 
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
                 builder.setLimit(0, countjr2);
             }
         });
 
         Iterator<Authorizable> expected = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
                 builder.setLimit(0, count);
             }
@@ -974,7 +975,7 @@ public class UserQueryTest extends AbstractUserTest {
         final long countjr2 = -1; // in jackrabbit -1 could be used to set no limit
 
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
                 builder.setScope("vertebrates", false);
                 builder.setLimit(0, countjr2);
@@ -982,7 +983,7 @@ public class UserQueryTest extends AbstractUserTest {
         });
 
         Iterator<Authorizable> expected = userMgr.findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING);
                 builder.setScope("vertebrates", false);
                 builder.setLimit(0, count);

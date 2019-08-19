@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +122,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     @Override
-    public boolean allows(@Nullable Subject subject) {
+    public boolean allows(@NotNull Subject subject) {
         if (subject == null) {
             return false;
         }

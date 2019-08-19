@@ -34,6 +34,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 public class FindAuthorizableWithScopeTest extends AbstractTest {
 
@@ -119,7 +120,7 @@ public class FindAuthorizableWithScopeTest extends AbstractTest {
 
     private Query createQuery() {
         return new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setLimit(0, maxCount);
                 builder.nameMatches("testUser%");
                 if (setScope) {

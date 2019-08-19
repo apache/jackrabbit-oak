@@ -65,6 +65,7 @@ class UserImpl extends AuthorizableImpl implements User {
         return false;
     }
 
+    @NotNull
     @Override
     public Principal getPrincipal() throws RepositoryException {
         Tree userTree = getTree();
@@ -88,6 +89,7 @@ class UserImpl extends AuthorizableImpl implements User {
         return false;
     }
 
+    @NotNull
     @Override
     public Credentials getCredentials() {
         String pwHash = getPasswordHash();
@@ -98,6 +100,7 @@ class UserImpl extends AuthorizableImpl implements User {
         }
     }
 
+    @NotNull
     @Override
     public Impersonation getImpersonation() {
         return new ImpersonationImpl(this);
@@ -117,7 +120,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
-    public void changePassword(String password, String oldPassword) throws RepositoryException {
+    public void changePassword(@Nullable String password, @NotNull String oldPassword) throws RepositoryException {
         // make sure the old password matches.
         String pwHash = getPasswordHash();
         if (!PasswordUtil.isSame(pwHash, oldPassword)) {
@@ -127,7 +130,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
-    public void disable(String reason) throws RepositoryException {
+    public void disable(@Nullable String reason) throws RepositoryException {
         if (isAdmin) {
             throw new RepositoryException("The administrator user cannot be disabled.");
         }
@@ -150,6 +153,7 @@ class UserImpl extends AuthorizableImpl implements User {
         return getTree().hasProperty(REP_DISABLED);
     }
 
+    @Nullable
     @Override
     public String getDisabledReason() {
         PropertyState disabled = getTree().getProperty(REP_DISABLED);

@@ -200,7 +200,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
                                                      final long limit) throws RepositoryException {
         Query userQuery = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.like('@' +UserConstants.REP_PRINCIPAL_NAME, buildSearchPattern(nameHint)));
                 builder.setSelector(AuthorizableType.getType(searchType).getAuthorizableClass());
                 builder.setSortOrder(UserConstants.REP_PRINCIPAL_NAME, Direction.ASCENDING);

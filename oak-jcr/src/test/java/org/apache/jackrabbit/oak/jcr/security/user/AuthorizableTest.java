@@ -27,6 +27,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 /**
@@ -86,6 +87,7 @@ public class AuthorizableTest extends AbstractUserTest {
 
         Authorizable user3 = new Authorizable() {
 
+            @NotNull
             public String getID() throws RepositoryException {
                 return user.getID();
             }
@@ -94,14 +96,17 @@ public class AuthorizableTest extends AbstractUserTest {
                 return user.isGroup();
             }
 
+            @NotNull
             public Principal getPrincipal() throws RepositoryException {
                 return user.getPrincipal();
             }
 
+            @NotNull
             public Iterator<Group> declaredMemberOf() throws RepositoryException {
                 return user.declaredMemberOf();
             }
 
+            @NotNull
             public Iterator<Group> memberOf() throws RepositoryException {
                 return user.memberOf();
             }
@@ -110,34 +115,37 @@ public class AuthorizableTest extends AbstractUserTest {
                 user.remove();
             }
 
+            @NotNull
             public Iterator<String> getPropertyNames() throws RepositoryException {
                 return user.getPropertyNames();
             }
 
-            public Iterator<String> getPropertyNames(String relPath) throws RepositoryException {
+            @NotNull
+            public Iterator<String> getPropertyNames(@NotNull String relPath) throws RepositoryException {
                 return user.getPropertyNames(relPath);
             }
 
-            public boolean hasProperty(String name) throws RepositoryException {
+            public boolean hasProperty(@NotNull String name) throws RepositoryException {
                 return user.hasProperty(name);
             }
 
-            public void setProperty(String name, Value value) throws RepositoryException {
+            public void setProperty(@NotNull String name, Value value) throws RepositoryException {
                 user.setProperty(name, value);
             }
 
-            public void setProperty(String name, Value[] values) throws RepositoryException {
+            public void setProperty(@NotNull String name, Value[] values) throws RepositoryException {
                 user.setProperty(name, values);
             }
 
-            public Value[] getProperty(String name) throws RepositoryException {
+            public Value[] getProperty(@NotNull String name) throws RepositoryException {
                 return user.getProperty(name);
             }
 
-            public boolean removeProperty(String name) throws RepositoryException {
+            public boolean removeProperty(@NotNull String name) throws RepositoryException {
                 return user.removeProperty(name);
             }
 
+            @NotNull
             public String getPath() throws RepositoryException {
                 return user.getPath();
             }
