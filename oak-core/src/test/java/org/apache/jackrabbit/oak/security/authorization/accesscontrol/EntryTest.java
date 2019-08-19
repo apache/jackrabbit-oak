@@ -43,6 +43,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -473,15 +475,18 @@ public class EntryTest extends AbstractAccessControlTest {
                 return true;
             }
 
+            @NotNull
             public String[] getRestrictionNames() {
                 return new String[0];
             }
 
-            public Value getRestriction(String restrictionName) {
+            @Nullable
+            public Value getRestriction(@NotNull String restrictionName) {
                 return null;
             }
 
-            public Value[] getRestrictions(String restrictionName) {
+            @Nullable
+            public Value[] getRestrictions(@NotNull String restrictionName) {
                 return null;
             }
 
@@ -562,15 +567,18 @@ public class EntryTest extends AbstractAccessControlTest {
                 return true;
             }
 
+            @NotNull
             public String[] getRestrictionNames() {
                 return new String[0];
             }
 
-            public Value getRestriction(String restrictionName) {
+            @Nullable
+            public Value getRestriction(@NotNull String restrictionName) {
                 return null;
             }
 
-            public Value[] getRestrictions(String restrictionName) {
+            @Nullable
+            public Value[] getRestrictions(@NotNull String restrictionName) {
                 return null;
             }
 

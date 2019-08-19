@@ -595,18 +595,21 @@ public class PrincipalPolicyImplTest extends AbstractPrincipalBasedTest {
                 return entry.isAllow();
             }
 
+            @NotNull
             @Override
             public String[] getRestrictionNames() throws RepositoryException {
                 return entry.getRestrictionNames();
             }
 
+            @Nullable
             @Override
-            public Value getRestriction(String s) throws ValueFormatException, RepositoryException {
+            public Value getRestriction(@NotNull String s) throws ValueFormatException, RepositoryException {
                 return entry.getRestriction(s);
             }
 
+            @Nullable
             @Override
-            public Value[] getRestrictions(String s) throws RepositoryException {
+            public Value[] getRestrictions(@NotNull String s) throws RepositoryException {
                 return entry.getRestrictions(s);
             }
 

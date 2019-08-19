@@ -2246,18 +2246,18 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         }
 
         @Override
-        public boolean addEntry(Principal principal, Privilege[] privileges,
-                                boolean isAllow, Map<String, Value> restrictions) {
+        public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+                                boolean isAllow, @Nullable Map<String, Value> restrictions) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions) {
+        public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Map<String, Value> restrictions, @Nullable Map<String, Value[]> mvRestrictions) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) {
+        public void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry) {
             throw new UnsupportedOperationException();
         }
 

@@ -321,15 +321,18 @@ public class ACLTest extends AbstractAccessControlTest implements PrivilegeConst
                 return false;
             }
 
+            @NotNull
             public String[] getRestrictionNames() {
                 return new String[0];
             }
 
-            public Value getRestriction(String restrictionName) {
+            @Nullable
+            public Value getRestriction(@NotNull String restrictionName) {
                 return null;
             }
 
-            public Value[] getRestrictions(String restrictionName) {
+            @Nullable
+            public Value[] getRestrictions(@NotNull String restrictionName) {
                 return null;
             }
 

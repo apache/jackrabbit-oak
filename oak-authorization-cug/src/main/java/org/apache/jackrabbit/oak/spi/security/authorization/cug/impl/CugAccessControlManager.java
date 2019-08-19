@@ -204,20 +204,23 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     //-------------------------------------< JackrabbitAccessControlManager >---
 
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) {
         // editing by 'principal' is not supported
         return new JackrabbitAccessControlPolicy[0];
     }
 
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) {
+    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) {
         // editing by 'principal' is not supported
         return new JackrabbitAccessControlPolicy[0];
     }
 
+    @NotNull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) {
+    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) {
         // editing by 'principal' is not supported
         return new AccessControlPolicy[0];
     }

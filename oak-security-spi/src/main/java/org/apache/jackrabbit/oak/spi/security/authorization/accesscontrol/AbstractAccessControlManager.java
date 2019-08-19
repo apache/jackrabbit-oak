@@ -106,6 +106,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         }
     }
 
+    @NotNull
     @Override
     public Privilege[] getPrivileges(@Nullable String absPath, @NotNull Set<Principal> principals) throws RepositoryException {
         if (getPrincipals().equals(principals)) {

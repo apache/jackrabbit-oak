@@ -132,8 +132,9 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     }
 
     //-------------------------------------< JackrabbitAccessControlManager >---
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) throws RepositoryException {
         ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager && acMgr instanceof PolicyOwner) {
@@ -144,8 +145,9 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
         return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) throws RepositoryException {
         ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
@@ -156,8 +158,9 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
         return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
+    @NotNull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws RepositoryException {
         ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
