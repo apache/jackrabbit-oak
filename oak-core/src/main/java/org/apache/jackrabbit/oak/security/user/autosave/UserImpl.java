@@ -24,6 +24,8 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class UserImpl extends AuthorizableImpl implements User {
 
@@ -45,18 +47,20 @@ class UserImpl extends AuthorizableImpl implements User {
         return getDelegate().isSystemUser();
     }
 
+    @NotNull
     @Override
     public Credentials getCredentials() throws RepositoryException {
         return getDelegate().getCredentials();
     }
 
+    @NotNull
     @Override
     public Impersonation getImpersonation() throws RepositoryException {
         return new ImpersonationImpl(getDelegate().getImpersonation());
     }
 
     @Override
-    public void changePassword(String pw) throws RepositoryException {
+    public void changePassword(@Nullable String pw) throws RepositoryException {
         try {
             getDelegate().changePassword(pw);
         } finally {
@@ -66,7 +70,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
-    public void changePassword(String pw, String oldPw) throws RepositoryException {
+    public void changePassword(@Nullable String pw, @NotNull String oldPw) throws RepositoryException {
         try {
             getDelegate().changePassword(pw, oldPw);
         } finally {
@@ -75,7 +79,7 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
-    public void disable(String msg) throws RepositoryException {
+    public void disable(@Nullable String msg) throws RepositoryException {
         try {
             getDelegate().disable(msg);
         } finally {
@@ -88,6 +92,7 @@ class UserImpl extends AuthorizableImpl implements User {
         return getDelegate().isDisabled();
     }
 
+    @Nullable
     @Override
     public String getDisabledReason() throws RepositoryException {
         return getDelegate().getDisabledReason();
@@ -100,13 +105,15 @@ class UserImpl extends AuthorizableImpl implements User {
         private ImpersonationImpl(Impersonation dlg) {
             this.dlg = dlg;
         }
+
+        @NotNull
         @Override
         public PrincipalIterator getImpersonators() throws RepositoryException {
             return dlg.getImpersonators();
         }
 
         @Override
-        public boolean grantImpersonation(Principal principal) throws RepositoryException {
+        public boolean grantImpersonation(@NotNull Principal principal) throws RepositoryException {
             try {
                 return dlg.grantImpersonation(principal);
             } finally {
@@ -115,7 +122,7 @@ class UserImpl extends AuthorizableImpl implements User {
         }
 
         @Override
-        public boolean revokeImpersonation(Principal principal) throws RepositoryException {
+        public boolean revokeImpersonation(@NotNull Principal principal) throws RepositoryException {
             try {
                 return dlg.revokeImpersonation(principal);
             } finally {
@@ -124,7 +131,7 @@ class UserImpl extends AuthorizableImpl implements User {
         }
 
         @Override
-        public boolean allows(Subject subject) throws RepositoryException {
+        public boolean allows(@NotNull Subject subject) throws RepositoryException {
             return dlg.allows(subject);
         }
     }

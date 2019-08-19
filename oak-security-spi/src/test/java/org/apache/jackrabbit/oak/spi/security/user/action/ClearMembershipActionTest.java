@@ -92,46 +92,51 @@ public class ClearMembershipActionTest {
 
         Set<Authorizable> removed = new HashSet<>();
 
+        @NotNull
         @Override
         public Iterator<Authorizable> getDeclaredMembers() {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public Iterator<Authorizable> getMembers() {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean isDeclaredMember(Authorizable authorizable) {
+        public boolean isDeclaredMember(@NotNull Authorizable authorizable) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean isMember(Authorizable authorizable) {
+        public boolean isMember(@NotNull Authorizable authorizable) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean addMember(Authorizable authorizable) {
+        public boolean addMember(@NotNull Authorizable authorizable) {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public Set<String> addMembers(@NotNull String... strings) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean removeMember(Authorizable authorizable) {
+        public boolean removeMember(@NotNull Authorizable authorizable) {
             return removed.add(authorizable);
         }
 
+        @NotNull
         @Override
         public Set<String> removeMembers(@NotNull String... strings) {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public String getID() {
             throw new UnsupportedOperationException();
@@ -142,16 +147,19 @@ public class ClearMembershipActionTest {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public Principal getPrincipal() {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public Iterator<Group> declaredMemberOf() {
             return Collections.emptyIterator();
         }
 
+        @NotNull
         @Override
         public Iterator<Group> memberOf() {
             throw new UnsupportedOperationException();
@@ -162,41 +170,44 @@ public class ClearMembershipActionTest {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public Iterator<String> getPropertyNames() {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
-        public Iterator<String> getPropertyNames(String s) {
+        public Iterator<String> getPropertyNames(@NotNull String s) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean hasProperty(String s) {
+        public boolean hasProperty(@NotNull String s) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void setProperty(String s, Value value) {
+        public void setProperty(@NotNull String s, Value value) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public void setProperty(String s, Value[] values) {
+        public void setProperty(@NotNull String s, Value[] values) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public Value[] getProperty(String s) {
+        public Value[] getProperty(@NotNull String s) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public boolean removeProperty(String s) {
+        public boolean removeProperty(@NotNull String s) {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public String getPath() {
             throw new UnsupportedOperationException();

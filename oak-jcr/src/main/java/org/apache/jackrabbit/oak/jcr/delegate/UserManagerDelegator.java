@@ -56,8 +56,9 @@ public class UserManagerDelegator implements UserManager {
         this.userManagerDelegate = userManagerDelegate;
     }
 
+    @Nullable
     @Override
-    public Authorizable getAuthorizable(final String id) throws RepositoryException {
+    public Authorizable getAuthorizable(@NotNull final String id) throws RepositoryException {
         return sessionDelegate.performNullable(new UserManagerOperation<Authorizable>(sessionDelegate, "getAuthorizable") {
             @Override
             public Authorizable performNullable() throws RepositoryException {
@@ -67,8 +68,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @Nullable
     @Override
-    public <T extends Authorizable> T getAuthorizable(final String id, final Class<T> authorizableClass) throws RepositoryException {
+    public <T extends Authorizable> T getAuthorizable(@NotNull final String id, @NotNull final Class<T> authorizableClass) throws RepositoryException {
         return sessionDelegate.performNullable(new UserManagerOperation<T>(sessionDelegate, "getAuthorizable") {
             @Override
             public T performNullable() throws RepositoryException {
@@ -80,8 +82,9 @@ public class UserManagerDelegator implements UserManager {
         );
     }
 
+    @Nullable
     @Override
-    public Authorizable getAuthorizable(final Principal principal) throws RepositoryException {
+    public Authorizable getAuthorizable(@NotNull final Principal principal) throws RepositoryException {
         return sessionDelegate.performNullable(new UserManagerOperation<Authorizable>(sessionDelegate, "getAuthorizable") {
             @Override
             public Authorizable performNullable() throws RepositoryException {
@@ -91,8 +94,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @Nullable
     @Override
-    public Authorizable getAuthorizableByPath(final String path) throws RepositoryException {
+    public Authorizable getAuthorizableByPath(@NotNull final String path) throws RepositoryException {
         return sessionDelegate.performNullable(new UserManagerOperation<Authorizable>(sessionDelegate, "getAuthorizableByPath") {
             @Override
             public Authorizable performNullable() throws RepositoryException {
@@ -102,8 +106,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(final String relPath, final String value) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull final String relPath, @Nullable final String value) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate, "findAuthorizables") {
             @NotNull
             @Override
@@ -120,8 +125,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(final String relPath, final String value, final int searchType) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull final String relPath, @Nullable final String value, final int searchType) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate, "findAuthorizables") {
             @NotNull
             @Override
@@ -138,8 +144,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(final Query query) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull final Query query) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Iterator<Authorizable>>(sessionDelegate, "findAuthorizables") {
             @NotNull
             @Override
@@ -156,8 +163,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public User createUser(final String userID, final String password) throws AuthorizableExistsException, RepositoryException {
+    public User createUser(@NotNull final String userID, @Nullable final String password) throws AuthorizableExistsException, RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
             @NotNull
             @Override
@@ -168,8 +176,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public User createUser(final String userID, final String password, final Principal principal, final String intermediatePath) throws RepositoryException {
+    public User createUser(@NotNull final String userID, @Nullable final String password, @NotNull final Principal principal, @Nullable final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
             @NotNull
             @Override
@@ -180,8 +189,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public User createSystemUser(final String userID, final String intermediatePath) throws RepositoryException {
+    public User createSystemUser(@NotNull final String userID, @Nullable final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<User>(sessionDelegate, "createUser", true) {
             @NotNull
             @Override
@@ -192,8 +202,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public Group createGroup(final String groupID) throws RepositoryException {
+    public Group createGroup(@NotNull final String groupID) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
             @NotNull
             @Override
@@ -204,8 +215,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public Group createGroup(final Principal principal) throws RepositoryException {
+    public Group createGroup(@NotNull final Principal principal) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
             @NotNull
             @Override
@@ -216,8 +228,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public Group createGroup(final Principal principal, final String intermediatePath) throws RepositoryException {
+    public Group createGroup(@NotNull final Principal principal, @Nullable final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
             @NotNull
             @Override
@@ -228,8 +241,9 @@ public class UserManagerDelegator implements UserManager {
         });
     }
 
+    @NotNull
     @Override
-    public Group createGroup(final String groupID, final Principal principal, final String intermediatePath) throws RepositoryException {
+    public Group createGroup(@NotNull final String groupID, @NotNull final Principal principal, @Nullable final String intermediatePath) throws RepositoryException {
         return sessionDelegate.perform(new UserManagerOperation<Group>(sessionDelegate, "createGroup", true) {
             @NotNull
             @Override

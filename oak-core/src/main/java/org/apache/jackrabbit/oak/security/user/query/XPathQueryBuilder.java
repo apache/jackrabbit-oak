@@ -23,6 +23,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class XPathQueryBuilder implements QueryBuilder<Condition> {
 
@@ -39,7 +41,7 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
 
     //-------------------------------------------------------< QueryBuilder >---
     @Override
-    public void setSelector(Class<? extends Authorizable> selector) {
+    public void setSelector(@NotNull Class<? extends Authorizable> selector) {
         if (User.class.isAssignableFrom(selector)) {
             selectorType = AuthorizableType.USER;
         } else if (Group.class.isAssignableFrom(selector)) {
@@ -50,30 +52,30 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
     }
 
     @Override
-    public void setScope(String groupID, boolean declaredOnly) {
+    public void setScope(@NotNull String groupID, boolean declaredOnly) {
         this.groupID = groupID;
         declaredMembersOnly = declaredOnly;
     }
 
     @Override
-    public void setCondition(Condition condition) {
+    public void setCondition(@NotNull Condition condition) {
         this.condition = condition;
     }
 
     @Override
-    public void setSortOrder(String propertyName, Direction direction, boolean ignoreCase) {
+    public void setSortOrder(@NotNull String propertyName, @NotNull Direction direction, boolean ignoreCase) {
         sortProperty = propertyName;
         sortDirection = direction;
         sortIgnoreCase = ignoreCase;
     }
 
     @Override
-    public void setSortOrder(String propertyName, Direction direction) {
+    public void setSortOrder(@NotNull String propertyName, @NotNull Direction direction) {
         setSortOrder(propertyName, direction, false);
     }
 
     @Override
-    public void setLimit(Value bound, long maxCount) {
+    public void setLimit(@Nullable Value bound, long maxCount) {
         // reset the offset before setting bound value/maxCount
         offset = 0;
         this.bound = bound;
@@ -88,78 +90,91 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
         setMaxCount(maxCount);
     }
 
+    @NotNull
     @Override
-    public Condition nameMatches(String pattern) {
+    public Condition nameMatches(@NotNull String pattern) {
         return new Condition.Node(pattern);
     }
 
+    @NotNull
     @Override
-    public Condition neq(String relPath, Value value) {
+    public Condition neq(@NotNull String relPath, @NotNull Value value) {
         return new Condition.Property(relPath, RelationOp.NE, value);
     }
 
+    @NotNull
     @Override
-    public Condition eq(String relPath, Value value) {
+    public Condition eq(@NotNull String relPath, @NotNull Value value) {
         return new Condition.Property(relPath, RelationOp.EQ, value);
     }
 
+    @NotNull
     @Override
-    public Condition lt(String relPath, Value value) {
+    public Condition lt(@NotNull String relPath, @NotNull Value value) {
         return new Condition.Property(relPath, RelationOp.LT, value);
     }
 
+    @NotNull
     @Override
-    public Condition le(String relPath, Value value) {
+    public Condition le(@NotNull String relPath, @NotNull Value value) {
         return new Condition.Property(relPath, RelationOp.LE, value);
     }
 
+    @NotNull
     @Override
-    public Condition gt(String relPath, Value value) {
+    public Condition gt(@NotNull String relPath, @NotNull Value value) {
         return new Condition.Property(relPath, RelationOp.GT, value);
     }
 
+    @NotNull
     @Override
-    public Condition ge(String relPath, Value value) {
+    public Condition ge(@NotNull String relPath, @NotNull Value value) {
         return new Condition.Property(relPath, RelationOp.GE, value);
     }
 
+    @NotNull
     @Override
-    public Condition exists(String relPath) {
+    public Condition exists(@NotNull String relPath) {
         return new Condition.Property(relPath, RelationOp.EX);
     }
 
+    @NotNull
     @Override
-    public Condition like(String relPath, String pattern) {
+    public Condition like(@NotNull String relPath, @NotNull String pattern) {
         return new Condition.Property(relPath, RelationOp.LIKE, pattern);
     }
 
+    @NotNull
     @Override
-    public Condition contains(String relPath, String searchExpr) {
+    public Condition contains(@NotNull String relPath, @NotNull String searchExpr) {
         return new Condition.Contains(relPath, searchExpr);
     }
 
+    @NotNull
     @Override
-    public Condition impersonates(String name) {
+    public Condition impersonates(@NotNull String name) {
         return new Condition.Impersonation(name);
     }
 
+    @NotNull
     @Override
-    public Condition not(Condition condition) {
+    public Condition not(@NotNull Condition condition) {
         return new Condition.Not(condition);
     }
 
+    @NotNull
     @Override
-    public Condition and(Condition condition1, Condition condition2) {
+    public Condition and(@NotNull Condition condition1, @NotNull Condition condition2) {
         return new Condition.And(condition1, condition2);
     }
 
+    @NotNull
     @Override
-    public Condition or(Condition condition1, Condition condition2) {
+    public Condition or(@NotNull Condition condition1, @NotNull Condition condition2) {
         return new Condition.Or(condition1, condition2);
     }
 
     //-----------------------------------------------------------< internal >---
-
     Condition property(String relPath, RelationOp op, Value value) {
         return new Condition.Property(relPath, op, value);
     }

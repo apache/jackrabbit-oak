@@ -34,18 +34,20 @@ class GroupImpl extends AuthorizableImpl implements Group {
         return (Group) getDlg();
     }
 
+    @NotNull
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
         return AuthorizableWrapper.createIterator(getDelegate().getDeclaredMembers(), getMgr());
     }
 
+    @NotNull
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
         return AuthorizableWrapper.createIterator(getDelegate().getMembers(), getMgr());
     }
 
     @Override
-    public boolean isDeclaredMember(Authorizable authorizable) throws RepositoryException {
+    public boolean isDeclaredMember(@NotNull Authorizable authorizable) throws RepositoryException {
         if (isValid(authorizable)) {
             return getDelegate().isDeclaredMember(((AuthorizableImpl) authorizable).getDlg());
         } else {
@@ -54,7 +56,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @Override
-    public boolean isMember(Authorizable authorizable) throws RepositoryException {
+    public boolean isMember(@NotNull Authorizable authorizable) throws RepositoryException {
         if (isValid(authorizable)) {
             return getDelegate().isMember(((AuthorizableImpl) authorizable).getDlg());
         } else {
@@ -63,7 +65,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @Override
-    public boolean addMember(Authorizable authorizable) throws RepositoryException {
+    public boolean addMember(@NotNull Authorizable authorizable) throws RepositoryException {
         try {
             if (isValid(authorizable)) {
                 return getDelegate().addMember(((AuthorizableImpl) authorizable).getDlg());
@@ -75,6 +77,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
     }
 
+    @NotNull
     @Override
     public Set<String> addMembers(@NotNull String... memberIds) throws RepositoryException {
         try {
@@ -85,7 +88,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     @Override
-    public boolean removeMember(Authorizable authorizable) throws RepositoryException {
+    public boolean removeMember(@NotNull Authorizable authorizable) throws RepositoryException {
         try {
             if (isValid(authorizable)) {
                 return getDelegate().removeMember(((AuthorizableImpl) authorizable).getDlg());
@@ -97,6 +100,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
     }
 
+    @NotNull
     @Override
     public Set<String> removeMembers(@NotNull String... memberIds) throws RepositoryException {
         try {
@@ -106,7 +110,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         }
     }
 
-    private boolean isValid(Authorizable a) {
+    private boolean isValid(@NotNull Authorizable a) {
         return a instanceof AuthorizableImpl;
     }
 }

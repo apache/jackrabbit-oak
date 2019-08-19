@@ -256,7 +256,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     public void testQueryMaxCountZero() throws Exception {
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> queryBuilder) {
+            public <T> void build(@NotNull QueryBuilder<T> queryBuilder) {
                 queryBuilder.setLimit(0, 0);
 
             }
@@ -269,7 +269,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         String userId = user.getID();
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches(userId));
                 builder.setScope(EveryonePrincipal.NAME, false);
             }
@@ -288,7 +288,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope(EveryonePrincipal.NAME, false);
             }
@@ -307,7 +307,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("eGroup", false);
             }
@@ -326,7 +326,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
             }
         };
@@ -343,7 +343,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("g1", false);
             }
@@ -362,7 +362,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("g1", false);
             }
@@ -383,7 +383,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("g1", true);
             }
@@ -404,7 +404,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("g1", false);
             }
@@ -424,7 +424,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
                 builder.setCondition(builder.gt(propertyName, valueFactory.createValue(20)));
             }
@@ -445,7 +445,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
                 builder.setCondition(builder.gt(propertyName, valueFactory.createValue(20)));
@@ -467,7 +467,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
             }
@@ -488,7 +488,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.exists(propertyName));
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.DESCENDING, true);
             }
@@ -509,7 +509,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.exists(propertyName));
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.DESCENDING, false);
             }
@@ -526,7 +526,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches("group_with_underscore"));
             }
         };
@@ -542,7 +542,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches("group_with_underscore"));
             }
         };

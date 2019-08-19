@@ -65,6 +65,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     }
 
     //--------------------------------------------------------------< Group >---
+    @NotNull
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Iterator<Authorizable>>("getDeclaredMembers") {
@@ -83,6 +84,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
         });
     }
 
+    @NotNull
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Iterator<Authorizable>>("getMembers") {
@@ -102,7 +104,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     }
 
     @Override
-    public boolean isDeclaredMember(final Authorizable authorizable) throws RepositoryException {
+    public boolean isDeclaredMember(@NotNull final Authorizable authorizable) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("isDeclaredMember") {
             @NotNull
             @Override
@@ -113,7 +115,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     }
 
     @Override
-    public boolean isMember(final Authorizable authorizable) throws RepositoryException {
+    public boolean isMember(@NotNull final Authorizable authorizable) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("isMember") {
             @NotNull
             @Override
@@ -124,7 +126,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     }
 
     @Override
-    public boolean addMember(final Authorizable authorizable) throws RepositoryException {
+    public boolean addMember(@NotNull final Authorizable authorizable) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("addMember", true) {
             @NotNull
             @Override
@@ -134,6 +136,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
         });
     }
 
+    @NotNull
     @Override
     public Set<String> addMembers(@NotNull final String... memberIds) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Set<String>>("addMembers", true) {
@@ -146,7 +149,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     }
 
     @Override
-    public boolean removeMember(final Authorizable authorizable) throws RepositoryException {
+    public boolean removeMember(@NotNull final Authorizable authorizable) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Boolean>("removeMember", true) {
             @NotNull
             @Override
@@ -156,6 +159,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
         });
     }
 
+    @NotNull
     @Override
     public Set<String> removeMembers(@NotNull final String... memberIds) throws RepositoryException {
         return sessionDelegate.perform(new SessionOperation<Set<String>>("removeMembers", true) {
