@@ -449,18 +449,21 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
             super(root, namePathMapper, securityProvider);
         }
 
+        @NotNull
         @Override
-        public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) {
+        public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
-        public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) {
+        public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
-        public AccessControlPolicy[] getEffectivePolicies(Set<Principal> set) {
+        public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> set) {
             throw new UnsupportedOperationException();
         }
 

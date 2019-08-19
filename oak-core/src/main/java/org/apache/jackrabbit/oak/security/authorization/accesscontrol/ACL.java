@@ -83,9 +83,9 @@ abstract class ACL extends AbstractAccessControlList {
 
     //----------------------------------------< JackrabbitAccessControlList >---
     @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges,
-                            boolean isAllow, Map<String, Value> restrictions,
-                            Map<String, Value[]> mvRestrictions) throws RepositoryException {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+                            boolean isAllow, @Nullable Map<String, Value> restrictions,
+                            @Nullable Map<String, Value[]> mvRestrictions) throws RepositoryException {
         if (privileges == null || privileges.length == 0) {
             throw new AccessControlException("Privileges may not be null nor an empty array");
         }
@@ -112,7 +112,7 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     @Override
-    public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws RepositoryException {
+    public void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry) throws RepositoryException {
         ACE src = checkACE(srcEntry);
         ACE dest = (destEntry == null) ? null : checkACE(destEntry);
 

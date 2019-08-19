@@ -53,6 +53,7 @@ class PrivilegeManagerImpl implements PrivilegeManager {
     }
 
     //---------------------------------------------------< PrivilegeManager >---
+    @NotNull
     @Override
     public Privilege[] getRegisteredPrivileges() {
         Set<Privilege> privileges = new HashSet<>();
@@ -62,8 +63,9 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         return privileges.toArray(new Privilege[0]);
     }
 
+    @NotNull
     @Override
-    public Privilege getPrivilege(String privilegeName) throws RepositoryException {
+    public Privilege getPrivilege(@NotNull String privilegeName) throws RepositoryException {
         PrivilegeDefinition def = getPrivilegeDefinition(getOakName(privilegeName));
         if (def == null) {
             throw new AccessControlException("No such privilege " + privilegeName);
@@ -72,9 +74,10 @@ class PrivilegeManagerImpl implements PrivilegeManager {
         }
     }
 
+    @NotNull
     @Override
-    public Privilege registerPrivilege(String privilegeName, boolean isAbstract,
-                                       String[] declaredAggregateNames) throws RepositoryException {
+    public Privilege registerPrivilege(@NotNull String privilegeName, boolean isAbstract,
+                                       @Nullable String[] declaredAggregateNames) throws RepositoryException {
         if (root.hasPendingChanges()) {
             throw new InvalidItemStateException("Attempt to register a new privilege while there are pending changes.");
         }

@@ -115,7 +115,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     }
 
     @Override
-    public int getRestrictionType(String restrictionName) {
+    public int getRestrictionType(@NotNull String restrictionName) {
         for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             String jcrName = namePathMapper.getJcrName(definition.getName());
             if (jcrName.equals(restrictionName)) {
@@ -128,7 +128,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     }
 
     @Override
-    public boolean isMultiValueRestriction(String restrictionName) {
+    public boolean isMultiValueRestriction(@NotNull String restrictionName) {
         for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             String jcrName = namePathMapper.getJcrName(definition.getName());
             if (jcrName.equals(restrictionName)) {
@@ -141,11 +141,11 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
 
 
     @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow) throws RepositoryException {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow) throws RepositoryException {
         return addEntry(principal, privileges, isAllow, Collections.<String, Value>emptyMap());
     }
     @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws RepositoryException {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Map<String, Value> restrictions) throws RepositoryException {
         return addEntry(principal, privileges, isAllow, restrictions, null);
     }
 }

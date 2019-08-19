@@ -38,6 +38,8 @@ import org.apache.jackrabbit.oak.security.authorization.accesscontrol.InvalidTes
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -249,15 +251,18 @@ public class L5_AccessControlListImplTest extends AbstractJCRTest {
                     return false;
                 }
 
+                @NotNull
                 public String[] getRestrictionNames() {
                     return new String[0];
                 }
 
-                public Value getRestriction(String restrictionName) {
+                @Nullable
+                public Value getRestriction(@NotNull String restrictionName) {
                     return null;
                 }
 
-                public Value[] getRestrictions(String restrictionName) {
+                @Nullable
+                public Value[] getRestrictions(@NotNull String restrictionName) {
                     return null;
                 }
 

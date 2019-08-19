@@ -105,8 +105,9 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     //-------------------------------------< JackrabbitAccessControlManager >---
 
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) throws RepositoryException {
         if (canHandle(principal)) {
             String oakPath = filter.getOakPath(principal);
             Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true);
@@ -117,8 +118,9 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         return new JackrabbitAccessControlPolicy[0];
     }
 
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) throws RepositoryException {
         JackrabbitAccessControlPolicy policy = null;
         if (canHandle(principal)) {
             policy = createPolicy(principal, false);
@@ -126,8 +128,9 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
         return (policy == null) ? new JackrabbitAccessControlPolicy[0] : new JackrabbitAccessControlPolicy[]{policy};
     }
 
+    @NotNull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws RepositoryException {
         // this implementation only takes effect if the complete set of principals can be handled. see also
         // PrincipalBasedAuthorizationConfiguration.getPermissionProvider
         if (canHandle(principals)) {

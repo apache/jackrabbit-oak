@@ -696,7 +696,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         }
 
         @Override
-        public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws RepositoryException {
+        public void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry) throws RepositoryException {
             throw new UnsupportedRepositoryOperationException("reordering is not supported");
         }
 
