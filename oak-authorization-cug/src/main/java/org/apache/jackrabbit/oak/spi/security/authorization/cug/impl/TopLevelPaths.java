@@ -38,7 +38,7 @@ class TopLevelPaths implements CugConstants {
 
     private Boolean hasAny;
     private Long cnt;
-    private String[] paths;
+    private String[] paths = new String[0];
 
     TopLevelPaths(Root root) {
         this.root = root;
@@ -69,7 +69,7 @@ class TopLevelPaths implements CugConstants {
                     PropertyState hidden = root.getTree(PathUtils.ROOT_PATH).getProperty(HIDDEN_NESTED_CUGS);
                     paths = (hidden == null) ? new String[0] : Iterables.toArray(hidden.getValue(Type.STRINGS), String.class);
                 } else {
-                    paths = null;
+                    paths = new String[0];
                 }
             } else {
                 cnt = NONE;
@@ -80,7 +80,7 @@ class TopLevelPaths implements CugConstants {
             return false;
         } if (cnt > MAX_CNT) {
             return true;
-        } else if (paths != null) {
+        } else {
             for (String p : paths) {
                 if (Text.isDescendantOrEqual(path, p)) {
                     return true;
