@@ -16,28 +16,39 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.util.Set;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import java.util.Collections;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class NestedCugHookTest extends AbstractCugTest {
 
@@ -370,5 +381,67 @@ public class NestedCugHookTest extends AbstractCugTest {
         assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3, SUPPORTED_PATH2);
         assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true);
         assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH2, true, destPath);
+    }
+
+    @Test
+    public void testHiddenChildNodeAdded() throws Exception {
+        NestedCugHook nch = new NestedCugHook();
+
+        NodeState before = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+        NodeState after = spy(before);
+
+        NodeState child = mock(NodeState.class);
+        Iterable newCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+        Iterable cnes = Iterables.concat(newCnes, before.getChildNodeEntries());
+        when(after.getChildNodeEntries()).thenReturn(cnes);
+        when(after.getChildNode(":hidden")).thenReturn(child);
+
+        nch.processCommit(before, after, new CommitInfo("sid", null));
+
+        verify(child, never()).getProperty(anyString());
+    }
+
+    @Test
+    public void testHiddenChildNodeChanged() {
+        NestedCugHook nch = new NestedCugHook();
+
+        NodeState nodeState = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+        NodeState after = spy(nodeState);
+        NodeState before = spy(nodeState);
+
+        NodeState child = mock(NodeState.class);
+        Iterable hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+        Iterable cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+        when(before.getChildNodeEntries()).thenReturn(cnes);
+        when(before.getChildNode(":hidden")).thenReturn(child);
+
+        NodeState child2 = when(mock(NodeState.class).exists()).thenReturn(true).getMock();
+        hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child2));
+        cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+        when(after.getChildNodeEntries()).thenReturn(cnes);
+        when(after.getChildNode(":hidden")).thenReturn(child2);
+
+        nch.processCommit(before, after, new CommitInfo("sid", null));
+
+        verify(child, never()).getProperty(anyString());
+        verify(child2, never()).getProperty(anyString());
+    }
+
+    @Test
+    public void testHiddenChildNodeDeleted() {
+        NestedCugHook nch = new NestedCugHook();
+
+        NodeState after = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+        NodeState before = spy(after);
+
+        NodeState child = mock(NodeState.class);
+        Iterable deletedCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+        Iterable cnes = Iterables.concat(deletedCnes, after.getChildNodeEntries());
+        when(before.getChildNodeEntries()).thenReturn(cnes);
+        when(before.getChildNode(":hidden")).thenReturn(child);
+
+        nch.processCommit(before, after, new CommitInfo("sid", null));
+
+        verify(child, never()).getProperty(anyString());
     }
 }

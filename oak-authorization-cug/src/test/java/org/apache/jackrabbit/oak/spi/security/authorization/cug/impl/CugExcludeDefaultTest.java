@@ -60,23 +60,13 @@ public class CugExcludeDefaultTest {
 
     @Test
     public void testAdminPrincipal() {
-        Set<Principal> principals = ImmutableSet.<Principal>of(new AdminPrincipal() {
-            @Override
-            public String getName() {
-                return "admin";
-            }
-        });
+        Set<Principal> principals = ImmutableSet.<Principal>of((AdminPrincipal) () -> "admin");
         assertTrue(exclude.isExcluded(principals));
     }
 
     @Test
     public void testSystemUserPrincipal() {
-        Set<Principal> principals = ImmutableSet.<Principal>of(new SystemUserPrincipal() {
-            @Override
-            public String getName() {
-                return "test";
-            }
-        });
+        Set<Principal> principals = ImmutableSet.<Principal>of((SystemUserPrincipal) () -> "test");
         assertTrue(exclude.isExcluded(principals));
     }
 
@@ -107,12 +97,7 @@ public class CugExcludeDefaultTest {
     public void testMixedPrincipals() {
         Set<Principal> principals = new HashSet<>();
         principals.add(new PrincipalImpl("test"));
-        principals.add(new SystemUserPrincipal() {
-            @Override
-            public String getName() {
-                return "test";
-            }
-        });
+        principals.add((SystemUserPrincipal) () -> "test");
 
         assertTrue(exclude.isExcluded(principals));
     }

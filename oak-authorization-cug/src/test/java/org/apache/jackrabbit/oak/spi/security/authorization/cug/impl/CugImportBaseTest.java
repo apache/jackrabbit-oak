@@ -29,7 +29,6 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlException;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -47,7 +46,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -191,15 +189,11 @@ public abstract class CugImportBaseTest {
 
     static void assertPrincipalNames(@NotNull Set<String> expectedPrincipalNames, @NotNull Value[] principalNames) {
         assertEquals(expectedPrincipalNames.size(), principalNames.length);
-        Set<String> result = ImmutableSet.copyOf(Iterables.transform(ImmutableSet.copyOf(principalNames), new Function<Value, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable Value principalName) {
-                try {
-                    return (principalName == null) ? null : principalName.getString();
-                } catch (RepositoryException e) {
-                    throw new IllegalStateException(e);
-                }
+        Set<String> result = ImmutableSet.copyOf(Iterables.transform(ImmutableSet.copyOf(principalNames), principalName -> {
+            try {
+                return (principalName == null) ? null : principalName.getString();
+            } catch (RepositoryException e) {
+                throw new IllegalStateException(e);
             }
         }));
         assertEquals(expectedPrincipalNames, result);
