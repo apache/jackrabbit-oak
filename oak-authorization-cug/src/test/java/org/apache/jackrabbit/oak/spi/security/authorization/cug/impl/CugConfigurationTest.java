@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
@@ -24,13 +25,18 @@ import javax.jcr.security.AccessControlManager;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -38,13 +44,19 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.calls;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 public class CugConfigurationTest extends AbstractCugTest {
 
@@ -177,18 +189,8 @@ public class CugConfigurationTest extends AbstractCugTest {
 
         List<Principal> excluded = ImmutableList.of(
                 SystemPrincipal.INSTANCE,
-                new AdminPrincipal() {
-                    @Override
-                    public String getName() {
-                        return "admin";
-                    }
-                },
-                new SystemUserPrincipal() {
-                    @Override
-                    public String getName() {
-                        return "systemUser";
-                    }
-                });
+                (AdminPrincipal) () -> "admin",
+                (SystemUserPrincipal) () -> "systemUser");
 
         for (Principal p : excluded) {
             Set<Principal> principals = ImmutableSet.of(p, EveryonePrincipal.getInstance());
@@ -220,5 +222,45 @@ public class CugConfigurationTest extends AbstractCugTest {
     private static void assertSupportedPaths(@NotNull CugConfiguration configuration, @NotNull String... paths) {
         Set<String> expected = ImmutableSet.copyOf(paths);
         assertEquals(expected, configuration.getParameters().getConfigValue(CugConstants.PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of()));
+    }
+
+    @Test
+    public void testUnbindMountInfoProvider() throws Exception {
+        CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
+        cugConfiguration.unbindMountInfoProvider(mock(MountInfoProvider.class));
+
+        Field f = cugConfiguration.getClass().getDeclaredField("mountInfoProvider");
+        f.setAccessible(true);
+        assertNull(f.get(cugConfiguration));
+    }
+
+    @Test
+    public void testUnbindCugExclude() throws Exception {
+        CugConfiguration cugConfiguration = createConfiguration(ConfigurationParameters.EMPTY);
+        cugConfiguration.unbindExclude(mock(CugExclude.class));
+
+        Field f = cugConfiguration.getClass().getDeclaredField("exclude");
+        f.setAccessible(true);
+        assertNull(f.get(cugConfiguration));
+    }
+
+    @Test
+    public void testRepositoryInitializerAlreadyInitialized() {
+        AuthorizationConfiguration ac = getConfig(AuthorizationConfiguration.class);
+        assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+
+        AuthorizationConfiguration cugConfig = null;
+        for (AuthorizationConfiguration config : ((CompositeAuthorizationConfiguration) ac).getConfigurations()) {
+            if (config instanceof CugConfiguration) {
+                cugConfig = config;
+                break;
+            }
+        }
+        assertNotNull(cugConfig);
+        RepositoryInitializer ri = cugConfig.getRepositoryInitializer();
+        NodeBuilder rootBuilder = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
+        ri.initialize(rootBuilder);
+
+        calls(1);
     }
 }

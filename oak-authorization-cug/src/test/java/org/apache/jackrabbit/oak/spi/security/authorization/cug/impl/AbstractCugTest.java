@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.security.Principal;
 import java.util.Set;
 import java.util.UUID;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlList;
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -49,7 +51,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
@@ -94,17 +95,12 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
          *   + testNode
          *     + child
          */
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
+        Tree rootNode = root.getTree("/");
 
-        NodeUtil content = rootNode.addChild("content", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        content.addChild("subtree", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-
-        rootNode.addChild("content2", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-
-        rootNode.addChild("some", NodeTypeConstants.NT_OAK_UNSTRUCTURED).addChild("content", NodeTypeConstants.NT_OAK_UNSTRUCTURED).addChild("tree", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-
-        NodeUtil testNode = rootNode.addChild("testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
-        testNode.addChild("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        createTrees(rootNode, NT_OAK_UNSTRUCTURED, "content", "subtree");
+        createTrees(rootNode, NT_OAK_UNSTRUCTURED, "content2");
+        createTrees(rootNode, NT_OAK_UNSTRUCTURED, "some", "content", "tree");
+        createTrees(rootNode, NT_OAK_UNSTRUCTURED, "testNode", "child");
         root.commit();
     }
 
@@ -152,6 +148,13 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         return new CugPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals), supportedPaths, getConfig(AuthorizationConfiguration.class).getContext(), getRootProvider(), getTreeProvider());
     }
 
+    void createTrees(@NotNull Tree tree, @NotNull String ntName, @NotNull String... names) throws AccessDeniedException {
+        Tree parent = tree;
+        for (String n : names) {
+            parent = TreeUtil.addChild(parent, n, ntName);
+        }
+    }
+
     void setupCugsAndAcls() throws Exception {
         UserManager uMgr = getUserManager(root);
         Principal testGroupPrincipal = getTestGroupPrincipal();
@@ -163,9 +166,9 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         User testUser = getTestUser();
 
         // add more child nodes
-        NodeUtil n = new NodeUtil(root.getTree(SUPPORTED_PATH));
-        n.addChild("a", NT_OAK_UNSTRUCTURED).addChild("b", NT_OAK_UNSTRUCTURED).addChild("c", NT_OAK_UNSTRUCTURED);
-        n.addChild("aa", NT_OAK_UNSTRUCTURED).addChild("bb", NT_OAK_UNSTRUCTURED).addChild("cc", NT_OAK_UNSTRUCTURED);
+        Tree n = root.getTree(SUPPORTED_PATH);
+        createTrees(n, NT_OAK_UNSTRUCTURED, "a", "b", "c");
+        createTrees(n, NT_OAK_UNSTRUCTURED, "aa", "bb", "cc");
 
         // create cugs
         // - /content/a     : allow testGroup, deny everyone
@@ -214,7 +217,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         Preconditions.checkState(tree.exists());
 
         TreeUtil.addMixin(tree, MIX_REP_CUG_MIXIN, root.getTree(NODE_TYPES_PATH), null);
-        new NodeUtil(tree).addChild(REP_CUG_POLICY, NT_REP_CUG_POLICY).setStrings(REP_PRINCIPAL_NAMES, principalName);
+        TreeUtil.addChild(tree, REP_CUG_POLICY, NT_REP_CUG_POLICY).setProperty(REP_PRINCIPAL_NAMES, ImmutableSet.of(principalName), Type.STRINGS);
     }
 
     Principal getTestGroupPrincipal() throws Exception {

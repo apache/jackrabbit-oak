@@ -23,11 +23,11 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -138,9 +138,9 @@ public class CugTreePermissionTest extends AbstractCugTest {
 
     @Test
     public void testIsInCugSupportedPathWithoutCug() throws Exception {
-        NodeUtil node = new NodeUtil(root.getTree(SUPPORTED_PATH2));
-        Tree c1 = node.addChild("c1", NT_OAK_UNSTRUCTURED).getTree();
-        Tree c2 = node.addChild("c2", NT_OAK_UNSTRUCTURED).getTree();
+        Tree node = root.getTree(SUPPORTED_PATH2);
+        Tree c1 = TreeUtil.addChild(node, "c1", NT_OAK_UNSTRUCTURED);
+        Tree c2 = TreeUtil.addChild(node, "c2", NT_OAK_UNSTRUCTURED);
 
         String cugPath = c2.getPath();
         createCug(cugPath, getTestGroupPrincipal());

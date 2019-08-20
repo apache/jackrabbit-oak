@@ -80,7 +80,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     private Principal getExcludedPrincipal() {
         return (SystemUserPrincipal) () -> "excluded";
     }
-    
+
     @Test
     public void testPrincipalSetPolicy() {
         assertTrue(createCugPolicy(principals) instanceof PrincipalSetPolicy);
@@ -190,12 +190,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     @Test(expected = AccessControlException.class)
     public void testAddNullPrincipalName() throws Exception {
         CugPolicy cug = createEmptyCugPolicy(ImportBehavior.BESTEFFORT);
-        cug.addPrincipals(new Principal() {
-            @Override
-            public String getName() {
-                return null;
-            }
-        });
+        cug.addPrincipals((Principal) () -> null);
     }
 
     @Test

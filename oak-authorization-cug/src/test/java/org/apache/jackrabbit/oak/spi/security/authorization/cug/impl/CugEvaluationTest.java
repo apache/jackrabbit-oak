@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -37,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -165,8 +165,8 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
         List<String> readOnly = ImmutableList.of("/content", "/content/a/b/c");
         for (String p : readOnly) {
             try {
-                NodeUtil content = new NodeUtil(testRoot.getTree(p));
-                content.addChild("writeTest", NT_OAK_UNSTRUCTURED);
+                Tree content = testRoot.getTree(p);
+                TreeUtil.addChild(content, "writeTest", NT_OAK_UNSTRUCTURED);
                 testRoot.commit();
                 fail();
             } catch (CommitFailedException e) {
@@ -188,8 +188,8 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
             List<String> paths = ImmutableList.of("/content", "/content/a/b/c");
             for (String p : paths) {
-                NodeUtil content = new NodeUtil(r.getTree(p));
-                content.addChild("writeTest", NT_OAK_UNSTRUCTURED);
+                Tree content = r.getTree(p);
+                TreeUtil.addChild(content, "writeTest", NT_OAK_UNSTRUCTURED);
                 r.commit();
             }
         } finally {
