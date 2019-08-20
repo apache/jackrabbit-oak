@@ -166,7 +166,7 @@ public class RevisionsCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        Closer closer = Closer.create();
+        Closer closer = Utils.createCloserWithShutdownHook();
         try {
             RevisionsOptions options = new RevisionsOptions(USAGE).parse(args);
             setupLoggers(options.isVerbose());
