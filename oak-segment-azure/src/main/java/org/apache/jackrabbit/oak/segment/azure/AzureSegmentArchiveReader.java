@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Stopwatch;
 import com.microsoft.azure.storage.StorageException;
@@ -58,7 +57,7 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
         this.archiveDirectory = archiveDirectory;
         this.ioMonitor = ioMonitor;
         long length = 0;
-        for (CloudBlob blob : AzureUtilities.getBlobs(archiveDirectory).collect(Collectors.toList())) {
+        for (CloudBlob blob : AzureUtilities.getBlobs(archiveDirectory)) {
             Map<String, String> metadata = blob.getMetadata();
             if (AzureBlobMetadata.isSegment(metadata)) {
                 AzureSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, (int) blob.getProperties().getLength());

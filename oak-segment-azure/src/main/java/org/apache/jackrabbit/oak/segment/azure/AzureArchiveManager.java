@@ -43,7 +43,6 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -161,7 +160,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public boolean exists(String archiveName) {
         try {
-            return getBlobs(archiveName).findAny().isPresent();
+            return !getBlobs(archiveName).isEmpty();
         } catch (IOException e) {
             log.error("Can't check the existence of {}", archiveName, e);
             return false;
@@ -173,7 +172,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         Pattern pattern = Pattern.compile(AzureUtilities.SEGMENT_FILE_NAME_PATTERN);
         List<RecoveredEntry> entryList = new ArrayList<>();
 
-        for (CloudBlob b : getBlobList(archiveName)) {
+        for (CloudBlob b : getBlobs(archiveName)) {
             String name = getName(b);
             Matcher m = pattern.matcher(name);
             if (!m.matches()) {
@@ -215,12 +214,8 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         }
     }
 
-    private Stream<CloudBlob> getBlobs(String archiveName) throws IOException {
+    private List<CloudBlob> getBlobs(String archiveName) throws IOException {
         return AzureUtilities.getBlobs(getDirectory(archiveName));
-    }
-
-    private List<CloudBlob> getBlobList(String archiveName) throws IOException {
-        return getBlobs(archiveName).collect(Collectors.toList());
     }
 
     private void renameBlob(CloudBlob blob, CloudBlobDirectory newParent) throws IOException {

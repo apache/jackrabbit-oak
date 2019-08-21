@@ -23,8 +23,9 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -67,11 +68,12 @@ public final class AzureUtilities {
         return Paths.get(directory.getUri().getPath()).getFileName().toString();
     }
 
-    public static Stream<CloudBlob> getBlobs(CloudBlobDirectory directory) throws IOException {
+    public static List<CloudBlob> getBlobs(CloudBlobDirectory directory) throws IOException {
         try {
             return StreamSupport.stream(directory.listBlobs(null, false, EnumSet.of(BlobListingDetails.METADATA), null, null).spliterator(), false)
                     .filter(i -> i instanceof CloudBlob)
-                    .map(i -> (CloudBlob) i);
+                    .map(i -> (CloudBlob) i)
+                    .collect(Collectors.toList());
         } catch (StorageException | URISyntaxException e) {
             throw new IOException(e);
         }
@@ -87,8 +89,7 @@ public final class AzureUtilities {
     }
 
     public static void deleteAllEntries(CloudBlobDirectory directory) throws IOException {
-        Stream<CloudBlob> blobs = getBlobs(directory);
-        blobs.forEach(b -> {
+        getBlobs(directory).forEach(b -> {
             try {
                 b.deleteIfExists();
             } catch (StorageException e) {
