@@ -79,6 +79,9 @@ public final class MongoDocumentStoreMetrics implements Runnable {
                 updateCounter(getCounter(c, "storageSize"), stats.storageSize);
                 updateCounter(getCounter(c, "totalIndexSize"), stats.totalIndexSize);
             }
+            DatabaseStats dbStats = getDBStats();
+            updateCounter(getDBCounter("fsUsedSize"), dbStats.fsUsedSize);
+            updateCounter(getDBCounter("fsTotalSize"), dbStats.fsTotalSize);
         } catch (MongoException e) {
             LOG.warn("Updating counters failed: {}", e.toString());
         }
@@ -99,9 +102,22 @@ public final class MongoDocumentStoreMetrics implements Runnable {
         return stats;
     }
 
+    private DatabaseStats getDBStats() throws MongoException {
+        DatabaseStats stats = new DatabaseStats();
+        BasicDBObject result = new BasicDBObject(db.runCommand(new org.bson.Document("dbStats", 1)));
+        stats.fsUsedSize = result.getLong("fsUsedSize", 0);
+        stats.fsTotalSize = result.getLong("fsTotalSize", 0);
+        return stats;
+    }
+
     private CounterStats getCounter(Collection<? extends Document> c,
                                     String name) {
         String counterName = "MongoDB." + c.toString() + "." + name;
+        return statsProvider.getCounterStats(counterName, METRICS_ONLY);
+    }
+
+    private CounterStats getDBCounter(String name) {
+        String counterName = "MongoDB." + name;
         return statsProvider.getCounterStats(counterName, METRICS_ONLY);
     }
 
@@ -110,5 +126,10 @@ public final class MongoDocumentStoreMetrics implements Runnable {
         long size;
         long storageSize;
         long totalIndexSize;
+    }
+
+    private static final class DatabaseStats {
+        long fsUsedSize;
+        long fsTotalSize;
     }
 }
