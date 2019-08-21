@@ -19,8 +19,8 @@
 package org.apache.jackrabbit.oak.segment.file.tar;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.oak.commons.Buffer.wrap;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.BLOCK_SIZE;
-import static org.apache.jackrabbit.oak.segment.spi.persistence.Buffer.wrap;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,10 +35,10 @@ import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
 import org.apache.commons.io.filefilter.SuffixFileFilter;
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.index.Index;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;

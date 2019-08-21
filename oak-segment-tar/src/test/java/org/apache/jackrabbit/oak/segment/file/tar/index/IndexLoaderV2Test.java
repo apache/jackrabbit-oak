@@ -22,7 +22,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;
 
 public class IndexLoaderV2Test {

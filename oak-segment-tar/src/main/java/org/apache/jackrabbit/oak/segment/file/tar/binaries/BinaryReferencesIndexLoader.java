@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.file.tar.binaries;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
 public class BinaryReferencesIndexLoader {

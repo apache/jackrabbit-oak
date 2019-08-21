@@ -26,7 +26,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 
 /**
  * A wrapper around either memory mapped files or random access files, to allow

@@ -29,7 +29,8 @@ import java.util.List;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

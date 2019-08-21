@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.segment.split;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

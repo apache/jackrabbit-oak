@@ -34,12 +34,13 @@ import com.google.common.base.Stopwatch;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteAction;
 import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteQueue;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
 

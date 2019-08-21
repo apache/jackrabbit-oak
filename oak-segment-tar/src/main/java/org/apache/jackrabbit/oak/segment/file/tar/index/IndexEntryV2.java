@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 
 class IndexEntryV2 implements IndexEntry {
 

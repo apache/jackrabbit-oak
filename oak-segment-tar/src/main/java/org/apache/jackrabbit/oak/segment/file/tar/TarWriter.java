@@ -37,8 +37,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.stats.CounterStats;

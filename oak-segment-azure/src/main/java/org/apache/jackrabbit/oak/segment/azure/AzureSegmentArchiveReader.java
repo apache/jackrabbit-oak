@@ -35,10 +35,11 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     static final boolean OFF_HEAP = getBoolean("access.off.heap");
