@@ -296,6 +296,8 @@ MongoDB.settings.count | The number of documents in the `settings` collection. |
 MongoDB.settings.size | The total size of the documents in the `settings` collection without indexes. | bytes |
 MongoDB.settings.storageSize | The total amount of storage allocated to the `settings` collection. This value may be smaller than `size` because MongoDB uses compression when it stores documents on disk. | bytes |
 MongoDB.settings.totalIndexSize | The total size of all indexes in the `settings` collection. | bytes |
+MongoDB.fsUsedSize | Disk space in use on the partition where MongoDB stores data. Since 1.18. | bytes |
+MongoDB.fsTotalSize | Disk capacity on the partition where MongoDB stores data. Since 1.18.| bytes |
 
 ## Monitoring
 
