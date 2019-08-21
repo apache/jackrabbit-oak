@@ -37,6 +37,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
@@ -67,7 +68,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public List<String> listArchives() throws IOException {
         try {
-            return StreamSupport.stream(cloudBlobDirectory
+            List<String> archiveNames = StreamSupport.stream(cloudBlobDirectory
                     .listBlobs(null, false, EnumSet.noneOf(BlobListingDetails.class), null, null)
                     .spliterator(), false)
                     .filter(i -> i instanceof CloudBlobDirectory)
@@ -78,9 +79,28 @@ public class AzureArchiveManager implements SegmentArchiveManager {
                     .map(Path::getFileName)
                     .map(Path::toString)
                     .collect(Collectors.toList());
+
+            Iterator<String> it = archiveNames.iterator();
+            while (it.hasNext()) {
+                String archiveName = it.next();
+                if (isArchiveEmpty(archiveName)) {
+                    delete(archiveName);
+                    it.remove();
+                }
+            }
+            return archiveNames;
         } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
         }
+    }
+
+    /**
+     * Check if there's a valid 0000. segment in the archive
+     * @param archiveName
+     * @return true if the archive is empty (no 0000.* segment)
+     */
+    private boolean isArchiveEmpty(String archiveName) throws IOException, URISyntaxException, StorageException {
+        return !getDirectory(archiveName).listBlobs("0000.").iterator().hasNext();
     }
 
     @Override

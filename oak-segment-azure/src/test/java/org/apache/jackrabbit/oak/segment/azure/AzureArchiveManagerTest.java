@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -95,6 +97,36 @@ public class AzureArchiveManagerTest {
         container.getBlockBlobReference("oak/data00000a.tar/closed").delete();
         container.getBlockBlobReference("oak/data00000a.tar/data00000a.tar.brf").delete();
         container.getBlockBlobReference("oak/data00000a.tar/data00000a.tar.gph").delete();
+
+        fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+        assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
+        fs.close();
+    }
+
+    @Test
+    // see OAK-8566
+    public void testUncleanStopWithEmptyArchive() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, StorageException {
+        AzurePersistence p = new AzurePersistence(container.getDirectoryReference("oak"));
+        FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+        NodeBuilder builder = segmentNodeStore.getRoot().builder();
+        builder.setProperty("foo", "bar");
+        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fs.close();
+
+        // make sure there are 2 archives
+        fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+        segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+        builder = segmentNodeStore.getRoot().builder();
+        builder.setProperty("foo2", "bar2");
+        segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fs.close();
+
+        // remove the segment 0000 from the second archive
+        ListBlobItem segment0000 = container.listBlobs("oak/data00001a.tar/0000.").iterator().next();
+        ((CloudBlob) segment0000).delete();
+        container.getBlockBlobReference("oak/data00001a.tar/closed").delete();
 
         fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
         segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
