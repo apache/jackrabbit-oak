@@ -642,12 +642,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>8.5.41</version>
+        <version>8.5.43</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>8.5.41</version>
+        <version>8.5.43</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
