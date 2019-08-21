@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.util;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 
 /**
  * Read raw data from the end of an underlying data source. The data source is

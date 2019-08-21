@@ -23,7 +23,7 @@ import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 
 class IndexV2 implements Index {
 

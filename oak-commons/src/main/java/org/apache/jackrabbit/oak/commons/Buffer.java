@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.spi.persistence;
+package org.apache.jackrabbit.oak.commons;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
