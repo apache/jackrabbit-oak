@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
@@ -32,7 +33,7 @@ public class InMemoryBroadcaster implements Broadcaster {
     public void send(ByteBuffer buff) {
         int start = buff.position();
         for (Listener l : listeners) {
-            buff.position(start);
+            ((Buffer)buff).position(start);
             l.receive(buff);
         }
     }
