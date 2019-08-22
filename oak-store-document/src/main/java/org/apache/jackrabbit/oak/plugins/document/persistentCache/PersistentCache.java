@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
 import java.io.File;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -524,10 +525,10 @@ public class PersistentCache implements Broadcaster.Listener {
         writer.apply(buff);
         ByteBuffer byteBuff = buff.getBuffer();
         int length = byteBuff.position();
-        byteBuff.limit(length);
+        ((Buffer)byteBuff).limit(length);
         // write length
         byteBuff.putInt(0, length);
-        byteBuff.position(0);
+        ((Buffer)byteBuff).position(0);
         b.send(byteBuff);
     }
     
@@ -540,7 +541,7 @@ public class PersistentCache implements Broadcaster.Listener {
             // process only messages from other senders
             receiveMessage(buff);
         }
-        buff.position(end);
+        ((Buffer)buff).position(end);
     }
     
     public static PersistentCacheStats getPersistentCacheStats(Cache<?, ?> cache) {

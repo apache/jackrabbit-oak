@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -132,10 +133,10 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
                     continue;
                 }
                 ByteBuffer buff = ByteBuffer.wrap(receiveData);
-                buff.limit(len);
+                ((Buffer)buff).limit(len);
                 int start = key.length;
                 for (Listener l : listeners) {
-                    buff.position(start);
+                    ((Buffer)buff).position(start);
                     l.receive(buff);
                 }
             } catch (IOException e) {

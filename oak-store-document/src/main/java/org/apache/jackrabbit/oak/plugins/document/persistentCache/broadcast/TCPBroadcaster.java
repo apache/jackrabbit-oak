@@ -26,6 +26,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
@@ -223,7 +224,7 @@ public class TCPBroadcaster implements Broadcaster {
                                 ByteBuffer buff = ByteBuffer.wrap(data);
                                 int start = buff.position();
                                 for (Listener l : listeners) {
-                                    buff.position(start);
+                                    ((Buffer)buff).position(start);
                                     l.receive(buff);
                                 }
                             }
@@ -324,7 +325,7 @@ public class TCPBroadcaster implements Broadcaster {
     public void send(ByteBuffer buff) {
         ByteBuffer b = ByteBuffer.allocate(buff.remaining());
         b.put(buff);
-        b.flip();
+        ((Buffer)b).flip();
         while (sendBuffer.size() > MAX_BUFFER_SIZE) {
             sendBuffer.poll();
         }
