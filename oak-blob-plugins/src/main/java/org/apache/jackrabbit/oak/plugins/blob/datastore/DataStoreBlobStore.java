@@ -236,14 +236,7 @@ public class DataStoreBlobStore
             checkNotNull(stream);
             DataRecord dr = writeStream(stream, options);
             String id = getBlobId(dr);
-            if (tracker != null && !InMemoryDataRecord.isInstance(id)) {
-                try {
-                    tracker.add(id);
-                    log.trace("Tracked Id {}", id);
-                } catch (Exception e) {
-                    log.warn("Could not add track id", e);
-                }
-            }
+            updateTracker(id);
             threw = false;
             stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());
             stats.uploadCompleted(id);
@@ -254,6 +247,18 @@ public class DataStoreBlobStore
             //DataStore does not closes the stream internally
             //So close the stream explicitly
             Closeables.close(stream, threw);
+        }
+    }
+
+    private void updateTracker(String id) {
+        if (tracker != null && !InMemoryDataRecord.isInstance(id)) {
+            try {
+                tracker.add(id);
+                log.trace("Tracked Id {}", id);
+            }
+            catch (Exception e) {
+                log.warn("Could not add track id", e);
+            }
         }
     }
 
@@ -724,7 +729,9 @@ public class DataStoreBlobStore
         if (delegate instanceof DataRecordAccessProvider) {
             try {
                 DataRecord record = ((DataRecordAccessProvider) delegate).completeDataRecordUpload(uploadToken);
-                return new BlobStoreBlob(this, getBlobId(record));
+                String id = getBlobId(record);
+                updateTracker(id);
+                return new BlobStoreBlob(this, id);
             }
             catch (DataStoreException | DataRecordUploadException e) {
                 log.warn("Unable to complete direct upload for upload token {}", uploadToken, e);
