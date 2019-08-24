@@ -363,24 +363,19 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
             CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
-            if (blob.exists()) {
-                blob.downloadAttributes();
-                AzureBlobStoreDataRecord record = new AzureBlobStoreDataRecord(
-                    this,
-                    connectionString,
-                    containerName,
-                    new DataIdentifier(getIdentifierName(blob.getName())),
-                    blob.getProperties().getLastModified().getTime(),
-                    blob.getProperties().getLength());
-                LOG.debug("Data record read for blob. identifier={} duration={} record={}",
-                          key, (System.currentTimeMillis() - start), record);
-                return record;
-            } else {
-                LOG.debug("Blob not found. identifier={} duration={}",
-                          key, (System.currentTimeMillis() - start));
-                throw new DataStoreException(String.format("Cannot find blob. identifier=%s", key));
-            }
-        }catch (StorageException e) {
+            blob.downloadAttributes();
+            AzureBlobStoreDataRecord record = new AzureBlobStoreDataRecord(
+                this,
+                connectionString,
+                containerName,
+                new DataIdentifier(getIdentifierName(blob.getName())),
+                blob.getProperties().getLastModified().getTime(),
+                blob.getProperties().getLength());
+            LOG.debug("Data record read for blob. identifier={} duration={} record={}",
+                      key, (System.currentTimeMillis() - start), record);
+            return record;
+        }
+        catch (StorageException e) {
             LOG.info("Error getting data record for blob. identifier={}", key, e);
             throw new DataStoreException(String.format("Cannot retrieve blob. identifier=%s", key), e);
         }

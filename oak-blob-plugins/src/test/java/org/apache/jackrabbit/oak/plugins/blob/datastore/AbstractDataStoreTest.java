@@ -136,7 +136,27 @@ public abstract class AbstractDataStoreTest {
             LOG.error("error:", e);
         }
     }
-    
+
+    /**
+     * Testcase to validate {@link DataStore#getRecord(DataIdentifier)} API in
+     * case where supplied data identifier is not a valid blob ID.
+     */
+    @Test
+    public void testGetRecordInvalidDataIdentifier() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName()
+                    + "#testGetRecordInvalidDataIdentifier, testDir=" + dataStoreDir);
+            doGetRecordInvalidDataIdentifierTest();
+            LOG.info("Testcase: " + this.getClass().getName()
+                    + "#testGetRecordInvalidDataIdentifier finished, time taken = ["
+                    + (System.currentTimeMillis() - start) + "]ms");
+        }
+        catch (Exception e) {
+            LOG.error("error:", e);
+        }
+    }
+
     /**
      * Testcase to validate {@link DataStore#getAllIdentifiers()} API.
      */
@@ -299,6 +319,19 @@ public abstract class AbstractDataStoreTest {
         rec = ds.getRecord(rec.getIdentifier());
         Assert.assertEquals(data.length, rec.getLength());
         assertRecord(data, rec);
+    }
+
+    /**
+     * Test {@link DataStore#getRecord(DataIdentifier)} with invalid id.
+     */
+    protected void doGetRecordInvalidDataIdentifierTest() throws Exception {
+        try {
+            ds.getRecord(new DataIdentifier("invalid"));
+            fail();
+        }
+        catch (DataStoreException e) {
+            // Expected
+        }
     }
 
     /**
