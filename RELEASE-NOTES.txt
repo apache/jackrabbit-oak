@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.15
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.16
 
 Introduction
 ------------
@@ -7,25 +7,61 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.15 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.16 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.15
+Changes in Oak 1.8.16
 ---------------------
+
+Technical task
+
+    [OAK-8150] - RDB*Store: add Oracle specific documentation
+    [OAK-8396] - documentation steps missing to run sweep on RDBDocumentStore
+    [OAK-8445] - RDB documentation: minor fixes to documentation of "revisions" command
+    [OAK-8481] - RDB*Store: update postgresql jdbc driver reference to 42.2.6
+    [OAK-8483] - RDB*Store: update mysql jdbc driver reference to 8.0.16
+    [OAK-8485] - RDB*Store: update mssql jdbc driver reference to 7.2.2
 
 Bug
 
-    [OAK-8223] - javadoc-plugin fails with java11
-    [OAK-8351] - Long running RGC remove and getmore operations
+    [OAK-8212] - ImporterImpl.importProperties prone to NPE
+    [OAK-8448] - VersionGC may get stuck at 60s scope
+    [OAK-8472] - Typo in oak-run console refresh command help
+    [OAK-8476] - RDBVersionGCSupport returns incorrect value for "oldest deleted document"
+
+Improvement
+
+    [OAK-7251] - BinaryTextExtractor should not ignore parse exception - they should at least be logged at DEBUG in all cases
+    [OAK-8041] - IndexDefinitionBuilder should support facets and boost for property definitions
+    [OAK-8066] - Nodes with many direct children can lead to OOME when saving
+    [OAK-8114] - IndexDefinitionBuilder should be smarter when to reindex while updating a definition
+    [OAK-8451] - GCMonitor: fix compiler warnings and Javadoc
+    [OAK-8453] - Refactor VersionGarbageCollector to extract Recommendations class
+    [OAK-8526] - IndexDefinitionBuilder should support setting up index tags
+    [OAK-8559] - Backport OAK-8066 to 1.10 and 1.8
 
 Task
+    
+    [OAK-7680] - oak-commons: upgrade to project default mockito version
+    [OAK-8424] - Update jar-plugin dependency to version 3.1.1
+    [OAK-8427] - reactor pom: let assembly-plugin version default to what parent specifies
+    [OAK-8428] - Update checkstyle-plugin dependency to version 3.1.0
+    [OAK-8430] - Update compiler-plugin dependency to version 3.8.1
+    [OAK-8431] - Update shade-plugin dependency to version 3.2.1
+    [OAK-8432] - Update war-plugin dependency to version 3.2.3
+    [OAK-8456] - Update httpclient/mime dependencies to 4.5.9
+    [OAK-8479] - update rat plugin to 0.13
+    [OAK-8486] - update jackson-databind dependency to 2.9.9.1
+    [OAK-8501] - oak-examples/webapp: update htmlunit dependency to 2.35.0
+    [OAK-8502] - oak-examples/standalone: update spring boot dependency to 1.5.21
+    [OAK-8503] - oak-benchmarks: update commons-compress dependency to 1.18
+    [OAK-8504] - oak-run: update groovy dependency to 2.4.17
+    [OAK-8560] - Update jackson-databind dependency to 2.9.9.3
 
-    [OAK-8235] - Upgrade Solr to version 6.6.6
-    [OAK-8464] - Update javadoc-plugin to 3.1.1
 
 
 In addition to the above-mentioned changes, this release contains
