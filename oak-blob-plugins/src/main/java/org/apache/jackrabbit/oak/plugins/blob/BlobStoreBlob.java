@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.NotNull;
@@ -78,10 +77,6 @@ public class BlobStoreBlob implements Blob {
     @Override
     public String getContentIdentity() {
         return blobId;
-    }
-
-    @Override public boolean isInlined() {
-        return InMemoryDataRecord.isInstance(blobId);
     }
 
     public String getBlobId() {

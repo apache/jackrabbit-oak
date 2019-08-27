@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
@@ -139,11 +138,6 @@ public class SegmentBlob extends Record implements Blob {
             return blobId;
         }
         return null;
-    }
-
-    @Override
-    public boolean isInlined() {
-        return isExternal() && InMemoryDataRecord.isInstance(getBlobId());
     }
 
     public boolean isExternal() {

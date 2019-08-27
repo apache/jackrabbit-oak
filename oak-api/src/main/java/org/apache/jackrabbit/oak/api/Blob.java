@@ -87,10 +87,4 @@ public interface Blob {
      */
     @Nullable
     String getContentIdentity();
-
-    /**
-     * Checks if the external blob is inlined in the id itself
-     * @return
-     */
-    boolean isInlined();
 }

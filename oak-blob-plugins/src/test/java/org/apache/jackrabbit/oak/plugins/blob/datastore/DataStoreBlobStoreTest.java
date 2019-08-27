@@ -39,7 +39,6 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
@@ -100,9 +99,6 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         //Check for BlobStore methods
         assertEquals(maxInlineSize, ds.getBlobLength(dr.getIdentifier().toString()));
         assertEquals(dr.getIdentifier().toString(), BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
-
-        BlobStoreBlob blob = new BlobStoreBlob(ds, dr.getIdentifier().toString());
-        assertTrue(blob.isInlined());
     }
 
     @Test
@@ -137,9 +133,6 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 //        assertTrue(ds.getInputStream(dr.getIdentifier().toString()) instanceof BufferedInputStream);
         assertEquals(actualSize, ds.getBlobLength(dr.getIdentifier().toString()));
         assertEquals(testDI.toString(), BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
-
-        BlobStoreBlob blob = new BlobStoreBlob(ds, dr.getIdentifier().toString());
-        assertFalse(blob.isInlined());
     }
 
     @Test
