@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,13 +41,11 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.Configurabl
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.jetbrains.annotations.NotNull;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessProviderTest {
     @ClassRule
@@ -55,17 +56,37 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
     @BeforeClass
     public static void setupDataStore() throws Exception {
         assumeTrue(AzureDataStoreUtils.isAzureConfigured());
-        Properties props = AzureDataStoreUtils.getAzureConfig();
-        props.setProperty("cacheSize", "0");
         dataStore = (AzureDataStore) AzureDataStoreUtils
-            .getAzureDataStore(props, homeDir.newFolder().getAbsolutePath());
+            .getAzureDataStore(getProperties(), homeDir.newFolder().getAbsolutePath());
         dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
         dataStore.setDirectUploadURIExpirySeconds(expirySeconds);
+    }
+
+    private static Properties getProperties() {
+        Properties props = AzureDataStoreUtils.getAzureConfig();
+        props.setProperty("cacheSize", "0");
+        return props;
+    }
+
+    private static AzureDataStore createDataStore(@NotNull Properties properties) throws Exception {
+        AzureDataStore ds = (AzureDataStore) AzureDataStoreUtils
+                .getAzureDataStore(properties, homeDir.newFolder().getAbsolutePath());
+        ds.setDirectDownloadURIExpirySeconds(expirySeconds);
+        ds.setDirectUploadURIExpirySeconds(expirySeconds);
+        return ds;
     }
 
     @Override
     protected ConfigurableDataRecordAccessProvider getDataStore() {
         return dataStore;
+    }
+
+    @Override
+    protected ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception {
+        Properties mergedProperties = new Properties();
+        mergedProperties.putAll(getProperties());
+        mergedProperties.putAll(overrideProperties);
+        return createDataStore(mergedProperties);
     }
 
     @Override
