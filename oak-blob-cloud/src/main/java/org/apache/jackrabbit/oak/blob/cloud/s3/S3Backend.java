@@ -750,24 +750,24 @@ public class S3Backend extends AbstractSharedBackend {
         if (null == identifier) throw new NullPointerException("identifier");
         if (null == downloadOptions) throw new NullPointerException("downloadOptions");
 
-        if (presignedDownloadURIVerifyExists) {
-            try {
-                if (!exists(identifier)) {
-                    LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
-                    return null;
-                }
-            } catch (DataStoreException e) {
-                LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
-                return null;
-            }
-        }
-
         URI uri = null;
         // if cache is enabled, check the cache
         if (httpDownloadURICache != null) {
             uri = httpDownloadURICache.getIfPresent(identifier);
         }
-        if (uri == null) {
+        if (null == uri) {
+            if (presignedDownloadURIVerifyExists) {
+                try {
+                    if (!exists(identifier)) {
+                        LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
+                        return null;
+                    }
+                } catch (DataStoreException e) {
+                    LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
+                    return null;
+                }
+            }
+
             Map<String, String> requestParams = Maps.newHashMap();
             requestParams.put("response-cache-control",
                     String.format("private, max-age=%d, immutable",
