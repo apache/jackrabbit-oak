@@ -126,6 +126,18 @@ public final class S3Constants {
     public static final String PRESIGNED_URI_ENABLE_ACCELERATION = "presignedURIEnableTransferAcceleration";
 
     /**
+     * Boolean flag to allow disabling of verification check on download URI
+     * generation.  Default is true (the existence check is performed).
+     *
+     * Some installations may prefer to disable async uploads, in which case it
+     * is possible to disable the existence check and thus greatly speed up the
+     * generation of presigned download URIs.  See OAK-7998 which describes why
+     * the existence check was added to understand how async uploading relates
+     * to this feature.
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS = "presignedHttpDownloadURIVerifyExists";
+
+    /**
      * private constructor so that class cannot initialized from outside.
      */
     private S3Constants() {
