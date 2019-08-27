@@ -189,6 +189,10 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
                 public String getContentIdentity() {
                     return DigestUtils.md5Hex(blobContent.toString());
                 }
+
+                @Override public boolean isInlined() {
+                    return false;
+                }
             };
         }
 
