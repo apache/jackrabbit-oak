@@ -365,12 +365,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
             blob.downloadAttributes();
             AzureBlobStoreDataRecord record = new AzureBlobStoreDataRecord(
-                this,
-                connectionString,
-                containerName,
-                new DataIdentifier(getIdentifierName(blob.getName())),
-                blob.getProperties().getLastModified().getTime(),
-                blob.getProperties().getLength());
+                    this,
+                    connectionString,
+                    containerName,
+                    new DataIdentifier(getIdentifierName(blob.getName())),
+                    blob.getProperties().getLastModified().getTime(),
+                    blob.getProperties().getLength());
             LOG.debug("Data record read for blob. identifier={} duration={} record={}",
                       key, (System.currentTimeMillis() - start), record);
             return record;
@@ -945,34 +945,54 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         String key = uploadToken.getBlobId();
         DataIdentifier blobId = new DataIdentifier(getIdentifierName(key));
 
-        if (! exists(blobId)) {
+        DataRecord record = null;
+        try {
+            record = getRecord(blobId);
+            // If this succeeds this means either it was a "single put" upload
+            // (we don't need to do anything in this case - blob is already uploaded)
+            // or it was completed before with the same token.
+        }
+        catch (DataStoreException e) {
+            // record doesn't exist - so this means we are safe to do the complete request
             try {
                 if (uploadToken.getUploadId().isPresent()) {
-                    // An existing upload ID means this is a multi-part upload
                     CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
+                    // An existing upload ID means this is a multi-part upload
                     List<BlockEntry> blocks = blob.downloadBlockList(
                             BlockListingFilter.UNCOMMITTED,
                             AccessCondition.generateEmptyCondition(),
                             null,
                             null);
                     blob.commitBlockList(blocks);
+                    long size = 0L;
+                    for (BlockEntry block : blocks) {
+                        size += block.getSize();
+                    }
+                    record = new AzureBlobStoreDataRecord(
+                            this,
+                            connectionString,
+                            containerName,
+                            blobId,
+                            blob.getProperties().getLastModified().getTime(),
+                            size);
                 }
-                // else do nothing - single put is already complete
-
-                if (!exists(blobId)) {
+                else {
+                    // Something is wrong - upload ID missing from upload token
+                    // but record doesn't exist already, so this is invalid
                     throw new DataRecordUploadException(
-                            String.format("Unable to finalize direct write of binary %s", blobId));
+                            String.format("Unable to finalize direct write of binary %s - upload ID missing from upload token",
+                                    blobId)
+                    );
                 }
-            } catch (URISyntaxException | StorageException e) {
+            } catch (URISyntaxException | StorageException e2) {
                 throw new DataRecordUploadException(
                         String.format("Unable to finalize direct write of binary %s", blobId),
                         e
                 );
             }
         }
-        // else return the already existing record for this blob ID
 
-        return getRecord(blobId);
+        return record;
     }
 
     private URI createPresignedURI(String key,

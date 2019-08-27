@@ -905,41 +905,64 @@ public class S3Backend extends AbstractSharedBackend {
         }
 
         DataRecordUploadToken uploadToken = DataRecordUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
-        String blobId = uploadToken.getBlobId();
-        DataIdentifier dataIdentifier = new DataIdentifier(getIdentifierName(blobId));
+        String key = uploadToken.getBlobId();
+        DataIdentifier blobId = new DataIdentifier(getIdentifierName(key));
 
-        if (! exists(dataIdentifier)) {
+        DataRecord record = null;
+        try {
+            record = getRecord(blobId);
+            // If this succeeds this means either it was a "single put" upload
+            // (we don't need to do anything in this case - blob is already uploaded)
+            // or it was completed before with the same token.
+        }
+        catch (DataStoreException e) {
+            // record doesn't exist - so this means we are safe to do the complete request
             if (uploadToken.getUploadId().isPresent()) {
                 // An existing upload ID means this is a multi-part upload
                 String uploadId = uploadToken.getUploadId().get();
-                ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, blobId, uploadId);
+                ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, key, uploadId);
                 PartListing listing = s3service.listParts(listPartsRequest);
                 List<PartETag> eTags = Lists.newArrayList();
+                long size = 0L;
+                Date lastModified = null;
                 for (PartSummary partSummary : listing.getParts()) {
                     PartETag eTag = new PartETag(partSummary.getPartNumber(), partSummary.getETag());
                     eTags.add(eTag);
+                    size += partSummary.getSize();
+                    if (null == lastModified || partSummary.getLastModified().after(lastModified)) {
+                        lastModified = partSummary.getLastModified();
+                    }
                 }
 
                 CompleteMultipartUploadRequest completeReq = new CompleteMultipartUploadRequest(
                         bucket,
-                        blobId,
+                        key,
                         uploadId,
                         eTags
                 );
 
                 s3service.completeMultipartUpload(completeReq);
+
+                record = new S3DataRecord(
+                        this,
+                        s3service,
+                        bucket,
+                        blobId,
+                        lastModified.getTime(),
+                        size
+                );
             }
-            // else do nothing - single-put upload is already complete
-
-
-            if (!s3service.doesObjectExist(bucket, blobId)) {
+            else {
+                // Something is wrong - upload ID missing from upload token
+                // but record doesn't exist already, so this is invalid
                 throw new DataRecordUploadException(
-                        String.format("Unable to finalize direct write of binary %s", blobId)
+                        String.format("Unable to finalize direct write of binary %s - upload ID missing from upload token",
+                                blobId)
                 );
             }
         }
 
-        return getRecord(new DataIdentifier(getIdentifierName(blobId)));
+        return record;
     }
 
     private URI createPresignedURI(DataIdentifier identifier,
