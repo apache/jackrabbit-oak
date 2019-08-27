@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.io.IOException;
@@ -129,6 +130,7 @@ public class BlobIdRecordTest {
             byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
             SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
             assertRecordTypeEquals(sb, RecordType.BLOB_ID);
+            assertFalse(sb.isInlined());
         }
     }
 
@@ -139,6 +141,7 @@ public class BlobIdRecordTest {
             byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
             SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
             assertRecordTypeEquals(sb, RecordType.BLOB_ID);
+            assertFalse(sb.isInlined());
         }
     }
 

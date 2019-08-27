@@ -111,7 +111,12 @@ public class BigInlinedBinaryIT {
                 public String getContentIdentity() {
                     return null;
                 }
-            };
+
+                @Override
+                public boolean isInlined() {
+                    return false;
+                }
+        };
     }
 
 }

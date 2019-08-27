@@ -65,4 +65,8 @@ class SegmentBlob implements Blob {
         return null;
     }
 
+    @Override public boolean isInlined() {
+        return false;
+    }
+
 }

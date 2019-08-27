@@ -79,6 +79,11 @@ public abstract class AbstractBlob implements Blob {
                 public long length() {
                     return blob.length();
                 }
+
+                @Override public boolean isInlined() {
+                    return blob.isInlined();
+                }
+
                 @NotNull
                 @Override
                 public InputStream getNewStream() {
@@ -111,6 +116,11 @@ public abstract class AbstractBlob implements Blob {
         return hashCode;
     }
 
+    @Override
+    public boolean isInlined() {
+        return false;
+    }
+    
     /**
      * This hash code implementation returns the hash code of the underlying stream
      * @return a byte array of the hash
