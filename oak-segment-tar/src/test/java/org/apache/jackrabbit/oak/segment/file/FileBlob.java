@@ -48,11 +48,6 @@ public class FileBlob implements Blob {
         return null;
     }
 
-    @Override
-    public boolean isInlined() {
-        return false;
-    }
-
     @NotNull
     @Override
     public InputStream getNewStream() {

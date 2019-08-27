@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -87,8 +86,6 @@ public class ExternalBlobIT {
         Blob b1 = testCreateAndRead(createBlob(fds.getMinRecordLength()-2));
         assertTrue(b1 instanceof SegmentBlob);
         assertNull(((SegmentBlob) b1).getBlobId());
-        assertFalse(((SegmentBlob) b1).isExternal());
-        assertFalse(b1.isInlined());
 
         //Test for Blob which need to be pushed to BlobStore
         byte[] data2 = new byte[Segment.MEDIUM_LIMIT + 1];
@@ -97,7 +94,6 @@ public class ExternalBlobIT {
         assertTrue(b2 instanceof SegmentBlob);
         assertNotNull(b2.getReference());
         assertEquals(b2.getContentIdentity(), ((SegmentBlob) b2).getBlobId());
-        assertFalse(b2.isInlined());
 
         InputStream is = dbs.getInputStream(((SegmentBlob) b2).getBlobId());
         assertNotNull(IOUtils.contentEquals(new ByteArrayInputStream(data2), is));

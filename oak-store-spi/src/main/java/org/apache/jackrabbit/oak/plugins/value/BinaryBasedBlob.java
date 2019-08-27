@@ -93,9 +93,4 @@ public class BinaryBasedBlob implements Blob {
     public String getContentIdentity() {
         return null;
     }
-
-    @Override
-    public boolean isInlined() {
-        return false;
-    }
 }

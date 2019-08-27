@@ -93,7 +93,7 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
     @Override
     public URI getURI(@NotNull BinaryDownloadOptions downloadOptions)
             throws RepositoryException {
-        if (value.getBlob().isInlined()) {
+        if (null == getReference()) {
             // Binary is inlined, we cannot return a URI for it
             return null;
         }
