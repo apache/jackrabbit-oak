@@ -50,6 +50,7 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemExistsException;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
@@ -373,6 +374,27 @@ public class RepositoryTest extends AbstractRepositoryTest {
         String id = node.getIdentifier();
         Node node2 = getAdminSession().getNodeByIdentifier(id);
         assertTrue(node.isSame(node2));
+    }
+
+    @Test
+    public void getNodeByIncorrectIdentifier() throws RepositoryException {
+        Node node = getNode("/foo");
+        String id = node.getIdentifier() + "foofoofoo";
+        try {
+            getAdminSession().getNodeByIdentifier(id);
+            fail("should not get here");
+        } catch (ItemNotFoundException expected) {
+        }
+    }
+
+    @Ignore
+    @Test
+    public void getNodeByEmptyIdentifier() throws RepositoryException {
+        try {
+            getAdminSession().getNodeByIdentifier("");
+            fail("should not get here");
+        } catch (RepositoryException expected) {
+        }
     }
 
     @Test
