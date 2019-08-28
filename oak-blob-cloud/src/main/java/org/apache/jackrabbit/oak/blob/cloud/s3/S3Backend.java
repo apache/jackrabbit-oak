@@ -86,6 +86,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -146,6 +147,8 @@ public class S3Backend extends AbstractSharedBackend {
     // 0 = off by default
     private int httpUploadURIExpirySeconds = 0;
     private int httpDownloadURIExpirySeconds = 0;
+
+    private boolean presignedDownloadURIVerifyExists = true;
 
     public void init() throws DataStoreException {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -237,6 +240,9 @@ public class S3Backend extends AbstractSharedBackend {
 
             String enablePresignedAccelerationStr = properties.getProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
             setBinaryTransferAccelerationEnabled(enablePresignedAccelerationStr != null && "true".equals(enablePresignedAccelerationStr));
+
+            presignedDownloadURIVerifyExists =
+                    PropertiesUtil.toBoolean(properties.get(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
 
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
@@ -744,23 +750,24 @@ public class S3Backend extends AbstractSharedBackend {
         if (null == identifier) throw new NullPointerException("identifier");
         if (null == downloadOptions) throw new NullPointerException("downloadOptions");
 
-        try {
-            if (! exists(identifier)) {
-                LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
-                return null;
-            }
-        }
-        catch (DataStoreException e) {
-            LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
-            return null;
-        }
-
         URI uri = null;
         // if cache is enabled, check the cache
         if (httpDownloadURICache != null) {
             uri = httpDownloadURICache.getIfPresent(identifier);
         }
-        if (uri == null) {
+        if (null == uri) {
+            if (presignedDownloadURIVerifyExists) {
+                try {
+                    if (!exists(identifier)) {
+                        LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
+                        return null;
+                    }
+                } catch (DataStoreException e) {
+                    LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
+                    return null;
+                }
+            }
+
             Map<String, String> requestParams = Maps.newHashMap();
             requestParams.put("response-cache-control",
                     String.format("private, max-age=%d, immutable",

@@ -114,6 +114,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private int httpDownloadURIExpirySeconds = 0; // disabled by default
     private int httpUploadURIExpirySeconds = 0; // disabled by default
     private boolean createBlobContainer = true;
+    private boolean presignedDownloadURIVerifyExists = true;
 
     private Cache<DataIdentifier, URI> httpDownloadURICache;
 
@@ -163,6 +164,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 if (properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT) != null) {
                     requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);
                 }
+                presignedDownloadURIVerifyExists =
+                        PropertiesUtil.toBoolean(properties.get(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
 
                 CloudBlobContainer azureContainer = getAzureContainer();
 
@@ -767,23 +770,24 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         
         if (httpDownloadURIExpirySeconds > 0) {
 
-            // Check if this identifier exists.  If not, we want to return null
-            // even if the identifier is in the download URI cache.
-            try {
-                if (! exists(identifier)) {
-                    LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
-                    return null;
-                }
-            }
-            catch (DataStoreException e) {
-                LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
-                return null;
-            }
-
             if (null != httpDownloadURICache) {
                 uri = httpDownloadURICache.getIfPresent(identifier);
             }
             if (null == uri) {
+                if (presignedDownloadURIVerifyExists) {
+                    // Check if this identifier exists.  If not, we want to return null
+                    // even if the identifier is in the download URI cache.
+                    try {
+                        if (!exists(identifier)) {
+                            LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
+                            return null;
+                        }
+                    } catch (DataStoreException e) {
+                        LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
+                        return null;
+                    }
+                }
+
                 String key = getKeyName(identifier);
                 SharedAccessBlobHeaders headers = new SharedAccessBlobHeaders();
                 headers.setCacheControl(String.format("private, max-age=%d, immutable", httpDownloadURIExpirySeconds));

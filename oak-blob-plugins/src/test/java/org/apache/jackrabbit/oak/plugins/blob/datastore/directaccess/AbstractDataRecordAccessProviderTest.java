@@ -36,6 +36,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -49,6 +50,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.util.Base64;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +59,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractDataRecordAccessProviderTest.class);
 
     protected abstract ConfigurableDataRecordAccessProvider getDataStore();
+    protected abstract ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception;
     protected abstract long getProviderMinPartSize();
     protected abstract long getProviderMaxPartSize();
     protected abstract long getProviderMaxSinglePutSize();
@@ -101,7 +104,23 @@ public abstract class AbstractDataRecordAccessProviderTest {
     }
 
     @Test
-    public void testGetDownloadURIRequiresValidIdentifier() {
+    public void testGetDownloadURIWithExistsDisabled() throws Exception {
+        DataIdentifier id = new DataIdentifier("identifier");
+        Properties overrideProperties = new Properties();
+        overrideProperties.put("presignedHttpDownloadURIVerifyExists", "false");
+        ConfigurableDataRecordAccessProvider ds = getDataStore(overrideProperties);
+        assertNotNull(ds.getDownloadURI(id, DataRecordDownloadOptions.DEFAULT));
+    }
+
+    @Test
+    public void testGetDownloadURIRequiresValidIdentifierByDefault() {
+        DataIdentifier id = new DataIdentifier("identifier");
+        ConfigurableDataRecordAccessProvider ds = getDataStore();
+        assertNull(ds.getDownloadURI(id, DataRecordDownloadOptions.DEFAULT));
+    }
+
+    @Test
+    public void testGetDownloadURIRequiresNonNullIdentifier() {
         try {
             getDataStore().getDownloadURI(null, DataRecordDownloadOptions.DEFAULT);
             fail();
