@@ -18,11 +18,20 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -35,18 +44,11 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.Configurabl
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.jetbrains.annotations.NotNull;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProviderTest {
     @ClassRule
@@ -57,16 +59,30 @@ public class S3DataRecordAccessProviderTest extends AbstractDataRecordAccessProv
     @BeforeClass
     public static void setupDataStore() throws Exception {
         assumeTrue(isS3Configured());
-        dataStore = (S3DataStore) getS3DataStore(getFixtures().get(0), getS3Config(),
-            homeDir.newFolder().getAbsolutePath());
+        dataStore = createDataStore(getS3Config());
+    }
 
-        dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
-        dataStore.setDirectUploadURIExpirySeconds(expirySeconds);
+    private static S3DataStore createDataStore(@NotNull final Properties properties) throws Exception {
+        S3DataStore ds = (S3DataStore) getS3DataStore(getFixtures().get(0), properties,
+                homeDir.newFolder().getAbsolutePath());
+
+        ds.setDirectDownloadURIExpirySeconds(expirySeconds);
+        ds.setDirectUploadURIExpirySeconds(expirySeconds);
+
+        return ds;
     }
 
     @Override
     protected ConfigurableDataRecordAccessProvider getDataStore() {
         return dataStore;
+    }
+
+    @Override
+    protected ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception {
+        Properties mergedProperties = new Properties();
+        mergedProperties.putAll(getS3Config());
+        mergedProperties.putAll(overrideProperties);
+        return createDataStore(mergedProperties);
     }
 
     @Override
