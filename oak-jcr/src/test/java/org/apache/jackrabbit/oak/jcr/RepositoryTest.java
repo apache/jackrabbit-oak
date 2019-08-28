@@ -387,7 +387,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore
     @Test
     public void getNodeByEmptyIdentifier() throws RepositoryException {
         try {

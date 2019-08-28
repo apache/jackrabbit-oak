@@ -320,11 +320,15 @@ public class SessionImpl implements JackrabbitSession {
             @NotNull
             @Override
             public Node perform() throws RepositoryException {
-                NodeDelegate nd = sd.getNodeByIdentifier(id);
-                if (nd == null) {
-                    throw new ItemNotFoundException("Node with id " + id + " does not exist.");
+                try {
+                    NodeDelegate nd = sd.getNodeByIdentifier(id);
+                    if (nd == null) {
+                        throw new ItemNotFoundException("Node with id " + id + " does not exist.");
+                    }
+                    return NodeImpl.createNode(nd, sessionContext);
+                } catch (IllegalArgumentException ex) {
+                    throw new RepositoryException(ex);
                 }
-                return NodeImpl.createNode(nd, sessionContext);
             }
         });
     }
