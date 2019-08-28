@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,6 +36,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -199,18 +201,25 @@ public class SegmentTarFixture extends OakFixture {
             CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath);
             fileStoreBuilder.withCustomPersistence(new AzurePersistence(directory));
         }
-        
+
+        BlobStore blobStore = null;
         if (useBlobStore) {
             FileDataStore fds = new FileDataStore();
             fds.setMinRecordLength(4092);
             fds.init(parentPath.getAbsolutePath());
-            BlobStore blobStore = new DataStoreBlobStore(fds);
+            blobStore = new DataStoreBlobStore(fds);
             
             fileStoreBuilder.withBlobStore(blobStore);
         }
         
         FileStore fs = fileStoreBuilder.build();
-        return newOak(SegmentNodeStoreBuilders.builder(fs).build());
+        Oak oak = newOak(SegmentNodeStoreBuilders.builder(fs).build());
+        if (blobStore != null) {
+            oak.getWhiteboard()
+                .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
+        }
+
+        return oak;
     }
 
     @Override
@@ -254,6 +263,10 @@ public class SegmentTarFixture extends OakFixture {
             }
             
             cluster[i] = newOak(SegmentNodeStoreBuilders.builder(stores[i]).build());
+            if (blobStore != null) {
+                cluster[i].getWhiteboard()
+                    .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
+            }
         }
         return cluster;
     }

@@ -533,7 +533,8 @@ public class BenchmarkRunner {
             new BasicWriteTest(),
             new CanReadNonExisting(),
             new IsNodeTypeTest(runAsAdmin.value(options)),
-            new SetPropertyTransientTest()
+            new SetPropertyTransientTest(),
+            new GetURITest()
         };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
