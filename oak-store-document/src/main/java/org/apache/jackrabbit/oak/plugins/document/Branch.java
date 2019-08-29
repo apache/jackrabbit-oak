@@ -288,6 +288,20 @@ class Branch {
         return Iterables.concat(paths);
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        base.toStringBuilder(sb).append("[");
+        String separator = "";
+        for (Map.Entry<Revision, BranchCommit> c : commits.entrySet()) {
+            sb.append(separator);
+            separator = ",";
+            sb.append(c.getKey()).append("->").append(c.getValue());
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     /**
      * Information about a commit within a branch.
      */

@@ -551,13 +551,15 @@ public class Commit {
         collisions.clear();
         if (baseRevision != null) {
             Revision newestRev = null;
+            Branch branch = null;
             if (before != null) {
                 RevisionVector base = baseRevision;
                 if (nodeStore.isDisableBranches()) {
                     base = base.asTrunkRevision();
                 }
+                branch = getBranch();
                 newestRev = before.getNewestRevision(
-                        nodeStore, base, revision, getBranch(), collisions);
+                        nodeStore, base, revision, branch, collisions);
             }
             String conflictMessage = null;
             Set<Revision> conflictRevisions = Sets.newHashSet();
@@ -565,7 +567,8 @@ public class Commit {
                 if ((op.isDelete() || !op.isNew())
                         && !allowConcurrentAddRemove(before, op)) {
                     conflictMessage = "The node " +
-                            op.getId() + " does not exist or is already deleted";
+                            op.getId() + " does not exist or is already deleted " +
+                            "at base revision " + baseRevision + ", branch: " + branch;
                     if (before != null && !before.getLocalDeleted().isEmpty()) {
                         conflictRevisions.add(before.getLocalDeleted().firstKey());
                     }
@@ -614,7 +617,7 @@ public class Commit {
                 }
             }
             if (conflictMessage != null) {
-                conflictMessage += ", before\n" + revision;
+                conflictMessage += ", commit revision: " + revision;
                 if (LOG.isDebugEnabled()) {
                     LOG.debug(conflictMessage  + "; document:\n" +
                             (before == null ? "" : before.format()));
