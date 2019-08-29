@@ -22,10 +22,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -127,6 +131,35 @@ public class CommitTest {
                 // expected
                 assertTrue("Unexpected exception message: " + e.getMessage(),
                         e.getMessage().contains("does not exist"));
+            }
+        } finally {
+            ns.canceled(c);
+        }
+    }
+
+    // OAK-8585
+    @Test
+    public void alreadyDeletedMessage() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        merge(ns, builder);
+        builder = ns.getRoot().builder();
+        builder.child("foo").remove();
+        merge(ns, builder);
+
+        Commit c = ns.newCommit(changes -> {
+            changes.removeNode(Path.fromString("/foo"), EMPTY_NODE);
+        }, ns.getHeadRevision().asBranchRevision(ns.getClusterId()), null);
+        try {
+            try {
+                c.apply();
+                fail("commit must fail");
+            } catch (ConflictException e) {
+                // expected
+                assertThat(e.getMessage(), containsString("base revision"));
+                assertThat(e.getMessage(), containsString("branch"));
             }
         } finally {
             ns.canceled(c);
