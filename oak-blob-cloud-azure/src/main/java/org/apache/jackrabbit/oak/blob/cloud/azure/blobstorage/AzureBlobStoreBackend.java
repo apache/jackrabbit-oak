@@ -91,6 +91,8 @@ import org.slf4j.LoggerFactory;
 public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     private static final Logger LOG = LoggerFactory.getLogger(AzureBlobStoreBackend.class);
+    private static final Logger LOG_STREAMS_DOWNLOAD = LoggerFactory.getLogger("oak.datastore.download.streams");
+    private static final Logger LOG_STREAMS_UPLOAD = LoggerFactory.getLogger("oak.datastore.upload.streams");
 
     private static final String META_DIR_NAME = "META";
     private static final String META_KEY_PREFIX = META_DIR_NAME + "/";
@@ -220,6 +222,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
             InputStream is = blob.openInputStream();
             LOG.debug("Got input stream for blob. identifier={} duration={}", key, (System.currentTimeMillis() - start));
+            if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
+                // Log message, with exception so we can get a trace to see where the call came from
+                LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from Azure Blob Storage - identifier={}", key, new Exception());
+            }
             return is;
         }
         catch (StorageException e) {
@@ -262,6 +268,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 try {
                     blob.upload(in, len, null, options, null);
                     LOG.debug("Blob created. identifier={} length={} duration={} buffered={}", key, len, (System.currentTimeMillis() - start), useBufferedStream);
+                    if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
+                        // Log message, with exception so we can get a trace to see where the call came from
+                        LOG_STREAMS_UPLOAD.debug("Binary uploaded to Azure Blob Storage - identifier={}", key, new Exception());
+                    }
                 } finally {
                     in.close();
                 }
@@ -1203,11 +1213,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
             }
-            if (LOG.isDebugEnabled()) {
-                // Log message, with exception so we can get a trace to see where the call
-                // came from
-                LOG.debug("binary downloaded from Azure Blob Storage: " + getIdentifier(),
-                        new Exception());
+            else {
+                // Don't worry about stream logging for metadata records
+                if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
+                    // Log message, with exception so we can get a trace to see where the call came from
+                    LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from Azure Blob Storage - identifier={} ", id, new Exception());
+                }
             }
             try {
                 return container.getBlockBlobReference(id).openInputStream();
