@@ -106,6 +106,8 @@ public class S3Backend extends AbstractSharedBackend {
      * Logger instance.
      */
     private static final Logger LOG = LoggerFactory.getLogger(S3Backend.class);
+    private static final Logger LOG_STREAMS_DOWNLOAD = LoggerFactory.getLogger("oak.datastore.download.streams");
+    private static final Logger LOG_STREAMS_UPLOAD = LoggerFactory.getLogger("oak.datastore.upload.streams");
 
     private static final String KEY_PREFIX = "dataStore_";
 
@@ -333,6 +335,10 @@ public class S3Backend extends AbstractSharedBackend {
                     // start multipart parallel upload using amazon sdk
                     Upload up = tmx.upload(s3ReqDecorator.decorate(new PutObjectRequest(
                         bucket, key, file)));
+                    if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
+                        // Log message, with exception so we can get a trace to see where the call came from
+                        LOG_STREAMS_UPLOAD.debug("Binary uploaded to S3 - identifier={}", key, new Exception());
+                    }
                     // wait for upload to finish
                     up.waitForUploadResult();
                     LOG.debug("synchronous upload to identifier [{}] completed.", identifier);
@@ -393,8 +399,9 @@ public class S3Backend extends AbstractSharedBackend {
             S3Object object = s3service.getObject(bucket, key);
             InputStream in = object.getObjectContent();
             LOG.debug("[{}] read took [{}]ms", identifier, (System.currentTimeMillis() - start));
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("binary downloaded from S3: " + identifier, new Exception());
+            if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
+                // Log message, with exception so we can get a trace to see where the call came from
+                LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", key, new Exception());
             }
             return in;
         } catch (AmazonServiceException e) {
@@ -1156,10 +1163,12 @@ public class S3Backend extends AbstractSharedBackend {
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
             }
-            if (LOG.isDebugEnabled()) {
-                // Log message, with exception so we can get a trace to see where the call
-                // came from
-                LOG.debug("binary downloaded from S3: " + getIdentifier(), new Exception());
+            else {
+                // Don't worry about stream logging for metadata records
+                if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
+                    // Log message, with exception so we can get a trace to see where the call came from
+                    LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", id, new Exception());
+                }
             }
             return s3service.getObject(bucket, id).getObjectContent();
         }
