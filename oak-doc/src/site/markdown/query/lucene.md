@@ -54,6 +54,7 @@
     * [Facets](#facets)
     * [Score Explanation](#score-explanation)
     * [Custom hooks](#custom-hooks)
+    * [Search by similar feature vectors](#similar-fv)
 * [Design Considerations](#design-considerations)
 * [Limits](#limits)
 * [Lucene Index vs Property Index](#lucene-vs-property)
@@ -1503,6 +1504,35 @@ _Note that showing explanation score is expensive. So, this feature should be us
 In OSGi enviroment, implementations of `IndexFieldProvider` and `FulltextQueryTermsProvider` under
 `org.apache.jackrabbit.oak.plugins.index.lucene.spi` (see javadoc [here][oak-lucene]) are called during indexing
 and querying as documented in javadocs.
+
+### <a name="similar-fv"></a>Search by similar feature vectors
+
+Oak Lucene index currently supports _rep:similar_ queries via _MoreLikeThis_ for text properties, this allows to search 
+for similar nodes by looking at texts.
+This capability extends _rep:similar_ support to feature vectors, typically used to represent binary content like images,
+in order to search for similar nodes by looking at such vectors.
+
+In order to index JCR properties holding vector values for similarity search, either in form of blobs or in form of texts, 
+the index definition should have a rule for each such property with the _useInSimilarity_ parameter set to _true_.
+As a result, after (re)indexing, each vector will be indexed so that an approximate nearest neighbour search is possible, 
+not requiring brute force nearest neighbour search over the entire set of indexed vectors.
+
+By default another property for feature vector similarity search, called _similarityRerank_, is set to _true_ in order 
+to allow reranking of the top 15 results using brute force nearest neighbour.
+Therefore in a first iteration an approximate nearest neighbour search is performed to obtain all the possibly relevant 
+results (expecting high recall), then a brute force nearest neighbour over the top 15 search results is performed to 
+improve precision (see [OAK-7824](https://issues.apache.org/jira/browse/OAK-7824), [OAK-7962](https://issues.apache.org/jira/browse/OAK-7962),
+[OAK-8119](https://issues.apache.org/jira/browse/OAK-8119)).  
+
+As a further improvement for the accuracy of similarity search results if nodes having feature vectors also have properties
+ holding text values that can be used as keywords or tags that well describe the feature vector contents, the  
+ _similarityTags_ configuration can be set to _true_ for such properties (see [OAK-8118](https://issues.apache.org/jira/browse/OAK-8118)). 
+
+See also [OAK-7575](https://issues.apache.org/jira/browse/OAK-7575).
+
+
+
+`@since Oak 1.8.8`
 
 ### <a name="design-considerations"></a>Design Considerations
 
