@@ -278,7 +278,7 @@ TarMK GC #2: compaction interrupted
 
 ##### <a name="how-does-compaction-deal-with-checkpoints"/> How does compaction deal with checkpoints?
 
-Since checkpoints share a lot of common data between themselves and between the actual content compaction handles them individually deduplicating as much content as possible. The following messages will be printed to the log during the process.
+Since checkpoints share a lot of common data between themselves and between the actual content, compaction handles them individually, deduplicating as much content as possible. The following messages will be printed to the log during the process.
 
 ```
 TarMK GC #2: Found checkpoint 4b2ee46a-d7cf-45e7-93c3-799d538f85e6 created at Wed Nov 29 15:31:43 CET 2017.
