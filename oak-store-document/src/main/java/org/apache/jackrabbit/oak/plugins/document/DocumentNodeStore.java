@@ -537,7 +537,11 @@ public final class DocumentNodeStore
             s = new TimingDocumentStoreWrapper(s);
         }
         if (builder.getLogging()) {
-            s = new LoggingDocumentStoreWrapper(s);
+            if (builder.getLoggingPrefix() != null) {
+                s = new LoggingDocumentStoreWrapper(s, builder.getLoggingPrefix());
+            } else {
+                s = new LoggingDocumentStoreWrapper(s);
+            }
         }
         if (builder.getReadOnlyMode()) {
             s = ReadOnlyDocumentStoreWrapperFactory.getInstance(s);

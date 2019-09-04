@@ -115,6 +115,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private int asyncDelay = 1000;
     private boolean timing;
     private boolean logging;
+    private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
@@ -209,6 +210,22 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean getLogging() {
         return logging;
+    }
+
+    /**
+     * Sets a custom prefix for the logger.
+     * 
+     * @param prefix to be used in the logs output.
+     * @return this
+     */
+    public T setLoggingPrefix(String prefix) {
+        this.loggingPrefix = prefix;
+        return thisBuilder();
+    }
+
+    @Nullable
+    String getLoggingPrefix() {
+        return loggingPrefix;
     }
 
     /**
