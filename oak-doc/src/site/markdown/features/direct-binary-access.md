@@ -58,9 +58,9 @@ The feature has to be explicitly enabled by setting properties on the DataStore.
 
 The APIs for this feature are available in [jackrabbit-api](https://jackrabbit.apache.org/jcr/jcr-api.html):
 
-* [JackrabbitValueFactory](http://jackrabbit.apache.org/api/trunk/org/apache/jackrabbit/api/JackrabbitValueFactory.html) for uploading - cast `session.getValueFactory()` to this and use `initiateBinaryUpload()` and `completeBinaryUpload()`
-* [BinaryDownload](http://jackrabbit.apache.org/api/trunk/org/apache/jackrabbit/api/binary/BinaryDownload.html) for downloading - cast a `Binary` to this and call `getURI()`
-* other elements are in the [org.apache.jackrabbit.api.binary package](http://jackrabbit.apache.org/api/trunk/org/apache/jackrabbit/api/binary/package-summary.html)
+* [JackrabbitValueFactory](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/api/JackrabbitValueFactory.html) for uploading - cast `session.getValueFactory()` to this and use `initiateBinaryUpload()` and `completeBinaryUpload()`
+* [BinaryDownload](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/api/binary/BinaryDownload.html) for downloading - cast a `Binary` to this and call `getURI()`
+* other elements are in the [org.apache.jackrabbit.api.binary package](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/api/binary/package-summary.html)
 
 ## Usage
 
@@ -188,7 +188,7 @@ Clients should always check whether the `BinaryUpload` returned from `valueFacto
 
 #### 2. Upload
 
-The remote client will upload using the instructions according to the [upload algorithm described in BinaryUpload](http://jackrabbit.apache.org/api/trunk/org/apache/jackrabbit/api/binary/BinaryUpload.html).
+The remote client will upload using the instructions according to the [upload algorithm described in BinaryUpload](http://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/api/binary/BinaryUpload.html).
 
 #### 3. Complete
 
