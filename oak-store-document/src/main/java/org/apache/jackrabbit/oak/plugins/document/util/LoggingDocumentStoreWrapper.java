@@ -216,7 +216,6 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
     }
 
-    @NotNull
     @Override
     public <T extends Document> T createOrUpdate(final Collection<T> collection,
                                                  final UpdateOp update) {
