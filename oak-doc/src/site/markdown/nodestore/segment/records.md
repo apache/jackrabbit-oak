@@ -238,6 +238,7 @@ records to represent itself:
 - list record: this is a top-level record that maintains the size of the list in
   an integer field and a record identifier pointing to a bucket.
 
+
       +--------+--------+--------+-----+
       | sub-list ID 1            | ... |
       +--------+--------+--------+-----+
