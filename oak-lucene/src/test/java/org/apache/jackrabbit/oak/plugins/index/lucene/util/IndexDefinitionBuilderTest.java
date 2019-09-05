@@ -973,4 +973,20 @@ public class IndexDefinitionBuilderTest {
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo5"));
     }
+
+    @Test
+    public void unnamedPropertyRuleInExistingIndex() {
+        // create an initial index with property rule for "foo"
+        builder
+                .indexRule("nt:base")
+                .property("foo")
+                //  remove "name" property explicitly
+                .getBuilderTree().removeProperty("name");
+        NodeState initialIndexState = builder.build();
+
+        // Use initial index def to add some other property rule - this should work
+        new IndexDefinitionBuilder(initialIndexState.builder())
+                .indexRule("nt:base")
+                .property("bar");
+    }
 }
