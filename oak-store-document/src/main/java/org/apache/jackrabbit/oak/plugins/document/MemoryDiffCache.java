@@ -108,6 +108,11 @@ public class MemoryDiffCache extends DiffCache {
         return Collections.singleton(diffCacheStats);
     }
 
+    @Override
+    public void invalidateAll() {
+        diffCache.invalidateAll();
+    }
+
     protected class MemoryEntry implements Entry {
 
         private final RevisionVector from;

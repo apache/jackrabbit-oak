@@ -307,5 +307,10 @@ class JournalDiffLoader implements DiffCache.Loader {
         Iterable<CacheStats> getStats() {
             return cache.getStats();
         }
+
+        @Override
+        public void invalidateAll() {
+            cache.invalidateAll();
+        }
     }
 }

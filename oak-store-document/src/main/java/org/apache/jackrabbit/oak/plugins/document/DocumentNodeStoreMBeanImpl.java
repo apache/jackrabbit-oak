@@ -239,4 +239,29 @@ final class DocumentNodeStoreMBeanImpl extends AnnotatedStandardMBean implements
         final String from = Utils.getKeyLowerLimit(pathRef);
         return nodeStore.getDocumentStore().query(Collection.NODES, from, to, 10000);
     }
+
+    @Override
+    public String cleanAllCaches() {
+        nodeStore.getDiffCache().invalidateAll();
+        nodeStore.getNodeCache().invalidateAll();
+        nodeStore.getNodeChildrenCache().invalidateAll();
+        return "Caches invalidated.";
+    }
+
+    @Override
+    public String cleanIndividualCache(String name) {
+        switch(name.toUpperCase()) {
+            case "DIFF":
+                nodeStore.getDiffCache().invalidateAll();
+                return "DiffCache invalidated.";
+            case "NODE":
+                nodeStore.getNodeCache().invalidateAll();
+                return "NodeCache invalidated.";
+            case "NODECHILDREN":
+                nodeStore.getNodeChildrenCache().invalidateAll();
+                return "NodeChildrenCache invalidated.";
+            default:
+                return "ERROR: Invalid cache name received.";
+        }
+    }
 }

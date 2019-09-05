@@ -72,6 +72,11 @@ abstract class DiffCache {
     abstract Iterable<CacheStats> getStats();
 
     /**
+     * Invalidates all the entries in the cache.
+     */
+    abstract void invalidateAll();
+
+    /**
      * Parses the jsop diff returned by
      * {@link #getChanges(RevisionVector, RevisionVector, Path, Loader)} and reports the
      * changes by calling the appropriate methods on {@link Diff}.
