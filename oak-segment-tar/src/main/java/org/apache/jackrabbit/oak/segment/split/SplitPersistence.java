@@ -20,14 +20,12 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.*;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +39,8 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
 
     private final Optional<String> lastRoArchive;
 
+    private final Optional<String> lastRoJournalEntry;
+
     public SplitPersistence(SegmentNodeStorePersistence roPersistence, SegmentNodeStorePersistence rwPersistence) throws IOException {
         this.roPersistence = roPersistence;
         this.rwPersistence = rwPersistence;
@@ -51,11 +51,18 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
         }
         Properties properties = manifest.load();
         lastRoArchive = Optional.ofNullable(properties.getProperty("split.lastRoArchive"));
+        lastRoJournalEntry = Optional.ofNullable(properties.getProperty("split.lastRoJournalEntry"));
     }
 
     private void initialize() throws IOException {
         Properties properties = roPersistence.getManifestFile().load();
         properties.setProperty("split.initialized", "true");
+        try (JournalFileReader journalFileReader = roPersistence.getJournalFile().openJournalReader()) {
+            String journalLine;
+            if ((journalLine = journalFileReader.readLine()) != null) {
+                properties.setProperty("split.lastRoJournalEntry", journalLine);
+            }
+        }
         Optional<String> lastArchive = getLastArchive();
         lastArchive.ifPresent(a -> properties.setProperty("split.lastRoArchive", a));
         rwPersistence.getManifestFile().save(properties);
@@ -63,22 +70,6 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
         GCJournalFile gcJournalFile = rwPersistence.getGCJournalFile();
         for (String line : roPersistence.getGCJournalFile().readLines()) {
             gcJournalFile.writeLine(line);
-        }
-
-        List<String> journalLines = new ArrayList<>();
-        try (JournalFileReader journalFileReader = roPersistence.getJournalFile().openJournalReader()) {
-            String journalLine;
-            while ((journalLine = journalFileReader.readLine()) != null) {
-                journalLines.add(journalLine);
-            }
-        }
-
-        Collections.reverse(journalLines);
-
-        try (JournalFileWriter journalFileWriter = rwPersistence.getJournalFile().openJournalWriter()) {
-            for (String line : journalLines) {
-                journalFileWriter.writeLine(line);
-            }
         }
     }
 
@@ -112,7 +103,7 @@ public class SplitPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public JournalFile getJournalFile() {
-        return rwPersistence.getJournalFile();
+        return new SplitJournalFile(roPersistence.getJournalFile(), rwPersistence.getJournalFile(), lastRoJournalEntry);
     }
 
     @Override
