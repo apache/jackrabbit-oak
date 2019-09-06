@@ -44,7 +44,7 @@ public class ReverseFileReader {
     private int fileOffset;
 
     public ReverseFileReader(CloudBlob blob) throws StorageException {
-        this(blob, BUFFER_SIZE);
+        this (blob, BUFFER_SIZE);
     }
 
     public ReverseFileReader(CloudBlob blob, int bufferSize) throws StorageException {
