@@ -644,7 +644,7 @@ public class S3Backend extends AbstractSharedBackend {
             return record;
         } catch (AmazonServiceException e) {
             if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
-                LOG.info(
+                LOG.debug(
                         "getRecord:Identifier [{}] not found. Took [{}] ms.",
                         identifier, (System.currentTimeMillis() - start));
             }

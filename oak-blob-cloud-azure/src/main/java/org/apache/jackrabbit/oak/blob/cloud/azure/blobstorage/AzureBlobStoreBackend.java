@@ -389,7 +389,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             return record;
         }
         catch (StorageException e) {
-            LOG.info("Error getting data record for blob. identifier={}", key, e);
+            if (404 == e.getHttpStatusCode()) {
+                LOG.debug("Unable to get record for blob; blob does not exist. identifier={}", key);
+            }
+            else {
+                LOG.info("Error getting data record for blob. identifier={}", key, e);
+            }
             throw new DataStoreException(String.format("Cannot retrieve blob. identifier=%s", key), e);
         }
         catch (URISyntaxException e) {
