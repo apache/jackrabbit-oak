@@ -184,7 +184,7 @@ public class InitiateUploadServlet extends HttpServlet {
 }
 ```
 
-Clients should always check whether the `BinaryUpload` returned from `valueFactory.initiateBinaryUpload()` is null, and also should handle the case where no upload URIs are returned.  Either situation indicates that the feature is not supported.
+Clients should always check whether the `BinaryUpload` returned from `valueFactory.initiateBinaryUpload()` is null.  This situation indicates that the feature is not supported.
 
 #### 2. Upload
 

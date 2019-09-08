@@ -339,11 +339,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
         ConfigurableDataRecordAccessProvider ds = getDataStore();
         try {
             ds.setDirectUploadURIExpirySeconds(0);
-            DataRecordUpload uploadContext = ds.initiateDataRecordUpload(TWENTY_MB, 10);
-            assertEquals(0, uploadContext.getUploadURIs().size());
-
-            uploadContext = ds.initiateDataRecordUpload(20, 1);
-            assertEquals(0, uploadContext.getUploadURIs().size());
+            assertNull(ds.initiateDataRecordUpload(TWENTY_MB, 10));
+            assertNull(ds.initiateDataRecordUpload(20, 1));
         }
         finally {
             ds.setDirectUploadURIExpirySeconds(expirySeconds);

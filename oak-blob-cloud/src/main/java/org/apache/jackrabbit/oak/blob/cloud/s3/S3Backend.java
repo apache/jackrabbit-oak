@@ -882,30 +882,37 @@ public class S3Backend extends AbstractSharedBackend {
                             presignedURIRequestParams));
                 }
             }
-        }
 
-        try {
-            byte[] secret = getOrCreateReferenceKey();
-            String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(secret);
+            try {
+                byte[] secret = getOrCreateReferenceKey();
+                String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(secret);
 
-            return new DataRecordUpload() {
-                @Override
-                @NotNull
-                public String getUploadToken() { return uploadToken; }
+                return new DataRecordUpload() {
+                    @Override
+                    @NotNull
+                    public String getUploadToken() {
+                        return uploadToken;
+                    }
 
-                @Override
-                public long getMinPartSize() { return minPartSize; }
+                    @Override
+                    public long getMinPartSize() {
+                        return minPartSize;
+                    }
 
-                @Override
-                public long getMaxPartSize() { return maxPartSize; }
+                    @Override
+                    public long getMaxPartSize() {
+                        return maxPartSize;
+                    }
 
-                @Override
-                @NotNull
-                public Collection<URI> getUploadURIs() { return uploadPartURIs; }
-            };
-        }
-        catch (DataStoreException e) {
-            LOG.warn("Unable to obtain data store key");
+                    @Override
+                    @NotNull
+                    public Collection<URI> getUploadURIs() {
+                        return uploadPartURIs;
+                    }
+                };
+            } catch (DataStoreException e) {
+                LOG.warn("Unable to obtain data store key");
+            }
         }
 
         return null;

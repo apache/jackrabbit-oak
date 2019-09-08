@@ -925,29 +925,36 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                         Base64.encode(String.format("%06d", blockId)));
                 uploadPartURIs.add(createPresignedURI(key, perms, httpUploadURIExpirySeconds, presignedURIRequestParams));
             }
-        }
 
-        try {
-            byte[] secret = getOrCreateReferenceKey();
-            String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(secret);
-            return new DataRecordUpload() {
-                @Override
-                @NotNull
-                public String getUploadToken() { return uploadToken; }
+            try {
+                byte[] secret = getOrCreateReferenceKey();
+                String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(secret);
+                return new DataRecordUpload() {
+                    @Override
+                    @NotNull
+                    public String getUploadToken() {
+                        return uploadToken;
+                    }
 
-                @Override
-                public long getMinPartSize() { return minPartSize; }
+                    @Override
+                    public long getMinPartSize() {
+                        return minPartSize;
+                    }
 
-                @Override
-                public long getMaxPartSize() { return maxPartSize; }
+                    @Override
+                    public long getMaxPartSize() {
+                        return maxPartSize;
+                    }
 
-                @Override
-                @NotNull
-                public Collection<URI> getUploadURIs() { return uploadPartURIs; }
-            };
-        }
-        catch (DataStoreException e) {
-            LOG.warn("Unable to obtain data store key");
+                    @Override
+                    @NotNull
+                    public Collection<URI> getUploadURIs() {
+                        return uploadPartURIs;
+                    }
+                };
+            } catch (DataStoreException e) {
+                LOG.warn("Unable to obtain data store key");
+            }
         }
 
         return null;
