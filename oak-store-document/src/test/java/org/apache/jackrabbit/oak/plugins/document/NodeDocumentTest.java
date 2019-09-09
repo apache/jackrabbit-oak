@@ -491,12 +491,64 @@ public class NodeDocumentTest {
         getNewestRevisionAfterGC(true);
     }
 
+    @Test
+    public void getNodeAtRevisionAfterGC() throws Exception {
+        getNodeAtRevisionAfterGC(false);
+    }
+
+    @Test
+    public void getNodeAtRevisionAfterGCWithBranchRevision() throws Exception {
+        getNodeAtRevisionAfterGC(true);
+    }
+
+    private void getNodeAtRevisionAfterGC(boolean withBranch) throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        Revision r = populateStoreAndGC(store);
+
+        // start fresh
+        DocumentNodeStore ns = createTestStore(store, 1, 0, 0);
+        String id = Utils.getIdFromPath(Path.fromString("/bar/test"));
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+
+        RevisionVector changeRev = new RevisionVector(r);
+        if (withBranch) {
+            changeRev = changeRev.asBranchRevision(1);
+        }
+        DocumentNodeState state = doc.getNodeAtRevision(ns, changeRev, null);
+        assertNotNull(state);
+        assertEquals(changeRev.asTrunkRevision(), state.getLastRevision());
+        assertNotNull(state.getProperty("p"));
+    }
+
     private void getNewestRevisionAfterGC(boolean withBranch) throws Exception {
         DocumentStore store = new MemoryDocumentStore();
+        Revision r = populateStoreAndGC(store);
+
+        // start fresh
+        DocumentNodeStore ns = createTestStore(store, 1, 0, 0);
+        String id = Utils.getIdFromPath(Path.fromString("/bar/test"));
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+
+        RevisionVector baseRev = ns.getHeadRevision();
+        Revision change = ns.newRevision();
+        Branch branch = null;
+        if (withBranch) {
+            SortedSet<Revision> branchCommits = new TreeSet<>(StableRevisionComparator.REVERSE);
+            branchCommits.add(change);
+            branch = new Branch(branchCommits, baseRev, new ReferenceQueue<>(), null);
+            baseRev = baseRev.asBranchRevision(1);
+        }
+        Revision rev = doc.getNewestRevision(ns, baseRev, change, branch, new HashSet<>());
+        assertEquals(r, rev);
+    }
+
+    private Revision populateStoreAndGC(DocumentStore store) throws Exception {
         DocumentNodeStore ns = createTestStore(store, 1, 0);
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("foo");
-        builder.child("bar").child("test");
+        builder.child("bar").child("test").setProperty("p", "v");
         merge(ns, builder);
         // remember the revision
         Revision r = ns.getHeadRevision().getRevision(1);
@@ -522,23 +574,7 @@ public class NodeDocumentTest {
 
         ns.dispose();
 
-        // start fresh
-        ns = createTestStore(store, 1, 0, 0);
-        String id = Utils.getIdFromPath(Path.fromString("/bar/test"));
-        NodeDocument doc = store.find(NODES, id);
-        assertNotNull(doc);
-
-        RevisionVector baseRev = ns.getHeadRevision();
-        Revision change = ns.newRevision();
-        Branch branch = null;
-        if (withBranch) {
-            SortedSet<Revision> branchCommits = new TreeSet<>(StableRevisionComparator.REVERSE);
-            branchCommits.add(change);
-            branch = new Branch(branchCommits, baseRev, new ReferenceQueue<>(), null);
-            baseRev = baseRev.asBranchRevision(1);
-        }
-        Revision rev = doc.getNewestRevision(ns, baseRev, change, branch, new HashSet<>());
-        assertEquals(r, rev);
+        return r;
     }
 
     @Test
