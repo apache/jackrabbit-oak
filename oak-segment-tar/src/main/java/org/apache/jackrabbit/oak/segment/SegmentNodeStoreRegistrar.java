@@ -55,7 +55,7 @@ import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
 import org.apache.jackrabbit.oak.segment.file.*;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.split.SplitPersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.split.SplitPersistence;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
