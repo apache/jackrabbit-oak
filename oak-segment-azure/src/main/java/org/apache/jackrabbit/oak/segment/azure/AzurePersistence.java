@@ -170,4 +170,8 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         });
     }
 
+        public CloudBlobDirectory getSegmentstoreDirectory() {
+            return segmentstoreDirectory;
+        }
+
 }

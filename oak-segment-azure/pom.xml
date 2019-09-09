@@ -45,7 +45,14 @@
                             !org.apache.jackrabbit.oak.segment*,
                             *
                         </Import-Package>
-                        <Export-Package />
+                        <Export-Package>
+                            org.apache.jackrabbit.oak.segment.azure,
+                            org.apache.jackrabbit.oak.segment.azure.queue,
+                            org.apache.jackrabbit.oak.segment.azure.util,
+                            com.microsoft.azure.storage,
+                            com.microsoft.azure.storage.core,
+                            com.microsoft.azure.storage.blob
+                        </Export-Package>
                         <Embed-Dependency>
                             azure-storage,
                             azure-keyvault-core
