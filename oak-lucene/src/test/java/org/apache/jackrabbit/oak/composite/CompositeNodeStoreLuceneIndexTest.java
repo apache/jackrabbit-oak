@@ -48,7 +48,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 @SuppressWarnings("ConstantConditions")
 public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTestBase {
@@ -103,20 +102,13 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     }
 
     /**
-     * Given a composite node store , trying to create an index in read-write part
-     * with the same index node already existing in the read only part already
-     * we should get OakConstraint001 . This is the current behaviour,
-     * but can be worked upon (improved) in the future .
+     * Given a composite node store , create an index in read-write part
+     * with the same index node already existing in the read-only part already.
      */
     @Test
-    public void tryAddIndexInReadWriteWithIndexExistinginReadOnly() {
-        try {
-            repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
-            assertTrue(false);
-        } catch (Exception e) {
-            assert (e.getLocalizedMessage().contains(
-                    "OakConstraint0001: /oak:index/luceneTest/:oak:mount-readOnlyV1-index-data[[]]: The primary type null does not exist"));
-        }
+    public void addIndexInReadWriteWithIndexExistinginReadOnly() throws Exception {
+        repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
+        repoV1.cleanup();
     }
 
     /**
