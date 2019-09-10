@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -31,9 +33,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
 import com.google.common.cache.Weigher;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -44,7 +46,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -237,15 +238,18 @@ public class UploadStagingCache implements Closeable {
         // Move any older cache pending uploads
         movePendingUploadsToStaging(home, rootPath, true);
 
-        Iterator<File> iter = Files.fileTreeTraverser().postOrderTraversal(uploadCacheSpace)
-            .filter(new Predicate<File>() {
-                @Override public boolean apply(File input) {
-                    return input.isFile();
-                }
-            }).iterator();
+        List<File> files;
+        try {
+            uploadCacheSpace.mkdirs();
+            files = java.nio.file.Files.find(uploadCacheSpace.toPath(), Integer.MAX_VALUE, (path, basicFileAttributes) -> basicFileAttributes.isRegularFile())
+                    .map(Path::toFile)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
         int count = 0;
-        while (iter.hasNext()) {
-            File toBeSyncedFile = iter.next();
+        for (File toBeSyncedFile : files) {
             Optional<SettableFuture<Integer>> scheduled =
                 putOptionalDisregardingSize(toBeSyncedFile.getName(), toBeSyncedFile, true);
             if (scheduled.isPresent()) {
@@ -403,13 +407,14 @@ public class UploadStagingCache implements Closeable {
                     result.setException(t);
                     retryQueue.add(id);
                 }
-            });
+            }, new SameThreadExecutorService());
             LOG.debug("File [{}] scheduled for upload [{}]", upload, result);
         } catch (Exception e) {
             LOG.error("Error staging file for upload [{}]", upload, e);
         }
         return result;
     }
+
 
     /**
      * Invalidate called externally.
