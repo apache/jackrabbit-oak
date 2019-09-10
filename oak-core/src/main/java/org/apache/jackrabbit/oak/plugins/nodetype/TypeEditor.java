@@ -78,7 +78,7 @@ public class TypeEditor extends DefaultEditor {
      * Extension point that allows pluggable handling of constraint violations
      */
     @ConsumerType
-    public static interface ConstraintViolationCallback {
+    public interface ConstraintViolationCallback {
         /**
          * Invoked whenever a constraint violation is detected.
          * 

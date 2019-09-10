@@ -461,13 +461,12 @@ public class CompositeNodeStoreQueryTestBase {
                             throw new IllegalStateException("instance already created");
                         }
 
-                        // TODO - don't use Unix directory separators
                         String directoryName = name != null ? "segment-" + name : "segment";
-                        storePath = new File("target/classes/" + directoryName);
+                        storePath = new File("target/compositeTest/" + directoryName);
 
                         //String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
                         String blobStoreDirectoryName = "blob" ;
-                        blobStorePath = "target/classes/" + blobStoreDirectoryName;
+                        blobStorePath = "target/compositeTest/" + blobStoreDirectoryName;
 
                         BlobStore blobStore = new FileBlobStore(blobStorePath);
 

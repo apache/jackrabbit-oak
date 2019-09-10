@@ -30,6 +30,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -103,26 +105,69 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     }
 
     /**
-     * Given a composite node store , trying to create an index in read-write part
-     * with the same index node already existing in the read only part already
-     * we should get OakConstraint001 . This is the current behaviour,
-     * but can be worked upon (improved) in the future .
+     * Given a composite node store , create an index in read-write part
+     * with the same index node already existing in the read-only part already.
      */
     @Test
-    public void tryAddIndexInReadWriteWithIndexExistinginReadOnly() {
+    public void addIndexInReadWriteWithIndexExistinginReadOnly() throws Exception {
+        repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
+        repoV1.cleanup();
+    }
+
+    @Test
+    public void reindexCounterIndex() throws Exception {
+        repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
         try {
             repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
             assertTrue(false);
         } catch (Exception e) {
-            assert (e.getLocalizedMessage().contains(
-                    "OakConstraint0001: /oak:index/luceneTest/:oak:mount-readOnlyV1-index-data[[]]: The primary type null does not exist"));
+            Session s = repoV1.getSession();
+            Node c = s.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode("counter");
+            System.out.println("type " + c.getProperty("type").getString());
+            System.out.println("async " + c.getProperty("async").getString());
+
+            // maybe disable async (speedup)
+            // c.setProperty("async", (String) null);
+
+            c.setProperty("resolution", 1);
+            c.setProperty("reindex", true);
+            s.save();
+
+            // restart repository (maybe not needed)
+            repoV1.restartRepo();
+            s = repoV1.getSession();
+            c = s.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode("counter");
+
+            for (int i = 0; i < 1000; i++) {
+                if (!c.getProperty("reindex").getBoolean()) {
+                    break;
+                }
+                Thread.sleep(1000);
+                s.refresh(false);
+                c = s.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode("counter");
+                PropertyIterator it = c.getProperties();
+                while (it.hasNext()) {
+                    Property p = it.nextProperty();
+                    System.out.println("  " + p.getName() + ": " + p.getString());
+                }
+                if (i > 100) {
+                    throw new AssertionError();
+                }
+            }
+        } finally {
+            repoV1.cleanup();
+        }
+        try {
+            repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
+        } catch (Exception e) {
+            assertTrue(true);
         }
     }
 
     /**
      * Given a composite jcr repo with a lucene index with indexed data from both read only and read write parts
      * We create a V2 of this repo which will have the lucene index removed -
-     * Expected behaviour - The same query that returned resutls from both readonly
+     * Expected behaviour - The same query that returned results from both readonly
      * and readwrite in V1 should now return
      * results - but it would be a traversal query and not use the index .
      */
