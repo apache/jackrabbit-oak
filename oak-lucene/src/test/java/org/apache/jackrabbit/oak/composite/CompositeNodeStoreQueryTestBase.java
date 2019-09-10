@@ -308,7 +308,8 @@ public class CompositeNodeStoreQueryTestBase {
                     .with((Observer) luceneIndexProvider)
                     .with(new NodeTypeIndexProvider().with(mip))
                     .with(new ReferenceEditorProvider().with(mip))
-                    .with(new ReferenceIndexProvider().with(mip));
+                    .with(new ReferenceIndexProvider().with(mip))
+                    .withAsyncIndexing("async", 1);
         }
 
     }
@@ -501,7 +502,7 @@ public class CompositeNodeStoreQueryTestBase {
                     @Override
                     public NodeStore get() throws Exception {
                         RDBOptions options = new RDBOptions().dropTablesOnClose(true);
-                        String jdbcUrl = "jdbc:h2:file:./target/classes/document";
+                        String jdbcUrl = "jdbc:h2:file:./target/compositeTest/document";
                         if ( name != null ) {
                             jdbcUrl += "-" + name;
                         }
