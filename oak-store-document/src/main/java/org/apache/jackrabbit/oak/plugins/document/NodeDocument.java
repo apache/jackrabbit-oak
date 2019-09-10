@@ -885,19 +885,15 @@ public final class NodeDocument extends Document {
         if (validRevisions.containsKey(rev)) {
             return true;
         }
-        if (Utils.isCommitted(commitValue) && !readRevision.isBranch()) {
-            // no need to load commit root document, we can simply
-            // tell by looking at the commit revision whether the
-            // revision is valid/visible
-            Revision commitRev = Utils.resolveCommitRevision(rev, commitValue);
-            return !readRevision.isRevisionNewer(commitRev);
+        // get the commit value if it is not yet available
+        if (commitValue == null) {
+            commitValue = context.getCommitValue(rev, this);
         }
-
-        NodeDocument doc = getCommitRoot(rev);
-        if (doc == null) {
+        if (commitValue == null) {
+            // this change is not committed, hence not valid/visible
             return false;
         }
-        if (doc.isVisible(context, rev, commitValue, readRevision)) {
+        if (isVisible(context, rev, commitValue, readRevision)) {
             validRevisions.put(rev, commitValue);
             return true;
         }
@@ -2060,22 +2056,15 @@ public final class NodeDocument extends Document {
      * to check.
      *
      * @param revision  the revision to check.
-     * @param commitValue the commit value of the revision to check or
-     *                    <code>null</code> if unknown.
+     * @param commitValue the commit value of the revision to check.
      * @param readRevision the read revision.
      * @return <code>true</code> if the revision is visible, otherwise
      *         <code>false</code>.
      */
     private boolean isVisible(@NotNull RevisionContext context,
                               @NotNull Revision revision,
-                              @Nullable String commitValue,
+                              @NotNull String commitValue,
                               @NotNull RevisionVector readRevision) {
-        if (commitValue == null) {
-            commitValue = context.getCommitValue(revision, this);
-        }
-        if (commitValue == null) {
-            return false;
-        }
         if (Utils.isCommitted(commitValue)) {
             Branch b = context.getBranches().getBranch(readRevision);
             if (b == null) {

@@ -43,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.Maps.newLinkedHashMap;
@@ -479,13 +478,11 @@ public class NodeDocumentTest {
         ns.dispose();
     }
 
-    @Ignore
     @Test
     public void getNewestRevisionAfterGC() throws Exception {
         getNewestRevisionAfterGC(false);
     }
 
-    @Ignore
     @Test
     public void getNewestRevisionAfterGCWithBranchCommit() throws Exception {
         getNewestRevisionAfterGC(true);
