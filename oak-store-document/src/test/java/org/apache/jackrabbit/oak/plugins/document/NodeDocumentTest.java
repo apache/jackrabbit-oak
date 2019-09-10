@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.lang.ref.ReferenceQueue;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -50,7 +54,9 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.hamcrest.CoreMatchers.everyItem;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -470,6 +476,102 @@ public class NodeDocumentTest {
         }
 
         ns.dispose();
+    }
+
+    @Test
+    public void getNewestRevisionAfterGC() throws Exception {
+        getNewestRevisionAfterGC(false);
+    }
+
+    @Test
+    public void getNewestRevisionAfterGCWithBranchCommit() throws Exception {
+        getNewestRevisionAfterGC(true);
+    }
+
+    @Test
+    public void getNodeAtRevisionAfterGC() throws Exception {
+        getNodeAtRevisionAfterGC(false);
+    }
+
+    @Test
+    public void getNodeAtRevisionAfterGCWithBranchRevision() throws Exception {
+        getNodeAtRevisionAfterGC(true);
+    }
+
+    private void getNodeAtRevisionAfterGC(boolean withBranch) throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        Revision r = populateStoreAndGC(store);
+
+        // start fresh
+        DocumentNodeStore ns = createTestStore(store, 1, 0, 0);
+        String id = Utils.getIdFromPath("/bar/test");
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+
+        RevisionVector changeRev = new RevisionVector(r);
+        if (withBranch) {
+            changeRev = changeRev.asBranchRevision(1);
+        }
+        DocumentNodeState state = doc.getNodeAtRevision(ns, changeRev, null);
+        assertNotNull(state);
+        assertEquals(changeRev.asTrunkRevision(), state.getLastRevision());
+        assertNotNull(state.getProperty("p"));
+    }
+
+    private void getNewestRevisionAfterGC(boolean withBranch) throws Exception {
+        DocumentStore store = new MemoryDocumentStore();
+        Revision r = populateStoreAndGC(store);
+
+        // start fresh
+        DocumentNodeStore ns = createTestStore(store, 1, 0, 0);
+        String id = Utils.getIdFromPath("/bar/test");
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+
+        RevisionVector baseRev = ns.getHeadRevision();
+        Revision change = ns.newRevision();
+        Branch branch = null;
+        if (withBranch) {
+            SortedSet<Revision> branchCommits = new TreeSet<>(StableRevisionComparator.REVERSE);
+            branchCommits.add(change);
+            branch = new Branch(branchCommits, baseRev, new ReferenceQueue<>(), null);
+            baseRev = baseRev.asBranchRevision(1);
+        }
+        Revision rev = doc.getNewestRevision(ns, baseRev, change, branch, new HashSet<>());
+        assertEquals(r, rev);
+    }
+
+    private Revision populateStoreAndGC(DocumentStore store) throws Exception {
+        DocumentNodeStore ns = createTestStore(store, 1, 0);
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("foo");
+        builder.child("bar").child("test").setProperty("p", "v");
+        merge(ns, builder);
+        // remember the revision
+        Revision r = ns.getHeadRevision().getRevision(1);
+        // perform changes that move the commit information
+        // to split documents
+        for (int i = 0; i < 100; i++) {
+            builder = ns.getRoot().builder();
+            builder.setProperty("p", "v-" + i);
+            merge(ns, builder);
+        }
+        ns.runBackgroundOperations();
+        String rootId = Utils.getIdFromPath("/");
+        NodeDocument rootDoc = store.find(NODES, rootId);
+        assertNotNull(rootDoc);
+        assertThat(rootDoc.getPreviousRanges().keySet(), not(empty()));
+
+        // trigger revision gc until split doc is removed
+        while (!rootDoc.getPreviousRanges().keySet().isEmpty()) {
+            ns.getVersionGarbageCollector().gc(1, TimeUnit.MILLISECONDS);
+            rootDoc = store.find(NODES, rootId);
+            assertNotNull(rootDoc);
+        }
+
+        ns.dispose();
+
+        return r;
     }
 
     @Test
