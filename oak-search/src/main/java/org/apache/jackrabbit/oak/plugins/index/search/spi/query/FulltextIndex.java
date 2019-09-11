@@ -226,7 +226,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         return PathUtils.getName(getPlanResult(plan).indexPath);
     }
 
-    protected static int determinePropertyType(PropertyDefinition defn, PropertyRestriction pr) {
+    public static int determinePropertyType(PropertyDefinition defn, PropertyRestriction pr) {
         int typeFromRestriction = pr.propertyType;
         if (typeFromRestriction == PropertyType.UNDEFINED) {
             //If no explicit type defined then determine the type from restriction
@@ -296,7 +296,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         return rewritten.toString();
     }
 
-    protected static String getPathRestriction(IndexPlan plan) {
+    public static String getPathRestriction(IndexPlan plan) {
         Filter f = plan.getFilter();
         String pathPrefix = plan.getPathPrefix();
         if (pathPrefix.isEmpty()) {
