@@ -30,8 +30,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyIterator;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -48,9 +46,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @SuppressWarnings("ConstantConditions")
 public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTestBase {
@@ -123,44 +119,18 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         } catch (Exception e) {
             Session s = repoV1.getSession();
             Node c = s.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode("counter");
-            System.out.println("type " + c.getProperty("type").getString());
-            System.out.println("async " + c.getProperty("async").getString());
 
-            // maybe disable async (speedup)
-            // c.setProperty("async", (String) null);
-
+            c.setProperty("async", (String) null);
             c.setProperty("resolution", 1);
             c.setProperty("reindex", true);
             s.save();
 
-            // restart repository (maybe not needed)
-            repoV1.restartRepo();
-            s = repoV1.getSession();
+            // retrieve counter again (maybe not needed)
             c = s.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode("counter");
 
-            for (int i = 0; i < 1000; i++) {
-                if (!c.getProperty("reindex").getBoolean()) {
-                    break;
-                }
-                Thread.sleep(1000);
-                s.refresh(false);
-                c = s.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode("counter");
-                PropertyIterator it = c.getProperties();
-                while (it.hasNext()) {
-                    Property p = it.nextProperty();
-                    System.out.println("  " + p.getName() + ": " + p.getString());
-                }
-                if (i > 100) {
-                    throw new AssertionError();
-                }
-            }
+            assertFalse(c.getProperty("reindex").getBoolean());
         } finally {
             repoV1.cleanup();
-        }
-        try {
-            repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
-        } catch (Exception e) {
-            assertTrue(true);
         }
     }
 

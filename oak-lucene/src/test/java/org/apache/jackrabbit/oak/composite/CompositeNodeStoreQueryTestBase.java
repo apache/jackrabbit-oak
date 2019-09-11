@@ -89,7 +89,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -134,8 +134,8 @@ public class CompositeNodeStoreQueryTestBase {
     protected IndexCopier indexCopier;
     protected Oak oak;
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    @ClassRule
+    public final static TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder(new File("target"));
 
     @Parameters(name="Root: {0}, Mounts: {1}")
     public static Collection<Object[]> data() {
@@ -242,7 +242,7 @@ public class CompositeNodeStoreQueryTestBase {
             return oak;
         }
         try {
-            indexCopier = new IndexCopier(executorService, temporaryFolder.getRoot());
+            indexCopier = new IndexCopier(executorService, TEMPORARY_FOLDER.getRoot());
         } catch (IOException e) {
             throw new RuntimeException();
         }
@@ -278,7 +278,7 @@ public class CompositeNodeStoreQueryTestBase {
     Oak getOakRepo(NodeStore store, MountInfoProvider mip) {
 
         try {
-            indexCopier = new IndexCopier(executorService, temporaryFolder.getRoot());
+            indexCopier = new IndexCopier(executorService, TEMPORARY_FOLDER.getRoot());
         } catch (IOException e) {
             throw new RuntimeException();
         }
@@ -308,8 +308,7 @@ public class CompositeNodeStoreQueryTestBase {
                     .with((Observer) luceneIndexProvider)
                     .with(new NodeTypeIndexProvider().with(mip))
                     .with(new ReferenceEditorProvider().with(mip))
-                    .with(new ReferenceIndexProvider().with(mip))
-                    .withAsyncIndexing("async", 1);
+                    .with(new ReferenceIndexProvider().with(mip));
         }
 
     }
@@ -413,7 +412,7 @@ public class CompositeNodeStoreQueryTestBase {
         }
     }
 
-    static enum NodeStoreKind {
+    enum NodeStoreKind {
         MEMORY {
             @Override
             public NodeStoreRegistration create(String name) {
@@ -462,11 +461,11 @@ public class CompositeNodeStoreQueryTestBase {
                         }
 
                         String directoryName = name != null ? "segment-" + name : "segment";
-                        storePath = new File("target/compositeTest/" + directoryName);
+                        storePath = TEMPORARY_FOLDER.newFolder(directoryName);
 
                         //String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
                         String blobStoreDirectoryName = "blob" ;
-                        blobStorePath = "target/compositeTest/" + blobStoreDirectoryName;
+                        blobStorePath = TEMPORARY_FOLDER.getRoot().getAbsolutePath() + blobStoreDirectoryName;
 
                         BlobStore blobStore = new FileBlobStore(blobStorePath);
 
@@ -501,7 +500,7 @@ public class CompositeNodeStoreQueryTestBase {
                     @Override
                     public NodeStore get() throws Exception {
                         RDBOptions options = new RDBOptions().dropTablesOnClose(true);
-                        String jdbcUrl = "jdbc:h2:file:./target/compositeTest/document";
+                        String jdbcUrl = "jdbc:h2:file:" + TEMPORARY_FOLDER.getRoot().getAbsolutePath() + "/document";
                         if ( name != null ) {
                             jdbcUrl += "-" + name;
                         }
