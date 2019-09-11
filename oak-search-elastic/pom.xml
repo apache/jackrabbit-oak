@@ -30,7 +30,7 @@
   <artifactId>oak-search-elastic</artifactId>
   <name>Oak Elasticsearch</name>
   <packaging>bundle</packaging>
-  <description>Oak Lucene integration subproject</description>
+  <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
     <elasticsearch.version>7.1.1</elasticsearch.version>
@@ -50,6 +50,7 @@
               lucene-core;inline=true
               elasticsearch-rest-high-level-client;inline=true
             </Embed-Dependency>
+            <Export-Package>!*</Export-Package>
           </instructions>
         </configuration>
       </plugin>
