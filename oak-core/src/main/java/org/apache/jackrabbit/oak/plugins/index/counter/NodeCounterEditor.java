@@ -154,28 +154,29 @@ public class NodeCounterEditor implements Editor {
     }
 
     private void leaveNew(NodeState before, NodeState after) throws CommitFailedException {
-        if (!countOffsets.isEmpty()) {
+        if (countOffsets.isEmpty()) {
+            return;
+        }
+        root.callback.indexUpdate();
+        for (Map.Entry<Mount, Integer> e : countOffsets.entrySet()) {
+            Mount mount = e.getKey();
+            if (mount.isReadOnly()) {
+                continue;
+            }
+            NodeBuilder builder = getBuilder(mount);
+            int countOffset = e.getValue();
 
-            root.callback.indexUpdate();
-            for (Map.Entry<Mount, Integer> e : countOffsets.entrySet()) {
-                Mount mount = e.getKey();
-                if (!mount.isReadOnly()) {
-                    NodeBuilder builder = getBuilder(mount);
-                    int countOffset = e.getValue();
-
-                    PropertyState p = builder.getProperty(COUNT_HASH_PROPERTY_NAME);
-                    long count = p == null ? 0 : p.getValue(Type.LONG);
-                    count += countOffset;
-                    if (count <= 0) {
-                        if (builder.getChildNodeCount(1) >= 0) {
-                            builder.removeProperty(COUNT_HASH_PROPERTY_NAME);
-                        } else {
-                            builder.remove();
-                        }
-                    } else {
-                        builder.setProperty(COUNT_HASH_PROPERTY_NAME, count);
-                    }
+            PropertyState p = builder.getProperty(COUNT_HASH_PROPERTY_NAME);
+            long count = p == null ? 0 : p.getValue(Type.LONG);
+            count += countOffset;
+            if (count <= 0) {
+                if (builder.getChildNodeCount(1) >= 0) {
+                    builder.removeProperty(COUNT_HASH_PROPERTY_NAME);
+                } else {
+                    builder.remove();
                 }
+            } else {
+                builder.setProperty(COUNT_HASH_PROPERTY_NAME, count);
             }
         }
     }
