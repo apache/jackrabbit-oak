@@ -34,7 +34,7 @@ import java.util.Map;
 import static com.google.common.collect.Lists.newArrayList;
 
 public class ElasticsearchDocument {
-    private static Logger LOG = LoggerFactory.getLogger(ElasticsearchDocument.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchDocument.class);
 
     // id should only be useful for logging (at least as of now)
     private final String path;

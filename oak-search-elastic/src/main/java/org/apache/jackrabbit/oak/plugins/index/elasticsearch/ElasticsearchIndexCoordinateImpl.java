@@ -116,10 +116,10 @@ public class ElasticsearchIndexCoordinateImpl implements ElasticsearchIndexCoord
      * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
     private static String getESSafeName(String suggestedIndexName) {
-        String invalidCharsRegex = Pattern.quote(String.join("", INVALID_FILENAME_CHARS
+        String invalidCharsRegex = Pattern.quote(INVALID_FILENAME_CHARS
                 .stream()
                 .map(Object::toString)
-                .collect(Collectors.toList())));
+                .collect(Collectors.joining("")));
         return suggestedIndexName.replaceAll(invalidCharsRegex, "").toLowerCase();
     }
 

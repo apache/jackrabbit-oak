@@ -35,11 +35,11 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexConstants.TYPE_ELASTICSEARCH;
 
 public class ElasticsearchIndex extends FulltextIndex {
-    private static final Predicate<NodeState> ELASTICSEARH_INDEX_DEFINITION_PREDICATE =
+    private static final Predicate<NodeState> ELASTICSEARCH_INDEX_DEFINITION_PREDICATE =
             state -> TYPE_ELASTICSEARCH.equals(state.getString(TYPE_PROPERTY_NAME));
 
     // higher than some threshold below which the query should rather be answered by something else if possible
-    private static double MIN_COST = 100.1;
+    private static final double MIN_COST = 100.1;
 
     private final ElasticsearchIndexCoordinateFactory esIndexCoordFactory;
     private final NodeState root;
@@ -58,13 +58,13 @@ public class ElasticsearchIndex extends FulltextIndex {
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
         return () -> {
             // TODO: implement nicely - possible use solr impl's LMSEstimator
-            return 2L * (long)MIN_COST;
+            return 2L * (long) MIN_COST;
         };
     }
 
     @Override
     protected Predicate<NodeState> getIndexDefinitionPredicate() {
-        return ELASTICSEARH_INDEX_DEFINITION_PREDICATE;
+        return ELASTICSEARCH_INDEX_DEFINITION_PREDICATE;
     }
 
     @Override

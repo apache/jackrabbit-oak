@@ -31,10 +31,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ElasticsearchConnectionFactory implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchConnectionFactory.class);
-    private ConcurrentMap<ElasticsearchCoordinate, RestHighLevelClient> clientMap = Maps.newConcurrentMap();
+    private final ConcurrentMap<ElasticsearchCoordinate, RestHighLevelClient> clientMap = Maps.newConcurrentMap();
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private AtomicBoolean isClosed = new AtomicBoolean();
+    private final AtomicBoolean isClosed = new AtomicBoolean();
 
     public RestHighLevelClient getConnection(ElasticsearchCoordinate esCoord) {
         lock.readLock().lock();

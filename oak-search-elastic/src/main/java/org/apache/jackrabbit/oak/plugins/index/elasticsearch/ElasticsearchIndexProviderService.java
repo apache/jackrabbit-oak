@@ -49,7 +49,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 @Component(metatype = true, label = "Apache Jackrabbit Oak ElasticsearchIndexProvider")
 public class ElasticsearchIndexProviderService {
 
-    private static Logger LOG = LoggerFactory.getLogger(ElasticsearchIndexProviderService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchIndexProviderService.class);
 
     private static final int PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT = 20;
     @Property(

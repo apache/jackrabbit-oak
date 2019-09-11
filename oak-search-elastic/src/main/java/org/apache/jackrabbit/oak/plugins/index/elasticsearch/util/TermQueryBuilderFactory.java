@@ -37,6 +37,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH_DEPTH;
 import static org.elasticsearch.index.query.QueryBuilders.*;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class TermQueryBuilderFactory {
     /**
      * Private constructor.
@@ -163,29 +164,5 @@ public class TermQueryBuilderFactory {
     // As per https://www.elastic.co/blog/strings-are-dead-long-live-strings
     private static String keywordFieldName(String propName) {
         return propName + "." + "keyword";
-    }
-
-    //TODO: figure out how to not duplicate these method from FulltextIndex
-    public static int determinePropertyType(PropertyDefinition defn, Filter.PropertyRestriction pr) {
-        int typeFromRestriction = pr.propertyType;
-        if (typeFromRestriction == PropertyType.UNDEFINED) {
-            //If no explicit type defined then determine the type from restriction
-            //value
-            if (pr.first != null && pr.first.getType() != Type.UNDEFINED) {
-                typeFromRestriction = pr.first.getType().tag();
-            } else if (pr.last != null && pr.last.getType() != Type.UNDEFINED) {
-                typeFromRestriction = pr.last.getType().tag();
-            } else if (pr.list != null && !pr.list.isEmpty()) {
-                typeFromRestriction = pr.list.get(0).getType().tag();
-            }
-        }
-        return getPropertyType(defn, pr.propertyName, typeFromRestriction);
-    }
-
-    private static int getPropertyType(PropertyDefinition defn, String name, int defaultVal) {
-        if (defn.isTypeDefined()) {
-            return defn.getType();
-        }
-        return defaultVal;
     }
 }

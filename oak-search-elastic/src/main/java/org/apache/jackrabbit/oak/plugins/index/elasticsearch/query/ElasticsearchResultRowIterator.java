@@ -481,7 +481,7 @@ public class ElasticsearchResultRowIterator extends AbstractIterator<FulltextInd
             addNodeTypeConstraints(planResult.indexingRule, qs, filter);
         }
 
-        String path = getPathRestriction(plan);
+        String path = FulltextIndex.getPathRestriction(plan);
         switch (filter.getPathRestriction()) {
             case ALL_CHILDREN:
                 if (defn.evaluatePathRestrictions()) {
@@ -602,17 +602,6 @@ public class ElasticsearchResultRowIterator extends AbstractIterator<FulltextInd
         }
     }
 
-    // TODO: utilize FulltextIndex#getPathRestriction instead of copying it here
-    private static String getPathRestriction(IndexPlan plan) {
-        Filter f = plan.getFilter();
-        String pathPrefix = plan.getPathPrefix();
-        if (pathPrefix.isEmpty()) {
-            return f.getPath();
-        }
-        String relativePath = PathUtils.relativize(pathPrefix, f.getPath());
-        return "/" + relativePath;
-    }
-
     private static QueryBuilder createNodeNameQuery(Filter.PropertyRestriction pr) {
         String first = pr.first != null ? pr.first.getValue(STRING) : null;
         if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
@@ -664,7 +653,7 @@ public class ElasticsearchResultRowIterator extends AbstractIterator<FulltextInd
     @Nullable
     private static QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,
                                      PropertyDefinition defn) {
-        int propType = determinePropertyType(defn, pr);
+        int propType = FulltextIndex.determinePropertyType(defn, pr);
 
         if (pr.isNullRestriction()) {
             return newNullPropQuery(defn.name);

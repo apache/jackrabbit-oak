@@ -47,7 +47,7 @@ import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
 public class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocument> {
-    private static Logger LOG = LoggerFactory.getLogger(ElasticsearchIndexWriter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchIndexWriter.class);
 
     private final ElasticsearchIndexCoordinate esIndexCoord;
     private final RestHighLevelClient client;
