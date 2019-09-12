@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.*;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -38,11 +40,13 @@ import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
@@ -50,6 +54,8 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 public class ElasticsearchIndexProviderService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchIndexProviderService.class);
+
+    private static final String REPOSITORY_HOME = "repository.home";
 
     private static final int PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT = 20;
     @Property(
@@ -98,6 +104,12 @@ public class ElasticsearchIndexProviderService {
 //    )
     private static final String PROP_ELASTICSEARCH_PORT = "elasticsearch.port";
 
+    @Property(
+            label = "Local text extraction cache path",
+            description = "Local file system path where text extraction cache stores/load entries to recover from timed out operation"
+    )
+    private static final String PROP_LOCAL_TEXT_EXTRACTION_DIR = "localTextExtractionDir";
+
     @Reference
     private StatisticsProvider statisticsProvider;
 
@@ -115,11 +127,13 @@ public class ElasticsearchIndexProviderService {
     private final List<Registration> oakRegs = Lists.newArrayList();
 
     private Whiteboard whiteboard;
+    private File textExtractionDir;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config) {
         whiteboard = new OsgiWhiteboard(bundleContext);
 
+        initializeTextExtractionDir(bundleContext, config);
         initializeExtractedTextCache(config, statisticsProvider);
 
         connectionFactory = new ElasticsearchConnectionFactory();
@@ -180,7 +194,7 @@ public class ElasticsearchIndexProviderService {
                 cacheSizeInMB * ONE_MB,
                 cacheExpiryInSecs,
                 alwaysUsePreExtractedCache,
-                null /* TODO: have a temp dir to enable tracking timed out binary extraction */,
+                textExtractionDir,
                 statisticsProvider);
         if (extractedTextProvider != null){
             registerExtractedTextProvider(extractedTextProvider);
@@ -193,6 +207,21 @@ public class ElasticsearchIndexProviderService {
             LOG.info("Extracted text caching enabled with maxSize {} MB, expiry time {} secs",
                     cacheSizeInMB, cacheExpiryInSecs);
         }
+    }
+
+    void initializeTextExtractionDir(BundleContext bundleContext, Map<String, ?> config) {
+        String textExtractionDir = PropertiesUtil.toString(config.get(PROP_LOCAL_TEXT_EXTRACTION_DIR), null);
+        if (Strings.isNullOrEmpty(textExtractionDir)) {
+            String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
+            if (repoHome != null){
+                textExtractionDir = FilenameUtils.concat(repoHome, "index");
+            }
+        }
+
+        checkNotNull(textExtractionDir, "Text extraction directory cannot be determined as neither " +
+                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_TEXT_EXTRACTION_DIR, REPOSITORY_HOME);
+
+        this.textExtractionDir = new File(textExtractionDir);
     }
 
     private void registerExtractedTextProvider(PreExtractedTextProvider provider){
