@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,25 +54,11 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
 
     @BeforeClass
     public static void setupDataStore() throws Exception {
-        assumeTrue(AzureDataStoreUtils.isAzureConfigured());
-        dataStore = (AzureDataStore) AzureDataStoreUtils
-            .getAzureDataStore(getProperties(), homeDir.newFolder().getAbsolutePath());
-        dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
-        dataStore.setDirectUploadURIExpirySeconds(expirySeconds);
-    }
-
-    private static Properties getProperties() {
-        Properties props = AzureDataStoreUtils.getAzureConfig();
-        props.setProperty("cacheSize", "0");
-        return props;
+        dataStore = AzureDataStoreUtils.setupDirectAccessDataStore(homeDir, expirySeconds, expirySeconds);
     }
 
     private static AzureDataStore createDataStore(@NotNull Properties properties) throws Exception {
-        AzureDataStore ds = (AzureDataStore) AzureDataStoreUtils
-                .getAzureDataStore(properties, homeDir.newFolder().getAbsolutePath());
-        ds.setDirectDownloadURIExpirySeconds(expirySeconds);
-        ds.setDirectUploadURIExpirySeconds(expirySeconds);
-        return ds;
+        return AzureDataStoreUtils.setupDirectAccessDataStore(homeDir, expirySeconds, expirySeconds, properties);
     }
 
     @Override
@@ -83,10 +68,7 @@ public class AzureDataRecordAccessProviderTest extends AbstractDataRecordAccessP
 
     @Override
     protected ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception {
-        Properties mergedProperties = new Properties();
-        mergedProperties.putAll(getProperties());
-        mergedProperties.putAll(overrideProperties);
-        return createDataStore(mergedProperties);
+        return createDataStore(AzureDataStoreUtils.getDirectAccessDataStoreProperties(overrideProperties));
     }
 
     @Override

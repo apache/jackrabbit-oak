@@ -14,7 +14,7 @@
    See the License for the specific language governing permissions and
    limitations under the License.
   -->
-  
+
 # Direct Binary Access
 
 `@since Oak 1.10`
@@ -32,7 +32,7 @@ The following diagram shows the 3 involved parties:  A _remote client_, the Oak-
 ![](direct-binary-access-block-diagram.png)
 
 Further background of the design of this feature can be found [on the wiki](https://jackrabbit.apache.org/archive/wiki/JCR/Direct-Binary-Access_115513390.html).
- 
+
 ## Requirements
 
 To use this feature, Oak must be configured with a [BlobStore](../plugins/blobstore.html) that supports this feature.
@@ -78,7 +78,7 @@ Binary binary = ntResource.getProperty("jcr:data").getBinary();
 
 if (binary instanceof BinaryDownload) {
     BinaryDownload binaryDownload = (BinaryDownload) binary;
-    
+
     BinaryDownloadOptions.BinaryDownloadOptionsBuilder builder = BinaryDownloadOptions.builder()
         // would typically come from a JCR node name
         .withFileName(ntFile.getName())
@@ -88,18 +88,18 @@ if (binary instanceof BinaryDownload) {
     if (ntResource.hasProperty("jcr:encoding")) {
         builder.withCharacterEncoding(ntResource.getProperty("jcr:encoding"));
     }
-    
+
     // if you need to prevent the browser from potentially executing the response
     // (for example js, flash, html), you can enforce a download with this option
     // builder.withDispositionTypeAttachment();
-        
+
     URI uri = binaryDownload.getURI(builder.build());
-    
+
     if (uri == null) {
         // feature not available
         // ...
     }
-    
+
     // use uri in <img src="uri"> or send in response to remote client
     // ...
 }
@@ -138,22 +138,22 @@ public class InitiateUploadServlet extends HttpServlet {
 
    public void doPost(HttpServletRequest request, HttpServletResponse response)
                throws IOException, ServletException {
-               
+
         final Session session = // .. retrieve session for request
 
         // allows to limit number of returned URIs in case the response message size is limited
         // use -1 for unlimited
         final int maxURIs = 50;
-        
+
         final String path = request.getParameter("path");
         final long filesize = Long.parseLong(request.getParameter("filesize"));
 
         ValueFactory vf = session.getValueFactory();
         if (vf instanceof JackrabbitValueFactory) {
             JackrabbitValueFactory valueFactory = (JackrabbitValueFactory) vf;
-            
+
             BinaryUpload upload = valueFactory.initiateBinaryUpload(filesize, maxURIs);
-            
+
             if (upload == null) {
                 // feature not available, must pass binary via InputStream through vf.createBinary()
                 // ...
@@ -161,7 +161,7 @@ public class InitiateUploadServlet extends HttpServlet {
                 JSONObject json = new JSONObject();
                 json.put("minPartSize", upload.getMinPartSize());
                 json.put("maxPartSize", upload.getMaxPartSize());
-                
+
                 JSONArray uris = new JSONArray();
                 Iterator<URI> iter = upload.getUploadURIs();
                 while (iter.hasNext()) {
@@ -171,7 +171,7 @@ public class InitiateUploadServlet extends HttpServlet {
 
                 // provide the client with a complete URL to request later, pass through the path
                 json.put("completeURL", "/complete-upload?uploadToken=" + upload.getUploadToken() + "&path=" + path);
-                
+
                 response.setContentType("application/json");
                 response.setCharacterEncoding("UTF-8");
                 response.getWriter().write(json.toString());
@@ -206,27 +206,27 @@ public class CompleteUploadServlet extends HttpServlet {
 
    public void doPost(HttpServletRequest request, HttpServletResponse response)
                throws IOException, ServletException {
-               
+
         final Session session = // .. retrieve session for request
-               
+
         final String path = request.getParameter("path");
         final String uploadToken = request.getParameter("uploadToken");
 
         ValueFactory vf = session.getValueFactory();
         if (vf instanceof JackrabbitValueFactory) {
             JackrabbitValueFactory valueFactory = (JackrabbitValueFactory) vf;
-            
+
             Binary binary = valueFactory.completeBinaryUpload(uploadToken);
-            
+
             Node ntFile = JcrUtils.getOrCreateByPath(path, "nt:file", session);
             Node ntResource = ntFile.addNode("jcr:content", "nt:resource");
-            
+
             ntResource.setProperty("jcr:data", binary);
-            
+
             // also set jcr:mimeType etc.
-            
+
             session.save();
-            
+
         } else {
             // feature not available - not unexpected if initiate-upload worked
         }
@@ -234,3 +234,33 @@ public class CompleteUploadServlet extends HttpServlet {
 }
 ```
 
+# CDN Support
+
+`@since Oak 1.18 (AzureDataStore)`
+
+Oak can be configured to make use of CDNs if desired.  Configuring a CDN for use with Oak can provide clients with accelerated blob access times as blobs are accessed via more local caches instead of from the origin blob store.
+
+## Preconditions
+
+The following conditions must be true to leverage a CDN:
+
+* You must be using `AzureDataStore`.  (`S3DataStore` will be supported at a future date but is not currently supported.)
+* You must have Direct Binary Access enabled - CDNs only offer a benefit with direct access URIs.
+* You must have a CDN configured that uses your cloud blob storage container as the origin.
+
+## Configuration
+
+Add one or both of the following configuration options to the data store configuration file:
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `presignedHttpDownloadURIDomainOverride`   | String  | null     | When this property is set, the domain provided will be used for direct download URIs instead of the default direct download domain. |
+| `presignedHttpUploadURIDomainOverride` | String  | null     | When this property is set, the domain provided will be used for direct upload URIs instead of the default direct upload domain. |
+
+When set, the property value should be a valid fully-qualified domain name, e.g. "mycdndomain.azureedge.net".
+
+## Uses
+
+CDNs may be used for direct upload as well as direct download, if the CDN in question supports such behavior.  CDNs that support this behavior include AWS CloudFront, all Azure CDN offerings, and some other third-party CDNs do as well; however, these capabilities are the responsibility of the service providers, not Oak.  Check with your CDN provider for authoritative information on suitability; comprehensive testing is recommended.
+
+Note that you are not required to configure both domains, nor is it required that both domains be the same.  For example, if one CDN offers the best download performance and another CDN offers the best upload performance, you may choose to implement both and set each configuration parameter to a different domain.  Likewise, you are not required to set them both.  If you only wish to use CDNs for download but not upload, simply configure the download parameter with the CDN domain and don't configure an upload domain.

@@ -818,10 +818,16 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     headers.setContentDisposition(contentDisposition);
                 }
 
+                String domain = getDirectDownloadBlobStorageDomain();
+                if (null == domain) {
+                    throw new NullPointerException("Could not determine domain for direct download");
+                }
+
                 uri = createPresignedURI(key,
                         EnumSet.of(SharedAccessBlobPermissions.READ),
                         httpDownloadURIExpirySeconds,
-                        headers);
+                        headers,
+                        domain);
                 if (uri != null && httpDownloadURICache != null) {
                     httpDownloadURICache.put(identifier, uri);
                 }
@@ -917,13 +923,24 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             }
 
             String key = getKeyName(newIdentifier);
+            String domain = getDirectUploadBlobStorageDomain();
+            if (null == domain) {
+                throw new NullPointerException("Could not determine domain for direct upload");
+            }
+
             EnumSet<SharedAccessBlobPermissions> perms = EnumSet.of(SharedAccessBlobPermissions.WRITE);
             Map<String, String> presignedURIRequestParams = Maps.newHashMap();
             presignedURIRequestParams.put("comp", "block");
             for (long blockId = 1; blockId <= numParts; ++blockId) {
                 presignedURIRequestParams.put("blockId",
                         Base64.encode(String.format("%06d", blockId)));
-                uploadPartURIs.add(createPresignedURI(key, perms, httpUploadURIExpirySeconds, presignedURIRequestParams));
+                uploadPartURIs.add(
+                        createPresignedURI(key,
+                                perms,
+                                httpUploadURIExpirySeconds,
+                                presignedURIRequestParams,
+                                domain)
+                );
             }
 
             try {
@@ -1021,33 +1038,60 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         return record;
     }
 
-    private URI createPresignedURI(String key,
-                                   EnumSet<SharedAccessBlobPermissions> permissions,
-                                   int expirySeconds,
-                                   SharedAccessBlobHeaders optionalHeaders) {
-        return createPresignedURI(key, permissions, expirySeconds, Maps.newHashMap(), optionalHeaders);
+    private String getDefaultBlobStorageDomain() {
+        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
+        if (Strings.isNullOrEmpty(accountName)) {
+            LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
+            return null;
+        }
+        return String.format("%s.blob.core.windows.net", accountName);
+    }
+
+    private String getDirectDownloadBlobStorageDomain() {
+        String domain = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+        if (Strings.isNullOrEmpty(domain)) {
+            domain = getDefaultBlobStorageDomain();
+        }
+        return domain;
+    }
+
+    private String getDirectUploadBlobStorageDomain() {
+        String domain = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
+        if (null == domain) {
+            getDefaultBlobStorageDomain();
+        }
+        return domain;
     }
 
     private URI createPresignedURI(String key,
                                    EnumSet<SharedAccessBlobPermissions> permissions,
                                    int expirySeconds,
-                                   Map<String, String> additionalQueryParams) {
-        return createPresignedURI(key, permissions, expirySeconds, additionalQueryParams, null);
+                                   SharedAccessBlobHeaders optionalHeaders,
+                                   String domain) {
+        return createPresignedURI(key, permissions, expirySeconds, Maps.newHashMap(), optionalHeaders, domain);
     }
 
     private URI createPresignedURI(String key,
                                    EnumSet<SharedAccessBlobPermissions> permissions,
                                    int expirySeconds,
                                    Map<String, String> additionalQueryParams,
-                                   SharedAccessBlobHeaders optionalHeaders) {
+                                   String domain) {
+        return createPresignedURI(key, permissions, expirySeconds, additionalQueryParams, null, domain);
+    }
+
+    private URI createPresignedURI(String key,
+                                   EnumSet<SharedAccessBlobPermissions> permissions,
+                                   int expirySeconds,
+                                   Map<String, String> additionalQueryParams,
+                                   SharedAccessBlobHeaders optionalHeaders,
+                                   String domain) {
         SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
         Date expiry = Date.from(Instant.now().plusSeconds(expirySeconds));
         policy.setSharedAccessExpiryTime(expiry);
         policy.setPermissions(permissions);
 
-        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, "");
-        if (Strings.isNullOrEmpty(accountName)) {
-            LOG.warn("Can't generate presigned URI - Azure account name not found in properties");
+        if (Strings.isNullOrEmpty(domain)) {
+            LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
         }
 
@@ -1063,8 +1107,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                     null);
             // Shared access signature is returned encoded already.
 
-            String uriString = String.format("https://%s.blob.core.windows.net/%s/%s?%s",
-                    accountName,
+            String uriString = String.format("https://%s/%s/%s?%s",
+                    domain,
                     containerName,
                     key,
                     sharedAccessSignature);

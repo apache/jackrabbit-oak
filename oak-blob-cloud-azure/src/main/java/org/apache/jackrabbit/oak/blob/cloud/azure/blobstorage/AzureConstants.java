@@ -107,5 +107,17 @@ public final class AzureConstants {
      */
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS = "presignedHttpDownloadURIVerifyExists";
 
+    /**
+     * Domain name to use for direct downloads instead of the default Azure blob storage domain.
+     * This is usually used when an installation has configured a CDN domain for binary downloads.
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE = "presignedHttpDownloadURIDomainOverride";
+
+    /**
+     * Domain name to use for direct uploads instead of the default Azure blob storage domain.
+     * This is usually used when an installation has configured a CDN domain for binary uploads.
+     */
+    public static final String PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE = "presignedHttpUploadURIDomainOverride";
+
     private AzureConstants() { }
 }
