@@ -541,10 +541,18 @@ public class QueryImpl implements Query {
             if (measure) {
                 plan += " cost: { " + getIndexCostInfo() + " }";
             }
-            columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
+            columns = new ColumnImpl[] {
+                    new ColumnImpl("explain", "plan", "plan"),
+                    new ColumnImpl("explain", "statement", "statement")
+            };
             ResultRowImpl r = new ResultRowImpl(this,
                     Tree.EMPTY_ARRAY,
-                    new PropertyValue[] { PropertyValues.newString(plan)},
+                    new PropertyValue[] {
+                            PropertyValues.newString(plan),
+                            // remove "explain" keyword from query statement to produce explained statement
+                            PropertyValues.newString(getStatement()
+                                    .replaceFirst("(?i)\\bexplain\\s+", ""))
+                    },
                     null, null);
             return Arrays.asList(r).iterator();
         }
