@@ -33,6 +33,14 @@ import java.util.regex.Pattern;
 public class ThreadDumpCleaner {
 
     private static final String[] PATTERN_ARRAY = {
+        "Threads class SMR info:(?s).*?\n\n",
+        
+        "JNI global refs.*\n\n",
+
+        "\"Reference Handler\"(?s).*?\n\n",
+
+        "\"C1 CompilerThread(?s).*?\n\n",
+
         "\"Concurrent Mark-Sweep GC Thread\".*\n",
 
         "\"Exception Catcher Thread\".*\n",
@@ -68,6 +76,9 @@ public class ThreadDumpCleaner {
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
                 "at sun.nio.ch.EPollArrayWrapper.epollWait(?s).*?\n\n",
+
+        "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
+                "at sun.nio.ch.EPoll.wait(?s).*?\n\n",
 
         "\".*?\".*?\n   java.lang.Thread.State:.*\n\t" +
                 "at java.lang.Object.wait(?s).*?\n\n",
@@ -176,9 +187,16 @@ public class ThreadDumpCleaner {
         if (slash < 0) {
             return line;
         }
-        int at = line.indexOf("at ");
-        if (at < 0 || at > atChar) {
+        int start = line.indexOf("at ");
+        if (start < 0 || start > atChar) {
             return line;
+        }
+        start += 2;
+        // at java.lang.Object.wait(java.base@11.0.3/Native Method) ->
+        // at java.lang.Object.wait(Native Method) ->
+        int open = line.indexOf('(');
+        if (open > start && open < atChar) {
+            start = open + 1;
         }
 
         // String moduleName = line.substring(at + 3, slash);
@@ -190,7 +208,7 @@ public class ThreadDumpCleaner {
         // platform/java.scripting@11.0.1
 
         // removing the module name
-        line = line.substring(0, at + 2) + line.substring(slash + 1);
+        line = line.substring(0, start) + line.substring(slash + 1);
         return line;
     }
 
