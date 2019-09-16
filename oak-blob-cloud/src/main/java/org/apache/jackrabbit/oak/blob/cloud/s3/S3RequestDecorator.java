@@ -43,11 +43,9 @@ public class S3RequestDecorator {
 
             if (props.getProperty(S3Constants.S3_ENCRYPTION).equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
                 String keyId = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-                if(!StringUtils.isNullOrEmpty(keyId)){
-                    sseParams = new SSEAwsKeyManagementParams(keyId);
+                sseParams = new SSEAwsKeyManagementParams();
+                if (!StringUtils.isNullOrEmpty(keyId)) {
                     sseParams.withAwsKmsKeyId(keyId);
-                } else {
-                    sseParams = new SSEAwsKeyManagementParams();
                 }
             }
         }
@@ -64,7 +62,6 @@ public class S3RequestDecorator {
                                 ? new ObjectMetadata()
                                 : request.getMetadata();
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
-                request.setMetadata(metadata);
                 break;
             case SSE_KMS:
                 metadata = request.getMetadata() == null
@@ -72,15 +69,12 @@ public class S3RequestDecorator {
                                 : request.getMetadata();
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 /*Set*/
-                request.setMetadata(metadata);
-                String keyId = getSSEParams().getAwsKmsKeyId();
-                request.withSSEAwsKeyManagementParams(keyId == null
-                        ? new SSEAwsKeyManagementParams()
-                        : new SSEAwsKeyManagementParams(keyId));
+                request.withSSEAwsKeyManagementParams(sseParams);
                 break;
             case NONE:
                 break;
         }
+        request.setMetadata(metadata);
         return request;
     }
 
@@ -95,22 +89,18 @@ public class S3RequestDecorator {
                                 ? new ObjectMetadata()
                                 : request.getNewObjectMetadata();
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
-                request.setNewObjectMetadata(metadata);
                 break;
             case SSE_KMS:
                 metadata = request.getNewObjectMetadata() == null
                                 ? new ObjectMetadata()
                                 : request.getNewObjectMetadata();
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-                request.setNewObjectMetadata(metadata);
-                String keyId = getSSEParams().getAwsKmsKeyId();
-                request.withSSEAwsKeyManagementParams(keyId == null
-                        ? new SSEAwsKeyManagementParams()
-                        : new SSEAwsKeyManagementParams(keyId));
+                request.withSSEAwsKeyManagementParams(sseParams);
                 break;
             case NONE:
                 break;
         }
+        request.setNewObjectMetadata(metadata);
         return request;
     }
 
@@ -122,22 +112,18 @@ public class S3RequestDecorator {
                                 ? new ObjectMetadata()
                                 : request.getObjectMetadata();
                 metadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
-                request.setObjectMetadata(metadata);
                 break;
             case SSE_KMS:
                 metadata = request.getObjectMetadata() == null
                                 ? new ObjectMetadata()
                                 : request.getObjectMetadata();
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-                request.setObjectMetadata(metadata);
-                String keyId = getSSEParams().getAwsKmsKeyId();
-                request.withSSEAwsKeyManagementParams(keyId == null
-                        ? new SSEAwsKeyManagementParams()
-                        : new SSEAwsKeyManagementParams(keyId));
+                request.withSSEAwsKeyManagementParams(sseParams);
                 break;
             case NONE:
                 break;
         }
+        request.setObjectMetadata(metadata);
         return request;
     }
 

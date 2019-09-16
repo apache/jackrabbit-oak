@@ -32,9 +32,8 @@ public class TestS3DSWithSSEKMS extends TestS3Ds {
 
         protected static long ONE_KB = 1024;
         protected static long ONE_MB = ONE_KB * ONE_KB;
-        protected static long TEN_MB = ONE_MB * 10;
         protected static long ONE_HUNDRED_MB = ONE_MB * 100;
-        protected static long ONE_GB = ONE_MB * ONE_MB;
+        protected static long ONE_GB = ONE_HUNDRED_MB * 10;
         
         @Override
         @Before

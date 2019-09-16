@@ -35,16 +35,15 @@ public class TestS3DSWithSSEKMSwithKey extends TestS3Ds {
 
         protected static long ONE_KB = 1024;
         protected static long ONE_MB = ONE_KB * ONE_KB;
-        protected static long TEN_MB = ONE_MB * 10;
         protected static long ONE_HUNDRED_MB = ONE_MB * 100;
-        protected static long ONE_GB = ONE_MB * ONE_MB;
+        protected static long ONE_GB = ONE_HUNDRED_MB * 10;
 
         @Override
         @Before
         public void setUp() throws Exception {
             
             super.setUp();
-            String randomKey = "2bf5110e-656b-4e22-98f8-1cc157d96447";
+            String randomKey = "2bf5110e-98f8-1cc157d96447";
             props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
             props.setProperty(S3Constants.S3_SSE_KMS_KEYID, randomKey);
             props.setProperty("cacheSize", "0");
