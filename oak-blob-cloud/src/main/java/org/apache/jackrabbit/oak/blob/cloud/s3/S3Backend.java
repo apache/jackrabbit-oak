@@ -942,8 +942,8 @@ public class S3Backend extends AbstractSharedBackend {
             expiration.setTime(expiration.getTime() + expirySeconds * 1000);
 
             GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
-                                                        .withMethod(method)
-                                                        .withExpiration(expiration);
+                    .withMethod(method)
+                    .withExpiration(expiration);
             request = s3ReqDecorator.decorate(request);
             for (Map.Entry<String, String> e : reqParams.entrySet()) {
                 request.addRequestParameter(e.getKey(), e.getValue());
