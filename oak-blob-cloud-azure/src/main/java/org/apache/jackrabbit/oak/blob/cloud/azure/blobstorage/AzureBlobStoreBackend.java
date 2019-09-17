@@ -1057,8 +1057,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     private String getDirectUploadBlobStorageDomain() {
         String domain = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
-        if (null == domain) {
-            getDefaultBlobStorageDomain();
+        if (Strings.isNullOrEmpty(domain)) {
+            domain = getDefaultBlobStorageDomain();
         }
         return domain;
     }
