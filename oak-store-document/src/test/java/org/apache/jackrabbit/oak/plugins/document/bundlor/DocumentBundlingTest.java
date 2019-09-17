@@ -815,7 +815,9 @@ public class DocumentBundlingTest {
     public void deleteAndRecreateAsNonBundledNode() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder fileNode = newNode("nt:file");
-        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        NodeBuilder contentNode = fileNode.child("jcr:content");
+        contentNode.setProperty("jcr:data", "foo");
+        contentNode.child("extra");
         builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
         merge(builder);
 
@@ -824,15 +826,29 @@ public class DocumentBundlingTest {
         merge(builder);
 
         builder = store.getRoot().builder();
-        NodeState state = newNode("oak:Unstructured").getNodeState();
-        builder.child("test").setChildNode("book.jpg", state);
+        builder.child("test").setChildNode("book.jpg",
+                newNode("oak:Unstructured").getNodeState());
+        builder.child("test").child("book.jpg").setChildNode("jcr:content",
+                newNode("oak:Unstructured").getNodeState());
         merge(builder);
 
+        Set<String> names = propertyNamesFor("/test/book.jpg");
+        assertThat(names, containsInAnyOrder("jcr:primaryType"));
+
+        names = propertyNamesFor("/test/book.jpg/jcr:content");
+        assertThat(names, containsInAnyOrder("jcr:primaryType"));
+    }
+
+    private Set<String> propertyNamesFor(String path) {
         Set<String> names = new HashSet<>();
-        for (PropertyState p : store.getRoot().getChildNode("test").getChildNode("book.jpg").getProperties()) {
+        NodeState state = store.getRoot();
+        for (String name : PathUtils.elements(path)) {
+            state = state.getChildNode(name);
+        }
+        for (PropertyState p : state.getProperties()) {
             names.add(p.getName());
         }
-        assertThat(names, containsInAnyOrder("jcr:primaryType"));
+        return names;
     }
 
     @Test
