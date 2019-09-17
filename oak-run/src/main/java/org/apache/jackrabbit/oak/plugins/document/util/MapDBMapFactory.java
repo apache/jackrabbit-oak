@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -35,7 +36,7 @@ import org.mapdb.Serializer;
 /**
  * A MapFactory backed by MapDB, which stores the map in a temporary file.
  */
-public class MapDBMapFactory extends MapFactory {
+public class MapDBMapFactory extends MapFactory implements Closeable {
 
     private final AtomicInteger counter = new AtomicInteger();
     private final DB db;
@@ -55,6 +56,12 @@ public class MapDBMapFactory extends MapFactory {
                 .valueSerializer(new RevisionSerializer())
                 .counterEnable()
                 .make();
+    }
+
+
+    @Override
+    public void close() throws IOException {
+        this.db.close();
     }
 
     private static class PathSerializer

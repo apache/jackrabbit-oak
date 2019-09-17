@@ -41,10 +41,14 @@ import com.google.common.io.Closer;
 
 class RecoveryCommand implements Command {
 
+    MapFactory oldf = MapFactory.getInstance();
+
     @Override
     public void execute(String... args) throws Exception {
-        MapFactory.setInstance(new MapDBMapFactory());
         Closer closer = Utils.createCloserWithShutdownHook();
+        MapDBMapFactory mdbmf = new MapDBMapFactory();
+        closer.register(mdbmf);
+        MapFactory.setInstance(mdbmf);
         String h = "recovery mongodb://host:port/database|jdbc:... { dryRun }";
 
         try {
@@ -123,6 +127,7 @@ class RecoveryCommand implements Command {
             throw closer.rethrow(e);
         } finally {
             closer.close();
+            MapFactory.setInstance(oldf);
         }
     }
 }
