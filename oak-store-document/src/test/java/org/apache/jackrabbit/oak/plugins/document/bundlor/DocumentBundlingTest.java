@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.bundlor;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -63,6 +64,7 @@ import org.h2.mvstore.WriteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -806,6 +808,31 @@ public class DocumentBundlingTest {
         fileNode.child("jcr:content").setProperty("jcr:data", "foo2");
         builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
         merge(builder);
+    }
+
+    @Ignore("OAK-8629")
+    @Test
+    public void deleteAndRecreateAsNonBundledNode() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNode("nt:file");
+        fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        builder = store.getRoot().builder();
+        builder.child("test").child("book.jpg").remove();
+        merge(builder);
+
+        builder = store.getRoot().builder();
+        NodeState state = newNode("oak:Unstructured").getNodeState();
+        builder.child("test").setChildNode("book.jpg", state);
+        merge(builder);
+
+        Set<String> names = new HashSet<>();
+        for (PropertyState p : store.getRoot().getChildNode("test").getChildNode("book.jpg").getProperties()) {
+            names.add(p.getName());
+        }
+        assertThat(names, containsInAnyOrder("jcr:primaryType"));
     }
 
     @Test
