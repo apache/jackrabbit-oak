@@ -225,6 +225,7 @@ public class SecurityProviderRegistration {
         if (registration != null) {
             registration.unregister();
         }
+        closeQuietly(closer);
     }
 
     //--------------------------------------< unary security configurations >---

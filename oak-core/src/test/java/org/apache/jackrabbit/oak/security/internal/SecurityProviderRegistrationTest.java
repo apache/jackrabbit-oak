@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
@@ -48,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.security.RegistrationConstants;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMBean;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
@@ -86,11 +88,14 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -299,6 +304,43 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         assertTrue(((Preconditions) f.get(registration)).areSatisfied());
     }
 
+    @Test
+    public void testDeactivateUnregistersMBeans() {
+        // activate
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceA"));
+        
+        // validate that registration is not performed
+        SecurityProvider service = context.getService(SecurityProvider.class);
+        assertNull(service);
+        
+        // register AuthenticationConfiguration to trigger MBean registration 
+        AuthenticationConfigurationImpl mockAc = mock(AuthenticationConfigurationImpl.class);
+        registration.bindAuthenticationConfiguration(mockAc);
+
+        // register required service
+        RestrictionProvider mockRp = mock(RestrictionProvider.class);
+        ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("serviceA").getMock();
+
+        registration.bindRestrictionProvider(sr, mockRp);
+
+        // assert that SecurityProvider is registered
+        service = context.getService(SecurityProvider.class);
+        assertNotNull(service);
+        
+        // assert that MBean is registered
+        assertThat("LoginModuleMBean is not registered", context.getService(LoginModuleMBean.class), notNullValue());
+        
+        // manually deactivate, simulate AuthenticationConfiguration going away due to new config for it coming in
+        registration.deactivate();
+        
+        // assert that service is now unregistered
+        service = context.getService(SecurityProvider.class);
+        assertNull(service);
+        
+        // assert that MBean is no longer registered
+        assertThat("LoginModuleMBean is still registered", context.getService(LoginModuleMBean.class), nullValue());
+    }
+    
     @Test
     public void testBindOptionalCandidate() throws Exception {
         registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
