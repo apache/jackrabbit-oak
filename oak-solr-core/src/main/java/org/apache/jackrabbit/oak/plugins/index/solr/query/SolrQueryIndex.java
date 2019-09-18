@@ -17,17 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.*;
+
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -39,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
@@ -232,9 +224,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     }
 
     private synchronized LMSEstimator getEstimator(String path) {
-        if (!estimators.containsKey(path)) {
-            estimators.put(path, new LMSEstimator());
-        }
+        estimators.putIfAbsent(path, new LMSEstimator());
         return estimators.get(path);
     }
 
@@ -352,7 +342,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
 
                         numFound = docs.getNumFound();
 
-                        estimator.update(filter, docs);
+                        estimator.update(filter, numFound);
 
                         Map<String, Map<String, List<String>>> highlighting = queryResponse.getHighlighting();
                         for (SolrDocument doc : docs) {

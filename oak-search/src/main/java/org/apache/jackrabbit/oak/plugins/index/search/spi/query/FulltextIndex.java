@@ -374,7 +374,8 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         private long estimatedSize;
         private final int numberOfFacets;
 
-        public FulltextPathCursor(final Iterator<FulltextResultRow> it, final IteratorRewoundStateProvider iterStateProvider, final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
+        public FulltextPathCursor(final Iterator<FulltextResultRow> it, final IteratorRewoundStateProvider iterStateProvider,
+                                  final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
             pathPrefix = plan.getPathPrefix();
             this.sizeEstimator = sizeEstimator;
             Iterator<String> pathIterator = new Iterator<String>() {

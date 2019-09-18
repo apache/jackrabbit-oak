@@ -14,45 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.query;
+package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Arrays;
 
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.solr.common.SolrDocumentList;
 
 /**
  * A very simple estimator for no. of entries in the index using least mean square update method for linear regression.
  */
-class LMSEstimator {
+public class LMSEstimator {
 
     private static final double DEFAULT_ALPHA = 0.03;
-    private static final int DEFAULT_THRESHOLD = 5;
+    private static final int DEFAULT_THRESHOLD = 0;
 
     private double[] weights;
     private final double alpha;
     private final long threshold;
 
-    LMSEstimator(double alpha, double[] weights, long threshold) {
+    private LMSEstimator(double alpha, double[] weights, long threshold) {
         this.alpha = alpha;
         this.weights = weights;
         this.threshold = threshold;
     }
 
-    LMSEstimator(double[] weights) {
-        this(DEFAULT_ALPHA, weights, DEFAULT_THRESHOLD);
+    public LMSEstimator() {
+        this(DEFAULT_ALPHA, new double[]{0.1,0.2,0.5,0.2,0.1}, DEFAULT_THRESHOLD);
     }
 
-    LMSEstimator() {
-        this(DEFAULT_ALPHA, new double[5], 5);
-    }
-
-    synchronized void update(Filter filter, SolrDocumentList docs) {
+    public synchronized void update(Filter filter, long numFound) {
         double[] updatedWeights = new double[weights.length];
 
         // least mean square cost
         long estimate = estimate(filter);
-        long numFound = docs.getNumFound();
         long residual = numFound - estimate;
         double delta = Math.pow(residual, 2);
 
@@ -65,7 +59,7 @@ class LMSEstimator {
         }
     }
 
-    long estimate(Filter filter) {
+    public long estimate(Filter filter) {
         long estimatedEntryCount = 0;
         for (int i = 0; i < 5; i++) {
             estimatedEntryCount += weights[i] * getInput(filter, i);
