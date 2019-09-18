@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
@@ -90,6 +91,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-1329">OAK-1329</a>
      */
     public static final String RELAXED_LOCKING = "oak.relaxed-locking";
+    public static final String MAX_STRING_PROPERTY_SIZE = "oak.repository.property.maxStringSize";
 
     /**
      * logger instance
@@ -138,13 +140,29 @@ public class RepositoryImpl implements JackrabbitRepository {
         this(contentRepository, whiteboard, securityProvider, 
                 observationQueueLength, commitRateLimiter, false);
     }
-    
+
     public RepositoryImpl(@NotNull ContentRepository contentRepository,
                           @NotNull Whiteboard whiteboard,
                           @NotNull SecurityProvider securityProvider,
                           int observationQueueLength,
                           CommitRateLimiter commitRateLimiter,
                           boolean fastQueryResultSize) {
+        this(contentRepository,
+                whiteboard,
+                securityProvider,
+                observationQueueLength,
+                commitRateLimiter,
+                fastQueryResultSize,
+                Jcr.DEFAULT_MAX_STRING_PROPERTY_SIZE);
+    }
+
+    public RepositoryImpl(@NotNull ContentRepository contentRepository,
+                          @NotNull Whiteboard whiteboard,
+                          @NotNull SecurityProvider securityProvider,
+                          int observationQueueLength,
+                          CommitRateLimiter commitRateLimiter,
+                          boolean fastQueryResultSize,
+                          int maxStringPropertySize) {
         this.contentRepository = checkNotNull(contentRepository);
         this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
@@ -157,6 +175,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.fastQueryResultSize = fastQueryResultSize;
         this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
         this.blobAccessProvider = WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class);
+        descriptors.put(MAX_STRING_PROPERTY_SIZE, new SimpleValueFactory().createValue(maxStringPropertySize), true, true);
     }
 
     //---------------------------------------------------------< Repository >---
