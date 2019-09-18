@@ -282,7 +282,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
         return persist(new Changes() {
             @Override
             public void with(@NotNull CommitBuilder commitBuilder) {
-                CommitDiff diff = new CommitDiff(store, commitBuilder, store.getBlobSerializer());
+                CommitDiff diff = new CommitDiff(
+                        store.getBundlingConfigHandler().newBundlingHandler(),
+                        commitBuilder, store.getBlobSerializer());
                 toPersist.compareAgainstBaseState(base, diff);
                 stats.numDocuments += diff.getNumChanges();
             }

@@ -38,8 +38,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
  */
 class CommitDiff implements NodeStateDiff {
 
-    private final DocumentNodeStore store;
-
     private final CommitBuilder commit;
 
     private final JsopBuilder builder;
@@ -48,18 +46,18 @@ class CommitDiff implements NodeStateDiff {
 
     private final BundlingHandler bundlingHandler;
 
-    CommitDiff(@NotNull DocumentNodeStore store,
+    CommitDiff(@NotNull BundlingHandler bundlingHandler,
                @NotNull CommitBuilder commitBuilder,
                @NotNull BlobSerializer blobs) {
-        this(checkNotNull(store), checkNotNull(commitBuilder),
-                store.getBundlingConfigHandler().newBundlingHandler(),
+        this(checkNotNull(commitBuilder),
+                checkNotNull(bundlingHandler),
                 new JsopBuilder(), checkNotNull(blobs));
     }
 
-    private CommitDiff(DocumentNodeStore store, CommitBuilder commitBuilder,
-                       BundlingHandler bundlingHandler, JsopBuilder builder,
+    private CommitDiff(CommitBuilder commitBuilder,
+                       BundlingHandler bundlingHandler,
+                       JsopBuilder builder,
                        BlobSerializer blobs) {
-        this.store = store;
         this.commit = commitBuilder;
         this.bundlingHandler = bundlingHandler;
         this.builder = builder;
@@ -93,7 +91,7 @@ class CommitDiff implements NodeStateDiff {
         }
         setOrTouchChildrenFlag(child);
         return after.compareAgainstBaseState(EMPTY_NODE,
-                new CommitDiff(store, commit, child, builder, blobs));
+                new CommitDiff(commit, child, builder, blobs));
     }
 
     @Override
@@ -105,7 +103,7 @@ class CommitDiff implements NodeStateDiff {
         //would still impact even though new nodetype does not have bundling enabled
         BundlingHandler child = bundlingHandler.childChanged(name, before, after);
         return after.compareAgainstBaseState(before,
-                new CommitDiff(store, commit, child, builder, blobs));
+                new CommitDiff(commit, child, builder, blobs));
     }
 
     @Override
@@ -116,7 +114,7 @@ class CommitDiff implements NodeStateDiff {
         }
         setOrTouchChildrenFlag(child);
         return MISSING_NODE.compareAgainstBaseState(before,
-                new CommitDiff(store, commit, child, builder, blobs));
+                new CommitDiff(commit, child, builder, blobs));
     }
 
     /**
