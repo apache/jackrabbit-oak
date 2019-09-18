@@ -66,6 +66,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class Jcr {
     public static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = BackgroundObserver.DEFAULT_QUEUE_SIZE;
+    public static final int DEFAULT_MAX_STRING_PROPERTY_SIZE = 102400;
 
     private final Oak oak;
 
@@ -93,6 +94,7 @@ public class Jcr {
     private Repository repository;
 
     private Clusterable clusterable;
+    private int maxStringPropertySize = DEFAULT_MAX_STRING_PROPERTY_SIZE;
 
     public Jcr(Oak oak, boolean initialize) {
         this.oak = oak;
@@ -260,6 +262,13 @@ public class Jcr {
     }
 
     @NotNull
+    public Jcr withMaxStringPropertySize(int maxStringPropertySize) {
+        ensureRepositoryIsNotCreated();
+        this.maxStringPropertySize = maxStringPropertySize;
+        return this;
+    }
+
+    @NotNull
     public Jcr with(@NotNull CommitRateLimiter commitRateLimiter) {
         ensureRepositoryIsNotCreated();
         this.commitRateLimiter = checkNotNull(commitRateLimiter);
@@ -387,7 +396,8 @@ public class Jcr {
                     securityProvider,
                     observationQueueLength,
                     commitRateLimiter,
-                    fastQueryResultSize);
+                    fastQueryResultSize,
+                    maxStringPropertySize);
         }
         return repository;
     }
