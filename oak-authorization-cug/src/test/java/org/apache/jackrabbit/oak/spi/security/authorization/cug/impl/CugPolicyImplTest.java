@@ -69,11 +69,11 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
         return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, importBehavior, exclude);
     }
 
-    private CugPolicyImpl createCugPolicy(@NotNull Set<Principal> principals) {
+    private CugPolicyImpl createCugPolicy(@NotNull Iterable<Principal> principals) {
         return createCugPolicy(ImportBehavior.ABORT, principals);
     }
 
-    private CugPolicyImpl createCugPolicy(int importBehavior, @NotNull Set<Principal> principals) {
+    private CugPolicyImpl createCugPolicy(int importBehavior, @NotNull Iterable<Principal> principals) {
         return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, importBehavior, exclude, principals);
     }
 
@@ -101,6 +101,21 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
         CugPolicyImpl empty = createEmptyCugPolicy();
 
         assertTrue(empty.getPrincipals().isEmpty());
+    }
+
+    @Test
+    public void testCreateWithDuplicateName() {
+        Set<Principal> duplication = ImmutableSet.of(testPrincipal, new Principal() {
+            @Override
+            public String getName() {
+                return testPrincipal.getName();
+            }
+        });
+        assertEquals(2, duplication.size());
+
+        CugPolicyImpl cugPolicy = createCugPolicy(duplication);
+        assertEquals(1, cugPolicy.getPrincipals().size());
+        assertEquals(1, Iterables.size(cugPolicy.getPrincipalNames()));
     }
 
     @Test
@@ -173,6 +188,13 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testAddContainedPrincipalNonEqualImpl() throws Exception {
+        CugPolicy cug = createCugPolicy(ImportBehavior.BESTEFFORT, principals);
+        assertFalse(cug.addPrincipals((Principal) () -> testPrincipal.getName()));
+        assertEquals(principals, cug.getPrincipals());
+    }
+
+    @Test
     public void testAddNullPrincipal() throws Exception {
         CugPolicy cug = createCugPolicy(ImportBehavior.ABORT, principals);
         assertTrue(cug.addPrincipals(EveryonePrincipal.getInstance(), null));
@@ -206,7 +228,13 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     public void testRemoveNullPrincipal() throws Exception {
         CugPolicy cug = createCugPolicy(ImportBehavior.ABORT, principals);
         assertTrue(cug.removePrincipals(testPrincipal, null));
+        assertTrue(cug.getPrincipals().isEmpty());
+    }
 
+    @Test
+    public void testRemoveContainedPrincipalNotEqual() throws Exception {
+        CugPolicy cug = createCugPolicy(ImportBehavior.BESTEFFORT, principals);
+        assertTrue(cug.removePrincipals((Principal) () -> testPrincipal.getName()));
         assertTrue(cug.getPrincipals().isEmpty());
     }
 
