@@ -34,6 +34,10 @@ import org.junit.rules.ExpectedException;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_RESOURCE;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class BundlorConflictTest {
 
@@ -111,6 +115,141 @@ public class BundlorConflictTest {
 
         thrown.expect(CommitFailedException.class);
         merge(store2, root2);
+    }
+
+    @Test
+    public void removeChangedNode() throws Exception {
+        // do not perform retries on merge
+        store2.setMaxBackOffMillis(0);
+
+        NodeBuilder builder = store1.getRoot().builder();
+        createFile(builder.child("test"), "book.jpg")
+                .child("jcr:content").setProperty("jcr:data", "test");
+        merge(store1, builder);
+
+        syncStores();
+
+        NodeBuilder b1 = store1.getRoot().builder();
+        NodeBuilder b2 = store2.getRoot().builder();
+
+        childBuilder(b1, "/test/book.jpg/jcr:content").setProperty("jcr:data", "modified");
+        merge(store1, b1);
+
+        childBuilder(b2, "/test/book.jpg/jcr:content").remove();
+        try {
+            merge(store2, b2);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("ConflictException"));
+        }
+    }
+
+    @Test
+    public void changeRemovedNode() throws Exception {
+        // do not perform retries on merge
+        store2.setMaxBackOffMillis(0);
+
+        NodeBuilder builder = store1.getRoot().builder();
+        createFile(builder.child("test"), "book.jpg")
+                .child("jcr:content").setProperty("jcr:data", "test");
+        merge(store1, builder);
+
+        syncStores();
+
+        NodeBuilder b1 = store1.getRoot().builder();
+        NodeBuilder b2 = store2.getRoot().builder();
+
+        childBuilder(b1, "/test/book.jpg/jcr:content").remove();
+        merge(store1, b1);
+
+        childBuilder(b2, "/test/book.jpg/jcr:content").setProperty("jcr:data", "modified");
+        try {
+            merge(store2, b2);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("ConflictException"));
+        }
+    }
+
+    @Test
+    public void removeRemovedNode() throws Exception {
+        // do not perform retries on merge
+        store2.setMaxBackOffMillis(0);
+
+        NodeBuilder builder = store1.getRoot().builder();
+        createFile(builder.child("test"), "book.jpg")
+                .child("jcr:content").setProperty("jcr:data", "test");
+        merge(store1, builder);
+
+        syncStores();
+
+        NodeBuilder b1 = store1.getRoot().builder();
+        NodeBuilder b2 = store2.getRoot().builder();
+
+        childBuilder(b1, "/test/book.jpg/jcr:content").remove();
+        merge(store1, b1);
+
+        childBuilder(b2, "/test/book.jpg/jcr:content").remove();
+        try {
+            merge(store2, b2);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("ConflictException"));
+        }
+    }
+
+    @Test
+    public void addChildOnRemovedNode() throws Exception {
+        // do not perform retries on merge
+        store2.setMaxBackOffMillis(0);
+
+        NodeBuilder builder = store1.getRoot().builder();
+        createFile(builder.child("test"), "book.jpg")
+                .child("jcr:content").setProperty("jcr:data", "test");
+        merge(store1, builder);
+
+        syncStores();
+
+        NodeBuilder b1 = store1.getRoot().builder();
+        NodeBuilder b2 = store2.getRoot().builder();
+
+        childBuilder(b1, "/test/book.jpg/jcr:content").remove();
+        merge(store1, b1);
+
+        childBuilder(b2, "/test/book.jpg/jcr:content").child("extra");
+        try {
+            merge(store2, b2);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("ConflictException"));
+        }
+    }
+
+    @Test
+    public void removeStaleTree() throws Exception {
+        // do not perform retries on merge
+        store2.setMaxBackOffMillis(0);
+
+        NodeBuilder builder = store1.getRoot().builder();
+        createFile(builder.child("test"), "book.jpg")
+                .child("jcr:content").setProperty("jcr:data", "test");
+        merge(store1, builder);
+
+        syncStores();
+
+        NodeBuilder b1 = store1.getRoot().builder();
+        NodeBuilder b2 = store2.getRoot().builder();
+
+        childBuilder(b1, "/test/book.jpg/jcr:content").child("extra");
+        merge(store1, b1);
+
+        childBuilder(b2, "/test/book.jpg/jcr:content").remove();
+        try {
+            merge(store2, b2);
+            fail("must fail with CommitFailedException");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("ConflictException"));
+        }
     }
 
     private static void merge(NodeStore store,

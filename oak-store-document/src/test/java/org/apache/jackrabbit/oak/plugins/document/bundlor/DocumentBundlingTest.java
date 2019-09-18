@@ -397,6 +397,26 @@ public class DocumentBundlingTest {
         assertTrue(hasNodeProperty("/test/book.jpg", "_children"));
     }
 
+    @Test
+    public void hasChildren_BundledRoot_BundledChildRemoved() throws Exception{
+        createTestNode("/test/book.jpg", createChild(newNode("app:Asset"), "jcr:content").getNodeState());
+
+        ds.reset();
+
+        assertEquals(1, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(0, ds.queryPaths.size());
+
+        NodeBuilder builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content").remove();
+        merge(builder);
+
+        ds.reset();
+        assertEquals(0, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertFalse(getLatestNode("test/book.jpg").hasChildNode("jcr:content"));
+        assertEquals(0, ds.queryPaths.size());
+
+        assertTrue(hasNodeProperty("/test/book.jpg", META_PROP_BUNDLED_CHILD));
+    }
 
     @Test
     public void hasChildren_BundledRoot_NonBundledChild() throws Exception{
@@ -814,10 +834,8 @@ public class DocumentBundlingTest {
     @Test
     public void deleteAndRecreateAsNonBundledNode() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
-        NodeBuilder fileNode = newNode("nt:file");
-        NodeBuilder contentNode = fileNode.child("jcr:content");
-        contentNode.setProperty("jcr:data", "foo");
-        contentNode.child("extra");
+        NodeBuilder fileNode = newNtFileWithContent();
+        fileNode.child("jcr:content").child("extra");
         builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
         merge(builder);
 
@@ -841,11 +859,7 @@ public class DocumentBundlingTest {
 
     private Set<String> propertyNamesFor(String path) {
         Set<String> names = new HashSet<>();
-        NodeState state = store.getRoot();
-        for (String name : PathUtils.elements(path)) {
-            state = state.getChildNode(name);
-        }
-        for (PropertyState p : state.getProperties()) {
+        for (PropertyState p : getLatestNode(path).getProperties()) {
             names.add(p.getName());
         }
         return names;
@@ -1026,6 +1040,12 @@ public class DocumentBundlingTest {
     static NodeBuilder newNode(String typeName){
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JCR_PRIMARYTYPE, typeName);
+        return builder;
+    }
+
+    private static NodeBuilder newNtFileWithContent() {
+        NodeBuilder builder = newNode("nt:file");
+        builder.child("jcr:content").setProperty("jcr:data", "test");
         return builder;
     }
 
