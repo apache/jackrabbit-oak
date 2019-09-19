@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 public class LMSEstimator {
 
     private static final double DEFAULT_ALPHA = 0.03;
-    private static final int DEFAULT_THRESHOLD = 0;
+    private static final int DEFAULT_THRESHOLD = 5;
 
     private double[] weights;
     private final double alpha;
@@ -39,7 +39,7 @@ public class LMSEstimator {
     }
 
     public LMSEstimator() {
-        this(DEFAULT_ALPHA, new double[]{0.1,0.2,0.5,0.2,0.1}, DEFAULT_THRESHOLD);
+        this(DEFAULT_ALPHA, new double[5], DEFAULT_THRESHOLD);
     }
 
     public synchronized void update(Filter filter, long numFound) {
