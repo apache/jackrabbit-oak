@@ -134,15 +134,6 @@
               <link>http://jackrabbit.apache.org/api/trunk/</link>
               <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
             </links>
-            <!-- workaround for https://issues.apache.org/jira/browse/OAK-8517 -->
-            <excludePackageNames>org.apache.jackrabbit.oak.plugins.index.*</excludePackageNames>
-            <tags>
-              <tag>
-                <!-- workaround for https://issues.apache.org/jira/browse/OAK-8149 -->
-                <name>Version</name>                            
-                <placement>X</placement>                            
-              </tag>
-            </tags>
           </configuration>
         </plugin>
         <plugin>
