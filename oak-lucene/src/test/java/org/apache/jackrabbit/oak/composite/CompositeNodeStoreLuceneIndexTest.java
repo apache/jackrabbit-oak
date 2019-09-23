@@ -72,6 +72,11 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         repoV1.initCompositeRepo();
     }
 
+    @Override
+    public void closeRepositories() throws Exception {
+        repoV1.cleanup();
+    }
+
     /**
      * Steps overview -
      * Add a new index to composite repo and reindex
@@ -97,8 +102,6 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
 
         long reindexCount2 = luceneTest.getProperty(REINDEX_COUNT).getValue().getLong();
         assertEquals(reindexCount2, reindexCount + 1);
-
-        repoV1.cleanup();
     }
 
     /**
@@ -108,13 +111,12 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     @Test
     public void addIndexInReadWriteWithIndexExistinginReadOnly() throws Exception {
         repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
-        repoV1.cleanup();
     }
 
     /**
      * Given a composite jcr repo with a lucene index with indexed data from both read only and read write parts
      * We create a V2 of this repo which will have the lucene index removed -
-     * Expected behaviour - The same query that returned resutls from both readonly
+     * Expected behaviour - The same query that returned results from both readonly
      * and readwrite in V1 should now return
      * results - but it would be a traversal query and not use the index .
      */
@@ -325,6 +327,8 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         private Node readOnlyRoot;
         private String readOnlyMountName;
 
+        private boolean cleanedUp;
+
         public Node getReadOnlyRoot() {
             return readOnlyRoot;
         }
@@ -461,10 +465,13 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         }
 
         private void cleanup() {
-            compositeSession.logout();
-            shutdown(compositeRepository);
-            readOnlySession.logout();
-            shutdown(readOnlyRepository);
+            if (!cleanedUp) {
+                compositeSession.logout();
+                shutdown(compositeRepository);
+                readOnlySession.logout();
+                shutdown(readOnlyRepository);
+            }
+            cleanedUp = true;
         }
 
     }

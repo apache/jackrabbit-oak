@@ -412,7 +412,7 @@ public class CompositeNodeStoreQueryTestBase {
         }
     }
 
-    static enum NodeStoreKind {
+    enum NodeStoreKind {
         MEMORY {
             @Override
             public NodeStoreRegistration create(String name) {
@@ -421,7 +421,7 @@ public class CompositeNodeStoreQueryTestBase {
                     private MemoryNodeStore instance;
 
                     @Override
-                    public NodeStore get() {
+                    public NodeStore get(TemporaryFolder temporaryFolder) {
 
                         if (instance != null) {
                             throw new IllegalStateException("instance already created");
@@ -454,19 +454,18 @@ public class CompositeNodeStoreQueryTestBase {
                     private String blobStorePath;
 
                     @Override
-                    public NodeStore get() throws Exception {
+                    public NodeStore get(TemporaryFolder temporaryFolder) throws Exception {
 
                         if (instance != null) {
                             throw new IllegalStateException("instance already created");
                         }
 
-                        // TODO - don't use Unix directory separators
                         String directoryName = name != null ? "segment-" + name : "segment";
-                        storePath = new File("target/classes/" + directoryName);
+                        storePath = temporaryFolder.newFolder(directoryName);
 
                         //String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
                         String blobStoreDirectoryName = "blob" ;
-                        blobStorePath = "target/classes/" + blobStoreDirectoryName;
+                        blobStorePath = temporaryFolder.getRoot().getAbsolutePath() + blobStoreDirectoryName;
 
                         BlobStore blobStore = new FileBlobStore(blobStorePath);
 
@@ -499,9 +498,9 @@ public class CompositeNodeStoreQueryTestBase {
                     private DocumentNodeStore instance;
 
                     @Override
-                    public NodeStore get() throws Exception {
+                    public NodeStore get(TemporaryFolder temporaryFolder) throws Exception {
                         RDBOptions options = new RDBOptions().dropTablesOnClose(true);
-                        String jdbcUrl = "jdbc:h2:file:./target/classes/document";
+                        String jdbcUrl = "jdbc:h2:file:" + temporaryFolder.getRoot().getAbsolutePath() + "/document";
                         if ( name != null ) {
                             jdbcUrl += "-" + name;
                         }
@@ -536,7 +535,7 @@ public class CompositeNodeStoreQueryTestBase {
     }
 
     private interface NodeStoreRegistration {
-        NodeStore get() throws Exception;
+        NodeStore get(TemporaryFolder temporaryFolder) throws Exception;
 
         void close() throws Exception;
     }
@@ -544,7 +543,7 @@ public class CompositeNodeStoreQueryTestBase {
     protected NodeStore register(NodeStoreRegistration reg) throws Exception {
         registrations.add(reg);
 
-        return reg.get();
+        return reg.get(temporaryFolder);
     }
 
 

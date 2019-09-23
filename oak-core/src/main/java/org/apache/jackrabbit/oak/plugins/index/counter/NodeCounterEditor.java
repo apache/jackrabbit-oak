@@ -111,7 +111,7 @@ public class NodeCounterEditor implements Editor {
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
         if (NodeCounter.COUNT_HASH) {
-            leaveNew(before, after);
+            leaveNew();
             return;
         }
         leaveOld(before, after);
@@ -153,7 +153,7 @@ public class NodeCounterEditor implements Editor {
         }
     }
 
-    public void leaveNew(NodeState before, NodeState after) throws CommitFailedException {
+    private void leaveNew() throws CommitFailedException {
         if (countOffsets.isEmpty()) {
             return;
         }
