@@ -70,6 +70,8 @@ public class SegmentStoreMigrator implements Closeable  {
 
     private final boolean appendMode;
 
+    private final boolean onlyLastJournalEntry;
+
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
 
     private SegmentStoreMigrator(Builder builder) {
@@ -78,6 +80,7 @@ public class SegmentStoreMigrator implements Closeable  {
         this.sourceName = builder.sourceName;
         this.targetName = builder.targetName;
         this.appendMode = builder.appendMode;
+        this.onlyLastJournalEntry = builder.onlyLastJournalEntry;
     }
 
     public void migrate() throws IOException, ExecutionException, InterruptedException {
@@ -94,13 +97,22 @@ public class SegmentStoreMigrator implements Closeable  {
             return;
         }
         List<String> journal = new ArrayList<>();
-        try (JournalFileReader reader = source.getJournalFile().openJournalReader()) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                journal.add(line);
+        if (onlyLastJournalEntry) {
+            try (JournalFileReader reader = source.getJournalFile().openJournalReader()) {
+                String line = reader.readLine();
+                if (line != null) {
+                    journal.add(line);
+                }
             }
+        } else {
+            try (JournalFileReader reader = source.getJournalFile().openJournalReader()) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    journal.add(line);
+                }
+            }
+            Collections.reverse(journal);
         }
-        Collections.reverse(journal);
         try (JournalFileWriter writer = target.getJournalFile().openJournalWriter()) {
             writer.truncate();
             for (String line : journal) {
@@ -236,6 +248,8 @@ public class SegmentStoreMigrator implements Closeable  {
 
         private boolean appendMode;
 
+        private boolean onlyLastJournalEntry;
+
         public Builder withSource(File dir) {
             this.source = new TarPersistence(dir);
             this.sourceName = storeDescription(SegmentStoreType.TAR, dir.getPath());
@@ -274,6 +288,11 @@ public class SegmentStoreMigrator implements Closeable  {
 
         public Builder setAppendMode() {
             this.appendMode = true;
+            return this;
+        }
+
+        public Builder withOnlyLastJournalEntry() {
+            this.onlyLastJournalEntry = onlyLastJournalEntry;
             return this;
         }
 
