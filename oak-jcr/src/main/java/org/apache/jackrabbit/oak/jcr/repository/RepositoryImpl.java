@@ -128,6 +128,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             createListeningScheduledExecutorService();
 
     private final StatisticManager statisticManager;
+    private final int maxStringPropertySize;
 
     /**
      * Constructor used for backward compatibility.
@@ -175,6 +176,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.fastQueryResultSize = fastQueryResultSize;
         this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
         this.blobAccessProvider = WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class);
+        this.maxStringPropertySize = maxStringPropertySize;
         descriptors.put(MAX_STRING_PROPERTY_SIZE, new SimpleValueFactory().createValue(maxStringPropertySize), true, true);
     }
 
@@ -366,7 +368,8 @@ public class RepositoryImpl implements JackrabbitRepository {
             Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength,
             CommitRateLimiter commitRateLimiter) {
         return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
-                delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, blobAccessProvider, fastQueryResultSize);
+                delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, blobAccessProvider,
+                fastQueryResultSize, maxStringPropertySize);
     }
 
     /**

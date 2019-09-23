@@ -41,6 +41,7 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.delegate.AccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.JackrabbitAccessControlManagerDelegator;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -92,6 +93,7 @@ public class SessionContext implements NamePathMapper {
     private final SessionDelegate delegate;
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
+    private final int maxStringPropertySize;
     private MountInfoProvider mountInfoProvider;
 
     private final NamePathMapper namePathMapper;
@@ -133,6 +135,26 @@ public class SessionContext implements NamePathMapper {
             int observationQueueLength, CommitRateLimiter commitRateLimiter,
             MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
             boolean fastQueryResultSize) {
+        this(repository,
+                statisticManager,
+                securityProvider, whiteboard,
+                attributes, delegate,
+                observationQueueLength, commitRateLimiter,
+                mountInfoProvider, blobAccessProvider,
+                fastQueryResultSize, Jcr.DEFAULT_MAX_STRING_PROPERTY_SIZE);
+    }
+
+    public int getMaxStringPropertySize() {
+        return maxStringPropertySize;
+    }
+
+    public SessionContext(
+            @NotNull Repository repository, @NotNull StatisticManager statisticManager,
+            @NotNull SecurityProvider securityProvider, @NotNull Whiteboard whiteboard,
+            @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
+            int observationQueueLength, CommitRateLimiter commitRateLimiter,
+            MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
+            boolean fastQueryResultSize, int maxStringPropertySize) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -151,6 +173,7 @@ public class SessionContext implements NamePathMapper {
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper, this.blobAccessProvider);
         this.fastQueryResultSize = fastQueryResultSize;
+        this.maxStringPropertySize = maxStringPropertySize;
     }
 
     public final Map<String, Object> getAttributes() {

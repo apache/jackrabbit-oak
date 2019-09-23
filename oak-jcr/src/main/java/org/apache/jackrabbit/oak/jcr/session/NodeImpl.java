@@ -1380,10 +1380,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createSingleState(
                 oakName, value, Type.fromTag(value.getType(), false));
-        long maxStringPropertyLength = sessionContext.getRepository().getDescriptorValue(RepositoryImpl.MAX_STRING_PROPERTY_SIZE).getLong();
-        if (value.getType() == PropertyType.STRING && value.getString().length() >= maxStringPropertyLength) {
+        if (value.getType() == PropertyType.STRING
+        && value.getString().length() >= sessionContext.getMaxStringPropertySize()) {
             LOG.warn("String property {} having length:{} at path {} is larger than configured" +
-                    " value: {}", jcrName, value.getString().length(), this.getPath(), maxStringPropertyLength);
+                    " value: {}", jcrName, value.getString().length(), this.getPath(),
+                    sessionContext.getMaxStringPropertySize());
         }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {
             @Override
@@ -1420,11 +1421,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
             LOG.warn("Large multi valued property [{}/{}] detected ({} values).",dlg.getPath(), jcrName, values.length);
         }
-        long maxStringPropertyLength = sessionContext.getRepository().getDescriptorValue(RepositoryImpl.MAX_STRING_PROPERTY_SIZE).getLong();
         for (Value value : values) {
-            if (value.getType() == PropertyType.STRING && value.getString().length() >= maxStringPropertyLength) {
+            if (value.getType() == PropertyType.STRING
+            && value.getString().length() >= sessionContext.getMaxStringPropertySize()) {
                 LOG.warn("String property {} having length:{} at path {} is larger than configured" +
-                        " value: {}", jcrName, value.getString().length(), this.getPath(), maxStringPropertyLength);
+                        " value: {}", jcrName, value.getString().length(), this.getPath(),
+                        sessionContext.getMaxStringPropertySize());
             }
         }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {
