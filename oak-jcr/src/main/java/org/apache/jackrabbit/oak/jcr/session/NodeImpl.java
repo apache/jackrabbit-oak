@@ -1380,7 +1380,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createSingleState(
                 oakName, value, Type.fromTag(value.getType(), false));
-        if (value.getType() == PropertyType.STRING
+        if (value != null && value.getType() == PropertyType.STRING
         && value.getString().length() >= sessionContext.getMaxStringPropertySize()) {
             LOG.warn("String property {} having length:{} at path {} is larger than configured" +
                     " value: {}", jcrName, value.getString().length(), this.getPath(),
@@ -1422,7 +1422,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             LOG.warn("Large multi valued property [{}/{}] detected ({} values).",dlg.getPath(), jcrName, values.length);
         }
         for (Value value : values) {
-            if (value.getType() == PropertyType.STRING
+            if (value != null && value.getType() == PropertyType.STRING
             && value.getString().length() >= sessionContext.getMaxStringPropertySize()) {
                 LOG.warn("String property {} having length:{} at path {} is larger than configured" +
                         " value: {}", jcrName, value.getString().length(), this.getPath(),
