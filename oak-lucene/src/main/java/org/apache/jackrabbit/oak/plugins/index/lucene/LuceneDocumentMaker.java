@@ -40,7 +40,6 @@ import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +68,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                                IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
                                String path) {
-        super(textExtractor, definition, indexingRule, path, LuceneIndexProviderService.DEFAULT_MAX_STRING_PROPERTY_SIZE);
+        super(textExtractor, definition, indexingRule, path, LuceneIndexConstants.DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE);
         this.facetsConfigProvider = facetsConfigProvider;
         this.augmentorFactory = augmentorFactory;
     }

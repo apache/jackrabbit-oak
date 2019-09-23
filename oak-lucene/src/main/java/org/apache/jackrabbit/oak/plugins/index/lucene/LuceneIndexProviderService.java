@@ -87,9 +87,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.lucene.analysis.util.CharFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
@@ -290,11 +288,11 @@ public class LuceneIndexProviderService {
     private static final String PROP_INDEX_FILESYSTEM_STATS_INTERVAL = "propIndexFSStatsIntervalInSecs";
 
     @Property(
-            intValue = FulltextIndexConstants.DEFAULT_MAX_STRING_PROPERTY_SIZE,
-            label = "Max String Property Size",
+            intValue = FulltextIndexConstants.DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE,
+            label = "Warn Log String Property Size",
             description = "Log a warning if property size is larger than this value"
     )
-    private static final String MAX_STRING_PROPERTY_SIZE = "maxStringPropertySize";
+    private static final String WARN_LOG_STRING_PROPERTY_SIZE = "warnLogStringPropertySize";
 
     private final Clock clock = Clock.SIMPLE;
 
@@ -352,7 +350,7 @@ public class LuceneIndexProviderService {
 
     private int threadPoolSize;
 
-    private int maxStringPropertySize;
+    private int warnLogStringPropertySize;
 
     private ExtractedTextCache extractedTextCache;
 
@@ -392,8 +390,8 @@ public class LuceneIndexProviderService {
 
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
-        maxStringPropertySize = PropertiesUtil.toInteger(config.get(MAX_STRING_PROPERTY_SIZE),
-                FulltextIndexConstants.DEFAULT_MAX_STRING_PROPERTY_SIZE);
+        warnLogStringPropertySize = PropertiesUtil.toInteger(config.get(WARN_LOG_STRING_PROPERTY_SIZE),
+                FulltextIndexConstants.DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE);
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
@@ -526,11 +524,11 @@ public class LuceneIndexProviderService {
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
             editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
-                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider, maxStringPropertySize);
+                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider, warnLogStringPropertySize);
             log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
         } else {
             editorProvider = new LuceneIndexEditorProvider(null, tracker, extractedTextCache, augmentorFactory,
-                    mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider, maxStringPropertySize);
+                    mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider, warnLogStringPropertySize);
         }
         editorProvider.setBlobStore(blobStore);
 

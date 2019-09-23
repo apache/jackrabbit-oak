@@ -73,7 +73,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         this.definition = checkNotNull(definition);
         this.indexingRule = checkNotNull(indexingRule);
         this.path = checkNotNull(path);
-        this.maxStringPropertySize = FulltextIndexConstants.DEFAULT_MAX_STRING_PROPERTY_SIZE;
+        this.maxStringPropertySize = FulltextIndexConstants.DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE;
     }
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,

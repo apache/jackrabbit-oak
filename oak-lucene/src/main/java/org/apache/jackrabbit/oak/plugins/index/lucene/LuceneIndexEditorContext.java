@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetsConfigProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
@@ -53,7 +52,7 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
                 augmentorFactory,
                 indexingContext,
                 asyncIndexing,
-                LuceneIndexEditorProvider.MAX_STRING_PROPERTY_SIZE_DEFAULT);
+                FulltextIndexConstants.DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE);
     }
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition,
@@ -62,11 +61,11 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
                              FulltextIndexWriterFactory indexWriterFactory,
                              ExtractedTextCache extractedTextCache,
                              IndexAugmentorFactory augmentorFactory,
-                             IndexingContext indexingContext, boolean asyncIndexing, int maxStringPropertySize) {
+                             IndexingContext indexingContext, boolean asyncIndexing, int warnLogStringPropertySize) {
         super(root, definition, indexDefinition, updateCallback, indexWriterFactory, extractedTextCache,
             indexingContext, asyncIndexing);
         this.augmentorFactory = augmentorFactory;
-        this.maxStringPropertySize = maxStringPropertySize;
+        this.warnLogStringPropertySize = warnLogStringPropertySize;
     }
 
 
@@ -80,7 +79,7 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
         //Faceting is only enabled for async mode
         FacetsConfigProvider facetsConfigProvider = isAsyncIndexing() ? this : null;
         return new LuceneDocumentMaker(getTextExtractor(), facetsConfigProvider, augmentorFactory,
-            definition, rule, path, maxStringPropertySize);
+            definition, rule, path, warnLogStringPropertySize);
     }
 
     @Override

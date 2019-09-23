@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterF
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.CompositePropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
@@ -79,7 +80,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final IndexTracker indexTracker;
     private final MountInfoProvider mountInfoProvider;
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
-    private final int maxStringPropertySize;
+    private final int warnLogStringPropertySize;
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
     private boolean nrtIndexingEnabled;
@@ -141,7 +142,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 activeDeletedBlobCollector,
                 mbean,
                 statisticsProvider,
-                LuceneIndexProviderService.DEFAULT_MAX_STRING_PROPERTY_SIZE);
+                FulltextIndexConstants.DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE);
     }
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
                                      @Nullable IndexTracker indexTracker,
@@ -151,7 +152,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                                      @NotNull ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector activeDeletedBlobCollector,
                                      @Nullable LuceneIndexMBean mbean,
                                      @Nullable StatisticsProvider statisticsProvider,
-                                     int maxStringPropertySize) {
+                                     int warnLogStringPropertySize) {
         this.indexCopier = indexCopier;
         this.indexTracker = indexTracker;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
@@ -160,7 +161,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.activeDeletedBlobCollector = activeDeletedBlobCollector;
         this.mbean = mbean;
         this.statisticsProvider = statisticsProvider;
-        this.maxStringPropertySize = maxStringPropertySize;
+        this.warnLogStringPropertySize = warnLogStringPropertySize;
     }
 
     @Override
@@ -250,7 +251,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
-                    writerFactory, extractedTextCache, augmentorFactory, indexingContext, asyncIndexing, maxStringPropertySize);
+                    writerFactory, extractedTextCache, augmentorFactory, indexingContext, asyncIndexing, warnLogStringPropertySize);
 
             if (propertyIndexUpdateCallback != null) {
                 callbacks.add(propertyIndexUpdateCallback);

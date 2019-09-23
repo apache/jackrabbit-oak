@@ -370,5 +370,5 @@ public interface FulltextIndexConstants {
      */
      String USE_IF_EXISTS = "useIfExists";
 
-     int DEFAULT_MAX_STRING_PROPERTY_SIZE = 102400;
+     int DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE = 102400;
 }
