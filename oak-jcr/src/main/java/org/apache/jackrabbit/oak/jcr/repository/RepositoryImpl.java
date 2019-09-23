@@ -91,7 +91,6 @@ public class RepositoryImpl implements JackrabbitRepository {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-1329">OAK-1329</a>
      */
     public static final String RELAXED_LOCKING = "oak.relaxed-locking";
-    public static final String WARN_LOG_STRING_PROPERTY_SIZE = "oak.repository.property.warnLogStringPropertySize";
 
     /**
      * logger instance
