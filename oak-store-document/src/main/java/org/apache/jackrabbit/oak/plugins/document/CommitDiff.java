@@ -112,7 +112,6 @@ class CommitDiff implements NodeStateDiff {
         if (child.isBundlingRoot()) {
             commit.removeNode(child.getRootBundlePath(), before);
         }
-        setOrTouchChildrenFlag(child);
         return MISSING_NODE.compareAgainstBaseState(before,
                 new CommitDiff(commit, child, builder, blobs));
     }

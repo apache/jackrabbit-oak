@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -107,7 +106,6 @@ public class CommitDiffTest {
         assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + META_PROP_BUNDLING_PATH, r)));
     }
 
-    @Ignore("OAK-8629")
     @Test
     public void removeBundledNodeWithRoot() throws Exception {
         addTestFile();
@@ -133,7 +131,6 @@ public class CommitDiffTest {
         assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + META_PROP_BUNDLING_PATH, r)));
     }
 
-    @Ignore("OAK-8629")
     @Test
     public void removeBundledNode() throws Exception {
         addTestFile();
@@ -195,6 +192,5 @@ public class CommitDiffTest {
         content.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
         content.setProperty(JCR_DATA, "test");
         return builder.getNodeState();
-
     }
 }

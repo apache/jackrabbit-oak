@@ -64,7 +64,6 @@ import org.h2.mvstore.WriteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -830,7 +829,6 @@ public class DocumentBundlingTest {
         merge(builder);
     }
 
-    @Ignore("OAK-8629")
     @Test
     public void deleteAndRecreateAsNonBundledNode() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
