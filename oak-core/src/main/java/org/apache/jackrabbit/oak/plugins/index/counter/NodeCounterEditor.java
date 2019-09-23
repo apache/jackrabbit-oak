@@ -159,7 +159,11 @@ public class NodeCounterEditor implements Editor {
         }
         root.callback.indexUpdate();
         for (Map.Entry<Mount, Integer> e : countOffsets.entrySet()) {
-            NodeBuilder builder = getBuilder(e.getKey());
+            Mount mount = e.getKey();
+            if (mount.isReadOnly()) {
+                continue;
+            }
+            NodeBuilder builder = getBuilder(mount);
             int countOffset = e.getValue();
 
             PropertyState p = builder.getProperty(COUNT_HASH_PROPERTY_NAME);

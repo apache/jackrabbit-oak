@@ -47,6 +47,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.shutdown;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 @SuppressWarnings("ConstantConditions")
@@ -111,6 +112,19 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
     @Test
     public void addIndexInReadWriteWithIndexExistinginReadOnly() throws Exception {
         repoV1.setupIndexAndContentInRepo("luceneTest", "foo", true, VERSION_1);
+    }
+
+    @Test
+    public void reindexCounterIndex() throws Exception {
+        Session s = repoV1.getSession();
+        Node c = s.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode("counter");
+
+        c.setProperty("async", (String) null);
+        c.setProperty("resolution", 1);
+        c.setProperty("reindex", true);
+        s.save();
+
+        assertFalse(c.getProperty("reindex").getBoolean());
     }
 
     /**
