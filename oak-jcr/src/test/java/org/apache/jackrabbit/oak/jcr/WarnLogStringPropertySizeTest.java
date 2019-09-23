@@ -32,18 +32,18 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * {@code MaxStringPropertySizeTest} checks if Warn log is bein added on adding
+ * {@code WarnLogStringPropertySizeTest} checks if Warn log is bein added on adding
  * large string properties
  */
-public class MaxStringPropertySizeTest extends AbstractRepositoryTest {
+public class WarnLogStringPropertySizeTest extends AbstractRepositoryTest {
     private final static String testStringPropertyKey = "testStringPropertyKey";
     private final static String testLargeStringPropertyValue = "sadahdkhfkhfkhskfhskfhshfksdasdadda";
     private final static String testSmallStringPropertyValue = "sada";
     private final String nodeImplLogger = "org.apache.jackrabbit.oak.jcr.session.NodeImpl";
     private final String warnMessage = "String property {} having length:{} at path {} is larger than configured value: {}";
-    private final int maxStringPropertySize = 20;
+    private final int warnLogStringPropertySize = 20;
 
-    public MaxStringPropertySizeTest(NodeStoreFixture fixture) {
+    public WarnLogStringPropertySizeTest(NodeStoreFixture fixture) {
         super(fixture);
     }
 
@@ -89,6 +89,6 @@ public class MaxStringPropertySizeTest extends AbstractRepositoryTest {
 
     @Override
     protected Jcr initJcr(Jcr jcr) {
-        return super.initJcr(jcr).withMaxStringPropertySize(maxStringPropertySize);
+        return super.initJcr(jcr).withWarnLogStringPropertySize(warnLogStringPropertySize);
     }
 }

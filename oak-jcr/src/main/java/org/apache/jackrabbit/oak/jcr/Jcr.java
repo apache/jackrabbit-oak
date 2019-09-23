@@ -66,7 +66,11 @@ import org.jetbrains.annotations.NotNull;
  */
 public class Jcr {
     public static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = BackgroundObserver.DEFAULT_QUEUE_SIZE;
-    public static final int DEFAULT_MAX_STRING_PROPERTY_SIZE = 102400;
+
+    /*
+    Default string property size above which a warning will be logged
+     */
+    public static final int DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE = 102400;
 
     private final Oak oak;
 
@@ -94,7 +98,11 @@ public class Jcr {
     private Repository repository;
 
     private Clusterable clusterable;
-    private int maxStringPropertySize = DEFAULT_MAX_STRING_PROPERTY_SIZE;
+
+    /*
+    Log a warning if string property added is larger than warnLogStringPropertySize
+     */
+    private int warnLogStringPropertySize = DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE;
 
     public Jcr(Oak oak, boolean initialize) {
         this.oak = oak;
@@ -262,9 +270,9 @@ public class Jcr {
     }
 
     @NotNull
-    public Jcr withMaxStringPropertySize(int maxStringPropertySize) {
+    public Jcr withWarnLogStringPropertySize(int warnLogStringPropertySize) {
         ensureRepositoryIsNotCreated();
-        this.maxStringPropertySize = maxStringPropertySize;
+        this.warnLogStringPropertySize = warnLogStringPropertySize;
         return this;
     }
 
@@ -397,7 +405,7 @@ public class Jcr {
                     observationQueueLength,
                     commitRateLimiter,
                     fastQueryResultSize,
-                    maxStringPropertySize);
+                    warnLogStringPropertySize);
         }
         return repository;
     }

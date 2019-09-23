@@ -85,7 +85,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockDeprecation;
-import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
@@ -1381,10 +1380,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final PropertyState state = createSingleState(
                 oakName, value, Type.fromTag(value.getType(), false));
         if (value != null && value.getType() == PropertyType.STRING
-        && value.getString().length() >= sessionContext.getMaxStringPropertySize()) {
+        && value.getString().length() >= sessionContext.getWarnLogStringPropertySize()) {
             LOG.warn("String property {} having length:{} at path {} is larger than configured" +
                     " value: {}", jcrName, value.getString().length(), this.getPath(),
-                    sessionContext.getMaxStringPropertySize());
+                    sessionContext.getWarnLogStringPropertySize());
         }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {
             @Override
@@ -1423,10 +1422,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
         for (Value value : values) {
             if (value != null && value.getType() == PropertyType.STRING
-            && value.getString().length() >= sessionContext.getMaxStringPropertySize()) {
+            && value.getString().length() >= sessionContext.getWarnLogStringPropertySize()) {
                 LOG.warn("String property {} having length:{} at path {} is larger than configured" +
                         " value: {}", jcrName, value.getString().length(), this.getPath(),
-                        sessionContext.getMaxStringPropertySize());
+                        sessionContext.getWarnLogStringPropertySize());
             }
         }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {

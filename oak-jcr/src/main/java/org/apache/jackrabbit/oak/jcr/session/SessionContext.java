@@ -93,7 +93,7 @@ public class SessionContext implements NamePathMapper {
     private final SessionDelegate delegate;
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
-    private final int maxStringPropertySize;
+    private final int warnLogStringPropertySize;
     private MountInfoProvider mountInfoProvider;
 
     private final NamePathMapper namePathMapper;
@@ -141,11 +141,11 @@ public class SessionContext implements NamePathMapper {
                 attributes, delegate,
                 observationQueueLength, commitRateLimiter,
                 mountInfoProvider, blobAccessProvider,
-                fastQueryResultSize, Jcr.DEFAULT_MAX_STRING_PROPERTY_SIZE);
+                fastQueryResultSize, Jcr.DEFAULT_WARN_LOG_STRING_PROPERTY_SIZE);
     }
 
-    public int getMaxStringPropertySize() {
-        return maxStringPropertySize;
+    public int getWarnLogStringPropertySize() {
+        return warnLogStringPropertySize;
     }
 
     public SessionContext(
@@ -154,7 +154,7 @@ public class SessionContext implements NamePathMapper {
             @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
             int observationQueueLength, CommitRateLimiter commitRateLimiter,
             MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
-            boolean fastQueryResultSize, int maxStringPropertySize) {
+            boolean fastQueryResultSize, int warnLogStringPropertySize) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -173,7 +173,7 @@ public class SessionContext implements NamePathMapper {
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper, this.blobAccessProvider);
         this.fastQueryResultSize = fastQueryResultSize;
-        this.maxStringPropertySize = maxStringPropertySize;
+        this.warnLogStringPropertySize = warnLogStringPropertySize;
     }
 
     public final Map<String, Object> getAttributes() {
