@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.FulltextBinaryTextExtractor;
@@ -62,6 +63,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected final IndexDefinition definition;
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
+    protected final int maxStringPropertySize;
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                @NotNull IndexDefinition definition,
@@ -71,6 +73,18 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         this.definition = checkNotNull(definition);
         this.indexingRule = checkNotNull(indexingRule);
         this.path = checkNotNull(path);
+        this.maxStringPropertySize = FulltextIndexConstants.DEFAULT_MAX_STRING_PROPERTY_SIZE;
+    }
+
+    public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
+                               @NotNull IndexDefinition definition,
+                               IndexDefinition.IndexingRule indexingRule,
+                               @NotNull String path, int maxStringPropertySize) {
+        this.textExtractor = textExtractor;
+        this.definition = checkNotNull(definition);
+        this.indexingRule = checkNotNull(indexingRule);
+        this.path = checkNotNull(path);
+        this.maxStringPropertySize = maxStringPropertySize;
     }
 
     protected abstract D initDoc();
@@ -224,13 +238,19 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             addBinary(doc, null, binaryValues);
             dirty = true;
         } else {
+            if (property.getType() == Type.STRING || property.getType() == Type.STRINGS) {
+                for (String value : property.getValue(Type.STRINGS)) {
+                    if (value.length() > maxStringPropertySize) {
+                        log.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), property.getName(), path, maxStringPropertySize);
+                    }
+                }
+            }
             if (pd.propertyIndex && pd.includePropertyType(property.getType().tag())) {
                 dirty |= addTypedFields(doc, property, pname, pd);
             }
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {
                 for (String value : property.getValue(Type.STRINGS)) {
-
                     if (!includePropertyValue(value, pd)){
                         continue;
                     }

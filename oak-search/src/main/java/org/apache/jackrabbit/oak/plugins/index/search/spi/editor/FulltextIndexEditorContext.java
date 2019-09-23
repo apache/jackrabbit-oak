@@ -93,6 +93,8 @@ public abstract class FulltextIndexEditorContext<D> {
 
   private PropertyUpdateCallback propertyUpdateCallback;
 
+  protected int maxStringPropertySize;
+
   protected FulltextIndexEditorContext(NodeState root, NodeBuilder definition,
                                        @Nullable IndexDefinition indexDefinition,
                                        IndexUpdateCallback updateCallback,
@@ -248,6 +250,10 @@ public abstract class FulltextIndexEditorContext<D> {
     }
     return uid;
   }
+
+  public int getMaxStringPropertySize() {
+        return maxStringPropertySize;
+    }
 
   private IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
       indexingContext, boolean asyncIndexing) {

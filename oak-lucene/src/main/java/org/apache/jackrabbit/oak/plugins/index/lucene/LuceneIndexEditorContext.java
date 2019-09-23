@@ -45,10 +45,30 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
                              ExtractedTextCache extractedTextCache,
                              IndexAugmentorFactory augmentorFactory,
                              IndexingContext indexingContext, boolean asyncIndexing) {
+        this(root, definition,
+                indexDefinition,
+                updateCallback,
+                indexWriterFactory,
+                extractedTextCache,
+                augmentorFactory,
+                indexingContext,
+                asyncIndexing,
+                LuceneIndexEditorProvider.MAX_STRING_PROPERTY_SIZE_DEFAULT);
+    }
+
+    LuceneIndexEditorContext(NodeState root, NodeBuilder definition,
+                             @Nullable IndexDefinition indexDefinition,
+                             IndexUpdateCallback updateCallback,
+                             FulltextIndexWriterFactory indexWriterFactory,
+                             ExtractedTextCache extractedTextCache,
+                             IndexAugmentorFactory augmentorFactory,
+                             IndexingContext indexingContext, boolean asyncIndexing, int maxStringPropertySize) {
         super(root, definition, indexDefinition, updateCallback, indexWriterFactory, extractedTextCache,
             indexingContext, asyncIndexing);
         this.augmentorFactory = augmentorFactory;
+        this.maxStringPropertySize = maxStringPropertySize;
     }
+
 
     @Override
     public IndexDefinition.Builder newDefinitionBuilder() {
@@ -60,7 +80,7 @@ public class LuceneIndexEditorContext extends FulltextIndexEditorContext impleme
         //Faceting is only enabled for async mode
         FacetsConfigProvider facetsConfigProvider = isAsyncIndexing() ? this : null;
         return new LuceneDocumentMaker(getTextExtractor(), facetsConfigProvider, augmentorFactory,
-            definition, rule, path);
+            definition, rule, path, maxStringPropertySize);
     }
 
     @Override

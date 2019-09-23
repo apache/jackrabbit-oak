@@ -71,6 +71,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexClea
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.TextExtractionStatsMBean;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -288,6 +289,13 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_INDEX_FILESYSTEM_STATS_INTERVAL = "propIndexFSStatsIntervalInSecs";
 
+    @Property(
+            intValue = FulltextIndexConstants.DEFAULT_MAX_STRING_PROPERTY_SIZE,
+            label = "Max String Property Size",
+            description = "Log a warning if property size is larger than this value"
+    )
+    private static final String MAX_STRING_PROPERTY_SIZE = "maxStringPropertySize";
+
     private final Clock clock = Clock.SIMPLE;
 
     private Whiteboard whiteboard;
@@ -344,6 +352,8 @@ public class LuceneIndexProviderService {
 
     private int threadPoolSize;
 
+    private int maxStringPropertySize;
+
     private ExtractedTextCache extractedTextCache;
 
     private boolean hybridIndex;
@@ -382,6 +392,8 @@ public class LuceneIndexProviderService {
 
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
+        maxStringPropertySize = PropertiesUtil.toInteger(config.get(MAX_STRING_PROPERTY_SIZE),
+                FulltextIndexConstants.DEFAULT_MAX_STRING_PROPERTY_SIZE);
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
@@ -514,11 +526,11 @@ public class LuceneIndexProviderService {
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
             editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
-                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
+                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider, maxStringPropertySize);
             log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
         } else {
             editorProvider = new LuceneIndexEditorProvider(null, tracker, extractedTextCache, augmentorFactory,
-                    mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
+                    mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider, maxStringPropertySize);
         }
         editorProvider.setBlobStore(blobStore);
 

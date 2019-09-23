@@ -79,6 +79,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     private final IndexTracker indexTracker;
     private final MountInfoProvider mountInfoProvider;
     private final ActiveDeletedBlobCollector activeDeletedBlobCollector;
+    private final int maxStringPropertySize;
     private GarbageCollectableBlobStore blobStore;
     private IndexingQueue indexingQueue;
     private boolean nrtIndexingEnabled;
@@ -123,6 +124,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this(indexCopier, indexTracker, extractedTextCache, augmentorFactory, mountInfoProvider,
                 ActiveDeletedBlobCollectorFactory.NOOP, null, null);
     }
+
     public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
                                      @Nullable IndexTracker indexTracker,
                                      ExtractedTextCache extractedTextCache,
@@ -131,6 +133,25 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                                      @NotNull ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector activeDeletedBlobCollector,
                                      @Nullable LuceneIndexMBean mbean,
                                      @Nullable StatisticsProvider statisticsProvider) {
+        this(indexCopier,
+                indexTracker,
+                extractedTextCache,
+                augmentorFactory,
+                mountInfoProvider,
+                activeDeletedBlobCollector,
+                mbean,
+                statisticsProvider,
+                LuceneIndexProviderService.DEFAULT_MAX_STRING_PROPERTY_SIZE);
+    }
+    public LuceneIndexEditorProvider(@Nullable IndexCopier indexCopier,
+                                     @Nullable IndexTracker indexTracker,
+                                     ExtractedTextCache extractedTextCache,
+                                     @Nullable IndexAugmentorFactory augmentorFactory,
+                                     MountInfoProvider mountInfoProvider,
+                                     @NotNull ActiveDeletedBlobCollectorFactory.ActiveDeletedBlobCollector activeDeletedBlobCollector,
+                                     @Nullable LuceneIndexMBean mbean,
+                                     @Nullable StatisticsProvider statisticsProvider,
+                                     int maxStringPropertySize) {
         this.indexCopier = indexCopier;
         this.indexTracker = indexTracker;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
@@ -139,6 +160,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.activeDeletedBlobCollector = activeDeletedBlobCollector;
         this.mbean = mbean;
         this.statisticsProvider = statisticsProvider;
+        this.maxStringPropertySize = maxStringPropertySize;
     }
 
     @Override
@@ -228,7 +250,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             }
 
             LuceneIndexEditorContext context = new LuceneIndexEditorContext(root, definition, indexDefinition, callback,
-                    writerFactory, extractedTextCache, augmentorFactory, indexingContext, asyncIndexing);
+                    writerFactory, extractedTextCache, augmentorFactory, indexingContext, asyncIndexing, maxStringPropertySize);
 
             if (propertyIndexUpdateCallback != null) {
                 callbacks.add(propertyIndexUpdateCallback);

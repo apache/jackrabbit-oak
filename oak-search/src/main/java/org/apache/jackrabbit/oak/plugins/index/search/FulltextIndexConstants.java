@@ -369,4 +369,6 @@ public interface FulltextIndexConstants {
      * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
      */
      String USE_IF_EXISTS = "useIfExists";
+
+     int DEFAULT_MAX_STRING_PROPERTY_SIZE = 102400;
 }

@@ -69,7 +69,18 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                                IndexDefinition definition,
                                IndexDefinition.IndexingRule indexingRule,
                                String path) {
-        super(textExtractor, definition, indexingRule, path);
+        super(textExtractor, definition, indexingRule, path, LuceneIndexProviderService.DEFAULT_MAX_STRING_PROPERTY_SIZE);
+        this.facetsConfigProvider = facetsConfigProvider;
+        this.augmentorFactory = augmentorFactory;
+    }
+
+    public LuceneDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
+                               @Nullable FacetsConfigProvider facetsConfigProvider,
+                               @Nullable IndexAugmentorFactory augmentorFactory,
+                               IndexDefinition definition,
+                               IndexDefinition.IndexingRule indexingRule,
+                               String path, int maxStringPropertySize) {
+        super(textExtractor, definition, indexingRule, path, maxStringPropertySize);
         this.facetsConfigProvider = facetsConfigProvider;
         this.augmentorFactory = augmentorFactory;
     }
