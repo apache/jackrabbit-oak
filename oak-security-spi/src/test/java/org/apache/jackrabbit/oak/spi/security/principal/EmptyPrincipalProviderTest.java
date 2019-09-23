@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 import java.security.Principal;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.junit.Test;
+import org.slf4j.event.Level;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -39,7 +41,62 @@ public class EmptyPrincipalProviderTest {
     }
 
     @Test
-    public void testGetGroupMembership() {
+    public void testGetGroupMembershipOnDebug() {
+        String prev = AclGroupDeprecation.setLogLevel("debug");
+        LogCustomizer customLogs = LogCustomizer.forLogger(AclGroupDeprecation.class.getName()).enable(Level.DEBUG).create();
+        try {
+            customLogs.starting();
+            testGetGroupMembership();
+            assertTrue(customLogs.getLogs().size() == 1);
+        } finally {
+            customLogs.finished();
+            AclGroupDeprecation.setLogLevel(prev);
+        }
+    }
+
+    @Test
+    public void testGetGroupMembershipOnInfo() {
+        String prev = AclGroupDeprecation.setLogLevel("info");
+        LogCustomizer customLogs = LogCustomizer.forLogger(AclGroupDeprecation.class.getName()).enable(Level.INFO).create();
+        try {
+            customLogs.starting();
+            testGetGroupMembership();
+            assertTrue(customLogs.getLogs().size() == 1);
+        } finally {
+            customLogs.finished();
+            AclGroupDeprecation.setLogLevel(prev);
+        }
+    }
+
+    @Test
+    public void testGetGroupMembershipOnWarn() {
+        String prev = AclGroupDeprecation.setLogLevel("warn");
+        LogCustomizer customLogs = LogCustomizer.forLogger(AclGroupDeprecation.class.getName()).enable(Level.WARN).create();
+        try {
+            customLogs.starting();
+            testGetGroupMembership();
+            assertTrue(customLogs.getLogs().size() == 1);
+        } finally {
+            customLogs.finished();
+            AclGroupDeprecation.setLogLevel(prev);
+        }
+    }
+
+    @Test
+    public void testGetGroupMembershipOnError() {
+        String prev = AclGroupDeprecation.setLogLevel("error");
+        LogCustomizer customLogs = LogCustomizer.forLogger(AclGroupDeprecation.class.getName()).enable(Level.ERROR).create();
+        try {
+            customLogs.starting();
+            testGetGroupMembership();
+            assertTrue(customLogs.getLogs().size() == 1);
+        } finally {
+            customLogs.finished();
+            AclGroupDeprecation.setLogLevel(prev);
+        }
+    }
+
+    private void testGetGroupMembership() {
         assertTrue(principalProvider.getGroupMembership(mock(Principal.class)).isEmpty());
     }
 

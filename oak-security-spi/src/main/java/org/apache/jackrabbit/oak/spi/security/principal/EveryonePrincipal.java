@@ -48,11 +48,13 @@ public final class EveryonePrincipal implements JackrabbitPrincipal, Group, Grou
     //--------------------------------------------------------------< Group >---
     @Override
     public boolean addMember(Principal user) {
+        AclGroupDeprecation.handleCall();
         return false;
     }
 
     @Override
     public boolean removeMember(Principal user) {
+        AclGroupDeprecation.handleCall();
         throw new UnsupportedOperationException("Cannot remove a member from the everyone group.");
     }
 

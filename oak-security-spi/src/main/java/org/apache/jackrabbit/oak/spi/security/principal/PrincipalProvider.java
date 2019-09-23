@@ -86,6 +86,7 @@ public interface PrincipalProvider {
      */
     @NotNull
     default Set<Group> getGroupMembership(@NotNull Principal principal) {
+        AclGroupDeprecation.handleCall();
         return Collections.emptySet();
     }
 

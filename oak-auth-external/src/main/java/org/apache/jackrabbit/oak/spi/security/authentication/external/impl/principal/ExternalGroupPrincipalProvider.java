@@ -63,6 +63,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.AclGroupDeprecation;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -307,6 +308,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
         @Override
         public boolean addMember(Principal user) {
+            AclGroupDeprecation.handleCall();
             if (isMember(user)) {
                 return false;
             } else {
@@ -316,6 +318,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
         @Override
         public boolean removeMember(Principal user) {
+            AclGroupDeprecation.handleCall();
             if (!isMember(user)) {
                 return false;
             } else {

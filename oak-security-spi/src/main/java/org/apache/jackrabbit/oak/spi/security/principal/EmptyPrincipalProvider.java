@@ -21,6 +21,7 @@ import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,6 +43,7 @@ public final class EmptyPrincipalProvider implements PrincipalProvider {
     @NotNull
     @Override
     public Set<Group> getGroupMembership(@NotNull Principal principal) {
+        AclGroupDeprecation.handleCall();
         return Collections.emptySet();
     }
 
