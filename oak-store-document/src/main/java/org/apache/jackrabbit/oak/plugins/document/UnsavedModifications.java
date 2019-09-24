@@ -206,7 +206,15 @@ class UnsavedModifications {
                 NodeDocument.setSweepRevision(rootUpdate, sweepRev);
                 LOG.debug("Updating _sweepRev to {}", sweepRev);
             }
-            store.findAndUpdate(NODES, rootUpdate);
+            // ensure lastRev is not updated by someone else in the meantime
+            Revision lastRev = Utils.getRootDocument(store).getLastRev().get(rootRev.getClusterId());
+            if (lastRev != null) {
+                NodeDocument.hasLastRev(rootUpdate, lastRev);
+            }
+            if (store.findAndUpdate(NODES, rootUpdate) == null) {
+                throw new DocumentStoreException("Update of root document to _lastRev " +
+                        rootRev + " failed. Detected concurrent update");
+            }
             stats.calls++;
             map.remove(Path.ROOT, rootRev);
             LOG.debug("Updated _lastRev to {} on {}", rootRev, Path.ROOT);

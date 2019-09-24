@@ -1866,6 +1866,13 @@ public final class NodeDocument extends Document {
                 revision.toString());
     }
 
+    public static void hasLastRev(@NotNull UpdateOp op,
+                                  @NotNull Revision revision) {
+        checkNotNull(op).equals(LAST_REV,
+                new Revision(0, 0, revision.getClusterId()),
+                revision.toString());
+    }
+
     //----------------------------< internal >----------------------------------
 
     private void previousDocumentNotFound(String prevId, Revision rev) {
