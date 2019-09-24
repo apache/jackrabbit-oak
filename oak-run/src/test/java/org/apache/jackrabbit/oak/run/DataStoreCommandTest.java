@@ -682,8 +682,13 @@ public class DataStoreCommandTest {
             }
 
             @Override public void after() {
-                MongoUtils.dropCollections(c.getDBName());
-                nodeStore.dispose();
+                String dbName = c.getDBName();
+                try {
+                    nodeStore.dispose();
+                } catch (Exception e) {
+                    log.warn("dispose failed with exception", e);
+                }
+                MongoUtils.dropCollections(dbName);
             }
         }
 
