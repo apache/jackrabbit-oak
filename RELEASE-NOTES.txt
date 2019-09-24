@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.16.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.18.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.16.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.18.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,121 +15,121 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.16.0
+Changes in Oak 1.18.0
 ---------------------
-
-Bug
-
-    [OAK-8271] - Lucene path transformed result doesn't accomodate wildcards in relative path
-    [OAK-8351] - Long running RGC remove and getmore operations
-    [OAK-8364] - LastRevRecoveryAgent may log warn message for bundled node
-    [OAK-8383] - AccessControlValidator: check for duplicate ACE ignores allow/deny status
-    [OAK-8388] - AccessControlManagerImpl.getEffectivePolicies(Set): Insufficient validation of query results
-    [OAK-8389] - AccessControlValidator prone to NPE
-    [OAK-8394] - Fix BinaryAccessDSGCIT failing intermittently for Mongo
-    [OAK-8406] - AzurePersistence issues requests without timeout
-    [OAK-8410] - AzurePersistence throws an NPE when reacting to RequestCompletedEvent
-    [OAK-8418] - User query fails if root tree is the search root
-    [OAK-8437] - direct children, exact, and parent path restrictions don't work when path transformation takes place
-    [OAK-8439] - Broken links to JSR Specification/Javadoc
-    [OAK-8442] - AbstractCredentials.setAttributes sychronizes the wrong map
-    [OAK-8448] - VersionGC may get stuck at 60s scope
-    [OAK-8454] - SegmentNodeStoreRegistrar doesn't correctly set statistics provider for the FileStore
-    [OAK-8455] - Memory Node store implementation of PropertyState throws Exception that is not in line with the API documentation
-    [OAK-8457] - Constructor allows creating invalid path
-    [OAK-8459] - Intermittent issue with MongoStatusTest
-    [OAK-8463] - Fix merge in consistency check to allow paths suffixed to blob ids
-    [OAK-8467] - broken version numbers for oak-doc and oak-doc-railroad-macro
-    [OAK-8472] - Typo in oak-run console refresh command help
-    [OAK-8473] - oak-run recovery fails with custom blob store
-    [OAK-8474] - oak-run revisions fails with custom blob store
-    [OAK-8476] - RDBVersionGCSupport returns incorrect value for "oldest deleted document"
-    [OAK-8482] - Remove false positives of SNFE on azure execution time out
-    [OAK-8490] - FilterProviderImpl.getFilter may fail if principal cache enabled
-    [OAK-8492] - PrincipalAccessControlList: misleading notnull annotation with effective path param
-
-New Feature
-
-    [OAK-7981] - Implement elastic search support based off of oak-search
-    [OAK-8155] - CompositePermissionProvider: add possibility to abort evaluation
-    [OAK-8190] - Dedicated authorization for system users
-    [OAK-8366] - Add remote store monitoring for Azure
-
-Improvement
-
-    [OAK-7254] - Indexes with excludedPaths, or includedPaths should not be picked for queries without path
-    [OAK-7998] - [DirectBinaryAccess] Verify that binary exists in cloud before creating signed download URI
-    [OAK-8321] - Use format specifier for log output
-    [OAK-8384] - Improve tests for o.a.j.oak.security.authorization.accesscontrol
-    [OAK-8385] - Get rid of duplicated AcEntry/Entry in PermissionStoreEditor and AccessControlValidator
-    [OAK-8386] - AccessControlValidator.checkValidAccessControlEntry: redundant test for tree existence
-    [OAK-8390] - ACL.java : improve readability
-    [OAK-8392] - AcListComparator only compares path
-    [OAK-8401] - Expand security topic in side bar
-    [OAK-8403] - Improve tests for o.a.j.oak.security.privilege
-    [OAK-8408] - UserImporter must not trigger creation of rep:pwd node unless included in xml (initial-pw-change)
-    [OAK-8419] - Improve tests for o.a.j.oak.security.user.query
-    [OAK-8420] - GroupPredicate: missing notnull annotations with constructor
-    [OAK-8423] - QueryUtil.getCollation should not throw RepositoryException
-    [OAK-8425] - Add QueryUtil.getID to extract ID from user/group
-    [OAK-8429] - oak-run check should expose repository statistics for the last good revision
-    [OAK-8434] - LoginContextProviderImpl: missing tests for login with configured provider name
-    [OAK-8441] - Improve tests for org.apache.jackrabbit.oak.security.authorization.restriction
-    [OAK-8446] - Enable datastore consistency check after completion of garbage collection
-    [OAK-8447] - Handle all available references in the DataStore when doing consistency check
-    [OAK-8451] - GCMonitor: fix compiler warnings and Javadoc
-    [OAK-8453] - Refactor VersionGarbageCollector to extract Recommendations class
-    [OAK-8462] - Adding / changing "useIfExists" should not cause reindex
-    [OAK-8466] - Old inactive clusterIds may trigger expensive recovery
-    [OAK-8489] - Reduce memory usage of in-memory commit
-
-Test
-
-    [OAK-8458] - AsyncIndexUpdateCorruptMarkingTest#testLuceneIndexSegmentStats is flaky due to race condition
-
-Task
-
-    [OAK-7680] - oak-commons: upgrade to project default mockito version
-    [OAK-8213] - BlobStore instantiated from ReadOnly DocumentNodeStore should never modify persistence
-    [OAK-8339] - Move jackrabbit-api project into Oak
-    [OAK-8344] - Expose local index directory size as a metric
-    [OAK-8405] - remove baseline comparisonVersion from POM
-    [OAK-8414] - Update jar-plugin dependency to 3.1.2
-    [OAK-8424] - Update jar-plugin dependency to version 3.1.1
-    [OAK-8427] - reactor pom: let assembly-plugin version default to what parent specifies
-    [OAK-8428] - Update checkstyle-plugin dependency to version 3.1.0
-    [OAK-8430] - Update compiler-plugin dependency to version 3.8.1
-    [OAK-8431] - Update shade-plugin dependency to version 3.2.1
-    [OAK-8432] - Update war-plugin dependency to version 3.2.3
-    [OAK-8438] - Allow not to create blob container in AzureDataStore
-    [OAK-8449] - LastRev check/fix in DocumentNodeStore MBean
-    [OAK-8456] - Update httpclient/mime dependencies to 4.5.9
-    [OAK-8464] - Update javadoc-plugin to 3.1.1
-    [OAK-8478] - remove unneeded javadoc plugin version number from reactor pom
-    [OAK-8479] - update rat plugin to 0.13
-    [OAK-8486] - update jackson-databind dependency to 2.9.9.1
-    [OAK-8501] - oak-examples/webapp: update htmlunit dependency to 2.35.0
-    [OAK-8502] - oak-examples/standalone: update spring boot dependency to 1.5.21
-    [OAK-8503] - oak-benchmarks: update commons-compress dependency to 1.18
-    [OAK-8504] - oak-run: update groovy dependency to 2.4.17
 
 Technical task
 
-    [OAK-8150] - RDB*Store: add Oracle specific documentation
-    [OAK-8226] - Documentation for principal-based authorization and AggregationFilter
-    [OAK-8227] - Performance benchmarks
-    [OAK-8252] - MongoBlobStore instantiated from ReadOnly DocumentNodeStore should never modify persistence
-    [OAK-8391] - Create AggregationFilter implementation
-    [OAK-8396] - documentation steps missing to run sweep on RDBDocumentStore
-    [OAK-8397] - maven-bundle-plugin: add export instructions with baseline 1.14
-    [OAK-8411] - RDBConnectionHandler: add minimal open connection stats in TRACE log level
-    [OAK-8433] - Effective path must be an absolute path
-    [OAK-8435] - FilterProviderImpl must have ConfigurationPolicy set
-    [OAK-8445] - RDB documentation: minor fixes to documentation of "revisions" command
-    [OAK-8468] - document RDB specific log messages
-    [OAK-8481] - RDB*Store: update postgresql jdbc driver reference to 42.4.6
-    [OAK-8483] - RDB*Store: update mysql jdbc driver reference to 8.0.16
-    [OAK-8485] - RDB*Store: update mssql jdbc driver reference to 7.2.2
+    [OAK-8524] - [Direct Binary Access] Add CDN Support to AzureDataStore
+    [OAK-8568] - RDB*Store: update mysql jdbc driver reference to 8.0.17
+    [OAK-8574] - Minimize network calls required when completing direct upload
+    [OAK-8575] - Minimize network calls required when calling getRecord()
+
+Bug
+
+    [OAK-8298] - [Direct Binary Access] Blobs that are directly uploaded are not tracked by BlobIdTracker
+    [OAK-8328] - Bug in index definition can block indexing / cause indexing in a loop
+    [OAK-8518] - PrincipalPolicyImporter: handle rep:effectivePath generated by xml-export for repository level
+    [OAK-8520] - [Direct Binary Access] Avoid overwriting existing binaries via direct binary upload
+    [OAK-8528] - The Azure Journal implementation doesn't split after exceeding JOURNAL_LINE_LIMIT
+    [OAK-8531] - Reading Azure Journal File while it's modified fails
+    [OAK-8533] - Rat plugin failure in oak-it-osgi
+    [OAK-8538] - Incomplete recovery on long running merge with branch commits
+    [OAK-8542] - Test failure: ConcurrentCopyOnReadDirectoryTest.concurrentPrefetchWithTimeout
+    [OAK-8554] - IndexCopier#waitForCopyCompletion doesn't reset interrupted flag after catching InterruptedException
+    [OAK-8565] - Using a lazy blob listing can cause Azure timeout
+    [OAK-8566] - Empty segment archives breaks the Azure Persistence
+    [OAK-8590] - Direct Binary Access doc links to jackrabbit-api are broken
+    [OAK-8591] - Conflict exception on commit
+    [OAK-8592] - Incorrect annotation on LoggingDocumentStoreWrapper.createOrUpdate()
+    [OAK-8597] - lc command is unable to construct OakDirectory
+    [OAK-8599] - [Direct Binary Access] Initiate upload should return null if feature is disabled
+    [OAK-8624] - oak-run: tests leak mapd temp files
+    [OAK-8625] - oak-upgrade leaks empty test folders
+    [OAK-8629] - Node bundling exposes hidden properties
+    [OAK-8632] - rep:CugPolicy nodes containing duplicate principal names
+    [OAK-8643] - PrincipalProvider.getMembershipPrincipals should not delegate to deprecated method
+
+Improvement
+
+    [OAK-3895] - Expose jmx to invalidate cache entries
+    [OAK-4508] - LoggingDocumentStore: better support for multiple instances
+    [OAK-7457] - "Covariant return type change detected" warnings with java10
+    [OAK-7917] - Composite node store: technical debt for create index / reindex
+    [OAK-8245] - Add column for explained "statement" to "explain" Query result, next to 'plan' column.
+    [OAK-8398] - Add nullable/notnull annotations for jackrabbit security API extensions
+    [OAK-8507] - system view import: add test coverage for prefix conflicts
+    [OAK-8510] - FilterImpl.isValidPrincipal: add verification to spot moved principal
+    [OAK-8513] - Concurrent index access via CopyOnRead directory can lead to reading directly off of remote
+    [OAK-8514] - CoR should log a warn when opening remote index file when prefetch is enabled
+    [OAK-8521] - Add shutdown hook for oak-run commands
+    [OAK-8526] - IndexDefinitionBuilder should support setting up index tags
+    [OAK-8529] - Deregister MBeans on SecurityProviderRegistration component deactivation
+    [OAK-8530] - Ensure MBean are deregistered if the repository fails to start
+    [OAK-8536] - Update JavaDoc for completeBinaryUpload() explaining idempotency
+    [OAK-8540] - Effective policies should implememt PrincipalAccessControlList
+    [OAK-8541] - AbstractRestrictionProvider.createRestriction : Include restriction name in error message
+    [OAK-8555] - Move ByteBuffer wrapper to oak-commons project
+    [OAK-8556] - CugImporter.handleProperty: unreachable default handling for importBehavior
+    [OAK-8557] - CugPolicyImpl.isValidPrincipal contains unreachable default option
+    [OAK-8558] - Simplify path handling in TopLevelPaths
+    [OAK-8562] - Improve cug tests
+    [OAK-8564] - Add metric for MongoDB total and used disk space
+    [OAK-8579] - Composite Node Store: Allow creating an index in the read-only repo first
+    [OAK-8580] - Stack trace logging for all binary downloading of cloud blob stores
+    [OAK-8585] - Improve exception message on conflict
+    [OAK-8589] - NPE in IndexDefintionBuilder with existing property rule without "name" property
+    [OAK-8600] - [Direct Binary Access] Log exceptions at debug level for expected exceptions
+    [OAK-8601] - [Direct Binary Access] Work around integration test failures due to Azure SDK bug
+    [OAK-8603] - Composite Node Store + Counter Index: allow indexing from scratch / reindex
+    [OAK-8604] - Keep the last journal entry in metadata
+    [OAK-8634] - Decouple CommitDiff from DocumentNodeStore
+    [OAK-8641] - log uses of API methods to be removed as part of OAK-7358
+
+Test
+
+    [OAK-8532] - Osgi based test to verify tika setup is working
+    [OAK-8535] - oak-it-osgi fails with encrypted credentials in settings.xml
+
+Task
+
+    [OAK-8400] - adjust baseline comparison version for oak-jackrabbit-api after release of 1.16.0
+    [OAK-8497] - Remove oak-search-elastic declaration to skip baseline plugin
+    [OAK-8499] - oak-elastic-search: set baseline version after release of Oak 1.16.0
+    [OAK-8515] - Make the Azure Persistence timeouts configurable
+    [OAK-8549] - Update Tika dependency to 1.22
+    [OAK-8550] - Update commons-codec dependency to 1.13
+    [OAK-8560] - Update jackson-databind dependency to 2.9.9.3
+    [OAK-8583] - getNodeByIdentifier may fail with RuntimeException
+    [OAK-8586] - Update Oak trunk and 1.10 to Jackrabbit 2.18.3
+    [OAK-8587] - Document feature vector similarity search
+    [OAK-8598] - Update httpcore dependency to 4.4.12
+    [OAK-8608] - Move the SplitPersistence to the oak-segment-tar SPI
+    [OAK-8609] - Make the MemoryNodeBuilder#isRoot() public
+    [OAK-8610] - Pass the full blob name to the IOMonitor for Azure
+    [OAK-8611] - Export the oak-segment-azure packages
+    [OAK-8612] - Make the Azure Data Store compatible with Guava 15 and 26
+    [OAK-8614] - Update httpclient/mime dependencies to 4.5.10
+    [OAK-8616] - Leverage oak-search utils in oak-search-elastic where possible
+    [OAK-8617] - No packages should be exported by oak-search-elastic
+    [OAK-8619] - Enable text extraction timeout recovery from disk
+    [OAK-8622] - Remove the version of the maven-resources-plugin from the fast profile
+    [OAK-8635] - Use LMSEstimator for Oak ES SizeEstimator
+    [OAK-8638] - Revert java 12 specific javadoc workaround
+
+Sub-task
+
+    [OAK-8544] - Nullable/Notnull Annotations for Authentication API
+    [OAK-8545] - Nullable/Notnull Annotations for Authorization API
+    [OAK-8546] - Nullable/Notnull Annotations for User Management API
+    [OAK-8547] - Nullable/Notnull Annotations for Principal Management API
+    [OAK-8552] - Minimize network calls required when creating a direct download URI
+    [OAK-8578] - Introduce API to check whether blob inlined in Id
+
+Documentation
+
+    [OAK-8543] - Javadoc of IndexCopier#waitForCopyCompletion refers to boolean return
+
 
 
 In addition to the above-mentioned changes, this release contains all
