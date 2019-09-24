@@ -121,8 +121,9 @@ public class S3RequestDecorator {
           case SSE_KMS:
               String keyId = getSSEParams().getAwsKmsKeyId();
               request = request.withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
-              if (keyId != null)
+              if (keyId != null) {
                   request = request.withKmsCmkId(keyId);
+              }
         }
         return request;
     }

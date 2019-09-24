@@ -18,19 +18,29 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.util.Base64;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -95,26 +105,5 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
             LOG.error("error:", e);
             fail(e.getMessage());
         }
-    }
-
-    @Test
-    public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordUploadException,
-            RepositoryException {
-        ConfigurableDataRecordAccessProvider ds
-            = (ConfigurableDataRecordAccessProvider) createDataStore();
-        long uploadSize = ONE_GB * 50;
-        int expectedNumURIs = 5000;
-        DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
-        Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
-
-        uploadSize = ONE_GB * 100;
-        expectedNumURIs = 10000;
-        upload = ds.initiateDataRecordUpload(uploadSize, -1);
-        Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
-
-        uploadSize = ONE_GB * 200;
-        // expectedNumURIs still 10000, AWS limit
-        upload = ds.initiateDataRecordUpload(uploadSize, -1);
-        Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
     }
 }

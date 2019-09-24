@@ -20,8 +20,13 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtur
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -30,12 +35,24 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreTest;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.util.Base64;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
@@ -52,6 +69,10 @@ import org.slf4j.LoggerFactory;
 public class TestS3Ds extends AbstractDataStoreTest {
 
     protected static final Logger LOG = LoggerFactory.getLogger(TestS3Ds.class);
+    protected static long ONE_KB = 1024;
+    protected static long ONE_MB = ONE_KB * ONE_KB;
+    protected static long ONE_HUNDRED_MB = ONE_MB * 100;
+    protected static long ONE_GB = ONE_HUNDRED_MB * 10;
 
     private static Date overallStartTime = getBackdatedDate();
     private Date thisTestStartTime = null;
@@ -94,6 +115,66 @@ public class TestS3Ds extends AbstractDataStoreTest {
         super.setUp();
     }
 
+    @Test
+    public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordUploadException,
+            RepositoryException {
+        ConfigurableDataRecordAccessProvider ds
+                  = (ConfigurableDataRecordAccessProvider) createDataStore();
+        long uploadSize = ONE_GB * 50;
+        int expectedNumURIs = 5000;
+        DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
+        Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
+
+        uploadSize = ONE_GB * 100;
+        expectedNumURIs = 10000;
+        upload = ds.initiateDataRecordUpload(uploadSize, -1);
+        Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
+
+        uploadSize = ONE_GB * 200;
+        upload = ds.initiateDataRecordUpload(uploadSize, -1);
+        Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
+    }
+
+    @Test
+    public void testGetDownloadURIIT() throws IOException, RepositoryException {
+        DataRecord record = null;
+        DataRecordAccessProvider ds = (DataRecordAccessProvider) createDataStore();
+        InputStream testStream = randomStream(0, 256);
+        record = doSynchronousAddRecord(ds, testStream);
+        URI uri = ((DataRecordAccessProvider) ds).getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+        Assert.assertNotNull("uri is null", uri);
+    }
+
+    @Test
+    public void testCompleteDirectUploadUpdate() throws DataRecordUploadException, RepositoryException {
+        DataRecord uploadedRecord = null;
+        ConfigurableDataRecordAccessProvider ds
+        = (ConfigurableDataRecordAccessProvider) createDataStore();
+        DataRecordUpload uploadContext = ds.initiateDataRecordUpload(ONE_MB, 1);
+
+        //Pull the blob id out and modify it
+        String uploadToken = uploadContext.getUploadToken();
+        String[] parts = uploadToken.split("#");
+        String tokenPart = parts[0];
+        String sigPart = parts[1];
+        String[] subParts = tokenPart.split("#");
+        String blobId = subParts[0];
+        char c = (char)((int)(blobId.charAt(blobId.length()-1))+1);
+        blobId = blobId.substring(0, blobId.length()-1) + c;
+        for (int i = 1; i<subParts.length; i++) {
+            blobId += "#" + subParts[i];
+        }
+        String newToken = Base64.encode(blobId) + "#" + sigPart;
+
+        try {
+            uploadedRecord = ds.completeDataRecordUpload(newToken);
+            assertNotNull(uploadedRecord);
+        }
+        catch (IllegalArgumentException e) {
+            LOG.error("Invalid upload token");
+        }
+    }
+
     @Override
     @After
     public void tearDown() {
@@ -127,6 +208,10 @@ public class TestS3Ds extends AbstractDataStoreTest {
         }
         sleep(1000);
         return s3ds;
+    }
+
+    protected DataRecord doSynchronousAddRecord(DataRecordAccessProvider ds, InputStream in) throws DataStoreException {
+        return ((S3DataStore)ds).addRecord(in, new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
     }
 
     /**----------Not supported-----------**/

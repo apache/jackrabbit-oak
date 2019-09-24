@@ -3,12 +3,7 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
 
-import javax.jcr.RepositoryException;
-
 import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,25 +76,4 @@ public class TestS3DSWithSSEKMS extends TestS3Ds {
                 fail(e.getMessage());
             }
         }
-
-        @Test
-        public void testInitiateDirectUploadUnlimitedURIs() throws DataRecordUploadException,
-                RepositoryException {
-            ConfigurableDataRecordAccessProvider ds
-                      = (ConfigurableDataRecordAccessProvider) createDataStore();
-            long uploadSize = ONE_GB * 50;
-            int expectedNumURIs = 5000;
-            DataRecordUpload upload = ds.initiateDataRecordUpload(uploadSize, -1);
-            Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
-
-            uploadSize = ONE_GB * 100;
-            expectedNumURIs = 10000;
-            upload = ds.initiateDataRecordUpload(uploadSize, -1);
-            Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
-
-            uploadSize = ONE_GB * 200;
-            // expectedNumURIs still 10000, AWS limit
-            upload = ds.initiateDataRecordUpload(uploadSize, -1);
-            Assert.assertEquals(expectedNumURIs, upload.getUploadURIs().size());
-        }
-    }
+}
