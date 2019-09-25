@@ -46,9 +46,14 @@ Bug
     [OAK-8599] - [Direct Binary Access] Initiate upload should return null if feature is disabled
     [OAK-8624] - oak-run: tests leak mapd temp files
     [OAK-8625] - oak-upgrade leaks empty test folders
+    [OAK-8627] - Avoid late-arriving lastRev update from crashed instance
     [OAK-8629] - Node bundling exposes hidden properties
     [OAK-8632] - rep:CugPolicy nodes containing duplicate principal names
     [OAK-8643] - PrincipalProvider.getMembershipPrincipals should not delegate to deprecated method
+
+Story
+
+    [OAK-8640] - Allow to only copy last journal entry in the SegmentStoreMigrator
 
 Improvement
 
@@ -115,6 +120,7 @@ Task
     [OAK-8619] - Enable text extraction timeout recovery from disk
     [OAK-8622] - Remove the version of the maven-resources-plugin from the fast profile
     [OAK-8635] - Use LMSEstimator for Oak ES SizeEstimator
+    [OAK-8637] - Add convergence testing coverage for LMSEstimator
     [OAK-8638] - Revert java 12 specific javadoc workaround
 
 Sub-task

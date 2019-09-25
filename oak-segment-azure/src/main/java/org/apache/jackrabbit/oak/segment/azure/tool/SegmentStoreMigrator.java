@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescri
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
@@ -97,22 +98,20 @@ public class SegmentStoreMigrator implements Closeable  {
             return;
         }
         List<String> journal = new ArrayList<>();
-        if (onlyLastJournalEntry) {
-            try (JournalFileReader reader = source.getJournalFile().openJournalReader()) {
-                String line = reader.readLine();
-                if (line != null) {
+
+        try (JournalFileReader reader = source.getJournalFile().openJournalReader()) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (StringUtils.isNotBlank(line)) {
                     journal.add(line);
                 }
-            }
-        } else {
-            try (JournalFileReader reader = source.getJournalFile().openJournalReader()) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    journal.add(line);
+                if (!journal.isEmpty() && onlyLastJournalEntry) {
+                    break;
                 }
             }
-            Collections.reverse(journal);
         }
+        Collections.reverse(journal);
+
         try (JournalFileWriter writer = target.getJournalFile().openJournalWriter()) {
             writer.truncate();
             for (String line : journal) {
@@ -292,7 +291,7 @@ public class SegmentStoreMigrator implements Closeable  {
         }
 
         public Builder withOnlyLastJournalEntry() {
-            this.onlyLastJournalEntry = onlyLastJournalEntry;
+            this.onlyLastJournalEntry = true;
             return this;
         }
 

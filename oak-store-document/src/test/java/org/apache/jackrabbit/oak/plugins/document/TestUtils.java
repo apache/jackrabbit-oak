@@ -124,4 +124,12 @@ public class TestUtils {
         }
         return finalUpdate;
     }
+
+    public static void disposeQuietly(DocumentNodeStore ns) {
+        try {
+            ns.dispose();
+        } catch (Exception e) {
+            // ignore
+        }
+    }
 }
