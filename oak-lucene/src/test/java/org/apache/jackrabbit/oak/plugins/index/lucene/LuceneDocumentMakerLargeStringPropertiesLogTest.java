@@ -147,11 +147,12 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
         test.setProperty("foo", asList("/jobs/a", "1234567890"), Type.STRINGS);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertTrue(isWarnMessagePresent(listAppender));
+        assertEquals(2, listAppender.list.size());
 
     }
 
     @Test
-    public void testLoggingOnAddingLargeStringArrayOneLargePropertyTwoLargeProperties() throws IOException {
+    public void testLoggingOnAddingLargeStringArrayTwoLargeProperties() throws IOException {
         NodeState root = INITIAL_CONTENT;
         IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
         builder.indexRule("nt:base")
@@ -169,7 +170,9 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
         test.setProperty("foo", asList("0123456789", "1234567890"), Type.STRINGS);
         assertNotNull(docMaker.makeDocument(test.getNodeState()));
         assertTrue(isWarnMessagePresent(listAppender));
-        assertEquals(listAppender.list.size(), 2);
+        // number of logs equal twice the number of large properties once for fultext indexing
+        // and once for property indexing.
+        assertEquals(4, listAppender.list.size());
 
     }
 

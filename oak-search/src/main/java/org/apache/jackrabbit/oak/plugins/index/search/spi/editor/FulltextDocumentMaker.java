@@ -119,6 +119,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexNodeName(D doc, String value);
 
+    protected void logLargeStringProperties(String propertyName, String value) {
+        if (value.length() > maxStringPropertySize) {
+            log.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, path, maxStringPropertySize);
+        }
+    }
+
     @Nullable
     public D makeDocument(NodeState state) throws IOException {
         return makeDocument(state, false, Collections.<PropertyState>emptyList());
@@ -238,19 +244,14 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             addBinary(doc, null, binaryValues);
             dirty = true;
         } else {
-            if (property.getType() == Type.STRING || property.getType() == Type.STRINGS) {
-                for (String value : property.getValue(Type.STRINGS)) {
-                    if (value.length() > maxStringPropertySize) {
-                        log.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), property.getName(), path, maxStringPropertySize);
-                    }
-                }
-            }
             if (pd.propertyIndex && pd.includePropertyType(property.getType().tag())) {
                 dirty |= addTypedFields(doc, property, pname, pd);
             }
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {
+
                 for (String value : property.getValue(Type.STRINGS)) {
+                    logLargeStringProperties(property.getName(), value);
                     if (!includePropertyValue(value, pd)){
                         continue;
                     }
