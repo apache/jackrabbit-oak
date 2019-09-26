@@ -20,8 +20,11 @@
 package org.apache.jackrabbit.oak.run.cli;
 
 import java.io.IOException;
+import java.util.List;
 
 import joptsimple.OptionParser;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -34,6 +37,7 @@ import org.junit.Test;
 
 import static java.util.Collections.emptyMap;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -54,6 +58,7 @@ public class DocumentFixtureTest {
             builder.setChildNode("foo");
             store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             assertNotNull(fixture.getBlobStore());
+            assertClusterInvisible(store);
         }
     }
 
@@ -74,5 +79,12 @@ public class DocumentFixtureTest {
         Options opts = new Options().withDisableSystemExit();
         opts.parseAndConfigure(parser, new String[] {MongoUtils.URL});
         return opts;
+    }
+
+    private void assertClusterInvisible(NodeStore store) {
+        List<ClusterNodeInfoDocument> clusterInfos =
+            ClusterNodeInfoDocument.all(((DocumentNodeStore) store).getDocumentStore());
+        assertNotNull(clusterInfos);
+        assertTrue(clusterInfos.get(0).isInvisible());
     }
 }

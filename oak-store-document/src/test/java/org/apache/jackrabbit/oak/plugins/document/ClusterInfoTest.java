@@ -144,7 +144,26 @@ public class ClusterInfoTest {
     }
 
     @Test
-    public void useAbandoned() throws InterruptedException {
+    public void useAbandonedStdToStd() throws InterruptedException {
+        useAbandoned(false, false);
+    }
+
+    @Test
+    public void useAbandonedInvisibleToStd() throws InterruptedException {
+        useAbandoned(true, false);
+    }
+
+    @Test
+    public void useAbandonedStdToInvisible() throws InterruptedException {
+        useAbandoned(false, true);
+    }
+
+    @Test
+    public void useAbandonedInvisibleToInvisible() throws InterruptedException {
+        useAbandoned(true, true);
+    }
+
+    public void useAbandoned(boolean firstInvisible, boolean secondInvisible) throws InterruptedException {
         Clock clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         ClusterNodeInfo.setClock(clock);
@@ -155,6 +174,7 @@ public class ClusterInfoTest {
                 clock(clock).
                 setAsyncDelay(0).
                 setLeaseCheckMode(LeaseCheckMode.DISABLED).
+                setClusterInvisible(firstInvisible).
                 getNodeStore();
 
         DocumentStore ds = ns1.getDocumentStore();
@@ -163,6 +183,7 @@ public class ClusterInfoTest {
         ClusterNodeInfoDocument cnid = ds.find(Collection.CLUSTER_NODES, "" + cid);
         assertNotNull(cnid);
         assertEquals(ClusterNodeState.ACTIVE.toString(), cnid.get(ClusterNodeInfo.STATE));
+        assertEquals("Cluster should have been " + firstInvisible, firstInvisible, cnid.isInvisible());
         ns1.dispose();
 
         long waitFor = 2000;
@@ -179,9 +200,16 @@ public class ClusterInfoTest {
                 clock(clock).
                 setAsyncDelay(0).
                 setLeaseCheckMode(LeaseCheckMode.DISABLED).
+                setClusterInvisible(secondInvisible).
                 getNodeStore();
  
         assertEquals("should have re-used existing cluster id", cid, ns1.getClusterId());
+
+        cnid = ds.find(Collection.CLUSTER_NODES, "" + cid);
+        assertNotNull(cnid);
+        assertEquals(ClusterNodeState.ACTIVE.toString(), cnid.get(ClusterNodeInfo.STATE));
+        assertEquals("Cluster should have been " + secondInvisible, secondInvisible, cnid.isInvisible());
+
         ns1.dispose();
     }
 

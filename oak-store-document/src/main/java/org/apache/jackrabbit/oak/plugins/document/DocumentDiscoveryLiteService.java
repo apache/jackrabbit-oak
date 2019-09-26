@@ -372,19 +372,21 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
 
         for (Iterator<ClusterNodeInfoDocument> it = allClusterNodes.iterator(); it.hasNext();) {
             ClusterNodeInfoDocument clusterNode = it.next();
-            allNodeIds.put(clusterNode.getClusterId(), clusterNode);
-            if (clusterNode.isBeingRecovered()) {
-                recoveringNodes.put(clusterNode.getClusterId(), clusterNode);
-            } else if (!clusterNode.isActive()) {
-                if (hasBacklog(clusterNode)) {
-                    backlogNodes.put(clusterNode.getClusterId(), clusterNode);
+            if (!clusterNode.isInvisible()) {
+                allNodeIds.put(clusterNode.getClusterId(), clusterNode);
+                if (clusterNode.isBeingRecovered()) {
+                    recoveringNodes.put(clusterNode.getClusterId(), clusterNode);
+                } else if (!clusterNode.isActive()) {
+                    if (hasBacklog(clusterNode)) {
+                        backlogNodes.put(clusterNode.getClusterId(), clusterNode);
+                    } else {
+                        inactiveNoBacklogNodes.put(clusterNode.getClusterId(), clusterNode);
+                    }
+                } else if (clusterNode.getLeaseEndTime() < System.currentTimeMillis()) {
+                    activeButTimedOutNodes.put(clusterNode.getClusterId(), clusterNode);
                 } else {
-                    inactiveNoBacklogNodes.put(clusterNode.getClusterId(), clusterNode);
+                    activeNotTimedOutNodes.put(clusterNode.getClusterId(), clusterNode);
                 }
-            } else if (clusterNode.getLeaseEndTime() < System.currentTimeMillis()) {
-                activeButTimedOutNodes.put(clusterNode.getClusterId(), clusterNode);
-            } else {
-                activeNotTimedOutNodes.put(clusterNode.getClusterId(), clusterNode);
             }
         }
 
@@ -471,7 +473,8 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         return null;
     }
 
-    private boolean hasBacklog(ClusterNodeInfoDocument clusterNode) {
+    /** package access only for testing **/
+    boolean hasBacklog(ClusterNodeInfoDocument clusterNode) {
         if (logger.isTraceEnabled()) {
             logger.trace("hasBacklog: start. clusterNodeId: {}", clusterNode.getClusterId());
         }
@@ -653,7 +656,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
      * background-read has finished - as it could be waiting for a crashed
      * node's recovery to finish - which it can only do by checking the
      * lastKnownRevision of the crashed instance - and that check is best done
-     * after the background read is just finished (it could optinoally do that
+     * after the background read is just finished (it could optionally do that
      * just purely time based as well, but going via a listener is more timely,
      * that's why this approach has been chosen).
      */

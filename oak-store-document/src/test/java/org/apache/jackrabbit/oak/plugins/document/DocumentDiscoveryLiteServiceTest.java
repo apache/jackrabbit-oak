@@ -57,6 +57,14 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     @Test
+    public void testOneInvisibleNode() throws Exception {
+        final SimplifiedInstance s1 = createInstance(true);
+        final ViewExpectation expectation = new ViewExpectation(s1);
+        expectation.setActiveIds(new int[0]);
+        waitFor(expectation, 2000, "no one is active");
+    }
+
+    @Test
     public void testTwoNodesWithCleanShutdown() throws Exception {
         final SimplifiedInstance s1 = createInstance();
         final SimplifiedInstance s2 = createInstance();
@@ -75,6 +83,23 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     @Test
+    public void testTwoNodesWithInvisibleCleanShutdown() throws Exception {
+        final SimplifiedInstance s1 = createInstance(true);
+        final SimplifiedInstance s2 = createInstance();
+        final ViewExpectation expectation1 = new ViewExpectation(s1);
+        final ViewExpectation expectation2 = new ViewExpectation(s2);
+        expectation1.setActiveIds(s2.ns.getClusterId());
+        expectation2.setActiveIds(s2.ns.getClusterId());
+        waitFor(expectation1, 2000, "Only second is active");
+        waitFor(expectation2, 2000, "Second should not see first as active");
+
+        s1.shutdown();
+        final ViewExpectation expectation1AfterShutdown = new ViewExpectation(s2);
+        expectation1AfterShutdown.setActiveIds(s2.ns.getClusterId());
+        waitFor(expectation1AfterShutdown, 2000, "no one is active after shutdown");
+    }
+
+    @Test
     public void testTwoNodesWithCrash() throws Throwable {
         final SimplifiedInstance s1 = createInstance();
         final SimplifiedInstance s2 = createInstance();
@@ -90,6 +115,24 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
         final ViewExpectation expectation1AfterShutdown = new ViewExpectation(s1);
         expectation1AfterShutdown.setActiveIds(s1.ns.getClusterId());
         expectation1AfterShutdown.setInactiveIds(s2.ns.getClusterId());
+        waitFor(expectation1AfterShutdown, 4000, "first should only see itself after shutdown");
+    }
+
+    @Test
+    public void testTwoNodesInvisibleWithCrash() throws Throwable {
+        final SimplifiedInstance s1 = createInstance(true);
+        final SimplifiedInstance s2 = createInstance();
+        final ViewExpectation expectation1 = new ViewExpectation(s1);
+        final ViewExpectation expectation2 = new ViewExpectation(s2);
+        expectation1.setActiveIds(s2.ns.getClusterId());
+        expectation2.setActiveIds(s2.ns.getClusterId());
+        waitFor(expectation1, 2000, "first should see only second as active");
+        waitFor(expectation2, 2000, "second should not see first as active");
+
+        s1.crash();
+
+        final ViewExpectation expectation1AfterShutdown = new ViewExpectation(s1);
+        expectation1AfterShutdown.setActiveIds(s2.ns.getClusterId());
         waitFor(expectation1AfterShutdown, 4000, "first should only see itself after shutdown");
     }
 

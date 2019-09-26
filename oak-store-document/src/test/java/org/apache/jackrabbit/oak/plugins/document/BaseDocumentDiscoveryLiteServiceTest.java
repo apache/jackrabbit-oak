@@ -85,7 +85,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
      */
     class SimplifiedInstance {
 
-        private DocumentDiscoveryLiteService service;
+        DocumentDiscoveryLiteService service;
         DocumentNodeStore ns;
         private final Descriptors descriptors;
         private Map<String, Object> registeredServices;
@@ -150,6 +150,10 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             String finalStr = clusterViewObj.getProperties().get("final");
 
             return Boolean.valueOf(finalStr);
+        }
+
+        boolean isInvisible() {
+            return ns.getClusterInfo().isInvisible();
         }
 
         boolean hasActiveIds(String clusterViewStr, int... expected) throws Exception {
@@ -464,9 +468,9 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
     class ViewExpectation implements Expectation {
 
-        private int[] activeIds;
-        private int[] deactivatingIds;
-        private int[] inactiveIds;
+        private int[] activeIds = new int[0];
+        private int[] deactivatingIds = new int[0];
+        private int[] inactiveIds = new int[0];
         private final SimplifiedInstance discoveryLiteCombo;
         private boolean isFinal = true;
 
@@ -526,7 +530,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             if (!discoveryLiteCombo.hasInactiveIds(clusterViewStr, inactiveIds)) {
                 return "inactiveIds dont match, expected: " + beautify(inactiveIds) + ", got clusterView: " + clusterViewStr;
             }
-            if (discoveryLiteCombo.isFinal() != isFinal) {
+            if (!discoveryLiteCombo.isInvisible() && discoveryLiteCombo.isFinal() != isFinal) {
                 return "final flag does not match. expected: " + isFinal + ", but is: " + discoveryLiteCombo.isFinal();
             }
             return null;
@@ -579,6 +583,12 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     // subsequent tests should get a DocumentDiscoveryLiteService setup from the
     // start
     DocumentNodeStore createNodeStore(String workingDir) throws SecurityException, Exception {
+        return createNodeStore(workingDir, false);
+    }
+
+    // subsequent tests should get a DocumentDiscoveryLiteService setup from the
+    // start
+    DocumentNodeStore createNodeStore(String workingDir, boolean invisible) throws SecurityException, Exception {
         String prevWorkingDir = ClusterNodeInfo.WORKING_DIR;
         try {
             // ensure that we always get a fresh cluster[node]id
@@ -587,7 +597,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             // then create the DocumentNodeStore
             DocumentMK mk1 = createMK(
                     0 /* to make sure the clusterNodes collection is used **/,
-                    500 /* asyncDelay: background interval */);
+                    500, /* asyncDelay: background interval */
+                    invisible /* cluster node invisibility */);
 
             logger.info("createNodeStore: created DocumentNodeStore with cid=" + mk1.nodeStore.getClusterId() + ", workingDir="
                     + workingDir);
@@ -599,12 +610,20 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     }
 
     SimplifiedInstance createInstance() throws Exception {
+        return createInstance(false);
+    }
+
+    SimplifiedInstance createInstance(boolean invisible) throws Exception {
         final String workingDir = UUID.randomUUID().toString();
-        return createInstance(workingDir);
+        return createInstance(workingDir, invisible);
     }
 
     SimplifiedInstance createInstance(String workingDir) throws SecurityException, Exception {
-        DocumentNodeStore ns = createNodeStore(workingDir);
+        return createInstance(workingDir, false);
+    }
+
+    SimplifiedInstance createInstance(String workingDir, boolean invisible) throws SecurityException, Exception {
+        DocumentNodeStore ns = createNodeStore(workingDir, invisible);
         return createInstance(ns, workingDir);
     }
 
@@ -658,7 +677,9 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         final List<Integer> activeIds = new LinkedList<Integer>();
         for (Iterator<SimplifiedInstance> it = instances.iterator(); it.hasNext();) {
             SimplifiedInstance anInstance = it.next();
-            activeIds.add(anInstance.ns.getClusterId());
+            if (!anInstance.isInvisible()) {
+                activeIds.add(anInstance.ns.getClusterId());
+            }
         }
         logger.info("checkFiestaState: checking state. expected active: "+activeIds+", inactive: "+inactiveIds);
         for (Iterator<SimplifiedInstance> it = instances.iterator(); it.hasNext();) {
@@ -695,6 +716,11 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
     }
 
     DocumentMK createMK(int clusterId, int asyncDelay) {
+        return createMK(clusterId, asyncDelay, false);
+    }
+
+
+    DocumentMK createMK(int clusterId, int asyncDelay, boolean invisible) {
         if (MONGO_DB) {
             MongoConnection connection = connectionFactory.getConnection();
             return register(new DocumentMK.Builder()
@@ -708,18 +734,33 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             if (bs == null) {
                 bs = new MemoryBlobStore();
             }
-            return createMK(clusterId, asyncDelay, ds, bs);
+            return createMK(clusterId, asyncDelay, ds, bs, invisible);
         }
     }
 
-    DocumentMK createMK(int clusterId, int asyncDelay, DocumentStore ds, BlobStore bs) {
-        return register(new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId).setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setAsyncDelay(asyncDelay).open());
+    DocumentMK createMK(int clusterId, int asyncDelay, DocumentStore ds, BlobStore bs, boolean invisible) {
+        return register(new DocumentMK.Builder().setDocumentStore(ds).setBlobStore(bs).setClusterId(clusterId).setClusterInvisible(invisible)
+            .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+            .setAsyncDelay(asyncDelay).open());
     }
 
     DocumentMK register(DocumentMK mk) {
         mks.add(mk);
         return mk;
+    }
+
+    /**
+     * Probability of invisible instance at 20%
+     * @param random
+     * @return
+     */
+    boolean isInvisibleInstance(Random random) {
+        boolean invisible = false;
+        double invisibleProb = random.nextDouble();
+        if (invisibleProb <= 0.2) {
+            invisible = true;
+        }
+        return invisible;
     }
 
     /**
@@ -758,7 +799,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         logger.info("Case 0 - reactivated instance " + cid + ", workingDir=" + reactivatedWorkingDir);
                         workingDir = reactivatedWorkingDir;
                         logger.info("Case 0: creating instance");
-                        final SimplifiedInstance newInstance = createInstance(workingDir);
+
+                        final SimplifiedInstance newInstance = createInstance(workingDir, isInvisibleInstance(random));
                         newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 0: created instance: " + newInstance.ns.getClusterId());
@@ -779,7 +821,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                     // creates a new instance
                     if (instances.size() < MAX_NUM_INSTANCES) {
                         logger.info("Case 1: creating instance");
-                        final SimplifiedInstance newInstance = createInstance(workingDir);
+                        final SimplifiedInstance newInstance = createInstance(workingDir, isInvisibleInstance(random));
                         newInstance.setLeastTimeout(5000, 1000);
                         newInstance.startSimulatingWrites(500);
                         logger.info("Case 1: created instance: " + newInstance.ns.getClusterId());
@@ -803,7 +845,9 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         final SimplifiedInstance instance = instances.remove(random.nextInt(instances.size()));
                         assertNotNull(instance.workingDir);
                         logger.info("Case 3: Shutdown instance: " + instance.ns.getClusterId());
-                        inactiveIds.put(instance.ns.getClusterId(), instance.workingDir);
+                        if (!instance.isInvisible()) {
+                            inactiveIds.put(instance.ns.getClusterId(), instance.workingDir);
+                        }
                         instance.shutdown();
                     }
                     break;
@@ -817,7 +861,9 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         final SimplifiedInstance instance = instances.remove(random.nextInt(instances.size()));
                         assertNotNull(instance.workingDir);
                         logger.info("Case 4: Crashing instance: " + instance.ns.getClusterId());
-                        inactiveIds.put(instance.ns.getClusterId(), instance.workingDir);
+                        if (!instance.isInvisible()) {
+                            inactiveIds.put(instance.ns.getClusterId(), instance.workingDir);
+                        }
                         instance.addNode("/" + instance.ns.getClusterId() + "/stuffForRecovery/" + random.nextInt(10000));
                         instance.crash();
                     }

@@ -166,6 +166,11 @@ public class ClusterNodeInfo {
     private static final String READ_WRITE_MODE_KEY = "readWriteMode";
 
     /**
+     * Key for invisible flag
+     */
+    public static final String INVISIBLE = "invisible";
+
+    /**
      * The unique machine id (the MAC address if available).
      */
     private static final String MACHINE_ID = getHardwareMachineId();
@@ -339,8 +344,14 @@ public class ClusterNodeInfo {
      */
     private LeaseFailureHandler leaseFailureHandler;
 
+    /**
+     * Flag to indicate this node is invisible to cluster view and thus recovery.
+     */
+    private boolean invisible;
+
+
     private ClusterNodeInfo(int id, DocumentStore store, String machineId,
-                            String instanceId, boolean newEntry) {
+                            String instanceId, boolean newEntry, boolean invisible) {
         this.id = id;
         this.startTime = getCurrentTime();
         this.leaseEndTime = this.startTime +leaseTime;
@@ -349,6 +360,7 @@ public class ClusterNodeInfo {
         this.machineId = machineId;
         this.instanceId = instanceId;
         this.newEntry = newEntry;
+        this.invisible = invisible;
     }
 
     void setLeaseCheckMode(@NotNull LeaseCheckMode mode) {
@@ -371,6 +383,10 @@ public class ClusterNodeInfo {
         return instanceId;
     }
 
+    boolean isInvisible() {
+        return invisible;
+    }
+
     /**
      * Create a cluster node info instance to be utilized for read only access
      * to underlying store.
@@ -379,7 +395,7 @@ public class ClusterNodeInfo {
      * @return the cluster node info
      */
     public static ClusterNodeInfo getReadOnlyInstance(DocumentStore store) {
-        return new ClusterNodeInfo(0, store, MACHINE_ID, WORKING_DIR, true) {
+        return new ClusterNodeInfo(0, store, MACHINE_ID, WORKING_DIR, true, true) {
             @Override
             public void dispose() {
             }
@@ -418,10 +434,31 @@ public class ClusterNodeInfo {
      * @return the cluster node info
      */
     public static ClusterNodeInfo getInstance(DocumentStore store,
+        RecoveryHandler recoveryHandler,
+        String machineId,
+        String instanceId,
+        int configuredClusterId) {
+
+        return getInstance(store, recoveryHandler, machineId, instanceId, configuredClusterId, false);
+    }
+
+    /**
+     * Get or create a cluster node info instance for the store.
+     *
+     * @param store the document store (for the lease)
+     * @param recoveryHandler the recovery handler to call for a clusterId with
+     *                        an expired lease.
+     * @param machineId the machine id (null for MAC address)
+     * @param instanceId the instance id (null for current working directory)
+     * @param configuredClusterId the configured cluster id (or 0 for dynamic assignment)
+     * @return the cluster node info
+     */
+    public static ClusterNodeInfo getInstance(DocumentStore store,
                                               RecoveryHandler recoveryHandler,
                                               String machineId,
                                               String instanceId,
-                                              int configuredClusterId) {
+                                              int configuredClusterId,
+                                              boolean invisible) {
         // defaults for machineId and instanceID
         if (machineId == null) {
             machineId = MACHINE_ID;
@@ -434,7 +471,7 @@ public class ClusterNodeInfo {
         for (int i = 0; i < retries; i++) {
             Map.Entry<ClusterNodeInfo, Long> suggestedClusterNode =
                     createInstance(store, recoveryHandler, machineId,
-                            instanceId, configuredClusterId, i == 0);
+                            instanceId, configuredClusterId, i == 0, invisible);
             ClusterNodeInfo clusterNode = suggestedClusterNode.getKey();
             Long currentStartTime = suggestedClusterNode.getValue();
             String key = String.valueOf(clusterNode.id);
@@ -446,6 +483,7 @@ public class ClusterNodeInfo {
             update.set(INFO_KEY, clusterNode.toString());
             update.set(STATE, ACTIVE.name());
             update.set(OAK_VERSION_KEY, OAK_VERSION);
+            update.set(INVISIBLE, invisible);
 
             ClusterNodeInfoDocument before = null;
             final boolean success;
@@ -485,7 +523,8 @@ public class ClusterNodeInfo {
                                                                    String machineId,
                                                                    String instanceId,
                                                                    int configuredClusterId,
-                                                                   boolean waitForLease) {
+                                                                   boolean waitForLease,
+                                                                   boolean invisible) {
 
         long now = getCurrentTime();
         int maxId = 0;
@@ -544,7 +583,7 @@ public class ClusterNodeInfo {
                         && iId.equals(instanceId)) {
                     boolean worthRetrying = waitForLeaseExpiry(store, doc, leaseEnd, machineId, instanceId);
                     if (worthRetrying) {
-                        return createInstance(store, recoveryHandler, machineId, instanceId, configuredClusterId, false);
+                        return createInstance(store, recoveryHandler, machineId, instanceId, configuredClusterId, false, invisible);
                     }
                 }
 
@@ -579,7 +618,7 @@ public class ClusterNodeInfo {
 
             // create a candidate. those with matching machine and instance id
             // are preferred, then the one with the lowest clusterId.
-            candidates.add(new ClusterNodeInfo(id, store, mId, iId, false));
+            candidates.add(new ClusterNodeInfo(id, store, mId, iId, false, invisible));
             startTimes.put(id, doc.getStartTime());
         }
 
@@ -596,19 +635,21 @@ public class ClusterNodeInfo {
                 clusterNodeId = maxId + 1;
             }
             // No usable existing entry found so create a new entry
-            candidates.add(new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, true));
+            candidates.add(new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, true, invisible));
         }
 
         // use the best candidate
         ClusterNodeInfo info = candidates.first();
         // and replace with an info matching the current machine and instance id
-        info = new ClusterNodeInfo(info.id, store, machineId, instanceId, info.newEntry);
+        info = new ClusterNodeInfo(info.id, store, machineId, instanceId, info.newEntry, invisible);
         return new AbstractMap.SimpleImmutableEntry<>(info, startTimes.get(info.getId()));
     }
 
     private static void logClusterIdAcquired(ClusterNodeInfo clusterNode,
                                              ClusterNodeInfoDocument before) {
         String type = clusterNode.newEntry ? "new" : "existing";
+        type = clusterNode.invisible ? (type + " (invisible)") : type;
+
         String machineInfo = clusterNode.machineId;
         String instanceInfo = clusterNode.instanceId;
         if (before != null) {
@@ -654,7 +695,7 @@ public class ClusterNodeInfo {
                 // check state of cluster node info
                 ClusterNodeInfoDocument reread = store.find(Collection.CLUSTER_NODES, key);
                 if (reread == null) {
-                    LOG.info("Cluster node info " + key + ": gone; continueing.");
+                    LOG.info("Cluster node info " + key + ": gone; continuing.");
                     return true;
                 } else {
                     Long newLeaseEnd = (Long) reread.get(LEASE_END_KEY);
@@ -1098,6 +1139,7 @@ public class ClusterNodeInfo {
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
         update.set(STATE, null);
+        update.set(INVISIBLE, false);
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
         state = NONE;
     }
@@ -1114,7 +1156,8 @@ public class ClusterNodeInfo {
                 "leaseCheckMode: " + leaseCheckMode.name() + ",\n" +
                 "state: " + state + ",\n" +
                 "oakVersion: " + OAK_VERSION + ",\n" +
-                "formatVersion: " + DocumentNodeStore.VERSION;
+                "formatVersion: " + DocumentNodeStore.VERSION + ",\n" +
+                "invisible: " + invisible;
     }
 
     /**

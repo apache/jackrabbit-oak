@@ -157,4 +157,14 @@ public class ClusterNodeInfoDocument extends Document {
     public String getLastWrittenRootRev() {
         return (String) get(ClusterNodeInfo.LAST_WRITTEN_ROOT_REV_KEY);
     }
+
+    /**
+     * Is the cluster node marked as invisible
+     * @return {@code true} if invisible; {@code false}
+     *         otherwise.
+     */
+    public boolean isInvisible() {
+        Boolean invisible = (Boolean) get(ClusterNodeInfo.INVISIBLE);
+        return invisible != null ? invisible : false;
+    }
 }
