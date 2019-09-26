@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Iterables;
+import org.apache.commons.codec.binary.StringUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -57,6 +58,8 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.logWarnStringSizeThreshold";
+    private int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
     private final FulltextBinaryTextExtractor textExtractor;
     protected final IndexDefinition definition;
@@ -104,6 +107,16 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected abstract void indexAggregateValue(D doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd);
 
     protected abstract void indexNodeName(D doc, String value);
+
+    protected void logLargeStringProperties(String propertyName, String value) {
+        int logWarnStringSizeThreshold = DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE;
+        if (System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY) != null && !System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY).isEmpty()) {
+            logWarnStringSizeThreshold = Integer.parseInt(System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY));
+        }
+        if (value.length() > logWarnStringSizeThreshold) {
+            log.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, path, logWarnStringSizeThreshold);
+        }
+    }
 
     @Nullable
     public D makeDocument(NodeState state) throws IOException {
@@ -230,7 +243,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {
                 for (String value : property.getValue(Type.STRINGS)) {
-
+                    logLargeStringProperties(property.getName(), value);
                     if (!includePropertyValue(value, pd)){
                         continue;
                     }

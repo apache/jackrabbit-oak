@@ -123,6 +123,9 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             if (includePropertyValue(property, i, pd)){
                 doc.add(f);
                 fieldAdded = true;
+                if (tag == Type.STRING.tag()) {
+                    logLargeStringProperties(property.getName(), property.getValue(Type.STRING, i));
+                }
             }
         }
         return fieldAdded;
