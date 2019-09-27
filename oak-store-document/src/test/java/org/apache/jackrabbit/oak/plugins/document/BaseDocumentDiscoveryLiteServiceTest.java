@@ -684,12 +684,14 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         logger.info("checkFiestaState: checking state. expected active: "+activeIds+", inactive: "+inactiveIds);
         for (Iterator<SimplifiedInstance> it = instances.iterator(); it.hasNext();) {
             SimplifiedInstance anInstance = it.next();
-
-            final ViewExpectation e = new ViewExpectation(anInstance);
-            e.setActiveIds(activeIds.toArray(new Integer[activeIds.size()]));
-            e.setInactiveIds(inactiveIds.toArray(new Integer[inactiveIds.size()]));
-            waitFor(e, 60000, "checkFiestaState failed for " + anInstance + ", with instances: " + instances + ", and inactiveIds: "
+            if (!anInstance.isInvisible()) {
+                final ViewExpectation e = new ViewExpectation(anInstance);
+                e.setActiveIds(activeIds.toArray(new Integer[activeIds.size()]));
+                e.setInactiveIds(inactiveIds.toArray(new Integer[inactiveIds.size()]));
+                waitFor(e, 60000, "checkFiestaState failed for " + anInstance + ", with instances: " + instances + ","
+                    + " and inactiveIds: "
                     + inactiveIds);
+            }
         }
     }
 
@@ -845,9 +847,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                         final SimplifiedInstance instance = instances.remove(random.nextInt(instances.size()));
                         assertNotNull(instance.workingDir);
                         logger.info("Case 3: Shutdown instance: " + instance.ns.getClusterId());
-                        if (!instance.isInvisible()) {
-                            inactiveIds.put(instance.ns.getClusterId(), instance.workingDir);
-                        }
+                        inactiveIds.put(instance.ns.getClusterId(), instance.workingDir);
                         instance.shutdown();
                     }
                     break;
