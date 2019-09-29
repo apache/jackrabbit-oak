@@ -58,13 +58,14 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.logWarnStringSizeThreshold";
-    private int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
+    public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
+    private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
     private final FulltextBinaryTextExtractor textExtractor;
     protected final IndexDefinition definition;
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
+    private final int logWarnStringSizeThreshold;
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                @NotNull IndexDefinition definition,
@@ -74,6 +75,15 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         this.definition = checkNotNull(definition);
         this.indexingRule = checkNotNull(indexingRule);
         this.path = checkNotNull(path);
+        this.logWarnStringSizeThreshold = getLogWarnStringSizeThreshold();
+    }
+
+    private int getLogWarnStringSizeThreshold() {
+        int threshold = DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE;
+        if (System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY) != null && !System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY).isEmpty()) {
+            threshold = Integer.parseInt(System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY));
+        }
+        return threshold;
     }
 
     protected abstract D initDoc();
@@ -109,10 +119,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected abstract void indexNodeName(D doc, String value);
 
     protected void logLargeStringProperties(String propertyName, String value) {
-        int logWarnStringSizeThreshold = DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE;
-        if (System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY) != null && !System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY).isEmpty()) {
-            logWarnStringSizeThreshold = Integer.parseInt(System.getProperty(WARN_LOG_STRING_SIZE_THRESHOLD_KEY));
-        }
         if (value.length() > logWarnStringSizeThreshold) {
             log.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, path, logWarnStringSizeThreshold);
         }

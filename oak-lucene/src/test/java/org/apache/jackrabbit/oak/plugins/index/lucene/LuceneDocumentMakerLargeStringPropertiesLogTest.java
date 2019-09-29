@@ -23,11 +23,14 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextDocumentMaker;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -40,17 +43,19 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class LuceneDocumentMakerLargeStringPropertiesLogTest {
 
     ListAppender<ILoggingEvent> listAppender = null;
-    private final String nodeImplLogger = "org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker";
+    private final String nodeImplLogger = LuceneDocumentMaker.class.getName();
     private final String warnMessage = "String length: {} for property: {} at Node: {} is greater than configured value {}";
     private String customStringPropertyThresholdLimit = "9";
     private String smallStringProperty = "1234567";
     private String largeStringPropertyAsPerCustomThreshold = "1234567890";
+
+    @Rule
+    public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
 
     @Before
     public void loggingAppenderStart() {
@@ -63,11 +68,10 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
     @After
     public void loggingAppenderStop() {
         listAppender.stop();
-        System.setProperty("oak.repository.property.logWarnStringSizeThreshold", "");
     }
 
     private void setThresholdLimit(String threshold) {
-        System.setProperty("oak.repository.property.logWarnStringSizeThreshold", threshold);
+        System.setProperty(FulltextDocumentMaker.WARN_LOG_STRING_SIZE_THRESHOLD_KEY, threshold);
     }
 
     private LuceneDocumentMaker addPropertyAccordingToType(NodeBuilder test, Type type, String... str) throws IOException {
@@ -82,8 +86,6 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
         LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, builder.build(), "/foo").build();
         LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn,
                 defn.getApplicableIndexingRule("nt:base"), "/x");
-
-        //test = EMPTY_NODE.builder();
 
         if (Type.STRINGS == type) {
             test.setProperty("foo", asList(str), Type.STRINGS);
