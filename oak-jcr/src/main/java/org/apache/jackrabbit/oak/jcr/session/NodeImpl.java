@@ -127,6 +127,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     private static final Logger LOG = LoggerFactory.getLogger(NodeImpl.class);
 
+    private final int logWarnStringSizeThreshold;
+
     @Nullable
     public static NodeImpl<? extends NodeDelegate> createNodeOrNull(
             @Nullable NodeDelegate delegate, @NotNull SessionContext context)
@@ -159,6 +161,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     public NodeImpl(T dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
+        logWarnStringSizeThreshold = getLogWarnStringSizeThreshold();
+    }
+
+    private int getLogWarnStringSizeThreshold() {
+    int threshold = OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE;
+        if (System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY) != null
+                && !System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY).isEmpty()) {
+            threshold = Integer.parseInt(System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY));
+        }
+        return threshold;
     }
 
     //---------------------------------------------------------------< Item >---
@@ -1407,11 +1419,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private void logLargeStringProperties(String propertyName, String value) throws RepositoryException {
-        int logWarnStringSizeThreshold = OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE;
-        if (System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY) != null
-                && !System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY).isEmpty()) {
-            logWarnStringSizeThreshold = Integer.parseInt(System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY));
-        }
         if (value.length() > logWarnStringSizeThreshold) {
             LOG.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, this.getPath(), logWarnStringSizeThreshold);
         }
