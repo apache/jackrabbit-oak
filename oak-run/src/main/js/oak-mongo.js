@@ -29,6 +29,30 @@ var oak = (function(global){
     };
 
     /**
+     * Prints all ids of documents in the nodes collection that contain changes
+     * with the given revisions. Example:
+     * <p>
+     * <pre>oak.changesForRevisions({'r16d63f52ff7-0-1':1, 'r16d63f5b605-0-1':1})</pre>
+     * <p>
+     * Caution: this method scans the entire nodes collection and will most
+     * likely impact performance of the application using the database. Do
+     * <b>NOT</b> run this method on a production system!
+     *
+     * @memberof oak
+     * @method oak.changesForRevisions
+     */
+    api.changesForRevisions = function(revs) {
+        revs = revs || {};
+        db.nodes.find({}, {_id:1,_revisions:1, _commitRoot:1}).forEach(function(doc) {
+            for (var r in revs) {
+                if (doc._revisions && doc._revisions[r] || doc._commitRoot && doc._commitRoot[r]) {
+                    print(doc._id);
+                }
+            }
+        });
+    };
+
+    /**
      * Collects various stats related to Oak usage of Mongo.
      *
      * @memberof oak
