@@ -59,6 +59,7 @@ public class Commit {
 
     protected final DocumentNodeStore nodeStore;
     private final RevisionVector baseRevision;
+    private final RevisionVector startRevisions;
     private final Revision revision;
     private final HashMap<Path, UpdateOp> operations = new LinkedHashMap<>();
     private final Set<Revision> collisions = new LinkedHashSet<Revision>();
@@ -85,24 +86,29 @@ public class Commit {
      * @param revision the revision for this commit.
      * @param baseRevision the base revision for this commit or {@code null} if
      *                     there is none.
+     * @param startRevisions the revisions for each cluster node corresponding
+     *          to the start time of the cluster nodes.
      */
     Commit(@NotNull DocumentNodeStore nodeStore,
            @NotNull Revision revision,
-           @Nullable RevisionVector baseRevision) {
+           @Nullable RevisionVector baseRevision,
+           @NotNull RevisionVector startRevisions) {
         this.nodeStore = checkNotNull(nodeStore);
         this.revision = checkNotNull(revision);
         this.baseRevision = baseRevision;
+        this.startRevisions = startRevisions;
     }
 
     Commit(@NotNull DocumentNodeStore nodeStore,
            @NotNull Revision revision,
            @Nullable RevisionVector baseRevision,
+           @NotNull RevisionVector startRevisions,
            @NotNull Map<Path, UpdateOp> operations,
            @NotNull Set<Path> addedNodes,
            @NotNull Set<Path> removedNodes,
            @NotNull Set<Path> nodesWithBinaries,
            @NotNull Map<Path, Path> bundledNodes) {
-        this(nodeStore, revision, baseRevision);
+        this(nodeStore, revision, baseRevision, startRevisions);
         this.operations.putAll(operations);
         this.addedNodes.addAll(addedNodes);
         this.removedNodes.addAll(removedNodes);
@@ -595,7 +601,7 @@ public class Commit {
                 // TODO: unify above conflict detection and isConflicting()
                 boolean allowConflictingDeleteChange = allowConcurrentAddRemove(before, op);
                 for (Revision r : collisions) {
-                    Collision c = new Collision(before, r, op, revision, nodeStore);
+                    Collision c = new Collision(before, r, op, revision, nodeStore, startRevisions);
                     if (c.isConflicting() && !allowConflictingDeleteChange) {
                         // mark collisions on commit root
                         if (c.mark(store).equals(revision)) {
@@ -805,6 +811,12 @@ public class Commit {
                 break;
             }
         }
+    }
+
+
+    @NotNull
+    RevisionVector getStartRevisions() {
+        return startRevisions;
     }
 
     /**

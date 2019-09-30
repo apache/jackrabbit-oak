@@ -52,17 +52,20 @@ class Collision {
     private final UpdateOp ourOp;
     private final Revision ourRev;
     private final RevisionContext context;
+    private final RevisionVector startRevisions;
 
     Collision(@NotNull NodeDocument document,
               @NotNull Revision theirRev,
               @NotNull UpdateOp ourOp,
               @NotNull Revision ourRev,
-              @NotNull RevisionContext context) {
+              @NotNull RevisionContext context,
+              @NotNull RevisionVector startRevisions) {
         this.document = checkNotNull(document);
         this.theirRev = checkNotNull(theirRev);
         this.ourOp = checkNotNull(ourOp);
         this.ourRev = checkNotNull(ourRev);
         this.context = checkNotNull(context);
+        this.startRevisions = checkNotNull(startRevisions);
     }
 
     /**
@@ -101,9 +104,18 @@ class Collision {
      *
      * @return {@code true} if this is a conflicting collision, {@code false}
      *              otherwise.
-     * @throws DocumentStoreException
+     * @throws DocumentStoreException if an operation on the document store
+     *          fails.
      */
     boolean isConflicting() throws DocumentStoreException {
+        // their revision is not conflicting when it is identified as branch
+        // commit that cannot be merged (orphaned branch commit, theirRev is
+        // garbage).
+        if (document.getLocalBranchCommits().contains(theirRev)
+                && !startRevisions.isRevisionNewer(theirRev)) {
+            return false;
+        }
+
         // did their revision create or delete the node?
         if (document.getDeleted().containsKey(theirRev)) {
             return true;

@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -44,6 +43,7 @@ class CommitBuilder {
     private final DocumentNodeStore nodeStore;
     private final Revision revision;
     private final RevisionVector baseRevision;
+    private RevisionVector startRevisions = new RevisionVector();
     private final Map<Path, UpdateOp> operations = new LinkedHashMap<>();
 
     private final Set<Path> addedNodes = new HashSet<>();
@@ -221,6 +221,19 @@ class CommitBuilder {
     }
 
     /**
+     * Sets the start revisions of known clusterIds on this commit builder.
+     *
+     * @param startRevisions the start revisions derived from the start time
+     *          in the clusterNodes entries.
+     * @return {@code this} builder.
+     */
+    @NotNull
+    CommitBuilder withStartRevisions(@NotNull RevisionVector startRevisions) {
+        this.startRevisions = checkNotNull(startRevisions);
+        return this;
+    }
+
+    /**
      * Builds the commit with the modifications.
      *
      * @return {@code this} builder.
@@ -234,8 +247,9 @@ class CommitBuilder {
             String msg = "Cannot build a commit with a pseudo commit revision";
             throw new IllegalStateException(msg);
         }
-        return new Commit(nodeStore, revision, baseRevision, operations,
-                addedNodes, removedNodes, nodesWithBinaries, bundledNodes);
+        return new Commit(nodeStore, revision, baseRevision, startRevisions,
+                operations, addedNodes, removedNodes, nodesWithBinaries,
+                bundledNodes);
     }
 
     /**
@@ -251,8 +265,9 @@ class CommitBuilder {
         Revision from = this.revision;
         Map<Path, UpdateOp> operations = Maps.transformValues(
                 this.operations, op -> rewrite(op, from, revision));
-        return new Commit(nodeStore, revision, baseRevision, operations,
-                addedNodes, removedNodes, nodesWithBinaries, bundledNodes);
+        return new Commit(nodeStore, revision, baseRevision, startRevisions,
+                operations, addedNodes, removedNodes, nodesWithBinaries,
+                bundledNodes);
     }
 
     /**

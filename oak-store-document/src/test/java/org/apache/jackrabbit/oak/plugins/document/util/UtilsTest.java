@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -29,6 +30,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -47,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -402,5 +405,49 @@ public class UtilsTest {
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString("newer than current time"));
         }
+    }
+
+    @Test
+    public void getStartRevisionsEmpty() {
+        RevisionVector rv = Utils.getStartRevisions(Collections.emptyList());
+        assertEquals(0, rv.getDimensions());
+    }
+
+    @Test
+    public void getStartRevisionsSingleNode() {
+        int clusterId = 1;
+        long now = System.currentTimeMillis();
+        ClusterNodeInfoDocument info = mockedClusterNodeInfo(clusterId, now);
+        RevisionVector rv = Utils.getStartRevisions(Collections.singleton(info));
+        assertEquals(1, rv.getDimensions());
+        Revision r = rv.getRevision(clusterId);
+        assertNotNull(r);
+        assertEquals(now, r.getTimestamp());
+    }
+
+    @Test
+    public void getStartRevisionsMultipleNodes() {
+        int clusterId1 = 1;
+        int clusterId2 = 2;
+        long startTime1 = System.currentTimeMillis();
+        long startTime2 = startTime1 + 1000;
+        ClusterNodeInfoDocument info1 = mockedClusterNodeInfo(clusterId1, startTime1);
+        ClusterNodeInfoDocument info2 = mockedClusterNodeInfo(clusterId2, startTime2);
+        RevisionVector rv = Utils.getStartRevisions(Arrays.asList(info1, info2));
+        assertEquals(2, rv.getDimensions());
+        Revision r1 = rv.getRevision(clusterId1);
+        assertNotNull(r1);
+        Revision r2 = rv.getRevision(clusterId2);
+        assertNotNull(r2);
+        assertEquals(startTime1, r1.getTimestamp());
+        assertEquals(startTime2, r2.getTimestamp());
+    }
+
+    private static ClusterNodeInfoDocument mockedClusterNodeInfo(int clusterId,
+                                                                 long startTime) {
+        ClusterNodeInfoDocument info = Mockito.mock(ClusterNodeInfoDocument.class);
+        Mockito.when(info.getClusterId()).thenReturn(clusterId);
+        Mockito.when(info.getStartTime()).thenReturn(startTime);
+        return info;
     }
 }

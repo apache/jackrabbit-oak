@@ -22,6 +22,7 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -812,6 +814,24 @@ public class Utils {
         } else {
             return n.longValue();
         }
+    }
+
+    /**
+     * Returns a revision vector that contains a revision for each of the passed
+     * cluster nodes with a revision timestamp that corresponds to the last
+     * known time when the cluster node was started.
+     *
+     * @param clusterNodes the cluster node information.
+     * @return revision vector representing the last known time when the cluster
+     *      nodes were started.
+     */
+    @NotNull
+    public static RevisionVector getStartRevisions(@NotNull Iterable<ClusterNodeInfoDocument> clusterNodes) {
+        List<Revision> revs = new ArrayList<>();
+        for (ClusterNodeInfoDocument doc : clusterNodes) {
+            revs.add(new Revision(doc.getStartTime(), 0, doc.getClusterId()));
+        }
+        return new RevisionVector(revs);
     }
 
     /**

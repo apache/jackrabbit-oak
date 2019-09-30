@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -163,10 +162,10 @@ public class CollisionTest {
                                           @NotNull UpdateOp ourOp,
                                           @NotNull Revision ourRev,
                                           @NotNull RevisionContext context) {
-        return new Collision(document, theirRev, ourOp, ourRev, context);
+        return new Collision(document, theirRev, ourOp, ourRev, context,
+                RevisionVector.fromString(""));
     }
 
-    @Ignore
     @Test
     public void collisionOnOrphanedBranch() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
@@ -189,6 +188,7 @@ public class CollisionTest {
         ns = builderProvider.newBuilder()
                 .setDocumentStore(store).setAsyncDelay(0)
                 .setUpdateLimit(10).build();
+        ns.updateClusterState();
 
         root = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(root);
@@ -211,7 +211,6 @@ public class CollisionTest {
         assertNoCollisions(store, ROOT);
     }
 
-    @Ignore
     @Test
     public void collisionOnForeignOrphanedBranch() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
@@ -228,6 +227,7 @@ public class CollisionTest {
             builder.child("n-" + i).setProperty("p", "v");
         }
         ns1.dispose();
+        ns2.updateClusterState();
 
         NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
         assertNotNull(root);
@@ -243,12 +243,13 @@ public class CollisionTest {
         builder.child("n-0");
         merge(ns2, builder);
 
-        // must not create a collision marker for a branch commit
-        // from a clusterId that is inactive
-        assertNoCollisions(store, ROOT);
+        // must create a collision marker for a branch commit because
+        // it is not known when ns1 was stopped
+        root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(root);
+        assertThat(root.getLocalMap(COLLISIONS).keySet(), not(empty()));
     }
 
-    @Ignore
     @Test
     public void collisionOnForeignOrphanedBranchAfterRestart() throws Exception {
         DocumentStore store = new MemoryDocumentStore();
@@ -287,8 +288,64 @@ public class CollisionTest {
         assertNotNull(doc);
         assertThat(doc.getLocalBranchCommits(), not(empty()));
 
+        ns2.updateClusterState();
+
         builder = ns2.getRoot().builder();
         builder.child("n-0");
+        merge(ns2, builder);
+
+        // must not create a collision marker for a branch commit
+        // from a clusterId that is inactive
+        assertNoCollisions(store, ROOT);
+    }
+
+    @Test
+    public void collisionWithBranchOnForeignOrphanedBranchAfterRestart() throws Exception {
+        int updateLimit = 10;
+        DocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0)
+                .setUpdateLimit(updateLimit).setClusterId(1).build();
+        DocumentNodeStore ns2 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0)
+                .setUpdateLimit(updateLimit).setClusterId(2).build();
+
+        NodeBuilder builder = ns1.getRoot().builder();
+        // force a branch commit
+        for (int i = 0; i < updateLimit * 2; i++) {
+            builder.child("n-" + i).setProperty("p", "v");
+        }
+        ns1.dispose();
+
+        NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(root);
+        assertThat(root.getLocalBranchCommits(), not(empty()));
+
+        // start it up again
+        ns1 = builderProvider.newBuilder()
+                .setDocumentStore(store).setAsyncDelay(0)
+                .setUpdateLimit(updateLimit).setClusterId(1).build();
+
+        root = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(root);
+        // on init the DocumentNodeStore removes orphaned
+        // branch commit entries on the root document
+        assertThat(root.getLocalBranchCommits(), empty());
+
+        // but some changes are still there
+        Path p = Path.fromString("/n-0");
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p));
+        assertNotNull(doc);
+        assertThat(doc.getLocalBranchCommits(), not(empty()));
+
+        ns2.updateClusterState();
+
+        builder = ns2.getRoot().builder();
+        builder.child("n-0");
+        // force a branch commit
+        for (int i = 0; i < updateLimit * 2; i++) {
+            builder.child("test").child("c-" + i);
+        }
         merge(ns2, builder);
 
         // must not create a collision marker for a branch commit

@@ -115,7 +115,7 @@ public class CollisionWithSplitTest extends AbstractMongoConnectionTest {
         // committed revision on ns2
         doc = ns2.getDocumentStore().find(NODES, id);
         assertTrue(doc.getLocalCommitRoot().containsKey(conflictRev));
-        Collision c = new Collision(doc, conflictRev, op, ourRev, ns2);
+        Collision c = new Collision(doc, conflictRev, op, ourRev, ns2, RevisionVector.fromString(""));
         assertEquals("Collision must match our revision (" + ourRev + "). " +
                 "The conflict revision " + conflictRev + " is already committed.",
                 ourRev, c.mark(ns2.getDocumentStore()));

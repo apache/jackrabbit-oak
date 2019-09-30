@@ -266,6 +266,34 @@ public class CommitBuilderTest {
         }
     }
 
+    @Test
+    public void withStartRevisionsNull() {
+        CommitBuilder builder = new CommitBuilder(ns, null);
+        try {
+            builder.withStartRevisions(null);
+            expectNPE();
+        } catch (NullPointerException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void withStartRevisions() {
+        RevisionVector head = ns.getHeadRevision();
+        CommitBuilder builder = new CommitBuilder(ns, head)
+                .withStartRevisions(head);
+        Commit c = builder.build(ns.newRevision());
+        assertEquals(head, c.getStartRevisions());
+    }
+
+    @Test
+    public void defaultStartRevisions() {
+        RevisionVector head = ns.getHeadRevision();
+        CommitBuilder builder = new CommitBuilder(ns, head);
+        Commit c = builder.build(ns.newRevision());
+        assertEquals(new RevisionVector(), c.getStartRevisions());
+    }
+
     private static void expectNPE() {
         fail("NullPointerException expected");
     }
