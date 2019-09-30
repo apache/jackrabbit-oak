@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static java.io.File.createTempFile;
+import static org.apache.commons.io.FileUtils.copyFile;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
+
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -65,15 +73,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.collect.Lists.newArrayList;
-import static java.io.File.createTempFile;
-import static org.apache.commons.io.FileUtils.copyFile;
-import static org.apache.commons.io.FileUtils.moveFile;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
-import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
 /**
  * Mark and sweep garbage collector.
@@ -184,8 +183,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             @Nullable String repositoryId,
             @Nullable Whiteboard whiteboard)
             throws IOException {
-        this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, TimeUnit.HOURS
-                .toMillis(24), repositoryId, whiteboard);
+        this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, maxLastModifiedInterval, repositoryId, whiteboard);
     }
 
     @Override
