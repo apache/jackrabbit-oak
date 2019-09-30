@@ -2502,6 +2502,7 @@ public final class DocumentNodeStore
             // unless we are in read-only mode
             return 0;
         }
+
         // are there in-doubt commit revisions that are older than
         // the current head revision?
         SortedSet<Revision> garbage = Sets.newTreeSet(StableRevisionComparator.INSTANCE);
@@ -2514,7 +2515,8 @@ public final class DocumentNodeStore
         // revision for the local clusterId. A sweep is needed even
         // without garbage when an upgrade happened and no sweep revision
         // exists for the local clusterId
-        if (garbage.isEmpty() && sweepRevisions.getRevision(clusterId) != null) {
+        Revision sweepRev = sweepRevisions.getRevision(clusterId);
+        if (garbage.isEmpty() && sweepRev != null) {
             updateSweepRevision(head);
             return 0;
         }
@@ -2524,15 +2526,26 @@ public final class DocumentNodeStore
             startRev = garbage.first();
         }
 
-        int num = forceBackgroundSweep(startRev);
+        String reason = "";
+        if (!garbage.isEmpty()) {
+            reason = garbage.size() + " garbage revision(s)";
+        }
+        if (sweepRev == null) {
+            if (! reason.isEmpty()) {
+                reason += ", ";
+            }
+            reason += "no sweepRevision for " + clusterId;
+        }
+
+        int num = forceBackgroundSweep(startRev, reason);
         inDoubtTrunkCommits.removeAll(garbage);
         return num;
     }
 
-    private int forceBackgroundSweep(Revision startRev) throws DocumentStoreException {
+    private int forceBackgroundSweep(Revision startRev, String reason) throws DocumentStoreException {
         NodeDocumentSweeper sweeper = new NodeDocumentSweeper(this, false);
-        LOG.debug("Starting document sweep. Head: {}, starting at {}",
-                sweeper.getHeadRevision(), startRev);
+        LOG.info("Starting document sweep. Head: {}, starting at {} (reason: {})",
+                sweeper.getHeadRevision(), startRev, reason);
         Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(startRev.getTimestamp());
         try {
             final AtomicInteger numUpdates = new AtomicInteger();
