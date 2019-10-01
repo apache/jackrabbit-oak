@@ -36,6 +36,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Randomly read 1000 items from the deep tree.
@@ -142,12 +143,9 @@ public class ReadDeepTreeTest extends AbstractTest {
             int nodeCnt = 0;
             int propertyCnt = 0;
             int noAccess = 0;
-            int size = allPaths.size();
             long start = System.currentTimeMillis();
             for (int i = 0; i < cnt; i++) {
-                double rand = size * Math.random();
-                int index = (int) Math.floor(rand);
-                String path = allPaths.get(index);
+                String path = getRandom(allPaths);
                 if (testSession.itemExists(path)) {
                     Item item = testSession.getItem(path);
                     if (item.isNode()) {
@@ -210,4 +208,9 @@ public class ReadDeepTreeTest extends AbstractTest {
         return path;
     }
 
+    @NotNull
+    protected static String getRandom(@NotNull List<String> strings) {
+        int index = (int) Math.floor(strings.size() * Math.random());
+        return strings.get(index);
+    }
 }

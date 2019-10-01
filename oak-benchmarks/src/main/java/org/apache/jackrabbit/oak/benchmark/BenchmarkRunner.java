@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersT
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.CanReadNonExisting;
+import org.apache.jackrabbit.oak.benchmark.authorization.permission.EagerCacheSizeTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.HasItemGetItemIsModifiedTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.PermissionEvaluationTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.PrinicipalBasedReadTest;
@@ -379,6 +380,11 @@ public class BenchmarkRunner {
                     reverseOrder.value(options),
                     compositionType.value(options),
                     useAggregationFilter.value(options),
+                    report.value(options)),
+            new EagerCacheSizeTest(itemsToRead.value(options),
+                    numberOfInitialAce.value(options),
+                    numberOfUsers.value(options),
+                    cacheSize,
                     report.value(options)),
             new ConcurrentReadDeepTreeTest(
                     runAsAdmin.value(options),
