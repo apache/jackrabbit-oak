@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.container;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -44,6 +45,8 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
     private final CloudBlobContainer container;
 
     private final int mappedPort;
+
+    private File tmpDir;
 
     private FileStore fs;
 
@@ -80,7 +83,8 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
             throw new IllegalStateException(e);
         }
 
-        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(Files.createTempDir())
+        tmpDir = Files.createTempDir();
+        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
 
         if (blob != null) {
@@ -97,6 +101,9 @@ public class SegmentAzureNodeStoreContainer implements NodeStoreContainer {
 
     @Override
     public void close() {
+        if (tmpDir != null) {
+            tmpDir.delete();
+        }
         if (fs != null) {
             fs.close();
             fs = null;
