@@ -87,7 +87,7 @@ public interface PrincipalProvider {
      */
     @NotNull
     default Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
-        return GroupPrincipals.transform(getGroupMembership(principal));
+        return Collections.emptySet();
     }
 
     /**
