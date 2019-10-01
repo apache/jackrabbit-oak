@@ -48,6 +48,14 @@ public class OrderedPropertyIndexProvider implements QueryIndexProvider {
     private synchronized int getHits() {
         return hits++;
     }
+
+    /**
+     * used only for testing purposes. Not thread safe.
+     *
+     */
+    static void resetHits() {
+        hits = 0;
+    }
     
     /**
      * used only for testing purposes. Not thread safe.
