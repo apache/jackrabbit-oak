@@ -29,6 +29,7 @@ import org.apache.lucene.analysis.path.PathHierarchyTokenizer;
 import org.apache.lucene.analysis.pattern.PatternCaptureGroupTokenFilter;
 import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
 import org.apache.lucene.analysis.reverse.ReverseStringFilter;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -54,7 +55,7 @@ public class DefaultAnalyzersConfigurationTest {
     private Analyzer allChildrenPathSearchingAnalyzer;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         this.exactPathAnalyzer = new Analyzer() {
             @Override
             protected TokenStreamComponents createComponents(String fieldName) {
@@ -116,6 +117,17 @@ public class DefaultAnalyzersConfigurationTest {
                 return new TokenStreamComponents(source);
             }
         };
+    }
+
+    @After
+    public void tearDown() {
+        this.exactPathAnalyzer.close();
+        this.parentPathIndexingAnalyzer.close();
+        this.parentPathSearchingAnalyzer.close();
+        this.directChildrenPathIndexingAnalyzer.close();
+        this.directChildrenPathSearchingAnalyzer.close();
+        this.allChildrenPathIndexingAnalyzer.close();
+        this.allChildrenPathSearchingAnalyzer.close();
     }
 
     @Test
