@@ -20,6 +20,7 @@ import java.io.StringReader;
 import java.util.regex.Pattern;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.KeywordTokenizer;
@@ -35,16 +36,13 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static org.apache.lucene.analysis.BaseTokenStreamTestCase.assertAnalyzesTo;
-import static org.apache.lucene.analysis.BaseTokenStreamTestCase.assertTokenStreamContents;
-
 /**
  * Testcase for checking default analyzers configurations behave as expected with regards to path related restrictions
  *
  * Note that default Solr analyzers for Oak should be equivalent to the ones programmatically defined here.
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-public class DefaultAnalyzersConfigurationTest {
+public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
 
     private Analyzer parentPathIndexingAnalyzer;
     private Analyzer parentPathSearchingAnalyzer;
@@ -55,7 +53,8 @@ public class DefaultAnalyzersConfigurationTest {
     private Analyzer allChildrenPathSearchingAnalyzer;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        super.setUp();
         this.exactPathAnalyzer = new Analyzer() {
             @Override
             protected TokenStreamComponents createComponents(String fieldName) {
@@ -120,7 +119,8 @@ public class DefaultAnalyzersConfigurationTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws Exception {
+        super.tearDown();
         this.exactPathAnalyzer.close();
         this.parentPathIndexingAnalyzer.close();
         this.parentPathSearchingAnalyzer.close();
