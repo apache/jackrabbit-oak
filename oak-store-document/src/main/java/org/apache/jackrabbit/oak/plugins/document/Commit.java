@@ -398,8 +398,8 @@ public class Commit {
                     NodeDocument before = nodeStore.updateCommitRoot(commit, revision);
                     if (before == null) {
                         String msg = "Conflicting concurrent change. " +
-                                "Update operation failed: " + commitRoot;
-                        NodeDocument commitRootDoc = store.find(NODES, commitRoot.getId());
+                                "Update operation failed: " + commit;
+                        NodeDocument commitRootDoc = store.find(NODES, commit.getId());
                         if (commitRootDoc == null) {
                             throw new DocumentStoreException(msg);
                         } else {
