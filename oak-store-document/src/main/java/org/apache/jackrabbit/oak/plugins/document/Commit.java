@@ -335,6 +335,9 @@ public class Commit {
             }
         }
 
+        // adjust commit root when it falls on a bundled node
+        commitRootPath = bundledNodes.getOrDefault(commitRootPath, commitRootPath);
+
         rollback = new Rollback(revision, opLog,
                 Utils.getIdFromPath(commitRootPath),
                 nodeStore.getCreateOrUpdateBatchSize());
