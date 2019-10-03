@@ -64,6 +64,7 @@ import org.h2.mvstore.WriteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -861,6 +862,24 @@ public class DocumentBundlingTest {
             names.add(p.getName());
         }
         return names;
+    }
+
+    @Ignore("OAK-8667")
+    @Test
+    public void deleteDescendantNodesOfBundledNode() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNtFileWithContent();
+        NodeBuilder jcrContent = fileNode.child("jcr:content");
+        jcrContent.child("foo").child("a");
+        jcrContent.child("bar").child("b");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        builder = store.getRoot().builder();
+        jcrContent = childBuilder(builder, "test/book.jpg/jcr:content");
+        childBuilder(jcrContent, "foo/a").remove();
+        childBuilder(jcrContent, "bar/b").remove();
+        merge(builder);
     }
 
     @Test
