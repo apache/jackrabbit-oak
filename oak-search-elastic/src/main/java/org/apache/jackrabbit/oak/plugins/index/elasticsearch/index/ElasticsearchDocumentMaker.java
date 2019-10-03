@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class ElasticsearchDocumentMaker extends FulltextDocumentMaker<ElasticsearchDocument> {
+public class ElasticsearchDocumentMaker extends FulltextDocumentMaker<ElasticsearchDocument, Object> {
 
     ElasticsearchDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                @NotNull IndexDefinition definition,
@@ -115,29 +115,26 @@ public class ElasticsearchDocumentMaker extends FulltextDocumentMaker<Elasticsea
     }
 
     @Override
-    protected boolean indexTypedProperty(ElasticsearchDocument doc, PropertyState property, String pname, PropertyDefinition pd) {
+    protected Object indexTypedProperty(ElasticsearchDocument doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
         int tag = property.getType().tag();
-        boolean fieldAdded = false;
-        for (int i = 0; i < property.count(); i++) {
-            Object f;
-            if (tag == Type.LONG.tag()) {
-                f = property.getValue(Type.LONG, i);
-            } else if (tag == Type.DATE.tag()) {
-                f = property.getValue(Type.DATE, i);
-            } else if (tag == Type.DOUBLE.tag()) {
-                f = property.getValue(Type.DOUBLE, i);
-            } else if (tag == Type.BOOLEAN.tag()) {
-                f = property.getValue(Type.BOOLEAN, i).toString();
-            } else {
-                f = property.getValue(Type.STRING, i);
-            }
-
-            if (includePropertyValue(property, i, pd)){
-                doc.addProperty(pname, f);
-                fieldAdded = true;
-            }
+        Object f;
+        if (tag == Type.LONG.tag()) {
+            f = property.getValue(Type.LONG, i);
+        } else if (tag == Type.DATE.tag()) {
+            f = property.getValue(Type.DATE, i);
+        } else if (tag == Type.DOUBLE.tag()) {
+            f = property.getValue(Type.DOUBLE, i);
+        } else if (tag == Type.BOOLEAN.tag()) {
+            f = property.getValue(Type.BOOLEAN, i).toString();
+        } else {
+            f = property.getValue(Type.STRING, i);
         }
-        return fieldAdded;
+        return f;
+    }
+
+    @Override
+    protected void addIndexTypedProperty(ElasticsearchDocument doc, Object o, PropertyState property) {
+        doc.addProperty(property.getName(), o);
     }
 
     @Override

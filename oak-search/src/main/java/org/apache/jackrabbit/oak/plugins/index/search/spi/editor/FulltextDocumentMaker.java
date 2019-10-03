@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Iterables;
-import org.apache.commons.codec.binary.StringUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -55,7 +54,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
  *
  * D is the type of entities / documents to be indexed specific to subclasses implementations.
  */
-public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
+public abstract class FulltextDocumentMaker<D, F> implements DocumentMaker<D> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
@@ -106,7 +105,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexFulltextValue(D doc, String value);
 
-    protected abstract boolean indexTypedProperty(D doc, PropertyState property, String pname, PropertyDefinition pd);
+    protected abstract F indexTypedProperty(D doc, PropertyState property, String pname, PropertyDefinition pd, int index);
 
     protected abstract void indexAncestors(D doc, String path);
 
@@ -299,8 +298,27 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexSimilarityStrings(D doc, PropertyDefinition pd, String value) throws IOException;
 
+    protected abstract void addIndexTypedProperty(D doc, F f, PropertyState property);
+
+    private F addTypedField(D doc, PropertyState property, String pname, PropertyDefinition pd, int index) {
+        F f = indexTypedProperty(doc, property, pname, pd, index);
+        return f;
+    }
+
     private boolean addTypedFields(D doc, PropertyState property, String pname, PropertyDefinition pd) {
-        return indexTypedProperty(doc, property, pname, pd);
+        int tag = property.getType().tag();
+        boolean fieldAdded = false;
+        for (int i = 0; i < property.count(); i++) {
+            F f = addTypedField(doc, property, pname, pd, i);
+            if (includePropertyValue(property, i, pd)) {
+                addIndexTypedProperty(doc, f, property);
+                fieldAdded = true;
+                if (tag == Type.STRING.tag()) {
+                    logLargeStringProperties(property.getName(), property.getValue(Type.STRING, i));
+                }
+            }
+        }
+        return fieldAdded;
     }
 
     private boolean addTypedOrderedFields(D doc,

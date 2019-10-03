@@ -51,7 +51,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFul
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 
-public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
+public class LuceneDocumentMaker extends FulltextDocumentMaker<Document, Field> {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentMaker.class);
 
     private final FacetsConfigProvider facetsConfigProvider;
@@ -102,33 +102,27 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     @Override
-    protected boolean indexTypedProperty(Document doc, PropertyState property, String pname, PropertyDefinition pd) {
+    protected Field indexTypedProperty(Document doc, PropertyState property, String pname, PropertyDefinition pd, int i) {
         int tag = property.getType().tag();
-        boolean fieldAdded = false;
-        for (int i = 0; i < property.count(); i++) {
-            Field f;
-            if (tag == Type.LONG.tag()) {
-                f = new LongField(pname, property.getValue(Type.LONG, i), Field.Store.NO);
-            } else if (tag == Type.DATE.tag()) {
-                String date = property.getValue(Type.DATE, i);
-                f = new LongField(pname, FieldFactory.dateToLong(date), Field.Store.NO);
-            } else if (tag == Type.DOUBLE.tag()) {
-                f = new DoubleField(pname, property.getValue(Type.DOUBLE, i), Field.Store.NO);
-            } else if (tag == Type.BOOLEAN.tag()) {
-                f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
-            } else {
-                f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
-            }
-
-            if (includePropertyValue(property, i, pd)){
-                doc.add(f);
-                fieldAdded = true;
-                if (tag == Type.STRING.tag()) {
-                    logLargeStringProperties(property.getName(), property.getValue(Type.STRING, i));
-                }
-            }
+        Field f;
+        if (tag == Type.LONG.tag()) {
+            f = new LongField(pname, property.getValue(Type.LONG, i), Field.Store.NO);
+        } else if (tag == Type.DATE.tag()) {
+            String date = property.getValue(Type.DATE, i);
+            f = new LongField(pname, FieldFactory.dateToLong(date), Field.Store.NO);
+        } else if (tag == Type.DOUBLE.tag()) {
+            f = new DoubleField(pname, property.getValue(Type.DOUBLE, i), Field.Store.NO);
+        } else if (tag == Type.BOOLEAN.tag()) {
+            f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
+        } else {
+            f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
         }
-        return fieldAdded;
+        return f;
+    }
+
+    @Override
+    protected void addIndexTypedProperty(Document doc, Field field, PropertyState property) {
+        doc.add(field);
     }
 
     @Override
