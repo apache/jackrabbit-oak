@@ -995,7 +995,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             // (we don't need to do anything in this case - blob is already uploaded)
             // or it was completed before with the same token.
         }
-        catch (DataStoreException e) {
+        catch (DataStoreException e1) {
             // record doesn't exist - so this means we are safe to do the complete request
             try {
                 if (uploadToken.getUploadId().isPresent()) {
@@ -1030,7 +1030,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             } catch (URISyntaxException | StorageException e2) {
                 throw new DataRecordUploadException(
                         String.format("Unable to finalize direct write of binary %s", blobId),
-                        e
+                        e2
                 );
             }
         }
