@@ -127,6 +127,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     private static final Logger LOG = LoggerFactory.getLogger(NodeImpl.class);
 
+    private final int logWarnStringSizeThreshold;
+
     @Nullable
     public static NodeImpl<? extends NodeDelegate> createNodeOrNull(
             @Nullable NodeDelegate delegate, @NotNull SessionContext context)
@@ -159,6 +161,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     public NodeImpl(T dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
+        logWarnStringSizeThreshold = Integer.getInteger(
+                OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
+                OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -1379,6 +1384,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createSingleState(
                 oakName, value, Type.fromTag(value.getType(), false));
+        if (value != null && value.getType() == PropertyType.STRING) {
+            logLargeStringProperties(jcrName, value.getString());
+        }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -1403,6 +1411,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
+    private void logLargeStringProperties(String propertyName, String value) throws RepositoryException {
+        if (value.length() > logWarnStringSizeThreshold) {
+            LOG.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, this.getPath(), logWarnStringSizeThreshold);
+        }
+    }
+
     private Property internalSetProperty(
             final String jcrName, final Value[] values,
             final int type, final boolean exactTypeMatch)
@@ -1414,7 +1428,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
             LOG.warn("Large multi valued property [{}/{}] detected ({} values).",dlg.getPath(), jcrName, values.length);
         }
-
+        for (Value value : values) {
+            if (value != null && value.getType() == PropertyType.STRING) {
+                logLargeStringProperties(jcrName, value.getString());
+            }
+        }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {
             @Override
             public void checkPreconditions() throws RepositoryException {
