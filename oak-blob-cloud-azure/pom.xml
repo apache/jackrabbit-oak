@@ -115,12 +115,10 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
-            <version>5.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
-            <version>0.9.7</version>
         </dependency>
 
         <!-- Test dependencies -->

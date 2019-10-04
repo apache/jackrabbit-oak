@@ -709,6 +709,17 @@
         <artifactId>docker-junit-rule</artifactId>
         <version>2.3.0</version>
       </dependency>
+      <dependency>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>azure-storage</artifactId>
+        <version>8.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>azure-keyvault-core</artifactId>
+        <version>1.2.2</version>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
 
