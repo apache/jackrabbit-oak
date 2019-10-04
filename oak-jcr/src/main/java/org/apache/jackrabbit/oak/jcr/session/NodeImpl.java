@@ -161,16 +161,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     public NodeImpl(T dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
-        logWarnStringSizeThreshold = getLogWarnStringSizeThreshold();
-    }
-
-    private int getLogWarnStringSizeThreshold() {
-    int threshold = OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE;
-        if (System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY) != null
-                && !System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY).isEmpty()) {
-            threshold = Integer.parseInt(System.getProperty(OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY));
-        }
-        return threshold;
+        logWarnStringSizeThreshold = Integer.getInteger(
+                OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
+                OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     }
 
     //---------------------------------------------------------------< Item >---
