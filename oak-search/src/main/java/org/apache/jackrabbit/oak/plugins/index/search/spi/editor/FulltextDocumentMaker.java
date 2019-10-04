@@ -57,11 +57,14 @@ import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.get
 public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+    public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
+    private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
     private final FulltextBinaryTextExtractor textExtractor;
     protected final IndexDefinition definition;
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
+    private final int logWarnStringSizeThreshold;
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                @NotNull IndexDefinition definition,
@@ -71,6 +74,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         this.definition = checkNotNull(definition);
         this.indexingRule = checkNotNull(indexingRule);
         this.path = checkNotNull(path);
+        this.logWarnStringSizeThreshold = Integer.getInteger(WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
+                DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     }
 
     protected abstract D initDoc();
@@ -93,7 +98,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexFulltextValue(D doc, String value);
 
-    protected abstract boolean indexTypedProperty(D doc, PropertyState property, String pname, PropertyDefinition pd);
+    protected abstract void indexTypedProperty(D doc, PropertyState property, String pname, PropertyDefinition pd, int index);
 
     protected abstract void indexAncestors(D doc, String path);
 
@@ -104,6 +109,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected abstract void indexAggregateValue(D doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd);
 
     protected abstract void indexNodeName(D doc, String value);
+
+    protected void logLargeStringProperties(String propertyName, String value) {
+        if (value.length() > logWarnStringSizeThreshold) {
+            log.warn("String length: {} for property: {} at Node: {} is greater than configured value {}",
+                    value.length(), propertyName, path, logWarnStringSizeThreshold);
+        }
+    }
 
     @Nullable
     public D makeDocument(NodeState state) throws IOException {
@@ -231,6 +243,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             if (pd.fulltextEnabled() && includeTypeForFullText) {
                 for (String value : property.getValue(Type.STRINGS)) {
 
+                    logLargeStringProperties(property.getName(), value);
                     if (!includePropertyValue(value, pd)){
                         continue;
                     }
@@ -281,7 +294,22 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected abstract void indexSimilarityStrings(D doc, PropertyDefinition pd, String value) throws IOException;
 
     private boolean addTypedFields(D doc, PropertyState property, String pname, PropertyDefinition pd) {
-        return indexTypedProperty(doc, property, pname, pd);
+        int tag = property.getType().tag();
+        boolean fieldAdded = false;
+
+        for (int i = 0; i < property.count(); i++) {
+            if (!includePropertyValue(property, i, pd)) {
+                continue;
+            }
+
+            indexTypedProperty(doc, property, pname, pd, i);
+            fieldAdded = true;
+
+            if (tag == Type.STRING.tag()) {
+                logLargeStringProperties(property.getName(), property.getValue(Type.STRING, i));
+            }
+        }
+        return fieldAdded;
     }
 
     private boolean addTypedOrderedFields(D doc,
