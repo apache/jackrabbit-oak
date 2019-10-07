@@ -35,9 +35,9 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
+import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
@@ -373,7 +373,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
         /* Lock for operations on the active deletions file */
         private ReentrantLock lock;
 
-        private static final Function<String, String> transformer = new Function<String, String>() {
+        private static final java.util.function.Function<String, String> transformer = new java.util.function.Function<String, String>() {
             @Nullable
             @Override
             public String apply(@Nullable String input) {

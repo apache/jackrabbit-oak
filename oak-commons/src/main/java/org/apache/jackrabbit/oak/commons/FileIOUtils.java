@@ -373,8 +373,10 @@ public final class FileIOUtils {
      * ensured that both the files are written with
      * {@link #writeAsLine(BufferedWriter, String, boolean)} with true to escape line break
      * characters.
+     * 
+     * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator} instead
      */
-    public static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable {
+    @Deprecated public static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable {
         private final PeekingIterator<String> peekMarked;
         private final LineIterator marked;
         private final LineIterator all;
@@ -397,6 +399,7 @@ public final class FileIOUtils {
 
         public FileLineDifferenceIterator(LineIterator marked, LineIterator available,
             @Nullable Function<String, String> transformer) throws IOException {
+            GuavaDeprecation.handleCall("OAK-8676");
             this.marked = marked;
             this.peekMarked = Iterators.peekingIterator(marked);
             this.all = available;
