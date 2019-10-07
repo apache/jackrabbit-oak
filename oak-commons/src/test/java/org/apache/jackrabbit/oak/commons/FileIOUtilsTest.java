@@ -98,6 +98,23 @@ public class FileIOUtilsTest {
         Set<String> actual = newHashSet("a", "z", "e", "b");
 
         File f = folder.newFile();
+        int count = writeStrings(added.iterator(), f, false, new java.util.function.Function<String, String>() {
+            @Nullable @Override public String apply(@Nullable String input) {
+                return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
+            }
+        }, null, null);
+        assertEquals(added.size(), count);
+
+        Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
+        assertEquals(actual, retrieved);
+    }
+
+    @Test
+    public void writeCustomReadOrgStringsDeprecated() throws Exception {
+        Set<String> added = newHashSet("a-", "z-", "e-", "b-");
+        Set<String> actual = newHashSet("a", "z", "e", "b");
+
+        File f = folder.newFile();
         int count = writeStrings(added.iterator(), f, false, new Function<String, String>() {
             @Nullable @Override public String apply(@Nullable String input) {
                 return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);

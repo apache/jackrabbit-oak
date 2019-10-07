@@ -74,7 +74,10 @@ public final class FileIOUtils {
         }
     };
 
-    public final static Function<String, String> passThruTransformer = new Function<String, String>() {
+    /**
+     * @deprecated use {@link java.util.function.Function#identity()} instead
+     */
+    @Deprecated public final static Function<String, String> passThruTransformer = new Function<String, String>() {
         @Nullable @Override public String apply(@Nullable String input) {
             return input;
         }
@@ -228,7 +231,7 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
         @Nullable Logger logger, @Nullable String message) throws IOException {
-        return writeStrings(iterator, f, escape, passThruTransformer, logger, message);
+        return writeStrings(iterator, f, escape, java.util.function.Function.identity(), logger, message);
     }
 
     /**
@@ -245,8 +248,8 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
-        @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
-        BufferedWriter writer =  newWriter(f, UTF_8);
+        @NotNull java.util.function.Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
+        BufferedWriter writer = newWriter(f, UTF_8);
         boolean threw = true;
 
         int count = 0;
@@ -265,6 +268,16 @@ public final class FileIOUtils {
             close(writer, threw);
         }
         return count;
+    }
+
+    /**
+     * @deprecated use {@link #writeStrings(Iterator, File, boolean, java.util.function.Function, Logger, String)} instead
+     */
+    @Deprecated public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
+            @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
+        GuavaDeprecation.handleCall("OAK-8677");
+        java.util.function.Function<String, String> tr2 = (s) -> transformer.apply(s);
+        return writeStrings(iterator, f, escape, tr2, logger, message);
     }
 
     /**

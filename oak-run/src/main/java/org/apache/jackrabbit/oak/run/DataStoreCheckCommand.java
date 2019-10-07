@@ -279,11 +279,8 @@ public class DataStoreCheckCommand implements Command {
             });
 
             // Read and write the converted ids
-            FileIOUtils.writeStrings(idIterator, longIdTemp, false, new Function<String, String>() {
-                @Nullable @Override public String apply(@Nullable String input) {
-                    return encodeId(input, dsType);
-                }
-            }, null, null);
+            FileIOUtils.writeStrings(idIterator, longIdTemp, false,
+                    (java.util.function.Function<String, String>) ((input) -> encodeId(input, dsType)), null, null);
             FileUtils.copyFile(longIdTemp, writeFile);
         } finally {
             if (idIterator != null) {
