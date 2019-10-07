@@ -24,8 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.io.Closer;
@@ -36,9 +36,9 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
 import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
@@ -336,8 +336,8 @@ public class DataStoreCommand implements Command {
         public void log() throws IOException {
             File tempFile = new File(outDir, outFile.getName() + "-temp");
             FileUtils.moveFile(outFile, tempFile);
-            try (BurnOnCloseFileIterator iterator =
-                    new BurnOnCloseFileIterator(FileUtils.lineIterator(tempFile, UTF_8.toString()), tempFile,
+            try (BurnOnCloseFileIterator<String> iterator =
+                    new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(tempFile, UTF_8.toString()), tempFile,
                         (Function<String, String>) input -> encodeId(input, blobStoreType))) {
                 FileIOUtils.writeStrings(iterator, outFile, true, log, "Transformed to verbose ids - ");
             }

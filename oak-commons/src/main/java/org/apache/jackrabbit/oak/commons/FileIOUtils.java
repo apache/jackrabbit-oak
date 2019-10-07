@@ -456,21 +456,22 @@ public final class FileIOUtils {
      * A custom transformer can also be provided to unescape.
      *
      * @param <T> the type of elements in the iterator
+     * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator} instead
      */
-    public static class BurnOnCloseFileIterator<T> extends AbstractIterator<T> implements Closeable {
+    @Deprecated public static class BurnOnCloseFileIterator<T> extends AbstractIterator<T> implements Closeable {
         private final Logger log = LoggerFactory.getLogger(getClass());
 
         private final LineIterator iterator;
         private final Function<String, T> transformer;
-        private File backingFile;
+        private final File backingFile;
 
         public BurnOnCloseFileIterator(LineIterator iterator, Function<String, T> transformer) {
-            this.iterator = iterator;
-            this.transformer = transformer;
+            this(iterator, null, transformer);
         }
 
         public BurnOnCloseFileIterator(LineIterator iterator, File backingFile,
             Function<String, T> transformer) {
+            GuavaDeprecation.handleCall("OAK-8666");
             this.iterator = iterator;
             this.transformer = transformer;
             this.backingFile = backingFile;

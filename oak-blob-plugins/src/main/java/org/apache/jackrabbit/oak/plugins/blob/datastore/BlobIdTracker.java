@@ -37,6 +37,7 @@ import com.google.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
@@ -66,7 +67,6 @@ import static org.apache.commons.io.FileUtils.touch;
 import static org.apache.commons.io.FilenameUtils.concat;
 import static org.apache.commons.io.FilenameUtils.removeExtension;
 import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator.wrap;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
@@ -541,7 +541,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             try {
                 // Get a temp file path
                 String path = createTempFile("temp", null).getAbsolutePath();
-                return wrap(lineIterator(getRecords(path)), new File(path));
+                return BurnOnCloseFileIterator.wrap(lineIterator(getRecords(path)), new File(path));
             } catch (IOException e) {
                 LOG.error("Error in retrieving blob records iterator", e);
                 throw e;
