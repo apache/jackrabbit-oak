@@ -21,20 +21,37 @@ package org.apache.jackrabbit.oak.commons.io;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.function.Supplier;
 
 import com.google.common.io.ByteSource;
 import org.apache.commons.io.input.ClosedInputStream;
+import org.apache.jackrabbit.oak.commons.GuavaDeprecation;
 
 /**
- * * This input stream delays accessing the ByteSource until the first byte is read
+ * * This input stream delays accessing the {@link InputStream} until the first byte is read
  */
 public class LazyInputStream extends FilterInputStream {
+
     private final ByteSource byteSource;
+    private final Supplier<InputStream> inputStreamSupplier;
+
     private boolean opened;
 
-    public LazyInputStream(ByteSource byteSource) {
+    public LazyInputStream(Supplier<InputStream> inputStreamSupplier) {
+        super(null);
+        this.byteSource = null;
+        this.inputStreamSupplier = inputStreamSupplier;
+    }
+
+    /**
+     * @deprecated Use {@link #LazyInputStream(Supplier<InputStream>)} instead
+     */
+    @Deprecated public LazyInputStream(ByteSource byteSource) {
         super(null);
         this.byteSource = byteSource;
+        this.inputStreamSupplier = null;
+        GuavaDeprecation.handleCall("OAK-8661");
     }
 
     @Override
@@ -101,7 +118,7 @@ public class LazyInputStream extends FilterInputStream {
     private void ensureOpen() throws IOException {
         if (!opened) {
             opened = true;
-            in = byteSource.openStream();
+            in = inputStreamSupplier != null ? inputStreamSupplier.get() : byteSource.openStream();
         }
     }
 

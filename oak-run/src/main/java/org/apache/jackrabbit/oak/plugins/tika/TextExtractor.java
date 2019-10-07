@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -31,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import com.google.common.io.ByteSource;
 import com.google.common.io.CountingInputStream;
@@ -245,7 +247,18 @@ class TextExtractor implements Closeable {
         long start = System.currentTimeMillis();
         long size = 0;
         try {
-            CountingInputStream stream = new CountingInputStream(new LazyInputStream(byteSource));
+            Supplier<InputStream> inputStreamSupplier = new Supplier<InputStream> () {
+                @Override
+                public InputStream get() {
+                    try {
+                        return byteSource.openStream();
+                    }
+                    catch (IOException ex) {
+                        throw new IllegalStateException(ex);
+                    }
+                }
+            };
+            CountingInputStream stream = new CountingInputStream(new LazyInputStream(inputStreamSupplier));
             try {
                 tika.getParser().parse(stream, handler, metadata, new ParseContext());
             } finally {
