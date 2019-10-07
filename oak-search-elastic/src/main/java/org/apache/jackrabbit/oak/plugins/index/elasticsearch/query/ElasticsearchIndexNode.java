@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinateFactory;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
@@ -27,6 +28,7 @@ import org.jetbrains.annotations.Nullable;
 public class ElasticsearchIndexNode implements IndexNode {
 
     private final ElasticsearchIndexDefinition indexDefinition;
+    private ElasticsearchIndexCoordinateFactory factory;
 
     static ElasticsearchIndexNode fromIndexPath(@NotNull NodeState root, @NotNull String indexPath) {
         NodeState indexNS = NodeStateUtils.getNode(root, indexPath);
@@ -57,6 +59,10 @@ public class ElasticsearchIndexNode implements IndexNode {
 
     @Override
     public @Nullable IndexStatistics getIndexStatistics() {
-        return new ElasticsearchIndexStatistics();
+        return new ElasticsearchIndexStatistics(factory.getElasticsearchIndexCoordinate(indexDefinition));
+    }
+
+    public void setFactory(ElasticsearchIndexCoordinateFactory factory) {
+        this.factory = factory;
     }
 }

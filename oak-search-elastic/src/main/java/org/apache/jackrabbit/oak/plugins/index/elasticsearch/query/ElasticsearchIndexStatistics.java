@@ -16,18 +16,50 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinate;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.core.CountRequest;
+import org.elasticsearch.client.core.CountResponse;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+
+import java.io.IOException;
 
 public class ElasticsearchIndexStatistics implements IndexStatistics {
+    private final ElasticsearchIndexCoordinate elasticsearchIndexCoordinate;
+
+    ElasticsearchIndexStatistics(ElasticsearchIndexCoordinate elasticsearchIndexCoordinate) {
+        this.elasticsearchIndexCoordinate = elasticsearchIndexCoordinate;
+    }
+
     @Override
     public int numDocs() {
-        // TODO: some large value until we implement statistics
-        return 100000;
+        CountRequest countRequest = new CountRequest();
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        countRequest.source(searchSourceBuilder);
+        try {
+            CountResponse count = elasticsearchIndexCoordinate.getClient().count(countRequest, RequestOptions.DEFAULT);
+            return (int) count.getCount();
+        } catch (IOException e) {
+            // ignore failure
+            return 100000;
+        }
     }
 
     @Override
     public int getDocCountFor(String key) {
-        // TODO: some large-ish value until we implement statistics
-        return 1000;
+        CountRequest countRequest = new CountRequest();
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.existsQuery(key));
+        countRequest.source(searchSourceBuilder);
+        try {
+            CountResponse count = elasticsearchIndexCoordinate.getClient().count(countRequest, RequestOptions.DEFAULT);
+            return (int) count.getCount();
+        } catch (IOException e) {
+            // ignore failure
+            return 1000;
+        }
     }
 }

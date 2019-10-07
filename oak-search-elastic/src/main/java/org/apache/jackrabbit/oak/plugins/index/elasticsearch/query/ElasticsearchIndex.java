@@ -80,12 +80,14 @@ public class ElasticsearchIndex extends FulltextIndex {
 
     @Override
     protected ElasticsearchIndexNode acquireIndexNode(IndexPlan plan) {
-        return (ElasticsearchIndexNode)super.acquireIndexNode(plan);
+        return (ElasticsearchIndexNode) super.acquireIndexNode(plan);
     }
 
     @Override
     protected IndexNode acquireIndexNode(String indexPath) {
-        return ElasticsearchIndexNode.fromIndexPath(root, indexPath);
+        ElasticsearchIndexNode elasticsearchIndexNode = ElasticsearchIndexNode.fromIndexPath(root, indexPath);
+        elasticsearchIndexNode.setFactory(esIndexCoordFactory);
+        return elasticsearchIndexNode;
     }
 
     @Override
