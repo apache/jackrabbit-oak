@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 import java.io.StringReader;
 import java.util.regex.Pattern;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakAction;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.TokenStream;
@@ -43,7 +43,7 @@ import org.junit.runner.RunWith;
  * Note that default Solr analyzers for Oak should be equivalent to the ones programmatically defined here.
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
-@ThreadLeakAction(ThreadLeakAction.Action.WARN)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
 
     private Analyzer parentPathIndexingAnalyzer;
