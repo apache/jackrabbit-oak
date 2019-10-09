@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -51,9 +52,8 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,7 +88,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
     public static <R> ManagementOperation<R> newManagementOperation(
             @NotNull String name,
             @NotNull Callable<R> task) {
-        return new ManagementOperation<R>(name, Suppliers.ofInstance(""), task);
+        return new ManagementOperation<R>(name, () -> "", task);
     }
 
     /**
@@ -108,6 +108,17 @@ public class ManagementOperation<R> extends FutureTask<R> {
     }
 
     /**
+     * @deprecated use {@link #newManagementOperation(String, Supplier, Callable)} instead
+     */
+    @Deprecated public static <R> ManagementOperation<R> newManagementOperation(
+            @NotNull String name,
+            @NotNull com.google.common.base.Supplier<String> statusMessage,
+            @NotNull Callable<R> task) {
+        GuavaDeprecation.handleCall("OAK-8687");
+        return new ManagementOperation<R>(name, () -> statusMessage.get(), task);
+    }
+
+    /**
      * An operation that is already done with the given {@code value}.
      *
      * @param name   name of the operation
@@ -116,7 +127,7 @@ public class ManagementOperation<R> extends FutureTask<R> {
      */
     @NotNull
     public static <R> ManagementOperation<R> done(String name, final R result) {
-        return new ManagementOperation<R>("done", Suppliers.ofInstance(""),
+        return new ManagementOperation<R>("done", () -> "",
                 new Callable<R>() {
             @Override
             public R call() throws Exception {

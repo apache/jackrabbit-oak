@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.function.Supplier;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.mongodb.MongoClient;
 
@@ -184,7 +184,7 @@ public class DocumentNodeStoreServiceTest {
         }
         assertNotNull(rgcJob);
         assertTrue(rgcJob instanceof Supplier);
-        assertNotNull(((Supplier) rgcJob).get());
+        assertNotNull(((Supplier<String>) rgcJob).get());
     }
 
     @Test
