@@ -28,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -480,7 +481,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb,
-                Runnable.class, input -> input instanceof AsyncIndexUpdate);
+                Runnable.class, (Predicate<Runnable>)input -> input instanceof AsyncIndexUpdate);
         assertNotNull(async);
         async.run();
         if (async.isFailing()) {
