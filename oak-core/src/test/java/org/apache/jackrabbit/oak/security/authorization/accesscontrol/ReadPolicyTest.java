@@ -80,8 +80,34 @@ public class ReadPolicyTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void tsetGetPoliciesInSubtrees() throws Exception {
+        for (String path : subTreePaths) {
+            for (AccessControlPolicy policy : getAccessControlManager(root).getPolicies(path)) {
+                if (policy instanceof ReadPolicy) {
+                    fail("ReadPolicy must only be bound to configured path.");
+                }
+            }
+        }
+    }
+
+    @Test
     public void testGetEffectivePolicies() throws Exception {
         for (String path : readPaths) {
+            AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(path);
+            boolean found = false;
+            for (AccessControlPolicy policy : policies) {
+                if (policy instanceof ReadPolicy) {
+                    found = true;
+                    break;
+                }
+            }
+            assertTrue(found);
+        }
+    }
+
+    @Test
+    public void testGetEffectivePoliciesInSubTrees() throws Exception {
+        for (String path : subTreePaths) {
             AccessControlPolicy[] policies = getAccessControlManager(root).getEffectivePolicies(path);
             boolean found = false;
             for (AccessControlPolicy policy : policies) {

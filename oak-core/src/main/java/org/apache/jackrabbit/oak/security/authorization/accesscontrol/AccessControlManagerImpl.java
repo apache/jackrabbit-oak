@@ -167,10 +167,25 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 parentPath = (PathUtils.denotesRoot(parentPath)) ? "" : Text.getRelativeParent(parentPath, 1);
             }
         }
-        if (readPaths.contains(oakPath)) {
+        if (isEffectiveReadPath(oakPath)) {
             effective.add(ReadPolicy.INSTANCE);
         }
         return effective.toArray(new AccessControlPolicy[0]);
+    }
+
+    private boolean isEffectiveReadPath(@Nullable String oakPath) {
+        if (oakPath == null) {
+            return false;
+        }
+        if (readPaths.contains(oakPath)) {
+            return true;
+        }
+        for (String rp : readPaths) {
+            if (Text.isDescendant(rp, oakPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NotNull
