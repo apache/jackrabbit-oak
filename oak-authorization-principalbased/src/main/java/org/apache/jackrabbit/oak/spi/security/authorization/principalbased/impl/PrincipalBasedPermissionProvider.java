@@ -28,7 +28,9 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.tree.TreeType;
 import org.apache.jackrabbit.oak.plugins.tree.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -65,6 +67,8 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     private RepositoryPermissionImpl repositoryPermission;
     private EntryCache entryCache;
 
+    private ReadablePaths readablePaths;
+
     PrincipalBasedPermissionProvider(@NotNull Root root,
                                      @NotNull String workspaceName,
                                      @NotNull Iterable<String> principalPaths,
@@ -79,6 +83,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         modAcBits = mgrProvider.getPrivilegeBitsProvider().getBits(PrivilegeConstants.JCR_MODIFY_ACCESS_CONTROL);
 
         entryCache = new EntryCache(immutableRoot, principalPaths, mgrProvider.getRestrictionProvider());
+        readablePaths = new ReadablePaths(mgrProvider);
     }
 
     //-------------------------------------------------< PermissionProvider >---
@@ -92,6 +97,7 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         if (repositoryPermission != null) {
             repositoryPermission.refresh();
         }
+        readablePaths = new ReadablePaths(mgrProvider);
     }
 
     @NotNull
@@ -252,6 +258,13 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
     private boolean isGranted(@NotNull String path, @NotNull Predicate<PermissionEntry> predicate,
                               @NotNull Predicate<PermissionEntry> parentPredicate, long permissions) {
         long allows = Permissions.NO_PERMISSION;
+        if (readablePaths.isReadable(path)) {
+            allows = Permissions.READ;
+            if (isGranted(allows, permissions)) {
+                return true;
+            }
+        }
+
         PrivilegeBits bits = PrivilegeBits.getInstance();
         PrivilegeBits parentBits = PrivilegeBits.getInstance();
 
@@ -266,11 +279,15 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
                 bits.add(entryBits);
             }
             allows |= PrivilegeBits.calculatePermissions(bits, parentBits, true);
-            if ((allows | ~permissions) == -1) {
+            if (isGranted(allows, permissions)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static boolean isGranted(long allows, long permissions) {
+        return ((allows | ~permissions) == -1);
     }
 
     private boolean isGrantedOnEffective(@NotNull Tree tree, long permission) {
@@ -359,6 +376,9 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
         Iterator<PermissionEntry> entries = getEntryIterator(oakPath, predicate);
         while (entries.hasNext()) {
             pb.add(entries.next().getPrivilegeBits());
+        }
+        if (!pb.includes(readablePaths.readBits) && readablePaths.isReadable(oakPath)) {
+            pb.add(readablePaths.readBits);
         }
         return pb;
     }
@@ -461,6 +481,37 @@ class PrincipalBasedPermissionProvider implements AggregatedPermissionProvider, 
                 childVersionableTree = getTree().getChild(childName);
             }
             return new VersionTreePermission(childVersionTree, childVersionableTree);
+        }
+    }
+
+    private static final class ReadablePaths {
+
+        private final String[] paths;
+        private final String[] substrPaths;
+        private final PrivilegeBits readBits;
+
+        private ReadablePaths(@NotNull MgrProvider mgrProvider) {
+            paths = mgrProvider.getSecurityProvider().getParameters(AuthorizationConfiguration.NAME).getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS).toArray(new String[0]);
+            substrPaths = new String[paths.length];
+            int i = 0;
+            for (String p : this.paths) {
+                substrPaths[i++] = p + '/';
+            }
+            this.readBits = mgrProvider.getPrivilegeBitsProvider().getBits(PrivilegeConstants.JCR_READ);
+        }
+
+        public boolean isReadable(@NotNull String treePath) {
+            for (String path : paths) {
+                if (treePath.equals(path)) {
+                    return true;
+                }
+            }
+            for (String path : substrPaths) {
+                if (treePath.startsWith(path)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
