@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.run;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -218,7 +219,9 @@ public class DataStoreCommand implements Command {
     }
 
     private static void logCliArgs(String[] args) {
-        log.info("Command line arguments used for datastore command [{}]", Joiner.on(' ').join(args));
+        String [] filteredArgs = Arrays.stream(args).filter(
+            str -> !str.startsWith("az:") && !str.startsWith("mongodb:")).toArray(String[]::new);
+        log.info("Command line arguments used for datastore command [{}]", Joiner.on(' ').join(filteredArgs));
         List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
         if (!inputArgs.isEmpty()) {
             log.info("System properties and vm options passed {}", inputArgs);

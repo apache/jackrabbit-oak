@@ -87,7 +87,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -228,6 +227,38 @@ public class DataStoreCommandTest {
     public void tearDown() {
         storeFixture.after();
         blobFixture.after();
+    }
+
+    @Test
+    public void testNoSensitiveParams() throws Exception {
+        storeFixture.close();
+        File dump = temporaryFolder.newFolder();
+        List<String> argsList = Lists
+            .newArrayList("--check-consistency", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(), "--out-dir",
+                dump.getAbsolutePath(), storeFixture.getConnectionString(), "--reset-log-config", "false", "--work-dir",
+                temporaryFolder.newFolder().getAbsolutePath());
+        if (!Strings.isNullOrEmpty(additionalParams)) {
+            argsList.add(additionalParams);
+        }
+
+        log.info("Running testNoSensitiveParams: {}", argsList);
+        LogCustomizer customLogs = LogCustomizer
+            .forLogger(DataStoreCommand.class.getName())
+            .enable(Level.INFO)
+            .filter(Level.INFO)
+            .matchesRegex(".*mongodb:.*|.*az:.*")
+            .create();
+        customLogs.starting();
+
+        DataStoreCommand cmd = new DataStoreCommand();
+        try {
+            cmd.execute(argsList.toArray(new String[0]));
+        } catch (Exception e) {
+            log.error("", e);
+        }
+
+        Assert.assertEquals(0, customLogs.getLogs().size());
+        customLogs.finished();
     }
 
     @Test
