@@ -49,6 +49,16 @@ public interface BlobStatsCollector {
         public void downloadCompleted(String blobId) {
 
         }
+
+        @Override
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) {
+
+        }
+
+        @Override
+        public void deleteCompleted(String blobId) {
+
+        }
     };
 
     /**
@@ -88,4 +98,20 @@ public interface BlobStatsCollector {
      *               blobStores its the id of main blob
      */
     void downloadCompleted(String blobId);
+
+    /**
+     * Called when a binary is deleted from the BlobStore
+     *
+     * @param blobId id of blob being deleted
+     * @param timeTaken time taken to perform the delete
+     * @param unit unit of time taken
+     */
+    void deleted(String blobId, long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when deletion of a binary is completed.
+     *
+     * @param blobId id of the blob which was deleted
+     */
+    void deleteCompleted(String blobId);
 }

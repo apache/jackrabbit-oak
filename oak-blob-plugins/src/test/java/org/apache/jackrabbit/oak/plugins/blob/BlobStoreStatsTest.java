@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +30,6 @@ import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class BlobStoreStatsTest {
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();

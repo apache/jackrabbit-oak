@@ -39,6 +39,8 @@ public interface BlobStoreStatsMBean {
 
     long getDownloadTotalSeconds();
 
+    long getDeleteCount();
+
     String blobStoreInfoAsString();
 
     CompositeData getUploadSizeHistory();
@@ -52,4 +54,8 @@ public interface BlobStoreStatsMBean {
     CompositeData getUploadCountHistory();
 
     CompositeData getDownloadCountHistory();
+
+    CompositeData getDeleteCountHistory();
+
+    CompositeData getDeleteTimeHistory();
 }

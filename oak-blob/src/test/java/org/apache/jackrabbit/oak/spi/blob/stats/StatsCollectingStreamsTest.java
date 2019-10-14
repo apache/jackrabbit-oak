@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.spi.blob.stats;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
@@ -27,8 +29,6 @@ import org.apache.commons.io.input.NullInputStream;
 import org.apache.commons.io.output.CountingOutputStream;
 import org.apache.commons.io.output.NullOutputStream;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class StatsCollectingStreamsTest {
 
@@ -78,5 +78,11 @@ public class StatsCollectingStreamsTest {
         public void downloadCompleted(String blobId) {
             downloadCompletedCount++;
         }
+
+        @Override
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void deleteCompleted(String blobId) { }
     }
 }

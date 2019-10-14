@@ -563,6 +563,12 @@ public abstract class AbstractBlobStoreTest {
             downloadCount++;
         }
 
+        @Override
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void deleteCompleted(String blobId) { }
+
         void reset(){
             size = 0;
             downloadCount = 0;

@@ -19,14 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 import java.util.concurrent.TimeUnit;
 
 import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -37,9 +40,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-
 @SuppressWarnings("Duplicates")
 public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreStatsMBean, BlobStatsCollector {
     private final Logger opsLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.operations.blobs");
@@ -47,6 +47,8 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private static final String BLOB_UPLOADS = "BLOB_UPLOADS";
     private static final String BLOB_DOWNLOADS = "BLOB_DOWNLOADS";
     private static final String BLOB_UPLOAD_COUNT = "BLOB_UPLOAD_COUNT";
+    private static final String BLOB_DELETE_COUNT = "BLOB_DELETE_COUNT";
+    private static final String BLOB_DELETE_TIME = "BLOB_DELETE_TIME";
 
     private final StatisticsProvider statisticsProvider;
 
@@ -61,6 +63,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats downloadSizeSeries;
     private final MeterStats downloadTimeSeries;
     private final TimeSeries downloadRateSeries;
+
+    private final MeterStats deleteCount;
+    private final MeterStats deleteTimeSeries;
 
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
@@ -79,6 +84,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.downloadSizeSeries = sp.getMeter("BLOB_DOWNLOAD_SIZE", StatsOptions.TIME_SERIES_ONLY);
         this.downloadTimeSeries = sp.getMeter("BLOB_DOWNLOAD_TIME", StatsOptions.TIME_SERIES_ONLY);
         this.downloadRateSeries = getAvgTimeSeries("BLOB_DOWNLOAD_SIZE", "BLOB_DOWNLOAD_TIME");
+
+        this.deleteCount = sp.getMeter(BLOB_DELETE_COUNT, StatsOptions.DEFAULT);
+        this.deleteTimeSeries = sp.getMeter(BLOB_DELETE_TIME, StatsOptions.TIME_SERIES_ONLY);
     }
 
     @Override
@@ -114,6 +122,18 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public void downloadCompleted(String blobId) {
         downloadCount.mark();
         opsLogger.debug("Download completed - {}", blobId);
+    }
+
+    @Override
+    public void deleted(String blobId, long timeTaken, TimeUnit unit) {
+        deleteTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Deleted {} in {} ms", blobId, unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void deleteCompleted(String blobId) {
+        deleteCount.mark();
+        opsLogger.debug("Delete completed - {}", blobId);
     }
 
     //~--------------------------------------< BlobStoreMBean >
@@ -186,6 +206,21 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     @Override
     public CompositeData getDownloadCountHistory() {
         return getTimeSeriesData(BLOB_DOWNLOAD_COUNT, "Blob Download Counts");
+    }
+
+    @Override
+    public long getDeleteCount() {
+        return deleteCount.getCount();
+    }
+
+    @Override
+    public CompositeData getDeleteCountHistory() {
+        return getTimeSeriesData(BLOB_DELETE_COUNT, "Blob Delete Counts");
+    }
+
+    @Override
+    public CompositeData getDeleteTimeHistory() {
+        return getTimeSeriesData(BLOB_DELETE_TIME, "Bblob record deletes/sec");
     }
 
     private CompositeData getTimeSeriesData(String name, String desc){

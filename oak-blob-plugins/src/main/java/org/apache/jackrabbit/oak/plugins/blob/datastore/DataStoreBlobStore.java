@@ -68,14 +68,14 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
+import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -438,15 +438,17 @@ public class DataStoreBlobStore
         if (delegate instanceof MultiDataStoreAware) {
             List<String> deleted = Lists.newArrayListWithExpectedSize(512);
             for (String chunkId : chunkIds) {
+                long start = System.nanoTime();
+
                 String blobId = extractBlobId(chunkId);
                 DataIdentifier identifier = new DataIdentifier(blobId);
                 DataRecord dataRecord = getRecordForId(identifier);
                 boolean success = (maxLastModifiedTime <= 0)
                         || dataRecord.getLastModified() <= maxLastModifiedTime;
                 log.trace("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
-                    dataRecord.getLastModified(), success);
+                        dataRecord.getLastModified(), success);
                 if (success) {
-                    ((MultiDataStoreAware) delegate).deleteRecord(identifier);
+                    doDeleteRecord(identifier);
                     deleted.add(blobId);
                     count++;
                     if (count % 512 == 0) {
@@ -454,12 +456,20 @@ public class DataStoreBlobStore
                         deleted.clear();
                     }
                 }
+
+                stats.deleted(blobId, System.nanoTime()-start, TimeUnit.NANOSECONDS);
+                stats.deleteCompleted(blobId);
             }
             if (!deleted.isEmpty()) {
                 log.info("Deleted blobs {}", deleted);
             }
+
         }
         return count;
+    }
+
+    void doDeleteRecord(DataIdentifier identifier) throws DataStoreException {
+        ((MultiDataStoreAware) delegate).deleteRecord(identifier);
     }
 
     @Override
@@ -602,7 +612,7 @@ public class DataStoreBlobStore
 
     //~---------------------------------------------< Internal >
 
-    protected InputStream getStream(String blobId) throws IOException {
+    InputStream getStream(String blobId) throws IOException {
         try {
             InputStream in = getDataRecord(blobId).getStream();
             if (!(in instanceof BufferedInputStream)){
@@ -637,7 +647,7 @@ public class DataStoreBlobStore
      * @param options
      * @return the value
      */
-    private DataRecord writeStream(InputStream in, BlobOptions options) throws IOException, DataStoreException {
+    protected DataRecord writeStream(InputStream in, BlobOptions options) throws IOException, DataStoreException {
         int maxMemorySize = Math.max(0, delegate.getMinRecordLength() + 1);
         byte[] buffer = new byte[maxMemorySize];
         int pos = 0, len = maxMemorySize;
