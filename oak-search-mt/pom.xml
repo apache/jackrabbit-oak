@@ -43,7 +43,7 @@
                         <Export-Package>
                             !*
                         </Export-Package>
-                        <Embed-Dependency>*;scope=compile</Embed-Dependency>
+                        <Embed-Dependency>*;scope=compile,artifactId=!oak-lucene</Embed-Dependency>
                         <Import-Package>
                             com.ibm.uvm.tools.*;resolution:=optional,
                             com.sun.jdmk.comm.*;resolution:=optional,
@@ -108,7 +108,6 @@
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-lucene</artifactId>
             <version>${project.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.joshua</groupId>
