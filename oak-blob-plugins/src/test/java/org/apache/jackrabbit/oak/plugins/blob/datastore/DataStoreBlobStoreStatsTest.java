@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,7 +71,7 @@ public class DataStoreBlobStoreStatsTest {
 
     @Test
     public void testDSBSReadBlobStats() throws IOException, RepositoryException {
-        DelayedReadDSBS dsbs = (DelayedReadDSBS) setupDSBS(1000, 0, 0);
+        DelayedReadDSBS dsbs = (DelayedReadDSBS) getDSBSBuilder().withReadDelay(1000).build();
 
         String blobId = dsbs.writeBlob(new RandomInputStream(System.currentTimeMillis(), BLOB_LEN));
 
@@ -96,7 +97,7 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSReadBlobNotFoundStats() {
+    public void testDSBSReadBlobNotFoundStats() throws IOException, RepositoryException {
         // BLOB_DOWNLOAD_NOT_FOUND
     }
 
@@ -107,7 +108,7 @@ public class DataStoreBlobStoreStatsTest {
 
     @Test
     public void testDSBSWriteBlobStats() throws IOException, RepositoryException {
-        DelayedWriteDSBS dsbs = (DelayedWriteDSBS) setupDSBS(0, 1000, 0);
+        DelayedWriteDSBS dsbs = (DelayedWriteDSBS) getDSBSBuilder().withWriteDelay(1000).build();
 
         long uploadCount = stats.getUploadCount();
         long uploadTotalSize = stats.getUploadTotalSize();
@@ -243,7 +244,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSDeleteRecordStats() throws Exception {
         // BLOB_DELETE_COUNT, BLOB_DELETE_TIME
 
-        DelayedDeleteDSBS dsbs = (DelayedDeleteDSBS) setupDSBS(0, 0, 1010);
+        DelayedDeleteDSBS dsbs = (DelayedDeleteDSBS) getDSBSBuilder().withDeleteDelay(1010).build();
         DataRecord record = dsbs.addRecord(new RandomInputStream(System.currentTimeMillis(), BLOB_LEN));
         List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
         long modifiedBefore = Instant.now().plusSeconds(86400).toEpochMilli();
@@ -411,22 +412,6 @@ public class DataStoreBlobStoreStatsTest {
     }
 
 
-    private DataStoreBlobStore setupDSBS() throws IOException, RepositoryException {
-        return setupDSBS(0, 0, 0);
-    }
-
-    private DataStoreBlobStore setupDSBS(int readDelay, int writeDelay, int deleteDelay) throws IOException, RepositoryException {
-        DataStore ds = setupDS();
-        DataStoreBlobStore dsbs =
-                writeDelay > 0 && readDelay > 0 ? new DelayedReadWriteDSBS(ds, readDelay, writeDelay)
-                        : writeDelay > 0 ? new DelayedWriteDSBS(ds, writeDelay)
-                        : readDelay > 0 ? new DelayedReadDSBS(ds, readDelay)
-                        : deleteDelay > 0 ? new DelayedDeleteDSBS(ds, deleteDelay)
-                        : new DataStoreBlobStore(ds);
-        dsbs.setBlobStatsCollector(stats);
-        return dsbs;
-    }
-
     private DataStore setupDS() throws IOException, RepositoryException {
         DataStore ds = new OakFileDataStore();
         File homeDir = folder.newFolder();
@@ -498,6 +483,60 @@ public class DataStoreBlobStoreStatsTest {
             }
         }
         return false;
+    }
+
+    private DSBSBuilder getDSBSBuilder() throws IOException, RepositoryException {
+        return new DSBSBuilder(setupDS(), stats);
+    }
+
+    private static class DSBSBuilder {
+        private DataStore ds;
+        private BlobStoreStats stats;
+
+        private int readDelay = 0;
+        private int writeDelay = 0;
+        private int deleteDelay = 0;
+
+        public DSBSBuilder(@NotNull DataStore ds, @NotNull BlobStoreStats stats) {
+            this.ds = ds;
+            this.stats = stats;
+        }
+
+        public DSBSBuilder withReadDelay(int delay) {
+            readDelay = delay;
+            return this;
+        }
+
+        public DSBSBuilder withWriteDelay(int delay) {
+            writeDelay = delay;
+            return this;
+        }
+
+        public DSBSBuilder withDeleteDelay(int delay) {
+            deleteDelay = delay;
+            return this;
+        }
+
+        private DataStoreBlobStore getDSBS() {
+            if (0 < readDelay) {
+                return new DelayedReadDSBS(ds, readDelay);
+            }
+            else if (0 < writeDelay) {
+                return new DelayedWriteDSBS(ds, writeDelay);
+            }
+            else if (0 < deleteDelay) {
+                return new DelayedDeleteDSBS(ds, deleteDelay);
+            }
+            return null;
+        }
+
+        public DataStoreBlobStore build() {
+            DataStoreBlobStore dsbs = getDSBS();
+            if (null != dsbs) {
+                dsbs.setBlobStatsCollector(stats);
+            }
+            return dsbs;
+        }
     }
 
     private static class DelayableDSBS extends DataStoreBlobStore {
@@ -578,27 +617,6 @@ public class DataStoreBlobStoreStatsTest {
         @Override
         void doDeleteRecord(DataIdentifier identifier) throws DataStoreException {
             deleteDelayed(identifier, deleteDelay);
-        }
-    }
-
-    private static class DelayedReadWriteDSBS extends DelayableDSBS {
-        private int readDelay;
-        private int writeDelay;
-
-        DelayedReadWriteDSBS(DataStore ds, int readDelay, int writeDelay) {
-            super(ds);
-            this.readDelay = readDelay;
-            this.writeDelay = writeDelay;
-        }
-
-        @Override
-        protected InputStream getStream(String blobId) throws IOException {
-            return getStreamDelayed(blobId, readDelay);
-        }
-
-        @Override
-        protected DataRecord writeStream(InputStream is, BlobOptions opts) throws IOException, DataStoreException {
-            return writeStreamDelayed(is, opts, writeDelay);
         }
     }
 }
