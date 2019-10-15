@@ -96,6 +96,16 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
+    public void testDSBSReadBlobNotFoundStats() {
+        // BLOB_DOWNLOAD_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSReadBlobErrorStats() {
+        // BLOB_DOWNLOAD_ERROS
+    }
+
+    @Test
     public void testDSBSWriteBlobStats() throws IOException, RepositoryException {
         DelayedWriteDSBS dsbs = (DelayedWriteDSBS) setupDSBS(0, 1000, 0);
 
@@ -120,17 +130,37 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetInputStream() {
+    public void testDSBSWriteBlobErrorStats() {
+        // BLOB_UPLOAD_ERRORS
+    }
+
+    @Test
+    public void testDSBSGetInputStreamStats() {
         // BLOB_DOWNLOAD_COUNT, BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME
     }
 
     @Test
-    public void testDSBSAddRecord() {
+    public void testDSBSGetInputStreamNotFoundStats() {
+        // BLOB_DOWNLOAD_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSGetInputStreamErrorStats() {
+        // BLOB_DOWNLOAD_ERRORS
+    }
+
+    @Test
+    public void testDSBSAddRecordStats() {
         // BLOB_ADD_RECORD_COUNT, BLOB_ADD_RECORD_SIZE, BLOB_ADD_RECORD_TIME
     }
 
     @Test
-    public void testDSBSGetRecord() {
+    public void testDSBSAddRecordErrorStats() {
+        // BLOB_ADD_RECORD_ERRORS
+    }
+
+    @Test
+    public void testDSBSGetRecordStats() {
         // BLOB_GETREC_COUNT, BLOB_GETREC_TIME
 
         // Then read the stream from the rec and measure:
@@ -138,7 +168,17 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetRecordIfStored() {
+    public void testDSBSGetRecordNotFoundStats() {
+        // BLOB_GETREC_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSGetRecordErrorStats() {
+        // BLOB_GETREC_ERRORS
+    }
+
+    @Test
+    public void testDSBSGetRecordIfStoredStats() {
         // BLOB_GETRECIFSTORED_COUNT, BLOB_GETRECIFSTORED_TIME
 
         // Then read the stream from the rec and measure:
@@ -146,7 +186,12 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetRecordByReference() {
+    public void testDSBSGetRecordIfStoredErrorStats() {
+        // BLOB_GETRECIFSTORED_ERRORS
+    }
+
+    @Test
+    public void testDSBSGetRecordByReferenceStats() {
         // BLOB_GETRECBYREF_COUNT, BLOB_GET_RECBYREF_TIME
 
         // Then read the stream from the rec and measure:
@@ -154,7 +199,17 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetRecordForId() {
+    public void testDSBSGetRecordByReferenceNotFoundStats() {
+        // BLOB_GETRECBYREF_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSGetRecordByReferenceErrorStats() {
+        // BLOB_GETRECBYREF_ERRORS
+    }
+
+    @Test
+    public void testDSBSGetRecordForIdStats() {
         // BLOB_GETRECFORID_COUNT, BLOB_GETRECFORID_TIME
 
         // Then read the stream from the rec and measure:
@@ -162,7 +217,17 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetAllRecords() {
+    public void testDSBSGetRecordForIdNotFoundStats() {
+        // BLOB_GETRECFORID_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSGetRecordForIdErrorStats() {
+        // BLOB_GETRECFORID_ERRORS
+    }
+
+    @Test
+    public void testDSBSGetAllRecordsStats() {
         // BLOB_GETALLRECS_COUNT, BLOB_GETALLRECS_TIME
 
         // Then read the stream from one of the recs and measure:
@@ -170,7 +235,12 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSDeleteRecord() throws Exception {
+    public void testDSBSGetAllRecordsErrorStats() {
+        // BLOB_GETALLRECS_ERRORS
+    }
+
+    @Test
+    public void testDSBSDeleteRecordStats() throws Exception {
         // BLOB_DELETE_COUNT, BLOB_DELETE_TIME
 
         DelayedDeleteDSBS dsbs = (DelayedDeleteDSBS) setupDSBS(0, 0, 1010);
@@ -195,22 +265,42 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSDeleteAllOlderThan() {
+    public void testDSBSDeleteRecordErrorStats() {
+        // BLOB_DELETE_ERRORS
+    }
+
+    @Test
+    public void testDSBSDeleteAllOlderThanStats() {
         // BLOB_DELETEBYDATE_COUNT, BLOB_DELETEBYDATE_TIME
     }
 
     @Test
-    public void testDSBSListIds() {
+    public void testDSBSDeleteAllOlderThanErrorStats() {
+        // BLOB_DELETEBYDATE_ERRORS
+    }
+
+    @Test
+    public void testDSBSListIdsStats() {
         // BLOB_LISTIDS_COUNT, BLOB_LISTIDS_TIME
     }
 
     @Test
-    public void testDSBSAddMetaRec() {
+    public void testDSBSListIdsErrorStats() {
+        // BLOB_LISTIDS_ERRORS
+    }
+
+    @Test
+    public void testDSBSAddMetaRecStats() {
         // BLOB_METADATA_ADD_COUNT, BLOB_METADATA_ADD_TIME, BLOB_METADATA_ADD_SIZE
     }
 
     @Test
-    public void testDSBSGetMetaRec() {
+    public void testDSBSAddMetaRecErrorStats() {
+        // BLOB_METADATA_ADD_ERRORS
+    }
+
+    @Test
+    public void testDSBSGetMetaRecStats() {
         // BLOB_METADATA_GET_COUNT, BLOB_METADATA_GET_TIME
 
         // Then read the stream from the rec and measure:
@@ -218,7 +308,17 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetAllMetaRecs() {
+    public void testDSBSGetMetaRecNotFoundStats() {
+        // BLOB_METADATA_GET_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSGetMetaRecErrorStats() {
+        // BLOB_METADATA_GET_ERRORS
+    }
+
+    @Test
+    public void testDSBSGetAllMetaRecsStats() {
         // BLOB_METADATA_GETALL_COUNT, BLOB_METADATA_GETALL_TIME
 
         // Then read the stream from one of the recs and measure:
@@ -226,33 +326,88 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSMetaRecExists() {
+    public void testDSBSGetAllMetaRecsErrorStats() {
+        // BLOB_METADATA_GETALL_ERRORS
+    }
+
+    @Test
+    public void testDSBSMetaRecExistsStats() {
         // BLOB_METADATA_EXISTS_COUNT, BLOB_METADATA_EXISTS_TIME
     }
 
     @Test
-    public void testDSBSMetaDelete() {
+    public void testDSBSMetaRecExistsErrorStats() {
+        // BLOB_METADATA_EXISTS_ERRORS
+    }
+
+    @Test
+    public void testDSBSMetaDeleteStats() {
         // BLOB_METADATA_DELETE_COUNT, BLOB_METADATA_DELETE_TIME
     }
 
     @Test
-    public void testDSBSMetaDeleteAll() {
+    public void testDSBSMetaDeleteNotFoundStats() {
+        // BLOB_METADATA_DELETE_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSMetaDeleteErrorStats() {
+        // BLOB_METADATA_DELETE_ERRORS
+    }
+
+    @Test
+    public void testDSBSMetaDeleteAllStats() {
         // BLOB_METADATA_DELETEALL_COUNT, BLOB_METDATA_DELETEALL_TIME
     }
 
     @Test
-    public void testDSBSInitUploadDBA() {
+    public void testDSBSMetaDeleteAllErrorStats() {
+        // BLOB_METADATA_DELETEALL_ERRORS
+    }
+
+    @Test
+    public void testDSBSInitUploadDBAStats() {
         // BLOB_DBA_UPLOAD_INIT_COUNT, BLOB_DBA_UPLOAD_INIT_TIME
     }
 
     @Test
-    public void testDSBSCompleteUploadDBA() {
+    public void testDSBSInitUploadDBAErrorStats() {
+        // BLOB_DBA_UPLOAD_INIT_ERRORS
+    }
+
+    @Test
+    public void testDSBSCompleteUploadDBAStats() {
         // BLOB_DBA_UPLOAD_COMPLETE_COUNT, BLOB_DBA_UPLOAD_COMPLETE_TIME
     }
 
     @Test
-    public void testDSBSDownloadGetUriDBA() {
+    public void testDSBSCompleteUploadDBAExistsStats() {
+        // BLOB_DBA_UPLOAD_COMPLETE_EXISTS
+    }
+
+    @Test
+    public void testDSBSCompleteUploadDBANotFoundStats() {
+        // BLOB_DBA_UPLOAD_COMPLETE_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSCompleteUploadDBAErrorStats() {
+        // BLOB_DBA_UPLOAD_COMPLETE_ERRORS
+    }
+
+    @Test
+    public void testDSBSDownloadGetUriDBAStats() {
         // BLOB_DBA_DOWNLOAD_GETURI_COUNT, BLOB_DBA_DOWNLOAD_GETURI_TIME
+    }
+
+    @Test
+    public void testDSBSDownloadGetURIDBANotFoundStats() {
+        // BLOB_DBA_DOWNLOAD_GETURI_NOT_FOUND
+    }
+
+    @Test
+    public void testDSBSDownloadGetURIDBAErrorStats() {
+        // BLOB_DBA_DOWNLOAD_GETURI_ERRORS
     }
 
 
