@@ -95,6 +95,7 @@ that may be used for a custom implementation:
 - `AbstractAccessControlList`: abstract base implementation of the `JackrabbitAccessControlList` interface
     - `ImmutableACL`: immutable subclass of `AbstractAccessControlList`
     - `ACE`: abstract subclass that implements common methods of a mutable access control list.
+- `ReadPolicy`: implementation of `NamedAccessControlPolicy` used to represent the configured [readable paths](permission/default.html#configuration).
 
 #### Restriction Management
 
