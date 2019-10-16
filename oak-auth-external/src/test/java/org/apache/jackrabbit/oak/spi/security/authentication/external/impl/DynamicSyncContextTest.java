@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -49,13 +48,16 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdenti
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncContext;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_SECOND_USER;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -96,25 +98,27 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         return sc;
     }
 
-    private void sync(@NotNull ExternalIdentity externalIdentity, @NotNull SyncResult.Status expectedStatus) throws Exception {
+    protected void sync(@NotNull ExternalIdentity externalIdentity, @NotNull SyncResult.Status expectedStatus) throws Exception {
         SyncResult result = syncContext.sync(externalIdentity);
         assertSame(expectedStatus, result.getStatus());
         r.commit();
     }
 
+    protected void assertDynamicMembership(@NotNull ExternalIdentity externalIdentity, long depth) throws Exception {
+        Authorizable a = userManager.getAuthorizable(externalIdentity.getId());
+        assertNotNull(a);
+        assertDynamicMembership(a, externalIdentity, depth);
+    }
+
     private void assertDynamicMembership(@NotNull Authorizable a, @NotNull ExternalIdentity externalIdentity, long depth) throws Exception {
-        Value[] vs = a.getProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
-        Iterable<String> pNames = Iterables.transform(ImmutableList.copyOf(vs), new Function<Value, String>() {
-            @Nullable
-            @Override
-            public String apply(Value input) {
-                try {
-                    return input.getString();
-                } catch (RepositoryException e) {
-                    fail(e.getMessage());
-                    return null;
-                }
-            };
+        Value[] vs = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+        Iterable<String> pNames = Iterables.transform(ImmutableList.copyOf(vs), input -> {
+            try {
+                return input.getString();
+            } catch (RepositoryException e) {
+                fail(e.getMessage());
+                return null;
+            }
         });
 
         Set<String> expected = new HashSet<>();
@@ -165,7 +169,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         sync(externalUser, SyncResult.Status.ADD);
 
         Tree tree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
-        PropertyState extPrincipalNames = tree.getProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
         assertNotNull(extPrincipalNames);
         assertEquals(0, extPrincipalNames.count());
     }
@@ -178,7 +182,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         sync(externalUser, SyncResult.Status.ADD);
 
         Tree tree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
-        PropertyState extPrincipalNames = tree.getProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
         assertNotNull(extPrincipalNames);
 
         Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
@@ -196,7 +200,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         sync(externalUser, SyncResult.Status.ADD);
 
         Tree tree = r.getTree(userManager.getAuthorizable(USER_ID).getPath());
-        PropertyState extPrincipalNames = tree.getProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        PropertyState extPrincipalNames = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
         assertNotNull(extPrincipalNames);
 
         Set<String> pNames = Sets.newHashSet(extPrincipalNames.getValue(Type.STRINGS));
@@ -224,7 +228,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         syncContext.sync(externalUser);
 
         Tree t = r.getTree(a.getPath());
-        assertFalse(t.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
+        assertFalse(t.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
 
         assertSyncedMembership(userManager, a, externalUser);
     }
@@ -301,7 +305,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(SyncResult.Status.UPDATE, result.getStatus());
 
         Tree t = r.getTree(a.getPath());
-        assertTrue(t.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
+        assertTrue(t.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
     }
 
     @Test
@@ -323,7 +327,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
 
         Authorizable a = userManager.getAuthorizable(USER_ID);
         Tree t = r.getTree(a.getPath());
-        assertFalse(t.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
+        assertFalse(t.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         assertSyncedMembership(userManager, a, externalUser);
     }
 
@@ -336,7 +340,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         sync(externalUser, SyncResult.Status.ADD);
 
         Authorizable a = userManager.getAuthorizable(externalUser.getId());
-        assertDynamicMembership(a, externalUser, nesting);
+        assertDynamicMembership(externalUser, nesting);
 
         // verify that the membership is always reflected in the rep:externalPrincipalNames property
         // 1. membership nesting  = -1
@@ -416,8 +420,50 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         Authorizable gr = userManager.getAuthorizable(externalGroup.getId());
         syncContext.syncMembership(externalGroup, gr, 1);
 
-        assertFalse(gr.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES));
+        assertFalse(gr.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
         assertFalse(r.hasPendingChanges());
+    }
+
+    @Test
+    public void testSyncMembershipWithForeignGroups() throws Exception {
+        TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(ID_TEST_USER);
+        Set<ExternalIdentityRef> sameIdpGroups = ImmutableSet.copyOf(testuser.getDeclaredGroups());
+
+        TestIdentityProvider.ForeignExternalGroup foreignGroup = new TestIdentityProvider.ForeignExternalGroup();
+        testuser.withGroups(foreignGroup.getExternalId());
+        assertFalse(Iterables.elementsEqual(sameIdpGroups, testuser.getDeclaredGroups()));
+
+        sync(testuser, SyncResult.Status.ADD);
+
+        Authorizable a = userManager.getAuthorizable(ID_TEST_USER);
+        assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+        Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+
+        assertEquals(Iterables.size(sameIdpGroups), extPrincipalNames.length);
+        for (Value v : extPrincipalNames) {
+            assertNotEquals(foreignGroup.getPrincipalName(), v.getString());
+        }
+    }
+
+    @Test
+    public void testSyncMembershipWithUserRef() throws Exception {
+        TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(ID_TEST_USER);
+        Set<ExternalIdentityRef> groupRefs = ImmutableSet.copyOf(testuser.getDeclaredGroups());
+
+        ExternalUser second = idp.getUser(ID_SECOND_USER);
+        testuser.withGroups(second.getExternalId());
+        assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+
+        sync(testuser, SyncResult.Status.ADD);
+
+        Authorizable a = userManager.getAuthorizable(ID_TEST_USER);
+        assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+        Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+
+        assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
+        for (Value v : extPrincipalNames) {
+            assertNotEquals(second.getPrincipalName(), v.getString());
+        }
     }
 
     @Test

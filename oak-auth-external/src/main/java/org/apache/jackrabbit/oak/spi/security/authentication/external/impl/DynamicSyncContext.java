@@ -22,6 +22,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -145,6 +147,8 @@ public class DynamicSyncContext extends DefaultSyncContext {
      * Recursively collect the principal names of the given declared group
      * references up to the given depth.
      *
+     * Note, that this method will filter out references that don't belong to the same IDP (see OAK-8665).
+     *
      * @param principalNames The set used to collect the names of the group principals.
      * @param declaredGroupIdRefs The declared group references for a user or a group.
      * @param depth Configured membership nesting; the recursion will be stopped once depths is < 1.
@@ -152,7 +156,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
      */
     private void collectPrincipalNames(@NotNull Set<String> principalNames, @NotNull Iterable<ExternalIdentityRef> declaredGroupIdRefs, long depth) throws ExternalIdentityException {
         boolean shortcut = (depth <= 1 && idp instanceof PrincipalNameResolver);
-        for (ExternalIdentityRef ref : declaredGroupIdRefs) {
+        for (ExternalIdentityRef ref : Iterables.filter(declaredGroupIdRefs, externalIdentityRef -> isSameIDP(externalIdentityRef))) {
             if (shortcut) {
                 principalNames.add(((PrincipalNameResolver) idp).fromExternalIdentityRef(ref));
             } else {
