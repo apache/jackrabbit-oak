@@ -242,6 +242,7 @@ public class DataStoreBlobStore
             stats.uploadCompleted(id);
             return id;
         } catch (DataStoreException e) {
+            stats.uploadFailed();
             throw new IOException(e);
         } finally {
             //DataStore does not closes the stream internally

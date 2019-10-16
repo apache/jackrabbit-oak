@@ -80,6 +80,9 @@ public class StatsCollectingStreamsTest {
         }
 
         @Override
+        public void uploadFailed() { }
+
+        @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
 
         @Override

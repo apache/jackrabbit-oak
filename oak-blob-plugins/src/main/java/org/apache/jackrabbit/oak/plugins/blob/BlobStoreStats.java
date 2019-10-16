@@ -47,6 +47,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private static final String BLOB_UPLOAD_COUNT = "BLOB_UPLOAD_COUNT";
     private static final String BLOB_UPLOAD_SIZE = "BLOB_UPLOAD_SIZE";
     private static final String BLOB_UPLOAD_TIME = "BLOB_UPLOAD_TIME";
+    private static final String BLOB_UPLOAD_ERROR_COUNT = "BLOB_UPLOAD_ERROR_COUNT";
 
     private static final String BLOB_DOWNLOADS = "BLOB_DOWNLOADS";
     private static final String BLOB_DOWNLOAD_COUNT = "BLOB_DOWNLOAD_COUNT";
@@ -65,6 +66,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     private final HistogramStats uploadHisto;
     private final MeterStats uploadCount;
+    private final MeterStats uploadErrorCount;
     private final MeterStats uploadSizeSeries;
     private final MeterStats uploadTimeSeries;
     private final TimeSeries uploadRateSeries;
@@ -92,6 +94,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
         this.uploadHisto = sp.getHistogram(BLOB_UPLOADS, StatsOptions.DEFAULT);
         this.uploadCount = sp.getMeter(BLOB_UPLOAD_COUNT, StatsOptions.DEFAULT);
+        this.uploadErrorCount = sp.getMeter(BLOB_UPLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
         this.uploadSizeSeries = sp.getMeter(BLOB_UPLOAD_SIZE, StatsOptions.TIME_SERIES_ONLY);
         this.uploadTimeSeries = sp.getMeter(BLOB_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.uploadRateSeries = getAvgTimeSeries(BLOB_UPLOAD_SIZE, BLOB_UPLOAD_TIME);
@@ -148,6 +151,11 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     }
 
     @Override
+    public void uploadFailed() {
+        uploadErrorCount.mark();
+    }
+
+    @Override
     public void deleted(String blobId, long timeTaken, TimeUnit unit) {
         deleteTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
         opsLogger.debug("Deleted {} in {} ms", blobId, unit.toMillis(timeTaken));
@@ -194,6 +202,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public long getUploadTotalSeconds() {
         return recordedTimeUnit.toSeconds(uploadTimeSeries.getCount());
     }
+
+    @Override
+    public long getUploadErrorCount() { return uploadErrorCount.getCount(); }
 
     @Override
     public long getDownloadTotalSize() {

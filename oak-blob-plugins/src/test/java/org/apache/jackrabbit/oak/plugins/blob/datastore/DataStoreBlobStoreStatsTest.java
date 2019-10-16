@@ -105,7 +105,7 @@ public class DataStoreBlobStoreStatsTest {
 
     @Test
     public void testDSBSReadBlobErrorStats() {
-        // BLOB_DOWNLOAD_ERROS
+        // BLOB_DOWNLOAD_ERROR_COUNT
     }
 
     @Test
@@ -133,8 +133,27 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSWriteBlobErrorStats() {
-        // BLOB_UPLOAD_ERRORS
+    public void testDSBSWriteBlobErrorStats() throws IOException, RepositoryException {
+        // BLOB_UPLOAD_ERROR_COUNT
+
+        WriteBlobErrorDSBS dsbs = (WriteBlobErrorDSBS) getDSBSBuilder().withErrorOnWriteBlob(true).build();
+
+        long writeBlobErrorCount = stats.getUploadErrorCount();
+
+        try {
+            dsbs.writeBlob(new RandomInputStream(System.currentTimeMillis(), BLOB_LEN));
+        }
+        catch (IOException e) { }
+        try {
+            dsbs.writeBlob(new RandomInputStream(System.currentTimeMillis(), BLOB_LEN), new BlobOptions());
+        }
+        catch (IOException e) { }
+        try {
+            dsbs.writeBlob(folder.newFile().getAbsolutePath());
+        }
+        catch (IOException e) { }
+
+        assertEquals(writeBlobErrorCount + 3, stats.getUploadErrorCount());
     }
 
     @Test
@@ -545,6 +564,8 @@ public class DataStoreBlobStoreStatsTest {
         private int writeDelay = 0;
         private int deleteDelay = 0;
 
+        private boolean errorOnWriteBlob = false;
+
         DSBSBuilder(@NotNull DataStore ds, @NotNull BlobStoreStats stats) {
             this.ds = ds;
             this.stats = stats;
@@ -565,6 +586,11 @@ public class DataStoreBlobStoreStatsTest {
             return this;
         }
 
+        DSBSBuilder withErrorOnWriteBlob(boolean doError) {
+            errorOnWriteBlob = doError;
+            return this;
+        }
+
         private DataStoreBlobStore getDSBS() {
             if (0 < readDelay) {
                 return new DelayedReadDSBS(ds, readDelay);
@@ -574,6 +600,9 @@ public class DataStoreBlobStoreStatsTest {
             }
             else if (0 < deleteDelay) {
                 return new DelayedDeleteDSBS(ds, deleteDelay);
+            }
+            else if (errorOnWriteBlob) {
+                return new WriteBlobErrorDSBS(ds);
             }
             return new DataStoreBlobStore(ds);
         }
@@ -665,6 +694,27 @@ public class DataStoreBlobStoreStatsTest {
         @Override
         void doDeleteRecord(DataIdentifier identifier) throws DataStoreException {
             deleteDelayed(identifier, deleteDelay);
+        }
+    }
+
+    private static class ErrorGeneratingDSBS extends DataStoreBlobStore {
+        ErrorGeneratingDSBS(DataStore ds) {
+            super(ds);
+        }
+
+        DataRecord writeStreamWithError(InputStream is, BlobOptions opts) throws DataStoreException {
+            throw new DataStoreException("Test-generated exception");
+        }
+    }
+
+    private static class WriteBlobErrorDSBS extends ErrorGeneratingDSBS {
+        WriteBlobErrorDSBS(DataStore ds) {
+            super(ds);
+        }
+
+        @Override
+        protected DataRecord writeStream(InputStream is, BlobOptions opts) throws DataStoreException {
+            return writeStreamWithError(is, opts);
         }
     }
 

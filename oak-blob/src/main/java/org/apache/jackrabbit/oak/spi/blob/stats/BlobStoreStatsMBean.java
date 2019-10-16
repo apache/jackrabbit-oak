@@ -33,6 +33,8 @@ public interface BlobStoreStatsMBean {
 
     long getUploadTotalSeconds();
 
+    long getUploadErrorCount();
+
     long getDownloadTotalSize();
 
     long getDownloadCount();
