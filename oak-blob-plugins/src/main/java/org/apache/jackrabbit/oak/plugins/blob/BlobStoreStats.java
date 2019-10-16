@@ -70,6 +70,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private static final String BLOB_GETRECFROMREF_COUNT = "BLOB_GETRECFROMREF_COUNT";
     private static final String BLOB_GETRECFROMREF_TIME = "BLOB_GETRECFROMREF_TIME";
     private static final String BLOB_GETRECFROMREF_ERROR_COUNT = "BLOB_GETRECFROMREF_ERROR_COUNT";
+    private static final String BLOB_GETRECFORID_COUNT = "BLOB_GETRECFORID_COUNT";
+    private static final String BLOB_GETRECFORID_TIME = "BLOB_GETRECFORID_TIME";
+    private static final String BLOB_GETRECFORID_ERROR_COUNT = "BLOB_GETRECFORID_ERROR_COUNT";
 
 
     private final StatisticsProvider statisticsProvider;
@@ -105,6 +108,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats getRecordFromRefCount;
     private final MeterStats getRecordFromRefTimeSeries;
     private final MeterStats getRecordFromRefErrorCount;
+    private final MeterStats getRecordForIdCount;
+    private final MeterStats getRecordForIdTimeSeries;
+    private final MeterStats getRecordForIdErrorCount;
 
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
@@ -143,6 +149,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.getRecordFromRefCount = sp.getMeter(BLOB_GETRECFROMREF_COUNT, StatsOptions.DEFAULT);
         this.getRecordFromRefTimeSeries = sp.getMeter(BLOB_GETRECFROMREF_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.getRecordFromRefErrorCount = sp.getMeter(BLOB_GETRECFROMREF_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.getRecordForIdCount = sp.getMeter(BLOB_GETRECFORID_COUNT, StatsOptions.DEFAULT);
+        this.getRecordForIdTimeSeries = sp.getMeter(BLOB_GETRECFORID_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getRecordForIdErrorCount = sp.getMeter(BLOB_GETRECFORID_ERROR_COUNT, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -270,6 +279,24 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         opsLogger.debug("Get record from reference failed - {}", reference);
     }
 
+    @Override
+    public void getRecordForIdCalled(long timeTaken, TimeUnit unit) {
+        getRecordForIdTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Get record for id called - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void getRecordForIdCompleted(String blobId) {
+        getRecordForIdCount.mark();
+        opsLogger.debug("Get record for id completed - {}", blobId);
+    }
+
+    @Override
+    public void getRecordForIdFailed(String blobId) {
+        getRecordForIdErrorCount.mark();
+        opsLogger.debug("Get record for id failed - {}", blobId);
+    }
+
 
     //~--------------------------------------< BlobStoreMBean >
 
@@ -329,6 +356,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public long getGetRecordFromReferenceErrorCount() { return getRecordFromRefErrorCount.getCount(); }
+
+    @Override
+    public long getGetRecordForIdCount() { return getRecordForIdCount.getCount(); }
+
+    @Override
+    public long getGetRecordForIdErrorCount() { return getRecordForIdErrorCount.getCount(); }
 
     @Override
     public String blobStoreInfoAsString() {
@@ -416,6 +449,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public CompositeData getGetRecordFromReferenceTimeHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_TIME, "Blob Get Record From Reference per second"); }
+
+    @Override
+    public CompositeData getGetRecordForIdCountHistory() { return getTimeSeriesData(BLOB_GETRECFORID_COUNT, "Blob Get Record for ID Counts"); }
+
+    @Override
+    public CompositeData getGetRecordForIdTimeHistory() { return getTimeSeriesData(BLOB_GETRECFORID_TIME, "Blob Get Record for ID per second"); }
 
     private CompositeData getTimeSeriesData(String name, String desc){
         return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);

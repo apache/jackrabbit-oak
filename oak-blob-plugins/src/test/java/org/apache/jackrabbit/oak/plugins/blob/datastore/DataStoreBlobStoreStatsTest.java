@@ -328,11 +328,24 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetRecordForIdStats() {
+    public void testDSBSGetRecordForIdStats() throws IOException, RepositoryException {
         // BLOB_GETRECFORID_COUNT, BLOB_GETRECFORID_TIME
 
-        // Then read the stream from the rec and measure:
-        // BLOB_DOWNLOAD_COUNT, BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME
+        DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withGetRecDelay(1000)).build();
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long getRecForIdCount = stats.getGetRecordForIdCount();
+        long getRecForIdCountLastMinute = sum((long[])stats.getGetRecordForIdCountHistory().get("per second"));
+        long getRecForIdTimeLastMinute = sum((long[])stats.getGetRecordForIdTimeHistory().get("per second"));
+
+        dsbs.getRecordForId(rec.getIdentifier());
+
+        assertEquals(getRecForIdCount + 1, stats.getGetRecordForIdCount());
+        assertEquals(getRecForIdCountLastMinute + 1,
+                waitForMetric(input -> sum((long[])input.getGetRecordForIdCountHistory().get("per second")),
+                        stats, 1L, 0L).longValue());
+        assertTrue(getRecForIdTimeLastMinute <
+                waitForNonzeroMetric(input -> sum((long[])input.getGetRecordForIdTimeHistory().get("per second")), stats));
     }
 
     @Test
@@ -341,8 +354,18 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetRecordForIdErrorStats() {
+    public void testDSBSGetRecordForIdErrorStats() throws IOException, RepositoryException {
         // BLOB_GETRECFORID_ERRORS
+
+        DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withErrorOnGetRecord(true)).build();
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long getRecForIdErrorCount = stats.getGetRecordForIdErrorCount();
+
+        try { dsbs.getRecordForId(rec.getIdentifier()); }
+        catch (DataStoreException e) { }
+
+        assertEquals(getRecForIdErrorCount + 1, stats.getGetRecordForIdErrorCount());
     }
 
     @Test
@@ -840,6 +863,14 @@ public class DataStoreBlobStoreStatsTest {
             catch (InterruptedException e) { }
             return super.getRecordFromReference(reference);
         }
+
+        DataRecord getRecordForIdDelayed(DataIdentifier identifier, int delay) throws DataStoreException {
+            try {
+                Thread.sleep(delay);
+            }
+            catch (InterruptedException e) { }
+            return super.getRecordForId(identifier);
+        }
     }
 
     private static class GetRecordDelayedDataStore extends DelayableFileDataStore {
@@ -864,6 +895,11 @@ public class DataStoreBlobStoreStatsTest {
         public DataRecord getRecordFromReference(String reference) throws DataStoreException {
             return getRecordFromReferenceDelayed(reference, delay);
         }
+
+        @Override
+        public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
+            return getRecordForIdDelayed(identifier, delay);
+        }
     }
 
     private static class ErrorGeneratingFileDataStore extends OakFileDataStore {
@@ -882,6 +918,10 @@ public class DataStoreBlobStoreStatsTest {
         }
 
         DataRecord getRecordFromReferenceWithError(String reference) throws DataStoreException {
+            throw ex;
+        }
+
+        DataRecord getRecordForIdWithError(DataIdentifier identifier) throws DataStoreException {
             throw ex;
         }
     }
@@ -907,6 +947,11 @@ public class DataStoreBlobStoreStatsTest {
         @Override
         public DataRecord getRecordFromReference(String reference) throws DataStoreException {
             return getRecordFromReferenceWithError(reference);
+        }
+
+        @Override
+        public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
+            return getRecordForIdWithError(identifier);
         }
     }
 }

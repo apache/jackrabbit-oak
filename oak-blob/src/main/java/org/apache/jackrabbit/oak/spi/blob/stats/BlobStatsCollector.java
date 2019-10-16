@@ -33,99 +33,70 @@ import org.osgi.annotation.versioning.ConsumerType;
 public interface BlobStatsCollector {
     BlobStatsCollector NOOP = new BlobStatsCollector() {
         @Override
-        public void uploaded(long timeTaken, TimeUnit unit, long size) {
-
-        }
+        public void uploaded(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
-
-        }
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { }
 
         @Override
-        public void uploadCompleted(String blobId) {
-
-        }
+        public void uploadCompleted(String blobId) { }
 
         @Override
-        public void downloadCompleted(String blobId) {
-
-        }
+        public void downloadCompleted(String blobId) { }
 
         @Override
-        public void uploadFailed() {
-
-        }
+        public void uploadFailed() { }
 
         @Override
-        public void deleted(String blobId, long timeTaken, TimeUnit unit) {
-
-        }
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
 
         @Override
-        public void deleteCompleted(String blobId) {
-
-        }
+        public void deleteCompleted(String blobId) { }
 
         @Override
-        public void recordAdded(long timeTaken, TimeUnit unit, long size) {
-
-        }
+        public void recordAdded(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
-        public void addRecordCompleted(String blobId) {
-
-        }
+        public void addRecordCompleted(String blobId) { }
 
         @Override
-        public void addRecordFailed() {
-
-        }
+        public void addRecordFailed() { }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit) {
-
-        }
+        public void getRecordCalled(long timeTaken, TimeUnit unit) { }
 
         @Override
-        public void getRecordCompleted(String blobId) {
-
-        }
+        public void getRecordCompleted(String blobId) { }
 
         @Override
-        public void getRecordFailed(String blobId) {
-
-        }
+        public void getRecordFailed(String blobId) { }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) {
-
-        }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) { }
 
         @Override
-        public void getRecordIfStoredCompleted(String blobId) {
-
-        }
+        public void getRecordIfStoredCompleted(String blobId) { }
 
         @Override
-        public void getRecordIfStoredFailed(String blobId) {
-
-        }
+        public void getRecordIfStoredFailed(String blobId) { }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit) {
-
-        }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit) { }
 
         @Override
-        public void getRecordFromReferenceCompleted(String reference) {
-
-        }
+        public void getRecordFromReferenceCompleted(String reference) { }
 
         @Override
-        public void getRecordFromReferenceFailed(String reference) {
+        public void getRecordFromReferenceFailed(String reference) { }
 
-        }
+        @Override
+        public void getRecordForIdCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getRecordForIdCompleted(String blobId) { }
+
+        @Override
+        public void getRecordForIdFailed(String blobId) { }
     };
 
     /**
@@ -276,4 +247,27 @@ public interface BlobStatsCollector {
      * @param reference reference of the record
      */
     void getRecordFromReferenceFailed(String reference);
+
+    /**
+     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
+     * a call to getRecordForId().
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void getRecordForIdCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to getRecordForId() is completed
+     *
+     * @param blobId id of the record retrieved
+     */
+    void getRecordForIdCompleted(String blobId);
+
+    /**
+     * Called when a call to getRecordForId() fails
+     *
+     * @param blobId id of the record
+     */
+    void getRecordForIdFailed(String blobId);
 }

@@ -587,10 +587,22 @@ public class DataStoreBlobStore
 
     @Override
     public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
-        if (delegate instanceof SharedDataStore) {
-            return ((SharedDataStore) delegate).getRecordForId(identifier);
+        try {
+            long start = System.nanoTime();
+
+            DataRecord record = delegate instanceof SharedDataStore ?
+                    ((SharedDataStore) delegate).getRecordForId(identifier) :
+                    delegate.getRecord(identifier);
+
+            stats.getRecordForIdCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            stats.getRecordForIdCompleted(identifier.toString());
+
+            return record;
         }
-        return delegate.getRecord(identifier);
+        catch (DataStoreException e) {
+            stats.getRecordForIdFailed(identifier.toString());
+            throw e;
+        }
     }
 
     @Override
