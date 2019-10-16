@@ -566,10 +566,19 @@ public class DataStoreBlobStore
 
     @Override
     public DataRecord addRecord(InputStream input, BlobOptions options) throws DataStoreException {
-        if (delegate instanceof TypedDataStore) {
-            return ((TypedDataStore) delegate).addRecord(input, options);
+        try {
+            long start = System.nanoTime();
+            DataRecord result = delegate instanceof TypedDataStore ?
+                    ((TypedDataStore) delegate).addRecord(input, options) :
+                    delegate.addRecord(input);
+            stats.recordAdded(System.nanoTime() - start, TimeUnit.NANOSECONDS, result.getLength());
+            stats.addRecordCompleted(result.getIdentifier().toString());
+            return result;
         }
-        return delegate.addRecord(input);
+        catch (DataStoreException e) {
+            stats.addRecordFailed();
+            throw e;
+        }
     }
 
     //~---------------------------------------------< Object >
@@ -595,6 +604,9 @@ public class DataStoreBlobStore
 
     public void setBlobStatsCollector(BlobStatsCollector stats) {
         this.stats = stats;
+        if (delegate instanceof StatsCollectingDataStore) {
+            ((StatsCollectingDataStore) delegate).setBlobStatsCollector(stats);
+        }
     }
 
 

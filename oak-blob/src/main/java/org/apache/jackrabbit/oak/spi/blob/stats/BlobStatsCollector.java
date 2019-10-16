@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.blob.stats;
 
+import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
 import org.osgi.annotation.versioning.ConsumerType;
@@ -57,6 +58,21 @@ public interface BlobStatsCollector {
 
         @Override
         public void deleteCompleted(String blobId) {
+
+        }
+
+        @Override
+        public void recordAdded(long timeTaken, TimeUnit unit, long size) {
+
+        }
+
+        @Override
+        public void addRecordCompleted(String blobId) {
+
+        }
+
+        @Override
+        public void addRecordFailed() {
 
         }
     };
@@ -114,4 +130,25 @@ public interface BlobStatsCollector {
      * @param blobId id of the blob which was deleted
      */
     void deleteCompleted(String blobId);
+
+    /**
+     * Called when a binary is added via {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)}.
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     * @param size size of binary content being read
+     */
+    void recordAdded(long timeTaken, TimeUnit unit, long size);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} is completed.
+     *
+     * @param blobId id of the record which was added
+     */
+    void addRecordCompleted(String blobId);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} fails.
+     */
+    void addRecordFailed();
 }

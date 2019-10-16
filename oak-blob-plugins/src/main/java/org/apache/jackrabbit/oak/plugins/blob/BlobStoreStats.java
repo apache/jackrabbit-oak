@@ -43,12 +43,23 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("Duplicates")
 public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreStatsMBean, BlobStatsCollector {
     private final Logger opsLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.operations.blobs");
-    private static final String BLOB_DOWNLOAD_COUNT = "BLOB_DOWNLOAD_COUNT";
     private static final String BLOB_UPLOADS = "BLOB_UPLOADS";
-    private static final String BLOB_DOWNLOADS = "BLOB_DOWNLOADS";
     private static final String BLOB_UPLOAD_COUNT = "BLOB_UPLOAD_COUNT";
+    private static final String BLOB_UPLOAD_SIZE = "BLOB_UPLOAD_SIZE";
+    private static final String BLOB_UPLOAD_TIME = "BLOB_UPLOAD_TIME";
+
+    private static final String BLOB_DOWNLOADS = "BLOB_DOWNLOADS";
+    private static final String BLOB_DOWNLOAD_COUNT = "BLOB_DOWNLOAD_COUNT";
+    private static final String BLOB_DOWNLOAD_SIZE = "BLOB_DOWNLOAD_SIZE";
+    private static final String BLOB_DOWNLOAD_TIME = "BLOB_DOWNLOAD_TIME";
+
     private static final String BLOB_DELETE_COUNT = "BLOB_DELETE_COUNT";
     private static final String BLOB_DELETE_TIME = "BLOB_DELETE_TIME";
+    private static final String BLOB_ADD_RECORD_COUNT = "BLOB_ADD_RECORD_COUNT";
+    private static final String BLOB_ADD_RECORD_SIZE = "BLOB_ADD_RECORD_SIZE";
+    private static final String BLOB_ADD_RECORD_TIME = "BLOB_ADD_RECORD_TIME";
+    private static final String BLOB_ADD_RECORD_ERROR_COUNT = "BLOB_ADD_RECORD_ERROR_COUNT";
+
 
     private final StatisticsProvider statisticsProvider;
 
@@ -67,6 +78,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats deleteCount;
     private final MeterStats deleteTimeSeries;
 
+    private final MeterStats addRecordCount;
+    private final MeterStats addRecordSizeSeries;
+    private final MeterStats addRecordTimeSeries;
+    private final TimeSeries addRecordRateSeries;
+    private final MeterStats addRecordErrorCount;
+
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
     public BlobStoreStats(@NotNull  StatisticsProvider sp) {
@@ -75,18 +92,24 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
         this.uploadHisto = sp.getHistogram(BLOB_UPLOADS, StatsOptions.DEFAULT);
         this.uploadCount = sp.getMeter(BLOB_UPLOAD_COUNT, StatsOptions.DEFAULT);
-        this.uploadSizeSeries = sp.getMeter("BLOB_UPLOAD_SIZE", StatsOptions.TIME_SERIES_ONLY);
-        this.uploadTimeSeries = sp.getMeter("BLOB_UPLOAD_TIME", StatsOptions.TIME_SERIES_ONLY);
-        this.uploadRateSeries = getAvgTimeSeries("BLOB_UPLOAD_SIZE", "BLOB_UPLOAD_TIME");
+        this.uploadSizeSeries = sp.getMeter(BLOB_UPLOAD_SIZE, StatsOptions.TIME_SERIES_ONLY);
+        this.uploadTimeSeries = sp.getMeter(BLOB_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.uploadRateSeries = getAvgTimeSeries(BLOB_UPLOAD_SIZE, BLOB_UPLOAD_TIME);
 
         this.downloadHisto = sp.getHistogram(BLOB_DOWNLOADS, StatsOptions.DEFAULT);
         this.downloadCount = sp.getMeter(BLOB_DOWNLOAD_COUNT, StatsOptions.DEFAULT);
-        this.downloadSizeSeries = sp.getMeter("BLOB_DOWNLOAD_SIZE", StatsOptions.TIME_SERIES_ONLY);
-        this.downloadTimeSeries = sp.getMeter("BLOB_DOWNLOAD_TIME", StatsOptions.TIME_SERIES_ONLY);
-        this.downloadRateSeries = getAvgTimeSeries("BLOB_DOWNLOAD_SIZE", "BLOB_DOWNLOAD_TIME");
+        this.downloadSizeSeries = sp.getMeter(BLOB_DOWNLOAD_SIZE, StatsOptions.TIME_SERIES_ONLY);
+        this.downloadTimeSeries = sp.getMeter(BLOB_DOWNLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.downloadRateSeries = getAvgTimeSeries(BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME);
 
         this.deleteCount = sp.getMeter(BLOB_DELETE_COUNT, StatsOptions.DEFAULT);
         this.deleteTimeSeries = sp.getMeter(BLOB_DELETE_TIME, StatsOptions.TIME_SERIES_ONLY);
+
+        this.addRecordCount = sp.getMeter(BLOB_ADD_RECORD_COUNT, StatsOptions.DEFAULT);
+        this.addRecordSizeSeries = sp.getMeter(BLOB_ADD_RECORD_SIZE, StatsOptions.TIME_SERIES_ONLY);
+        this.addRecordTimeSeries = sp.getMeter(BLOB_ADD_RECORD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.addRecordRateSeries = getAvgTimeSeries(BLOB_ADD_RECORD_SIZE, BLOB_ADD_RECORD_TIME);
+        this.addRecordErrorCount = sp.getMeter(BLOB_ADD_RECORD_ERROR_COUNT, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -136,6 +159,25 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         opsLogger.debug("Delete completed - {}", blobId);
     }
 
+    @Override
+    public void recordAdded(long timeTaken, TimeUnit unit, long size) {
+        addRecordSizeSeries.mark(size);
+        addRecordTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Record added - {} bytes in {} ms", size, unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void addRecordCompleted(String blobId) {
+        addRecordCount.mark();
+        opsLogger.debug("Add record completed - {}", blobId);
+    }
+
+    @Override
+    public void addRecordFailed() {
+        addRecordErrorCount.mark();
+        opsLogger.debug("Add record failed");
+    }
+
     //~--------------------------------------< BlobStoreMBean >
 
     @Override
@@ -167,6 +209,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public long getDownloadTotalSeconds() {
         return recordedTimeUnit.toSeconds(downloadTimeSeries.getCount());
     }
+
+    @Override
+    public long getAddRecordTotalSize() { return addRecordSizeSeries.getCount(); }
+
+    @Override
+    public long getAddRecordCount() { return addRecordCount.getCount(); }
 
     @Override
     public String blobStoreInfoAsString() {
@@ -220,8 +268,22 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public CompositeData getDeleteTimeHistory() {
-        return getTimeSeriesData(BLOB_DELETE_TIME, "Bblob record deletes/sec");
+        return getTimeSeriesData(BLOB_DELETE_TIME, "Blob record deletes/sec");
     }
+
+    @Override
+    public CompositeData getAddRecordCountHistory() { return getTimeSeriesData(BLOB_ADD_RECORD_COUNT, "Blob Add Record Counts"); }
+
+    @Override
+    public CompositeData getAddRecordSizeHistory() { return getTimeSeriesData(BLOB_ADD_RECORD_SIZE, "Blob Add Record (bytes)"); }
+
+    @Override
+    public CompositeData getAddRecordRateHistory() {
+        return TimeSeriesStatsUtil.asCompositeData(addRecordRateSeries, "Blob Add Record bytes/secs");
+    }
+
+    @Override
+    public long getAddRecordErrorCount() { return addRecordErrorCount.getCount(); }
 
     private CompositeData getTimeSeriesData(String name, String desc){
         return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);

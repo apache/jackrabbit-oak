@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -96,9 +97,10 @@ public class DataStoreBlobStoreStatsTest {
                 waitForNonzeroMetric(input -> sum((long[])input.getDownloadRateHistory().get("per second")), stats));
     }
 
+    @Ignore
     @Test
     public void testDSBSReadBlobNotFoundStats() throws IOException, RepositoryException {
-        // BLOB_DOWNLOAD_NOT_FOUND
+        // BLOB_DOWNLOAD_NOT_FOUND_COUNT
     }
 
     @Test
@@ -151,13 +153,51 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSAddRecordStats() {
+    public void testDSBSAddRecordStats() throws IOException, RepositoryException {
         // BLOB_ADD_RECORD_COUNT, BLOB_ADD_RECORD_SIZE, BLOB_ADD_RECORD_TIME
+
+        DelayedWriteDSBS dsbs = (DelayedWriteDSBS) getDSBSBuilder().withWriteDelay(1000).build();
+
+        long addRecordCount = stats.getAddRecordCount();
+        long addRecordSize = stats.getAddRecordTotalSize();
+        long addRecordCountLastMinute = sum((long[]) stats.getAddRecordCountHistory().get("per second"));
+        long addRecordSizeLastMinute = sum((long[]) stats.getAddRecordSizeHistory().get("per second"));
+        long addRecordTimeLastMinute = sum((long[]) stats.getAddRecordRateHistory().get("per second"));
+
+        dsbs.addRecord(new RandomInputStream(System.currentTimeMillis(), BLOB_LEN));
+        dsbs.addRecord(new RandomInputStream(System.currentTimeMillis(), BLOB_LEN), new BlobOptions());
+
+        assertEquals(addRecordCount + 2, stats.getAddRecordCount());
+        assertEquals(addRecordSize + BLOB_LEN*2, stats.getAddRecordTotalSize());
+        assertEquals(addRecordCountLastMinute + 2,
+                waitForMetric(input -> sum((long[])input.getAddRecordCountHistory().get("per second")),
+                        stats, 2L, 0L).longValue());
+        assertEquals(addRecordSizeLastMinute + BLOB_LEN*2,
+                waitForMetric(input -> sum((long[])input.getAddRecordSizeHistory().get("per second")),
+                        stats, (long) BLOB_LEN*2, 0L).longValue());
+        //TODO Fix this assertion
+//        assertTrue(addRecordTimeLastMinute <
+//                waitForNonzeroMetric(input -> sum((long[])input.getAddRecordRateHistory().get("per second")), stats));
     }
 
     @Test
-    public void testDSBSAddRecordErrorStats() {
+    public void testDSBSAddRecordErrorStats() throws IOException, RepositoryException {
         // BLOB_ADD_RECORD_ERRORS
+
+        DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withErrorOnAddRecord(true)).build();
+
+        long addRecordErrorCount = stats.getAddRecordErrorCount();
+
+        try {
+            dsbs.addRecord(new RandomInputStream(System.currentTimeMillis(), BLOB_LEN));
+        }
+        catch (DataStoreException e) { }
+        try {
+            dsbs.addRecord(new RandomInputStream(System.currentTimeMillis(), BLOB_LEN), new BlobOptions());
+        }
+        catch (DataStoreException e) { }
+
+        assertEquals(addRecordErrorCount + 2, stats.getAddRecordErrorCount());
     }
 
     @Test
@@ -413,7 +453,11 @@ public class DataStoreBlobStoreStatsTest {
 
 
     private DataStore setupDS() throws IOException, RepositoryException {
-        DataStore ds = new OakFileDataStore();
+        return setupDS(new DataStoreBuilder());
+    }
+
+    private DataStore setupDS(DataStoreBuilder dsBuilder) throws IOException, RepositoryException {
+        DataStore ds = dsBuilder.build();
         File homeDir = folder.newFolder();
         ds.init(homeDir.getAbsolutePath());
         return ds;
@@ -489,6 +533,10 @@ public class DataStoreBlobStoreStatsTest {
         return new DSBSBuilder(setupDS(), stats);
     }
 
+    private DSBSBuilder getDSBSBuilder(DataStoreBuilder dsBuilder) throws IOException, RepositoryException {
+        return new DSBSBuilder(setupDS(dsBuilder), stats);
+    }
+
     private static class DSBSBuilder {
         private DataStore ds;
         private BlobStoreStats stats;
@@ -497,22 +545,22 @@ public class DataStoreBlobStoreStatsTest {
         private int writeDelay = 0;
         private int deleteDelay = 0;
 
-        public DSBSBuilder(@NotNull DataStore ds, @NotNull BlobStoreStats stats) {
+        DSBSBuilder(@NotNull DataStore ds, @NotNull BlobStoreStats stats) {
             this.ds = ds;
             this.stats = stats;
         }
 
-        public DSBSBuilder withReadDelay(int delay) {
+        DSBSBuilder withReadDelay(int delay) {
             readDelay = delay;
             return this;
         }
 
-        public DSBSBuilder withWriteDelay(int delay) {
+        DSBSBuilder withWriteDelay(int delay) {
             writeDelay = delay;
             return this;
         }
 
-        public DSBSBuilder withDeleteDelay(int delay) {
+        DSBSBuilder withDeleteDelay(int delay) {
             deleteDelay = delay;
             return this;
         }
@@ -527,10 +575,10 @@ public class DataStoreBlobStoreStatsTest {
             else if (0 < deleteDelay) {
                 return new DelayedDeleteDSBS(ds, deleteDelay);
             }
-            return null;
+            return new DataStoreBlobStore(ds);
         }
 
-        public DataStoreBlobStore build() {
+        DataStoreBlobStore build() {
             DataStoreBlobStore dsbs = getDSBS();
             if (null != dsbs) {
                 dsbs.setBlobStatsCollector(stats);
@@ -617,6 +665,35 @@ public class DataStoreBlobStoreStatsTest {
         @Override
         void doDeleteRecord(DataIdentifier identifier) throws DataStoreException {
             deleteDelayed(identifier, deleteDelay);
+        }
+    }
+
+    private static class DataStoreBuilder {
+        private boolean generateErrorOnAddRecord = false;
+
+        DataStoreBuilder withErrorOnAddRecord(boolean doError) {
+            generateErrorOnAddRecord = doError;
+            return this;
+        }
+
+        OakFileDataStore build() {
+            if (generateErrorOnAddRecord) {
+                return new AddRecordErrorDataStore();
+            }
+            return new OakFileDataStore();
+        }
+    }
+
+    private static class ErrorGeneratingFileDataStore extends OakFileDataStore {
+        DataRecord addRecordWithError(InputStream is) throws DataStoreException {
+            throw new DataStoreException("Test-generated exception");
+        }
+    }
+
+    private static class AddRecordErrorDataStore extends ErrorGeneratingFileDataStore {
+        @Override
+        public DataRecord addRecord(InputStream is) throws DataStoreException {
+            return addRecordWithError(is);
         }
     }
 }

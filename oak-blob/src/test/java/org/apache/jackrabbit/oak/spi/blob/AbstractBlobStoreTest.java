@@ -569,6 +569,15 @@ public abstract class AbstractBlobStoreTest {
         @Override
         public void deleteCompleted(String blobId) { }
 
+        @Override
+        public void recordAdded(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void addRecordCompleted(String blobId) { }
+
+        @Override
+        public void addRecordFailed() { }
+
         void reset(){
             size = 0;
             downloadCount = 0;
