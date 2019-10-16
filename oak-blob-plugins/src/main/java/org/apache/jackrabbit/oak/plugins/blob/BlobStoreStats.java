@@ -67,6 +67,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private static final String BLOB_GETRECIFSTORED_COUNT = "BLOB_GETRECIFSTORED_COUNT";
     private static final String BLOB_GETRECIFSTORED_TIME = "BLOB_GETRECIFSTORED_TIME";
     private static final String BLOB_GETRECIFSTORED_ERROR_COUNT = "BLOB_GETRECIFSTORED_ERROR_COUNT";
+    private static final String BLOB_GETRECFROMREF_COUNT = "BLOB_GETRECFROMREF_COUNT";
+    private static final String BLOB_GETRECFROMREF_TIME = "BLOB_GETRECFROMREF_TIME";
+    private static final String BLOB_GETRECFROMREF_ERROR_COUNT = "BLOB_GETRECFROMREF_ERROR_COUNT";
 
 
     private final StatisticsProvider statisticsProvider;
@@ -99,6 +102,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats getRecordIfStoredCount;
     private final MeterStats getRecordIfStoredTimeSeries;
     private final MeterStats getRecordIfStoredErrorCount;
+    private final MeterStats getRecordFromRefCount;
+    private final MeterStats getRecordFromRefTimeSeries;
+    private final MeterStats getRecordFromRefErrorCount;
 
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
@@ -134,6 +140,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.getRecordIfStoredCount = sp.getMeter(BLOB_GETRECIFSTORED_COUNT, StatsOptions.DEFAULT);
         this.getRecordIfStoredTimeSeries = sp.getMeter(BLOB_GETRECIFSTORED_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.getRecordIfStoredErrorCount = sp.getMeter(BLOB_GETRECIFSTORED_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.getRecordFromRefCount = sp.getMeter(BLOB_GETRECFROMREF_COUNT, StatsOptions.DEFAULT);
+        this.getRecordFromRefTimeSeries = sp.getMeter(BLOB_GETRECFROMREF_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getRecordFromRefErrorCount = sp.getMeter(BLOB_GETRECFROMREF_ERROR_COUNT, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -240,7 +249,25 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     @Override
     public void getRecordIfStoredFailed(String blobId) {
         getRecordIfStoredErrorCount.mark();
-        opsLogger.debug("GetRecord if stored failed - {}", blobId);
+        opsLogger.debug("Get record if stored failed - {}", blobId);
+    }
+
+    @Override
+    public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit) {
+        getRecordFromRefTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Get record from reference called - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void getRecordFromReferenceCompleted(String reference) {
+        getRecordFromRefCount.mark();
+        opsLogger.debug("Get record from reference completed - {}", reference);
+    }
+
+    @Override
+    public void getRecordFromReferenceFailed(String reference) {
+        getRecordFromRefErrorCount.mark();
+        opsLogger.debug("Get record from reference failed - {}", reference);
     }
 
 
@@ -296,6 +323,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public long getGetRecordIfStoredErrorCount() { return getRecordIfStoredErrorCount.getCount(); }
+
+    @Override
+    public long getGetRecordFromReferenceCount() { return getRecordFromRefCount.getCount(); }
+
+    @Override
+    public long getGetRecordFromReferenceErrorCount() { return getRecordFromRefErrorCount.getCount(); }
 
     @Override
     public String blobStoreInfoAsString() {
@@ -376,7 +409,13 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public CompositeData getGetRecordIfStoredCountHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_COUNT, "Blob Get Record If Stored Counts"); }
 
     @Override
-    public CompositeData getGetRecordIfStoredTimeHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_TIME, "Blob Get REcord If Stored per second"); }
+    public CompositeData getGetRecordIfStoredTimeHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_TIME, "Blob Get Record If Stored per second"); }
+
+    @Override
+    public CompositeData getGetRecordFromReferenceCountHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_COUNT, "Blob Get Record From Reference Counts"); }
+
+    @Override
+    public CompositeData getGetRecordFromReferenceTimeHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_TIME, "Blob Get Record From Reference per second"); }
 
     private CompositeData getTimeSeriesData(String name, String desc){
         return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);

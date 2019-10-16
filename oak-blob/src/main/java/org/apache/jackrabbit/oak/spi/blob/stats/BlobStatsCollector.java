@@ -111,6 +111,21 @@ public interface BlobStatsCollector {
         public void getRecordIfStoredFailed(String blobId) {
 
         }
+
+        @Override
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit) {
+
+        }
+
+        @Override
+        public void getRecordFromReferenceCompleted(String reference) {
+
+        }
+
+        @Override
+        public void getRecordFromReferenceFailed(String reference) {
+
+        }
     };
 
     /**
@@ -238,4 +253,27 @@ public interface BlobStatsCollector {
      * @param blobId id of the record
      */
     void getRecordIfStoredFailed(String blobId);
+
+    /**
+     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)}.
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} is completed.
+     *
+     * @param reference reference of the record retrieved
+     */
+    void getRecordFromReferenceCompleted(String reference);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} fails.
+     *
+     * @param reference reference of the record
+     */
+    void getRecordFromReferenceFailed(String reference);
 }

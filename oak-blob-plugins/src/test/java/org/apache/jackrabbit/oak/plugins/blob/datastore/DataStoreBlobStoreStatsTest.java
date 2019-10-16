@@ -278,20 +278,33 @@ public class DataStoreBlobStoreStatsTest {
         DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withErrorOnGetRecord(true)).build();
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
-        long getRecErrorIfStoredCount = stats.getGetRecordIfStoredErrorCount();
+        long getRecIfStoredErrorCount = stats.getGetRecordIfStoredErrorCount();
 
         try { dsbs.getRecordIfStored(rec.getIdentifier()); }
         catch (DataStoreException e) { }
 
-        assertEquals(getRecErrorIfStoredCount + 1, stats.getGetRecordIfStoredErrorCount());
+        assertEquals(getRecIfStoredErrorCount + 1, stats.getGetRecordIfStoredErrorCount());
     }
 
     @Test
-    public void testDSBSGetRecordByReferenceStats() {
+    public void testDSBSGetRecordByReferenceStats() throws IOException, RepositoryException {
         // BLOB_GETRECBYREF_COUNT, BLOB_GET_RECBYREF_TIME
 
-        // Then read the stream from the rec and measure:
-        // BLOB_DOWNLOAD_COUNT, BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME
+        DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withGetRecDelay(1000)).build();
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long getRecFromRefCount = stats.getGetRecordFromReferenceCount();
+        long getRecFromRefCountLastMinute = sum((long[])stats.getGetRecordFromReferenceCountHistory().get("per second"));
+        long getRecFromRefTimeLastMinute = sum((long[])stats.getGetRecordFromReferenceTimeHistory().get("per second"));
+
+        dsbs.getRecordFromReference(rec.getReference());
+
+        assertEquals(getRecFromRefCount + 1, stats.getGetRecordFromReferenceCount());
+        assertEquals(getRecFromRefCountLastMinute + 1,
+                waitForMetric(input -> sum((long[])input.getGetRecordFromReferenceCountHistory().get("per second")),
+                        stats, 1L, 0L).longValue());
+        assertTrue(getRecFromRefTimeLastMinute <
+                waitForNonzeroMetric(input -> sum((long[])input.getGetRecordFromReferenceTimeHistory().get("per second")), stats));
     }
 
     @Test
@@ -300,8 +313,18 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetRecordByReferenceErrorStats() {
+    public void testDSBSGetRecordByReferenceErrorStats() throws IOException, RepositoryException {
         // BLOB_GETRECBYREF_ERRORS
+
+        DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withErrorOnGetRecord(true)).build();
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long getRecFromRefErrorCount = stats.getGetRecordFromReferenceErrorCount();
+
+        try { dsbs.getRecordFromReference(rec.getReference()); }
+        catch (DataStoreException e) { }
+
+        assertEquals(getRecFromRefErrorCount + 1, stats.getGetRecordFromReferenceErrorCount());
     }
 
     @Test
@@ -809,6 +832,14 @@ public class DataStoreBlobStoreStatsTest {
             catch (InterruptedException e) { }
             return super.getRecordIfStored(identifier);
         }
+
+        DataRecord getRecordFromReferenceDelayed(String reference, int delay) throws DataStoreException {
+            try {
+                Thread.sleep(delay);
+            }
+            catch (InterruptedException e) { }
+            return super.getRecordFromReference(reference);
+        }
     }
 
     private static class GetRecordDelayedDataStore extends DelayableFileDataStore {
@@ -828,6 +859,11 @@ public class DataStoreBlobStoreStatsTest {
         public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
             return getRecordIfStoredDelayed(identifier, delay);
         }
+
+        @Override
+        public DataRecord getRecordFromReference(String reference) throws DataStoreException {
+            return getRecordFromReferenceDelayed(reference, delay);
+        }
     }
 
     private static class ErrorGeneratingFileDataStore extends OakFileDataStore {
@@ -842,6 +878,10 @@ public class DataStoreBlobStoreStatsTest {
         }
 
         DataRecord getRecordIfStoredWithError(DataIdentifier identifier) throws DataStoreException {
+            throw ex;
+        }
+
+        DataRecord getRecordFromReferenceWithError(String reference) throws DataStoreException {
             throw ex;
         }
     }
@@ -862,6 +902,11 @@ public class DataStoreBlobStoreStatsTest {
         @Override
         public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
             return getRecordIfStoredWithError(identifier);
+        }
+
+        @Override
+        public DataRecord getRecordFromReference(String reference) throws DataStoreException {
+            return getRecordFromReferenceWithError(reference);
         }
     }
 }

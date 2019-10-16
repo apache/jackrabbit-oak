@@ -201,7 +201,20 @@ public class DataStoreBlobStore
 
     @Override
     public DataRecord getRecordFromReference(String reference) throws DataStoreException {
-        return delegate.getRecordFromReference(reference);
+        try {
+            long start = System.nanoTime();
+
+            DataRecord rec = delegate.getRecordFromReference(reference);
+
+            stats.getRecordFromReferenceCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            stats.getRecordFromReferenceCompleted(reference);
+
+            return rec;
+        }
+        catch (DataStoreException e) {
+            stats.getRecordFromReferenceFailed(reference);
+            throw e;
+        }
     }
 
     @Override
