@@ -590,6 +590,15 @@ public abstract class AbstractBlobStoreTest {
         @Override
         public void getRecordFailed(String blobId) { }
 
+        @Override
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getRecordIfStoredCompleted(String blobId) { }
+
+        @Override
+        public void getRecordIfStoredFailed(String blobId) { }
+
         void reset(){
             size = 0;
             downloadCount = 0;

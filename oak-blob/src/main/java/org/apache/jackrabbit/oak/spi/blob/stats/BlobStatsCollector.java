@@ -96,6 +96,21 @@ public interface BlobStatsCollector {
         public void getRecordFailed(String blobId) {
 
         }
+
+        @Override
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) {
+
+        }
+
+        @Override
+        public void getRecordIfStoredCompleted(String blobId) {
+
+        }
+
+        @Override
+        public void getRecordIfStoredFailed(String blobId) {
+
+        }
     };
 
     /**
@@ -179,7 +194,8 @@ public interface BlobStatsCollector {
     void addRecordFailed();
 
     /**
-     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved.
+     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)}.
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
@@ -199,4 +215,27 @@ public interface BlobStatsCollector {
      * @param blobId id of the record
      */
     void getRecordFailed(String blobId);
+
+    /**
+     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
+     * {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)}.
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void getRecordIfStoredCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} is completed.
+     *
+     * @param blobId id of the record retrieved
+     */
+    void getRecordIfStoredCompleted(String blobId);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} fails.
+     *
+     * @param blobId id of the record
+     */
+    void getRecordIfStoredFailed(String blobId);
 }

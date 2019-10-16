@@ -105,5 +105,14 @@ public class StatsCollectingStreamsTest {
 
         @Override
         public void getRecordFailed(String blobId) { }
+
+        @Override
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getRecordIfStoredCompleted(String blobId) { }
+
+        @Override
+        public void getRecordIfStoredFailed(String blobId) { }
     }
 }

@@ -140,17 +140,11 @@ public class DataStoreBlobStoreStatsTest {
 
         long writeBlobErrorCount = stats.getUploadErrorCount();
 
-        try {
-            dsbs.writeBlob(getTestInputStream());
-        }
+        try { dsbs.writeBlob(getTestInputStream()); }
         catch (IOException e) { }
-        try {
-            dsbs.writeBlob(getTestInputStream(), new BlobOptions());
-        }
+        try { dsbs.writeBlob(getTestInputStream(), new BlobOptions()); }
         catch (IOException e) { }
-        try {
-            dsbs.writeBlob(folder.newFile().getAbsolutePath());
-        }
+        try { dsbs.writeBlob(folder.newFile().getAbsolutePath()); }
         catch (IOException e) { }
 
         assertEquals(writeBlobErrorCount + 3, stats.getUploadErrorCount());
@@ -207,13 +201,9 @@ public class DataStoreBlobStoreStatsTest {
 
         long addRecordErrorCount = stats.getAddRecordErrorCount();
 
-        try {
-            dsbs.addRecord(getTestInputStream());
-        }
+        try { dsbs.addRecord(getTestInputStream()); }
         catch (DataStoreException e) { }
-        try {
-            dsbs.addRecord(getTestInputStream(), new BlobOptions());
-        }
+        try { dsbs.addRecord(getTestInputStream(), new BlobOptions()); }
         catch (DataStoreException e) { }
 
         assertEquals(addRecordErrorCount + 2, stats.getAddRecordErrorCount());
@@ -254,25 +244,46 @@ public class DataStoreBlobStoreStatsTest {
 
         long getRecErrorCount = stats.getGetRecordErrorCount();
 
-        try {
-            dsbs.getRecord(rec.getIdentifier());
-        }
+        try { dsbs.getRecord(rec.getIdentifier()); }
         catch (DataStoreException e) { }
 
         assertEquals(getRecErrorCount + 1, stats.getGetRecordErrorCount());
     }
 
     @Test
-    public void testDSBSGetRecordIfStoredStats() {
+    public void testDSBSGetRecordIfStoredStats() throws IOException, RepositoryException {
         // BLOB_GETRECIFSTORED_COUNT, BLOB_GETRECIFSTORED_TIME
 
-        // Then read the stream from the rec and measure:
-        // BLOB_DOWNLOAD_COUNT, BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME
+        DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withGetRecDelay(1000)).build();
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long getRecIfStoredCount = stats.getGetRecordIfStoredCount();
+        long getRecIfStoredCountLastMinute = sum((long[])stats.getGetRecordIfStoredCountHistory().get("per second"));
+        long getRecIfStoredTimeLastMinute = sum((long[])stats.getGetRecordIfStoredTimeHistory().get("per second"));
+
+        dsbs.getRecordIfStored(rec.getIdentifier());
+
+        assertEquals(getRecIfStoredCount + 1, stats.getGetRecordIfStoredCount());
+        assertEquals(getRecIfStoredCountLastMinute + 1,
+                waitForMetric(input -> sum((long[])input.getGetRecordIfStoredCountHistory().get("per second")),
+                        stats, 1L, 0L).longValue());
+        assertTrue(getRecIfStoredTimeLastMinute <
+                waitForNonzeroMetric(input -> sum((long[])input.getGetRecordIfStoredTimeHistory().get("per second")), stats));
     }
 
     @Test
-    public void testDSBSGetRecordIfStoredErrorStats() {
+    public void testDSBSGetRecordIfStoredErrorStats() throws IOException, RepositoryException {
         // BLOB_GETRECIFSTORED_ERRORS
+
+        DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withErrorOnGetRecord(true)).build();
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long getRecErrorIfStoredCount = stats.getGetRecordIfStoredErrorCount();
+
+        try { dsbs.getRecordIfStored(rec.getIdentifier()); }
+        catch (DataStoreException e) { }
+
+        assertEquals(getRecErrorIfStoredCount + 1, stats.getGetRecordIfStoredErrorCount());
     }
 
     @Test
@@ -790,6 +801,14 @@ public class DataStoreBlobStoreStatsTest {
             catch (InterruptedException e) { }
             return super.getRecord(identifier);
         }
+
+        DataRecord getRecordIfStoredDelayed(DataIdentifier identifier, int delay) throws DataStoreException {
+            try {
+                Thread.sleep(delay);
+            }
+            catch (InterruptedException e) { }
+            return super.getRecordIfStored(identifier);
+        }
     }
 
     private static class GetRecordDelayedDataStore extends DelayableFileDataStore {
@@ -799,19 +818,31 @@ public class DataStoreBlobStoreStatsTest {
             super();
             this.delay = delay;
         }
+
         @Override
         public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
             return getRecordDelayed(identifier, delay);
         }
+
+        @Override
+        public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
+            return getRecordIfStoredDelayed(identifier, delay);
+        }
     }
 
     private static class ErrorGeneratingFileDataStore extends OakFileDataStore {
+        private DataStoreException ex = new DataStoreException("Test-generated exception");
+
         DataRecord addRecordWithError(InputStream is) throws DataStoreException {
-            throw new DataStoreException("Test-generated exception");
+            throw ex;
         }
 
         DataRecord getRecordWithError(DataIdentifier identifier) throws DataStoreException {
-            throw new DataStoreException("Test-generated exception");
+            throw ex;
+        }
+
+        DataRecord getRecordIfStoredWithError(DataIdentifier identifier) throws DataStoreException {
+            throw ex;
         }
     }
 
@@ -826,6 +857,11 @@ public class DataStoreBlobStoreStatsTest {
         @Override
         public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
             return getRecordWithError(identifier);
+        }
+
+        @Override
+        public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
+            return getRecordIfStoredWithError(identifier);
         }
     }
 }
