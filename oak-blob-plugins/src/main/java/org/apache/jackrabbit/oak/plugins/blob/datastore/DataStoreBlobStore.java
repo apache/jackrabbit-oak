@@ -169,10 +169,22 @@ public class DataStoreBlobStore
 
     @Override
     public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-        if (isInMemoryRecord(identifier)) {
-            return getDataRecord(identifier.toString());
+        try {
+            long start = System.nanoTime();
+
+            DataRecord rec = isInMemoryRecord(identifier) ?
+                    getDataRecord(identifier.toString()) :
+                    delegate.getRecord(identifier);
+
+            stats.getRecordCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            stats.getRecordCompleted(identifier.toString());
+
+            return rec;
         }
-        return delegate.getRecord(identifier);
+        catch (DataStoreException e) {
+            stats.getRecordFailed(identifier.toString());
+            throw e;
+        }
     }
 
     @Override

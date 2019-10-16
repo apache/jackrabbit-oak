@@ -61,6 +61,10 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private static final String BLOB_ADD_RECORD_TIME = "BLOB_ADD_RECORD_TIME";
     private static final String BLOB_ADD_RECORD_ERROR_COUNT = "BLOB_ADD_RECORD_ERROR_COUNT";
 
+    private static final String BLOB_GET_RECORD_COUNT = "BLOB_GET_RECORD_COUNT";
+    private static final String BLOB_GET_RECORD_TIME = "BLOB_GET_RECORD_TIME";
+    private static final String BLOB_GET_RECORD_ERROR_COUNT = "BLOB_GET_RECORD_ERROR_COUNT";
+
 
     private final StatisticsProvider statisticsProvider;
 
@@ -85,6 +89,10 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats addRecordTimeSeries;
     private final TimeSeries addRecordRateSeries;
     private final MeterStats addRecordErrorCount;
+
+    private final MeterStats getRecordCount;
+    private final MeterStats getRecordTimeSeries;
+    private final MeterStats getRecordErrorCount;
 
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
@@ -113,6 +121,10 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.addRecordTimeSeries = sp.getMeter(BLOB_ADD_RECORD_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.addRecordRateSeries = getAvgTimeSeries(BLOB_ADD_RECORD_SIZE, BLOB_ADD_RECORD_TIME);
         this.addRecordErrorCount = sp.getMeter(BLOB_ADD_RECORD_ERROR_COUNT, StatsOptions.DEFAULT);
+
+        this.getRecordCount = sp.getMeter(BLOB_GET_RECORD_COUNT, StatsOptions.DEFAULT);
+        this.getRecordTimeSeries = sp.getMeter(BLOB_GET_RECORD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getRecordErrorCount = sp.getMeter(BLOB_GET_RECORD_ERROR_COUNT, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -186,6 +198,24 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         opsLogger.debug("Add record failed");
     }
 
+    @Override
+    public void getRecordCalled(long timeTaken, TimeUnit unit) {
+        getRecordTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Get record called - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void getRecordCompleted(String blobId) {
+        getRecordCount.mark();
+        opsLogger.debug("Get record completed - {}", blobId);
+    }
+
+    @Override
+    public void getRecordFailed(String blobId) {
+        getRecordErrorCount.mark();
+        opsLogger.debug("Get record failed - {}", blobId);
+    }
+
     //~--------------------------------------< BlobStoreMBean >
 
     @Override
@@ -226,6 +256,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public long getAddRecordCount() { return addRecordCount.getCount(); }
+
+    @Override
+    public long getGetRecordCount() { return getRecordCount.getCount(); }
+
+    @Override
+    public long getGetRecordErrorCount() { return getRecordErrorCount.getCount(); }
 
     @Override
     public String blobStoreInfoAsString() {
@@ -292,6 +328,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public CompositeData getAddRecordRateHistory() {
         return TimeSeriesStatsUtil.asCompositeData(addRecordRateSeries, "Blob Add Record bytes/secs");
     }
+
+    @Override
+    public CompositeData getGetRecordCountHistory() { return getTimeSeriesData(BLOB_GET_RECORD_COUNT, "Blob Get Record Counts"); }
+
+    @Override
+    public CompositeData getGetRecordTimeHistory() { return getTimeSeriesData(BLOB_GET_RECORD_TIME, "Blob Get Record per second"); }
 
     @Override
     public long getAddRecordErrorCount() { return addRecordErrorCount.getCount(); }

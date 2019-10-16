@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.spi.blob.stats;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -78,6 +79,21 @@ public interface BlobStatsCollector {
 
         @Override
         public void addRecordFailed() {
+
+        }
+
+        @Override
+        public void getRecordCalled(long timeTaken, TimeUnit unit) {
+
+        }
+
+        @Override
+        public void getRecordCompleted(String blobId) {
+
+        }
+
+        @Override
+        public void getRecordFailed(String blobId) {
 
         }
     };
@@ -161,4 +177,26 @@ public interface BlobStatsCollector {
      * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)} fails.
      */
     void addRecordFailed();
+
+    /**
+     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved.
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void getRecordCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} is completed.
+     *
+     * @param blobId id of the record retrieved
+     */
+    void getRecordCompleted(String blobId);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} fails.
+     *
+     * @param blobId id of the record
+     */
+    void getRecordFailed(String blobId);
 }
