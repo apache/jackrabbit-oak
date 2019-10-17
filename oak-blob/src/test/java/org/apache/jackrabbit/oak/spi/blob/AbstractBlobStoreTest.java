@@ -608,21 +608,6 @@ public abstract class AbstractBlobStoreTest {
         @Override
         public void getRecordFromReferenceFailed(String reference) { }
 
-        @Override
-        public void getRecordForIdCalled(long timeTaken, TimeUnit unit) { }
-
-        @Override
-        public void getRecordForIdCompleted(String blobId) { }
-
-        @Override
-        public void getRecordForIdFailed(String blobId) { }
-
-        @Override
-        public void getAllRecordsCalled(long timeTaken, TimeUnit unit) { }
-
-        @Override
-        public void getAllRecordsCompleted() { }
-
         void reset(){
             size = 0;
             downloadCount = 0;

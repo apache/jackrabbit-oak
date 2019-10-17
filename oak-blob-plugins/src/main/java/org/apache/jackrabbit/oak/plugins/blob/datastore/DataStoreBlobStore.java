@@ -66,6 +66,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
+import org.apache.jackrabbit.oak.plugins.blob.ExtendedBlobStatsCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
@@ -93,7 +94,7 @@ public class DataStoreBlobStore
 
     protected final DataStore delegate;
 
-    protected BlobStatsCollector stats = BlobStatsCollector.NOOP;
+    protected BlobStatsCollector stats = ExtendedBlobStatsCollector.NOOP;
 
     private BlobTracker tracker;
 
@@ -584,8 +585,10 @@ public class DataStoreBlobStore
                             }
                         });
 
-        stats.getAllRecordsCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
-        stats.getAllRecordsCompleted();
+        if (stats instanceof ExtendedBlobStatsCollector) {
+            ((ExtendedBlobStatsCollector) stats).getAllRecordsCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            ((ExtendedBlobStatsCollector) stats).getAllRecordsCompleted();
+        }
 
         return result;
     }
@@ -599,13 +602,17 @@ public class DataStoreBlobStore
                     ((SharedDataStore) delegate).getRecordForId(identifier) :
                     delegate.getRecord(identifier);
 
-            stats.getRecordForIdCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
-            stats.getRecordForIdCompleted(identifier.toString());
+            if (stats instanceof ExtendedBlobStatsCollector) {
+                ((ExtendedBlobStatsCollector) stats).getRecordForIdCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                ((ExtendedBlobStatsCollector) stats).getRecordForIdCompleted(identifier.toString());
+            }
 
             return record;
         }
         catch (DataStoreException e) {
-            stats.getRecordForIdFailed(identifier.toString());
+            if (stats instanceof ExtendedBlobStatsCollector) {
+                ((ExtendedBlobStatsCollector) stats).getRecordForIdFailed(identifier.toString());
+            }
             throw e;
         }
     }

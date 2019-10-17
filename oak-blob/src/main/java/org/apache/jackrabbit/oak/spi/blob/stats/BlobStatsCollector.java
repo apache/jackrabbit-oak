@@ -88,21 +88,6 @@ public interface BlobStatsCollector {
 
         @Override
         public void getRecordFromReferenceFailed(String reference) { }
-
-        @Override
-        public void getRecordForIdCalled(long timeTaken, TimeUnit unit) { }
-
-        @Override
-        public void getRecordForIdCompleted(String blobId) { }
-
-        @Override
-        public void getRecordForIdFailed(String blobId) { }
-
-        @Override
-        public void getAllRecordsCalled(long timeTaken, TimeUnit unit) { }
-
-        @Override
-        public void getAllRecordsCompleted() { }
     };
 
     /**
@@ -253,40 +238,4 @@ public interface BlobStatsCollector {
      * @param reference reference of the record
      */
     void getRecordFromReferenceFailed(String reference);
-
-    /**
-     * Called when a {@link org.apache.jackrabbit.core.data.DataRecord} is retrieved via
-     * a call to getRecordForId().
-     *
-     * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     */
-    void getRecordForIdCalled(long timeTaken, TimeUnit unit);
-
-    /**
-     * Called when a call to getRecordForId() is completed
-     *
-     * @param blobId id of the record retrieved
-     */
-    void getRecordForIdCompleted(String blobId);
-
-    /**
-     * Called when a call to getRecordForId() fails
-     *
-     * @param blobId id of the record
-     */
-    void getRecordForIdFailed(String blobId);
-
-    /**
-     * Called when a call to getAllRecords() is made
-     *
-     * @param timeTaken time taken to perform the operation
-     * @param unit unit of time taken
-     */
-    void getAllRecordsCalled(long timeTaken, TimeUnit unit);
-
-    /**
-     * Called when a call to getAllRecords() is completed
-     */
-    void getAllRecordsCompleted();
 }

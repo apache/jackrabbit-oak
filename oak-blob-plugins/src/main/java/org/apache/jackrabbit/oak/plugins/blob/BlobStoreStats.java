@@ -28,7 +28,6 @@ import javax.management.openmbean.CompositeData;
 
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -41,7 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("Duplicates")
-public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreStatsMBean, BlobStatsCollector {
+public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBlobStoreStatsMBean, ExtendedBlobStatsCollector {
     private final Logger opsLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.operations.blobs");
     private static final String BLOB_UPLOADS = "BLOB_UPLOADS";
     private static final String BLOB_UPLOAD_COUNT = "BLOB_UPLOAD_COUNT";
