@@ -54,6 +54,18 @@ public interface BlobStatsCollector {
         public void deleteCompleted(String blobId) { }
 
         @Override
+        public void deleteFailed() { }
+
+        @Override
+        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) { }
+
+        @Override
+        public void deleteAllOlderThanCompleted(int deletedCount) { }
+
+        @Override
+        public void deleteAllOlderThanFailed(long min) { }
+
+        @Override
         public void recordAdded(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
@@ -148,6 +160,35 @@ public interface BlobStatsCollector {
      * @param blobId id of the blob which was deleted
      */
     void deleteCompleted(String blobId);
+
+    /**
+     * Called when deletion of a binary fails.
+     */
+    void deleteFailed();
+
+    /**
+     * Called when deleting binaries older than a specified date, via
+     * {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)}.
+     *
+     * @param timeTaken time taken to perform the deletion
+     * @param unit unit of time taken
+     * @param min time used for determining what to delete - older than this time gets deleted
+     */
+    void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min);
+
+    /**
+     * Called when {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)} is completed.
+     *
+     * @param deletedCount count of records deleted
+     */
+    void deleteAllOlderThanCompleted(int deletedCount);
+
+    /**
+     * Called when {@link org.apache.jackrabbit.core.data.DataStore#deleteAllOlderThan(long)} fails.
+     *
+     * @param min time used for determining what to delete
+     */
+    void deleteAllOlderThanFailed(long min);
 
     /**
      * Called when a binary is added via {@link org.apache.jackrabbit.core.data.DataStore#addRecord(InputStream)}.

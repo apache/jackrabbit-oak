@@ -428,7 +428,7 @@ public class DataStoreBlobStoreStatsTest {
         DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withDeleteRecordDelay(1010));
         DataRecord record = dsbs.addRecord(getTestInputStream());
         List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
-        long modifiedBefore = Instant.now().plusSeconds(86400).toEpochMilli();
+        long modifiedBefore = tomorrow();
 
         long deleteCount = stats.getDeleteCount();
         long deleteCountLastMinute = getLastMinuteStats(stats.getDeleteCountHistory());
@@ -447,18 +447,72 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSDeleteRecordErrorStats() {
+    public void testDSBSDeleteRecordErrorStats() throws Exception {
         // BLOB_DELETE_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnDeleteRecord());
+        DataRecord record = dsbs.addRecord(getTestInputStream());
+        List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
+        long modifiedBefore = tomorrow();
+
+        long deleteErrorCount = stats.getDeleteErrorCount();
+        long deleteErrorCountLastMinute = getLastMinuteStats(stats.getDeleteErrorCountHistory());
+
+        try {
+            dsbs.deleteChunks(chunkIds, modifiedBefore);
+        }
+        catch (Exception e) { }
+
+        assertEquals(deleteErrorCount + 1, stats.getDeleteErrorCount());
+        assertEquals(deleteErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getDeleteErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
-    public void testDSBSDeleteAllOlderThanStats() {
+    public void testDSBSDeleteAllOlderThanStats() throws Exception {
         // BLOB_DELETEBYDATE_COUNT, BLOB_DELETEBYDATE_TIME
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withDeleteRecordDelay(1010));
+        DataRecord record = dsbs.addRecord(getTestInputStream());
+        long modifiedBefore = tomorrow();
+
+        long deleteByDateCount = stats.getDeleteByDateCount();
+        long deleteByDateCountLastMinute = getLastMinuteStats(stats.getDeleteByDateCountHistory());
+        long deleteByDateTimeLastMinute = getLastMinuteStats(stats.getDeleteByDateTimeHistory());
+
+        assertTrue(idInDsbs(record.getIdentifier(), dsbs));
+        assertEquals(1, dsbs.deleteAllOlderThan(modifiedBefore));
+        assertFalse(idInDsbs(record.getIdentifier(), dsbs));
+
+        assertEquals(deleteByDateCount+1, stats.getDeleteByDateCount());
+        assertEquals(deleteByDateCountLastMinute+1,
+                waitForMetric(input -> getLastMinuteStats(input.getDeleteByDateCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(deleteByDateTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getDeleteByDateTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSDeleteAllOlderThanErrorStats() {
+    public void testDSBSDeleteAllOlderThanErrorStats() throws IOException, RepositoryException {
         // BLOB_DELETEBYDATE_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnDeleteRecord());
+        DataRecord record = dsbs.addRecord(getTestInputStream());
+        long modifiedBefore = tomorrow();
+
+        long deleteByDateErrorCount = stats.getDeleteByDateErrorCount();
+        long deleteByDateErrorCountLastMinute = getLastMinuteStats(stats.getDeleteByDateErrorCountHistory());
+
+        try {
+            dsbs.deleteAllOlderThan(modifiedBefore);
+        }
+        catch (Exception e) { }
+
+        assertEquals(deleteByDateErrorCount + 1, stats.getDeleteByDateErrorCount());
+        assertEquals(deleteByDateErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getDeleteByDateErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
@@ -678,6 +732,10 @@ public class DataStoreBlobStoreStatsTest {
         return false;
     }
 
+    private long tomorrow() {
+        return Instant.now().plusSeconds(86400).toEpochMilli();
+    }
+
     private DataStoreBlobStore setupDSBS(DataStoreBuilder dsBuilder) throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = new DataStoreBlobStore(setupDS(dsBuilder));
         dsbs.setBlobStatsCollector(stats);
@@ -692,6 +750,7 @@ public class DataStoreBlobStoreStatsTest {
 
         private boolean generateErrorOnAddRecord = false;
         private boolean generateErrorOnGetRecord = false;
+        private boolean generateErrorOnDeleteRecord = false;
 
         DataStoreBuilder withReadDelay() {
             return withReadDelay(1000);
@@ -738,6 +797,15 @@ public class DataStoreBlobStoreStatsTest {
             return this;
         }
 
+        DataStoreBuilder withErrorOnDeleteRecord() {
+            return withErrorOnDeleteRecord(true).withDeleteRecordDelay(1000);
+        }
+
+        DataStoreBuilder withErrorOnDeleteRecord(boolean withError) {
+            generateErrorOnDeleteRecord = withError;
+            return this;
+        }
+
         OakFileDataStore build() {
             if (readDelay > 0) {
                 return generateErrorOnGetRecord ?
@@ -750,7 +818,9 @@ public class DataStoreBlobStoreStatsTest {
                         new WriteDelayedDataStore(writeDelay);
             }
             else if (deleteRecordDelay > 0) {
-                return new DeleteRecordDelayedDataStore(deleteRecordDelay);
+                return generateErrorOnDeleteRecord ?
+                        new DeleteRecordErrorDataStore(deleteRecordDelay) :
+                        new DeleteRecordDelayedDataStore(deleteRecordDelay);
             }
             return new OakFileDataStore();
         }
@@ -800,6 +870,12 @@ public class DataStoreBlobStoreStatsTest {
             delay();
             err();
             return super.getRecord(identifier);
+        }
+
+        int _delAllOlderThan(long min) throws DataStoreException {
+            delay();
+            err();
+            return super.deleteAllOlderThan(min);
         }
 
         DataRecord _getRecIfStored(DataIdentifier identifier) throws DataStoreException {
@@ -913,6 +989,27 @@ public class DataStoreBlobStoreStatsTest {
         @Override
         public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
             return _getRecForId(identifier);
+        }
+    }
+
+    private static class DeleteRecordErrorDataStore extends TestableFileDataStore {
+        DeleteRecordErrorDataStore(int delay) {
+            super(delay, true);
+        }
+
+        @Override
+        public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
+            _delRec(identifier);
+        }
+
+        @Override
+        public int deleteAllOlderThan(long min) {
+            try {
+                return _delAllOlderThan(min);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }

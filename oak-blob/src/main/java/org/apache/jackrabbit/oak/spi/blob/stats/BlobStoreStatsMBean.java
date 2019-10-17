@@ -43,6 +43,12 @@ public interface BlobStoreStatsMBean {
 
     long getDeleteCount();
 
+    long getDeleteErrorCount();
+
+    long getDeleteByDateCount();
+
+    long getDeleteByDateErrorCount();
+
     long getAddRecordTotalSize();
 
     long getAddRecordCount();
@@ -79,7 +85,15 @@ public interface BlobStoreStatsMBean {
 
     CompositeData getDeleteCountHistory();
 
+    CompositeData getDeleteErrorCountHistory();
+
     CompositeData getDeleteTimeHistory();
+
+    CompositeData getDeleteByDateCountHistory();
+
+    CompositeData getDeleteByDateErrorCountHistory();
+
+    CompositeData getDeleteByDateTimeHistory();
 
     CompositeData getAddRecordSizeHistory();
 

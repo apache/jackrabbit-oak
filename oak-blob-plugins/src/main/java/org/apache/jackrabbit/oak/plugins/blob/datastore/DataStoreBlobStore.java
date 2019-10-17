@@ -234,7 +234,20 @@ public class DataStoreBlobStore
 
     @Override
     public int deleteAllOlderThan(long min) throws DataStoreException {
-        return delegate.deleteAllOlderThan(min);
+        try {
+            long start = System.nanoTime();
+
+            int deletedCount = delegate.deleteAllOlderThan(min);
+
+            stats.deletedAllOlderThan(System.nanoTime() - start, TimeUnit.NANOSECONDS, min);
+            stats.deleteAllOlderThanCompleted(deletedCount);
+
+            return deletedCount;
+        }
+        catch (Exception e) {
+            stats.deleteAllOlderThanFailed(min);
+            throw e;
+        }
     }
 
     @Override
@@ -475,34 +488,39 @@ public class DataStoreBlobStore
     public long countDeleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         int count = 0;
         if (delegate instanceof MultiDataStoreAware) {
-            List<String> deleted = Lists.newArrayListWithExpectedSize(512);
-            for (String chunkId : chunkIds) {
-                long start = System.nanoTime();
+            try {
+                List<String> deleted = Lists.newArrayListWithExpectedSize(512);
+                for (String chunkId : chunkIds) {
+                    long start = System.nanoTime();
 
-                String blobId = extractBlobId(chunkId);
-                DataIdentifier identifier = new DataIdentifier(blobId);
-                DataRecord dataRecord = getRecordForId(identifier);
-                boolean success = (maxLastModifiedTime <= 0)
-                        || dataRecord.getLastModified() <= maxLastModifiedTime;
-                log.trace("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
-                        dataRecord.getLastModified(), success);
-                if (success) {
-                    ((MultiDataStoreAware) delegate).deleteRecord(identifier);
-                    deleted.add(blobId);
-                    count++;
-                    if (count % 512 == 0) {
-                        log.info("Deleted blobs {}", deleted);
-                        deleted.clear();
+                    String blobId = extractBlobId(chunkId);
+                    DataIdentifier identifier = new DataIdentifier(blobId);
+                    DataRecord dataRecord = getRecordForId(identifier);
+                    boolean success = (maxLastModifiedTime <= 0)
+                            || dataRecord.getLastModified() <= maxLastModifiedTime;
+                    log.trace("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
+                            dataRecord.getLastModified(), success);
+                    if (success) {
+                        ((MultiDataStoreAware) delegate).deleteRecord(identifier);
+                        deleted.add(blobId);
+                        count++;
+                        if (count % 512 == 0) {
+                            log.info("Deleted blobs {}", deleted);
+                            deleted.clear();
+                        }
                     }
+
+                    stats.deleted(blobId, System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    stats.deleteCompleted(blobId);
                 }
-
-                stats.deleted(blobId, System.nanoTime()-start, TimeUnit.NANOSECONDS);
-                stats.deleteCompleted(blobId);
+                if (!deleted.isEmpty()) {
+                    log.info("Deleted blobs {}", deleted);
+                }
             }
-            if (!deleted.isEmpty()) {
-                log.info("Deleted blobs {}", deleted);
+            catch (Exception e) {
+                stats.deleteFailed();
+                throw e;
             }
-
         }
         return count;
     }

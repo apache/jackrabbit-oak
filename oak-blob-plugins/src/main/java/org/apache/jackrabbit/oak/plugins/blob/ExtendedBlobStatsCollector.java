@@ -48,6 +48,18 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
         public void deleteCompleted(String blobId) { }
 
         @Override
+        public void deleteFailed() { }
+
+        @Override
+        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) { }
+
+        @Override
+        public void deleteAllOlderThanCompleted(int deletedCount) { }
+
+        @Override
+        public void deleteAllOlderThanFailed(long min) { }
+
+        @Override
         public void recordAdded(long timeTaken, TimeUnit unit, long size) { }
 
         @Override

@@ -55,6 +55,11 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
 
     private static final String BLOB_DELETE_COUNT = "BLOB_DELETE_COUNT";
     private static final String BLOB_DELETE_TIME = "BLOB_DELETE_TIME";
+    private static final String BLOB_DELETE_ERROR_COUNT = "BLOB_DELETE_ERROR_COUNT";
+    private static final String BLOB_DELETE_BY_DATE_COUNT = "BLOB_DELETE_BY_DATE_COUNT";
+    private static final String BLOB_DELETE_BY_DATE_TIME = "BLOB_DELETE_BY_DATE_TIME";
+    private static final String BLOB_DELETE_BY_DATE_ERROR_COUNT = "BLOB_DELETE_BY_DATE_ERROR_COUNT";
+
     private static final String BLOB_ADD_RECORD_COUNT = "BLOB_ADD_RECORD_COUNT";
     private static final String BLOB_ADD_RECORD_SIZE = "BLOB_ADD_RECORD_SIZE";
     private static final String BLOB_ADD_RECORD_TIME = "BLOB_ADD_RECORD_TIME";
@@ -94,6 +99,10 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
 
     private final MeterStats deleteCount;
     private final MeterStats deleteTimeSeries;
+    private final MeterStats deleteErrorCount;
+    private final MeterStats deleteByDateCount;
+    private final MeterStats deleteByDateTimeSeries;
+    private final MeterStats deleteByDateErrorCount;
 
     private final MeterStats addRecordCount;
     private final MeterStats addRecordSizeSeries;
@@ -138,6 +147,10 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
 
         this.deleteCount = sp.getMeter(BLOB_DELETE_COUNT, StatsOptions.DEFAULT);
         this.deleteTimeSeries = sp.getMeter(BLOB_DELETE_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.deleteErrorCount = sp.getMeter(BLOB_DELETE_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.deleteByDateCount = sp.getMeter(BLOB_DELETE_BY_DATE_COUNT, StatsOptions.DEFAULT);
+        this.deleteByDateTimeSeries = sp.getMeter(BLOB_DELETE_BY_DATE_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.deleteByDateErrorCount = sp.getMeter(BLOB_DELETE_BY_DATE_ERROR_COUNT, StatsOptions.DEFAULT);
 
         this.addRecordCount = sp.getMeter(BLOB_ADD_RECORD_COUNT, StatsOptions.DEFAULT);
         this.addRecordSizeSeries = sp.getMeter(BLOB_ADD_RECORD_SIZE, StatsOptions.TIME_SERIES_ONLY);
@@ -212,6 +225,31 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public void deleteCompleted(String blobId) {
         deleteCount.mark();
         opsLogger.debug("Delete completed - {}", blobId);
+    }
+
+    @Override
+
+    public void deleteFailed() {
+        deleteErrorCount.mark();
+        opsLogger.debug("Delete failed");
+    }
+
+    @Override
+    public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) {
+        deleteByDateTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Deleted all records older than {} in {}", min, unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void deleteAllOlderThanCompleted(int deleteCount) {
+        deleteByDateCount.mark();
+        opsLogger.debug("Delete all older than completed - {} records deleted", deleteCount);
+    }
+
+    @Override
+    public void deleteAllOlderThanFailed(long min) {
+        deleteByDateErrorCount.mark();
+        opsLogger.debug("Delete all older than failed for time {}", min);
     }
 
     @Override
@@ -360,6 +398,18 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public long getAddRecordCount() { return addRecordCount.getCount(); }
 
     @Override
+    public long getDeleteCount() { return deleteCount.getCount(); }
+
+    @Override
+    public long getDeleteErrorCount() { return deleteErrorCount.getCount(); }
+
+    @Override
+    public long getDeleteByDateCount() { return deleteByDateCount.getCount(); }
+
+    @Override
+    public long getDeleteByDateErrorCount() { return deleteByDateErrorCount.getCount(); }
+
+    @Override
     public long getGetRecordCount() { return getRecordCount.getCount(); }
 
     @Override
@@ -425,14 +475,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getUploadErrorCountHistory() { return getTimeSeriesData(BLOB_UPLOAD_ERROR_COUNT, "Blob Upload Error Counts"); }
 
     @Override
-    public CompositeData getDownloadCountHistory() {
-        return getTimeSeriesData(BLOB_DOWNLOAD_COUNT, "Blob Download Counts");
-    }
-
-    @Override
-    public long getDeleteCount() {
-        return deleteCount.getCount();
-    }
+    public CompositeData getDownloadCountHistory() { return getTimeSeriesData(BLOB_DOWNLOAD_COUNT, "Blob Download Counts"); }
 
     @Override
     public CompositeData getDeleteCountHistory() {
@@ -440,9 +483,19 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     }
 
     @Override
-    public CompositeData getDeleteTimeHistory() {
-        return getTimeSeriesData(BLOB_DELETE_TIME, "Blob record deletes/sec");
-    }
+    public CompositeData getDeleteTimeHistory() { return getTimeSeriesData(BLOB_DELETE_TIME, "Blob record deletes/sec"); }
+
+    @Override
+    public CompositeData getDeleteErrorCountHistory() { return getTimeSeriesData(BLOB_DELETE_ERROR_COUNT, "Blob Delete Error Counts"); }
+
+    @Override
+    public CompositeData getDeleteByDateCountHistory() { return getTimeSeriesData(BLOB_DELETE_BY_DATE_COUNT, "Blob Delete By Date Counts"); }
+
+    @Override
+    public CompositeData getDeleteByDateTimeHistory() { return getTimeSeriesData(BLOB_DELETE_BY_DATE_TIME, "Blob Delete By Date deletes/sec"); }
+
+    @Override
+    public CompositeData getDeleteByDateErrorCountHistory() { return getTimeSeriesData(BLOB_DELETE_BY_DATE_ERROR_COUNT, "Blob Delete By Date Error Counts"); }
 
     @Override
     public CompositeData getAddRecordCountHistory() { return getTimeSeriesData(BLOB_ADD_RECORD_COUNT, "Blob Add Record Counts"); }
@@ -454,9 +507,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getAddRecordSizeHistory() { return getTimeSeriesData(BLOB_ADD_RECORD_SIZE, "Blob Add Record (bytes)"); }
 
     @Override
-    public CompositeData getAddRecordRateHistory() {
-        return TimeSeriesStatsUtil.asCompositeData(addRecordRateSeries, "Blob Add Record bytes/secs");
-    }
+    public CompositeData getAddRecordRateHistory() { return TimeSeriesStatsUtil.asCompositeData(addRecordRateSeries, "Blob Add Record bytes/secs"); }
 
     @Override
     public long getAddRecordErrorCount() { return addRecordErrorCount.getCount(); }
