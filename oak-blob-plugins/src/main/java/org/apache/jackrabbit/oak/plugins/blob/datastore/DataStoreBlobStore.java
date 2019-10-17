@@ -566,23 +566,28 @@ public class DataStoreBlobStore
 
     @Override
     public Iterator<DataRecord> getAllRecords() throws DataStoreException {
-        if (delegate instanceof SharedDataStore) {
-            return ((SharedDataStore) delegate).getAllRecords();
-        } else {
-            return Iterators.transform(delegate.getAllIdentifiers(),
-                new Function<DataIdentifier, DataRecord>() {
-                    @Nullable
-                    @Override
-                    public DataRecord apply(@Nullable DataIdentifier input) {
-                        try {
-                            return delegate.getRecord(input);
-                        } catch (DataStoreException e) {
-                            log.warn("Error occurred while fetching DataRecord for identifier {}", input, e);
-                        }
-                        return null;
-                    }
-            });
-        }
+        long start = System.nanoTime();
+
+        Iterator<DataRecord> result = delegate instanceof SharedDataStore ?
+                ((SharedDataStore) delegate).getAllRecords() :
+                Iterators.transform(delegate.getAllIdentifiers(),
+                        new Function<DataIdentifier, DataRecord>() {
+                            @Nullable
+                            @Override
+                            public DataRecord apply(@Nullable DataIdentifier input) {
+                                try {
+                                    return delegate.getRecord(input);
+                                } catch (DataStoreException e) {
+                                    log.warn("Error occurred while fetching DataRecord for identifier {}", input, e);
+                                }
+                                return null;
+                            }
+                        });
+
+        stats.getAllRecordsCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+        stats.getAllRecordsCompleted();
+
+        return result;
     }
 
     @Override

@@ -74,6 +74,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private static final String BLOB_GETRECFORID_TIME = "BLOB_GETRECFORID_TIME";
     private static final String BLOB_GETRECFORID_ERROR_COUNT = "BLOB_GETRECFORID_ERROR_COUNT";
 
+    private static final String BLOB_GETALLRECORDS_COUNT = "BLOB_GETALLRECORDS_COUNT";
+    private static final String BLOB_GETALLRECORDS_TIME = "BLOB_GETALLRECORDS_TIME";
+
 
     private final StatisticsProvider statisticsProvider;
 
@@ -111,6 +114,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats getRecordForIdCount;
     private final MeterStats getRecordForIdTimeSeries;
     private final MeterStats getRecordForIdErrorCount;
+
+    private final MeterStats getAllRecordsCount;
+    private final MeterStats getAllRecordsTimeSeries;
 
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
@@ -152,6 +158,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.getRecordForIdCount = sp.getMeter(BLOB_GETRECFORID_COUNT, StatsOptions.DEFAULT);
         this.getRecordForIdTimeSeries = sp.getMeter(BLOB_GETRECFORID_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.getRecordForIdErrorCount = sp.getMeter(BLOB_GETRECFORID_ERROR_COUNT, StatsOptions.DEFAULT);
+
+        this.getAllRecordsCount = sp.getMeter(BLOB_GETALLRECORDS_COUNT, StatsOptions.DEFAULT);
+        this.getAllRecordsTimeSeries = sp.getMeter(BLOB_GETALLRECORDS_TIME, StatsOptions.TIME_SERIES_ONLY);
     }
 
     @Override
@@ -297,6 +306,18 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         opsLogger.debug("Get record for id failed - {}", blobId);
     }
 
+    @Override
+    public void getAllRecordsCalled(long timeTaken, TimeUnit unit) {
+        getAllRecordsTimeSeries.mark(recordedTimeUnit.convert(timeTaken,unit));
+        opsLogger.debug("Get all records called - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void getAllRecordsCompleted() {
+        getAllRecordsCount.mark();
+        opsLogger.debug("Get all records completed");
+    }
+
 
     //~--------------------------------------< BlobStoreMBean >
 
@@ -362,6 +383,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public long getGetRecordForIdErrorCount() { return getRecordForIdErrorCount.getCount(); }
+
+    @Override
+    public long getGetAllRecordsCount() { return getAllRecordsCount.getCount(); }
 
     @Override
     public String blobStoreInfoAsString() {
@@ -455,6 +479,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public CompositeData getGetRecordForIdTimeHistory() { return getTimeSeriesData(BLOB_GETRECFORID_TIME, "Blob Get Record for ID per second"); }
+
+    @Override
+    public CompositeData getGetAllRecordsCountHistory() { return getTimeSeriesData(BLOB_GETALLRECORDS_COUNT, "Blob Get All Records Counts"); }
+
+    @Override
+    public CompositeData getGetAllRecordsTimeHistory() { return getTimeSeriesData(BLOB_GETALLRECORDS_TIME, "Blob Get All Records per second"); }
 
     private CompositeData getTimeSeriesData(String name, String desc){
         return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);

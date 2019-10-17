@@ -97,6 +97,12 @@ public interface BlobStatsCollector {
 
         @Override
         public void getRecordForIdFailed(String blobId) { }
+
+        @Override
+        public void getAllRecordsCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getAllRecordsCompleted() { }
     };
 
     /**
@@ -270,4 +276,17 @@ public interface BlobStatsCollector {
      * @param blobId id of the record
      */
     void getRecordForIdFailed(String blobId);
+
+    /**
+     * Called when a call to getAllRecords() is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void getAllRecordsCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to getAllRecords() is completed
+     */
+    void getAllRecordsCompleted();
 }

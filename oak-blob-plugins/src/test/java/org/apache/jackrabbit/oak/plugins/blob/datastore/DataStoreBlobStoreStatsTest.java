@@ -369,16 +369,23 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetAllRecordsStats() {
+    public void testDSBSGetAllRecordsStats() throws IOException, RepositoryException {
         // BLOB_GETALLRECS_COUNT, BLOB_GETALLRECS_TIME
 
-        // Then read the stream from one of the recs and measure:
-        // BLOB_DOWNLOAD_COUNT, BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME
-    }
+        DataStoreBlobStore dsbs = getDSBSBuilder(new DataStoreBuilder().withGetRecDelay(1000)).build();
 
-    @Test
-    public void testDSBSGetAllRecordsErrorStats() {
-        // BLOB_GETALLRECS_ERRORS
+        long getAllRecordsCount = stats.getGetAllRecordsCount();
+        long getAllRecordsCountLastMinute = sum((long[]) stats.getGetAllRecordsCountHistory().get("per second"));
+        long getAllRecordsTimeLastMinute = sum((long[]) stats.getGetAllRecordsTimeHistory().get("per second"));
+
+        dsbs.getAllRecords();
+
+        assertEquals(getAllRecordsCount + 1, stats.getGetAllRecordsCount());
+        assertEquals(getAllRecordsCountLastMinute + 1,
+                waitForMetric(input -> sum((long[])input.getGetAllRecordsCountHistory().get("per second")),
+                        stats, 1L, 0L).longValue());
+        assertTrue(getAllRecordsTimeLastMinute <
+                waitForNonzeroMetric(input -> sum((long[])input.getGetAllRecordsTimeHistory().get("per second")), stats));
     }
 
     @Test
@@ -871,6 +878,14 @@ public class DataStoreBlobStoreStatsTest {
             catch (InterruptedException e) { }
             return super.getRecordForId(identifier);
         }
+
+        Iterator<DataRecord> getAllRecordsDelayed(int delay) {
+            try {
+                Thread.sleep(delay);
+            }
+            catch (InterruptedException e) { }
+            return super.getAllRecords();
+        }
     }
 
     private static class GetRecordDelayedDataStore extends DelayableFileDataStore {
@@ -899,6 +914,11 @@ public class DataStoreBlobStoreStatsTest {
         @Override
         public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
             return getRecordForIdDelayed(identifier, delay);
+        }
+
+        @Override
+        public Iterator<DataRecord> getAllRecords() {
+            return getAllRecordsDelayed(delay);
         }
     }
 
