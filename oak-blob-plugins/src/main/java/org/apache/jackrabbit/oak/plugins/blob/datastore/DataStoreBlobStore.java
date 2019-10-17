@@ -487,7 +487,7 @@ public class DataStoreBlobStore
                 log.trace("Deleting blob [{}] with last modified date [{}] : [{}]", blobId,
                         dataRecord.getLastModified(), success);
                 if (success) {
-                    doDeleteRecord(identifier);
+                    ((MultiDataStoreAware) delegate).deleteRecord(identifier);
                     deleted.add(blobId);
                     count++;
                     if (count % 512 == 0) {
@@ -505,10 +505,6 @@ public class DataStoreBlobStore
 
         }
         return count;
-    }
-
-    void doDeleteRecord(DataIdentifier identifier) throws DataStoreException {
-        ((MultiDataStoreAware) delegate).deleteRecord(identifier);
     }
 
     @Override
@@ -686,7 +682,7 @@ public class DataStoreBlobStore
 
     //~---------------------------------------------< Internal >
 
-    InputStream getStream(String blobId) throws IOException {
+    protected InputStream getStream(String blobId) throws IOException {
         try {
             InputStream in = getDataRecord(blobId).getStream();
             if (!(in instanceof BufferedInputStream)){
@@ -721,7 +717,7 @@ public class DataStoreBlobStore
      * @param options
      * @return the value
      */
-    protected DataRecord writeStream(InputStream in, BlobOptions options) throws IOException, DataStoreException {
+    private DataRecord writeStream(InputStream in, BlobOptions options) throws IOException, DataStoreException {
         int maxMemorySize = Math.max(0, delegate.getMinRecordLength() + 1);
         byte[] buffer = new byte[maxMemorySize];
         int pos = 0, len = maxMemorySize;
