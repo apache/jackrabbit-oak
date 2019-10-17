@@ -34,6 +34,8 @@ public interface ExtendedBlobStoreStatsMBean extends BlobStoreStatsMBean {
 
     CompositeData getGetRecordForIdCountHistory();
 
+    CompositeData getGetRecordForIdErrorCountHistory();
+
     CompositeData getGetRecordForIdTimeHistory();
 
     CompositeData getGetAllRecordsCountHistory();

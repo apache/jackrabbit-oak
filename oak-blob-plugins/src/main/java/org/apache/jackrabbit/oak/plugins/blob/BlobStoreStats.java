@@ -448,6 +448,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getAddRecordCountHistory() { return getTimeSeriesData(BLOB_ADD_RECORD_COUNT, "Blob Add Record Counts"); }
 
     @Override
+    public CompositeData getAddRecordErrorCountHistory() { return getTimeSeriesData(BLOB_ADD_RECORD_ERROR_COUNT, "Blob Add Record Error Counts"); }
+
+    @Override
     public CompositeData getAddRecordSizeHistory() { return getTimeSeriesData(BLOB_ADD_RECORD_SIZE, "Blob Add Record (bytes)"); }
 
     @Override
@@ -462,10 +465,16 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getGetRecordCountHistory() { return getTimeSeriesData(BLOB_GETREC_COUNT, "Blob Get Record Counts"); }
 
     @Override
+    public CompositeData getGetRecordErrorCountHistory() { return getTimeSeriesData(BLOB_GETREC_ERROR_COUNT, "Blob Get Record Error Counts"); }
+
+    @Override
     public CompositeData getGetRecordTimeHistory() { return getTimeSeriesData(BLOB_GETREC_TIME, "Blob Get Record per second"); }
 
     @Override
     public CompositeData getGetRecordIfStoredCountHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_COUNT, "Blob Get Record If Stored Counts"); }
+
+    @Override
+    public CompositeData getGetRecordIfStoredErrorCountHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_ERROR_COUNT, "Blob Get Record If Stored Error Counts"); }
 
     @Override
     public CompositeData getGetRecordIfStoredTimeHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_TIME, "Blob Get Record If Stored per second"); }
@@ -474,10 +483,16 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getGetRecordFromReferenceCountHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_COUNT, "Blob Get Record From Reference Counts"); }
 
     @Override
+    public CompositeData getGetRecordFromReferenceErrorCountHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_ERROR_COUNT, "Blob Get Record From Reference Error Counts"); }
+
+    @Override
     public CompositeData getGetRecordFromReferenceTimeHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_TIME, "Blob Get Record From Reference per second"); }
 
     @Override
     public CompositeData getGetRecordForIdCountHistory() { return getTimeSeriesData(BLOB_GETRECFORID_COUNT, "Blob Get Record for ID Counts"); }
+
+    @Override
+    public CompositeData getGetRecordForIdErrorCountHistory() { return getTimeSeriesData(BLOB_GETRECFORID_ERROR_COUNT, "Blob Get Record for ID Error Counts"); }
 
     @Override
     public CompositeData getGetRecordForIdTimeHistory() { return getTimeSeriesData(BLOB_GETRECFORID_TIME, "Blob Get Record for ID per second"); }

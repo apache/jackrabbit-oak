@@ -79,9 +79,9 @@ public class DataStoreBlobStoreStatsTest {
 
         long downloadCount = stats.getDownloadCount();
         long downloadTotalSize = stats.getDownloadTotalSize();
-        long downloadCountLastMinute = sum((long[]) stats.getDownloadCountHistory().get("per second"));
-        long downloadAmountLastMinute = sum((long[]) stats.getDownloadSizeHistory().get("per second"));
-        long downloadTimeLastMinute = sum((long[]) stats.getDownloadRateHistory().get("per second"));
+        long downloadCountLastMinute = getLastMinuteStats(stats.getDownloadCountHistory());
+        long downloadAmountLastMinute = getLastMinuteStats(stats.getDownloadSizeHistory());
+        long downloadTimeLastMinute = getLastMinuteStats(stats.getDownloadRateHistory());
 
         byte[] buffer = new byte[BLOB_LEN];
         dsbs.readBlob(blobId, 0, buffer, 0, BLOB_LEN);
@@ -89,10 +89,10 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(downloadCount + 1, stats.getDownloadCount());
         assertEquals(downloadTotalSize + BLOB_LEN, stats.getDownloadTotalSize());
         assertEquals(downloadCountLastMinute + 1,
-                waitForMetric(input -> sum((long[])input.getDownloadCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getDownloadCountHistory()),
                         stats, 1L, 0L).longValue());
         assertEquals(downloadAmountLastMinute + BLOB_LEN,
-                waitForMetric(input -> sum((long[])input.getDownloadSizeHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getDownloadSizeHistory()),
                         stats, (long) BLOB_LEN, 0L).longValue());
         // TODO fix
 //        assertTrue(downloadTimeLastMinute <
@@ -116,19 +116,19 @@ public class DataStoreBlobStoreStatsTest {
 
         long uploadCount = stats.getUploadCount();
         long uploadTotalSize = stats.getUploadTotalSize();
-        long uploadCountLastMinute = sum((long[]) stats.getUploadCountHistory().get("per second"));
-        long uploadAmountLastMinute = sum((long[]) stats.getUploadSizeHistory().get("per second"));
-        long uploadTimeLastMinute = sum((long[]) stats.getUploadRateHistory().get("per second"));
+        long uploadCountLastMinute = getLastMinuteStats(stats.getUploadCountHistory());
+        long uploadAmountLastMinute = getLastMinuteStats(stats.getUploadSizeHistory());
+        long uploadTimeLastMinute = getLastMinuteStats(stats.getUploadRateHistory());
 
         dsbs.writeBlob(getTestInputStream());
 
         assertEquals(uploadCount + 1, stats.getUploadCount());
         assertEquals(uploadTotalSize + BLOB_LEN, stats.getUploadTotalSize());
         assertEquals(uploadCountLastMinute + 1,
-                waitForMetric(input -> sum((long[])input.getUploadCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getUploadCountHistory()),
                         stats, 1L, 0L).longValue());
         assertEquals(uploadAmountLastMinute + BLOB_LEN,
-                waitForMetric(input -> sum((long[])input.getUploadSizeHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getUploadSizeHistory()),
                         stats, (long) BLOB_LEN, 0L).longValue());
         // TODO fix
 //        assertTrue(uploadTimeLastMinute <
@@ -186,9 +186,9 @@ public class DataStoreBlobStoreStatsTest {
 
         long addRecordCount = stats.getAddRecordCount();
         long addRecordSize = stats.getAddRecordTotalSize();
-        long addRecordCountLastMinute = sum((long[]) stats.getAddRecordCountHistory().get("per second"));
-        long addRecordSizeLastMinute = sum((long[]) stats.getAddRecordSizeHistory().get("per second"));
-        long addRecordTimeLastMinute = sum((long[]) stats.getAddRecordRateHistory().get("per second"));
+        long addRecordCountLastMinute = getLastMinuteStats(stats.getAddRecordCountHistory());
+        long addRecordSizeLastMinute = getLastMinuteStats(stats.getAddRecordSizeHistory());
+        long addRecordTimeLastMinute = getLastMinuteStats(stats.getAddRecordRateHistory());
 
         dsbs.addRecord(getTestInputStream());
         dsbs.addRecord(getTestInputStream(), new BlobOptions());
@@ -196,10 +196,10 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(addRecordCount + 2, stats.getAddRecordCount());
         assertEquals(addRecordSize + BLOB_LEN*2, stats.getAddRecordTotalSize());
         assertEquals(addRecordCountLastMinute + 2,
-                waitForMetric(input -> sum((long[])input.getAddRecordCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getAddRecordCountHistory()),
                         stats, 2L, 0L).longValue());
         assertEquals(addRecordSizeLastMinute + BLOB_LEN*2,
-                waitForMetric(input -> sum((long[])input.getAddRecordSizeHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getAddRecordSizeHistory()),
                         stats, (long) BLOB_LEN*2, 0L).longValue());
         //TODO Fix this assertion
 //        assertTrue(addRecordTimeLastMinute <
@@ -213,6 +213,7 @@ public class DataStoreBlobStoreStatsTest {
         DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnAddRecord());
 
         long addRecordErrorCount = stats.getAddRecordErrorCount();
+        long addRecordErrorCountLastMinute = getLastMinuteStats(stats.getAddRecordErrorCountHistory());
 
         try { dsbs.addRecord(getTestInputStream()); }
         catch (DataStoreException e) { }
@@ -220,6 +221,9 @@ public class DataStoreBlobStoreStatsTest {
         catch (DataStoreException e) { }
 
         assertEquals(addRecordErrorCount + 2, stats.getAddRecordErrorCount());
+        assertEquals(addRecordErrorCountLastMinute + 2,
+                waitForMetric(input -> getLastMinuteStats(input.getAddRecordErrorCountHistory()),
+                        stats, 2L, 0L).longValue());
     }
 
     @Test
@@ -230,17 +234,17 @@ public class DataStoreBlobStoreStatsTest {
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecCount = stats.getGetRecordCount();
-        long getRecCountLastMinute = sum((long[])stats.getGetRecordCountHistory().get("per second"));
-        long getRecTimeLastMinute = sum((long[])stats.getGetRecordTimeHistory().get("per second"));
+        long getRecCountLastMinute = getLastMinuteStats(stats.getGetRecordCountHistory());
+        long getRecTimeLastMinute = getLastMinuteStats(stats.getGetRecordTimeHistory());
 
         dsbs.getRecord(rec.getIdentifier());
 
         assertEquals(getRecCount+1, stats.getGetRecordCount());
         assertEquals(getRecCountLastMinute,
-                waitForMetric(input -> sum((long[])input.getGetRecordCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getGetRecordCountHistory()),
                         stats, 2L, 0L).longValue());
         assertTrue(getRecTimeLastMinute <
-                waitForNonzeroMetric(input -> sum((long[])input.getGetRecordTimeHistory().get("per second")), stats));
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordTimeHistory()), stats));
     }
 
     @Test
@@ -256,11 +260,15 @@ public class DataStoreBlobStoreStatsTest {
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecErrorCount = stats.getGetRecordErrorCount();
+        long getRecErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordErrorCountHistory());
 
         try { dsbs.getRecord(rec.getIdentifier()); }
         catch (DataStoreException e) { }
 
         assertEquals(getRecErrorCount + 1, stats.getGetRecordErrorCount());
+        assertEquals(getRecErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetRecordErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
@@ -271,17 +279,17 @@ public class DataStoreBlobStoreStatsTest {
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecIfStoredCount = stats.getGetRecordIfStoredCount();
-        long getRecIfStoredCountLastMinute = sum((long[])stats.getGetRecordIfStoredCountHistory().get("per second"));
-        long getRecIfStoredTimeLastMinute = sum((long[])stats.getGetRecordIfStoredTimeHistory().get("per second"));
+        long getRecIfStoredCountLastMinute = getLastMinuteStats(stats.getGetRecordIfStoredCountHistory());
+        long getRecIfStoredTimeLastMinute = getLastMinuteStats(stats.getGetRecordIfStoredTimeHistory());
 
         dsbs.getRecordIfStored(rec.getIdentifier());
 
         assertEquals(getRecIfStoredCount + 1, stats.getGetRecordIfStoredCount());
         assertEquals(getRecIfStoredCountLastMinute + 1,
-                waitForMetric(input -> sum((long[])input.getGetRecordIfStoredCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getGetRecordIfStoredCountHistory()),
                         stats, 1L, 0L).longValue());
         assertTrue(getRecIfStoredTimeLastMinute <
-                waitForNonzeroMetric(input -> sum((long[])input.getGetRecordIfStoredTimeHistory().get("per second")), stats));
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordIfStoredTimeHistory()), stats));
     }
 
     @Test
@@ -292,11 +300,15 @@ public class DataStoreBlobStoreStatsTest {
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecIfStoredErrorCount = stats.getGetRecordIfStoredErrorCount();
+        long getRecIfStoredErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordIfStoredErrorCountHistory());
 
         try { dsbs.getRecordIfStored(rec.getIdentifier()); }
         catch (DataStoreException e) { }
 
         assertEquals(getRecIfStoredErrorCount + 1, stats.getGetRecordIfStoredErrorCount());
+        assertEquals(getRecIfStoredErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetRecordIfStoredErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
@@ -307,17 +319,17 @@ public class DataStoreBlobStoreStatsTest {
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecFromRefCount = stats.getGetRecordFromReferenceCount();
-        long getRecFromRefCountLastMinute = sum((long[])stats.getGetRecordFromReferenceCountHistory().get("per second"));
-        long getRecFromRefTimeLastMinute = sum((long[])stats.getGetRecordFromReferenceTimeHistory().get("per second"));
+        long getRecFromRefCountLastMinute = getLastMinuteStats(stats.getGetRecordFromReferenceCountHistory());
+        long getRecFromRefTimeLastMinute = getLastMinuteStats(stats.getGetRecordFromReferenceTimeHistory());
 
         dsbs.getRecordFromReference(rec.getReference());
 
         assertEquals(getRecFromRefCount + 1, stats.getGetRecordFromReferenceCount());
         assertEquals(getRecFromRefCountLastMinute + 1,
-                waitForMetric(input -> sum((long[])input.getGetRecordFromReferenceCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getGetRecordFromReferenceCountHistory()),
                         stats, 1L, 0L).longValue());
         assertTrue(getRecFromRefTimeLastMinute <
-                waitForNonzeroMetric(input -> sum((long[])input.getGetRecordFromReferenceTimeHistory().get("per second")), stats));
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordFromReferenceTimeHistory()), stats));
     }
 
     @Test
@@ -333,11 +345,15 @@ public class DataStoreBlobStoreStatsTest {
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecFromRefErrorCount = stats.getGetRecordFromReferenceErrorCount();
+        long getRecFromRefErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordFromReferenceErrorCountHistory());
 
         try { dsbs.getRecordFromReference(rec.getReference()); }
         catch (DataStoreException e) { }
 
         assertEquals(getRecFromRefErrorCount + 1, stats.getGetRecordFromReferenceErrorCount());
+        assertEquals(getRecFromRefErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetRecordFromReferenceErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
@@ -348,17 +364,17 @@ public class DataStoreBlobStoreStatsTest {
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecForIdCount = stats.getGetRecordForIdCount();
-        long getRecForIdCountLastMinute = sum((long[])stats.getGetRecordForIdCountHistory().get("per second"));
-        long getRecForIdTimeLastMinute = sum((long[])stats.getGetRecordForIdTimeHistory().get("per second"));
+        long getRecForIdCountLastMinute = getLastMinuteStats(stats.getGetRecordForIdCountHistory());
+        long getRecForIdTimeLastMinute = getLastMinuteStats(stats.getGetRecordForIdTimeHistory());
 
         dsbs.getRecordForId(rec.getIdentifier());
 
         assertEquals(getRecForIdCount + 1, stats.getGetRecordForIdCount());
         assertEquals(getRecForIdCountLastMinute + 1,
-                waitForMetric(input -> sum((long[])input.getGetRecordForIdCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getGetRecordForIdCountHistory()),
                         stats, 1L, 0L).longValue());
         assertTrue(getRecForIdTimeLastMinute <
-                waitForNonzeroMetric(input -> sum((long[])input.getGetRecordForIdTimeHistory().get("per second")), stats));
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordForIdTimeHistory()), stats));
     }
 
     @Test
@@ -374,11 +390,15 @@ public class DataStoreBlobStoreStatsTest {
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecForIdErrorCount = stats.getGetRecordForIdErrorCount();
+        long getRecForIdErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordForIdErrorCountHistory());
 
         try { dsbs.getRecordForId(rec.getIdentifier()); }
         catch (DataStoreException e) { }
 
         assertEquals(getRecForIdErrorCount + 1, stats.getGetRecordForIdErrorCount());
+        assertEquals(getRecForIdErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetRecordForIdErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
@@ -388,17 +408,17 @@ public class DataStoreBlobStoreStatsTest {
         DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
 
         long getAllRecordsCount = stats.getGetAllRecordsCount();
-        long getAllRecordsCountLastMinute = sum((long[]) stats.getGetAllRecordsCountHistory().get("per second"));
-        long getAllRecordsTimeLastMinute = sum((long[]) stats.getGetAllRecordsTimeHistory().get("per second"));
+        long getAllRecordsCountLastMinute = getLastMinuteStats(stats.getGetAllRecordsCountHistory());
+        long getAllRecordsTimeLastMinute = getLastMinuteStats(stats.getGetAllRecordsTimeHistory());
 
         dsbs.getAllRecords();
 
         assertEquals(getAllRecordsCount + 1, stats.getGetAllRecordsCount());
         assertEquals(getAllRecordsCountLastMinute + 1,
-                waitForMetric(input -> sum((long[])input.getGetAllRecordsCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getGetAllRecordsCountHistory()),
                         stats, 1L, 0L).longValue());
         assertTrue(getAllRecordsTimeLastMinute <
-                waitForNonzeroMetric(input -> sum((long[])input.getGetAllRecordsTimeHistory().get("per second")), stats));
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetAllRecordsTimeHistory()), stats));
     }
 
     @Test
@@ -411,8 +431,8 @@ public class DataStoreBlobStoreStatsTest {
         long modifiedBefore = Instant.now().plusSeconds(86400).toEpochMilli();
 
         long deleteCount = stats.getDeleteCount();
-        long deleteCountLastMinute = sum((long[]) stats.getDeleteCountHistory().get("per second"));
-        long deleteTimeLastMinute = sum((long[]) stats.getDeleteTimeHistory().get("per second"));
+        long deleteCountLastMinute = getLastMinuteStats(stats.getDeleteCountHistory());
+        long deleteTimeLastMinute = getLastMinuteStats(stats.getDeleteTimeHistory());
 
         assertTrue(idInDsbs(record.getIdentifier(), dsbs));
         assertTrue(dsbs.deleteChunks(chunkIds, modifiedBefore));
@@ -420,10 +440,10 @@ public class DataStoreBlobStoreStatsTest {
 
         assertEquals(deleteCount+1, stats.getDeleteCount());
         assertEquals(deleteCountLastMinute+1,
-                waitForMetric(input -> sum((long[])input.getDeleteCountHistory().get("per second")),
+                waitForMetric(input -> getLastMinuteStats(input.getDeleteCountHistory()),
                         stats, 1L, 0L).longValue());
         assertTrue(deleteTimeLastMinute <
-                waitForNonzeroMetric(input -> sum((long[])input.getDeleteTimeHistory().get("per second")), stats));
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getDeleteTimeHistory()), stats));
     }
 
     @Test

@@ -85,17 +85,25 @@ public interface BlobStoreStatsMBean {
 
     CompositeData getAddRecordCountHistory();
 
+    CompositeData getAddRecordErrorCountHistory();
+
     CompositeData getAddRecordRateHistory();
 
     CompositeData getGetRecordCountHistory();
+
+    CompositeData getGetRecordErrorCountHistory();
 
     CompositeData getGetRecordTimeHistory();
 
     CompositeData getGetRecordIfStoredCountHistory();
 
+    CompositeData getGetRecordIfStoredErrorCountHistory();
+
     CompositeData getGetRecordIfStoredTimeHistory();
 
     CompositeData getGetRecordFromReferenceCountHistory();
+
+    CompositeData getGetRecordFromReferenceErrorCountHistory();
 
     CompositeData getGetRecordFromReferenceTimeHistory();
 }
