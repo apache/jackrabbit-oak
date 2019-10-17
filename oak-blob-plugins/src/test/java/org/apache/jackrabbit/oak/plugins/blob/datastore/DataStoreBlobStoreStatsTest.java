@@ -36,6 +36,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 
 import javax.jcr.RepositoryException;
+import javax.management.openmbean.CompositeData;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -72,7 +73,7 @@ public class DataStoreBlobStoreStatsTest {
 
     @Test
     public void testDSBSReadBlobStats() throws IOException, RepositoryException {
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay(1000));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
 
         String blobId = dsbs.writeBlob(getTestInputStream());
 
@@ -111,7 +112,7 @@ public class DataStoreBlobStoreStatsTest {
 
     @Test
     public void testDSBSWriteBlobStats() throws IOException, RepositoryException {
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay(1000));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay());
 
         long uploadCount = stats.getUploadCount();
         long uploadTotalSize = stats.getUploadTotalSize();
@@ -138,9 +139,10 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSWriteBlobErrorStats() throws IOException, RepositoryException {
         // BLOB_UPLOAD_ERROR_COUNT
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnAddRecord(true));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnAddRecord());
 
         long writeBlobErrorCount = stats.getUploadErrorCount();
+        long writeBlobErrorsLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
 
         try { dsbs.writeBlob(getTestInputStream()); }
         catch (IOException e) { }
@@ -156,6 +158,9 @@ public class DataStoreBlobStoreStatsTest {
         catch (IOException e) { }
 
         assertEquals(writeBlobErrorCount + 3, stats.getUploadErrorCount());
+        assertEquals(writeBlobErrorsLastMinute + 3,
+                waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
+                        stats, 3L, 0L).longValue());
     }
 
     @Test
@@ -177,7 +182,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSAddRecordStats() throws IOException, RepositoryException {
         // BLOB_ADD_RECORD_COUNT, BLOB_ADD_RECORD_SIZE, BLOB_ADD_RECORD_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay(1000));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay());
 
         long addRecordCount = stats.getAddRecordCount();
         long addRecordSize = stats.getAddRecordTotalSize();
@@ -205,7 +210,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSAddRecordErrorStats() throws IOException, RepositoryException {
         // BLOB_ADD_RECORD_ERRORS
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnAddRecord(true));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnAddRecord());
 
         long addRecordErrorCount = stats.getAddRecordErrorCount();
 
@@ -221,7 +226,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordStats() throws IOException, RepositoryException {
         // BLOB_GETREC_COUNT, BLOB_GETREC_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withGetRecordDelay(1000));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecCount = stats.getGetRecordCount();
@@ -247,7 +252,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordErrorStats() throws IOException, RepositoryException {
         // BLOB_GETREC_ERRORS
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord(true));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecErrorCount = stats.getGetRecordErrorCount();
@@ -262,7 +267,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordIfStoredStats() throws IOException, RepositoryException {
         // BLOB_GETRECIFSTORED_COUNT, BLOB_GETRECIFSTORED_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withGetRecordDelay(1000));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecIfStoredCount = stats.getGetRecordIfStoredCount();
@@ -283,7 +288,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordIfStoredErrorStats() throws IOException, RepositoryException {
         // BLOB_GETRECIFSTORED_ERRORS
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord(true));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecIfStoredErrorCount = stats.getGetRecordIfStoredErrorCount();
@@ -298,7 +303,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordByReferenceStats() throws IOException, RepositoryException {
         // BLOB_GETRECBYREF_COUNT, BLOB_GET_RECBYREF_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withGetRecordDelay(1000));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecFromRefCount = stats.getGetRecordFromReferenceCount();
@@ -324,7 +329,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordByReferenceErrorStats() throws IOException, RepositoryException {
         // BLOB_GETRECBYREF_ERRORS
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord(true));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecFromRefErrorCount = stats.getGetRecordFromReferenceErrorCount();
@@ -339,7 +344,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordForIdStats() throws IOException, RepositoryException {
         // BLOB_GETRECFORID_COUNT, BLOB_GETRECFORID_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withGetRecordDelay(1000));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecForIdCount = stats.getGetRecordForIdCount();
@@ -365,7 +370,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordForIdErrorStats() throws IOException, RepositoryException {
         // BLOB_GETRECFORID_ERRORS
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord(true));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecForIdErrorCount = stats.getGetRecordForIdErrorCount();
@@ -380,7 +385,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetAllRecordsStats() throws IOException, RepositoryException {
         // BLOB_GETALLRECS_COUNT, BLOB_GETALLRECS_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withGetRecordDelay(1000));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
 
         long getAllRecordsCount = stats.getGetAllRecordsCount();
         long getAllRecordsCountLastMinute = sum((long[]) stats.getGetAllRecordsCountHistory().get("per second"));
@@ -591,6 +596,10 @@ public class DataStoreBlobStoreStatsTest {
         return result;
     }
 
+    private long getLastMinuteStats(CompositeData data) {
+        return sum((long[]) data.get("per second"));
+    }
+
     private <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue) {
         return waitForMetric(f, input, expected, defaultValue, 100, 1000);
     }
@@ -660,14 +669,21 @@ public class DataStoreBlobStoreStatsTest {
         private int readDelay = 0;
         private int writeDelay = 0;
         private int deleteRecordDelay = 0;
-        private int getRecordDelay = 0;
 
         private boolean generateErrorOnAddRecord = false;
         private boolean generateErrorOnGetRecord = false;
 
+        DataStoreBuilder withReadDelay() {
+            return withReadDelay(1000);
+        }
+
         DataStoreBuilder withReadDelay(int delay) {
             readDelay = delay;
             return this;
+        }
+
+        DataStoreBuilder withWriteDelay() {
+            return withWriteDelay(1000);
         }
 
         DataStoreBuilder withWriteDelay(int delay) {
@@ -675,206 +691,208 @@ public class DataStoreBlobStoreStatsTest {
             return this;
         }
 
+        DataStoreBuilder withDeleteRecordDelay() {
+            return withDeleteRecordDelay(1000);
+        }
+
         DataStoreBuilder withDeleteRecordDelay(int delay) {
             deleteRecordDelay = delay;
             return this;
         }
 
-        DataStoreBuilder withGetRecordDelay(int delay) {
-            getRecordDelay = delay;
+        DataStoreBuilder withErrorOnGetRecord() {
+            return withErrorOnGetRecord(true).withReadDelay(1000);
+        }
+
+        DataStoreBuilder withErrorOnGetRecord(boolean withError) {
+            generateErrorOnGetRecord = withError;
             return this;
         }
 
-        DataStoreBuilder withErrorOnAddRecord(boolean doError) {
-            generateErrorOnAddRecord = doError;
-            return this;
+        DataStoreBuilder withErrorOnAddRecord() {
+            return withErrorOnAddRecord(true).withWriteDelay(1000);
         }
 
-        DataStoreBuilder withErrorOnGetRecord(boolean doError) {
-            generateErrorOnGetRecord = doError;
+        DataStoreBuilder withErrorOnAddRecord(boolean withError) {
+            generateErrorOnAddRecord = withError;
             return this;
         }
 
         OakFileDataStore build() {
             if (readDelay > 0) {
-                return new ReadDelayedDataStore(readDelay);
+                return generateErrorOnGetRecord ?
+                        new GetRecordErrorDataStore(readDelay) :
+                        new ReadDelayedDataStore(readDelay);
             }
             else if (writeDelay > 0) {
-                return new WriteDelayedDataStore(writeDelay);
+                return generateErrorOnAddRecord ?
+                        new AddRecordErrorDataStore(writeDelay) :
+                        new WriteDelayedDataStore(writeDelay);
             }
             else if (deleteRecordDelay > 0) {
                 return new DeleteRecordDelayedDataStore(deleteRecordDelay);
-            }
-            else if (getRecordDelay > 0) {
-                return new GetRecordDelayedDataStore(getRecordDelay);
-            }
-            else if (generateErrorOnAddRecord) {
-                return new AddRecordErrorDataStore();
-            }
-            else if (generateErrorOnGetRecord) {
-                return new GetRecordErrorDataStore();
             }
             return new OakFileDataStore();
         }
     }
 
-    private static class DelayableFileDataStore extends OakFileDataStore {
+    private static class TestableFileDataStore extends OakFileDataStore {
         private int delay;
+        private boolean withError;
+        private DataStoreException ex = new DataStoreException("Test-generated Exception");
 
-        DelayableFileDataStore(int delay) {
+        TestableFileDataStore(int delay) {
+            this(delay, false);
+        }
+
+        TestableFileDataStore(int delay, boolean withError) {
             super();
             this.delay = delay;
+            this.withError = withError;
         }
 
         private void delay() {
-            try { Thread.sleep(delay); } catch (InterruptedException e) { }
+            if (delay > 0) {
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                }
+            }
         }
 
-        DataRecord addRecordDelayed(InputStream is) throws DataStoreException {
+        private void err() throws DataStoreException {
+            if (withError) throw ex;
+        }
+
+        DataRecord _addRec(InputStream is) throws DataStoreException {
             delay();
+            err();
             return super.addRecord(is);
         }
 
-        void deleteRecordDelayed(DataIdentifier identifier) throws DataStoreException {
+        void _delRec(DataIdentifier identifier) throws DataStoreException {
             delay();
+            err();
             super.deleteRecord(identifier);
         }
 
-        DataRecord getRecordDelayed(DataIdentifier identifier) throws DataStoreException {
+        DataRecord _getRec(DataIdentifier identifier) throws DataStoreException {
             delay();
+            err();
             return super.getRecord(identifier);
         }
 
-        DataRecord getRecordIfStoredDelayed(DataIdentifier identifier) throws DataStoreException {
+        DataRecord _getRecIfStored(DataIdentifier identifier) throws DataStoreException {
             delay();
+            err();
             return super.getRecordIfStored(identifier);
         }
 
-        DataRecord getRecordFromReferenceDelayed(String reference) throws DataStoreException {
+        DataRecord _getRecFromRef(String reference) throws DataStoreException {
             delay();
+            err();
             return super.getRecordFromReference(reference);
         }
 
-        DataRecord getRecordForIdDelayed(DataIdentifier identifier) throws DataStoreException {
+        DataRecord _getRecForId(DataIdentifier identifier) throws DataStoreException {
             delay();
+            err();
             return super.getRecordForId(identifier);
         }
 
-        Iterator<DataRecord> getAllRecordsDelayed() {
+        Iterator<DataRecord> _getAllRecs() {
             delay();
             return super.getAllRecords();
         }
     }
 
-    private static class ReadDelayedDataStore extends DelayableFileDataStore {
+    private static class ReadDelayedDataStore extends TestableFileDataStore {
         ReadDelayedDataStore(int delay) {
             super(delay);
         }
 
         @Override
         public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-            return getRecordDelayed(identifier);
+            return _getRec(identifier);
+        }
+
+        @Override
+        public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
+            return _getRecIfStored(identifier);
+        }
+
+        @Override
+        public DataRecord getRecordFromReference(String reference) throws DataStoreException {
+            return _getRecFromRef(reference);
+        }
+
+        @Override
+        public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
+            return _getRecForId(identifier);
+        }
+
+        @Override
+        public Iterator<DataRecord> getAllRecords() {
+            return _getAllRecs();
         }
     }
 
-    private static class WriteDelayedDataStore extends DelayableFileDataStore {
+    private static class WriteDelayedDataStore extends TestableFileDataStore {
         WriteDelayedDataStore(int delay) {
             super(delay);
         }
+
+        @Override
+        public DataRecord addRecord(InputStream is) throws DataStoreException {
+            return _addRec(is);
+        }
     }
 
-    private static class DeleteRecordDelayedDataStore extends DelayableFileDataStore {
+    private static class DeleteRecordDelayedDataStore extends TestableFileDataStore {
         DeleteRecordDelayedDataStore(int delay) {
             super(delay);
         }
 
         @Override
         public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
-            deleteRecordDelayed(identifier);
+            _delRec(identifier);
         }
     }
 
-    private static class GetRecordDelayedDataStore extends DelayableFileDataStore {
-        GetRecordDelayedDataStore(int delay) {
-            super(delay);
+    private static class AddRecordErrorDataStore extends TestableFileDataStore {
+        AddRecordErrorDataStore(int delay) {
+            super(delay, true);
         }
 
-        @Override
-        public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-            return getRecordDelayed(identifier);
-        }
-
-        @Override
-        public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
-            return getRecordIfStoredDelayed(identifier);
-        }
-
-        @Override
-        public DataRecord getRecordFromReference(String reference) throws DataStoreException {
-            return getRecordFromReferenceDelayed(reference);
-        }
-
-        @Override
-        public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
-            return getRecordForIdDelayed(identifier);
-        }
-
-        @Override
-        public Iterator<DataRecord> getAllRecords() {
-            return getAllRecordsDelayed();
-        }
-    }
-
-    private static class ErrorGeneratingFileDataStore extends OakFileDataStore {
-        private DataStoreException ex = new DataStoreException("Test-generated exception");
-
-        DataRecord addRecordWithError(InputStream is) throws DataStoreException {
-            throw ex;
-        }
-
-        DataRecord getRecordWithError(DataIdentifier identifier) throws DataStoreException {
-            throw ex;
-        }
-
-        DataRecord getRecordIfStoredWithError(DataIdentifier identifier) throws DataStoreException {
-            throw ex;
-        }
-
-        DataRecord getRecordFromReferenceWithError(String reference) throws DataStoreException {
-            throw ex;
-        }
-
-        DataRecord getRecordForIdWithError(DataIdentifier identifier) throws DataStoreException {
-            throw ex;
-        }
-    }
-
-    private static class AddRecordErrorDataStore extends ErrorGeneratingFileDataStore {
         @Override
         public DataRecord addRecord(InputStream is) throws DataStoreException {
-            return addRecordWithError(is);
+            return _addRec(is);
         }
     }
 
-    private static class GetRecordErrorDataStore extends ErrorGeneratingFileDataStore {
+    private static class GetRecordErrorDataStore extends TestableFileDataStore {
+        GetRecordErrorDataStore(int delay) {
+            super(delay, true);
+        }
+
         @Override
         public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-            return getRecordWithError(identifier);
+            return _getRec(identifier);
         }
 
         @Override
         public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
-            return getRecordIfStoredWithError(identifier);
+            return _getRecIfStored(identifier);
         }
 
         @Override
         public DataRecord getRecordFromReference(String reference) throws DataStoreException {
-            return getRecordFromReferenceWithError(reference);
+            return _getRecFromRef(reference);
         }
 
         @Override
         public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
-            return getRecordForIdWithError(identifier);
+            return _getRecForId(identifier);
         }
     }
 }

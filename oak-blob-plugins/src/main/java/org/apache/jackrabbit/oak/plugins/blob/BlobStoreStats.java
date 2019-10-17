@@ -422,6 +422,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     }
 
     @Override
+    public CompositeData getUploadErrorCountHistory() { return getTimeSeriesData(BLOB_UPLOAD_ERROR_COUNT, "Blob Upload Error Counts"); }
+
+    @Override
     public CompositeData getDownloadCountHistory() {
         return getTimeSeriesData(BLOB_DOWNLOAD_COUNT, "Blob Download Counts");
     }

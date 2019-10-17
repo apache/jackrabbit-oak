@@ -73,6 +73,8 @@ public interface BlobStoreStatsMBean {
 
     CompositeData getUploadCountHistory();
 
+    CompositeData getUploadErrorCountHistory();
+
     CompositeData getDownloadCountHistory();
 
     CompositeData getDeleteCountHistory();
