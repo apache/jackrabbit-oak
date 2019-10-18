@@ -67,6 +67,10 @@ public interface BlobStoreStatsMBean {
 
     long getGetRecordFromReferenceErrorCount();
 
+    long getListIdsCount();
+
+    long getListIdsErrorCount();
+
     String blobStoreInfoAsString();
 
     CompositeData getUploadSizeHistory();
@@ -120,4 +124,10 @@ public interface BlobStoreStatsMBean {
     CompositeData getGetRecordFromReferenceErrorCountHistory();
 
     CompositeData getGetRecordFromReferenceTimeHistory();
+
+    CompositeData getListIdsCountHistory();
+
+    CompositeData getListIdsTimeHistory();
+
+    CompositeData getListIdsErrorCountHistory();
 }

@@ -620,6 +620,15 @@ public abstract class AbstractBlobStoreTest {
         @Override
         public void getRecordFromReferenceFailed(String reference) { }
 
+        @Override
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getAllIdentifiersCompleted() { }
+
+        @Override
+        public void getAllIdentifiersFailed() { }
+
         void reset(){
             size = 0;
             downloadCount = 0;

@@ -252,7 +252,20 @@ public class DataStoreBlobStore
 
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return delegate.getAllIdentifiers();
+        try {
+            long start = System.nanoTime();
+
+            Iterator<DataIdentifier> allIdentifiersIterator = delegate.getAllIdentifiers();
+
+            stats.getAllIdentifiersCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            stats.getAllIdentifiersCompleted();
+
+            return allIdentifiersIterator;
+        }
+        catch (Exception e) {
+            stats.getAllIdentifiersFailed();
+            throw e;
+        }
     }
 
     @Override

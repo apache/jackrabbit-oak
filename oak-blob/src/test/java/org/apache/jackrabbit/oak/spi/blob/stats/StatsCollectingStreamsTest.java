@@ -135,5 +135,14 @@ public class StatsCollectingStreamsTest {
 
         @Override
         public void getRecordFromReferenceFailed(String reference) { }
+
+        @Override
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getAllIdentifiersCompleted() { }
+
+        @Override
+        public void getAllIdentifiersFailed() { }
     }
 }

@@ -109,6 +109,15 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
 
         @Override
         public void getAllRecordsCompleted() { }
+
+        @Override
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getAllIdentifiersCompleted() { }
+
+        @Override
+        public void getAllIdentifiersFailed() { }
     };
 
 

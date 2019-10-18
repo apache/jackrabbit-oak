@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -100,6 +101,15 @@ public interface BlobStatsCollector {
 
         @Override
         public void getRecordFromReferenceFailed(String reference) { }
+
+        @Override
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getAllIdentifiersCompleted() { }
+
+        @Override
+        public void getAllIdentifiersFailed() { }
     };
 
     /**
@@ -279,4 +289,22 @@ public interface BlobStatsCollector {
      * @param reference reference of the record
      */
     void getRecordFromReferenceFailed(String reference);
+
+    /**
+     * Called when {@link DataStore#getAllIdentifiers()} is called.
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void getAllIdentifiersCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when {@link DataStore#getAllIdentifiers()} is completed.
+     */
+    void getAllIdentifiersCompleted();
+
+    /**
+     * Called when {@link DataStore#getAllIdentifiers()} fails.
+     */
+    void getAllIdentifiersFailed();
 }

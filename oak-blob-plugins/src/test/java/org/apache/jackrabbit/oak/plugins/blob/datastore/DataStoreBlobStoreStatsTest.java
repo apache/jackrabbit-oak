@@ -516,13 +516,44 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSListIdsStats() {
+    public void testDSBSListIdsStats() throws IOException, RepositoryException {
         // BLOB_LISTIDS_COUNT, BLOB_LISTIDS_TIME
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withListIdsDelay());
+
+        long listIdsCount = stats.getListIdsCount();
+        long listIdsCountLastMinute = getLastMinuteStats(stats.getListIdsCountHistory());
+        long listIdsTimeLastMinute = getLastMinuteStats(stats.getListIdsTimeHistory());
+
+        dsbs.getAllIdentifiers();
+
+        assertEquals(listIdsCount + 1, stats.getListIdsCount());
+        assertEquals(listIdsCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getListIdsCountHistory()),
+                        stats, 1L, 0L).longValue());
+        // TODO fix
+//        assertTrue(listIdsTimeLastMinute >
+//                waitForNonzeroMetric(input -> getLastMinuteStats(input.getListIdsTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSListIdsErrorStats() {
+    public void testDSBSListIdsErrorStats() throws IOException, RepositoryException {
         // BLOB_LISTIDS_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnListIds());
+
+        long listIdsErrorCount = stats.getListIdsErrorCount();
+        long listIdsErrorCountLastMinute = getLastMinuteStats(stats.getListIdsErrorCountHistory());
+
+        try {
+            dsbs.getAllIdentifiers();
+        }
+        catch (Exception e) { }
+
+        assertEquals(listIdsErrorCount + 1, stats.getListIdsErrorCount());
+        assertEquals(listIdsErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getListIdsErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
@@ -744,16 +775,20 @@ public class DataStoreBlobStoreStatsTest {
 
 
     private static class DataStoreBuilder {
+        private static final int DELAY_DEFAULT = 1000;
+
         private int readDelay = 0;
         private int writeDelay = 0;
         private int deleteRecordDelay = 0;
+        private int listIdsDelay = 0;
 
         private boolean generateErrorOnAddRecord = false;
         private boolean generateErrorOnGetRecord = false;
         private boolean generateErrorOnDeleteRecord = false;
+        private boolean generateErrorOnListIds = false;
 
         DataStoreBuilder withReadDelay() {
-            return withReadDelay(1000);
+            return withReadDelay(DELAY_DEFAULT);
         }
 
         DataStoreBuilder withReadDelay(int delay) {
@@ -762,7 +797,7 @@ public class DataStoreBlobStoreStatsTest {
         }
 
         DataStoreBuilder withWriteDelay() {
-            return withWriteDelay(1000);
+            return withWriteDelay(DELAY_DEFAULT);
         }
 
         DataStoreBuilder withWriteDelay(int delay) {
@@ -771,7 +806,7 @@ public class DataStoreBlobStoreStatsTest {
         }
 
         DataStoreBuilder withDeleteRecordDelay() {
-            return withDeleteRecordDelay(1000);
+            return withDeleteRecordDelay(DELAY_DEFAULT);
         }
 
         DataStoreBuilder withDeleteRecordDelay(int delay) {
@@ -779,8 +814,17 @@ public class DataStoreBlobStoreStatsTest {
             return this;
         }
 
+        DataStoreBuilder withListIdsDelay() {
+            return withListIdsDelay(DELAY_DEFAULT);
+        }
+
+        DataStoreBuilder withListIdsDelay(int delay) {
+            listIdsDelay = delay;
+            return this;
+        }
+
         DataStoreBuilder withErrorOnGetRecord() {
-            return withErrorOnGetRecord(true).withReadDelay(1000);
+            return withErrorOnGetRecord(true).withReadDelay(DELAY_DEFAULT);
         }
 
         DataStoreBuilder withErrorOnGetRecord(boolean withError) {
@@ -789,7 +833,7 @@ public class DataStoreBlobStoreStatsTest {
         }
 
         DataStoreBuilder withErrorOnAddRecord() {
-            return withErrorOnAddRecord(true).withWriteDelay(1000);
+            return withErrorOnAddRecord(true).withWriteDelay(DELAY_DEFAULT);
         }
 
         DataStoreBuilder withErrorOnAddRecord(boolean withError) {
@@ -798,11 +842,20 @@ public class DataStoreBlobStoreStatsTest {
         }
 
         DataStoreBuilder withErrorOnDeleteRecord() {
-            return withErrorOnDeleteRecord(true).withDeleteRecordDelay(1000);
+            return withErrorOnDeleteRecord(true).withDeleteRecordDelay(DELAY_DEFAULT);
         }
 
         DataStoreBuilder withErrorOnDeleteRecord(boolean withError) {
             generateErrorOnDeleteRecord = withError;
+            return this;
+        }
+
+        DataStoreBuilder withErrorOnListIds() {
+            return withErrorOnListIds(true).withListIdsDelay(DELAY_DEFAULT);
+        }
+
+        DataStoreBuilder withErrorOnListIds(boolean withError) {
+            generateErrorOnListIds = withError;
             return this;
         }
 
@@ -822,6 +875,11 @@ public class DataStoreBlobStoreStatsTest {
                         new DeleteRecordErrorDataStore(deleteRecordDelay) :
                         new DeleteRecordDelayedDataStore(deleteRecordDelay);
             }
+            else if (listIdsDelay > 0) {
+                return generateErrorOnListIds ?
+                        new ListIdsErrorDataStore(listIdsDelay) :
+                        new ListIdsDelayedDataStore(listIdsDelay);
+            }
             return new OakFileDataStore();
         }
     }
@@ -829,7 +887,7 @@ public class DataStoreBlobStoreStatsTest {
     private static class TestableFileDataStore extends OakFileDataStore {
         private int delay;
         private boolean withError;
-        private DataStoreException ex = new DataStoreException("Test-generated Exception");
+        protected DataStoreException ex = new DataStoreException("Test-generated Exception");
 
         TestableFileDataStore(int delay) {
             this(delay, false);
@@ -900,6 +958,12 @@ public class DataStoreBlobStoreStatsTest {
             delay();
             return super.getAllRecords();
         }
+
+        Iterator<DataIdentifier> _getAllIdentifiers() throws DataStoreException {
+            delay();
+            err();
+            return super.getAllIdentifiers();
+        }
     }
 
     private static class ReadDelayedDataStore extends TestableFileDataStore {
@@ -955,6 +1019,22 @@ public class DataStoreBlobStoreStatsTest {
         }
     }
 
+    private static class ListIdsDelayedDataStore extends TestableFileDataStore {
+        ListIdsDelayedDataStore(int delay) {
+            super(delay);
+        }
+
+        @Override
+        public Iterator<DataIdentifier> getAllIdentifiers() {
+            try {
+                return _getAllIdentifiers();
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     private static class AddRecordErrorDataStore extends TestableFileDataStore {
         AddRecordErrorDataStore(int delay) {
             super(delay, true);
@@ -1006,6 +1086,22 @@ public class DataStoreBlobStoreStatsTest {
         public int deleteAllOlderThan(long min) {
             try {
                 return _delAllOlderThan(min);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static class ListIdsErrorDataStore extends TestableFileDataStore {
+        ListIdsErrorDataStore(int delay) {
+            super(delay, true);
+        }
+
+        @Override
+        public Iterator<DataIdentifier> getAllIdentifiers() {
+            try {
+                return _getAllIdentifiers();
             }
             catch (DataStoreException e) {
                 throw new RuntimeException(e);
