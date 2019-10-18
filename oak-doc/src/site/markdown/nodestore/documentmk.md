@@ -541,18 +541,18 @@ The term "split document" is used as a synonym for "previous document". The
 most commonly used types are (`_sdType` in parentheses):
 
  * DEFAULT(10): contains all kinds of changes and commit information.
- * INTERMEDIATE(30): an intermediate document that creates a tree of split documents.
+ * INTERMEDIATE(40): an intermediate document that creates a tree of split documents.
  * DEFAULT_LEAF(50): contains changes from nodes that were leafs in the node tree.
  * COMMIT_ROOT_ONLY(60): contains only changes where the commit root was not on the document itself.
  * DEFAULT_NO_BRANCH(70): contains all kind of changes and commit information, except from branches.
 
-The Revision Garbage Collection will only collect `_sdType` with values 30, 50,
+The Revision Garbage Collection will only collect `_sdType` with values 40, 50,
 60 and 70 when the previous documents are older than 24 hours (this is
 configurable). Previous documents of `_sdType` 10 are currently kept forever.
 
 Over time the main document will accumulate reference to previous documents. To
 prevent unlimited growth of the main document, the DocumentNodeStore will also
-move `_prev` entries to a new previous document of type INTERMEDIATE(30). This
+move `_prev` entries to a new previous document of type INTERMEDIATE(40). This
 happens whenever there are 10 `_prev` entries for a clusterId with the same
 height. The first intermediate previous document is therefore created when
 ten previous documents with height 0 exist.
