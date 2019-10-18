@@ -32,6 +32,18 @@ public interface ExtendedBlobStoreStatsMBean extends BlobStoreStatsMBean {
 
     long getGetAllRecordsCount();
 
+    long getInitBlobUploadCount();
+
+    long getInitBlobUploadErrorCount();
+
+    long getCompleteBlobUploadCount();
+
+    long getCompleteBlobUploadErrorCount();
+
+    long getGetBlobDownloadURICount();
+
+    long getGetBlobDownloadURIErrorCount();
+
     CompositeData getGetRecordForIdCountHistory();
 
     CompositeData getGetRecordForIdErrorCountHistory();
@@ -41,4 +53,22 @@ public interface ExtendedBlobStoreStatsMBean extends BlobStoreStatsMBean {
     CompositeData getGetAllRecordsCountHistory();
 
     CompositeData getGetAllRecordsTimeHistory();
+
+    CompositeData getInitBlobUploadCountHistory();
+
+    CompositeData getInitBlobUploadTimeHistory();
+
+    CompositeData getInitBlobUploadErrorCountHistory();
+
+    CompositeData getCompleteBlobUploadCountHistory();
+
+    CompositeData getCompleteBlobUploadTimeHistory();
+
+    CompositeData getCompleteBlobUploadErrorCountHistory();
+
+    CompositeData getGetBlobDownloadURICountHistory();
+
+    CompositeData getGetBlobDownloadURITimeHistory();
+
+    CompositeData getGetBlobDownloadURIErrorCountHistory();
 }

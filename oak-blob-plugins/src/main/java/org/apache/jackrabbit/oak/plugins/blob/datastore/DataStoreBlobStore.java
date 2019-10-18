@@ -797,12 +797,24 @@ public class DataStoreBlobStore
             throws IllegalArgumentException {
         if (delegate instanceof DataRecordAccessProvider) {
             try {
+                long start = System.nanoTime();
+
                 DataRecordAccessProvider provider = (DataRecordAccessProvider) this.delegate;
 
                 DataRecordUpload upload = provider.initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+
                 if (upload == null) {
+                    if (stats instanceof ExtendedBlobStatsCollector) {
+                        ((ExtendedBlobStatsCollector) stats).initiateBlobUploadFailed();
+                    }
                     return null;
                 }
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).initiateBlobUpload(System.nanoTime() - start, TimeUnit.NANOSECONDS, maxUploadSizeInBytes, maxNumberOfURIs);
+                    ((ExtendedBlobStatsCollector) stats).initiateBlobUploadCompleted();
+                }
+
                 return new BlobUpload() {
                     @Override
                     @NotNull
@@ -828,8 +840,20 @@ public class DataStoreBlobStore
                 };
             }
             catch (DataRecordUploadException e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).initiateBlobUploadFailed();
+                }
                 log.warn("Unable to initiate direct upload", e);
             }
+            catch (IllegalArgumentException e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).initiateBlobUploadFailed();
+                }
+                throw e;
+            }
+        }
+        else if (stats instanceof ExtendedBlobStatsCollector) {
+            ((ExtendedBlobStatsCollector) stats).initiateBlobUploadFailed();
         }
         return null;
     }
@@ -839,14 +863,34 @@ public class DataStoreBlobStore
     public Blob completeBlobUpload(@NotNull String uploadToken) throws IllegalArgumentException {
         if (delegate instanceof DataRecordAccessProvider) {
             try {
+                long start = System.nanoTime();
+
                 DataRecord record = ((DataRecordAccessProvider) delegate).completeDataRecordUpload(uploadToken);
                 String id = getBlobId(record);
                 updateTracker(id);
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).completeBlobUpload(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    ((ExtendedBlobStatsCollector) stats).completeBlobUploadCompleted(id);
+                }
+
                 return new BlobStoreBlob(this, id);
             }
             catch (DataStoreException | DataRecordUploadException e) {
                 log.warn("Unable to complete direct upload for upload token {}", uploadToken, e);
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).completeBlobUploadFailed();
+                }
             }
+            catch (IllegalArgumentException e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).completeBlobUploadFailed();
+                }
+                throw e;
+            }
+        }
+        else if (stats instanceof ExtendedBlobStatsCollector) {
+            ((ExtendedBlobStatsCollector) stats).completeBlobUploadFailed();
         }
         return null;
     }
@@ -855,13 +899,31 @@ public class DataStoreBlobStore
     @Override
     public URI getDownloadURI(@NotNull Blob blob, @NotNull BlobDownloadOptions downloadOptions) {
         if (delegate instanceof DataRecordAccessProvider) {
+            long start = System.nanoTime();
+
             String blobId = blob.getContentIdentity();
             if (blobId != null) {
-                return ((DataRecordAccessProvider) delegate).getDownloadURI(
-                        new DataIdentifier(extractBlobId(blobId)),
+                String extractedBlobId = extractBlobId(blobId);
+                URI uri = ((DataRecordAccessProvider) delegate).getDownloadURI(
+                        new DataIdentifier(extractedBlobId),
                         DataRecordDownloadOptions.fromBlobDownloadOptions(downloadOptions)
                 );
+
+                if (null != uri) {
+                    if (stats instanceof ExtendedBlobStatsCollector) {
+                        ((ExtendedBlobStatsCollector) stats).getDownloadURICalled(System.nanoTime() - start, TimeUnit.NANOSECONDS, extractedBlobId);
+                        ((ExtendedBlobStatsCollector) stats).getDownloadURICompleted(uri.toString());
+                    }
+                }
+                else if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).getDownloadURIFailed();
+                }
+
+                return uri;
             }
+        }
+        else if (stats instanceof ExtendedBlobStatsCollector) {
+            ((ExtendedBlobStatsCollector) stats).getDownloadURIFailed();
         }
         return null;
     }

@@ -85,6 +85,17 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     private static final String BLOB_LISTIDS_TIME = "BLOB_LISTIDS_TIME";
     private static final String BLOB_LISTIDS_ERROR_COUNT = "BLOB_LISTIDS_ERROR_COUNT";
 
+    private static final String BLOB_INIT_DIRECT_UPLOAD_COUNT = "BLOB_INIT_DIRECT_UPLOAD_COUNT";
+    private static final String BLOB_INIT_DIRECT_UPLOAD_TIME = "BLOB_INIT_DIRECT_UPLOAD_TIME";
+    private static final String BLOB_INIT_DIRECT_UPLOAD_ERROR_COUNT = "BLOB_INIT_DIRECT_UPLOAD_ERROR_COUNT";
+    private static final String BLOB_COMPLETE_DIRECT_UPLOAD_COUNT = "BLOB_COMPLETE_DIRECT_UPLOAD_COUNT";
+    private static final String BLOB_COMPLETE_DIRECT_UPLOAD_TIME = "BLOB_COMPLETE_DIRECT_UPLOAD_TIME";
+    private static final String BLOB_COMPLETE_DIRECT_UPLOAD_ERROR_COUNT = "BLOB_COMPLETE_DIRECT_UPLOAD_ERROR_COUNT";
+    private static final String BLOB_GET_DIRECT_DOWNLOAD_URI_COUNT = "BLOB_GET_DIRECT_DOWNLOAD_URI_COUNT";
+    private static final String BLOB_GET_DIRECT_DOWNLOAD_URI_TIME = "BLOB_GET_DIRECT_DOWNLOAD_URI_TIME";
+    private static final String BLOB_GET_DIRECT_DOWNLOAD_URI_ERROR_COUNT = "BLOB_DIRECT_DBA_DOWNLOAD_URI_ERROR_COUNT";
+
+
 
     private final StatisticsProvider statisticsProvider;
 
@@ -133,6 +144,16 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     private final MeterStats getListIdsCount;
     private final MeterStats getListIdsTimeSeries;
     private final MeterStats getListIdsErrorCount;
+
+    private final MeterStats getInitBlobUploadCount;
+    private final MeterStats getInitBlobUploadTimeSeries;
+    private final MeterStats getInitBlobUploadErrorCount;
+    private final MeterStats getCompleteBlobUploadCount;
+    private final MeterStats getCompleteBlobUploadTimeSeries;
+    private final MeterStats getCompleteBlobUploadErrorCount;
+    private final MeterStats getGetBlobDownloadURICount;
+    private final MeterStats getGetBlobDownloadURITimeSeries;
+    private final MeterStats getGetBlobDownloadURIErrorCount;
 
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
@@ -185,6 +206,16 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
         this.getListIdsCount = sp.getMeter(BLOB_LISTIDS_COUNT, StatsOptions.DEFAULT);
         this.getListIdsTimeSeries = sp.getMeter(BLOB_LISTIDS_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.getListIdsErrorCount = sp.getMeter(BLOB_LISTIDS_ERROR_COUNT, StatsOptions.DEFAULT);
+
+        this.getInitBlobUploadCount = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_COUNT, StatsOptions.DEFAULT);
+        this.getInitBlobUploadTimeSeries = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getInitBlobUploadErrorCount = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.getCompleteBlobUploadCount = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_COUNT, StatsOptions.DEFAULT);
+        this.getCompleteBlobUploadTimeSeries = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getCompleteBlobUploadErrorCount = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.getGetBlobDownloadURICount = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_COUNT, StatsOptions.DEFAULT);
+        this.getGetBlobDownloadURITimeSeries = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getGetBlobDownloadURIErrorCount = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_ERROR_COUNT, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -385,8 +416,62 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
         opsLogger.debug("Get all identifiers failed");
     }
 
+    @Override
+    public void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris) {
+        getInitBlobUploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Initiate blob upload called with size {} and # uris {} - {} ms", maxSize, maxSize, unit.toMillis(timeTaken));
+    }
 
-    //~--------------------------------------< BlobStoreMBean >
+    @Override
+    public void initiateBlobUploadCompleted() {
+        getInitBlobUploadCount.mark();
+        opsLogger.debug("Initiate blob upload completed");
+    }
+
+    @Override
+    public void initiateBlobUploadFailed() {
+        getInitBlobUploadErrorCount.mark();
+        opsLogger.debug("Initiate blob upload failed");
+    }
+
+    @Override
+    public void completeBlobUpload(long timeTaken, TimeUnit unit) {
+        getCompleteBlobUploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Complete blob upload called - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void completeBlobUploadCompleted(String id) {
+        getCompleteBlobUploadCount.mark();
+        opsLogger.debug("Complete blob upload completed - id {}", id);
+    }
+
+    @Override
+    public void completeBlobUploadFailed() {
+        getCompleteBlobUploadErrorCount.mark();
+        opsLogger.debug("Complete blob upload failed");
+    }
+
+    @Override
+    public void getDownloadURICalled(long timeTaken, TimeUnit unit, String id) {
+        getGetBlobDownloadURITimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Get download URI called for id {} - {} ms", id, unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void getDownloadURICompleted(String uri) {
+        getGetBlobDownloadURICount.mark();
+        opsLogger.debug("Get download URI completed - uri {}", uri);
+    }
+
+    @Override
+    public void getDownloadURIFailed() {
+        getGetBlobDownloadURIErrorCount.mark();
+        opsLogger.debug("Get download URI failed");
+    }
+
+
+                                        //~--------------------------------------< BlobStoreMBean >
 
     @Override
     public long getUploadTotalSize() {
@@ -473,6 +558,24 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public long getListIdsErrorCount() { return getListIdsErrorCount.getCount(); }
 
     @Override
+    public long getInitBlobUploadCount() { return getInitBlobUploadCount.getCount(); }
+
+    @Override
+    public long getInitBlobUploadErrorCount() { return getInitBlobUploadErrorCount.getCount(); }
+
+    @Override
+    public long getCompleteBlobUploadCount() { return getCompleteBlobUploadCount.getCount(); }
+
+    @Override
+    public long getCompleteBlobUploadErrorCount() { return getCompleteBlobUploadErrorCount.getCount(); }
+
+    @Override
+    public long getGetBlobDownloadURICount() { return getGetBlobDownloadURICount.getCount(); }
+
+    @Override
+    public long getGetBlobDownloadURIErrorCount() { return getGetBlobDownloadURIErrorCount.getCount(); }
+
+    @Override
     public String blobStoreInfoAsString() {
         return String.format("Uploads - size = %s, count = %d%nDownloads - size = %s, count = %d",
                 humanReadableByteCount(getUploadTotalSize()),
@@ -519,7 +622,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     }
 
     @Override
-    public CompositeData getDeleteTimeHistory() { return getTimeSeriesData(BLOB_DELETE_TIME, "Blob record deletes/sec"); }
+    public CompositeData getDeleteTimeHistory() { return getTimeSeriesData(BLOB_DELETE_TIME, "Blob Delete Times"); }
 
     @Override
     public CompositeData getDeleteErrorCountHistory() { return getTimeSeriesData(BLOB_DELETE_ERROR_COUNT, "Blob Delete Error Counts"); }
@@ -528,7 +631,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getDeleteByDateCountHistory() { return getTimeSeriesData(BLOB_DELETE_BY_DATE_COUNT, "Blob Delete By Date Counts"); }
 
     @Override
-    public CompositeData getDeleteByDateTimeHistory() { return getTimeSeriesData(BLOB_DELETE_BY_DATE_TIME, "Blob Delete By Date deletes/sec"); }
+    public CompositeData getDeleteByDateTimeHistory() { return getTimeSeriesData(BLOB_DELETE_BY_DATE_TIME, "Blob Delete By Date Times"); }
 
     @Override
     public CompositeData getDeleteByDateErrorCountHistory() { return getTimeSeriesData(BLOB_DELETE_BY_DATE_ERROR_COUNT, "Blob Delete By Date Error Counts"); }
@@ -543,7 +646,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getAddRecordSizeHistory() { return getTimeSeriesData(BLOB_ADD_RECORD_SIZE, "Blob Add Record (bytes)"); }
 
     @Override
-    public CompositeData getAddRecordRateHistory() { return TimeSeriesStatsUtil.asCompositeData(addRecordRateSeries, "Blob Add Record bytes/secs"); }
+    public CompositeData getAddRecordRateHistory() { return TimeSeriesStatsUtil.asCompositeData(addRecordRateSeries, "Blob Add Record Times"); }
 
     @Override
     public long getAddRecordErrorCount() { return addRecordErrorCount.getCount(); }
@@ -555,7 +658,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getGetRecordErrorCountHistory() { return getTimeSeriesData(BLOB_GETREC_ERROR_COUNT, "Blob Get Record Error Counts"); }
 
     @Override
-    public CompositeData getGetRecordTimeHistory() { return getTimeSeriesData(BLOB_GETREC_TIME, "Blob Get Record per second"); }
+    public CompositeData getGetRecordTimeHistory() { return getTimeSeriesData(BLOB_GETREC_TIME, "Blob Get Record Times"); }
 
     @Override
     public CompositeData getGetRecordIfStoredCountHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_COUNT, "Blob Get Record If Stored Counts"); }
@@ -564,7 +667,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getGetRecordIfStoredErrorCountHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_ERROR_COUNT, "Blob Get Record If Stored Error Counts"); }
 
     @Override
-    public CompositeData getGetRecordIfStoredTimeHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_TIME, "Blob Get Record If Stored per second"); }
+    public CompositeData getGetRecordIfStoredTimeHistory() { return getTimeSeriesData(BLOB_GETRECIFSTORED_TIME, "Blob Get Record If Stored Times"); }
 
     @Override
     public CompositeData getGetRecordFromReferenceCountHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_COUNT, "Blob Get Record From Reference Counts"); }
@@ -573,7 +676,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getGetRecordFromReferenceErrorCountHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_ERROR_COUNT, "Blob Get Record From Reference Error Counts"); }
 
     @Override
-    public CompositeData getGetRecordFromReferenceTimeHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_TIME, "Blob Get Record From Reference per second"); }
+    public CompositeData getGetRecordFromReferenceTimeHistory() { return getTimeSeriesData(BLOB_GETRECFROMREF_TIME, "Blob Get Record From Reference Times"); }
 
     @Override
     public CompositeData getGetRecordForIdCountHistory() { return getTimeSeriesData(BLOB_GETRECFORID_COUNT, "Blob Get Record for ID Counts"); }
@@ -582,22 +685,50 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     public CompositeData getGetRecordForIdErrorCountHistory() { return getTimeSeriesData(BLOB_GETRECFORID_ERROR_COUNT, "Blob Get Record for ID Error Counts"); }
 
     @Override
-    public CompositeData getGetRecordForIdTimeHistory() { return getTimeSeriesData(BLOB_GETRECFORID_TIME, "Blob Get Record for ID per second"); }
+    public CompositeData getGetRecordForIdTimeHistory() { return getTimeSeriesData(BLOB_GETRECFORID_TIME, "Blob Get Record for ID Times"); }
 
     @Override
     public CompositeData getGetAllRecordsCountHistory() { return getTimeSeriesData(BLOB_GETALLRECORDS_COUNT, "Blob Get All Records Counts"); }
 
     @Override
-    public CompositeData getGetAllRecordsTimeHistory() { return getTimeSeriesData(BLOB_GETALLRECORDS_TIME, "Blob Get All Records per second"); }
+    public CompositeData getGetAllRecordsTimeHistory() { return getTimeSeriesData(BLOB_GETALLRECORDS_TIME, "Blob Get All Records Times"); }
 
     @Override
     public CompositeData getListIdsCountHistory() { return getTimeSeriesData(BLOB_LISTIDS_COUNT, "Blob Get All Identifiers Counts"); }
 
     @Override
-    public CompositeData getListIdsTimeHistory() { return getTimeSeriesData(BLOB_LISTIDS_TIME, "Blob Get All Identifiers per second");}
+    public CompositeData getListIdsTimeHistory() { return getTimeSeriesData(BLOB_LISTIDS_TIME, "Blob Get All Identifiers Times");}
 
     @Override
     public CompositeData getListIdsErrorCountHistory() { return getTimeSeriesData(BLOB_LISTIDS_ERROR_COUNT, "Blob Get All Identifiers Error Counts"); }
+
+    @Override
+    public CompositeData getInitBlobUploadCountHistory() { return getTimeSeriesData(BLOB_INIT_DIRECT_UPLOAD_COUNT, "Blob Initiate Direct Upload Counts"); }
+
+    @Override
+    public CompositeData getInitBlobUploadTimeHistory() { return getTimeSeriesData(BLOB_INIT_DIRECT_UPLOAD_TIME, "Blob Initiate Direct Upload Times"); }
+
+    @Override
+    public CompositeData getInitBlobUploadErrorCountHistory() { return getTimeSeriesData(BLOB_INIT_DIRECT_UPLOAD_ERROR_COUNT, "Blob Initiate Direct Upload Error Counts"); }
+
+    @Override
+    public CompositeData getCompleteBlobUploadCountHistory() { return getTimeSeriesData(BLOB_COMPLETE_DIRECT_UPLOAD_COUNT, "Blob Complete Direct Upload Counts"); }
+
+    @Override
+    public CompositeData getCompleteBlobUploadTimeHistory() { return getTimeSeriesData(BLOB_COMPLETE_DIRECT_UPLOAD_TIME, "Blob Complete Direct Upload Times"); }
+
+    @Override
+    public CompositeData getCompleteBlobUploadErrorCountHistory() { return getTimeSeriesData(BLOB_COMPLETE_DIRECT_UPLOAD_ERROR_COUNT, "Blob Complete Direct Upload Error Counts"); }
+
+    @Override
+    public CompositeData getGetBlobDownloadURICountHistory() { return getTimeSeriesData(BLOB_GET_DIRECT_DOWNLOAD_URI_COUNT, "Blob Get Direct Download URI Counts"); }
+
+    @Override
+    public CompositeData getGetBlobDownloadURITimeHistory() { return getTimeSeriesData(BLOB_GET_DIRECT_DOWNLOAD_URI_TIME, "Blob Get Direct Download URI Times"); }
+
+    @Override
+    public CompositeData getGetBlobDownloadURIErrorCountHistory() { return getTimeSeriesData(BLOB_GET_DIRECT_DOWNLOAD_URI_ERROR_COUNT, "Blob Get Direct Download URI Error Counts"); }
+
 
     private CompositeData getTimeSeriesData(String name, String desc){
         return TimeSeriesStatsUtil.asCompositeData(getTimeSeries(name), desc);

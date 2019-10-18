@@ -28,7 +28,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -44,12 +46,18 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.RandomInputStream;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -633,18 +641,63 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSInitUploadDBAStats() {
+    public void testDSBSInitUploadDBAStats() throws IOException, RepositoryException {
         // BLOB_DBA_UPLOAD_INIT_COUNT, BLOB_DBA_UPLOAD_INIT_TIME
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withInitBlobUploadDelay());
+
+        long initBlobUploadCount = stats.getInitBlobUploadCount();
+        long initBlobUploadCountLastMinute = getLastMinuteStats(stats.getInitBlobUploadCountHistory());
+        long initBlobUploadTimeLastMinute = getLastMinuteStats(stats.getInitBlobUploadTimeHistory());
+
+        dsbs.initiateBlobUpload(BLOB_LEN, 20);
+
+        assertEquals(initBlobUploadCount + 1, stats.getInitBlobUploadCount());
+        assertEquals(initBlobUploadCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getInitBlobUploadCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(initBlobUploadTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getInitBlobUploadTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSInitUploadDBAErrorStats() {
+    public void testDSBSInitUploadDBAErrorStats() throws IOException, RepositoryException {
         // BLOB_DBA_UPLOAD_INIT_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnInitBlobUpload());
+
+        long initBlobUploadErrorCount = stats.getInitBlobUploadErrorCount();
+        long initBlobUploadErrorCountLastMinute = getLastMinuteStats(stats.getInitBlobUploadErrorCountHistory());
+
+        try {
+            dsbs.initiateBlobUpload(BLOB_LEN, 20);
+        }
+        catch (Exception e) { }
+
+        assertEquals(initBlobUploadErrorCount + 1, stats.getInitBlobUploadErrorCount());
+        assertEquals(initBlobUploadErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getInitBlobUploadErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
-    public void testDSBSCompleteUploadDBAStats() {
+    public void testDSBSCompleteUploadDBAStats() throws IOException, RepositoryException {
         // BLOB_DBA_UPLOAD_COMPLETE_COUNT, BLOB_DBA_UPLOAD_COMPLETE_TIME
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withCompleteBlobUploadDelay());
+
+        long completeBlobUploadCount = stats.getCompleteBlobUploadCount();
+        long completeBlobUploadCountLastMinute = getLastMinuteStats(stats.getCompleteBlobUploadCountHistory());
+        long completeBlobUploadTimeLastMinute = getLastMinuteStats(stats.getCompleteBlobUploadTimeHistory());
+
+        dsbs.completeBlobUpload("fake token");
+
+        assertEquals(completeBlobUploadCount + 1, stats.getCompleteBlobUploadCount());
+        assertEquals(completeBlobUploadCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getCompleteBlobUploadCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(completeBlobUploadTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getCompleteBlobUploadTimeHistory()), stats));
     }
 
     @Test
@@ -658,13 +711,45 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSCompleteUploadDBAErrorStats() {
+    public void testDSBSCompleteUploadDBAErrorStats() throws IOException, RepositoryException {
         // BLOB_DBA_UPLOAD_COMPLETE_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnCompleteBlobUpload());
+
+        long completeBlobUploadErrorCount = stats.getCompleteBlobUploadErrorCount();
+        long completeBlobUploadErrorCountLastMinute = getLastMinuteStats(stats.getCompleteBlobUploadErrorCountHistory());
+
+        try {
+            dsbs.completeBlobUpload("fake token");
+        }
+        catch (IllegalArgumentException e) { }
+
+        assertEquals(completeBlobUploadErrorCount + 1, stats.getCompleteBlobUploadErrorCount());
+        assertEquals(completeBlobUploadErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getCompleteBlobUploadErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
-    public void testDSBSDownloadGetUriDBAStats() {
+    public void testDSBSDownloadGetUriDBAStats() throws IOException, RepositoryException {
         // BLOB_DBA_DOWNLOAD_GETURI_COUNT, BLOB_DBA_DOWNLOAD_GETURI_TIME
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withGetDownloadURIDelay());
+
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long getBlobDownloadURICount = stats.getGetBlobDownloadURICount();
+        long getBlobDownloadURICountLastMinute = getLastMinuteStats(stats.getGetBlobDownloadURICountHistory());
+        long getBlobDownloadURITimeLastMinute = getLastMinuteStats(stats.getGetBlobDownloadURITimeHistory());
+
+        dsbs.getDownloadURI(new BlobStoreBlob(dsbs, rec.getIdentifier().toString()), BlobDownloadOptions.DEFAULT);
+
+        assertEquals(getBlobDownloadURICount + 1, stats.getGetBlobDownloadURICount());
+        assertEquals(getBlobDownloadURICountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetBlobDownloadURICountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(getBlobDownloadURITimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetBlobDownloadURITimeHistory()), stats));
     }
 
     @Test
@@ -673,8 +758,22 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSDownloadGetURIDBAErrorStats() {
+    public void testDSBSDownloadGetURIDBAErrorStats() throws IOException, RepositoryException {
         // BLOB_DBA_DOWNLOAD_GETURI_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetDownloadURI());
+
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long getBlobDownloadURIErrorCount = stats.getGetBlobDownloadURIErrorCount();
+        long getBlobDownloadURIErrorCountLastMinute = getLastMinuteStats(stats.getGetBlobDownloadURIErrorCountHistory());
+
+        dsbs.getDownloadURI(new BlobStoreBlob(dsbs, rec.getIdentifier().toString()), BlobDownloadOptions.DEFAULT);
+
+        assertEquals(getBlobDownloadURIErrorCount + 1, stats.getGetBlobDownloadURIErrorCount());
+        assertEquals(getBlobDownloadURIErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetBlobDownloadURIErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
 
@@ -781,11 +880,17 @@ public class DataStoreBlobStoreStatsTest {
         private int writeDelay = 0;
         private int deleteRecordDelay = 0;
         private int listIdsDelay = 0;
+        private int initBlobUploadDelay = 0;
+        private int completeBlobUploadDelay = 0;
+        private int getDownloadURIDelay = 0;
 
         private boolean generateErrorOnAddRecord = false;
         private boolean generateErrorOnGetRecord = false;
         private boolean generateErrorOnDeleteRecord = false;
         private boolean generateErrorOnListIds = false;
+        private boolean generateErrorOnInitBlobUpload = false;
+        private boolean generateErrorOnCompleteBlobUpload = false;
+        private boolean generateErrorOnGetDownloadURI = false;
 
         DataStoreBuilder withReadDelay() {
             return withReadDelay(DELAY_DEFAULT);
@@ -820,6 +925,33 @@ public class DataStoreBlobStoreStatsTest {
 
         DataStoreBuilder withListIdsDelay(int delay) {
             listIdsDelay = delay;
+            return this;
+        }
+
+        DataStoreBuilder withInitBlobUploadDelay() {
+            return withInitBlobUploadDelay(DELAY_DEFAULT);
+        }
+
+        DataStoreBuilder withInitBlobUploadDelay(int delay) {
+            initBlobUploadDelay = delay;
+            return this;
+        }
+
+        DataStoreBuilder withCompleteBlobUploadDelay() {
+            return withCompleteBlobUploadDelay(DELAY_DEFAULT);
+        }
+
+        DataStoreBuilder withCompleteBlobUploadDelay(int delay) {
+            completeBlobUploadDelay = delay;
+            return this;
+        }
+
+        DataStoreBuilder withGetDownloadURIDelay() {
+            return withGetDownloadURIDelay(DELAY_DEFAULT);
+        }
+
+        DataStoreBuilder withGetDownloadURIDelay(int delay) {
+            getDownloadURIDelay = delay;
             return this;
         }
 
@@ -859,6 +991,33 @@ public class DataStoreBlobStoreStatsTest {
             return this;
         }
 
+        DataStoreBuilder withErrorOnInitBlobUpload() {
+            return withErrorOnInitBlobUpload(true).withInitBlobUploadDelay(DELAY_DEFAULT);
+        }
+
+        DataStoreBuilder withErrorOnInitBlobUpload(boolean withError) {
+            generateErrorOnInitBlobUpload = withError;
+            return this;
+        }
+
+        DataStoreBuilder withErrorOnCompleteBlobUpload() {
+            return withErrorOnCompleteBlobUpload(true).withCompleteBlobUploadDelay(DELAY_DEFAULT);
+        }
+
+        DataStoreBuilder withErrorOnCompleteBlobUpload(boolean withError) {
+            generateErrorOnCompleteBlobUpload = withError;
+            return this;
+        }
+
+        DataStoreBuilder withErrorOnGetDownloadURI() {
+            return withErrorOnGetDownloadURI(true).withGetDownloadURIDelay(DELAY_DEFAULT);
+        }
+
+        DataStoreBuilder withErrorOnGetDownloadURI(boolean withError) {
+            generateErrorOnGetDownloadURI = withError;
+            return this;
+        }
+
         OakFileDataStore build() {
             if (readDelay > 0) {
                 return generateErrorOnGetRecord ?
@@ -880,13 +1039,28 @@ public class DataStoreBlobStoreStatsTest {
                         new ListIdsErrorDataStore(listIdsDelay) :
                         new ListIdsDelayedDataStore(listIdsDelay);
             }
+            else if (initBlobUploadDelay > 0) {
+                return generateErrorOnInitBlobUpload ?
+                        new InitBlobUploadErrorDataStore(initBlobUploadDelay) :
+                        new InitBlobUploadDelayedDataStore(initBlobUploadDelay);
+            }
+            else if (completeBlobUploadDelay > 0) {
+                return generateErrorOnCompleteBlobUpload ?
+                        new CompleteBlobUploadErrorDataStore(completeBlobUploadDelay) :
+                        new CompleteBlobUploadDelayedDataStore(completeBlobUploadDelay);
+            }
+            else if (getDownloadURIDelay > 0) {
+                return generateErrorOnGetDownloadURI ?
+                        new GetDownloadURIErrorDataStore(getDownloadURIDelay) :
+                        new GetDownloadURIDelayedDataStore(getDownloadURIDelay);
+            }
             return new OakFileDataStore();
         }
     }
 
     private static class TestableFileDataStore extends OakFileDataStore {
-        private int delay;
-        private boolean withError;
+        protected int delay;
+        protected boolean withError;
         protected DataStoreException ex = new DataStoreException("Test-generated Exception");
 
         TestableFileDataStore(int delay) {
@@ -899,7 +1073,7 @@ public class DataStoreBlobStoreStatsTest {
             this.withError = withError;
         }
 
-        private void delay() {
+        protected void delay() {
             if (delay > 0) {
                 try {
                     Thread.sleep(delay);
@@ -908,7 +1082,7 @@ public class DataStoreBlobStoreStatsTest {
             }
         }
 
-        private void err() throws DataStoreException {
+        protected void err() throws DataStoreException {
             if (withError) throw ex;
         }
 
@@ -963,6 +1137,48 @@ public class DataStoreBlobStoreStatsTest {
             delay();
             err();
             return super.getAllIdentifiers();
+        }
+    }
+
+    private static class TestableDirectAccessFileDataStore extends TestableFileDataStore implements DataRecordAccessProvider {
+        TestableDirectAccessFileDataStore(int delay) {
+            this(delay, false);
+        }
+
+        TestableDirectAccessFileDataStore(int delay, boolean withError) {
+            super(delay, withError);
+        }
+
+        @Override
+        public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) throws IllegalArgumentException { return null; }
+
+        @Override
+        public DataRecord completeDataRecordUpload(String uploadToken) throws IllegalArgumentException { return null; }
+
+        @Override
+        public URI getDownloadURI(DataIdentifier identifier, DataRecordDownloadOptions downloadOptions) { return null; }
+
+        DataRecordUpload _initBlobUpload(long size, int nUris) throws IllegalArgumentException {
+            delay();
+            if (withError) throw new IllegalArgumentException();
+            return new DataRecordUpload() {
+                @Override public @NotNull String getUploadToken() { return null; }
+                @Override public long getMinPartSize() { return 0; }
+                @Override public long getMaxPartSize() { return 0; }
+                @Override public @NotNull Collection<URI> getUploadURIs() { return null; }
+            };
+        }
+
+        DataRecord _completeBlobUpload(String uploadToken) throws IllegalArgumentException {
+            delay();
+            if (withError) throw new IllegalArgumentException();
+            return InMemoryDataRecord.getInstance("fake record".getBytes());
+        }
+
+        URI _getDownloadURI(DataIdentifier identifier, DataRecordDownloadOptions opts) {
+            delay();
+            if (withError) return null;
+            return URI.create("https://jackrabbit.apache.org/oak/docs/index.html");
         }
     }
 
@@ -1032,6 +1248,39 @@ public class DataStoreBlobStoreStatsTest {
             catch (DataStoreException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    private static class InitBlobUploadDelayedDataStore extends TestableDirectAccessFileDataStore {
+        InitBlobUploadDelayedDataStore(int delay) {
+            super(delay);
+        }
+
+        @Override
+        public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) throws IllegalArgumentException {
+            return _initBlobUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+        }
+    }
+
+    private static class CompleteBlobUploadDelayedDataStore extends TestableDirectAccessFileDataStore {
+        CompleteBlobUploadDelayedDataStore(int delay) {
+            super(delay);
+        }
+
+        @Override
+        public DataRecord completeDataRecordUpload(String uploadToken) throws IllegalArgumentException {
+            return _completeBlobUpload(uploadToken);
+        }
+    }
+
+    private static class GetDownloadURIDelayedDataStore extends TestableDirectAccessFileDataStore {
+        GetDownloadURIDelayedDataStore(int delay) {
+            super(delay);
+        }
+
+        @Override
+        public URI getDownloadURI(DataIdentifier identifier, DataRecordDownloadOptions downloadOptions) {
+            return _getDownloadURI(identifier, downloadOptions);
         }
     }
 
@@ -1106,6 +1355,39 @@ public class DataStoreBlobStoreStatsTest {
             catch (DataStoreException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    private static class InitBlobUploadErrorDataStore extends TestableDirectAccessFileDataStore {
+        InitBlobUploadErrorDataStore(int delay) {
+            super(delay, true);
+        }
+
+        @Override
+        public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfUris) throws IllegalArgumentException {
+            return _initBlobUpload(maxUploadSizeInBytes, maxNumberOfUris);
+        }
+    }
+
+    private static class CompleteBlobUploadErrorDataStore extends TestableDirectAccessFileDataStore {
+        CompleteBlobUploadErrorDataStore(int delay) {
+            super(delay, true);
+        }
+
+        @Override
+        public DataRecord completeDataRecordUpload(String uploadToken) throws IllegalArgumentException {
+            return _completeBlobUpload(uploadToken);
+        }
+    }
+
+    private static class GetDownloadURIErrorDataStore extends TestableDirectAccessFileDataStore {
+        GetDownloadURIErrorDataStore(int delay) {
+            super(delay, true);
+        }
+
+        @Override
+        public URI getDownloadURI(DataIdentifier identifier, DataRecordDownloadOptions downloadOptions) {
+            return _getDownloadURI(identifier, downloadOptions);
         }
     }
 }

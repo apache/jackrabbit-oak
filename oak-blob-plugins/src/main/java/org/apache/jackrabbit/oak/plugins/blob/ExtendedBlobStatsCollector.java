@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.plugins.blob;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 
 public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
@@ -118,6 +120,33 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
 
         @Override
         public void getAllIdentifiersFailed() { }
+
+        @Override
+        public void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris) { }
+
+        @Override
+        public void initiateBlobUploadCompleted() { }
+
+        @Override
+        public void initiateBlobUploadFailed() { }
+
+        @Override
+        public void completeBlobUpload(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void completeBlobUploadCompleted(String id) { }
+
+        @Override
+        public void completeBlobUploadFailed() { }
+
+        @Override
+        public void getDownloadURICalled(long timeTaken, TimeUnit unit, String id) { }
+
+        @Override
+        public void getDownloadURICompleted(String uri) { }
+
+        @Override
+        public void getDownloadURIFailed() { }
     };
 
 
@@ -156,4 +185,73 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#getAllRecords()} is completed
      */
     void getAllRecordsCompleted();
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
+     * is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     * @param maxSize size of binary to be uploaded
+     * @param maxUris max number of uris requested
+     */
+    void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
+     * is completed
+     */
+    void initiateBlobUploadCompleted();
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}
+     * fails
+     */
+    void initiateBlobUploadFailed();
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)} is
+     * made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void completeBlobUpload(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)} is
+     * completed
+     *
+     * @param id identifier of uploaded blob
+     */
+    void completeBlobUploadCompleted(String id);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#completeBlobUpload(String)} fails
+     */
+    void completeBlobUploadFailed();
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}
+     * is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     * @param id identifier of blob to be downloaded
+     */
+    void getDownloadURICalled(long timeTaken, TimeUnit unit, String id);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}
+     * is completed
+     *
+     * @param uri the uri generated for downloading
+     */
+    void getDownloadURICompleted(String uri);
+
+    /**
+     * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#getDownloadURI(Blob, BlobDownloadOptions)}
+     * fails
+     */
+    void getDownloadURIFailed();
 }
