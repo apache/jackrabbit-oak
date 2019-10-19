@@ -85,6 +85,30 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     private static final String BLOB_LISTIDS_TIME = "BLOB_LISTIDS_TIME";
     private static final String BLOB_LISTIDS_ERROR_COUNT = "BLOB_LISTIDS_ERROR_COUNT";
 
+    private static final String BLOB_ADD_METADATA_RECORD_COUNT = "BLOB_ADD_METADATA_RECORD_COUNT";
+    private static final String BLOB_ADD_METADATA_RECORD_TIME = "BLOB_ADD_METADATA_RECORD_TIME";
+    private static final String BLOB_ADD_METADATA_RECORD_ERROR_COUNT = "BLOB_ADD_METADATA_RECORD_ERROR_COUNT";
+
+    private static final String BLOB_GET_METADATA_RECORD_COUNT = "BLOB_GET_METADATA_RECORD_COUNT";
+    private static final String BLOB_GET_METADATA_RECORD_TIME = "BLOB_GET_METADATA_RECORD_TIME";
+    private static final String BLOB_GET_METADATA_RECORD_ERROR_COUNT = "BLOB_GET_METADATA_RECORD_ERROR_COUNT";
+
+    private static final String BLOB_GET_ALL_METADATA_RECORDS_COUNT = "BLOB_GET_ALL_METADATA_RECORDS_COUNT";
+    private static final String BLOB_GET_ALL_METADATA_RECORDS_TIME = "BLOB_GET_ALL_METADATA_RECORDS_TIME";
+    private static final String BLOB_GET_ALL_METADATA_RECORDS_ERROR_COUNT = "BLOB_GET_ALL_METADATA_RECORDS_ERROR_COUNT";
+
+    private static final String BLOB_METADATA_RECORD_EXISTS_COUNT = "BLOB_METADATA_RECORD_EXISTS_COUNT";
+    private static final String BLOB_METADATA_RECORD_EXISTS_TIME = "BLOB_METADATA_RECORD_EXISTS_TIME";
+    private static final String BLOB_METADATA_RECORD_EXISTS_ERROR_COUNT = "BLOB_METADATA_RECORD_EXISTS_ERROR_COUNT";
+
+    private static final String BLOB_DELETE_METADATA_RECORD_COUNT = "BLOB_DELETE_METADATA_RECORD_COUNT";
+    private static final String BLOB_DELETE_METADATA_RECORD_TIME = "BLOB_DELETE_METADATA_RECORD_TIME";
+    private static final String BLOB_DELETE_METADATA_RECORD_ERROR_COUNT = "BLOB_DELETE_METADATA_RECORD_ERROR_COUNT";
+
+    private static final String BLOB_DELETE_ALL_METADATA_RECORDS_COUNT = "BLOB_DELETE_ALL_METADATA_RECORDS_COUNT";
+    private static final String BLOB_DELETE_ALL_METADATA_RECORDS_TIME = "BLOB_DELETE_ALL_METADATA_RECORDS_TIME";
+    private static final String BLOB_DELETE_ALL_METADATA_RECORDS_ERROR_COUNT = "BLOB_DELETE_ALL_METADATA_RECORDS_ERROR_COUNT";
+
     private static final String BLOB_INIT_DIRECT_UPLOAD_COUNT = "BLOB_INIT_DIRECT_UPLOAD_COUNT";
     private static final String BLOB_INIT_DIRECT_UPLOAD_TIME = "BLOB_INIT_DIRECT_UPLOAD_TIME";
     private static final String BLOB_INIT_DIRECT_UPLOAD_ERROR_COUNT = "BLOB_INIT_DIRECT_UPLOAD_ERROR_COUNT";
@@ -144,6 +168,28 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     private final MeterStats getListIdsCount;
     private final MeterStats getListIdsTimeSeries;
     private final MeterStats getListIdsErrorCount;
+
+    private final MeterStats addMetadataRecordCount;
+    private final MeterStats addMetadataRecordTimeSeries;
+    private final MeterStats addMetadataRecordErrorCount;
+
+    private final MeterStats getMetadataRecordCount;
+    private final MeterStats getMetadataRecordTimeSeries;
+    private final MeterStats getMetadataRecordErrorCount;
+    private final MeterStats getAllMetadataRecordsCount;
+    private final MeterStats getAllMetadataRecordsTimeSeries;
+    private final MeterStats getAllMetadataRecordsErrorCount;
+
+    private final MeterStats metadataRecordExistsCount;
+    private final MeterStats metadataRecordExistsTimeSeries;
+    private final MeterStats metadataRecordExistsErrorCount;
+
+    private final MeterStats deleteMetadataRecordCount;
+    private final MeterStats deleteMetadataRecordTimeSeries;
+    private final MeterStats deleteMetadataRecordErrorCount;
+    private final MeterStats deleteAllMetadataRecordsCount;
+    private final MeterStats deleteAllMetadataRecordsTimeSeries;
+    private final MeterStats deleteAllMetadataRecordsErrorCount;
 
     private final MeterStats getInitBlobUploadCount;
     private final MeterStats getInitBlobUploadTimeSeries;
@@ -206,6 +252,28 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
         this.getListIdsCount = sp.getMeter(BLOB_LISTIDS_COUNT, StatsOptions.DEFAULT);
         this.getListIdsTimeSeries = sp.getMeter(BLOB_LISTIDS_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.getListIdsErrorCount = sp.getMeter(BLOB_LISTIDS_ERROR_COUNT, StatsOptions.DEFAULT);
+
+        this.addMetadataRecordCount = sp.getMeter(BLOB_ADD_METADATA_RECORD_COUNT, StatsOptions.DEFAULT);
+        this.addMetadataRecordTimeSeries = sp.getMeter(BLOB_ADD_METADATA_RECORD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.addMetadataRecordErrorCount = sp.getMeter(BLOB_ADD_METADATA_RECORD_ERROR_COUNT, StatsOptions.DEFAULT);
+
+        this.getMetadataRecordCount = sp.getMeter(BLOB_GET_METADATA_RECORD_COUNT, StatsOptions.DEFAULT);
+        this.getMetadataRecordTimeSeries = sp.getMeter(BLOB_GET_METADATA_RECORD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getMetadataRecordErrorCount = sp.getMeter(BLOB_GET_METADATA_RECORD_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.getAllMetadataRecordsCount = sp.getMeter(BLOB_GET_ALL_METADATA_RECORDS_COUNT, StatsOptions.DEFAULT);
+        this.getAllMetadataRecordsTimeSeries = sp.getMeter(BLOB_GET_ALL_METADATA_RECORDS_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getAllMetadataRecordsErrorCount = sp.getMeter(BLOB_GET_ALL_METADATA_RECORDS_ERROR_COUNT, StatsOptions.DEFAULT);
+
+        this.metadataRecordExistsCount = sp.getMeter(BLOB_METADATA_RECORD_EXISTS_COUNT, StatsOptions.DEFAULT);
+        this.metadataRecordExistsTimeSeries = sp.getMeter(BLOB_METADATA_RECORD_EXISTS_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.metadataRecordExistsErrorCount = sp.getMeter(BLOB_METADATA_RECORD_EXISTS_ERROR_COUNT, StatsOptions.DEFAULT);
+
+        this.deleteMetadataRecordCount = sp.getMeter(BLOB_DELETE_METADATA_RECORD_COUNT, StatsOptions.DEFAULT);
+        this.deleteMetadataRecordTimeSeries = sp.getMeter(BLOB_DELETE_METADATA_RECORD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.deleteMetadataRecordErrorCount = sp.getMeter(BLOB_DELETE_METADATA_RECORD_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.deleteAllMetadataRecordsCount = sp.getMeter(BLOB_DELETE_ALL_METADATA_RECORDS_COUNT, StatsOptions.DEFAULT);
+        this.deleteAllMetadataRecordsTimeSeries = sp.getMeter(BLOB_DELETE_ALL_METADATA_RECORDS_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.deleteAllMetadataRecordsErrorCount = sp.getMeter(BLOB_DELETE_ALL_METADATA_RECORDS_ERROR_COUNT, StatsOptions.DEFAULT);
 
         this.getInitBlobUploadCount = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_COUNT, StatsOptions.DEFAULT);
         this.getInitBlobUploadTimeSeries = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
@@ -417,6 +485,114 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     }
 
     @Override
+    public void metadataRecordAdded(long timeTaken, TimeUnit unit) {
+        addMetadataRecordTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Metadata record added - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void addMetadataRecordCompleted(String name) {
+        addMetadataRecordCount.mark();
+        opsLogger.debug("Add metadata record named {} completed", name);
+    }
+
+    @Override
+    public void addMetadataRecordFailed(String name) {
+        addMetadataRecordErrorCount.mark();
+        opsLogger.debug("Add metadata record named {} failed", name);
+    }
+
+    @Override
+    public void getMetadataRecordCalled(long timeTaken, TimeUnit unit) {
+        getMetadataRecordTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Get metadata record called - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void getMetadataRecordCompleted(String name) {
+        getMetadataRecordCount.mark();
+        opsLogger.debug("Get metadata record completed");
+    }
+
+    @Override
+    public void getMetadataRecordFailed(String name) {
+        getMetadataRecordErrorCount.mark();
+        opsLogger.debug("Get metadata record failed");
+    }
+
+    @Override
+    public void getAllMetadataRecordsCalled(long timeTaken, TimeUnit unit) {
+        getAllMetadataRecordsTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Get all metadata records called - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void getAllMetadataRecordsCompleted(String prefix) {
+        getAllMetadataRecordsCount.mark();
+        opsLogger.debug("Get all metadata records for prefix {} completed", prefix);
+    }
+
+    @Override
+    public void getAllMetadataRecordsFailed(String prefix) {
+        getAllMetadataRecordsErrorCount.mark();
+        opsLogger.debug("Get all metadata records for prefix {} failed", prefix);
+    }
+
+    @Override
+    public void metadataRecordExistsCalled(long timeTaken, TimeUnit unit) {
+        metadataRecordExistsTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Metadata record exists check - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void metadataRecordExistsCompleted(String name) {
+        metadataRecordExistsCount.mark();
+        opsLogger.debug("Metadata record exists check for {} completed", name);
+    }
+
+    @Override
+    public void metadataRecordExistsFailed(String name) {
+        metadataRecordExistsErrorCount.mark();
+        opsLogger.debug("Metadata record exists check for {} failed", name);
+    }
+
+    @Override
+    public void metadataRecordDeleted(long timeTaken, TimeUnit unit) {
+        deleteMetadataRecordTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Metadata record deleted - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void deleteMetadataRecordCompleted(String name) {
+        deleteMetadataRecordCount.mark();
+        opsLogger.debug("Metadata record name {} deleted", name);
+    }
+
+    @Override
+    public void deleteMetadataRecordFailed(String name) {
+        deleteMetadataRecordErrorCount.mark();
+        opsLogger.debug("Metadata record name {} delete failed", name);
+    }
+
+    @Override
+    public void allMetadataRecordsDeleted(long timeTaken, TimeUnit unit) {
+        deleteAllMetadataRecordsTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        opsLogger.debug("Bulk metadata record delete - {} ms", unit.toMillis(timeTaken));
+    }
+
+    @Override
+    public void deleteAllMetadataRecordsCompleted(String prefix) {
+        deleteAllMetadataRecordsCount.mark();
+        opsLogger.debug("Bulk metadata record delete with prefix {} completed", prefix);
+    }
+
+    @Override
+    public void deleteAllMetadataRecordsFailed(String prefix) {
+        deleteAllMetadataRecordsErrorCount.mark();
+        opsLogger.debug("Bulk metadata record delete with prefix {} failed", prefix);
+    }
+
+    @Override
     public void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris) {
         getInitBlobUploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
         opsLogger.debug("Initiate blob upload called with size {} and # uris {} - {} ms", maxSize, maxSize, unit.toMillis(timeTaken));
@@ -556,6 +732,42 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
 
     @Override
     public long getListIdsErrorCount() { return getListIdsErrorCount.getCount(); }
+
+    @Override
+    public long getAddMetadataRecordCount() { return addMetadataRecordCount.getCount(); }
+
+    @Override
+    public long getAddMetadataRecordErrorCount() { return addMetadataRecordErrorCount.getCount(); }
+
+    @Override
+    public long getGetMetadataRecordCount() { return getMetadataRecordCount.getCount(); }
+
+    @Override
+    public long getGetMetadataRecordErrorCount() { return getMetadataRecordErrorCount.getCount(); }
+
+    @Override
+    public long getGetAllMetadataRecordsCount() { return getAllMetadataRecordsCount.getCount(); }
+
+    @Override
+    public long getGetAllMetadataRecordsErrorCount() { return getAllMetadataRecordsErrorCount.getCount(); }
+
+    @Override
+    public long getMetadataRecordExistsCount() { return metadataRecordExistsCount.getCount(); }
+
+    @Override
+    public long getMetadataRecordExistsErrorCount() { return metadataRecordExistsErrorCount.getCount(); }
+
+    @Override
+    public long getDeleteMetadataRecordCount() { return deleteMetadataRecordCount.getCount(); }
+
+    @Override
+    public long getDeleteMetadataRecordErrorCount() { return deleteMetadataRecordErrorCount.getCount(); }
+
+    @Override
+    public long getDeleteAllMetadataRecordsCount() { return deleteAllMetadataRecordsCount.getCount(); }
+
+    @Override
+    public long getDeleteAllMetadataRecordsErrorCount() { return deleteAllMetadataRecordsErrorCount.getCount(); }
 
     @Override
     public long getInitBlobUploadCount() { return getInitBlobUploadCount.getCount(); }
@@ -701,6 +913,60 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
 
     @Override
     public CompositeData getListIdsErrorCountHistory() { return getTimeSeriesData(BLOB_LISTIDS_ERROR_COUNT, "Blob Get All Identifiers Error Counts"); }
+
+    @Override
+    public CompositeData getAddMetadataRecordCountHistory() { return getTimeSeriesData(BLOB_ADD_METADATA_RECORD_COUNT, "Blob Add Metadata Record Counts"); }
+
+    @Override
+    public CompositeData getAddMetadataRecordTimeHistory() { return getTimeSeriesData(BLOB_ADD_METADATA_RECORD_TIME, "Blob Add Metadata Record Times"); }
+
+    @Override
+    public CompositeData getAddMetadataRecordErrorCountHistory() { return getTimeSeriesData(BLOB_ADD_METADATA_RECORD_ERROR_COUNT, "Blob Add Metadata Record Error Counts"); }
+
+    @Override
+    public CompositeData getGetMetadataRecordCountHistory() { return getTimeSeriesData(BLOB_GET_METADATA_RECORD_COUNT, "Blob Get Metadata Record Counts"); }
+
+    @Override
+    public CompositeData getGetMetadataRecordTimeHistory() { return getTimeSeriesData(BLOB_GET_METADATA_RECORD_TIME, "Blob Get Metadata Record Times"); }
+
+    @Override
+    public CompositeData getGetMetadataRecordErrorCountHistory() { return getTimeSeriesData(BLOB_GET_METADATA_RECORD_ERROR_COUNT, "Blob Get Metadata Record Error Counts"); }
+
+    @Override
+    public CompositeData getGetAllMetadataRecordsCountHistory() { return getTimeSeriesData(BLOB_GET_ALL_METADATA_RECORDS_COUNT, "Blob Get All Metadata Records Counts"); }
+
+    @Override
+    public CompositeData getGetAllMetadataRecordsTimeHistory() { return getTimeSeriesData(BLOB_GET_ALL_METADATA_RECORDS_TIME, "Blob Get All Metadata Records Times"); }
+
+    @Override
+    public CompositeData getGetAllMetadataRecordsErrorCountHistory() { return getTimeSeriesData(BLOB_GET_ALL_METADATA_RECORDS_ERROR_COUNT, "Blob Get All Metadata Records Error Counts"); }
+
+    @Override
+    public CompositeData getMetadataRecordExistsCountHistory() { return getTimeSeriesData(BLOB_METADATA_RECORD_EXISTS_COUNT, "Blob Metadata Record Exists Counts"); }
+
+    @Override
+    public CompositeData getMetadataRecordExistsTimeHistory() { return getTimeSeriesData(BLOB_METADATA_RECORD_EXISTS_TIME, "Blob Metadata Record Exists Times"); }
+
+    @Override
+    public CompositeData getMetadataRecordExistsErrorCountHistory() { return getTimeSeriesData(BLOB_METADATA_RECORD_EXISTS_ERROR_COUNT, "Blob Metadata Record Exists Error Counts"); }
+
+    @Override
+    public CompositeData getDeleteMetadataRecordCountHistory() { return getTimeSeriesData(BLOB_DELETE_METADATA_RECORD_COUNT, "Blob Delete Metadata Record Counts"); }
+
+    @Override
+    public CompositeData getDeleteMetadataRecordTimeHistory() { return getTimeSeriesData(BLOB_DELETE_METADATA_RECORD_TIME, "Blob Delete Metadata Record Times"); }
+
+    @Override
+    public CompositeData getDeleteMetadataRecordErrorCountHistory() { return getTimeSeriesData(BLOB_DELETE_METADATA_RECORD_ERROR_COUNT, "Blob Delete Metadata Record Error Counts"); }
+
+    @Override
+    public CompositeData getDeleteAllMetadataRecordsCountHistory() { return getTimeSeriesData(BLOB_DELETE_ALL_METADATA_RECORDS_COUNT, "Blob Delete All Metadata Records Counts"); }
+
+    @Override
+    public CompositeData getDeleteAllMetadataRecordsTimeHistory() { return getTimeSeriesData(BLOB_DELETE_ALL_METADATA_RECORDS_TIME, "Blob Delete All Metadata Records Times"); }
+
+    @Override
+    public CompositeData getDeleteAllMetadataRecordsErrorCountHistory() { return getTimeSeriesData(BLOB_DELETE_ALL_METADATA_RECORDS_ERROR_COUNT, "Blob Delete All Metadata Records Error Counts"); }
 
     @Override
     public CompositeData getInitBlobUploadCountHistory() { return getTimeSeriesData(BLOB_INIT_DIRECT_UPLOAD_COUNT, "Blob Initiate Direct Upload Counts"); }

@@ -433,7 +433,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSDeleteRecordStats() throws Exception {
         // BLOB_DELETE_COUNT, BLOB_DELETE_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withDeleteRecordDelay(1010));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withDeleteDelay(1010));
         DataRecord record = dsbs.addRecord(getTestInputStream());
         List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
         long modifiedBefore = tomorrow();
@@ -481,7 +481,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSDeleteAllOlderThanStats() throws Exception {
         // BLOB_DELETEBYDATE_COUNT, BLOB_DELETEBYDATE_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withDeleteRecordDelay(1010));
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withDeleteDelay(1010));
         DataRecord record = dsbs.addRecord(getTestInputStream());
         long modifiedBefore = tomorrow();
 
@@ -565,79 +565,270 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSAddMetaRecStats() {
+    public void testDSBSAddMetaRecStats() throws IOException, RepositoryException {
         // BLOB_METADATA_ADD_COUNT, BLOB_METADATA_ADD_TIME, BLOB_METADATA_ADD_SIZE
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay());
+        File f = folder.newFile();
+        try (OutputStream out = new FileOutputStream(f)) {
+            IOUtils.copy(getTestInputStream(), out);
+        }
+
+        long addMetadataRecordCount = stats.getAddMetadataRecordCount();
+        long addMetadataRecordCountLastMinute = getLastMinuteStats(stats.getAddMetadataRecordCountHistory());
+        long addMetadataRecordTimeLastMinute = getLastMinuteStats(stats.getAddMetadataRecordTimeHistory());
+
+        dsbs.addMetadataRecord(getTestInputStream(), "meta-1");
+        dsbs.addMetadataRecord(f, "meta-1");
+
+        assertEquals(addMetadataRecordCount + 2, stats.getAddMetadataRecordCount());
+        assertEquals(addMetadataRecordCountLastMinute + 2,
+                waitForMetric(input -> getLastMinuteStats(input.getAddMetadataRecordCountHistory()),
+                        stats, 2L, 0L).longValue());
+        assertTrue(addMetadataRecordTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getAddMetadataRecordTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSAddMetaRecErrorStats() {
+    public void testDSBSAddMetaRecErrorStats() throws IOException, RepositoryException {
         // BLOB_METADATA_ADD_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnAddRecord());
+        File f = folder.newFile();
+        try (OutputStream out = new FileOutputStream(f)) {
+            IOUtils.copy(getTestInputStream(), out);
+        }
+
+        long addMetadataRecordErrorCount = stats.getAddMetadataRecordErrorCount();
+        long addMetadataRecordErrorCountLastMinute = getLastMinuteStats(stats.getAddMetadataRecordErrorCountHistory());
+
+        try { dsbs.addMetadataRecord(getTestInputStream(), "meta-1"); } catch (DataStoreException e) { }
+        try { dsbs.addMetadataRecord(f, "meta-1"); } catch (DataStoreException e) { }
+
+        assertEquals(addMetadataRecordErrorCount + 2, stats.getAddMetadataRecordErrorCount());
+        assertEquals(addMetadataRecordErrorCountLastMinute + 2,
+                waitForMetric(input -> getLastMinuteStats(input.getAddMetadataRecordErrorCountHistory()),
+                        stats, 2L, 0L).longValue());
     }
 
     @Test
-    public void testDSBSGetMetaRecStats() {
+    public void testDSBSGetMetaRecStats() throws IOException, RepositoryException {
         // BLOB_METADATA_GET_COUNT, BLOB_METADATA_GET_TIME
 
-        // Then read the stream from the rec and measure:
-        // BLOB_DOWNLOAD_COUNT, BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
+        String name = "meta-1";
+        dsbs.addMetadataRecord(getTestInputStream(), name);
+
+        long getMetadataRecordCount = stats.getGetMetadataRecordCount();
+        long getMetadataRecordCountLastMinute = getLastMinuteStats(stats.getGetMetadataRecordCountHistory());
+        long getMetadataRecordTimeLastMinute = getLastMinuteStats(stats.getGetMetadataRecordTimeHistory());
+
+        dsbs.getMetadataRecord(name);
+
+        assertEquals(getMetadataRecordCount + 1, stats.getGetMetadataRecordCount());
+        assertEquals(getMetadataRecordCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetMetadataRecordCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(getMetadataRecordTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetMetadataRecordTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSGetMetaRecNotFoundStats() {
+    public void testDSBSGetMetaRecNotFoundStats() throws IOException, RepositoryException {
         // BLOB_METADATA_GET_NOT_FOUND
     }
 
     @Test
-    public void testDSBSGetMetaRecErrorStats() {
+    public void testDSBSGetMetaRecErrorStats() throws IOException, RepositoryException {
         // BLOB_METADATA_GET_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
+
+        long getMetadataRecordErrorCount = stats.getGetMetadataRecordErrorCount();
+        long getMetadataRecordErrorCountLastMinute = getLastMinuteStats(stats.getGetMetadataRecordErrorCountHistory());
+
+        try {
+            dsbs.getMetadataRecord("fake-name");
+        }
+        catch (Exception e) { }
+
+        assertEquals(getMetadataRecordErrorCount + 1, stats.getGetMetadataRecordErrorCount());
+        assertEquals(getMetadataRecordErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetMetadataRecordErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
-    public void testDSBSGetAllMetaRecsStats() {
+    public void testDSBSGetAllMetaRecsStats() throws IOException, RepositoryException {
         // BLOB_METADATA_GETALL_COUNT, BLOB_METADATA_GETALL_TIME
 
-        // Then read the stream from one of the recs and measure:
-        // BLOB_DOWNLOAD_COUNT, BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
+
+        long getAllMetadataRecordsCount = stats.getGetAllMetadataRecordsCount();
+        long getAllMetadataRecordsCountLastMinute = getLastMinuteStats(stats.getGetAllMetadataRecordsCountHistory());
+        long getAllMetadataRecordsTimeLastMinute = getLastMinuteStats(stats.getGetAllMetadataRecordsTimeHistory());
+
+        dsbs.getAllMetadataRecords("prefix");
+
+        assertEquals(getAllMetadataRecordsCount + 1, stats.getGetAllMetadataRecordsCount());
+        assertEquals(getAllMetadataRecordsCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetAllMetadataRecordsCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(getAllMetadataRecordsTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetAllMetadataRecordsTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSGetAllMetaRecsErrorStats() {
+    public void testDSBSGetAllMetaRecsErrorStats() throws IOException, RepositoryException {
         // BLOB_METADATA_GETALL_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
+
+        long getAllMetadataRecordsErrorCount = stats.getGetAllMetadataRecordsErrorCount();
+        long getAllMetadataRecordsErrorCountLastMinute = getLastMinuteStats(stats.getGetAllMetadataRecordsErrorCountHistory());
+
+        try {
+            dsbs.getAllMetadataRecords("prefix");
+        }
+        catch (Exception e) { }
+
+        assertEquals(getAllMetadataRecordsErrorCount + 1, stats.getGetAllMetadataRecordsErrorCount());
+        assertEquals(getAllMetadataRecordsErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getGetAllMetadataRecordsErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
-    public void testDSBSMetaRecExistsStats() {
+    public void testDSBSMetaRecExistsStats() throws IOException, RepositoryException {
         // BLOB_METADATA_EXISTS_COUNT, BLOB_METADATA_EXISTS_TIME
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
+
+        long metadataRecordExistsCount = stats.getMetadataRecordExistsCount();
+        long metadataRecordExistsCountLastMinute = getLastMinuteStats(stats.getMetadataRecordExistsCountHistory());
+        long metadataRecordExistsTimeLastMinute = getLastMinuteStats(stats.getMetadataRecordExistsTimeHistory());
+
+        dsbs.metadataRecordExists("fake-name");
+
+        assertEquals(metadataRecordExistsCount + 1, stats.getMetadataRecordExistsCount());
+        assertEquals(metadataRecordExistsCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getMetadataRecordExistsCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(metadataRecordExistsTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getMetadataRecordExistsTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSMetaRecExistsErrorStats() {
+    public void testDSBSMetaRecExistsErrorStats() throws IOException, RepositoryException {
         // BLOB_METADATA_EXISTS_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
+
+        long metadataRecordExistsErrorCount = stats.getMetadataRecordExistsErrorCount();
+        long metadataRecordExistsErrorCountLastMinute = getLastMinuteStats(stats.getMetadataRecordExistsErrorCountHistory());
+
+        try {
+            dsbs.metadataRecordExists("fake-name");
+        }
+        catch (Exception e) { }
+
+        assertEquals(metadataRecordExistsErrorCount + 1, stats.getMetadataRecordExistsErrorCount());
+        assertEquals(metadataRecordExistsErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getMetadataRecordExistsErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
-    public void testDSBSMetaDeleteStats() {
+    public void testDSBSMetaDeleteStats() throws IOException, RepositoryException {
         // BLOB_METADATA_DELETE_COUNT, BLOB_METADATA_DELETE_TIME
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withDeleteDelay());
+        String name = "meta-1";
+        dsbs.addMetadataRecord(getTestInputStream(), name);
+
+        long deleteMetadataRecordCount = stats.getDeleteMetadataRecordCount();
+        long deleteMetadataRecordCountLastMinute = getLastMinuteStats(stats.getDeleteMetadataRecordCountHistory());
+        long deleteMetadataRecordTimeLastMinute = getLastMinuteStats(stats.getDeleteMetadataRecordTimeHistory());
+
+        dsbs.deleteMetadataRecord(name);
+
+        assertEquals(deleteMetadataRecordCount + 1, stats.getDeleteMetadataRecordCount());
+        assertEquals(deleteMetadataRecordCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getDeleteMetadataRecordCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(deleteMetadataRecordTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getDeleteMetadataRecordTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSMetaDeleteNotFoundStats() {
+    public void testDSBSMetaDeleteNotFoundStats() throws IOException, RepositoryException {
         // BLOB_METADATA_DELETE_NOT_FOUND
     }
 
     @Test
-    public void testDSBSMetaDeleteErrorStats() {
+    public void testDSBSMetaDeleteErrorStats() throws IOException, RepositoryException {
         // BLOB_METADATA_DELETE_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnDeleteRecord());
+        String name = "meta-1";
+        dsbs.addMetadataRecord(getTestInputStream(), name);
+
+        long deleteMetadataRecordErrorCount = stats.getDeleteMetadataRecordErrorCount();
+        long deleteMetadataRecordErrorCountLastMinute = getLastMinuteStats(stats.getDeleteMetadataRecordErrorCountHistory());
+
+        try {
+            dsbs.deleteMetadataRecord(name);
+        }
+        catch (Exception e) { }
+
+        assertEquals(deleteMetadataRecordErrorCount + 1, stats.getDeleteMetadataRecordErrorCount());
+        assertEquals(deleteMetadataRecordErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getDeleteMetadataRecordErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
-    public void testDSBSMetaDeleteAllStats() {
+    public void testDSBSMetaDeleteAllStats() throws IOException, RepositoryException {
         // BLOB_METADATA_DELETEALL_COUNT, BLOB_METDATA_DELETEALL_TIME
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withDeleteDelay());
+        String name = "meta-1";
+        dsbs.addMetadataRecord(getTestInputStream(), name);
+
+        long deleteAllMetadataRecordsCount = stats.getDeleteAllMetadataRecordsCount();
+        long deleteAllMetadataRecordsCountLastMinute = getLastMinuteStats(stats.getDeleteAllMetadataRecordsCountHistory());
+        long deleteAllMetadataRecordsTimeLastMinute = getLastMinuteStats(stats.getDeleteAllMetadataRecordsTimeHistory());
+
+        dsbs.deleteAllMetadataRecords(name);
+
+        assertEquals(deleteAllMetadataRecordsCount + 1, stats.getDeleteAllMetadataRecordsCount());
+        assertEquals(deleteAllMetadataRecordsCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getDeleteAllMetadataRecordsCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertTrue(deleteAllMetadataRecordsTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getDeleteAllMetadataRecordsTimeHistory()), stats));
     }
 
     @Test
-    public void testDSBSMetaDeleteAllErrorStats() {
+    public void testDSBSMetaDeleteAllErrorStats() throws IOException, RepositoryException {
         // BLOB_METADATA_DELETEALL_ERRORS
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnDeleteRecord());
+        String name = "meta-1";
+        dsbs.addMetadataRecord(getTestInputStream(), name);
+
+        long deleteAllMetadataRecordsErrorCount = stats.getDeleteAllMetadataRecordsErrorCount();
+        long deleteAllMetadataRecordsErrorCountLastMinute = getLastMinuteStats(stats.getDeleteAllMetadataRecordsErrorCountHistory());
+
+        try {
+            dsbs.deleteAllMetadataRecords(name);
+        }
+        catch (Exception e) { }
+
+        assertEquals(deleteAllMetadataRecordsErrorCount + 1, stats.getDeleteAllMetadataRecordsErrorCount());
+        assertEquals(deleteAllMetadataRecordsErrorCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getDeleteAllMetadataRecordsErrorCountHistory()),
+                        stats, 1L, 0L).longValue());
     }
 
     @Test
@@ -878,7 +1069,7 @@ public class DataStoreBlobStoreStatsTest {
 
         private int readDelay = 0;
         private int writeDelay = 0;
-        private int deleteRecordDelay = 0;
+        private int deleteDelay = 0;
         private int listIdsDelay = 0;
         private int initBlobUploadDelay = 0;
         private int completeBlobUploadDelay = 0;
@@ -910,12 +1101,12 @@ public class DataStoreBlobStoreStatsTest {
             return this;
         }
 
-        DataStoreBuilder withDeleteRecordDelay() {
-            return withDeleteRecordDelay(DELAY_DEFAULT);
+        DataStoreBuilder withDeleteDelay() {
+            return withDeleteDelay(DELAY_DEFAULT);
         }
 
-        DataStoreBuilder withDeleteRecordDelay(int delay) {
-            deleteRecordDelay = delay;
+        DataStoreBuilder withDeleteDelay(int delay) {
+            deleteDelay = delay;
             return this;
         }
 
@@ -974,7 +1165,7 @@ public class DataStoreBlobStoreStatsTest {
         }
 
         DataStoreBuilder withErrorOnDeleteRecord() {
-            return withErrorOnDeleteRecord(true).withDeleteRecordDelay(DELAY_DEFAULT);
+            return withErrorOnDeleteRecord(true).withDeleteDelay(DELAY_DEFAULT);
         }
 
         DataStoreBuilder withErrorOnDeleteRecord(boolean withError) {
@@ -1029,10 +1220,10 @@ public class DataStoreBlobStoreStatsTest {
                         new AddRecordErrorDataStore(writeDelay) :
                         new WriteDelayedDataStore(writeDelay);
             }
-            else if (deleteRecordDelay > 0) {
+            else if (deleteDelay > 0) {
                 return generateErrorOnDeleteRecord ?
-                        new DeleteRecordErrorDataStore(deleteRecordDelay) :
-                        new DeleteRecordDelayedDataStore(deleteRecordDelay);
+                        new DeleteRecordErrorDataStore(deleteDelay) :
+                        new DeleteDelayedDataStore(deleteDelay);
             }
             else if (listIdsDelay > 0) {
                 return generateErrorOnListIds ?
@@ -1138,6 +1329,48 @@ public class DataStoreBlobStoreStatsTest {
             err();
             return super.getAllIdentifiers();
         }
+
+        void _addMetaRec(InputStream is, String name) throws DataStoreException {
+            delay();
+            err();
+            super.addMetadataRecord(is, name);
+        }
+
+        void _addMetaRec(File f, String name) throws DataStoreException {
+            delay();
+            err();
+            super.addMetadataRecord(f, name);
+        }
+
+        DataRecord _getMetaRec(String name) throws DataStoreException {
+            delay();
+            err();
+            return super.getMetadataRecord(name);
+        }
+
+        boolean _metaRecExists(String name) throws DataStoreException {
+            delay();
+            err();
+            return super.metadataRecordExists(name);
+        }
+
+        List<DataRecord> _getAllMetaRecs(String prefix) throws DataStoreException {
+            delay();
+            err();
+            return super.getAllMetadataRecords(prefix);
+        }
+
+        boolean _delMetaRec(String name) throws DataStoreException {
+            delay();
+            err();
+            return super.deleteMetadataRecord(name);
+        }
+
+        void _delAllMetaRecs(String prefix) throws DataStoreException {
+            delay();
+            err();
+            super.deleteAllMetadataRecords(prefix);
+        }
     }
 
     private static class TestableDirectAccessFileDataStore extends TestableFileDataStore implements DataRecordAccessProvider {
@@ -1211,6 +1444,36 @@ public class DataStoreBlobStoreStatsTest {
         public Iterator<DataRecord> getAllRecords() {
             return _getAllRecs();
         }
+
+        @Override
+        public DataRecord getMetadataRecord(String name) {
+            try {
+                return _getMetaRec(name);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public List<DataRecord> getAllMetadataRecords(String prefix) {
+            try {
+                return _getAllMetaRecs(prefix);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public boolean metadataRecordExists(String name) {
+            try {
+                return _metaRecExists(name);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private static class WriteDelayedDataStore extends TestableFileDataStore {
@@ -1222,16 +1485,46 @@ public class DataStoreBlobStoreStatsTest {
         public DataRecord addRecord(InputStream is) throws DataStoreException {
             return _addRec(is);
         }
+
+        @Override
+        public void addMetadataRecord(InputStream is, String name) throws DataStoreException {
+            _addMetaRec(is, name);
+        }
+
+        @Override
+        public void addMetadataRecord(File f, String name) throws DataStoreException {
+            _addMetaRec(f,  name);
+        }
     }
 
-    private static class DeleteRecordDelayedDataStore extends TestableFileDataStore {
-        DeleteRecordDelayedDataStore(int delay) {
+    private static class DeleteDelayedDataStore extends TestableFileDataStore {
+        DeleteDelayedDataStore(int delay) {
             super(delay);
         }
 
         @Override
         public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
             _delRec(identifier);
+        }
+
+        @Override
+        public boolean deleteMetadataRecord(String name) {
+            try {
+                return _delMetaRec(name);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void deleteAllMetadataRecords(String prefix) {
+            try {
+                _delAllMetaRecs(prefix);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -1293,6 +1586,16 @@ public class DataStoreBlobStoreStatsTest {
         public DataRecord addRecord(InputStream is) throws DataStoreException {
             return _addRec(is);
         }
+
+        @Override
+        public void addMetadataRecord(InputStream is, String name) throws DataStoreException {
+            _addMetaRec(is, name);
+        }
+
+        @Override
+        public void addMetadataRecord(File f, String name) throws DataStoreException {
+            _addMetaRec(f,  name);
+        }
     }
 
     private static class GetRecordErrorDataStore extends TestableFileDataStore {
@@ -1319,6 +1622,36 @@ public class DataStoreBlobStoreStatsTest {
         public DataRecord getRecordForId(DataIdentifier identifier) throws DataStoreException {
             return _getRecForId(identifier);
         }
+
+        @Override
+        public DataRecord getMetadataRecord(String name) {
+            try {
+                return _getMetaRec(name);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public List<DataRecord> getAllMetadataRecords(String prefix) {
+            try {
+                return _getAllMetaRecs(prefix);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public boolean metadataRecordExists(String name) {
+            try {
+                return _metaRecExists(name);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private static class DeleteRecordErrorDataStore extends TestableFileDataStore {
@@ -1335,6 +1668,26 @@ public class DataStoreBlobStoreStatsTest {
         public int deleteAllOlderThan(long min) {
             try {
                 return _delAllOlderThan(min);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public boolean deleteMetadataRecord(String name) {
+            try {
+                return _delMetaRec(name);
+            }
+            catch (DataStoreException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void deleteAllMetadataRecords(String prefix) {
+            try {
+                _delAllMetaRecs(prefix);
             }
             catch (DataStoreException e) {
                 throw new RuntimeException(e);

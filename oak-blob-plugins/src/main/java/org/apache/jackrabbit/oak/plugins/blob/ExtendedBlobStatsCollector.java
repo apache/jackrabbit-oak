@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -122,6 +123,60 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
         public void getAllIdentifiersFailed() { }
 
         @Override
+        public void metadataRecordAdded(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void addMetadataRecordCompleted(String name) { }
+
+        @Override
+        public void addMetadataRecordFailed(String name) { }
+
+        @Override
+        public void getMetadataRecordCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getMetadataRecordCompleted(String name) { }
+
+        @Override
+        public void getMetadataRecordFailed(String name) { }
+
+        @Override
+        public void getAllMetadataRecordsCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getAllMetadataRecordsCompleted(String prefix) { }
+
+        @Override
+        public void getAllMetadataRecordsFailed(String prefix) { }
+
+        @Override
+        public void metadataRecordExistsCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void metadataRecordExistsCompleted(String name) { }
+
+        @Override
+        public void metadataRecordExistsFailed(String name) { }
+
+        @Override
+        public void metadataRecordDeleted(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void deleteMetadataRecordCompleted(String name) { }
+
+        @Override
+        public void deleteMetadataRecordFailed(String name) { }
+
+        @Override
+        public void allMetadataRecordsDeleted(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void deleteAllMetadataRecordsCompleted(String prefix) { }
+
+        @Override
+        public void deleteAllMetadataRecordsFailed(String prefix) { }
+
+        @Override
         public void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris) { }
 
         @Override
@@ -185,6 +240,138 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      * Called when a call to {@link SharedDataStore#getAllRecords()} is completed
      */
     void getAllRecordsCompleted();
+
+    /**
+     * Called when a call to {@link SharedDataStore#addMetadataRecord(File, String)} is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void metadataRecordAdded(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link SharedDataStore#addMetadataRecord(File, String)} is completed
+     *
+     * @param name name of the metadata record added
+     */
+    void addMetadataRecordCompleted(String name);
+
+    /**
+     * Called when a call to {@link SharedDataStore#addMetadataRecord(File, String)} fails
+     *
+     * @param name name of the metadata record
+     */
+    void addMetadataRecordFailed(String name);
+
+    /**
+     * Called when a call to {@link SharedDataStore#getMetadataRecord(String)} is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void getMetadataRecordCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link SharedDataStore#getMetadataRecord(String)} is completed
+     *
+     * @param name name of the metadata record retrieved
+     */
+    void getMetadataRecordCompleted(String name);
+
+    /**
+     * Called when a call to {@link SharedDataStore#getMetadataRecord(String)} fails
+     *
+     * @param name name of the metadata record
+     */
+    void getMetadataRecordFailed(String name);
+
+    /**
+     * Called when a call to {@link SharedDataStore#getAllMetadataRecords(String)} is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void getAllMetadataRecordsCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link SharedDataStore#getAllMetadataRecords(String)} is completed
+     *
+     * @param prefix prefix of the metadata records retrieved
+     */
+    void getAllMetadataRecordsCompleted(String prefix);
+
+    /**
+     * Called when a call to {@link SharedDataStore#getAllMetadataRecords(String)} fails
+     *
+     * @param prefix prefix of the metadata records
+     */
+    void getAllMetadataRecordsFailed(String prefix);
+
+    /**
+     * Called when a call to {@link SharedDataStore#metadataRecordExists(String)} is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void metadataRecordExistsCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link SharedDataStore#metadataRecordExists(String)} is completed
+     *
+     * @param name name of the metadata record checked
+     */
+    void metadataRecordExistsCompleted(String name);
+
+    /**
+     * Called when a call to {@link SharedDataStore#metadataRecordExists(String)} fails
+     *
+     * @param name name of the metadata record
+     */
+    void metadataRecordExistsFailed(String name);
+
+    /**
+     * Called when a call to {@link SharedDataStore#deleteMetadataRecord(String)} is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void metadataRecordDeleted(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link SharedDataStore#deleteMetadataRecord(String)} is completed
+     *
+     * @param name name of the metadata record deleted
+     */
+    void deleteMetadataRecordCompleted(String name);
+
+    /**
+     * Called when a call to {@link SharedDataStore#deleteMetadataRecord(String)} fails
+     *
+     * @param name name of the metadata record
+     */
+    void deleteMetadataRecordFailed(String name);
+
+    /**
+     * Called when a call to {@link SharedDataStore#deleteAllMetadataRecords(String)} is made
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void allMetadataRecordsDeleted(long timeTaken, TimeUnit unit);
+
+    /**
+     * Called when a call to {@link SharedDataStore#deleteAllMetadataRecords(String)} is made
+     *
+     * @param prefix prefix of the metadata records deleted
+     */
+    void deleteAllMetadataRecordsCompleted(String prefix);
+
+    /**
+     * Called when a call to {@link SharedDataStore#deleteAllMetadataRecords(String)} is made
+     *
+     * @param prefix prefix of the metadata records
+     */
+    void deleteAllMetadataRecordsFailed(String prefix);
 
     /**
      * Called when a call to {@link org.apache.jackrabbit.oak.api.blob.BlobAccessProvider#initiateBlobUpload(long, int)}

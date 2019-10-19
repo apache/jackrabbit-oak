@@ -549,46 +549,165 @@ public class DataStoreBlobStore
     @Override
     public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
         if (delegate instanceof SharedDataStore) {
-            ((SharedDataStore) delegate).addMetadataRecord(stream, name);
+            try {
+                long start = System.nanoTime();
+
+                ((SharedDataStore) delegate).addMetadataRecord(stream, name);
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).metadataRecordAdded(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    ((ExtendedBlobStatsCollector) stats).addMetadataRecordCompleted(name);
+                }
+            }
+            catch (DataStoreException e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).addMetadataRecordFailed(name);
+                }
+                throw e;
+            }
         }
     }
 
     @Override
     public void addMetadataRecord(File f, String name) throws DataStoreException {
         if (delegate instanceof SharedDataStore) {
-            ((SharedDataStore) delegate).addMetadataRecord(f, name);
+            try {
+                long start = System.nanoTime();
+
+                ((SharedDataStore) delegate).addMetadataRecord(f, name);
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).metadataRecordAdded(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    ((ExtendedBlobStatsCollector) stats).addMetadataRecordCompleted(name);
+                }
+            }
+            catch (DataStoreException e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).addMetadataRecordFailed(name);
+                }
+                throw e;
+            }
         }
     }
 
     @Override public DataRecord getMetadataRecord(String name) {
         if (delegate instanceof SharedDataStore) {
-            return ((SharedDataStore) delegate).getMetadataRecord(name);
+            try {
+                long start = System.nanoTime();
+
+                DataRecord record = ((SharedDataStore) delegate).getMetadataRecord(name);
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).getMetadataRecordCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    ((ExtendedBlobStatsCollector) stats).getMetadataRecordCompleted(name);
+                }
+
+                return record;
+            }
+            catch (Exception e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).getMetadataRecordFailed(name);
+                }
+                throw e;
+            }
         }
         return null;
     }
 
     @Override
     public boolean metadataRecordExists(String name) {
-        return delegate instanceof SharedDataStore && ((SharedDataStore) delegate).metadataRecordExists(name);
+        if (delegate instanceof SharedDataStore) {
+            try {
+                long start = System.nanoTime();
+
+                boolean exists = ((SharedDataStore) delegate).metadataRecordExists(name);
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).metadataRecordExistsCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    ((ExtendedBlobStatsCollector) stats).metadataRecordExistsCompleted(name);
+                }
+
+                return exists;
+            }
+            catch (Exception e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).metadataRecordExistsFailed(name);
+                }
+                throw e;
+            }
+        }
+        return false;
     }
 
     @Override
     public List<DataRecord> getAllMetadataRecords(String prefix) {
         if (delegate instanceof SharedDataStore) {
-            return ((SharedDataStore) delegate).getAllMetadataRecords(prefix);
+            try {
+                long start = System.nanoTime();
+
+                List<DataRecord> records = ((SharedDataStore) delegate).getAllMetadataRecords(prefix);
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).getAllMetadataRecordsCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    ((ExtendedBlobStatsCollector) stats).getAllMetadataRecordsCompleted(prefix);
+                }
+
+                return records;
+            }
+            catch (Exception e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).getAllMetadataRecordsFailed(prefix);
+                }
+                throw e;
+            }
         }
         return null;
     }
 
     @Override
     public boolean deleteMetadataRecord(String name) {
-        return delegate instanceof SharedDataStore && ((SharedDataStore) delegate).deleteMetadataRecord(name);
+        if (delegate instanceof SharedDataStore) {
+            try {
+                long start = System.nanoTime();
+
+                boolean deleted = ((SharedDataStore) delegate).deleteMetadataRecord(name);
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).metadataRecordDeleted(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    ((ExtendedBlobStatsCollector) stats).deleteMetadataRecordCompleted(name);
+                }
+
+                return deleted;
+            }
+            catch (Exception e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).deleteMetadataRecordFailed(name);
+                }
+                throw e;
+            }
+        }
+        return false;
     }
 
     @Override
     public void deleteAllMetadataRecords(String prefix) {
         if (delegate instanceof SharedDataStore) {
-            ((SharedDataStore) delegate).deleteAllMetadataRecords(prefix);
+            try {
+                long start = System.nanoTime();
+
+                ((SharedDataStore) delegate).deleteAllMetadataRecords(prefix);
+
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).allMetadataRecordsDeleted(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                    ((ExtendedBlobStatsCollector) stats).deleteAllMetadataRecordsCompleted(prefix);
+                }
+            }
+            catch (Exception e) {
+                if (stats instanceof ExtendedBlobStatsCollector) {
+                    ((ExtendedBlobStatsCollector) stats).deleteAllMetadataRecordsFailed(prefix);
+                }
+                throw e;
+            }
         }
     }
 

@@ -44,6 +44,30 @@ public interface ExtendedBlobStoreStatsMBean extends BlobStoreStatsMBean {
 
     long getGetBlobDownloadURIErrorCount();
 
+    long getAddMetadataRecordCount();
+
+    long getAddMetadataRecordErrorCount();
+
+    long getGetMetadataRecordCount();
+
+    long getGetMetadataRecordErrorCount();
+
+    long getGetAllMetadataRecordsCount();
+
+    long getGetAllMetadataRecordsErrorCount();
+
+    long getMetadataRecordExistsCount();
+
+    long getMetadataRecordExistsErrorCount();
+
+    long getDeleteMetadataRecordCount();
+
+    long getDeleteMetadataRecordErrorCount();
+
+    long getDeleteAllMetadataRecordsCount();
+
+    long getDeleteAllMetadataRecordsErrorCount();
+
     CompositeData getGetRecordForIdCountHistory();
 
     CompositeData getGetRecordForIdErrorCountHistory();
@@ -71,4 +95,40 @@ public interface ExtendedBlobStoreStatsMBean extends BlobStoreStatsMBean {
     CompositeData getGetBlobDownloadURITimeHistory();
 
     CompositeData getGetBlobDownloadURIErrorCountHistory();
+
+    CompositeData getAddMetadataRecordCountHistory();
+
+    CompositeData getAddMetadataRecordTimeHistory();
+
+    CompositeData getAddMetadataRecordErrorCountHistory();
+
+    CompositeData getGetMetadataRecordCountHistory();
+
+    CompositeData getGetMetadataRecordTimeHistory();
+
+    CompositeData getGetMetadataRecordErrorCountHistory();
+
+    CompositeData getGetAllMetadataRecordsCountHistory();
+
+    CompositeData getGetAllMetadataRecordsTimeHistory();
+
+    CompositeData getGetAllMetadataRecordsErrorCountHistory();
+
+    CompositeData getMetadataRecordExistsCountHistory();
+
+    CompositeData getMetadataRecordExistsTimeHistory();
+
+    CompositeData getMetadataRecordExistsErrorCountHistory();
+
+    CompositeData getDeleteMetadataRecordCountHistory();
+
+    CompositeData getDeleteMetadataRecordTimeHistory();
+
+    CompositeData getDeleteMetadataRecordErrorCountHistory();
+
+    CompositeData getDeleteAllMetadataRecordsCountHistory();
+
+    CompositeData getDeleteAllMetadataRecordsTimeHistory();
+
+    CompositeData getDeleteAllMetadataRecordsErrorCountHistory();
 }
