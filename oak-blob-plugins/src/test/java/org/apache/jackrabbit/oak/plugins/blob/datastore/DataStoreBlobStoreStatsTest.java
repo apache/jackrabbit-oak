@@ -55,6 +55,8 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordA
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
+import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -242,14 +244,16 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSGetRecordStats() throws IOException, RepositoryException {
         // BLOB_GETREC_COUNT, BLOB_GETREC_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay().withStatsCollector(stats));
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecCount = stats.getGetRecordCount();
         long getRecCountLastMinute = getLastMinuteStats(stats.getGetRecordCountHistory());
         long getRecTimeLastMinute = getLastMinuteStats(stats.getGetRecordTimeHistory());
 
-        dsbs.getRecord(rec.getIdentifier());
+        long downloadTimeLastMinute = getLastMinuteStats(stats.getDownloadRateHistory());
+
+        DataRecord record = dsbs.getRecord(rec.getIdentifier());
 
         assertEquals(getRecCount+1, stats.getGetRecordCount());
         assertEquals(getRecCountLastMinute,
@@ -257,6 +261,19 @@ public class DataStoreBlobStoreStatsTest {
                         stats, 2L, 0L).longValue());
         assertTrue(getRecTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordTimeHistory()), stats));
+
+        // At this point the download time should not have changed.
+        assertEquals(downloadTimeLastMinute, getLastMinuteStats(stats.getDownloadRateHistory()));
+
+        // Consume the record's input stream
+        try (InputStream recordStream = record.getStream()) {
+            while (recordStream.available() > 0) {
+                recordStream.read();
+            }
+        }
+
+        assertTrue(downloadTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(stats.getDownloadRateHistory()), stats));
     }
 
     @Test
@@ -1086,6 +1103,8 @@ public class DataStoreBlobStoreStatsTest {
         private boolean generateErrorOnCompleteBlobUpload = false;
         private boolean generateErrorOnGetDownloadURI = false;
 
+        private BlobStatsCollector stats = null;
+
         DataStoreBuilder withReadDelay() {
             return withReadDelay(DELAY_DEFAULT);
         }
@@ -1212,11 +1231,16 @@ public class DataStoreBlobStoreStatsTest {
             return this;
         }
 
+        DataStoreBuilder withStatsCollector(BlobStatsCollector stats) {
+            this.stats = stats;
+            return this;
+        }
+
         OakFileDataStore build() {
             if (readDelay > 0) {
                 return generateErrorOnGetRecord ?
-                        new GetRecordErrorDataStore(readDelay) :
-                        new ReadDelayedDataStore(readDelay);
+                        new GetRecordErrorDataStore(readDelay, stats) :
+                        new ReadDelayedDataStore(readDelay, stats);
             }
             else if (writeDelay > 0) {
                 return generateErrorOnAddRecord ?
@@ -1256,15 +1280,25 @@ public class DataStoreBlobStoreStatsTest {
         protected int delay;
         protected boolean withError;
         protected DataStoreException ex = new DataStoreException("Test-generated Exception");
+        private BlobStatsCollector stats = null;
 
         TestableFileDataStore(int delay) {
-            this(delay, false);
+            this(delay, false, null);
+        }
+
+        TestableFileDataStore(int delay, BlobStatsCollector stats) {
+            this(delay, false, stats);
         }
 
         TestableFileDataStore(int delay, boolean withError) {
+            this(delay, withError, null);
+        }
+
+        TestableFileDataStore(int delay, boolean withError, BlobStatsCollector stats) {
             super();
             this.delay = delay;
             this.withError = withError;
+            this.stats = stats;
         }
 
         protected void delay() {
@@ -1278,6 +1312,32 @@ public class DataStoreBlobStoreStatsTest {
 
         protected void err() throws DataStoreException {
             if (withError) throw ex;
+        }
+
+        protected static class ReadDelayedDataRecord implements DataRecord {
+            private DataRecord internalRecord;
+            private BlobStatsCollector stats;
+            private long startNanos;
+
+            private ReadDelayedDataRecord(DataRecord record, BlobStatsCollector stats, long startNanos) {
+                this.internalRecord = record;
+                this.stats = stats;
+                this.startNanos = startNanos;
+            }
+
+            public static ReadDelayedDataRecord wrap(DataRecord record, BlobStatsCollector stats, long startNanos) {
+                return new ReadDelayedDataRecord(record, stats, startNanos);
+            }
+
+            @Override public DataIdentifier getIdentifier() { return internalRecord.getIdentifier(); }
+            @Override public String getReference() { return internalRecord.getReference(); }
+            @Override public long getLength() throws DataStoreException { return internalRecord.getLength(); }
+            @Override public long getLastModified() { return internalRecord.getLastModified(); }
+
+            @Override
+            public InputStream getStream() throws DataStoreException {
+                return StatsCollectingStreams.wrap(stats, internalRecord.getIdentifier().toString(), internalRecord.getStream(), startNanos);
+            }
         }
 
         DataRecord _addRec(InputStream is) throws DataStoreException {
@@ -1305,9 +1365,10 @@ public class DataStoreBlobStoreStatsTest {
         }
 
         DataRecord _getRecIfStored(DataIdentifier identifier) throws DataStoreException {
+            long start = System.nanoTime();
             delay();
             err();
-            return super.getRecordIfStored(identifier);
+            return ReadDelayedDataRecord.wrap(super.getRecordIfStored(identifier), stats, start);
         }
 
         DataRecord _getRecFromRef(String reference) throws DataStoreException {
@@ -1419,8 +1480,8 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     private static class ReadDelayedDataStore extends TestableFileDataStore {
-        ReadDelayedDataStore(int delay) {
-            super(delay);
+        ReadDelayedDataStore(int delay, BlobStatsCollector stats) {
+            super(delay, stats);
         }
 
         @Override
@@ -1602,8 +1663,8 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     private static class GetRecordErrorDataStore extends TestableFileDataStore {
-        GetRecordErrorDataStore(int delay) {
-            super(delay, true);
+        GetRecordErrorDataStore(int delay, BlobStatsCollector stats) {
+            super(delay, true, stats);
         }
 
         @Override

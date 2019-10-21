@@ -87,12 +87,14 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.plugins.blob.ExtendedBlobStatsCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,6 +153,12 @@ public class S3Backend extends AbstractSharedBackend {
     private int httpDownloadURIExpirySeconds = 0;
 
     private boolean presignedDownloadURIVerifyExists = true;
+
+    private BlobStatsCollector stats = ExtendedBlobStatsCollector.NOOP;
+
+    void setBlobStatsCollector(@NotNull final BlobStatsCollector stats) {
+        this.stats = stats;
+    }
 
     public void init() throws DataStoreException {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -531,7 +539,7 @@ public class S3Backend extends AbstractSharedBackend {
                 getClass().getClassLoader());
             ObjectMetadata meta = s3service.getObjectMetadata(bucket, addMetaKeyPrefix(name));
             return new S3DataRecord(this, s3service, bucket, new DataIdentifier(name),
-                meta.getLastModified().getTime(), meta.getContentLength(), true);
+                meta.getLastModified().getTime(), meta.getContentLength(), stats, true);
         } catch(Exception e) {
             LOG.error("Error getting metadata record for {}", name, e);
         }
@@ -558,7 +566,7 @@ public class S3Backend extends AbstractSharedBackend {
             for (final S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
                 metadataList.add(new S3DataRecord(this, s3service, bucket,
                     new DataIdentifier(stripMetaKeyPrefix(s3ObjSumm.getKey())),
-                    s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize(), true));
+                    s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize(), stats, true));
             }
         } finally {
             if (contextClassLoader != null) {
@@ -622,7 +630,7 @@ public class S3Backend extends AbstractSharedBackend {
                 public DataRecord apply(S3ObjectSummary input) {
                     return new S3DataRecord(backend, s3service, bucket,
                         new DataIdentifier(getIdentifierName(input.getKey())),
-                        input.getLastModified().getTime(), input.getSize());
+                        input.getLastModified().getTime(), input.getSize(), stats);
                 }
             });
     }
@@ -637,7 +645,7 @@ public class S3Backend extends AbstractSharedBackend {
 
             ObjectMetadata object = s3service.getObjectMetadata(bucket, key);
             S3DataRecord record = new S3DataRecord(this, s3service, bucket, identifier,
-                object.getLastModified().getTime(), object.getContentLength());
+                object.getLastModified().getTime(), object.getContentLength(), stats);
             LOG.debug("Identifier [{}]'s getRecord = [{}] took [{}]ms.",
                 identifier, record, (System.currentTimeMillis() - start));
 
@@ -970,7 +978,8 @@ public class S3Backend extends AbstractSharedBackend {
                         bucket,
                         blobId,
                         lastModified.getTime(),
-                        size
+                        size,
+                        stats
                 );
             }
             else {
@@ -1140,22 +1149,22 @@ public class S3Backend extends AbstractSharedBackend {
         private long length;
         private long lastModified;
         private String bucket;
+        private BlobStatsCollector stats;
         private boolean isMeta;
 
         public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified,
-            long length) {
-            this(backend, s3service, bucket, key, lastModified, length, false);
+            DataIdentifier key, long lastModified, long length, BlobStatsCollector stats) {
+            this(backend, s3service, bucket, key, lastModified, length, stats, false);
         }
 
         public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified,
-            long length, boolean isMeta) {
+            DataIdentifier key, long lastModified, long length, BlobStatsCollector stats, boolean isMeta) {
             super(backend, key);
             this.s3service = s3service;
             this.lastModified = lastModified;
             this.length = length;
             this.bucket = bucket;
+            this.stats = stats;
             this.isMeta = isMeta;
         }
 
@@ -1176,6 +1185,9 @@ public class S3Backend extends AbstractSharedBackend {
                     // Log message, with exception so we can get a trace to see where the call came from
                     LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", id, new Exception());
                 }
+            }
+            if (null != stats) {
+                return s3service.getObject(bucket, id).getObjectContent();
             }
             return s3service.getObject(bucket, id).getObjectContent();
         }

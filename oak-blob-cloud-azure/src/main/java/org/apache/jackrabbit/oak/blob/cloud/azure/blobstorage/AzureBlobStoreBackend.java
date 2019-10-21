@@ -77,12 +77,15 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.ExtendedBlobStatsCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
+import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.apache.jackrabbit.util.Base64;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -122,6 +125,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
 
     private byte[] secret;
 
+    private BlobStatsCollector stats = ExtendedBlobStatsCollector.NOOP;
+
     public void setProperties(final Properties properties) {
         this.properties = properties;
     }
@@ -136,6 +141,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             requestOptions.setTimeoutIntervalInMs(requestTimeout);
         }
         return container;
+    }
+
+    void setBlobStatsCollector(@NotNull final BlobStatsCollector stats) {
+        this.stats = stats;
     }
 
     @Override
@@ -383,7 +392,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     containerName,
                     new DataIdentifier(getIdentifierName(blob.getName())),
                     blob.getProperties().getLastModified().getTime(),
-                    blob.getProperties().getLength());
+                    blob.getProperties().getLength(),
+                    stats);
             LOG.debug("Data record read for blob. identifier={} duration={} record={}",
                       key, (System.currentTimeMillis() - start), record);
             return record;
@@ -429,12 +439,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     @Override
                     public DataRecord apply(AzureBlobInfo input) {
                         return new AzureBlobStoreDataRecord(
-                            backend,
-                            connectionString,
-                            containerName,
-                            new DataIdentifier(getIdentifierName(input.getName())),
-                            input.getLastModified(),
-                            input.getLength());
+                                backend,
+                                connectionString,
+                                containerName,
+                                new DataIdentifier(getIdentifierName(input.getName())),
+                                input.getLastModified(),
+                                input.getLength(),
+                                stats);
                     }
                 }
         );
@@ -580,6 +591,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                                 containerName, new DataIdentifier(name),
                                                 lastModified,
                                                 length,
+                                                stats,
                                                 true);
             LOG.debug("Metadata record read. metadataName={} duration={} record={}", name, (System.currentTimeMillis() - start), record);
             return record;
@@ -619,6 +631,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                         new DataIdentifier(stripMetaKeyPrefix(blob.getName())),
                         blob.getProperties().getLastModified().getTime(),
                         blob.getProperties().getLength(),
+                        stats,
                         true));
                 }
             }
@@ -1017,7 +1030,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                             containerName,
                             blobId,
                             blob.getProperties().getLastModified().getTime(),
-                            size);
+                            size,
+                            stats);
                 }
                 else {
                     // Something is wrong - upload ID missing from upload token
@@ -1240,20 +1254,22 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         final String containerName;
         final long lastModified;
         final long length;
+        final BlobStatsCollector stats;
         final boolean isMeta;
 
         public AzureBlobStoreDataRecord(AbstractSharedBackend backend, String connectionString, String containerName,
-                                        DataIdentifier key, long lastModified, long length) {
-            this(backend, connectionString, containerName, key, lastModified, length, false);
+                                        DataIdentifier key, long lastModified, long length, BlobStatsCollector stats) {
+            this(backend, connectionString, containerName, key, lastModified, length, stats,false);
         }
 
         public AzureBlobStoreDataRecord(AbstractSharedBackend backend, String connectionString, String containerName,
-                                        DataIdentifier key, long lastModified, long length, boolean isMeta) {
+                                        DataIdentifier key, long lastModified, long length, BlobStatsCollector stats, boolean isMeta) {
             super(backend, key);
             this.connectionString = connectionString;
             this.containerName = containerName;
             this.lastModified = lastModified;
             this.length = length;
+            this.stats = stats;
             this.isMeta = isMeta;
         }
 
@@ -1277,6 +1293,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 }
             }
             try {
+                if (null != stats) {
+                    return StatsCollectingStreams.wrap(stats, getIdentifier().toString(),
+                            container.getBlockBlobReference(id).openInputStream());
+                }
                 return container.getBlockBlobReference(id).openInputStream();
             } catch (StorageException | URISyntaxException e) {
                 throw new DataStoreException(e);
