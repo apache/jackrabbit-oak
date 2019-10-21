@@ -81,7 +81,7 @@ public class DataStoreBlobStoreStatsTest {
 
     @Test
     public void testDSBSReadBlobStats() throws IOException, RepositoryException {
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay());
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay(500));
 
         String blobId = dsbs.writeBlob(getTestInputStream());
 
@@ -119,7 +119,7 @@ public class DataStoreBlobStoreStatsTest {
 
     @Test
     public void testDSBSWriteBlobStats() throws IOException, RepositoryException {
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay());
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay(1000));
 
         long uploadCount = stats.getUploadCount();
         long uploadTotalSize = stats.getUploadTotalSize();
@@ -137,9 +137,8 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(uploadAmountLastMinute + BLOB_LEN,
                 waitForMetric(input -> getLastMinuteStats(input.getUploadSizeHistory()),
                         stats, (long) BLOB_LEN, 0L).longValue());
-        // TODO fix
-//        assertTrue(uploadTimeLastMinute <
-//                waitForNonzeroMetric(input -> sum((long[])input.getUploadRateHistory().get("per second")), stats));
+        assertTrue(uploadTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getUploadRateHistory()), stats));
     }
 
     @Test
@@ -189,7 +188,7 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSAddRecordStats() throws IOException, RepositoryException {
         // BLOB_ADD_RECORD_COUNT, BLOB_ADD_RECORD_SIZE, BLOB_ADD_RECORD_TIME
 
-        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay());
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withWriteDelay(1000));
 
         long addRecordCount = stats.getAddRecordCount();
         long addRecordSize = stats.getAddRecordTotalSize();
@@ -208,9 +207,8 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(addRecordSizeLastMinute + BLOB_LEN*2,
                 waitForMetric(input -> getLastMinuteStats(input.getAddRecordSizeHistory()),
                         stats, (long) BLOB_LEN*2, 0L).longValue());
-        //TODO Fix this assertion
-//        assertTrue(addRecordTimeLastMinute <
-//                waitForNonzeroMetric(input -> sum((long[])input.getAddRecordRateHistory().get("per second")), stats));
+        assertTrue(addRecordTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getAddRecordRateHistory()), stats));
     }
 
     @Test
@@ -538,9 +536,8 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(listIdsCountLastMinute + 1,
                 waitForMetric(input -> getLastMinuteStats(input.getListIdsCountHistory()),
                         stats, 1L, 0L).longValue());
-        // TODO fix
-//        assertTrue(listIdsTimeLastMinute >
-//                waitForNonzeroMetric(input -> getLastMinuteStats(input.getListIdsTimeHistory()), stats));
+        assertTrue(listIdsTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getListIdsTimeHistory()), stats));
     }
 
     @Test
@@ -1064,7 +1061,7 @@ public class DataStoreBlobStoreStatsTest {
 
 
     private static class DataStoreBuilder {
-        private static final int DELAY_DEFAULT = 1000;
+        private static final int DELAY_DEFAULT = 50;
 
         private int readDelay = 0;
         private int writeDelay = 0;
