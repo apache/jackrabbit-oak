@@ -42,6 +42,7 @@ import org.junit.runner.RunWith;
  *
  * Note that default Solr analyzers for Oak should be equivalent to the ones programmatically defined here.
  */
+@Ignore("OAK-8244")
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
