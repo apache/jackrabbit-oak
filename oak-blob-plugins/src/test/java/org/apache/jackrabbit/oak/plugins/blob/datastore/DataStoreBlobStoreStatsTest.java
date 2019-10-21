@@ -59,7 +59,6 @@ import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -106,15 +105,31 @@ public class DataStoreBlobStoreStatsTest {
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getDownloadRateHistory()), stats));
     }
 
-    @Ignore
     @Test
     public void testDSBSReadBlobNotFoundStats() throws IOException, RepositoryException {
         // BLOB_DOWNLOAD_NOT_FOUND_COUNT
     }
 
     @Test
-    public void testDSBSReadBlobErrorStats() {
+    public void testDSBSReadBlobErrorStats() throws IOException, RepositoryException {
         // BLOB_DOWNLOAD_ERROR_COUNT
+
+        DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
+        String blobId = dsbs.writeBlob(getTestInputStream());
+
+        long downloadErrorCount = stats.getDownloadErrorCount();
+        long downloadErrorCountLastMinute = getLastMinuteStats(stats.getDownloadErrorCountHistory());
+
+        byte[] buffer = new byte[BLOB_LEN];
+        try {
+            dsbs.readBlob(blobId, 0, buffer, 0, BLOB_LEN);
+        }
+        catch (IOException e) { }
+
+        assertEquals(downloadErrorCount + 2, stats.getDownloadErrorCount());
+        assertEquals(downloadErrorCountLastMinute + 2,
+                waitForMetric(input -> getLastMinuteStats(input.getDownloadErrorCountHistory()),
+                        stats, 2L, 0L).longValue());
     }
 
     @Test

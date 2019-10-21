@@ -41,6 +41,8 @@ public interface BlobStoreStatsMBean {
 
     long getDownloadTotalSeconds();
 
+    long getDownloadErrorCount();
+
     long getDeleteCount();
 
     long getDeleteErrorCount();
@@ -86,6 +88,8 @@ public interface BlobStoreStatsMBean {
     CompositeData getUploadErrorCountHistory();
 
     CompositeData getDownloadCountHistory();
+
+    CompositeData getDownloadErrorCountHistory();
 
     CompositeData getDeleteCountHistory();
 

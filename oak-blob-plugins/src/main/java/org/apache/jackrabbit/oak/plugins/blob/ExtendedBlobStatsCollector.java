@@ -45,6 +45,9 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
         public void uploadFailed() { }
 
         @Override
+        public void downloadFailed(String blobId) { }
+
+        @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
 
         @Override

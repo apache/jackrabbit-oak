@@ -49,6 +49,9 @@ public interface BlobStatsCollector {
         public void uploadFailed() { }
 
         @Override
+        public void downloadFailed(String blobId) { }
+
+        @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
 
         @Override
@@ -154,6 +157,13 @@ public interface BlobStatsCollector {
      * Invoked when an upload of a binary fails.
      */
     void uploadFailed();
+
+    /**
+     * Called when an attempt to download a binary file fails.
+     *
+     * @param blobId id of the blob for which the download failed
+     */
+    void downloadFailed(String blobId);
 
     /**
      * Called when a binary is deleted from the BlobStore

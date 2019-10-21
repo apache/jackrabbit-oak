@@ -83,6 +83,9 @@ public class StatsCollectingStreamsTest {
         public void uploadFailed() { }
 
         @Override
+        public void downloadFailed(String blobId) { }
+
+        @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
 
         @Override

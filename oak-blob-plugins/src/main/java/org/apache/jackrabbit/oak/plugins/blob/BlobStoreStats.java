@@ -52,6 +52,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     private static final String BLOB_DOWNLOAD_COUNT = "BLOB_DOWNLOAD_COUNT";
     private static final String BLOB_DOWNLOAD_SIZE = "BLOB_DOWNLOAD_SIZE";
     private static final String BLOB_DOWNLOAD_TIME = "BLOB_DOWNLOAD_TIME";
+    private static final String BLOB_DOWNLOAD_ERROR_COUNT = "BLOB_DOWNLOAD_ERROR_COUNT";
 
     private static final String BLOB_DELETE_COUNT = "BLOB_DELETE_COUNT";
     private static final String BLOB_DELETE_TIME = "BLOB_DELETE_TIME";
@@ -135,6 +136,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     private final MeterStats downloadSizeSeries;
     private final MeterStats downloadTimeSeries;
     private final TimeSeries downloadRateSeries;
+    private final MeterStats downloadErrorCount;
 
     private final MeterStats deleteCount;
     private final MeterStats deleteTimeSeries;
@@ -219,6 +221,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
         this.downloadSizeSeries = sp.getMeter(BLOB_DOWNLOAD_SIZE, StatsOptions.TIME_SERIES_ONLY);
         this.downloadTimeSeries = sp.getMeter(BLOB_DOWNLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.downloadRateSeries = getAvgTimeSeries(BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME);
+        this.downloadErrorCount = sp.getMeter(BLOB_DOWNLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
 
         this.deleteCount = sp.getMeter(BLOB_DELETE_COUNT, StatsOptions.DEFAULT);
         this.deleteTimeSeries = sp.getMeter(BLOB_DELETE_TIME, StatsOptions.TIME_SERIES_ONLY);
@@ -324,6 +327,13 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     @Override
     public void uploadFailed() {
         uploadErrorCount.mark();
+        opsLogger.debug("Upload failed");
+    }
+
+    @Override
+    public void downloadFailed(String blobId) {
+        downloadErrorCount.mark();
+        opsLogger.debug("Download failed - {}", blobId);
     }
 
     @Override
@@ -683,6 +693,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
     }
 
     @Override
+    public long getDownloadErrorCount() { return downloadErrorCount.getCount(); }
+
+    @Override
     public long getAddRecordTotalSize() { return addRecordSizeSeries.getCount(); }
 
     @Override
@@ -827,6 +840,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBl
 
     @Override
     public CompositeData getDownloadCountHistory() { return getTimeSeriesData(BLOB_DOWNLOAD_COUNT, "Blob Download Counts"); }
+
+    @Override
+    public CompositeData getDownloadErrorCountHistory() { return getTimeSeriesData(BLOB_DOWNLOAD_ERROR_COUNT, "Blob Download Error Counts"); }
 
     @Override
     public CompositeData getDeleteCountHistory() {

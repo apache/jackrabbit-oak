@@ -841,6 +841,7 @@ public class DataStoreBlobStore
             }
             return StatsCollectingStreams.wrap(stats, blobId, in, startTime);
         } catch (DataStoreException e) {
+            stats.downloadFailed(blobId);
             throw new IOException(e);
         }
     }
