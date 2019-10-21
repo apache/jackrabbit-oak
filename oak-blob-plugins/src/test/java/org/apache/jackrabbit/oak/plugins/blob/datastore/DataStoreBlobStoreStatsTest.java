@@ -82,7 +82,8 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSReadBlobStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withReadDelay(500));
 
-        String blobId = dsbs.writeBlob(getTestInputStream());
+        String blobId1 = dsbs.writeBlob(getTestInputStream());
+        String blobId2 = dsbs.writeBlob(getTestInputStream());
 
         long downloadCount = stats.getDownloadCount();
         long downloadTotalSize = stats.getDownloadTotalSize();
@@ -91,16 +92,17 @@ public class DataStoreBlobStoreStatsTest {
         long downloadTimeLastMinute = getLastMinuteStats(stats.getDownloadRateHistory());
 
         byte[] buffer = new byte[BLOB_LEN];
-        dsbs.readBlob(blobId, 0, buffer, 0, BLOB_LEN);
+        dsbs.readBlob(blobId1, 0, buffer, 0, BLOB_LEN);
+        dsbs.getInputStream(blobId2);
 
-        assertEquals(downloadCount + 1, stats.getDownloadCount());
-        assertEquals(downloadTotalSize + BLOB_LEN, stats.getDownloadTotalSize());
-        assertEquals(downloadCountLastMinute + 1,
+        assertEquals(downloadCount + 2, stats.getDownloadCount());
+        assertEquals(downloadTotalSize + (BLOB_LEN*2), stats.getDownloadTotalSize());
+        assertEquals(downloadCountLastMinute + 2,
                 waitForMetric(input -> getLastMinuteStats(input.getDownloadCountHistory()),
-                        stats, 1L, 0L).longValue());
-        assertEquals(downloadAmountLastMinute + BLOB_LEN,
+                        stats, 2L, 0L).longValue());
+        assertEquals(downloadAmountLastMinute + (BLOB_LEN*2),
                 waitForMetric(input -> getLastMinuteStats(input.getDownloadSizeHistory()),
-                        stats, (long) BLOB_LEN, 0L).longValue());
+                        stats, (long) (BLOB_LEN*2), 0L).longValue());
         assertTrue(downloadTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getDownloadRateHistory()), stats));
     }
@@ -115,21 +117,26 @@ public class DataStoreBlobStoreStatsTest {
         // BLOB_DOWNLOAD_ERROR_COUNT
 
         DataStoreBlobStore dsbs = setupDSBS(new DataStoreBuilder().withErrorOnGetRecord());
-        String blobId = dsbs.writeBlob(getTestInputStream());
+        String blobId1 = dsbs.writeBlob(getTestInputStream());
+        String blobId2 = dsbs.writeBlob(getTestInputStream());
 
         long downloadErrorCount = stats.getDownloadErrorCount();
         long downloadErrorCountLastMinute = getLastMinuteStats(stats.getDownloadErrorCountHistory());
 
         byte[] buffer = new byte[BLOB_LEN];
         try {
-            dsbs.readBlob(blobId, 0, buffer, 0, BLOB_LEN);
+            dsbs.readBlob(blobId1, 0, buffer, 0, BLOB_LEN);
+        }
+        catch (IOException e) { }
+        try {
+            dsbs.getInputStream(blobId2);
         }
         catch (IOException e) { }
 
-        assertEquals(downloadErrorCount + 1, stats.getDownloadErrorCount());
-        assertEquals(downloadErrorCountLastMinute + 1,
+        assertEquals(downloadErrorCount + 2, stats.getDownloadErrorCount());
+        assertEquals(downloadErrorCountLastMinute + 2,
                 waitForMetric(input -> getLastMinuteStats(input.getDownloadErrorCountHistory()),
-                        stats, 1L, 0L).longValue());
+                        stats, 2L, 0L).longValue());
     }
 
     @Test
@@ -182,21 +189,6 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(writeBlobErrorsLastMinute + 3,
                 waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
                         stats, 3L, 0L).longValue());
-    }
-
-    @Test
-    public void testDSBSGetInputStreamStats() {
-        // BLOB_DOWNLOAD_COUNT, BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME
-    }
-
-    @Test
-    public void testDSBSGetInputStreamNotFoundStats() {
-        // BLOB_DOWNLOAD_NOT_FOUND
-    }
-
-    @Test
-    public void testDSBSGetInputStreamErrorStats() {
-        // BLOB_DOWNLOAD_ERRORS
     }
 
     @Test
