@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 import org.slf4j.Logger;
@@ -53,29 +55,73 @@ public class GuavaDeprecation {
     }
 
     public static void handleCall(String ticket) throws UnsupportedOperationException {
+        handleCall(ticket, null, Collections.emptyList());
+    }
+
+    public static void handleCall(String ticket, String className, List<String> allowed) throws UnsupportedOperationException {
         String message = "use of deprecated Guava-related API - this method is going to be removed in future Oak releases - see %s for details";
 
         switch (LOGLEVEL) {
             case "error":
                 if (LOG.isErrorEnabled()) {
-                    LOG.error(String.format(message, ticket), new Exception("call stack"));
+                    Exception ex = new Exception("call stack");
+                    if (deprecatedCaller(ex, className, allowed)) {
+                        LOG.error(String.format(message, ticket), ex);
+                    }
                 }
                 break;
             case "warn":
                 if (LOG.isWarnEnabled()) {
-                    LOG.warn(String.format(message, ticket), new Exception("call stack"));
+                    Exception ex = new Exception("call stack");
+                    if (deprecatedCaller(ex, className, allowed)) {
+                        LOG.warn(String.format(message, ticket), ex);
+                    }
                 }
                 break;
             case "info":
                 if (LOG.isInfoEnabled()) {
-                    LOG.info(String.format(message, ticket), new Exception("call stack"));
+                    Exception ex = new Exception("call stack");
+                    if (deprecatedCaller(ex, className, allowed)) {
+                        LOG.info(String.format(message, ticket), ex);
+                    }
                 }
                 break;
             case "debug":
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format(message, ticket), new Exception("call stack"));
+                    Exception ex = new Exception("call stack");
+                    if (deprecatedCaller(ex, className, allowed)) {
+                        LOG.debug(String.format(message, ticket), ex);
+                    }
                 }
                 break;
+        }
+    }
+
+    public static boolean deprecatedCaller(Exception ex, String className, List<String> allowed) {
+        if (allowed == null) {
+            return true;
+        } else {
+            boolean classFound = false;
+            for (StackTraceElement el : ex.getStackTrace()) {
+                String cn = el.getClassName();
+                if (!classFound) {
+                    // still looking for the entry
+                    classFound = cn.equals(className);
+                } else {
+                    // still in class checked for?
+                    if (cn.equals(className)) {
+                        // go one
+                    } else {
+                        // check caller
+                        for (String a : allowed) {
+                            if (cn.startsWith(a)) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            return true;
         }
     }
 }
