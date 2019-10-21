@@ -102,9 +102,8 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(downloadAmountLastMinute + BLOB_LEN,
                 waitForMetric(input -> getLastMinuteStats(input.getDownloadSizeHistory()),
                         stats, (long) BLOB_LEN, 0L).longValue());
-        // TODO fix
-//        assertTrue(downloadTimeLastMinute <
-//                waitForNonzeroMetric(input -> sum((long[])input.getDownloadRateHistory().get("per second")), stats));
+        assertTrue(downloadTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getDownloadRateHistory()), stats));
     }
 
     @Ignore

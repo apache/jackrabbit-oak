@@ -834,11 +834,12 @@ public class DataStoreBlobStore
 
     protected InputStream getStream(String blobId) throws IOException {
         try {
+            long startTime = System.nanoTime();
             InputStream in = getDataRecord(blobId).getStream();
             if (!(in instanceof BufferedInputStream)){
                 in = new BufferedInputStream(in);
             }
-            return StatsCollectingStreams.wrap(stats, blobId, in);
+            return StatsCollectingStreams.wrap(stats, blobId, in, startTime);
         } catch (DataStoreException e) {
             throw new IOException(e);
         }

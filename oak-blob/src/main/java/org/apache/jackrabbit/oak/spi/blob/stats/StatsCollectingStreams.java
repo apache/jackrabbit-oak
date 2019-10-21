@@ -30,10 +30,12 @@ import com.google.common.io.CountingInputStream;
 public final class StatsCollectingStreams {
 
     public static InputStream wrap(final BlobStatsCollector collector, final String blobId, InputStream in) {
+        return StatsCollectingStreams.wrap(collector, blobId, in, System.nanoTime());
+    }
+
+    public static InputStream wrap(final BlobStatsCollector collector, final String blobId, InputStream in, long startTime) {
         final CountingInputStream cin = new CountingInputStream(in);
         return new FilterInputStream(cin) {
-            final long startTime = System.nanoTime();
-
             @Override
             public void close() throws IOException {
                 super.close();
