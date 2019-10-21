@@ -126,10 +126,10 @@ public class DataStoreBlobStoreStatsTest {
         }
         catch (IOException e) { }
 
-        assertEquals(downloadErrorCount + 2, stats.getDownloadErrorCount());
-        assertEquals(downloadErrorCountLastMinute + 2,
+        assertEquals(downloadErrorCount + 1, stats.getDownloadErrorCount());
+        assertEquals(downloadErrorCountLastMinute + 1,
                 waitForMetric(input -> getLastMinuteStats(input.getDownloadErrorCountHistory()),
-                        stats, 2L, 0L).longValue());
+                        stats, 1L, 0L).longValue());
     }
 
     @Test

@@ -422,7 +422,13 @@ public class DataStoreBlobStore
                 log.warn("Error occurred while loading bytes from steam while fetching for id {}", encodedBlobId, e);
             }
         }
-        return getStream(blobId.blobId);
+        try {
+            return getStream(blobId.blobId);
+        }
+        catch (IOException e) {
+            stats.downloadFailed(blobId.blobId);
+            throw e;
+        }
     }
 
     //~-------------------------------------------< GarbageCollectableBlobStore >
@@ -841,7 +847,6 @@ public class DataStoreBlobStore
             }
             return StatsCollectingStreams.wrap(stats, blobId, in, startTime);
         } catch (DataStoreException e) {
-            stats.downloadFailed(blobId);
             throw new IOException(e);
         }
     }
