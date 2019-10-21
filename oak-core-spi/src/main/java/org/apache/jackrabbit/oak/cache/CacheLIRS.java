@@ -48,6 +48,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * <em>For Oak internal use only. Do not use outside Oak components.</em>
+ * <p>
  * A scan resistant cache. It is meant to cache objects that are relatively
  * costly to acquire, for example file content.
  * <p>

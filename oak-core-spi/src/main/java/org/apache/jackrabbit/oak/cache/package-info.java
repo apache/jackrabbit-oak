@@ -14,6 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * <em>For Oak internal use only. Do not use outside Oak components.</em>
+ */
 @Version("1.1.0")
 package org.apache.jackrabbit.oak.cache;
 
