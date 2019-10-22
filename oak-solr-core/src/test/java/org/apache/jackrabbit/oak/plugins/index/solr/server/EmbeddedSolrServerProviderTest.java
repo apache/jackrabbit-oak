@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 import java.io.File;
 import java.net.URI;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
@@ -32,6 +34,7 @@ import static org.junit.Assert.assertNotNull;
  * Testcase for {@link EmbeddedSolrServerProvider}
  */
 @RunWith(com.carrotsearch.randomizedtesting.RandomizedRunner.class)
+@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class EmbeddedSolrServerProviderTest {
 
     @Test
