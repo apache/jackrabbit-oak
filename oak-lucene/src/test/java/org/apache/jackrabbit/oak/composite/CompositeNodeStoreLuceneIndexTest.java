@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -73,9 +74,12 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         repoV1.initCompositeRepo();
     }
 
-    @Override
-    public void closeRepositories() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         repoV1.cleanup();
+        if (repoV2 != null) {
+            repoV2.cleanup();
+        }
     }
 
     /**
@@ -293,9 +297,6 @@ public class CompositeNodeStoreLuceneIndexTest extends CompositeNodeStoreQueryTe
         result = repoV1.executeQuery("/jcr:root//*[@foo3 = 'bar'] order by @jcr:path", "xpath");
         assertEquals("/content-foo3/node-0, " +
                 "/content-foo3/node-1", getResult(result, "jcr:path"));
-
-        repoV1.cleanup();
-        repoV2.cleanup();
     }
 
     private static String getResult(QueryResult result, String propertyName) throws RepositoryException {

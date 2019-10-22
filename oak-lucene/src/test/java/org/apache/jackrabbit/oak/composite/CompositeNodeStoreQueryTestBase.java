@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
@@ -137,13 +138,14 @@ public class CompositeNodeStoreQueryTestBase {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
-    @Parameters(name="Root: {0}, Mounts: {1}")
+    @Parameters(name = "Root: {0}, Mounts: {1}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-            { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
-            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT}
-//            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
-//            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT}
+        return Arrays.asList(new Object[][]{
+                {NodeStoreKind.MEMORY, NodeStoreKind.MEMORY},
+                {NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
+                {NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
+                {NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT},
+                {NodeStoreKind.DOCUMENT_MEMORY, NodeStoreKind.DOCUMENT_MEMORY}
         });
     }
 
@@ -406,7 +408,7 @@ public class CompositeNodeStoreQueryTestBase {
     }
 
     @After
-    public void closeRepositories() throws Exception {
+    public final void baseTearDown() throws Exception {
         for ( NodeStoreRegistration reg : registrations ) {
             reg.close();
         }
@@ -486,25 +488,26 @@ public class CompositeNodeStoreQueryTestBase {
             }
         }, DOCUMENT_H2 {
 
-            // TODO - copied from DocumentRdbFixture
-
-            private DataSource ds;
-
             @Override
             public NodeStoreRegistration create(final String name) {
 
                 return new NodeStoreRegistration() {
 
                     private DocumentNodeStore instance;
+                    private String dbPath;
+
+                    // TODO - copied from DocumentRdbFixture
+
+                    private DataSource ds;
 
                     @Override
                     public NodeStore get(TemporaryFolder temporaryFolder) throws Exception {
                         RDBOptions options = new RDBOptions().dropTablesOnClose(true);
-                        String jdbcUrl = "jdbc:h2:file:" + temporaryFolder.getRoot().getAbsolutePath() + "/document";
+                        dbPath = temporaryFolder.getRoot().getAbsolutePath() + "/document";
                         if ( name != null ) {
-                            jdbcUrl += "-" + name;
+                            dbPath += "-" + name;
                         }
-                        ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, "sa", "");
+                        ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + dbPath, "sa", "");
 
                         instance = new RDBDocumentNodeStoreBuilder()
                                 .setRDBConnection(ds, options).build();
@@ -520,8 +523,33 @@ public class CompositeNodeStoreQueryTestBase {
                         if ( ds instanceof Closeable ) {
                             ((Closeable) ds).close();
                         }
+                        FileUtils.deleteQuietly(new File(dbPath));
                     }
 
+                };
+
+            }
+        }, DOCUMENT_MEMORY {
+            @Override
+            public NodeStoreRegistration create(final String name) {
+
+                return new NodeStoreRegistration() {
+
+                    private DocumentNodeStore instance;
+
+                    @Override
+                    public NodeStore get(TemporaryFolder temporaryFolder) throws Exception {
+                        DocumentNodeStoreBuilder<?> documentNodeStoreBuilder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder();
+
+                        instance = documentNodeStoreBuilder.build();
+
+                        return instance;
+                    }
+
+                    @Override
+                    public void close() {
+                        instance.dispose();
+                    }
                 };
 
             }
