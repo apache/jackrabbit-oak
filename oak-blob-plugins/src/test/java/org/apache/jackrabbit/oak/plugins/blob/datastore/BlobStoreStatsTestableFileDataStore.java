@@ -304,7 +304,7 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
         if (withError) throw new RuntimeException(ex);
     }
 
-    protected static class ReadDelayedDataRecord implements DataRecord {
+    public static class ReadDelayedDataRecord implements DataRecord {
         private DataRecord internalRecord;
         private BlobStatsCollector stats;
         private long startNanos;
