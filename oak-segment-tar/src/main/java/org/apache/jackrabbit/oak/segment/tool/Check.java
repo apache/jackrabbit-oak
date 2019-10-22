@@ -78,6 +78,8 @@ public class Check {
 
         private boolean checkHead;
 
+        private Integer revisionsCount;
+
         private Set<String> checkpoints;
 
         private Set<String> filterPaths;
@@ -167,6 +169,17 @@ public class Check {
          */
         public Builder withCheckHead(boolean checkHead) {
             this.checkHead = checkHead;
+            return this;
+        }
+
+        /**
+         * Instruct the command to check only the last {@code revisionsCount} revisions.
+         * This parameter is not required and defaults to {@code 1}.
+         * @param revisionsCount number of revisions to check.
+         * @return this builder.
+         */
+        public Builder withRevisionsCount(Integer revisionsCount){
+            this.revisionsCount = revisionsCount;
             return this;
         }
 
@@ -298,6 +311,8 @@ public class Check {
 
     private final boolean checkHead;
 
+    private final Integer revisionsCount;
+
     private final Set<String> requestedCheckpoints;
 
     private final Set<String> filterPaths;
@@ -333,6 +348,7 @@ public class Check {
         this.out = builder.outWriter;
         this.err = builder.errWriter;
         this.journal = journalPath(builder.path, builder.journal);
+        this.revisionsCount = revisionsToCheckCount(builder.revisionsCount);
     }
 
     private static File journalPath(File segmentStore, File journal) {
@@ -340,6 +356,10 @@ public class Check {
             return new File(segmentStore, "journal.log");
         }
         return journal;
+    }
+
+    private static Integer revisionsToCheckCount(Integer revisionsCount) {
+        return revisionsCount != null ? revisionsCount : Integer.MAX_VALUE;
     }
 
     public int run() {
@@ -390,7 +410,8 @@ public class Check {
             checkHead,
             checkpoints,
             filterPaths,
-            checkBinaries
+            checkBinaries,
+            revisionsCount
         );
 
         print("\nSearched through {0} revisions and {1} checkpoints", result.getCheckedRevisionsCount(), checkpoints.size());

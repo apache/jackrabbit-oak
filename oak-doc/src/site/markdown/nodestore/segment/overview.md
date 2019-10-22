@@ -727,13 +727,11 @@ This tool is the counterpart of `backup`.
 ### <a name="check"/> Check
 
 ```
-java -jar oak-run.jar check PATH [--mmap] [--journal JOURNAL] [--notify SECS] [--bin] [--head] [--checkpoints all | cp1[,cp2,..,cpn]]  [--filter PATH1[,PATH2,..,PATHn]] [--io-stats]
+java -jar oak-run.jar check PATH [--mmap] [--journal JOURNAL] [--notify SECS] [--bin] [--last <REV_COUNT>] [--head] [--checkpoints all | cp1[,cp2,..,cpn]]  [--filter PATH1[,PATH2,..,PATHn]] [--io-stats]
 ```
 
 The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
-The algorithm implemented by this tool traverses every revision in the journal, from the most recent to the oldest.
-For every revision, the actual nodes and properties are traversed, verifying that every piece of data is reachable and undamaged. Moreover, if `--head` and `--checkpoints` options are used, the scope of the traversal can be limited to head state and/or a subset of checkpoints.
-A deep scan of the content tree, traversing every node and every property will be performed by default. The default scope includes head state and all checkpoints.
+The algorithm implemented by this tool traverses every revision in the journal, from the most recent to the oldest, stopping at the first consistent occurence. The actual nodes and properties are traversed, verifying that every piece of data is reachable and undamaged. If `--last` option is present, the tool will start with the most recent revision and will go back in the history at most `<REV_COUNT>` revisions. Moreover, if `--head` and `--checkpoints` options are used, the scope of the traversal can be limited to head state and/or a subset of checkpoints. A deep scan of the content tree, traversing every node and every property will be performed by default. The default scope includes head state and all checkpoints.
   
 The optional `--mmap [Boolean]` argument can be used to control the file access mode. Set
 to `true` for memory mapped access and `false` for file access (default is `true`).
@@ -748,6 +746,8 @@ If `SECS` equals `0`, every progress information message is printed.
 If the `--bin` option is specified, the tool will scan the full content of binary properties.
 If not specified, the binary properties will not be traversed.
 The `--bin` option has no effect on binary properties stored in an external Blob Store.
+
+The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be verified (default is `1`).
 
 If the `--head` option is specified, the tool will scan **only** the head state, ignoring any available checkpoints.
 
