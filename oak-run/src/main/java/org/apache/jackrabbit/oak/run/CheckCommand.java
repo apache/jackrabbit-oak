@@ -45,6 +45,9 @@ class CheckCommand implements Command {
             .withRequiredArg()
             .ofType(Long.class)
             .defaultsTo(Long.MAX_VALUE);
+        OptionSpec<Integer> last = parser.accepts("last", "define the number of revisions to be checked (default: 1)")
+                .withOptionalArg()
+                .ofType(Integer.class);
         OptionSpec<?> bin = parser.accepts("bin", "read the content of binary properties");
         OptionSpec<String> filter = parser.accepts("filter", "comma separated content paths to be checked")
             .withRequiredArg()
@@ -85,6 +88,10 @@ class CheckCommand implements Command {
 
         if (options.has(journal)) {
             builder.withJournal(journal.value(options));
+        }
+
+        if (options.has(last)) {
+            builder.withRevisionsCount(options.valueOf(last) != null ? last.value(options) : 1);
         }
 
         System.exit(builder.build().run());

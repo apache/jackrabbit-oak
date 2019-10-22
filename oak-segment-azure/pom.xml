@@ -119,6 +119,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Nullability annotations -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+        </dependency>
+
         <!-- Dependencies to other Oak components -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>

@@ -35,7 +35,6 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Objects;
@@ -74,6 +73,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -167,10 +167,25 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 parentPath = (PathUtils.denotesRoot(parentPath)) ? "" : Text.getRelativeParent(parentPath, 1);
             }
         }
-        if (readPaths.contains(oakPath)) {
+        if (isEffectiveReadPath(oakPath)) {
             effective.add(ReadPolicy.INSTANCE);
         }
         return effective.toArray(new AccessControlPolicy[0]);
+    }
+
+    private boolean isEffectiveReadPath(@Nullable String oakPath) {
+        if (oakPath == null) {
+            return false;
+        }
+        if (readPaths.contains(oakPath)) {
+            return true;
+        }
+        for (String rp : readPaths) {
+            if (Text.isDescendant(rp, oakPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NotNull
@@ -737,19 +752,6 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
                 }
             }
             return privileges.toArray(new Privilege[0]);
-        }
-    }
-
-    private static final class ReadPolicy implements NamedAccessControlPolicy {
-
-        private static final NamedAccessControlPolicy INSTANCE = new ReadPolicy();
-
-        private ReadPolicy() {
-        }
-
-        @Override
-        public String getName() {
-            return "Grants read access on configured trees.";
         }
     }
 

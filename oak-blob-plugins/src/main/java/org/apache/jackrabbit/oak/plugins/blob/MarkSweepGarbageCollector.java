@@ -69,7 +69,7 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
+import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
@@ -103,7 +103,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     public static final String DELIM = ",";
 
-    private static final Function<String, String> transformer = new Function<String, String>() {
+    private static final java.util.function.Function<String, String> transformer = new java.util.function.Function<String, String>() {
         @Nullable
         @Override
         public String apply(@Nullable String input) {

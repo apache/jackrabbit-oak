@@ -69,7 +69,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
+import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -279,11 +279,8 @@ public class DataStoreCheckCommand implements Command {
             });
 
             // Read and write the converted ids
-            FileIOUtils.writeStrings(idIterator, longIdTemp, false, new Function<String, String>() {
-                @Nullable @Override public String apply(@Nullable String input) {
-                    return encodeId(input, dsType);
-                }
-            }, null, null);
+            FileIOUtils.writeStrings(idIterator, longIdTemp, false,
+                    (java.util.function.Function<String, String>) ((input) -> encodeId(input, dsType)), null, null);
             FileUtils.copyFile(longIdTemp, writeFile);
         } finally {
             if (idIterator != null) {
@@ -364,7 +361,7 @@ public class DataStoreCheckCommand implements Command {
         System.out.println("Starting consistency check");
         Stopwatch watch = createStarted();
 
-        FileLineDifferenceIterator iter = new FileLineDifferenceIterator(ids, refs, new Function<String, String>() {
+        FileLineDifferenceIterator iter = new FileLineDifferenceIterator(ids, refs, new java.util.function.Function<String, String>() {
             @Nullable
             @Override
             public String apply(@Nullable String input) {
@@ -389,7 +386,7 @@ public class DataStoreCheckCommand implements Command {
                 // If a delete file is present filter the tracked deleted ids
                 if (!files.isEmpty()) {
                     File delFile = files.iterator().next();
-                    FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(delFile, candTemp, new Function<String, String>() {
+                    FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(delFile, candTemp, new java.util.function.Function<String, String>() {
                         @Nullable @Override public String apply(@Nullable String input) {
                             if (input != null) {
                                 return encodeId(decodeId(input.split(DELIM)[0]), dsType);

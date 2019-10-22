@@ -36,9 +36,12 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.FilterProvider;
@@ -49,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.util.ISO9075;
+import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -81,6 +85,7 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
     private final MgrProvider mgrProvider;
     private final int importBehavior;
+    private final Set<String> readPaths;
 
     private final PrincipalManager principalManager;
     private final PrivilegeBitsProvider privilegeBitsProvider;
@@ -94,7 +99,9 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
 
         this.mgrProvider = mgrProvider;
 
-        importBehavior = ImportBehavior.valueFromString(getConfig().getParameters().getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT));
+        ConfigurationParameters configParams = getConfig().getParameters();
+        importBehavior = ImportBehavior.valueFromString(configParams.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_ABORT));
+        readPaths = configParams.getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
 
         principalManager = mgrProvider.getPrincipalManager();
         privilegeBitsProvider = mgrProvider.getPrivilegeBitsProvider();
@@ -173,7 +180,6 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
             stmt.append("='").append(QueryUtils.escapeForQuery(effectivePath));
             stmt.append("'");
             cond = " or ";
-
         }
         stmt.append("] order by jcr:path option (traversal ok)");
 
@@ -192,7 +198,13 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
                 }
             }
             Iterable<PrincipalAccessControlList> acls = Iterables.transform(m.entrySet(), entry -> new ImmutablePrincipalPolicy(entry.getKey(), filter.getOakPath(entry.getKey()), entry.getValue(), mgrProvider.getRestrictionProvider(), getNamePathMapper()));
-            return Iterables.toArray(acls, PrincipalAccessControlList.class);
+
+            if (isReadablePath(oakPath)) {
+                Iterable iterable = Iterables.concat(acls, Collections.singleton(ReadPolicy.INSTANCE));
+                return Iterables.toArray(iterable, AccessControlPolicy.class);
+            } else {
+                return Iterables.toArray(acls, PrincipalAccessControlList.class);
+            }
         } catch (ParseException e) {
             String msg = "Error while collecting effective policies at " +absPath;
             log.error(msg, e);
@@ -393,5 +405,20 @@ class PrincipalBasedAccessControlManager extends AbstractAccessControlManager im
                 return Utils.privilegesFromOakNames(names, mgrProvider.getPrivilegeManager(), getNamePathMapper());
             }
         };
+    }
+
+    private boolean isReadablePath(@Nullable String oakPath) {
+        if (oakPath == null) {
+            return false;
+        }
+        if (readPaths.contains(oakPath)) {
+            return true;
+        }
+        for (String rp : readPaths) {
+            if (Text.isDescendant(rp, oakPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

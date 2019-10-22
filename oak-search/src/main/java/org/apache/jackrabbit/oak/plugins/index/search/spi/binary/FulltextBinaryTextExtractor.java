@@ -152,7 +152,7 @@ public class FulltextBinaryTextExtractor {
       log.debug("Extracting {}, {} bytes, id {}", path, length, v.getContentIdentity());
     }
     try {
-      CountingInputStream stream = new CountingInputStream(new LazyInputStream(new BlobByteSource(v)));
+      CountingInputStream stream = new CountingInputStream(new LazyInputStream(() -> v.getNewStream()));
       try {
         if (length > SMALL_BINARY) {
           String name = "Extracting " + path + ", " + length + " bytes";

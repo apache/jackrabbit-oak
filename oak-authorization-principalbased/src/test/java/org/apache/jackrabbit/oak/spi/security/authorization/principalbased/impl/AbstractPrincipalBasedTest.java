@@ -71,7 +71,6 @@ public class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     );
 
     private User testSystemUser;
-    private MgrProvider mgrProvider;
     private PrincipalBasedAuthorizationConfiguration principalBasedAuthorizationConfiguration;
 
     String testJcrPath;
@@ -213,11 +212,8 @@ public class AbstractPrincipalBasedTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    MgrProvider getMgrProvider(Root root) {
-        if (mgrProvider == null) {
-            mgrProvider = new MgrProviderImpl(principalBasedAuthorizationConfiguration, root, getNamePathMapper());
-        }
-        return mgrProvider;
+    MgrProvider getMgrProvider(Root r) {
+        return new MgrProviderImpl(principalBasedAuthorizationConfiguration, r, getNamePathMapper());
     }
 
     @NotNull

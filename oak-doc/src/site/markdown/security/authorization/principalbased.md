@@ -150,6 +150,14 @@ All privileges registered with the repository are supported by this authorizatio
 The principal-based authorization model doesn't come with a dedicated `RestrictionProvider`. Instead it is built to
 handle any restriction defined by the Oak authorization setup.
 
+##### Readable Paths
+
+If the principal-based authorization is used together with the default implementation, it will respect the [readable-paths 
+configuration](../permission/default.html#configuration). For trees located at or below the readable paths 
+`AccessControlManager.getEffectivePolicies(String absPath)` will include a `NamedAccessControlPolicy`.
+Note, that in accordance to the default authorization model, this effective policy is not currently not included when 
+looking up effective policies by principal.
+
 <a name="details_permission_eval"></a>
 #### Permission Evaluation
  
@@ -194,6 +202,12 @@ However, in order to minimize excessive read on the `NodeStore` it is recommende
 
 - _entry:_ granting privileges, _redundant_: same privileges with additional restrictions
 - _entry:_ granting privileges, _redundant:_ subset of these privileges 
+
+##### Readable Paths
+
+Since [OAK-8671](https://issues.apache.org/jira/browse/OAK-8671) principal-based authorization respects the readable 
+paths configuration option present with the default authorization model. For any tree located at or below these configured 
+paths read-access is always granted.
 
 ##### Administrative Access
 

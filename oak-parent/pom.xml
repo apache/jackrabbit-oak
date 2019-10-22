@@ -400,7 +400,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.4</version>
+          <version>0.8.5</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -672,7 +672,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson.version}.1<!--OAK-8709--></version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -1067,7 +1067,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.6</version>
+          <version>42.2.8</version>
         </dependency>
       </dependencies>
     </profile>

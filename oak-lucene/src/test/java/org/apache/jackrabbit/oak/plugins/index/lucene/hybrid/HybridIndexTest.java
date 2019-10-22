@@ -30,13 +30,13 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import javax.management.AttributeNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import ch.qos.logback.classic.Level;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
@@ -484,7 +484,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
             @Override
-            public boolean apply(@Nullable Runnable input) {
+            public boolean test(@Nullable Runnable input) {
                 return input instanceof AsyncIndexUpdate;
             }
         });

@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
@@ -75,7 +76,6 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableScheduledFuture;
@@ -280,12 +280,7 @@ public class SegmentCompactionIT {
                 fileStore.cancelGC();
             }
         };
-        Supplier<String> status = new Supplier<String>() {
-            @Override
-            public String get() {
-                return fileStoreGCMonitor.getStatus();
-            }
-        };
+        Supplier<String> status = () -> fileStoreGCMonitor.getStatus();
 
         List<Registration> registrations = newArrayList();
         registrations.add(registerMBean(segmentCompactionMBean,

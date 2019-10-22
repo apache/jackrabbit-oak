@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -34,7 +35,6 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
@@ -192,7 +192,7 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
     private static void runAsyncIndex(Whiteboard wb) {
         Runnable async = WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
             @Override
-            public boolean apply(@Nullable Runnable input) {
+            public boolean test(@Nullable Runnable input) {
                 return input instanceof AsyncIndexUpdate;
             }
         });
