@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -78,6 +79,7 @@ import org.slf4j.LoggerFactory;
  * @param <K> the key type
  * @param <V> the value type
  */
+@Internal(since = "1.1.1")
 public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
     static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
