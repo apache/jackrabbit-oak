@@ -32,10 +32,10 @@
         <include>com.google.guava:guava</include>
         <include>commons-codec:commons-codec</include>
         <include>commons-io:commons-io</include>
-        <include>org.apache.jackrabbit:jackrabbit-api</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:jackrabbit-data</include>
         <include>org.apache.jackrabbit:oak-api</include>
+        <include>org.apache.jackrabbit:oak-jackrabbit-api</include>
         <include>org.apache.jackrabbit:oak-commons</include>
         <include>org.apache.jackrabbit:oak-core</include>
         <include>org.apache.jackrabbit:oak-store-composite</include>
