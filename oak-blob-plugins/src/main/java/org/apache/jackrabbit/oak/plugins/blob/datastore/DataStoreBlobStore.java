@@ -172,7 +172,7 @@ public class DataStoreBlobStore
             stats.getRecordIfStoredCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
             stats.getRecordIfStoredCompleted(identifier.toString());
 
-            return rec;
+            return StatsCollectingDataRecord.wrap(rec, stats, start);
         }
         catch (DataStoreException e) {
             stats.getRecordIfStoredFailed(identifier.toString());
@@ -192,7 +192,7 @@ public class DataStoreBlobStore
             stats.getRecordCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
             stats.getRecordCompleted(identifier.toString());
 
-            return rec;
+            return StatsCollectingDataRecord.wrap(rec, stats, start);
         }
         catch (DataStoreException e) {
             stats.getRecordFailed(identifier.toString());
@@ -210,7 +210,7 @@ public class DataStoreBlobStore
             stats.getRecordFromReferenceCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
             stats.getRecordFromReferenceCompleted(reference);
 
-            return rec;
+            return StatsCollectingDataRecord.wrap(rec, stats, start);
         }
         catch (DataStoreException e) {
             stats.getRecordFromReferenceFailed(reference);
@@ -759,7 +759,7 @@ public class DataStoreBlobStore
                 ((ExtendedBlobStatsCollector) stats).getRecordForIdCompleted(identifier.toString());
             }
 
-            return record;
+            return StatsCollectingDataRecord.wrap(record, stats, start);
         }
         catch (DataStoreException e) {
             if (stats instanceof ExtendedBlobStatsCollector) {
@@ -818,9 +818,6 @@ public class DataStoreBlobStore
 
     public void setBlobStatsCollector(BlobStatsCollector stats) {
         this.stats = stats;
-        if (delegate instanceof StatsCollectingDataStore) {
-            ((StatsCollectingDataStore) delegate).setBlobStatsCollector(stats);
-        }
     }
 
 
@@ -1118,6 +1115,61 @@ public class DataStoreBlobStore
 
         static BlobId of(DataRecord dr) {
             return new BlobId(dr);
+        }
+    }
+
+    private static class StatsCollectingDataRecord implements DataRecord {
+        private final DataRecord delegate;
+        private final BlobStatsCollector stats;
+        private long startTime;
+
+        private StatsCollectingDataRecord(@NotNull final DataRecord delegate,
+                                          @NotNull final BlobStatsCollector stats,
+                                          long startTime) {
+            this.delegate = delegate;
+            this.stats = stats;
+            this.startTime = startTime;
+        }
+
+        public static StatsCollectingDataRecord wrap(@NotNull final DataRecord delegate,
+                                                     @NotNull final BlobStatsCollector stats) {
+            return wrap(delegate, stats, System.nanoTime());
+        }
+
+        public static StatsCollectingDataRecord wrap(@NotNull final DataRecord delegate,
+                                                     @NotNull final BlobStatsCollector stats,
+                                                     long startTime) {
+            return new StatsCollectingDataRecord(delegate, stats, startTime);
+        }
+
+        @Override
+        public DataIdentifier getIdentifier() {
+            return delegate.getIdentifier();
+        }
+
+        @Override
+        public String getReference() {
+            return delegate.getReference();
+        }
+
+        @Override
+        public long getLength() throws DataStoreException {
+            return delegate.getLength();
+        }
+
+        @Override
+        public InputStream getStream() throws DataStoreException {
+            return StatsCollectingStreams.wrap(stats, delegate.getIdentifier().toString(), delegate.getStream(), startTime);
+        }
+
+        @Override
+        public long getLastModified() {
+            return delegate.getLastModified();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return delegate.equals(obj);
         }
     }
 }

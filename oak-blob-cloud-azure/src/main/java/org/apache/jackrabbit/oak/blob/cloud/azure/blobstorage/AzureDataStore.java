@@ -26,18 +26,16 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.StatsCollectingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider, StatsCollectingDataStore {
+public class AzureDataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
     private int minRecordLength = 16*1024;
 
     protected Properties properties;
@@ -125,12 +123,5 @@ public class AzureDataStore extends AbstractSharedCachingDataStore implements Co
             return azureBlobStoreBackend.createHttpDownloadURI(identifier, downloadOptions);
         }
         return null;
-    }
-
-    @Override
-    public void setBlobStatsCollector(@NotNull final BlobStatsCollector stats) {
-        if (null != azureBlobStoreBackend) {
-            azureBlobStoreBackend.setBlobStatsCollector(stats);
-        }
     }
 }

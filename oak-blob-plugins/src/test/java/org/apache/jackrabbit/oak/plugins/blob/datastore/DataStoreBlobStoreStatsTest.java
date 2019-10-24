@@ -247,11 +247,7 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(downloadTimeLastMinute, getLastMinuteStats(stats.getDownloadRateHistory()));
 
         // Consume the record's input stream
-        try (InputStream recordStream = record.getStream()) {
-            while (recordStream.available() > 0) {
-                recordStream.read();
-            }
-        }
+        consumeStream(record);
 
         assertTrue(downloadTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(stats.getDownloadRateHistory()), stats));
@@ -276,6 +272,21 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(getRecErrorCountLastMinute + 1,
                 waitForMetric(input -> getLastMinuteStats(input.getGetRecordErrorCountHistory()),
                         stats, 1L, 0L).longValue());
+    }
+
+    @Test
+    public void testGetRecordStreamRecordsStreamStats() throws IOException, RepositoryException {
+        DataStoreBlobStore dsbs = setupDSBS(getDSBuilder());
+
+        DataRecord rec = dsbs.addRecord(getTestInputStream());
+
+        long downloadsLastMinute = stats.getDownloadCount();
+        consumeStream(dsbs.getRecord(rec.getIdentifier()));
+        consumeStream(dsbs.getRecordIfStored(rec.getIdentifier()));
+        consumeStream(dsbs.getRecordFromReference(rec.getReference()));
+        consumeStream(dsbs.getRecordForId(rec.getIdentifier()));
+
+        assertEquals(downloadsLastMinute + 4, stats.getDownloadCount());
     }
 
     @Test
@@ -992,5 +1003,13 @@ public class DataStoreBlobStoreStatsTest {
         DataStoreBlobStore dsbs = new DataStoreBlobStore(setupDS(dsBuilder));
         dsbs.setBlobStatsCollector(stats);
         return dsbs;
+    }
+
+    private void consumeStream(DataRecord record) throws IOException, DataStoreException{
+        try (InputStream recordStream = record.getStream()) {
+            while (recordStream.available() > 0) {
+                recordStream.read();
+            }
+        }
     }
 }

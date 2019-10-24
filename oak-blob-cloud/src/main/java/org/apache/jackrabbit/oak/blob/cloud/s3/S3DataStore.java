@@ -23,14 +23,12 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.StatsCollectingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.oak.spi.blob.SharedBackend;
-import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Amazon S3 data store extending from {@link AbstractSharedCachingDataStore}.
  */
-public class S3DataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider, StatsCollectingDataStore {
+public class S3DataStore extends AbstractSharedCachingDataStore implements ConfigurableDataRecordAccessProvider {
 
     protected Properties properties;
 
@@ -139,12 +137,5 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
             return null;
         }
         return s3Backend.createHttpDownloadURI(identifier, downloadOptions);
-    }
-
-    @Override
-    public void setBlobStatsCollector(@NotNull final BlobStatsCollector stats) {
-        if (s3Backend != null) {
-            s3Backend.setBlobStatsCollector(stats);
-        }
     }
 }
