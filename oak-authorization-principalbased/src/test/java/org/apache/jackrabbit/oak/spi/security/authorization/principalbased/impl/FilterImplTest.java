@@ -36,7 +36,11 @@ import org.junit.Test;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Set;
 
+import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_SYSTEM_RELATIVE_PATH;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_USER_PATH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -69,42 +73,42 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testCanHandleGroupPrincipal() throws Exception {
-        assertFalse(filter.canHandle(Collections.singleton(getUserManager(root).createGroup("group").getPrincipal())));
+        assertFalse(filter.canHandle(singleton(getUserManager(root).createGroup("group").getPrincipal())));
     }
 
     @Test
     public void testCanHandleUserPrincipal() throws Exception {
-        assertFalse(filter.canHandle(Collections.singleton(getTestUser().getPrincipal())));
+        assertFalse(filter.canHandle(singleton(getTestUser().getPrincipal())));
     }
 
     @Test
     public void testCanHandleUnknownSystemUserPrincipal() {
         SystemUserPrincipal principal = () -> "systemUserPrincipal";
-        assertFalse(filter.canHandle(Collections.singleton(principal)));
+        assertFalse(filter.canHandle(singleton(principal)));
     }
 
     @Test
     public void testCanHandleRandomSystemUserPrincipal() throws Exception {
         Principal principal = getUserManager(root).createSystemUser("anySystemUser", null).getPrincipal();
-        assertFalse(filter.canHandle(Collections.singleton(principal)));
+        assertFalse(filter.canHandle(singleton(principal)));
     }
 
     @Test
     public void testCanHandleValidSystemUserPrincipal() throws Exception {
-        assertTrue(filter.canHandle(Collections.singleton(getTestSystemUser().getPrincipal())));
+        assertTrue(filter.canHandle(singleton(getTestSystemUser().getPrincipal())));
     }
 
     @Test
     public void testCanHandleValidSystemUserPrincipal2() throws Exception {
         Principal principal = getTestSystemUser().getPrincipal();
-        assertTrue(filter.canHandle(Collections.singleton((SystemUserPrincipal) () -> principal.getName())));
+        assertTrue(filter.canHandle(singleton((SystemUserPrincipal) () -> principal.getName())));
     }
 
     @Test
     public void testCanHandleWrongPrincipalClass() throws Exception {
         Principal principal = getTestSystemUser().getPrincipal();
-        assertFalse(filter.canHandle(Collections.singleton((AdminPrincipal) () -> principal.getName())));
-        assertFalse(filter.canHandle(Collections.singleton((new ItemBasedPrincipal() {
+        assertFalse(filter.canHandle(singleton((AdminPrincipal) () -> principal.getName())));
+        assertFalse(filter.canHandle(singleton((new ItemBasedPrincipal() {
             @NotNull
             @Override
             public String getPath() throws RepositoryException {
@@ -124,13 +128,13 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         User tu = getTestSystemUser();
         assertTrue(root.getTree(supportedPath).exists());
         Principal principal = new TestPrincipal("name", PathUtils.getParentPath(supportedPath));
-        assertFalse(filter.canHandle(Collections.singleton(principal)));
+        assertFalse(filter.canHandle(singleton(principal)));
     }
 
     @Test
     public void testCanHandleMovedItemBasedSystemUserPrincipal() throws Exception {
         Principal principal = getTestSystemUser().getPrincipal();
-        assertTrue(filter.canHandle(Collections.singleton(principal)));
+        assertTrue(filter.canHandle(singleton(principal)));
 
         String oakPath = filter.getOakPath(principal);
         assertEquals(getNamePathMapper().getOakPath(getTestSystemUser().getPath()), oakPath);
@@ -139,14 +143,46 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         root.move(oakPath, destPath);
 
         Principal movedPrincipal = new TestPrincipal(principal.getName(), destPath);
-        assertTrue(filter.canHandle(Collections.singleton(movedPrincipal)));
+        assertTrue(filter.canHandle(singleton(movedPrincipal)));
         assertEquals(destPath, filter.getOakPath(movedPrincipal));
+    }
+
+    @Test
+    public void testCanHandleMovedUnsupportedItemBasedSystemUserPrincipal() throws Exception {
+        Principal principal = getTestSystemUser().getPrincipal();
+        String srcPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
+        String destPath = PathUtils.concat(DEFAULT_USER_PATH, DEFAULT_SYSTEM_RELATIVE_PATH, "moved");
+        Principal movedPrincipal = new TestPrincipal(principal.getName(), destPath);
+
+        root.move(srcPath, destPath);
+        assertFalse(filter.canHandle(singleton(movedPrincipal)));
+
+        root.move(destPath, srcPath);
+        assertTrue(filter.canHandle(singleton(principal)));
+        assertEquals(srcPath, filter.getOakPath(movedPrincipal));
+    }
+
+    @Test
+    public void testCanHandleRemoved() throws Exception {
+        Principal principal = getTestSystemUser().getPrincipal();
+        assertTrue(filter.canHandle(singleton(principal)));
+        root.getTree(filter.getOakPath(principal)).remove();
+
+        // using original principal again -> obtaining from cache without further validation
+        assertTrue(filter.canHandle(singleton(principal)));
+        // using SystemUserPrincipal without path -> obtaining from cache without further validation
+        assertTrue(filter.canHandle(singleton((SystemUserPrincipal) () -> principal.getName())));
+
+        // path mismatch -> lookup will reveal removed tree and adjust caches
+        assertFalse(filter.canHandle(singleton(new TestPrincipal(principal.getName(), null))));
+        // using original principal will no longer work
+        assertFalse(filter.canHandle(singleton(principal)));
     }
 
     @Test
     public void testCanHandleGetPathThrows() {
         Principal principal = new TestPrincipal("name", null);
-        assertFalse(filter.canHandle(Collections.singleton(principal)));
+        assertFalse(filter.canHandle(singleton(principal)));
     }
 
     /**
@@ -161,7 +197,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
 
         // create filter with a different NamePathMapper than was used to build the principal
         Filter f =  getFilterProvider().getFilter(getSecurityProvider(), root, NamePathMapper.DEFAULT);
-        assertTrue(f.canHandle(Collections.singleton(principal)));
+        assertTrue(f.canHandle(singleton(principal)));
     }
 
     @Test
@@ -171,7 +207,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         // create filter with a different NamePathMapper than was used to build the principal
         // since the principal is not known to the PrincipalManager, the extra lookup doesn't reveal a valid principal.
         Filter f =  getFilterProvider().getFilter(getSecurityProvider(), root, NamePathMapper.DEFAULT);
-        assertFalse(f.canHandle(Collections.singleton(principal)));
+        assertFalse(f.canHandle(singleton(principal)));
     }
 
     @Test
@@ -189,11 +225,50 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
         Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
 
         // call 'canHandle' twice
-        assertTrue(filter.canHandle(Collections.singleton((SystemUserPrincipal) () -> principal.getName())));
-        assertTrue(filter.canHandle(Collections.singleton((SystemUserPrincipal) () -> principal.getName())));
+        Set<Principal> set = singleton((SystemUserPrincipal) () -> principal.getName());
+        assertTrue(filter.canHandle(set));
+        assertTrue(filter.canHandle(set));
 
         // principalprovider must only be hit once
         verify(pp, times(1)).getPrincipal(principal.getName());
+    }
+
+    @Test
+    public void testCanHandlePopulatesCacheUnsupportedSystemUser() throws Exception  {
+        Principal unsupported = (SystemUserPrincipal) () -> "unsupported";
+
+        PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(unsupported.getName())).thenReturn(unsupported).getMock();
+        PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
+        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+
+        Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
+
+        // call 'canHandle' twice
+        Set<Principal> set = singleton(unsupported);
+        assertFalse(filter.canHandle(set));
+        assertFalse(filter.canHandle(set));
+
+        // principalprovider must only be hit once
+        verify(pp, times(1)).getPrincipal(unsupported.getName());
+    }
+
+    @Test
+    public void testCanHandleUserPrincipalDoesntHitProvider() throws Exception  {
+        Principal userPrincipal = getTestUser().getPrincipal();
+
+        PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(userPrincipal.getName())).thenReturn(userPrincipal).getMock();
+        PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
+        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+
+        Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
+
+        // call 'canHandle' twice
+        Set<Principal> set = singleton(userPrincipal);
+        assertFalse(filter.canHandle(set));
+        assertFalse(filter.canHandle(set));
+
+        // for a non-system-user principal the principal resolution must never be triggered
+        verify(pp, never()).getPrincipal(userPrincipal.getName());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -214,7 +289,7 @@ public class FilterImplTest extends AbstractPrincipalBasedTest {
     @Test
     public void testGetPathValidatedSystemUserPrincipal() throws Exception {
         ItemBasedPrincipal principal = (ItemBasedPrincipal) getTestSystemUser().getPrincipal();
-        filter.canHandle(Collections.singleton(principal));
+        filter.canHandle(singleton(principal));
 
         assertNotEquals(principal.getPath(), filter.getOakPath(principal));
         assertEquals(getNamePathMapper().getOakPath(principal.getPath()), filter.getOakPath(principal));

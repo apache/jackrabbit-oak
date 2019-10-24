@@ -74,6 +74,7 @@ public class FilterProviderImpl implements FilterProvider {
     private String oakPath;
 
     private final Map<String, String> validatedPrincipalNamesPathMap = Maps.newConcurrentMap();
+    private final Map<String, String> unsupportedPrincipalNames = Maps.newConcurrentMap();
 
     //-----------------------------------------------------< FilterProvider >---
 
@@ -173,12 +174,19 @@ public class FilterProviderImpl implements FilterProvider {
             if (path != null && isValidMapEntry(principal, path)) {
                 return true;
             }
+            path = unsupportedPrincipalNames.get(principalName);
+            if (path != null && isValidMapEntry(principal, path)) {
+                return false;
+            }
 
             String principalPath = getPrincipalPath(principal);
             if (principalPath != null && handlesPath(principalPath)) {
+                unsupportedPrincipalNames.remove(principalName);
                 validatedPrincipalNamesPathMap.put(principalName, principalPath);
                 return true;
             } else {
+                validatedPrincipalNamesPathMap.remove(principalName);
+                unsupportedPrincipalNames.put(principalName, Strings.nullToEmpty(principalPath));
                 return false;
             }
         }
