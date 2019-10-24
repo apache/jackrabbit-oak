@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -132,5 +133,37 @@ public class AzureArchiveManagerTest {
         segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
         assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
         fs.close();
+    }
+
+    @Test
+    public void testExists() throws IOException, URISyntaxException {
+        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveWriter writer = manager.create("data00000a.tar");
+
+        List<UUID> uuids = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            UUID u = UUID.randomUUID();
+            writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+            uuids.add(u);
+        }
+
+        writer.flush();
+        writer.close();
+
+        Assert.assertTrue(manager.exists("data00000a.tar"));
+        Assert.assertFalse(manager.exists("data00001a.tar"));
+    }
+
+    @Test
+    public void testArchiveExistsAfterFlush() throws URISyntaxException, IOException {
+        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveWriter writer = manager.create("data00000a.tar");
+
+        Assert.assertFalse(manager.exists("data00000a.tar"));
+        UUID u = UUID.randomUUID();
+        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        Assert.assertFalse(manager.exists("data00000a.tar"));
+        writer.flush();
+        Assert.assertTrue(manager.exists("data00000a.tar"));
     }
 }
