@@ -262,6 +262,14 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED = "deletedBlobsCollectionEnabled";
 
+    private static final int LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT = 300;
+    @Property(
+            intValue = LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT,
+            label = "Lucene index stats uppdate interval (seconds)",
+            description = "Delay in seconds after which Lucene stats are updated in async index update cycle."
+    )
+    private static final String LUCENE_INDEX_STATS_UPDATE_INTERVAL = "luceneIndexStatsUpdateInterval";
+
     private static final int PROP_INDEX_CLEANER_INTERVAL_DEFAULT = 10*60;
     @Property(
             intValue = PROP_INDEX_CLEANER_INTERVAL_DEFAULT,
@@ -357,10 +365,14 @@ public class LuceneIndexProviderService {
     private IndexTracker tracker;
 
     private PropertyIndexCleaner cleaner;
+    private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
+        asyncIndexesSizeStatsUpdate = new AsyncIndexesSizeStatsUpdate(
+                PropertiesUtil.toInteger(config.get(LUCENE_INDEX_STATS_UPDATE_INTERVAL),
+                        LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT) * 1000); // convert seconds to millis
         boolean disabled = PropertiesUtil.toBoolean(config.get(PROP_DISABLED), PROP_DISABLED_DEFAULT);
         hybridIndex = PropertiesUtil.toBoolean(config.get(PROP_HYBRID_INDEXING), PROP_DISABLED_DEFAULT);
 
@@ -410,7 +422,6 @@ public class LuceneIndexProviderService {
 
         LuceneIndexFileSystemStatistics luceneIndexFSStats = new LuceneIndexFileSystemStatistics(statisticsProvider, indexCopier);
         registerLuceneFileSystemStats(luceneIndexFSStats, PropertiesUtil.toLong(config.get(PROP_INDEX_FILESYSTEM_STATS_INTERVAL),PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT));
-
     }
 
     private File getIndexCheckDir() {
@@ -514,11 +525,13 @@ public class LuceneIndexProviderService {
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
             editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
-                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
+                    augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider)
+                    .withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
             log.info("Enabling CopyOnWrite support. Index files would be copied under {}", indexDir.getAbsolutePath());
         } else {
             editorProvider = new LuceneIndexEditorProvider(null, tracker, extractedTextCache, augmentorFactory,
-                    mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
+                    mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider)
+                    .withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
         }
         editorProvider.setBlobStore(blobStore);
 

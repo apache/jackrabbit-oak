@@ -93,6 +93,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
      * is bounded
      */
     private int inMemoryDocsLimit = Integer.getInteger("oak.lucene.inMemoryDocsLimit", 500);
+    private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
 
     public LuceneIndexEditorProvider() {
         this(null);
@@ -139,6 +140,11 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         this.activeDeletedBlobCollector = activeDeletedBlobCollector;
         this.mbean = mbean;
         this.statisticsProvider = statisticsProvider;
+    }
+
+    public LuceneIndexEditorProvider withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate) {
+    this.asyncIndexesSizeStatsUpdate = asyncIndexesSizeStatsUpdate;
+    return this;
     }
 
     @Override
@@ -234,7 +240,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 callbacks.add(propertyIndexUpdateCallback);
             }
             if (mbean != null && statisticsProvider != null) {
-                callbacks.add(new LuceneIndexStatsUpdateCallback(indexPath, mbean, statisticsProvider));
+                callbacks.add(new LuceneIndexStatsUpdateCallback(indexPath, mbean, statisticsProvider,
+                asyncIndexesSizeStatsUpdate, indexingContext, true));
             }
 
             if (!callbacks.isEmpty()) {
