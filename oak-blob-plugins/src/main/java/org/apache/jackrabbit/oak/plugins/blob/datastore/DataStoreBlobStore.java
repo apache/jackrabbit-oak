@@ -169,10 +169,11 @@ public class DataStoreBlobStore
                     getDataRecord(identifier.toString()) :
                     delegate.getRecordIfStored(identifier);
 
-            stats.getRecordIfStoredCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            long elapsed = System.nanoTime() - start;
+            stats.getRecordIfStoredCalled(elapsed, TimeUnit.NANOSECONDS, rec.getLength());
             stats.getRecordIfStoredCompleted(identifier.toString());
 
-            return StatsCollectingDataRecord.wrap(rec, stats, start);
+            return rec;
         }
         catch (DataStoreException e) {
             stats.getRecordIfStoredFailed(identifier.toString());
@@ -189,10 +190,11 @@ public class DataStoreBlobStore
                     getDataRecord(identifier.toString()) :
                     delegate.getRecord(identifier);
 
-            stats.getRecordCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            long elapsed = System.nanoTime() - start;
+            stats.getRecordCalled(elapsed, TimeUnit.NANOSECONDS, rec.getLength());
             stats.getRecordCompleted(identifier.toString());
 
-            return StatsCollectingDataRecord.wrap(rec, stats, start);
+            return rec;
         }
         catch (DataStoreException e) {
             stats.getRecordFailed(identifier.toString());
@@ -207,10 +209,11 @@ public class DataStoreBlobStore
 
             DataRecord rec = delegate.getRecordFromReference(reference);
 
-            stats.getRecordFromReferenceCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            long elapsed = System.nanoTime() - start;
+            stats.getRecordFromReferenceCalled(elapsed, TimeUnit.NANOSECONDS, rec.getLength());
             stats.getRecordFromReferenceCompleted(reference);
 
-            return StatsCollectingDataRecord.wrap(rec, stats, start);
+            return rec;
         }
         catch (DataStoreException e) {
             stats.getRecordFromReferenceFailed(reference);
@@ -302,11 +305,15 @@ public class DataStoreBlobStore
             String id = getBlobId(dr);
             updateTracker(id);
             threw = false;
-            stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());
+            long elapsed = System.nanoTime() - start;
+            stats.uploaded(elapsed, TimeUnit.NANOSECONDS, dr.getLength());
             stats.uploadCompleted(id);
+            stats.writeBlobCalled(elapsed, TimeUnit.NANOSECONDS, dr.getLength());
+            stats.writeBlobCompleted(id);
             return id;
         } catch (DataStoreException e) {
             stats.uploadFailed();
+            stats.writeBlobFailed();
             throw new IOException(e);
         } finally {
             //DataStore does not closes the stream internally
@@ -398,6 +405,8 @@ public class DataStoreBlobStore
 
     @Override
     public InputStream getInputStream(final String encodedBlobId) throws IOException {
+        long start = System.nanoTime();
+
         final BlobId blobId = BlobId.of(encodedBlobId);
         if (encodeLengthInId
                 && blobId.hasLengthInfo()
@@ -417,15 +426,23 @@ public class DataStoreBlobStore
                         }
                     }
                 });
+
+                stats.readBlobCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                stats.readBlobCompleted(blobId.blobId);
+
                 return new ByteArrayInputStream(content);
             } catch (ExecutionException e) {
                 log.warn("Error occurred while loading bytes from steam while fetching for id {}", encodedBlobId, e);
             }
         }
         try {
+            stats.readBlobCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+            stats.readBlobCompleted(blobId.blobId);
+
             return getStream(blobId.blobId);
         }
         catch (IOException e) {
+            stats.readBlobFailed(blobId.blobId);
             stats.downloadFailed(blobId.blobId);
             throw e;
         }
@@ -755,11 +772,12 @@ public class DataStoreBlobStore
                     delegate.getRecord(identifier);
 
             if (stats instanceof ExtendedBlobStatsCollector) {
-                ((ExtendedBlobStatsCollector) stats).getRecordForIdCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
+                long elapsed = System.nanoTime() - start;
+                ((ExtendedBlobStatsCollector) stats).getRecordForIdCalled(elapsed, TimeUnit.NANOSECONDS, record.getLength());
                 ((ExtendedBlobStatsCollector) stats).getRecordForIdCompleted(identifier.toString());
             }
 
-            return StatsCollectingDataRecord.wrap(record, stats, start);
+            return record;
         }
         catch (DataStoreException e) {
             if (stats instanceof ExtendedBlobStatsCollector) {
@@ -1115,61 +1133,6 @@ public class DataStoreBlobStore
 
         static BlobId of(DataRecord dr) {
             return new BlobId(dr);
-        }
-    }
-
-    private static class StatsCollectingDataRecord implements DataRecord {
-        private final DataRecord delegate;
-        private final BlobStatsCollector stats;
-        private long startTime;
-
-        private StatsCollectingDataRecord(@NotNull final DataRecord delegate,
-                                          @NotNull final BlobStatsCollector stats,
-                                          long startTime) {
-            this.delegate = delegate;
-            this.stats = stats;
-            this.startTime = startTime;
-        }
-
-        public static StatsCollectingDataRecord wrap(@NotNull final DataRecord delegate,
-                                                     @NotNull final BlobStatsCollector stats) {
-            return wrap(delegate, stats, System.nanoTime());
-        }
-
-        public static StatsCollectingDataRecord wrap(@NotNull final DataRecord delegate,
-                                                     @NotNull final BlobStatsCollector stats,
-                                                     long startTime) {
-            return new StatsCollectingDataRecord(delegate, stats, startTime);
-        }
-
-        @Override
-        public DataIdentifier getIdentifier() {
-            return delegate.getIdentifier();
-        }
-
-        @Override
-        public String getReference() {
-            return delegate.getReference();
-        }
-
-        @Override
-        public long getLength() throws DataStoreException {
-            return delegate.getLength();
-        }
-
-        @Override
-        public InputStream getStream() throws DataStoreException {
-            return StatsCollectingStreams.wrap(stats, delegate.getIdentifier().toString(), delegate.getStream(), startTime);
-        }
-
-        @Override
-        public long getLastModified() {
-            return delegate.getLastModified();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return delegate.equals(obj);
         }
     }
 }

@@ -35,6 +35,12 @@ public interface BlobStoreStatsMBean {
 
     long getUploadErrorCount();
 
+    long getWriteBlobCount();
+
+    long getWriteBlobTotalSize();
+
+    long getWriteBlobErrorCount();
+
     long getDownloadTotalSize();
 
     long getDownloadCount();
@@ -42,6 +48,10 @@ public interface BlobStoreStatsMBean {
     long getDownloadTotalSeconds();
 
     long getDownloadErrorCount();
+
+    long getReadBlobCount();
+
+    long getReadBlobErrorCount();
 
     long getDeleteCount();
 
@@ -77,19 +87,33 @@ public interface BlobStoreStatsMBean {
 
     CompositeData getUploadSizeHistory();
 
-    CompositeData getDownloadSizeHistory();
-
     CompositeData getUploadRateHistory();
-
-    CompositeData getDownloadRateHistory();
 
     CompositeData getUploadCountHistory();
 
     CompositeData getUploadErrorCountHistory();
 
+    CompositeData getWriteBlobCountHistory();
+
+    CompositeData getWriteBlobSizeHistory();
+
+    CompositeData getWriteBlobRateHistory();
+
+    CompositeData getWriteBlobErrorCountHistory();
+
+    CompositeData getDownloadSizeHistory();
+
     CompositeData getDownloadCountHistory();
 
+    CompositeData getDownloadRateHistory();
+
     CompositeData getDownloadErrorCountHistory();
+
+    CompositeData getReadBlobCountHistory();
+
+    CompositeData getReadBlobTimeHistory();
+
+    CompositeData getReadBlobErrorCountHistory();
 
     CompositeData getDeleteCountHistory();
 
@@ -117,17 +141,29 @@ public interface BlobStoreStatsMBean {
 
     CompositeData getGetRecordTimeHistory();
 
+    CompositeData getGetRecordSizeHistory();
+
+    CompositeData getGetRecordRateHistory();
+
     CompositeData getGetRecordIfStoredCountHistory();
 
     CompositeData getGetRecordIfStoredErrorCountHistory();
 
     CompositeData getGetRecordIfStoredTimeHistory();
 
+    CompositeData getGetRecordIfStoredSizeHistory();
+
+    CompositeData getGetRecordIfStoredRateHistory();
+
     CompositeData getGetRecordFromReferenceCountHistory();
 
     CompositeData getGetRecordFromReferenceErrorCountHistory();
 
     CompositeData getGetRecordFromReferenceTimeHistory();
+
+    CompositeData getGetRecordFromReferenceSizeHistory();
+
+    CompositeData getGetRecordFromReferenceRateHistory();
 
     CompositeData getListIdsCountHistory();
 

@@ -549,25 +549,39 @@ public abstract class AbstractBlobStoreTest {
         }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
-            this.size += size;
-        }
-
-        @Override
         public void uploadCompleted(String blobId) {
             uploadCount++;
-        }
-
-        @Override
-        public void downloadCompleted(String blobId) {
-            downloadCount++;
         }
 
         @Override
         public void uploadFailed() { }
 
         @Override
+        public void writeBlobCalled(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void writeBlobCompleted(String blobId) { }
+
+        @Override
+        public void writeBlobFailed() { }
+
+        @Override
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { this.size += size; }
+
+        @Override
+        public void downloadCompleted(String blobId) { downloadCount++; }
+
+        @Override
         public void downloadFailed(String blobId) { }
+
+        @Override
+        public void readBlobCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void readBlobCompleted(String blobId) { }
+
+        @Override
+        public void readBlobFailed(String blobId) { }
 
         @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
@@ -597,7 +611,7 @@ public abstract class AbstractBlobStoreTest {
         public void addRecordFailed() { }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordCompleted(String blobId) { }
@@ -606,7 +620,7 @@ public abstract class AbstractBlobStoreTest {
         public void getRecordFailed(String blobId) { }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordIfStoredCompleted(String blobId) { }
@@ -615,7 +629,7 @@ public abstract class AbstractBlobStoreTest {
         public void getRecordIfStoredFailed(String blobId) { }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordFromReferenceCompleted(String reference) { }

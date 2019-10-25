@@ -33,19 +33,37 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
         public void uploaded(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { }
-
-        @Override
         public void uploadCompleted(String blobId) { }
-
-        @Override
-        public void downloadCompleted(String blobId) { }
 
         @Override
         public void uploadFailed() { }
 
         @Override
+        public void writeBlobCalled(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void writeBlobCompleted(String blobId) { }
+
+        @Override
+        public void writeBlobFailed() { }
+
+        @Override
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void downloadCompleted(String blobId) { }
+
+        @Override
         public void downloadFailed(String blobId) { }
+
+        @Override
+        public void readBlobCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void readBlobCompleted(String blobId) { }
+
+        @Override
+        public void readBlobFailed(String blobId) { }
 
         @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
@@ -75,7 +93,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
         public void addRecordFailed() { }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordCompleted(String blobId) { }
@@ -84,7 +102,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
         public void getRecordFailed(String blobId) { }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordIfStoredCompleted(String blobId) { }
@@ -93,7 +111,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
         public void getRecordIfStoredFailed(String blobId) { }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordFromReferenceCompleted(String reference) { }
@@ -102,7 +120,7 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
         public void getRecordFromReferenceFailed(String reference) { }
 
         @Override
-        public void getRecordForIdCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordForIdCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordForIdCompleted(String blobId) { }
@@ -214,8 +232,9 @@ public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
+     * @param size size of the binary
      */
-    void getRecordForIdCalled(long timeTaken, TimeUnit unit);
+    void getRecordForIdCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
      * Called when a call to {@link SharedDataStore#getRecordForId(DataIdentifier)} is completed

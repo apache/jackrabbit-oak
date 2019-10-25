@@ -81,24 +81,28 @@ public class DataStoreBlobStoreStatsTest {
 
         long downloadCount = stats.getDownloadCount();
         long downloadTotalSize = stats.getDownloadTotalSize();
-        long downloadCountLastMinute = getLastMinuteStats(stats.getDownloadCountHistory());
-        long downloadAmountLastMinute = getLastMinuteStats(stats.getDownloadSizeHistory());
-        long downloadTimeLastMinute = getLastMinuteStats(stats.getDownloadRateHistory());
+
+        long readBlobCount = stats.getReadBlobCount();
+        long readBlobCountLastMinute = getLastMinuteStats(stats.getReadBlobCountHistory());
+        long readBlobTimeLastMinute = getLastMinuteStats(stats.getReadBlobTimeHistory());
 
         byte[] buffer = new byte[BLOB_LEN];
         dsbs.readBlob(blobId1, 0, buffer, 0, BLOB_LEN);
-        dsbs.getInputStream(blobId2);
+        try (InputStream inputStream = dsbs.getInputStream(blobId2)) {
+            while (inputStream.available() > 0) {
+                inputStream.read();
+            }
+        }
 
         assertEquals(downloadCount + 2, stats.getDownloadCount());
-        assertEquals(downloadTotalSize + (BLOB_LEN*2), stats.getDownloadTotalSize());
-        assertEquals(downloadCountLastMinute + 2,
-                waitForMetric(input -> getLastMinuteStats(input.getDownloadCountHistory()),
+        assertEquals(downloadTotalSize + (BLOB_LEN * 2), stats.getDownloadTotalSize());
+
+        assertEquals(readBlobCount + 2, stats.getReadBlobCount());
+        assertEquals(readBlobCountLastMinute + 2,
+                waitForMetric(input -> getLastMinuteStats(input.getReadBlobCountHistory()),
                         stats, 2L, 0L).longValue());
-        assertEquals(downloadAmountLastMinute + (BLOB_LEN*2),
-                waitForMetric(input -> getLastMinuteStats(input.getDownloadSizeHistory()),
-                        stats, (long) (BLOB_LEN*2), 0L).longValue());
-        assertTrue(downloadTimeLastMinute <
-                waitForNonzeroMetric(input -> getLastMinuteStats(input.getDownloadRateHistory()), stats));
+        assertTrue(readBlobTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getReadBlobTimeHistory()), stats));
     }
 
     @Test
@@ -114,6 +118,9 @@ public class DataStoreBlobStoreStatsTest {
         long downloadErrorCount = stats.getDownloadErrorCount();
         long downloadErrorCountLastMinute = getLastMinuteStats(stats.getDownloadErrorCountHistory());
 
+        long readBlobErrorCount = stats.getReadBlobErrorCount();
+        long readBlobErrorCountLastMinute = getLastMinuteStats(stats.getReadBlobErrorCountHistory());
+
         byte[] buffer = new byte[BLOB_LEN];
         try {
             dsbs.readBlob(blobId1, 0, buffer, 0, BLOB_LEN);
@@ -128,6 +135,11 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(downloadErrorCountLastMinute + 2,
                 waitForMetric(input -> getLastMinuteStats(input.getDownloadErrorCountHistory()),
                         stats, 2L, 0L).longValue());
+
+        assertEquals(readBlobErrorCount + 2, stats.getReadBlobErrorCount());
+        assertEquals(readBlobErrorCountLastMinute + 2,
+                waitForMetric(input -> getLastMinuteStats(input.getReadBlobErrorCountHistory()),
+                        stats, 2L, 0L).longValue());
     }
 
     @Test
@@ -139,6 +151,12 @@ public class DataStoreBlobStoreStatsTest {
         long uploadCountLastMinute = getLastMinuteStats(stats.getUploadCountHistory());
         long uploadAmountLastMinute = getLastMinuteStats(stats.getUploadSizeHistory());
         long uploadTimeLastMinute = getLastMinuteStats(stats.getUploadRateHistory());
+
+        long writeBlobCount = stats.getWriteBlobCount();
+        long writeBlobTotalSize = stats.getWriteBlobTotalSize();
+        long writeBlobCountLastMinute = getLastMinuteStats(stats.getWriteBlobCountHistory());
+        long writeBlobAmountLastMinute = getLastMinuteStats(stats.getWriteBlobSizeHistory());
+        long writeBlobRateLastMinute = getLastMinuteStats(stats.getWriteBlobRateHistory());
 
         dsbs.writeBlob(getTestInputStream());
 
@@ -152,14 +170,28 @@ public class DataStoreBlobStoreStatsTest {
                         stats, (long) BLOB_LEN, 0L).longValue());
         assertTrue(uploadTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getUploadRateHistory()), stats));
+
+        assertEquals(writeBlobCount + 1, stats.getWriteBlobCount());
+        assertEquals(writeBlobTotalSize + BLOB_LEN, stats.getWriteBlobTotalSize());
+        assertEquals(writeBlobCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getWriteBlobCountHistory()),
+                        stats, 1L, 0L).longValue());
+        assertEquals(writeBlobAmountLastMinute + BLOB_LEN,
+                waitForMetric(input -> getLastMinuteStats(input.getWriteBlobSizeHistory()),
+                        stats, (long) BLOB_LEN, 0L).longValue());
+        assertTrue(writeBlobRateLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getWriteBlobRateHistory()), stats));
     }
 
     @Test
     public void testDSBSWriteBlobErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnAddRecord());
 
-        long writeBlobErrorCount = stats.getUploadErrorCount();
-        long writeBlobErrorsLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
+        long uploadErrorCount = stats.getUploadErrorCount();
+        long uploadErrorCountLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
+
+        long writeBlobErrorCount = stats.getWriteBlobErrorCount();
+        long writeBlobErrorCountLastMinute = getLastMinuteStats(stats.getWriteBlobErrorCountHistory());
 
         try { dsbs.writeBlob(getTestInputStream()); }
         catch (IOException e) { }
@@ -174,9 +206,14 @@ public class DataStoreBlobStoreStatsTest {
         }
         catch (IOException e) { }
 
-        assertEquals(writeBlobErrorCount + 3, stats.getUploadErrorCount());
-        assertEquals(writeBlobErrorsLastMinute + 3,
+        assertEquals(uploadErrorCount + 3, stats.getUploadErrorCount());
+        assertEquals(uploadErrorCountLastMinute + 3,
                 waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
+                        stats, 3L, 0L).longValue());
+
+        assertEquals(writeBlobErrorCount + 3, stats.getWriteBlobErrorCount());
+        assertEquals(writeBlobErrorCountLastMinute + 3,
+                waitForMetric(input -> getLastMinuteStats(input.getWriteBlobErrorCountHistory()),
                         stats, 3L, 0L).longValue());
     }
 
@@ -234,23 +271,18 @@ public class DataStoreBlobStoreStatsTest {
 
         long downloadTimeLastMinute = getLastMinuteStats(stats.getDownloadRateHistory());
 
-        DataRecord record = dsbs.getRecord(rec.getIdentifier());
+        dsbs.getRecord(rec.getIdentifier());
 
         assertEquals(getRecCount+1, stats.getGetRecordCount());
-        assertEquals(getRecCountLastMinute,
+        assertEquals(getRecCountLastMinute+1,
                 waitForMetric(input -> getLastMinuteStats(input.getGetRecordCountHistory()),
-                        stats, 2L, 0L).longValue());
+                        stats, 1L, 0L).longValue());
         assertTrue(getRecTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordTimeHistory()), stats));
 
         // At this point the download time should not have changed.
+        // This metric only applies to reading streams via readBlob().
         assertEquals(downloadTimeLastMinute, getLastMinuteStats(stats.getDownloadRateHistory()));
-
-        // Consume the record's input stream
-        consumeStream(record);
-
-        assertTrue(downloadTimeLastMinute <
-                waitForNonzeroMetric(input -> getLastMinuteStats(stats.getDownloadRateHistory()), stats));
     }
 
     @Test
@@ -272,21 +304,6 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(getRecErrorCountLastMinute + 1,
                 waitForMetric(input -> getLastMinuteStats(input.getGetRecordErrorCountHistory()),
                         stats, 1L, 0L).longValue());
-    }
-
-    @Test
-    public void testGetRecordStreamRecordsStreamStats() throws IOException, RepositoryException {
-        DataStoreBlobStore dsbs = setupDSBS(getDSBuilder());
-
-        DataRecord rec = dsbs.addRecord(getTestInputStream());
-
-        long downloadsLastMinute = stats.getDownloadCount();
-        consumeStream(dsbs.getRecord(rec.getIdentifier()));
-        consumeStream(dsbs.getRecordIfStored(rec.getIdentifier()));
-        consumeStream(dsbs.getRecordFromReference(rec.getReference()));
-        consumeStream(dsbs.getRecordForId(rec.getIdentifier()));
-
-        assertEquals(downloadsLastMinute + 4, stats.getDownloadCount());
     }
 
     @Test
@@ -920,7 +937,7 @@ public class DataStoreBlobStoreStatsTest {
         return ds;
     }
 
-    private long sum(long[] d) {
+    private static long sum(long[] d) {
         long result = 0L;
         for (Long l : d) {
             result += l;
@@ -928,15 +945,15 @@ public class DataStoreBlobStoreStatsTest {
         return result;
     }
 
-    private long getLastMinuteStats(CompositeData data) {
+    private static long getLastMinuteStats(CompositeData data) {
         return sum((long[]) data.get("per second"));
     }
 
-    private <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue) {
+    private static <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue) {
         return waitForMetric(f, input, expected, defaultValue, 100, 1000);
     }
 
-    private <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue, int intervalMilliseconds, int waitMilliseconds) {
+    private static <T, R> R waitForMetric(Function<T, R> f, T input, R expected, R defaultValue, int intervalMilliseconds, int waitMilliseconds) {
         long end = System.currentTimeMillis() + waitMilliseconds;
         R output = f.apply(input);
         if (null != output && output.equals(expected)) {
@@ -956,11 +973,11 @@ public class DataStoreBlobStoreStatsTest {
         return defaultValue;
     }
 
-    private <T> Long waitForNonzeroMetric(Function<T, Long> f, T input) {
+    private static <T> Long waitForNonzeroMetric(Function<T, Long> f, T input) {
         return waitForNonzeroMetric(f, input, 100, 1000);
     }
 
-    private <T> Long waitForNonzeroMetric(Function<T, Long> f, T input, int intervalMilliseconds, int waitMilliseconds) {
+    private static <T> Long waitForNonzeroMetric(Function<T, Long> f, T input, int intervalMilliseconds, int waitMilliseconds) {
         long end = System.currentTimeMillis() + waitMilliseconds;
         Long output = f.apply(input);
         if (null != output && output > 0L) {

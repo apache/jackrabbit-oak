@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
@@ -37,19 +38,37 @@ public interface BlobStatsCollector {
         public void uploaded(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { }
-
-        @Override
         public void uploadCompleted(String blobId) { }
-
-        @Override
-        public void downloadCompleted(String blobId) { }
 
         @Override
         public void uploadFailed() { }
 
         @Override
+        public void writeBlobCalled(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void writeBlobCompleted(String blobId) { }
+
+        @Override
+        public void writeBlobFailed() { }
+
+        @Override
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void downloadCompleted(String blobId) { }
+
+        @Override
         public void downloadFailed(String blobId) { }
+
+        @Override
+        public void readBlobCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void readBlobCompleted(String blobId) { }
+
+        @Override
+        public void readBlobFailed(String blobId) { }
 
         @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
@@ -79,7 +98,7 @@ public interface BlobStatsCollector {
         public void addRecordFailed() { }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordCompleted(String blobId) { }
@@ -88,7 +107,7 @@ public interface BlobStatsCollector {
         public void getRecordFailed(String blobId) { }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordIfStoredCompleted(String blobId) { }
@@ -97,7 +116,7 @@ public interface BlobStatsCollector {
         public void getRecordIfStoredFailed(String blobId) { }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordFromReferenceCompleted(String reference) { }
@@ -125,6 +144,44 @@ public interface BlobStatsCollector {
     void uploaded(long timeTaken, TimeUnit unit, long size);
 
     /**
+     * Invoked when upload for a binary file get completed. In case of chunked
+     * BlobStore this invoked when all the chunks have been uploaded
+     *
+     * @param blobId id of the blob which got uploaded. Even in case of chunked
+     *               blobStores its the id of main blob
+     */
+    void uploadCompleted(String blobId);
+
+    /**
+     * Invoked when an upload of a binary fails.
+     */
+    void uploadFailed();
+
+    /**
+     * Invoked when a call is made to {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#writeBlob(InputStream)}
+     * or {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#writeBlob(InputStream, BlobOptions)}.
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     * @param size size of binary content being written
+     */
+    void writeBlobCalled(long timeTaken, TimeUnit unit, long size);
+
+    /**
+     * Inovked when a call to {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#writeBlob(InputStream)}
+     * or {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#writeBlob(InputStream, BlobOptions)} completes.
+     *
+     * @param blobId id of the blob which was written.
+     */
+    void writeBlobCompleted(String blobId);
+
+    /**
+     * Invoked when a call to {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#writeBlob(InputStream)}
+     * or {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#writeBlob(InputStream, BlobOptions)} fails.
+     */
+    void writeBlobFailed();
+
+    /**
      * Called when a binary content is read from BlobStore
      *
      * @param blobId id of blob whose content are being read. For BlobStore
@@ -136,15 +193,6 @@ public interface BlobStatsCollector {
     void downloaded(String blobId, long timeTaken, TimeUnit unit, long size);
 
     /**
-     * Invoked when upload for a binary file get completed. In case of chunked
-     * BlobStore this invoked when all the chunks have been uploaded
-     *
-     * @param blobId id of the blob which got uploaded. Even in case of chunked
-     *               blobStores its the id of main blob
-     */
-    void uploadCompleted(String blobId);
-
-    /**
      * Invoked when download for a binary file get completed. In case of chunked
      * BlobStore this invoked when all the chunks have been downloaded
      *
@@ -154,16 +202,36 @@ public interface BlobStatsCollector {
     void downloadCompleted(String blobId);
 
     /**
-     * Invoked when an upload of a binary fails.
-     */
-    void uploadFailed();
-
-    /**
      * Called when an attempt to download a binary file fails.
      *
      * @param blobId id of the blob for which the download failed
      */
     void downloadFailed(String blobId);
+
+    /**
+     * Invoked when a binary is downloaded via a call to {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#readBlob(String, long, byte[], int, int)}
+     * or {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#getInputStream(String)}.
+     *
+     * @param timeTaken time taken to perform the operation
+     * @param unit unit of time taken
+     */
+    void readBlobCalled(long timeTaken, TimeUnit unit);
+
+    /**
+     * Invoked when download via {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#readBlob(String, long, byte[], int, int)}
+     * or {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#getInputStream(String)} completes.
+     *
+     * @param blobId id of the blob that was downloaded.
+     */
+    void readBlobCompleted(String blobId);
+
+    /**
+     * Invoked when download via {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#readBlob(String, long, byte[], int, int)}
+     * or {@link org.apache.jackrabbit.oak.spi.blob.BlobStore#getInputStream(String) }fails.
+     *
+     * @param blobId id of the blob for which the download failed
+     */
+    void readBlobFailed(String blobId);
 
     /**
      * Called when a binary is deleted from the BlobStore
@@ -237,8 +305,9 @@ public interface BlobStatsCollector {
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
+     * @param size size of the binary
      */
-    void getRecordCalled(long timeTaken, TimeUnit unit);
+    void getRecordCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
      * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecord(DataIdentifier)} is completed.
@@ -260,8 +329,9 @@ public interface BlobStatsCollector {
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
+     * @param size size of the binary
      */
-    void getRecordIfStoredCalled(long timeTaken, TimeUnit unit);
+    void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
      * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordIfStored(DataIdentifier)} is completed.
@@ -283,8 +353,9 @@ public interface BlobStatsCollector {
      *
      * @param timeTaken time taken to perform the operation
      * @param unit unit of time taken
+     * @param size size of the binary
      */
-    void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit);
+    void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size);
 
     /**
      * Called when a call to {@link org.apache.jackrabbit.core.data.DataStore#getRecordFromReference(String)} is completed.

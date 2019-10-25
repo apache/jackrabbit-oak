@@ -64,14 +64,26 @@ public class StatsCollectingStreamsTest {
         }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
-            callbackCount++;
-            this.size = size;
+        public void uploadCompleted(String blobId) {
+
         }
 
         @Override
-        public void uploadCompleted(String blobId) {
+        public void uploadFailed() { }
 
+        @Override
+        public void writeBlobCalled(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void writeBlobCompleted(String blobId) { }
+
+        @Override
+        public void writeBlobFailed() { }
+
+        @Override
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
+            callbackCount++;
+            this.size = size;
         }
 
         @Override
@@ -80,10 +92,16 @@ public class StatsCollectingStreamsTest {
         }
 
         @Override
-        public void uploadFailed() { }
+        public void downloadFailed(String blobId) { }
 
         @Override
-        public void downloadFailed(String blobId) { }
+        public void readBlobCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void readBlobCompleted(String blobId) { }
+
+        @Override
+        public void readBlobFailed(String blobId) { }
 
         @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
@@ -113,7 +131,7 @@ public class StatsCollectingStreamsTest {
         public void addRecordFailed() { }
 
         @Override
-        public void getRecordCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordCompleted(String blobId) { }
@@ -122,7 +140,7 @@ public class StatsCollectingStreamsTest {
         public void getRecordFailed(String blobId) { }
 
         @Override
-        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordIfStoredCompleted(String blobId) { }
@@ -131,7 +149,7 @@ public class StatsCollectingStreamsTest {
         public void getRecordIfStoredFailed(String blobId) { }
 
         @Override
-        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit) { }
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
 
         @Override
         public void getRecordFromReferenceCompleted(String reference) { }
