@@ -162,7 +162,6 @@ public class AzureArchiveManagerTest {
         Assert.assertFalse(manager.exists("data00000a.tar"));
         UUID u = UUID.randomUUID();
         writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
-        Assert.assertFalse(manager.exists("data00000a.tar"));
         writer.flush();
         Assert.assertTrue(manager.exists("data00000a.tar"));
     }
