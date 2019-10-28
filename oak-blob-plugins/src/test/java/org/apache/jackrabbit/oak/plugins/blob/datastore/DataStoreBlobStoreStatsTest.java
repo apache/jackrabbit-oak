@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -146,11 +147,13 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSWriteBlobStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withWriteDelay(1000));
 
-        long uploadCount = stats.getUploadCount();
-        long uploadTotalSize = stats.getUploadTotalSize();
-        long uploadCountLastMinute = getLastMinuteStats(stats.getUploadCountHistory());
-        long uploadAmountLastMinute = getLastMinuteStats(stats.getUploadSizeHistory());
-        long uploadTimeLastMinute = getLastMinuteStats(stats.getUploadRateHistory());
+        UploadStats uploadStats = new UploadStats(stats);
+
+//        long uploadCount = stats.getUploadCount();
+//        long uploadTotalSize = stats.getUploadTotalSize();
+//        long uploadCountLastMinute = getLastMinuteStats(stats.getUploadCountHistory());
+//        long uploadAmountLastMinute = getLastMinuteStats(stats.getUploadSizeHistory());
+//        long uploadTimeLastMinute = getLastMinuteStats(stats.getUploadRateHistory());
 
         long writeBlobCount = stats.getWriteBlobCount();
         long writeBlobTotalSize = stats.getWriteBlobTotalSize();
@@ -160,16 +163,18 @@ public class DataStoreBlobStoreStatsTest {
 
         dsbs.writeBlob(getTestInputStream());
 
-        assertEquals(uploadCount + 1, stats.getUploadCount());
-        assertEquals(uploadTotalSize + BLOB_LEN, stats.getUploadTotalSize());
-        assertEquals(uploadCountLastMinute + 1,
-                waitForMetric(input -> getLastMinuteStats(input.getUploadCountHistory()),
-                        stats, 1L, 0L).longValue());
-        assertEquals(uploadAmountLastMinute + BLOB_LEN,
-                waitForMetric(input -> getLastMinuteStats(input.getUploadSizeHistory()),
-                        stats, (long) BLOB_LEN, 0L).longValue());
-        assertTrue(uploadTimeLastMinute <
-                waitForNonzeroMetric(input -> getLastMinuteStats(input.getUploadRateHistory()), stats));
+        uploadStats.verify(1, BLOB_LEN);
+
+//        assertEquals(uploadCount + 1, stats.getUploadCount());
+//        assertEquals(uploadTotalSize + BLOB_LEN, stats.getUploadTotalSize());
+//        assertEquals(uploadCountLastMinute + 1,
+//                waitForMetric(input -> getLastMinuteStats(input.getUploadCountHistory()),
+//                        stats, 1L, 0L).longValue());
+//        assertEquals(uploadAmountLastMinute + BLOB_LEN,
+//                waitForMetric(input -> getLastMinuteStats(input.getUploadSizeHistory()),
+//                        stats, (long) BLOB_LEN, 0L).longValue());
+//        assertTrue(uploadTimeLastMinute <
+//                waitForNonzeroMetric(input -> getLastMinuteStats(input.getUploadRateHistory()), stats));
 
         assertEquals(writeBlobCount + 1, stats.getWriteBlobCount());
         assertEquals(writeBlobTotalSize + BLOB_LEN, stats.getWriteBlobTotalSize());
@@ -187,8 +192,10 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSWriteBlobErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnAddRecord());
 
-        long uploadErrorCount = stats.getUploadErrorCount();
-        long uploadErrorCountLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
+        UploadStats uploadStats = new UploadStats(stats);
+
+//        long uploadErrorCount = stats.getUploadErrorCount();
+//        long uploadErrorCountLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
 
         long writeBlobErrorCount = stats.getWriteBlobErrorCount();
         long writeBlobErrorCountLastMinute = getLastMinuteStats(stats.getWriteBlobErrorCountHistory());
@@ -206,10 +213,12 @@ public class DataStoreBlobStoreStatsTest {
         }
         catch (IOException e) { }
 
-        assertEquals(uploadErrorCount + 3, stats.getUploadErrorCount());
-        assertEquals(uploadErrorCountLastMinute + 3,
-                waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
-                        stats, 3L, 0L).longValue());
+        uploadStats.verify(0L, 0L, 3L);
+
+//        assertEquals(uploadErrorCount + 3, stats.getUploadErrorCount());
+//        assertEquals(uploadErrorCountLastMinute + 3,
+//                waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
+//                        stats, 3L, 0L).longValue());
 
         assertEquals(writeBlobErrorCount + 3, stats.getWriteBlobErrorCount());
         assertEquals(writeBlobErrorCountLastMinute + 3,
@@ -221,14 +230,20 @@ public class DataStoreBlobStoreStatsTest {
     public void testDSBSAddRecordStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withWriteDelay(1000));
 
+        UploadStats uploadStats = new UploadStats(stats);
+
         long addRecordCount = stats.getAddRecordCount();
         long addRecordSize = stats.getAddRecordTotalSize();
         long addRecordCountLastMinute = getLastMinuteStats(stats.getAddRecordCountHistory());
         long addRecordSizeLastMinute = getLastMinuteStats(stats.getAddRecordSizeHistory());
         long addRecordTimeLastMinute = getLastMinuteStats(stats.getAddRecordRateHistory());
 
+        long uploadCount = stats.getUploadCount();
+
         dsbs.addRecord(getTestInputStream());
         dsbs.addRecord(getTestInputStream(), new BlobOptions());
+
+        uploadStats.verify(2, BLOB_LEN);
 
         assertEquals(addRecordCount + 2, stats.getAddRecordCount());
         assertEquals(addRecordSize + BLOB_LEN*2, stats.getAddRecordTotalSize());
@@ -240,11 +255,15 @@ public class DataStoreBlobStoreStatsTest {
                         stats, (long) BLOB_LEN*2, 0L).longValue());
         assertTrue(addRecordTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getAddRecordRateHistory()), stats));
+
+        assertEquals(uploadCount + 2, stats.getUploadCount());
     }
 
     @Test
     public void testDSBSAddRecordErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnAddRecord());
+
+        UploadStats uploadStats = new UploadStats(stats);
 
         long addRecordErrorCount = stats.getAddRecordErrorCount();
         long addRecordErrorCountLastMinute = getLastMinuteStats(stats.getAddRecordErrorCountHistory());
@@ -253,6 +272,8 @@ public class DataStoreBlobStoreStatsTest {
         catch (DataStoreException e) { }
         try { dsbs.addRecord(getTestInputStream(), new BlobOptions()); }
         catch (DataStoreException e) { }
+
+        uploadStats.verify(0L, 0L, 2L);
 
         assertEquals(addRecordErrorCount + 2, stats.getAddRecordErrorCount());
         assertEquals(addRecordErrorCountLastMinute + 2,
@@ -1027,6 +1048,56 @@ public class DataStoreBlobStoreStatsTest {
             while (recordStream.available() > 0) {
                 recordStream.read();
             }
+        }
+    }
+
+    private static class UploadStats {
+        private final BlobStoreStats stats;
+
+        private long uploadCount;
+        private long uploadTotalSize;
+        private long uploadCountLastMinute;
+        private long uploadAmountLastMinute;
+        private long uploadTimeLastMinute;
+
+        private long uploadErrorCount;
+        private long uploadErrorCountLastMinute;
+
+
+        public UploadStats(@NotNull final BlobStoreStats stats) {
+            this.stats = stats;
+
+            uploadCount = stats.getUploadCount();
+            uploadTotalSize = stats.getUploadTotalSize();
+            uploadCountLastMinute = getLastMinuteStats(stats.getUploadCountHistory());
+            uploadAmountLastMinute = getLastMinuteStats(stats.getUploadSizeHistory());
+            uploadTimeLastMinute = getLastMinuteStats(stats.getUploadRateHistory());
+
+            uploadErrorCount = stats.getUploadErrorCount();
+            uploadErrorCountLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
+        }
+
+        public void verify(long newUploadCount, long newUploadSize) {
+            verify(newUploadCount, newUploadSize, 0L);
+        }
+
+        public void verify(long newUploadCount, long newUploadSize, long newErrorCount) {
+            if (0L == newErrorCount) {
+                assertEquals(uploadCount + newUploadCount, stats.getUploadCount());
+                assertEquals(uploadTotalSize + (newUploadSize * newUploadCount), stats.getUploadTotalSize());
+                assertEquals(uploadCountLastMinute + newUploadCount,
+                        waitForMetric(input -> getLastMinuteStats(input.getUploadCountHistory()),
+                                stats, newUploadCount, 0L).longValue());
+                assertEquals(uploadAmountLastMinute + (newUploadSize * newUploadCount),
+                        waitForMetric(input -> getLastMinuteStats(input.getUploadSizeHistory()),
+                                stats, (newUploadSize * newUploadCount), 0L).longValue());
+                assertTrue(uploadTimeLastMinute <
+                        waitForNonzeroMetric(input -> getLastMinuteStats(input.getUploadRateHistory()), stats));
+            }
+            assertEquals(uploadErrorCount + newErrorCount, stats.getUploadErrorCount());
+            assertEquals(uploadErrorCountLastMinute + newErrorCount,
+                    waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
+                            stats, newErrorCount, 0L).longValue());
         }
     }
 }

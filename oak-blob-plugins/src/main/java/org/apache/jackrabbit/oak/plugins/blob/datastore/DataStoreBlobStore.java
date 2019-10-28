@@ -306,13 +306,13 @@ public class DataStoreBlobStore
             updateTracker(id);
             threw = false;
             long elapsed = System.nanoTime() - start;
-            stats.uploaded(elapsed, TimeUnit.NANOSECONDS, dr.getLength());
-            stats.uploadCompleted(id);
+//            stats.uploaded(elapsed, TimeUnit.NANOSECONDS, dr.getLength());
+//            stats.uploadCompleted(id);
             stats.writeBlobCalled(elapsed, TimeUnit.NANOSECONDS, dr.getLength());
             stats.writeBlobCompleted(id);
             return id;
         } catch (DataStoreException e) {
-            stats.uploadFailed();
+//            stats.uploadFailed();
             stats.writeBlobFailed();
             throw new IOException(e);
         } finally {
@@ -803,11 +803,18 @@ public class DataStoreBlobStore
             DataRecord result = delegate instanceof TypedDataStore ?
                     ((TypedDataStore) delegate).addRecord(input, options) :
                     delegate.addRecord(input);
-            stats.recordAdded(System.nanoTime() - start, TimeUnit.NANOSECONDS, result.getLength());
+            long elapsed = System.nanoTime() - start;
+
+            stats.uploaded(elapsed, TimeUnit.NANOSECONDS, result.getLength());
+            stats.uploadCompleted(result.getIdentifier().toString());
+
+            stats.recordAdded(elapsed, TimeUnit.NANOSECONDS, result.getLength());
             stats.addRecordCompleted(result.getIdentifier().toString());
+
             return result;
         }
         catch (DataStoreException e) {
+            stats.uploadFailed();
             stats.addRecordFailed();
             throw e;
         }
