@@ -377,7 +377,7 @@ public class Check {
             ReadOnlyFileStore store = builder.buildReadOnly();
             JournalReader journal = new JournalReader(new LocalJournalFile(this.journal))
         ) {
-            run(store, journal);
+            int result = run(store, journal);
 
             if (ioStatistics) {
                 print("[I/O] Segment read: Number of operations: {0}", ioMonitor.ops.get());
@@ -390,14 +390,14 @@ public class Check {
                 repoStatistics.headPropertyCount = headPropertyCount;
             }
 
-            return 0;
+            return result;
         } catch (Exception e) {
             e.printStackTrace(err);
             return 1;
         }
     }
 
-    private void run(ReadOnlyFileStore store, JournalReader journal) {
+    private int run(ReadOnlyFileStore store, JournalReader journal) {
         Set<String> checkpoints = requestedCheckpoints;
 
         if (requestedCheckpoints.contains("all")) {
@@ -435,8 +435,10 @@ public class Check {
             }
             print("\nOverall");
             printOverallRevision(result.getOverallRevision());
+            return 0;
         } else {
             print("No good revision found");
+            return 1;
         }
     }
 
