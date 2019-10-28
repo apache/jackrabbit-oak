@@ -40,7 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("Duplicates")
-public class BlobStoreStats extends AnnotatedStandardMBean implements ExtendedBlobStoreStatsMBean, ExtendedBlobStatsCollector {
+public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreStatsMBean, ExtendedBlobStatsCollector {
     private final Logger opsLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.operations.blobs");
     private static final String BLOB_UPLOADS = "BLOB_UPLOADS";
     private static final String BLOB_UPLOAD_COUNT = "BLOB_UPLOAD_COUNT";

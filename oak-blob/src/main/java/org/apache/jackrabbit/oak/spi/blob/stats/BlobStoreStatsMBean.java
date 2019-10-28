@@ -83,6 +83,48 @@ public interface BlobStoreStatsMBean {
 
     long getListIdsErrorCount();
 
+    long getGetRecordForIdCount();
+
+    long getGetRecordForIdErrorCount();
+
+    long getGetAllRecordsCount();
+
+    long getInitBlobUploadCount();
+
+    long getInitBlobUploadErrorCount();
+
+    long getCompleteBlobUploadCount();
+
+    long getCompleteBlobUploadErrorCount();
+
+    long getGetBlobDownloadURICount();
+
+    long getGetBlobDownloadURIErrorCount();
+
+    long getAddMetadataRecordCount();
+
+    long getAddMetadataRecordErrorCount();
+
+    long getGetMetadataRecordCount();
+
+    long getGetMetadataRecordErrorCount();
+
+    long getGetAllMetadataRecordsCount();
+
+    long getGetAllMetadataRecordsErrorCount();
+
+    long getMetadataRecordExistsCount();
+
+    long getMetadataRecordExistsErrorCount();
+
+    long getDeleteMetadataRecordCount();
+
+    long getDeleteMetadataRecordErrorCount();
+
+    long getDeleteAllMetadataRecordsCount();
+
+    long getDeleteAllMetadataRecordsErrorCount();
+
     String blobStoreInfoAsString();
 
     CompositeData getUploadSizeHistory();
@@ -170,4 +212,72 @@ public interface BlobStoreStatsMBean {
     CompositeData getListIdsTimeHistory();
 
     CompositeData getListIdsErrorCountHistory();
+
+    CompositeData getGetRecordForIdCountHistory();
+
+    CompositeData getGetRecordForIdErrorCountHistory();
+
+    CompositeData getGetRecordForIdTimeHistory();
+
+    CompositeData getGetRecordForIdSizeHistory();
+
+    CompositeData getGetRecordForIdRateHistory();
+
+    CompositeData getGetAllRecordsCountHistory();
+
+    CompositeData getGetAllRecordsTimeHistory();
+
+    CompositeData getInitBlobUploadCountHistory();
+
+    CompositeData getInitBlobUploadTimeHistory();
+
+    CompositeData getInitBlobUploadErrorCountHistory();
+
+    CompositeData getCompleteBlobUploadCountHistory();
+
+    CompositeData getCompleteBlobUploadTimeHistory();
+
+    CompositeData getCompleteBlobUploadErrorCountHistory();
+
+    CompositeData getGetBlobDownloadURICountHistory();
+
+    CompositeData getGetBlobDownloadURITimeHistory();
+
+    CompositeData getGetBlobDownloadURIErrorCountHistory();
+
+    CompositeData getAddMetadataRecordCountHistory();
+
+    CompositeData getAddMetadataRecordTimeHistory();
+
+    CompositeData getAddMetadataRecordErrorCountHistory();
+
+    CompositeData getGetMetadataRecordCountHistory();
+
+    CompositeData getGetMetadataRecordTimeHistory();
+
+    CompositeData getGetMetadataRecordErrorCountHistory();
+
+    CompositeData getGetAllMetadataRecordsCountHistory();
+
+    CompositeData getGetAllMetadataRecordsTimeHistory();
+
+    CompositeData getGetAllMetadataRecordsErrorCountHistory();
+
+    CompositeData getMetadataRecordExistsCountHistory();
+
+    CompositeData getMetadataRecordExistsTimeHistory();
+
+    CompositeData getMetadataRecordExistsErrorCountHistory();
+
+    CompositeData getDeleteMetadataRecordCountHistory();
+
+    CompositeData getDeleteMetadataRecordTimeHistory();
+
+    CompositeData getDeleteMetadataRecordErrorCountHistory();
+
+    CompositeData getDeleteAllMetadataRecordsCountHistory();
+
+    CompositeData getDeleteAllMetadataRecordsTimeHistory();
+
+    CompositeData getDeleteAllMetadataRecordsErrorCountHistory();
 }
