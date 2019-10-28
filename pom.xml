@@ -93,7 +93,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>${findbugs.version}</version>
+        <version>2.4.0</version>
       </plugin>
     </plugins>
   </reporting>
