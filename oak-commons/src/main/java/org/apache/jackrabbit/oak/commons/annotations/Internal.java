@@ -33,12 +33,13 @@ import java.lang.annotation.Target;
  * Elements annotated @Internal are -- although possibly exported -- intended
  * for Oak's internal use only. Such elements are not public by design and
  * likely to be removed, have their signature change, or have their access level
- * decreased in future versions without notice. @Internal elements are eligible
- * for immediate modification or removal and are not subject to any policies
- * with respect to deprecation.
+ * decreased in future versions without notice. {@code @Internal} elements are
+ * eligible for immediate modification or removal and are not subject to any
+ * policies with respect to deprecation.
  * <p>
  * Note that Oak APIs are considered internal use by default, unless the package
- * they appear in is annotated with a {@link @Version} annotation with a value
+ * they appear in is annotated with a
+ * {@link org.osgi.annotation.versioning.Version} annotation with a value
  * greater than "1.0.0".
  */
 @Documented
