@@ -27,6 +27,11 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 
+/**
+ * Interface that adds stats to {@link BlobStatsCollector} for additional
+ * capabilities in blob stores that are added via
+ * {@link org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore}.
+ */
 public interface ExtendedBlobStatsCollector extends BlobStatsCollector {
     ExtendedBlobStatsCollector NOOP = new ExtendedBlobStatsCollector() {
         @Override
