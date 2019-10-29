@@ -185,9 +185,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats getAllRecordsCount;
     private final MeterStats getAllRecordsTimeSeries;
 
-    private final MeterStats getListIdsCount;
-    private final MeterStats getListIdsTimeSeries;
-    private final MeterStats getListIdsErrorCount;
+    private final MeterStats listIdsCount;
+    private final MeterStats listIdsTimeSeries;
+    private final MeterStats listIdsErrorCount;
 
     private final MeterStats addMetadataRecordCount;
     private final MeterStats addMetadataRecordTimeSeries;
@@ -211,15 +211,15 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats deleteAllMetadataRecordsTimeSeries;
     private final MeterStats deleteAllMetadataRecordsErrorCount;
 
-    private final MeterStats getInitBlobUploadCount;
-    private final MeterStats getInitBlobUploadTimeSeries;
-    private final MeterStats getInitBlobUploadErrorCount;
-    private final MeterStats getCompleteBlobUploadCount;
-    private final MeterStats getCompleteBlobUploadTimeSeries;
-    private final MeterStats getCompleteBlobUploadErrorCount;
-    private final MeterStats getGetBlobDownloadURICount;
-    private final MeterStats getGetBlobDownloadURITimeSeries;
-    private final MeterStats getGetBlobDownloadURIErrorCount;
+    private final MeterStats initBlobUploadCount;
+    private final MeterStats initBlobUploadTimeSeries;
+    private final MeterStats initBlobUploadErrorCount;
+    private final MeterStats completeBlobUploadCount;
+    private final MeterStats completeBlobUploadTimeSeries;
+    private final MeterStats completeBlobUploadErrorCount;
+    private final MeterStats getBlobDownloadURICount;
+    private final MeterStats getBlobDownloadURITimeSeries;
+    private final MeterStats getBlobDownloadURIErrorCount;
 
     private final TimeUnit recordedTimeUnit = TimeUnit.NANOSECONDS;
 
@@ -281,9 +281,9 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.getAllRecordsCount = sp.getMeter(BLOB_GETALLRECORDS_COUNT, StatsOptions.DEFAULT);
         this.getAllRecordsTimeSeries = sp.getMeter(BLOB_GETALLRECORDS_TIME, StatsOptions.TIME_SERIES_ONLY);
 
-        this.getListIdsCount = sp.getMeter(BLOB_LISTIDS_COUNT, StatsOptions.DEFAULT);
-        this.getListIdsTimeSeries = sp.getMeter(BLOB_LISTIDS_TIME, StatsOptions.TIME_SERIES_ONLY);
-        this.getListIdsErrorCount = sp.getMeter(BLOB_LISTIDS_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.listIdsCount = sp.getMeter(BLOB_LISTIDS_COUNT, StatsOptions.DEFAULT);
+        this.listIdsTimeSeries = sp.getMeter(BLOB_LISTIDS_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.listIdsErrorCount = sp.getMeter(BLOB_LISTIDS_ERROR_COUNT, StatsOptions.DEFAULT);
 
         this.addMetadataRecordCount = sp.getMeter(BLOB_ADD_METADATA_RECORD_COUNT, StatsOptions.DEFAULT);
         this.addMetadataRecordTimeSeries = sp.getMeter(BLOB_ADD_METADATA_RECORD_TIME, StatsOptions.TIME_SERIES_ONLY);
@@ -307,15 +307,15 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.deleteAllMetadataRecordsTimeSeries = sp.getMeter(BLOB_DELETE_ALL_METADATA_RECORDS_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.deleteAllMetadataRecordsErrorCount = sp.getMeter(BLOB_DELETE_ALL_METADATA_RECORDS_ERROR_COUNT, StatsOptions.DEFAULT);
 
-        this.getInitBlobUploadCount = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_COUNT, StatsOptions.DEFAULT);
-        this.getInitBlobUploadTimeSeries = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
-        this.getInitBlobUploadErrorCount = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
-        this.getCompleteBlobUploadCount = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_COUNT, StatsOptions.DEFAULT);
-        this.getCompleteBlobUploadTimeSeries = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
-        this.getCompleteBlobUploadErrorCount = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
-        this.getGetBlobDownloadURICount = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_COUNT, StatsOptions.DEFAULT);
-        this.getGetBlobDownloadURITimeSeries = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_TIME, StatsOptions.TIME_SERIES_ONLY);
-        this.getGetBlobDownloadURIErrorCount = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.initBlobUploadCount = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_COUNT, StatsOptions.DEFAULT);
+        this.initBlobUploadTimeSeries = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.initBlobUploadErrorCount = sp.getMeter(BLOB_INIT_DIRECT_UPLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.completeBlobUploadCount = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_COUNT, StatsOptions.DEFAULT);
+        this.completeBlobUploadTimeSeries = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.completeBlobUploadErrorCount = sp.getMeter(BLOB_COMPLETE_DIRECT_UPLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
+        this.getBlobDownloadURICount = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_COUNT, StatsOptions.DEFAULT);
+        this.getBlobDownloadURITimeSeries = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.getBlobDownloadURIErrorCount = sp.getMeter(BLOB_GET_DIRECT_DOWNLOAD_URI_ERROR_COUNT, StatsOptions.DEFAULT);
     }
 
     @Override
@@ -511,19 +511,19 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) {
-        getListIdsTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        listIdsTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
         opsLogger.debug("Get all identifiers called - {} ms", unit.toMillis(timeTaken));
     }
 
     @Override
     public void getAllIdentifiersCompleted() {
-        getListIdsCount.mark();
+        listIdsCount.mark();
         opsLogger.debug("Get all identifiers completed");
     }
 
     @Override
     public void getAllIdentifiersFailed() {
-        getListIdsErrorCount.mark();
+        listIdsErrorCount.mark();
         opsLogger.debug("Get all identifiers failed");
     }
 
@@ -637,55 +637,55 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public void initiateBlobUpload(long timeTaken, TimeUnit unit, long maxSize, int maxUris) {
-        getInitBlobUploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        initBlobUploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
         opsLogger.debug("Initiate blob upload called with size {} and # uris {} - {} ms", maxSize, maxSize, unit.toMillis(timeTaken));
     }
 
     @Override
     public void initiateBlobUploadCompleted() {
-        getInitBlobUploadCount.mark();
+        initBlobUploadCount.mark();
         opsLogger.debug("Initiate blob upload completed");
     }
 
     @Override
     public void initiateBlobUploadFailed() {
-        getInitBlobUploadErrorCount.mark();
+        initBlobUploadErrorCount.mark();
         opsLogger.debug("Initiate blob upload failed");
     }
 
     @Override
     public void completeBlobUpload(long timeTaken, TimeUnit unit) {
-        getCompleteBlobUploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        completeBlobUploadTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
         opsLogger.debug("Complete blob upload called - {} ms", unit.toMillis(timeTaken));
     }
 
     @Override
     public void completeBlobUploadCompleted(String id) {
-        getCompleteBlobUploadCount.mark();
+        completeBlobUploadCount.mark();
         opsLogger.debug("Complete blob upload completed - id {}", id);
     }
 
     @Override
     public void completeBlobUploadFailed() {
-        getCompleteBlobUploadErrorCount.mark();
+        completeBlobUploadErrorCount.mark();
         opsLogger.debug("Complete blob upload failed");
     }
 
     @Override
     public void getDownloadURICalled(long timeTaken, TimeUnit unit, String id) {
-        getGetBlobDownloadURITimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
+        getBlobDownloadURITimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
         opsLogger.debug("Get download URI called for id {} - {} ms", id, unit.toMillis(timeTaken));
     }
 
     @Override
     public void getDownloadURICompleted(String uri) {
-        getGetBlobDownloadURICount.mark();
+        getBlobDownloadURICount.mark();
         opsLogger.debug("Get download URI completed - uri {}", uri);
     }
 
     @Override
     public void getDownloadURIFailed() {
-        getGetBlobDownloadURIErrorCount.mark();
+        getBlobDownloadURIErrorCount.mark();
         opsLogger.debug("Get download URI failed");
     }
 
@@ -774,10 +774,10 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public long getGetAllRecordsCount() { return getAllRecordsCount.getCount(); }
 
     @Override
-    public long getListIdsCount() { return getListIdsCount.getCount(); }
+    public long getListIdsCount() { return listIdsCount.getCount(); }
 
     @Override
-    public long getListIdsErrorCount() { return getListIdsErrorCount.getCount(); }
+    public long getListIdsErrorCount() { return listIdsErrorCount.getCount(); }
 
     @Override
     public long getAddMetadataRecordCount() { return addMetadataRecordCount.getCount(); }
@@ -816,22 +816,22 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public long getDeleteAllMetadataRecordsErrorCount() { return deleteAllMetadataRecordsErrorCount.getCount(); }
 
     @Override
-    public long getInitBlobUploadCount() { return getInitBlobUploadCount.getCount(); }
+    public long getInitBlobUploadCount() { return initBlobUploadCount.getCount(); }
 
     @Override
-    public long getInitBlobUploadErrorCount() { return getInitBlobUploadErrorCount.getCount(); }
+    public long getInitBlobUploadErrorCount() { return initBlobUploadErrorCount.getCount(); }
 
     @Override
-    public long getCompleteBlobUploadCount() { return getCompleteBlobUploadCount.getCount(); }
+    public long getCompleteBlobUploadCount() { return completeBlobUploadCount.getCount(); }
 
     @Override
-    public long getCompleteBlobUploadErrorCount() { return getCompleteBlobUploadErrorCount.getCount(); }
+    public long getCompleteBlobUploadErrorCount() { return completeBlobUploadErrorCount.getCount(); }
 
     @Override
-    public long getGetBlobDownloadURICount() { return getGetBlobDownloadURICount.getCount(); }
+    public long getGetBlobDownloadURICount() { return getBlobDownloadURICount.getCount(); }
 
     @Override
-    public long getGetBlobDownloadURIErrorCount() { return getGetBlobDownloadURIErrorCount.getCount(); }
+    public long getGetBlobDownloadURIErrorCount() { return getBlobDownloadURIErrorCount.getCount(); }
 
     @Override
     public String blobStoreInfoAsString() {
