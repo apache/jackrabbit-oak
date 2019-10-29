@@ -111,10 +111,6 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSReadBlobNotFoundStats() throws IOException, RepositoryException {
-    }
-
-    @Test
     public void testDSBSReadBlobErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnGetRecord());
         String blobId1 = dsbs.writeBlob(getTestInputStream());
@@ -294,10 +290,6 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetRecordNotFoundStats() {
-    }
-
-    @Test
     public void testDSBSGetRecordErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnGetRecord());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
@@ -394,10 +386,6 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetRecordFromReferenceNotFoundStats() {
-    }
-
-    @Test
     public void testDSBSGetRecordFromReferenceErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnGetRecord());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
@@ -443,10 +431,6 @@ public class DataStoreBlobStoreStatsTest {
         // Ensure that the metrics don't overlap.  Calling getRecordForId() shouldn't increment
         // the download counts (which pertain to readBlob()).
         assertEquals(downloadCount, stats.getDownloadCount());
-    }
-
-    @Test
-    public void testDSBSGetRecordForIdNotFoundStats() {
     }
 
     @Test
@@ -676,10 +660,6 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSGetMetaRecNotFoundStats() throws IOException, RepositoryException {
-    }
-
-    @Test
     public void testDSBSGetMetaRecErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnGetRecord());
 
@@ -787,10 +767,6 @@ public class DataStoreBlobStoreStatsTest {
                         stats, 1L, 0L).longValue());
         assertTrue(deleteMetadataRecordTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getDeleteMetadataRecordTimeHistory()), stats));
-    }
-
-    @Test
-    public void testDSBSMetaDeleteNotFoundStats() throws IOException, RepositoryException {
     }
 
     @Test
@@ -908,14 +884,6 @@ public class DataStoreBlobStoreStatsTest {
     }
 
     @Test
-    public void testDSBSCompleteUploadDBAExistsStats() {
-    }
-
-    @Test
-    public void testDSBSCompleteUploadDBANotFoundStats() {
-    }
-
-    @Test
     public void testDSBSCompleteUploadDBAErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnCompleteBlobUpload());
 
@@ -951,10 +919,6 @@ public class DataStoreBlobStoreStatsTest {
                         stats, 1L, 0L).longValue());
         assertTrue(getBlobDownloadURITimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetBlobDownloadURITimeHistory()), stats));
-    }
-
-    @Test
-    public void testDSBSDownloadGetURIDBANotFoundStats() {
     }
 
     @Test
