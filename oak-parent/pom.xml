@@ -71,6 +71,10 @@
     <surefire.skip.ut>false</surefire.skip.ut>
   </properties>
 
+  <prerequisites>
+    <maven>3.2.1</maven>
+  </prerequisites>
+
   <issueManagement>
     <system>Jira</system>
     <url>http://issues.apache.org/jira/browse/OAK</url>
@@ -124,7 +128,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>3.0.0</version>
+          <version>3.3.0</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
           <configuration>
@@ -237,7 +241,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-scr-plugin</artifactId>
-          <version>1.16.0</version>
+          <version>1.21.0</version>
           <executions>
             <execution>
               <id>generate-scr-scrdescriptor</id>
@@ -267,12 +271,18 @@
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>3.0.0</version>
+        </plugin>
+        <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.11</version>
+          <version>0.12</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.20</version>
           <configuration>
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
@@ -305,7 +315,7 @@
         </plugin>
           <plugin>
             <artifactId>maven-checkstyle-plugin</artifactId>
-            <version>2.11</version>
+            <version>2.17</version>
           </plugin>
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
@@ -367,7 +377,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>3.3</version>
+          <version>3.6</version>
           <configuration>
             <generateReports>false</generateReports>
             <skip>true</skip>
@@ -377,19 +387,19 @@
             <dependency>
               <groupId>org.apache.maven.doxia</groupId>
               <artifactId>doxia-module-markdown</artifactId>
-              <version>1.5</version>
+              <version>1.7</version>
             </dependency>
           </dependencies>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-scm-publish-plugin</artifactId>
-          <version>1.0-beta-2</version>
+          <version>1.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-project-info-reports-plugin</artifactId>
-          <version>2.4</version>
+          <version>2.9</version>
         </plugin>
         <plugin>
           <groupId>org.jacoco</groupId>
