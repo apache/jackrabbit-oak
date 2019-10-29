@@ -77,10 +77,10 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.util.Base64;
@@ -429,12 +429,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     @Override
                     public DataRecord apply(AzureBlobInfo input) {
                         return new AzureBlobStoreDataRecord(
-                                backend,
-                                connectionString,
-                                containerName,
-                                new DataIdentifier(getIdentifierName(input.getName())),
-                                input.getLastModified(),
-                                input.getLength());
+                            backend,
+                            connectionString,
+                            containerName,
+                            new DataIdentifier(getIdentifierName(input.getName())),
+                            input.getLastModified(),
+                            input.getLength());
                     }
                 }
         );

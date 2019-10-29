@@ -1143,12 +1143,14 @@ public class S3Backend extends AbstractSharedBackend {
         private boolean isMeta;
 
         public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified, long length) {
+            DataIdentifier key, long lastModified,
+            long length) {
             this(backend, s3service, bucket, key, lastModified, length, false);
         }
 
         public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified, long length, boolean isMeta) {
+            DataIdentifier key, long lastModified,
+            long length, boolean isMeta) {
             super(backend, key);
             this.s3service = s3service;
             this.lastModified = lastModified;

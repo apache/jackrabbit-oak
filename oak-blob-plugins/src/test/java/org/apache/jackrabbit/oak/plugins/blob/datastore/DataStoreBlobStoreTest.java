@@ -19,16 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore.BlobId;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -57,6 +47,16 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore.BlobId;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
     @Before
@@ -94,8 +94,8 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data),
                 new BlobStoreInputStream(ds, dr.getIdentifier().toString(), 0)));
 
-        assertEquals(ds.getRecordIfStored(dr.getIdentifier()), dr);
-        assertEquals(ds.getRecord(dr.getIdentifier()), dr);
+        assertEquals(dr, ds.getRecordIfStored(dr.getIdentifier()));
+        assertEquals(dr, ds.getRecord(dr.getIdentifier()));
 
         //Check for BlobStore methods
         assertEquals(maxInlineSize, ds.getBlobLength(dr.getIdentifier().toString()));
@@ -131,8 +131,8 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data),
                 new BlobStoreInputStream(ds, dr.getIdentifier().toString(), 0)));
 
-        assertEquals(ds.getRecordIfStored(dr.getIdentifier()), dr);
-        assertEquals(ds.getRecord(dr.getIdentifier()), dr);
+        assertEquals(dr, ds.getRecordIfStored(dr.getIdentifier()));
+        assertEquals(dr, ds.getRecord(dr.getIdentifier()));
 
 //        assertTrue(ds.getInputStream(dr.getIdentifier().toString()) instanceof BufferedInputStream);
         assertEquals(actualSize, ds.getBlobLength(dr.getIdentifier().toString()));
