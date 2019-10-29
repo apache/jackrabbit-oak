@@ -180,8 +180,8 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public boolean exists(String archiveName) {
         try {
-            return !getBlobs(archiveName).isEmpty();
-        } catch (IOException e) {
+            return getDirectory(archiveName).listBlobsSegmented(null, false, null, 1, null, null, null).getLength() > 0;
+        } catch (IOException | StorageException | URISyntaxException e) {
             log.error("Can't check the existence of {}", archiveName, e);
             return false;
         }
