@@ -73,6 +73,10 @@
     <surefire.skip.ut>false</surefire.skip.ut>
   </properties>
 
+  <prerequisites>
+    <maven>3.2.1</maven>
+  </prerequisites>
+
   <issueManagement>
     <system>Jira</system>
     <url>http://issues.apache.org/jira/browse/OAK</url>
@@ -240,7 +244,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-scr-plugin</artifactId>
-          <version>1.16.0</version>
+          <version>1.21.0</version>
           <executions>
             <execution>
               <id>generate-scr-scrdescriptor</id>
@@ -270,9 +274,14 @@
           </configuration>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>3.0.0</version>
+        </plugin>
+        <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.11</version>
+          <version>0.12</version>
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
@@ -382,7 +391,7 @@
             <dependency>
               <groupId>org.apache.maven.doxia</groupId>
               <artifactId>doxia-module-markdown</artifactId>
-              <version>1.5</version>
+              <version>1.7</version>
             </dependency>
           </dependencies>
         </plugin>
