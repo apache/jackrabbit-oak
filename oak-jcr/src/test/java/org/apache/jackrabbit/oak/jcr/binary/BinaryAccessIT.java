@@ -584,8 +584,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         Content content = Content.createRandom(256);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 10);
 
-        assertNotNull(upload);
-        assertFalse(upload.getUploadURIs().iterator().hasNext());
+        assertNull(upload);
     }
 
     // A2 - disable get URIs entirely
