@@ -32,6 +32,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
 import org.apache.jackrabbit.oak.spi.blob.stats.StatsCollectingStreams;
 import org.jetbrains.annotations.NotNull;
@@ -51,7 +52,7 @@ import org.jetbrains.annotations.NotNull;
  * a regular OakFileDataStore but introduces the requested delays and/or errors
  * for certain types of behaviors (e.g. reads, writes, etc.).
  */
-public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implements DataRecordAccessProvider {
+public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implements DataRecordAccessProvider, TypedDataStore {
     private int readDelay = 0;
     private int writeDelay = 0;
     private int deleteDelay = 0;
@@ -334,6 +335,13 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
 
     @Override
     public DataRecord addRecord(InputStream is) throws DataStoreException {
+        delay(writeDelay);
+        err(withWriteError);
+        return super.addRecord(is);
+    }
+
+    @Override
+    public DataRecord addRecord(InputStream is, BlobOptions options) throws DataStoreException {
         delay(writeDelay);
         err(withWriteError);
         return super.addRecord(is);

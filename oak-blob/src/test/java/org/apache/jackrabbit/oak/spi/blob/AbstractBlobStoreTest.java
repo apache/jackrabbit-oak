@@ -557,15 +557,6 @@ public abstract class AbstractBlobStoreTest {
         public void uploadFailed() { }
 
         @Override
-        public void writeBlobCalled(long timeTaken, TimeUnit unit, long size) { }
-
-        @Override
-        public void writeBlobCompleted(String blobId) { }
-
-        @Override
-        public void writeBlobFailed() { }
-
-        @Override
         public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { this.size += size; }
 
         @Override
@@ -573,15 +564,6 @@ public abstract class AbstractBlobStoreTest {
 
         @Override
         public void downloadFailed(String blobId) { }
-
-        @Override
-        public void readBlobCalled(long timeTaken, TimeUnit unit) { }
-
-        @Override
-        public void readBlobCompleted(String blobId) { }
-
-        @Override
-        public void readBlobFailed(String blobId) { }
 
         @Override
         public void deleted(String blobId, long timeTaken, TimeUnit unit) { }

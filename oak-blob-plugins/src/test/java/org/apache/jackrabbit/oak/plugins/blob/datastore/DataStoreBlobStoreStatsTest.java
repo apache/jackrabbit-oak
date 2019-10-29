@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreStats;
 import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -81,11 +80,13 @@ public class DataStoreBlobStoreStatsTest {
         String blobId2 = dsbs.writeBlob(getTestInputStream());
 
         long downloadCount = stats.getDownloadCount();
+        long downloadCountLastMinute = getLastMinuteStats(stats.getDownloadCountHistory());
         long downloadTotalSize = stats.getDownloadTotalSize();
 
-        long readBlobCount = stats.getReadBlobCount();
-        long readBlobCountLastMinute = getLastMinuteStats(stats.getReadBlobCountHistory());
-        long readBlobTimeLastMinute = getLastMinuteStats(stats.getReadBlobTimeHistory());
+        long getRecordCount = stats.getGetRecordCount();
+        long getRecordIfStoredCount = stats.getGetRecordIfStoredCount();
+        long getRecordFromReferenceCount = stats.getGetRecordFromReferenceCount();
+        long getRecordForIdCount = stats.getGetRecordForIdCount();
 
         byte[] buffer = new byte[BLOB_LEN];
         dsbs.readBlob(blobId1, 0, buffer, 0, BLOB_LEN);
@@ -97,13 +98,16 @@ public class DataStoreBlobStoreStatsTest {
 
         assertEquals(downloadCount + 2, stats.getDownloadCount());
         assertEquals(downloadTotalSize + (BLOB_LEN * 2), stats.getDownloadTotalSize());
-
-        assertEquals(readBlobCount + 2, stats.getReadBlobCount());
-        assertEquals(readBlobCountLastMinute + 2,
-                waitForMetric(input -> getLastMinuteStats(input.getReadBlobCountHistory()),
+        assertEquals(downloadCountLastMinute + 2,
+                waitForMetric(input -> getLastMinuteStats(stats.getDownloadCountHistory()),
                         stats, 2L, 0L).longValue());
-        assertTrue(readBlobTimeLastMinute <
-                waitForNonzeroMetric(input -> getLastMinuteStats(input.getReadBlobTimeHistory()), stats));
+
+        // Ensure that the metrics don't overlap.  Calling readBlob() shouldn't increment
+        // the getRecord() counts.
+        assertEquals(getRecordCount, stats.getGetRecordCount());
+        assertEquals(getRecordIfStoredCount, stats.getGetRecordIfStoredCount());
+        assertEquals(getRecordFromReferenceCount, stats.getGetRecordFromReferenceCount());
+        assertEquals(getRecordForIdCount, stats.getGetRecordForIdCount());
     }
 
     @Test
@@ -119,8 +123,10 @@ public class DataStoreBlobStoreStatsTest {
         long downloadErrorCount = stats.getDownloadErrorCount();
         long downloadErrorCountLastMinute = getLastMinuteStats(stats.getDownloadErrorCountHistory());
 
-        long readBlobErrorCount = stats.getReadBlobErrorCount();
-        long readBlobErrorCountLastMinute = getLastMinuteStats(stats.getReadBlobErrorCountHistory());
+        long getRecordErrorCount = stats.getGetRecordErrorCount();
+        long getRecordIfStoredErrorCount = stats.getGetRecordIfStoredErrorCount();
+        long getRecordFromReferenceErrorCount = stats.getGetRecordFromReferenceErrorCount();
+        long getRecordForIdErrorCount = stats.getGetRecordForIdErrorCount();
 
         byte[] buffer = new byte[BLOB_LEN];
         try {
@@ -137,68 +143,52 @@ public class DataStoreBlobStoreStatsTest {
                 waitForMetric(input -> getLastMinuteStats(input.getDownloadErrorCountHistory()),
                         stats, 2L, 0L).longValue());
 
-        assertEquals(readBlobErrorCount + 2, stats.getReadBlobErrorCount());
-        assertEquals(readBlobErrorCountLastMinute + 2,
-                waitForMetric(input -> getLastMinuteStats(input.getReadBlobErrorCountHistory()),
-                        stats, 2L, 0L).longValue());
+        // Ensure that the metrics don't overlap.  Calling readBlob() shouldn't increment
+        // the getRecord() counts.
+        assertEquals(getRecordErrorCount, stats.getGetRecordErrorCount());
+        assertEquals(getRecordIfStoredErrorCount, stats.getGetRecordIfStoredErrorCount());
+        assertEquals(getRecordFromReferenceErrorCount, stats.getGetRecordFromReferenceErrorCount());
+        assertEquals(getRecordForIdErrorCount, stats.getGetRecordForIdErrorCount());
     }
 
     @Test
     public void testDSBSWriteBlobStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withWriteDelay(1000));
 
-        UploadStats uploadStats = new UploadStats(stats);
+        long uploadCount = stats.getUploadCount();
+        long uploadTotalSize = stats.getUploadTotalSize();
+        long uploadCountLastMinute = getLastMinuteStats(stats.getUploadCountHistory());
+        long uploadAmountLastMinute = getLastMinuteStats(stats.getUploadSizeHistory());
+        long uploadTimeLastMinute = getLastMinuteStats(stats.getUploadRateHistory());
 
-//        long uploadCount = stats.getUploadCount();
-//        long uploadTotalSize = stats.getUploadTotalSize();
-//        long uploadCountLastMinute = getLastMinuteStats(stats.getUploadCountHistory());
-//        long uploadAmountLastMinute = getLastMinuteStats(stats.getUploadSizeHistory());
-//        long uploadTimeLastMinute = getLastMinuteStats(stats.getUploadRateHistory());
-
-        long writeBlobCount = stats.getWriteBlobCount();
-        long writeBlobTotalSize = stats.getWriteBlobTotalSize();
-        long writeBlobCountLastMinute = getLastMinuteStats(stats.getWriteBlobCountHistory());
-        long writeBlobAmountLastMinute = getLastMinuteStats(stats.getWriteBlobSizeHistory());
-        long writeBlobRateLastMinute = getLastMinuteStats(stats.getWriteBlobRateHistory());
+        long addRecordCount = stats.getAddRecordCount();
 
         dsbs.writeBlob(getTestInputStream());
 
-        uploadStats.verify(1, BLOB_LEN);
-
-//        assertEquals(uploadCount + 1, stats.getUploadCount());
-//        assertEquals(uploadTotalSize + BLOB_LEN, stats.getUploadTotalSize());
-//        assertEquals(uploadCountLastMinute + 1,
-//                waitForMetric(input -> getLastMinuteStats(input.getUploadCountHistory()),
-//                        stats, 1L, 0L).longValue());
-//        assertEquals(uploadAmountLastMinute + BLOB_LEN,
-//                waitForMetric(input -> getLastMinuteStats(input.getUploadSizeHistory()),
-//                        stats, (long) BLOB_LEN, 0L).longValue());
-//        assertTrue(uploadTimeLastMinute <
-//                waitForNonzeroMetric(input -> getLastMinuteStats(input.getUploadRateHistory()), stats));
-
-        assertEquals(writeBlobCount + 1, stats.getWriteBlobCount());
-        assertEquals(writeBlobTotalSize + BLOB_LEN, stats.getWriteBlobTotalSize());
-        assertEquals(writeBlobCountLastMinute + 1,
-                waitForMetric(input -> getLastMinuteStats(input.getWriteBlobCountHistory()),
+        assertEquals(uploadCount + 1, stats.getUploadCount());
+        assertEquals(uploadTotalSize + BLOB_LEN, stats.getUploadTotalSize());
+        assertEquals(uploadCountLastMinute + 1,
+                waitForMetric(input -> getLastMinuteStats(input.getUploadCountHistory()),
                         stats, 1L, 0L).longValue());
-        assertEquals(writeBlobAmountLastMinute + BLOB_LEN,
-                waitForMetric(input -> getLastMinuteStats(input.getWriteBlobSizeHistory()),
+        assertEquals(uploadAmountLastMinute + BLOB_LEN,
+                waitForMetric(input -> getLastMinuteStats(input.getUploadSizeHistory()),
                         stats, (long) BLOB_LEN, 0L).longValue());
-        assertTrue(writeBlobRateLastMinute <
-                waitForNonzeroMetric(input -> getLastMinuteStats(input.getWriteBlobRateHistory()), stats));
+        assertTrue(uploadTimeLastMinute <
+                waitForNonzeroMetric(input -> getLastMinuteStats(input.getUploadRateHistory()), stats));
+
+        // Ensure that the metrics don't overlap.  Calling writeBlob() shouldn't increment
+        // the addRecord() counts.
+        assertEquals(addRecordCount, stats.getAddRecordCount());
     }
 
     @Test
     public void testDSBSWriteBlobErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnAddRecord());
 
-        UploadStats uploadStats = new UploadStats(stats);
+        long uploadErrorCount = stats.getUploadErrorCount();
+        long uploadErrorCountLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
 
-//        long uploadErrorCount = stats.getUploadErrorCount();
-//        long uploadErrorCountLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
-
-        long writeBlobErrorCount = stats.getWriteBlobErrorCount();
-        long writeBlobErrorCountLastMinute = getLastMinuteStats(stats.getWriteBlobErrorCountHistory());
+        long addRecordErrorCount = stats.getAddRecordErrorCount();
 
         try { dsbs.writeBlob(getTestInputStream()); }
         catch (IOException e) { }
@@ -213,24 +203,19 @@ public class DataStoreBlobStoreStatsTest {
         }
         catch (IOException e) { }
 
-        uploadStats.verify(0L, 0L, 3L);
-
-//        assertEquals(uploadErrorCount + 3, stats.getUploadErrorCount());
-//        assertEquals(uploadErrorCountLastMinute + 3,
-//                waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
-//                        stats, 3L, 0L).longValue());
-
-        assertEquals(writeBlobErrorCount + 3, stats.getWriteBlobErrorCount());
-        assertEquals(writeBlobErrorCountLastMinute + 3,
-                waitForMetric(input -> getLastMinuteStats(input.getWriteBlobErrorCountHistory()),
+        assertEquals(uploadErrorCount + 3, stats.getUploadErrorCount());
+        assertEquals(uploadErrorCountLastMinute + 3,
+                waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
                         stats, 3L, 0L).longValue());
+
+        // Ensure that the metrics don't overlap.  Calling writeBlob() shouldn't increment
+        // the addRecord() counts.
+        assertEquals(addRecordErrorCount, stats.getAddRecordErrorCount());
     }
 
     @Test
     public void testDSBSAddRecordStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withWriteDelay(1000));
-
-        UploadStats uploadStats = new UploadStats(stats);
 
         long addRecordCount = stats.getAddRecordCount();
         long addRecordSize = stats.getAddRecordTotalSize();
@@ -243,8 +228,6 @@ public class DataStoreBlobStoreStatsTest {
         dsbs.addRecord(getTestInputStream());
         dsbs.addRecord(getTestInputStream(), new BlobOptions());
 
-        uploadStats.verify(2, BLOB_LEN);
-
         assertEquals(addRecordCount + 2, stats.getAddRecordCount());
         assertEquals(addRecordSize + BLOB_LEN*2, stats.getAddRecordTotalSize());
         assertEquals(addRecordCountLastMinute + 2,
@@ -256,29 +239,33 @@ public class DataStoreBlobStoreStatsTest {
         assertTrue(addRecordTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getAddRecordRateHistory()), stats));
 
-        assertEquals(uploadCount + 2, stats.getUploadCount());
+        // Ensure that the metrics don't overlap.  Calling addRecord() shouldn't increment
+        // the upload counts (which pertain to writeBlob()).
+        assertEquals(uploadCount, stats.getUploadCount());
     }
 
     @Test
     public void testDSBSAddRecordErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnAddRecord());
 
-        UploadStats uploadStats = new UploadStats(stats);
-
         long addRecordErrorCount = stats.getAddRecordErrorCount();
         long addRecordErrorCountLastMinute = getLastMinuteStats(stats.getAddRecordErrorCountHistory());
+
+        long uploadErrorCount = stats.getUploadErrorCount();
 
         try { dsbs.addRecord(getTestInputStream()); }
         catch (DataStoreException e) { }
         try { dsbs.addRecord(getTestInputStream(), new BlobOptions()); }
         catch (DataStoreException e) { }
 
-        uploadStats.verify(0L, 0L, 2L);
-
         assertEquals(addRecordErrorCount + 2, stats.getAddRecordErrorCount());
         assertEquals(addRecordErrorCountLastMinute + 2,
                 waitForMetric(input -> getLastMinuteStats(input.getAddRecordErrorCountHistory()),
                         stats, 2L, 0L).longValue());
+
+        // Ensure that the metrics don't overlap.  Calling addRecord() shouldn't increment
+        // the upload counts (which pertain to writeBlob()).
+        assertEquals(uploadErrorCount, stats.getUploadErrorCount());
     }
 
     @Test
@@ -290,7 +277,7 @@ public class DataStoreBlobStoreStatsTest {
         long getRecCountLastMinute = getLastMinuteStats(stats.getGetRecordCountHistory());
         long getRecTimeLastMinute = getLastMinuteStats(stats.getGetRecordTimeHistory());
 
-        long downloadTimeLastMinute = getLastMinuteStats(stats.getDownloadRateHistory());
+        long downloadCount = stats.getDownloadCount();
 
         dsbs.getRecord(rec.getIdentifier());
 
@@ -301,9 +288,9 @@ public class DataStoreBlobStoreStatsTest {
         assertTrue(getRecTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordTimeHistory()), stats));
 
-        // At this point the download time should not have changed.
-        // This metric only applies to reading streams via readBlob().
-        assertEquals(downloadTimeLastMinute, getLastMinuteStats(stats.getDownloadRateHistory()));
+        // Ensure that the metrics don't overlap.  Calling getRecord() shouldn't increment
+        // the download counts (which pertain to readBlob()).
+        assertEquals(downloadCount, stats.getDownloadCount());
     }
 
     @Test
@@ -318,6 +305,8 @@ public class DataStoreBlobStoreStatsTest {
         long getRecErrorCount = stats.getGetRecordErrorCount();
         long getRecErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordErrorCountHistory());
 
+        long downloadErrorCount = stats.getDownloadErrorCount();
+
         try { dsbs.getRecord(rec.getIdentifier()); }
         catch (DataStoreException e) { }
 
@@ -325,6 +314,10 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(getRecErrorCountLastMinute + 1,
                 waitForMetric(input -> getLastMinuteStats(input.getGetRecordErrorCountHistory()),
                         stats, 1L, 0L).longValue());
+
+        // Ensure that the metrics don't overlap.  Calling getRecord() shouldn't increment
+        // the download error counts (which pertain to readBlob()).
+        assertEquals(downloadErrorCount, stats.getDownloadErrorCount());
     }
 
     @Test
@@ -336,6 +329,8 @@ public class DataStoreBlobStoreStatsTest {
         long getRecIfStoredCountLastMinute = getLastMinuteStats(stats.getGetRecordIfStoredCountHistory());
         long getRecIfStoredTimeLastMinute = getLastMinuteStats(stats.getGetRecordIfStoredTimeHistory());
 
+        long downloadCount = stats.getDownloadCount();
+
         dsbs.getRecordIfStored(rec.getIdentifier());
 
         assertEquals(getRecIfStoredCount + 1, stats.getGetRecordIfStoredCount());
@@ -344,6 +339,10 @@ public class DataStoreBlobStoreStatsTest {
                         stats, 1L, 0L).longValue());
         assertTrue(getRecIfStoredTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordIfStoredTimeHistory()), stats));
+
+        // Ensure that the metrics don't overlap.  Calling getRecordIfStored() shouldn't increment
+        // the download counts (which pertain to readBlob()).
+        assertEquals(downloadCount, stats.getDownloadCount());
     }
 
     @Test
@@ -354,6 +353,8 @@ public class DataStoreBlobStoreStatsTest {
         long getRecIfStoredErrorCount = stats.getGetRecordIfStoredErrorCount();
         long getRecIfStoredErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordIfStoredErrorCountHistory());
 
+        long downloadErrorCount = stats.getDownloadErrorCount();
+
         try { dsbs.getRecordIfStored(rec.getIdentifier()); }
         catch (DataStoreException e) { }
 
@@ -361,16 +362,22 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(getRecIfStoredErrorCountLastMinute + 1,
                 waitForMetric(input -> getLastMinuteStats(input.getGetRecordIfStoredErrorCountHistory()),
                         stats, 1L, 0L).longValue());
+
+        // Ensure that the metrics don't overlap.  Calling getRecordIfStored() shouldn't increment
+        // the download error counts (which pertain to readBlob()).
+        assertEquals(downloadErrorCount, stats.getDownloadErrorCount());
     }
 
     @Test
-    public void testDSBSGetRecordByReferenceStats() throws IOException, RepositoryException {
+    public void testDSBSGetRecordFromReferenceStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withReadDelay());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecFromRefCount = stats.getGetRecordFromReferenceCount();
         long getRecFromRefCountLastMinute = getLastMinuteStats(stats.getGetRecordFromReferenceCountHistory());
         long getRecFromRefTimeLastMinute = getLastMinuteStats(stats.getGetRecordFromReferenceTimeHistory());
+
+        long downloadCount = stats.getDownloadCount();
 
         dsbs.getRecordFromReference(rec.getReference());
 
@@ -380,19 +387,25 @@ public class DataStoreBlobStoreStatsTest {
                         stats, 1L, 0L).longValue());
         assertTrue(getRecFromRefTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordFromReferenceTimeHistory()), stats));
+
+        // Ensure that the metrics don't overlap.  Calling getRecordFromReference() shouldn't increment
+        // the download counts (which pertain to readBlob()).
+        assertEquals(downloadCount, stats.getDownloadCount());
     }
 
     @Test
-    public void testDSBSGetRecordByReferenceNotFoundStats() {
+    public void testDSBSGetRecordFromReferenceNotFoundStats() {
     }
 
     @Test
-    public void testDSBSGetRecordByReferenceErrorStats() throws IOException, RepositoryException {
+    public void testDSBSGetRecordFromReferenceErrorStats() throws IOException, RepositoryException {
         DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnGetRecord());
         DataRecord rec = dsbs.addRecord(getTestInputStream());
 
         long getRecFromRefErrorCount = stats.getGetRecordFromReferenceErrorCount();
         long getRecFromRefErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordFromReferenceErrorCountHistory());
+
+        long downloadErrorCount = stats.getDownloadErrorCount();
 
         try { dsbs.getRecordFromReference(rec.getReference()); }
         catch (DataStoreException e) { }
@@ -401,6 +414,10 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(getRecFromRefErrorCountLastMinute + 1,
                 waitForMetric(input -> getLastMinuteStats(input.getGetRecordFromReferenceErrorCountHistory()),
                         stats, 1L, 0L).longValue());
+
+        // Ensure that the metrics don't overlap.  Calling getRecordFromReference() shouldn't increment
+        // the download error counts (which pertain to readBlob()).
+        assertEquals(downloadErrorCount, stats.getDownloadErrorCount());
     }
 
     @Test
@@ -412,6 +429,8 @@ public class DataStoreBlobStoreStatsTest {
         long getRecForIdCountLastMinute = getLastMinuteStats(stats.getGetRecordForIdCountHistory());
         long getRecForIdTimeLastMinute = getLastMinuteStats(stats.getGetRecordForIdTimeHistory());
 
+        long downloadCount = stats.getDownloadCount();
+
         dsbs.getRecordForId(rec.getIdentifier());
 
         assertEquals(getRecForIdCount + 1, stats.getGetRecordForIdCount());
@@ -420,6 +439,10 @@ public class DataStoreBlobStoreStatsTest {
                         stats, 1L, 0L).longValue());
         assertTrue(getRecForIdTimeLastMinute <
                 waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordForIdTimeHistory()), stats));
+
+        // Ensure that the metrics don't overlap.  Calling getRecordForId() shouldn't increment
+        // the download counts (which pertain to readBlob()).
+        assertEquals(downloadCount, stats.getDownloadCount());
     }
 
     @Test
@@ -434,6 +457,8 @@ public class DataStoreBlobStoreStatsTest {
         long getRecForIdErrorCount = stats.getGetRecordForIdErrorCount();
         long getRecForIdErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordForIdErrorCountHistory());
 
+        long downloadErrorCount = stats.getDownloadErrorCount();
+
         try { dsbs.getRecordForId(rec.getIdentifier()); }
         catch (DataStoreException e) { }
 
@@ -441,6 +466,10 @@ public class DataStoreBlobStoreStatsTest {
         assertEquals(getRecForIdErrorCountLastMinute + 1,
                 waitForMetric(input -> getLastMinuteStats(input.getGetRecordForIdErrorCountHistory()),
                         stats, 1L, 0L).longValue());
+
+        // Ensure that the metrics don't overlap.  Calling getRecordForId() shouldn't increment
+        // the download error counts (which pertain to readBlob()).
+        assertEquals(downloadErrorCount, stats.getDownloadErrorCount());
     }
 
     @Test
@@ -1048,56 +1077,6 @@ public class DataStoreBlobStoreStatsTest {
             while (recordStream.available() > 0) {
                 recordStream.read();
             }
-        }
-    }
-
-    private static class UploadStats {
-        private final BlobStoreStats stats;
-
-        private long uploadCount;
-        private long uploadTotalSize;
-        private long uploadCountLastMinute;
-        private long uploadAmountLastMinute;
-        private long uploadTimeLastMinute;
-
-        private long uploadErrorCount;
-        private long uploadErrorCountLastMinute;
-
-
-        public UploadStats(@NotNull final BlobStoreStats stats) {
-            this.stats = stats;
-
-            uploadCount = stats.getUploadCount();
-            uploadTotalSize = stats.getUploadTotalSize();
-            uploadCountLastMinute = getLastMinuteStats(stats.getUploadCountHistory());
-            uploadAmountLastMinute = getLastMinuteStats(stats.getUploadSizeHistory());
-            uploadTimeLastMinute = getLastMinuteStats(stats.getUploadRateHistory());
-
-            uploadErrorCount = stats.getUploadErrorCount();
-            uploadErrorCountLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
-        }
-
-        public void verify(long newUploadCount, long newUploadSize) {
-            verify(newUploadCount, newUploadSize, 0L);
-        }
-
-        public void verify(long newUploadCount, long newUploadSize, long newErrorCount) {
-            if (0L == newErrorCount) {
-                assertEquals(uploadCount + newUploadCount, stats.getUploadCount());
-                assertEquals(uploadTotalSize + (newUploadSize * newUploadCount), stats.getUploadTotalSize());
-                assertEquals(uploadCountLastMinute + newUploadCount,
-                        waitForMetric(input -> getLastMinuteStats(input.getUploadCountHistory()),
-                                stats, newUploadCount, 0L).longValue());
-                assertEquals(uploadAmountLastMinute + (newUploadSize * newUploadCount),
-                        waitForMetric(input -> getLastMinuteStats(input.getUploadSizeHistory()),
-                                stats, (newUploadSize * newUploadCount), 0L).longValue());
-                assertTrue(uploadTimeLastMinute <
-                        waitForNonzeroMetric(input -> getLastMinuteStats(input.getUploadRateHistory()), stats));
-            }
-            assertEquals(uploadErrorCount + newErrorCount, stats.getUploadErrorCount());
-            assertEquals(uploadErrorCountLastMinute + newErrorCount,
-                    waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()),
-                            stats, newErrorCount, 0L).longValue());
         }
     }
 }

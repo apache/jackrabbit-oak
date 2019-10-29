@@ -224,9 +224,22 @@ public class DataStoreBlobStore
     @Override
     public DataRecord addRecord(InputStream stream) throws DataStoreException {
         try {
-            return writeStream(stream, new BlobOptions());
-        } catch (IOException e) {
+            long start = System.nanoTime();
+
+            DataRecord rec = writeStream(stream, new BlobOptions());
+
+            stats.recordAdded(System.nanoTime() - start, TimeUnit.NANOSECONDS, rec.getLength());
+            stats.addRecordCompleted(rec.getIdentifier().toString());
+
+            return rec;
+        }
+        catch (IOException e) {
+            stats.addRecordFailed();
             throw new DataStoreException(e);
+        }
+        catch (DataStoreException e) {
+            stats.addRecordFailed();
+            throw e;
         }
     }
 
@@ -300,20 +313,19 @@ public class DataStoreBlobStore
         boolean threw = true;
         try {
             long start = System.nanoTime();
+
             checkNotNull(stream);
             DataRecord dr = writeStream(stream, options);
             String id = getBlobId(dr);
             updateTracker(id);
             threw = false;
-            long elapsed = System.nanoTime() - start;
-//            stats.uploaded(elapsed, TimeUnit.NANOSECONDS, dr.getLength());
-//            stats.uploadCompleted(id);
-            stats.writeBlobCalled(elapsed, TimeUnit.NANOSECONDS, dr.getLength());
-            stats.writeBlobCompleted(id);
+
+            stats.uploaded(System.nanoTime() - start, TimeUnit.NANOSECONDS, dr.getLength());
+            stats.uploadCompleted(id);
+
             return id;
         } catch (DataStoreException e) {
-//            stats.uploadFailed();
-            stats.writeBlobFailed();
+            stats.uploadFailed();
             throw new IOException(e);
         } finally {
             //DataStore does not closes the stream internally
@@ -405,8 +417,6 @@ public class DataStoreBlobStore
 
     @Override
     public InputStream getInputStream(final String encodedBlobId) throws IOException {
-        long start = System.nanoTime();
-
         final BlobId blobId = BlobId.of(encodedBlobId);
         if (encodeLengthInId
                 && blobId.hasLengthInfo()
@@ -427,22 +437,15 @@ public class DataStoreBlobStore
                     }
                 });
 
-                stats.readBlobCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
-                stats.readBlobCompleted(blobId.blobId);
-
                 return new ByteArrayInputStream(content);
             } catch (ExecutionException e) {
                 log.warn("Error occurred while loading bytes from steam while fetching for id {}", encodedBlobId, e);
             }
         }
         try {
-            stats.readBlobCalled(System.nanoTime() - start, TimeUnit.NANOSECONDS);
-            stats.readBlobCompleted(blobId.blobId);
-
             return getStream(blobId.blobId);
         }
         catch (IOException e) {
-            stats.readBlobFailed(blobId.blobId);
             stats.downloadFailed(blobId.blobId);
             throw e;
         }
@@ -800,24 +803,21 @@ public class DataStoreBlobStore
     public DataRecord addRecord(InputStream input, BlobOptions options) throws DataStoreException {
         try {
             long start = System.nanoTime();
-            DataRecord result = delegate instanceof TypedDataStore ?
-                    ((TypedDataStore) delegate).addRecord(input, options) :
-                    delegate.addRecord(input);
-            long elapsed = System.nanoTime() - start;
-
-            stats.uploaded(elapsed, TimeUnit.NANOSECONDS, result.getLength());
-            stats.uploadCompleted(result.getIdentifier().toString());
-
-            stats.recordAdded(elapsed, TimeUnit.NANOSECONDS, result.getLength());
+            DataRecord result = addRecordInternal(input, options);
+            stats.recordAdded(System.nanoTime() - start, TimeUnit.NANOSECONDS, result.getLength());
             stats.addRecordCompleted(result.getIdentifier().toString());
-
             return result;
         }
         catch (DataStoreException e) {
-            stats.uploadFailed();
             stats.addRecordFailed();
             throw e;
         }
+    }
+
+    private DataRecord addRecordInternal(InputStream input, BlobOptions options) throws DataStoreException {
+        return delegate instanceof TypedDataStore ?
+                ((TypedDataStore) delegate).addRecord(input, options) :
+                delegate.addRecord(input);
     }
 
     //~---------------------------------------------< Object >
@@ -917,7 +917,7 @@ public class DataStoreBlobStore
         } else {
             // a few bytes are already read, need to re-build the input stream
             in = new SequenceInputStream(new ByteArrayInputStream(buffer, 0, pos), in);
-            record = addRecord(in, options);
+            record = addRecordInternal(in, options);
         }
         return record;
     }

@@ -35,12 +35,6 @@ public interface BlobStoreStatsMBean {
 
     long getUploadErrorCount();
 
-    long getWriteBlobCount();
-
-    long getWriteBlobTotalSize();
-
-    long getWriteBlobErrorCount();
-
     long getDownloadTotalSize();
 
     long getDownloadCount();
@@ -48,10 +42,6 @@ public interface BlobStoreStatsMBean {
     long getDownloadTotalSeconds();
 
     long getDownloadErrorCount();
-
-    long getReadBlobCount();
-
-    long getReadBlobErrorCount();
 
     long getDeleteCount();
 
@@ -135,14 +125,6 @@ public interface BlobStoreStatsMBean {
 
     CompositeData getUploadErrorCountHistory();
 
-    CompositeData getWriteBlobCountHistory();
-
-    CompositeData getWriteBlobSizeHistory();
-
-    CompositeData getWriteBlobRateHistory();
-
-    CompositeData getWriteBlobErrorCountHistory();
-
     CompositeData getDownloadSizeHistory();
 
     CompositeData getDownloadCountHistory();
@@ -150,12 +132,6 @@ public interface BlobStoreStatsMBean {
     CompositeData getDownloadRateHistory();
 
     CompositeData getDownloadErrorCountHistory();
-
-    CompositeData getReadBlobCountHistory();
-
-    CompositeData getReadBlobTimeHistory();
-
-    CompositeData getReadBlobErrorCountHistory();
 
     CompositeData getDeleteCountHistory();
 

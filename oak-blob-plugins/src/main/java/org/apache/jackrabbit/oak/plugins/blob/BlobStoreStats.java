@@ -48,20 +48,11 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private static final String BLOB_UPLOAD_TIME = "BLOB_UPLOAD_TIME";
     private static final String BLOB_UPLOAD_ERROR_COUNT = "BLOB_UPLOAD_ERROR_COUNT";
 
-    private static final String BLOB_WRITE_COUNT = "BLOB_WRITE_COUNT";
-    private static final String BLOB_WRITE_SIZE = "BLOB_WRITE_SIZE";
-    private static final String BLOB_WRITE_TIME = "BLOB_WRITE_TIME";
-    private static final String BLOB_WRITE_ERROR_COUNT = "BLOB_WRITE_ERROR_COUNT";
-
     private static final String BLOB_DOWNLOADS = "BLOB_DOWNLOADS";
     private static final String BLOB_DOWNLOAD_COUNT = "BLOB_DOWNLOAD_COUNT";
     private static final String BLOB_DOWNLOAD_SIZE = "BLOB_DOWNLOAD_SIZE";
     private static final String BLOB_DOWNLOAD_TIME = "BLOB_DOWNLOAD_TIME";
     private static final String BLOB_DOWNLOAD_ERROR_COUNT = "BLOB_DOWNLOAD_ERROR_COUNT";
-
-    private static final String BLOB_READ_COUNT = "BLOB_READ_COUNT";
-    private static final String BLOB_READ_TIME = "BLOB_READ_TIME";
-    private static final String BLOB_READ_ERROR_COUNT = "BLOB_READ_ERROR_COUNT";
 
     private static final String BLOB_DELETE_COUNT = "BLOB_DELETE_COUNT";
     private static final String BLOB_DELETE_TIME = "BLOB_DELETE_TIME";
@@ -147,22 +138,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private final MeterStats uploadTimeSeries;
     private final TimeSeries uploadRateSeries;
 
-    private final MeterStats writeBlobCount;
-    private final MeterStats writeBlobSizeSeries;
-    private final MeterStats writeBlobTimeSeries;
-    private final TimeSeries writeBlobRateSeries;
-    private final MeterStats writeBlobErrorCount;
-
     private final HistogramStats downloadHisto;
     private final MeterStats downloadCount;
     private final MeterStats downloadSizeSeries;
     private final MeterStats downloadTimeSeries;
     private final TimeSeries downloadRateSeries;
     private final MeterStats downloadErrorCount;
-
-    private final MeterStats readBlobCount;
-    private final MeterStats readBlobTimeSeries;
-    private final MeterStats readBlobErrorCount;
 
     private final MeterStats deleteCount;
     private final MeterStats deleteTimeSeries;
@@ -253,22 +234,12 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.uploadTimeSeries = sp.getMeter(BLOB_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.uploadRateSeries = getAvgTimeSeries(BLOB_UPLOAD_SIZE, BLOB_UPLOAD_TIME);
 
-        this.writeBlobCount = sp.getMeter(BLOB_WRITE_COUNT, StatsOptions.DEFAULT);
-        this.writeBlobSizeSeries = sp.getMeter(BLOB_WRITE_SIZE, StatsOptions.TIME_SERIES_ONLY);
-        this.writeBlobTimeSeries = sp.getMeter(BLOB_WRITE_TIME, StatsOptions.TIME_SERIES_ONLY);
-        this.writeBlobRateSeries = getAvgTimeSeries(BLOB_WRITE_SIZE, BLOB_WRITE_TIME);
-        this.writeBlobErrorCount = sp.getMeter(BLOB_WRITE_ERROR_COUNT, StatsOptions.DEFAULT);
-
         this.downloadHisto = sp.getHistogram(BLOB_DOWNLOADS, StatsOptions.DEFAULT);
         this.downloadCount = sp.getMeter(BLOB_DOWNLOAD_COUNT, StatsOptions.DEFAULT);
         this.downloadSizeSeries = sp.getMeter(BLOB_DOWNLOAD_SIZE, StatsOptions.TIME_SERIES_ONLY);
         this.downloadTimeSeries = sp.getMeter(BLOB_DOWNLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
         this.downloadRateSeries = getAvgTimeSeries(BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME);
         this.downloadErrorCount = sp.getMeter(BLOB_DOWNLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
-
-        this.readBlobCount = sp.getMeter(BLOB_READ_COUNT, StatsOptions.DEFAULT);
-        this.readBlobTimeSeries = sp.getMeter(BLOB_READ_TIME, StatsOptions.TIME_SERIES_ONLY);
-        this.readBlobErrorCount = sp.getMeter(BLOB_READ_ERROR_COUNT, StatsOptions.DEFAULT);
 
         this.deleteCount = sp.getMeter(BLOB_DELETE_COUNT, StatsOptions.DEFAULT);
         this.deleteTimeSeries = sp.getMeter(BLOB_DELETE_TIME, StatsOptions.TIME_SERIES_ONLY);
@@ -374,25 +345,6 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     }
 
     @Override
-    public void writeBlobCalled(long timeTaken, TimeUnit unit, long size) {
-        writeBlobSizeSeries.mark(size);
-        writeBlobTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
-        opsLogger.debug("Write blob called, {} bytes in {} ms", size, unit.toMillis(timeTaken));
-    }
-
-    @Override
-    public void writeBlobCompleted(String blobId) {
-        writeBlobCount.mark();
-        opsLogger.debug("Write blob completed - {}", blobId);
-    }
-
-    @Override
-    public void writeBlobFailed() {
-        writeBlobErrorCount.mark();
-        opsLogger.debug("Write blob failed");
-    }
-
-    @Override
     public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
         downloadHisto.update(size);
 
@@ -411,24 +363,6 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public void downloadFailed(String blobId) {
         downloadErrorCount.mark();
         opsLogger.debug("Download failed - {}", blobId);
-    }
-
-    @Override
-    public void readBlobCalled(long timeTaken, TimeUnit unit) {
-        readBlobTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
-        opsLogger.debug("Get InputStream called - {} ms", unit.toMillis(timeTaken));
-    }
-
-    @Override
-    public void readBlobCompleted(String blobId) {
-        readBlobCount.mark();
-        opsLogger.debug("Get InputStream completed - {}", blobId);
-    }
-
-    @Override
-    public void readBlobFailed(String blobId) {
-        readBlobErrorCount.mark();
-        opsLogger.debug("Get InputStream failed - {}", blobId);
     }
 
     @Override
@@ -777,15 +711,6 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public long getUploadErrorCount() { return uploadErrorCount.getCount(); }
 
     @Override
-    public long getWriteBlobCount() { return writeBlobCount.getCount(); }
-
-    @Override
-    public long getWriteBlobTotalSize() { return writeBlobSizeSeries.getCount(); }
-
-    @Override
-    public long getWriteBlobErrorCount() { return writeBlobErrorCount.getCount(); }
-
-    @Override
     public long getDownloadTotalSize() {
         return downloadSizeSeries.getCount();
     }
@@ -802,12 +727,6 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public long getDownloadErrorCount() { return downloadErrorCount.getCount(); }
-
-    @Override
-    public long getReadBlobCount() { return readBlobCount.getCount(); }
-
-    @Override
-    public long getReadBlobErrorCount() { return readBlobErrorCount.getCount(); }
 
     @Override
     public long getAddRecordTotalSize() { return addRecordSizeSeries.getCount(); }
@@ -941,18 +860,6 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     public CompositeData getUploadErrorCountHistory() { return getTimeSeriesData(BLOB_UPLOAD_ERROR_COUNT, "Blob Upload Error Counts"); }
 
     @Override
-    public CompositeData getWriteBlobCountHistory() { return getTimeSeriesData(BLOB_WRITE_COUNT, "Write Blob Counts"); }
-
-    @Override
-    public CompositeData getWriteBlobSizeHistory() { return getTimeSeriesData(BLOB_WRITE_SIZE, "Write Blob Sizes"); }
-
-    @Override
-    public CompositeData getWriteBlobRateHistory() { return TimeSeriesStatsUtil.asCompositeData(writeBlobRateSeries, "Write Blob bytes/sec"); }
-
-    @Override
-    public CompositeData getWriteBlobErrorCountHistory() { return getTimeSeriesData(BLOB_WRITE_ERROR_COUNT, "Write Blob Error Counts"); }
-
-    @Override
     public CompositeData getDownloadSizeHistory() { return getTimeSeriesData(BLOB_DOWNLOADS, "Blob Downloads (bytes)"); }
 
     @Override
@@ -963,15 +870,6 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public CompositeData getDownloadErrorCountHistory() { return getTimeSeriesData(BLOB_DOWNLOAD_ERROR_COUNT, "Blob Download Error Counts"); }
-
-    @Override
-    public CompositeData getReadBlobCountHistory() { return getTimeSeriesData(BLOB_READ_COUNT, "Read Blob Counts"); }
-
-    @Override
-    public CompositeData getReadBlobTimeHistory() { return getTimeSeriesData(BLOB_READ_TIME, "Read Blob Times"); }
-
-    @Override
-    public CompositeData getReadBlobErrorCountHistory() { return getTimeSeriesData(BLOB_READ_ERROR_COUNT, "Read Blob Error Counts"); }
 
     @Override
     public CompositeData getDeleteCountHistory() {
