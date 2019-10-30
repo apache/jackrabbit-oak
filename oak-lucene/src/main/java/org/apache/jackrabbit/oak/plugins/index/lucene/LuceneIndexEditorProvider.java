@@ -143,8 +143,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
     }
 
     public LuceneIndexEditorProvider withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate) {
-    this.asyncIndexesSizeStatsUpdate = asyncIndexesSizeStatsUpdate;
-    return this;
+        this.asyncIndexesSizeStatsUpdate = asyncIndexesSizeStatsUpdate;
+        return this;
     }
 
     @Override
@@ -240,8 +240,11 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                 callbacks.add(propertyIndexUpdateCallback);
             }
             if (mbean != null && statisticsProvider != null) {
+                // Below mentioned callback (LuceneIndexStatsUpdateCallback) is only executed
+                // in async indexing flow. There is a check on
+                // indexingContext.isAsync()
                 callbacks.add(new LuceneIndexStatsUpdateCallback(indexPath, mbean, statisticsProvider,
-                asyncIndexesSizeStatsUpdate, indexingContext, true));
+                        asyncIndexesSizeStatsUpdate, indexingContext));
             }
 
             if (!callbacks.isEmpty()) {

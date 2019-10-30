@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -47,18 +46,16 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
     private final LuceneIndexMBean luceneIndexMBean;
     private final StatisticsProvider statisticsProvider;
     private final AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
-    private final boolean isAsync;
     private final IndexingContext indexingContext;
 
     LuceneIndexStatsUpdateCallback(String indexPath, @NotNull LuceneIndexMBean luceneIndexMBean,
                                    @NotNull StatisticsProvider statisticsProvider,
                                    AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate,
-                                   IndexingContext indexingContext, boolean isAsync) {
+                                   IndexingContext indexingContext) {
         this.indexPath = indexPath;
         this.luceneIndexMBean = luceneIndexMBean;
         this.statisticsProvider = statisticsProvider;
         this.asyncIndexesSizeStatsUpdate = asyncIndexesSizeStatsUpdate;
-        this.isAsync = isAsync;
         this.indexingContext = indexingContext;
     }
 
@@ -68,8 +65,8 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
     }
 
     @Override
-    public void done() throws CommitFailedException {
-        if (isTimeToUpdate()) {
+    public void done() {
+        if (shouldUpdateStats()) {
             try {
                 long startTime = System.currentTimeMillis();
                 int docCount = Integer.parseInt(luceneIndexMBean.getDocCount(indexPath));
@@ -83,20 +80,17 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
                 asyncIndexesSizeStatsUpdate.setLastStatsUpdateTime(indexPath, endTime);
                 log.debug("{} stats updated; docCount {}, size {}, timeToUpdate {}", indexPath, docCount, indexSize, endTime - startTime);
             } catch (IOException e) {
-                log.debug("could not update no_docs/index_size stats for index at {}", indexPath, e);
+                log.warn("could not update no_docs/index_size stats for index at {}", indexPath, e);
             }
         }
     }
 
-    private boolean isTimeToUpdate() {
+    private boolean shouldUpdateStats() {
         boolean timeToUpdate = false;
-        if (isAsync == false) {
-            timeToUpdate = true;
-        } else if (isAsync
-                && indexingContext.isAsync()
+        if (indexingContext.isAsync()
                 && asyncIndexesSizeStatsUpdate != null
-                && (asyncIndexesSizeStatsUpdate.getScheduleTimeInMillis() >= 0
-                && isScheduled())) {
+                && asyncIndexesSizeStatsUpdate.getScheduleTimeInMillis() >= 0
+                && isScheduled()) {
             timeToUpdate = true;
         }
         return timeToUpdate;
@@ -105,6 +99,6 @@ public class LuceneIndexStatsUpdateCallback implements PropertyUpdateCallback {
     private boolean isScheduled() {
         long lastStatsUpdateTime = asyncIndexesSizeStatsUpdate.getLastStatsUpdateTime(indexPath);
         long defaultStatsUpdateTime = asyncIndexesSizeStatsUpdate.getScheduleTimeInMillis();
-        return (System.currentTimeMillis() > lastStatsUpdateTime + defaultStatsUpdateTime);
+        return System.currentTimeMillis() > lastStatsUpdateTime + defaultStatsUpdateTime;
     }
 }

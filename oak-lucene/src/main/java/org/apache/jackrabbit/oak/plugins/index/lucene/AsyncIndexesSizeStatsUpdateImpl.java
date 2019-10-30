@@ -18,28 +18,29 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-public interface AsyncIndexesSizeStatsUpdate {
+import java.util.HashMap;
+import java.util.Map;
 
-    AsyncIndexesSizeStatsUpdate NOOP = new AsyncIndexesSizeStatsUpdate() {
+public class AsyncIndexesSizeStatsUpdateImpl implements AsyncIndexesSizeStatsUpdate {
 
-        @Override
-        public long getScheduleTimeInMillis() {
-            return -1;
-        }
 
-        @Override
-        public long getLastStatsUpdateTime(String indexName) {
-            return Long.MAX_VALUE;
-        }
+    private final Map<String, Long> lastStatsUpdateTime = new HashMap<>();
+    private final long scheduleTimeInMillis;
 
-        @Override
-        public void setLastStatsUpdateTime(String indexName, long timeInMillis) {
-        }
-    };
+    public long getScheduleTimeInMillis() {
+        return scheduleTimeInMillis;
+    }
 
-    long getScheduleTimeInMillis();
+    public AsyncIndexesSizeStatsUpdateImpl(long scheduleTimeInMillis) {
+        this.scheduleTimeInMillis = scheduleTimeInMillis;
+    }
 
-    long getLastStatsUpdateTime(String indexName);
+    public long getLastStatsUpdateTime(String indexName) {
+        Long lastStatsUpdateTimeInMillis = lastStatsUpdateTime.get(indexName);
+        return lastStatsUpdateTimeInMillis == null ? 0 : lastStatsUpdateTimeInMillis;
+    }
 
-    void setLastStatsUpdateTime(String indexName, long timeInMillis);
+    public void setLastStatsUpdateTime(String indexName, long timeInMillis) {
+        lastStatsUpdateTime.put(indexName, timeInMillis);
+    }
 }
