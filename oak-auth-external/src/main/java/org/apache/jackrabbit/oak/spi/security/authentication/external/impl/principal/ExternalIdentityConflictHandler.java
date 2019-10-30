@@ -40,36 +40,41 @@ class ExternalIdentityConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
         if (ExternalIdentityConstants.REP_LAST_SYNCED.equals(ours.getName())) {
-            merge(parent, ours, theirs);
-            return Resolution.MERGED;
+            return merge(parent, ours, theirs);
         }
         return Resolution.IGNORED;
     }
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
-            PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
+                                            @NotNull PropertyState base) {
         if (ExternalIdentityConstants.REP_LAST_SYNCED.equals(ours.getName())) {
-            merge(parent, ours, theirs);
-            return Resolution.MERGED;
+            return merge(parent, ours, theirs);
         }
         return Resolution.IGNORED;
     }
 
-    private static void merge(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    private static Resolution merge(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
         Calendar o = parse(ours.getValue(Type.DATE));
         Calendar t = parse(theirs.getValue(Type.DATE));
-        Calendar v = o.before(t) ? t : o;
-        parent.setProperty(ours.getName(), v);
+        if (o != null) {
+            Calendar v = o.before(t) ? t : o;
+            parent.setProperty(ours.getName(), v);
+            return Resolution.MERGED;
+        } else if (t != null) {
+            parent.setProperty(ours.getName(), t);
+            return Resolution.MERGED;
+        } else {
+            return Resolution.IGNORED;
+        }
     }
 
     @Override
     @NotNull
-    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours,
-            @NotNull PropertyState base) {
+    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
         return Resolution.IGNORED;
     }
 
