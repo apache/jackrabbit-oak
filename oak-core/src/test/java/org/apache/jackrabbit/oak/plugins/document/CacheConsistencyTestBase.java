@@ -53,10 +53,12 @@ public abstract class CacheConsistencyTestBase {
 
     @After
     public void after() throws Exception {
-        for (String id : removeMe) {
-            ds.remove(Collection.NODES, id);
+        if (ds != null) {
+            for (String id : removeMe) {
+                ds.remove(Collection.NODES, id);
+            }
+            ds.dispose();
         }
-        ds.dispose();
         fixture.dispose();
     }
 
