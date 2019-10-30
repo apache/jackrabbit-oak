@@ -122,8 +122,6 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
             }
         }
         adminSession.save();
-
-        System.out.println("BEFORE DONE");
     }
 
     @Override
