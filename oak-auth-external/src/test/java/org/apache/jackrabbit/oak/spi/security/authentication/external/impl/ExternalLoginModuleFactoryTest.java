@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import javax.jcr.Repository;
@@ -35,13 +34,13 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
-import org.easymock.EasyMock;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase {
 
@@ -103,7 +102,7 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase 
      * the factory in JAAS options which then delegates to ExternalLoginModuleFactory
      */
     private void setUpJaasFactoryWithInjection() {
-        context.registerService(Repository.class, EasyMock.createMock(Repository.class));
+        context.registerService(Repository.class, mock(Repository.class));
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
 
