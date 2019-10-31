@@ -159,7 +159,9 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
             q.flush();
             q.close();
         }
-        getBlob("closed").upload(new ByteArrayInputStream(new byte[0]), 0);
+        try (ByteArrayInputStream emptyStream = new ByteArrayInputStream(new byte[0])) {
+            getBlob("closed").upload(emptyStream, 0);
+        }
     }
 
     @Override
