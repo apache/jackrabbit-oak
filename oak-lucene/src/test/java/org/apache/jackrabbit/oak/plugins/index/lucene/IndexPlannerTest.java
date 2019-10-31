@@ -85,6 +85,8 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
@@ -1930,6 +1932,11 @@ public class IndexPlannerTest {
             List<LuceneIndexReader> readers = new ArrayList<>();
             readers.add(new DefaultIndexReader(directory, null, definition.getAnalyzer()));
             return readers;
+        }
+
+        @Override
+        public MountInfoProvider getMountInfoProvider() {
+            return Mounts.defaultMountInfoProvider();
         }
     }
 

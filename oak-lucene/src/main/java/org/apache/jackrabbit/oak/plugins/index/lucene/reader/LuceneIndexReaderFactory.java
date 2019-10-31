@@ -23,9 +23,13 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public interface LuceneIndexReaderFactory {
 
     List<LuceneIndexReader> createReaders(LuceneIndexDefinition definition, NodeState definitionState, String indexPath) throws IOException;
+    
+    MountInfoProvider getMountInfoProvider();
+    
 }

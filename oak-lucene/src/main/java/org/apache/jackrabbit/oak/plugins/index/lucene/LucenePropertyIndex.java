@@ -720,6 +720,11 @@ public class LucenePropertyIndex extends FulltextIndex {
     protected String getType() {
         return TYPE_LUCENE;
     }
+    
+    @Override
+    protected boolean filterReplacedIndexes() {
+        return tracker.getMountInfoProvider().hasNonDefaultMounts();
+    }
 
     @Override
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
@@ -1715,4 +1720,5 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     static abstract class LuceneResultRowIterator extends AbstractIterator<FulltextResultRow> implements IteratorRewoundStateProvider {
     }
+
 }
