@@ -16,17 +16,14 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.file.tar.TarWriterTest;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.junit.Before;
 import org.junit.ClassRule;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 
 public class AzureTarWriterTest extends TarWriterTest {
 
@@ -38,12 +35,8 @@ public class AzureTarWriterTest extends TarWriterTest {
     @Before
     @Override
     public void setUp() throws IOException {
-        try {
-            monitor = new TestFileStoreMonitor();
-            container = azurite.getContainer("oak-test");
-            archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, false, new IOMonitorAdapter(), monitor, new RemoteStoreMonitorAdapter());
-        } catch (StorageException | InvalidKeyException | URISyntaxException e) {
-            throw new IOException(e);
-        }
+        monitor = new TestFileStoreMonitor();
+        container = azurite.getContainer("oak-test");
+        archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, false, new IOMonitorAdapter(), monitor, new RemoteStoreMonitorAdapter());
     }
 }

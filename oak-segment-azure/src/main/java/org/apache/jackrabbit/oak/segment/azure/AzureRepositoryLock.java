@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.AccessCondition;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.azure.storage.blob.BlockBlobClient;
+import com.azure.storage.blob.models.StorageException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +33,14 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
 
+    /**
+     * The  duration of the lease, in seconds
+     */
     private static int INTERVAL = 60;
 
     private final Runnable shutdownHook;
 
-    private final CloudBlockBlob blob;
+    private final BlockBlobClient blob;
 
     private final ExecutorService executor;
 
@@ -48,11 +50,11 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private volatile boolean doUpdate;
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook) {
+    public AzureRepositoryLock(BlockBlobClient blob, Runnable shutdownHook) {
         this(blob, shutdownHook, TIMEOUT_SEC);
     }
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, int timeoutSec) {
+    public AzureRepositoryLock(BlockBlobClient blob, Runnable shutdownHook, int timeoutSec) {
         this.shutdownHook = shutdownHook;
         this.blob = blob;
         this.executor = Executors.newSingleThreadExecutor();
@@ -64,10 +66,9 @@ public class AzureRepositoryLock implements RepositoryLock {
         Exception ex = null;
         do {
             try {
-                blob.openOutputStream().close();
-                leaseId = blob.acquireLease(INTERVAL, null);
+                leaseId = blob.acquireLease(null, INTERVAL);
                 log.info("Acquired lease {}", leaseId);
-            } catch (StorageException | IOException e) {
+            } catch (StorageException e) {
                 if (ex == null) {
                     log.info("Can't acquire the lease. Retrying every 1s. Timeout is set to {}s.", timeoutSec);
                 }
@@ -99,7 +100,8 @@ public class AzureRepositoryLock implements RepositoryLock {
             try {
                 long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
                 if (timeSinceLastUpdate > INTERVAL / 2) {
-                    blob.renewLease(AccessCondition.generateLeaseCondition(leaseId));
+                    blob.renewLease(leaseId);
+                    // TODO OAK-8413: matt used here:    blob.releaseLease(leaseId);
                     lastUpdate = System.currentTimeMillis();
                 }
             } catch (StorageException e) {
@@ -131,7 +133,7 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private void releaseLease() throws IOException {
         try {
-            blob.releaseLease(AccessCondition.generateLeaseCondition(leaseId));
+            blob.releaseLease(leaseId);
             blob.delete();
             log.info("Released lease {}", leaseId);
             leaseId = null;

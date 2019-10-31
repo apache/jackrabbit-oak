@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.models.StorageException;
+
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -64,7 +67,7 @@ public class AzureArchiveManagerTest {
     }
 
     @Test
-    public void testRecovery() throws StorageException, URISyntaxException, IOException {
+    public void testRecovery() throws StorageException, IOException {
         SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
@@ -125,8 +128,10 @@ public class AzureArchiveManagerTest {
         fs.close();
 
         // remove the segment 0000 from the second archive
-        ListBlobItem segment0000 = container.listBlobs("oak/data00001a.tar/0000.").iterator().next();
-        ((CloudBlob) segment0000).delete();
+        CloudBlobDirectory dir = container.getDirectoryReference("oak/data00001a.tar");
+        BlobItem segment0000 = dir.listBlobsFlat(new ListBlobsOptions().prefix("0000."), null)
+                        .iterator().next();
+        dir.getBlobClient(segment0000.name()).delete();
         container.getBlockBlobReference("oak/data00001a.tar/closed").delete();
 
         fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();

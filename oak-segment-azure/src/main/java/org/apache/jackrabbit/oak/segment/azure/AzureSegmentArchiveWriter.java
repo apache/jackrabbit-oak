@@ -16,31 +16,27 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureSegmentArchiveReader.OFF_HEAP;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getSegmentFileName;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
+import com.azure.storage.blob.BlockBlobClient;
+import com.azure.storage.blob.models.Metadata;
+import com.azure.storage.blob.models.StorageException;
 import com.google.common.base.Stopwatch;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteAction;
 import org.apache.jackrabbit.oak.segment.azure.queue.SegmentWriteQueue;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.jackrabbit.oak.segment.azure.AzureSegmentArchiveReader.OFF_HEAP;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getSegmentFileName;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
 
 public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
 
@@ -86,18 +82,16 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
     private void doWriteEntry(AzureSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException {
         long msb = indexEntry.getMsb();
         long lsb = indexEntry.getLsb();
-        String segmentName = getSegmentFileName(indexEntry);
-        CloudBlockBlob blob = getBlob(segmentName);
-        ioMonitor.beforeSegmentWrite(new File(blob.getName()), msb, lsb, size);
+        String segmentFileName = getSegmentFileName(indexEntry);
+        BlockBlobClient blob = getBlob(segmentFileName);
+        // TODO OAK-8413: is it really  segmentFileName for ioMonitor?
+        ioMonitor.beforeSegmentWrite(new File(segmentFileName), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
-        try {
-            blob.setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
-            blob.uploadFromByteArray(data, offset, size);
-            blob.uploadMetadata();
-        } catch (StorageException e) {
-            throw new IOException(e);
-        }
-        ioMonitor.afterSegmentWrite(new File(blob.getName()), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
+
+        blob.upload(new ByteArrayInputStream(data), size);
+        blob.setMetadata(new Metadata(AzureBlobMetadata.toSegmentMetadata(indexEntry)));
+        // TODO OAK-8413: is it really  segmentFileName for ioMonitor?
+        ioMonitor.afterSegmentWrite(new File(segmentFileName), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
     }
 
     @Override
@@ -143,11 +137,7 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
     }
 
     private void writeDataFile(byte[] data, String extension) throws IOException {
-        try {
-            getBlob(getName() + extension).uploadFromByteArray(data, 0, data.length);
-        } catch (StorageException e) {
-            throw new IOException(e);
-        }
+        getBlob(getName() + extension).upload(new ByteArrayInputStream(data), data.length);
         totalLength += data.length;
         monitor.written(data.length);
     }
@@ -169,11 +159,7 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
             q.flush();
             q.close();
         }
-        try {
-            getBlob("closed").uploadFromByteArray(new byte[0], 0, 0);
-        } catch (StorageException e) {
-            throw new IOException(e);
-        }
+        getBlob("closed").upload(new ByteArrayInputStream(new byte[0]), 0);
     }
 
     @Override
@@ -197,11 +183,7 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         return AzureUtilities.getName(archiveDirectory);
     }
 
-    private CloudBlockBlob getBlob(String name) throws IOException {
-        try {
-            return archiveDirectory.getBlockBlobReference(name);
-        } catch (URISyntaxException | StorageException e) {
-            throw new IOException(e);
-        }
+    private BlockBlobClient getBlob(String name) throws StorageException {
+        return archiveDirectory.getBlobClient(name).asBlockBlobClient();
     }
 }

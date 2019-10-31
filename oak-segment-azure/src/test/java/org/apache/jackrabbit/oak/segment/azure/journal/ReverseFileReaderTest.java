@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.journal;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudAppendBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.AppendBlobClient;
+import com.azure.storage.blob.models.StorageException;
+import com.google.common.base.Charsets;
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.ReverseFileReader;
 import org.junit.Assert;
@@ -44,10 +46,10 @@ public class ReverseFileReaderTest {
     @Before
     public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
-        getBlob().createOrReplace();
+        getBlob().create();
     }
 
-    private CloudAppendBlob getBlob() throws URISyntaxException, StorageException {
+    private AppendBlobClient getBlob() throws URISyntaxException, StorageException {
         return container.getAppendBlobReference("test-blob");
     }
 
@@ -73,18 +75,15 @@ public class ReverseFileReaderTest {
     }
 
 
-    private List<String> createFile(int lines, int maxLineLength) throws IOException, URISyntaxException, StorageException {
+    private List<String> createFile(int lines, int maxLineLength) throws URISyntaxException, StorageException {
         Random random = new Random();
         List<String> entries = new ArrayList<>();
-        CloudAppendBlob blob = getBlob();
+        AppendBlobClient blob = getBlob();
         for (int i = 0; i < lines; i++) {
             int entrySize = random.nextInt(maxLineLength) + 1;
             String entry = randomString(entrySize);
-            try {
-                blob.appendText(entry + '\n');
-            } catch (StorageException e) {
-                throw new IOException(e);
-            }
+            String toAppend = entry + '\n';
+            blob.appendBlock(IOUtils.toInputStream(toAppend, Charsets.UTF_8), entry.length());
             entries.add(entry);
         }
 

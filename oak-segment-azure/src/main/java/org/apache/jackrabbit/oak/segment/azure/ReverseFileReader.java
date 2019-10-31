@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.models.BlobRange;
+import com.azure.storage.blob.models.StorageException;
+import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,7 +37,7 @@ public class ReverseFileReader {
 
     private int bufferSize;
 
-    private final CloudBlob blob;
+    private final BlobClient blobClient;
 
     private byte[] buffer;
 
@@ -43,14 +45,14 @@ public class ReverseFileReader {
 
     private int fileOffset;
 
-    public ReverseFileReader(CloudBlob blob) throws StorageException {
-        this (blob, BUFFER_SIZE);
+    public ReverseFileReader(BlobClient blobClient) throws StorageException {
+        this (blobClient, BUFFER_SIZE);
     }
 
-    public ReverseFileReader(CloudBlob blob, int bufferSize) throws StorageException {
-        this.blob = blob;
-        if (blob.exists()) {
-            this.fileOffset = (int) blob.getProperties().getLength();
+    public ReverseFileReader(BlobClient blobClient, int bufferSize) throws StorageException {
+        this.blobClient = blobClient;
+        if (blobClient.exists()) {
+            this.fileOffset = (int) blobClient.getProperties().blobSize();
         } else {
             this.fileOffset = 0;
         }
@@ -67,11 +69,11 @@ public class ReverseFileReader {
         if (buffer.length > 0) {
             fileOffset -= buffer.length;
             try {
-                OperationContext opContext = new OperationContext();
-                HashMap<String, String> userHeaders = new HashMap<>();
-                userHeaders.put("If-Match", "*");
-                opContext.setUserHeaders(userHeaders);
-                blob.downloadRangeToByteArray(fileOffset, Long.valueOf(buffer.length), buffer, 0, null, null, opContext);
+                BlobRange range = new BlobRange(fileOffset, (long) buffer.length);
+
+                try (InputStream in = blobClient.openInputStream( range, null) ) {
+                    buffer = IOUtils.toByteArray(in);
+                }
             } catch (StorageException e) {
                 throw new IOException(e);
             }

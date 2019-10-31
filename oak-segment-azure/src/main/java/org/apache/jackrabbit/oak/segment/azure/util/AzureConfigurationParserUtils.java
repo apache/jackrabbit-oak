@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.util;
 
+import org.jetbrains.annotations.NotNull;
+
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.*;
 
 import java.net.URI;
@@ -27,6 +29,8 @@ import java.util.Map;
  * Utility class for parsing Oak Segment Azure configuration (e.g. connection
  * string, container name, uri, etc.) from custom encoded String or Azure
  * standard URI.
+ *
+ * See sample in {@link #parseAzureConfigurationFromCustomConnection(String)}
  */
 public class AzureConfigurationParserUtils {
     public enum AzureConnectionKey {
@@ -90,16 +94,7 @@ public class AzureConfigurationParserUtils {
      *         <b>containerName</b> and <b>dir</b> (key names in bold)
      */
     public static Map<String, String> parseAzureConfigurationFromCustomConnection(String conn) {
-        Map<AzureConnectionKey, String> tempConfig = new HashMap<>();
-
-        String[] connKeys = conn.split(";");
-        for (AzureConnectionKey key : AzureConnectionKey.values()) {
-            for (String connKey : connKeys) {
-                if (connKey.toLowerCase().startsWith(key.text().toLowerCase())) {
-                    tempConfig.put(key, connKey.substring(connKey.indexOf("=") + 1));
-                }
-            }
-        }
+        Map<AzureConnectionKey, String> tempConfig = parseAzureConnectionString(conn);
 
         StringBuilder connectionString = new StringBuilder();
         connectionString.append(DEFAULT_ENDPOINTS_PROTOCOL.text()).append("=").append(tempConfig.get(DEFAULT_ENDPOINTS_PROTOCOL)).append(";");
@@ -112,6 +107,21 @@ public class AzureConfigurationParserUtils {
         config.put(KEY_CONTAINER_NAME, tempConfig.get(CONTAINER_NAME));
         config.put(KEY_DIR, tempConfig.get(DIRECTORY));
         return config;
+    }
+
+    @NotNull
+    public static Map<AzureConnectionKey, String> parseAzureConnectionString(String conn) {
+        Map<AzureConnectionKey, String> tempConfig = new HashMap<>();
+
+        String[] connKeys = conn.split(";");
+        for (AzureConnectionKey key : AzureConnectionKey.values()) {
+            for (String connKey : connKeys) {
+                if (connKey.toLowerCase().startsWith(key.text().toLowerCase())) {
+                    tempConfig.put(key, connKey.substring(connKey.indexOf("=") + 1));
+                }
+            }
+        }
+        return tempConfig;
     }
 
     /**

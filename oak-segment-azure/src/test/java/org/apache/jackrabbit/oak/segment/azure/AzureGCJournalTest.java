@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.models.StorageException;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.file.GcJournalTest;
 import org.junit.Before;
@@ -43,7 +43,7 @@ public class AzureGCJournalTest extends GcJournalTest {
     }
 
     @Override
-    protected SegmentNodeStorePersistence getPersistence() throws Exception {
+    protected SegmentNodeStorePersistence getPersistence() {
         return new AzurePersistence(container.getDirectoryReference("oak"));
     }
 

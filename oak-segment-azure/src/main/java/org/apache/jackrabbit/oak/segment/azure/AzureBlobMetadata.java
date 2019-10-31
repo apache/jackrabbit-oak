@@ -34,6 +34,8 @@ public final class AzureBlobMetadata {
 
     private static final String METADATA_SEGMENT_COMPACTED = "compacted";
 
+    public static final String METADATA_LAST_ENTRY = "lastEntry";
+
     private static final String TYPE_SEGMENT = "segment";
 
     public static HashMap<String, String> toSegmentMetadata(AzureSegmentArchiveEntry indexEntry) {

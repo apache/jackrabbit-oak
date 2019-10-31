@@ -16,17 +16,14 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
-import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-
+import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.common.credentials.SharedKeyCredential;
+import com.google.common.io.Closer;
+import com.google.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -35,12 +32,13 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.NodeStoreWithFileStore;
 
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
 public class SegmentAzureFactory implements NodeStoreFactory {
     private final String accountName;
@@ -112,8 +110,11 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             throw new IllegalStateException(e);
         }
 
+
         File tmpDir = Files.createTempDir();
+        // TODO OAK-8413: verify, matt removed the closer register line, instead: Files.createTempDir()
         closer.register(() -> tmpDir.delete());
+
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
 
@@ -144,8 +145,8 @@ public class SegmentAzureFactory implements NodeStoreFactory {
 
         if (accountName != null && uri != null) {
             String key = System.getenv("AZURE_SECRET_KEY");
-            StorageCredentials credentials = new StorageCredentialsAccountAndKey(accountName, key);
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credentials, uri, dir);
+            SharedKeyCredential credential = new SharedKeyCredential(accountName, key);
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir);
         } else if (connectionString != null && containerName != null) {
             cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir);
         }
@@ -166,9 +167,9 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             throw new IllegalStateException(e);
         }
 
-        File tmpDir = Files.createTempDir();
-        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
+        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(Files.createTempDir())
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
+
 
         ReadOnlyFileStore fs;
         try {
@@ -176,9 +177,8 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             return FileStoreUtils.hasExternalBlobReferences(fs);
         } catch (InvalidFileStoreVersionException e) {
             throw new IOException(e);
-        } finally {
-            tmpDir.delete();
         }
+            // TODO OAK-8413: verify, remove the tmp dir?
     }
 
     @Override

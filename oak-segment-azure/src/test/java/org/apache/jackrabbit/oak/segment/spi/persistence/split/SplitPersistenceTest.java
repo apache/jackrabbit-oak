@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
-import com.microsoft.azure.storage.StorageException;
+import com.azure.storage.blob.models.StorageException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;

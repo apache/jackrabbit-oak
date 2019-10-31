@@ -16,32 +16,26 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.security.InvalidKeyException;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageCredentials;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.StorageUri;
-import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.ContainerClient;
+import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.common.credentials.SharedKeyCredential;
 import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public final class AzureUtilities {
 
@@ -60,59 +54,70 @@ public final class AzureUtilities {
         return String.format("%04x.%s", offset, new UUID(msb, lsb).toString());
     }
 
-    public static String getName(CloudBlob blob) {
-        return Paths.get(blob.getName()).getFileName().toString();
+    public static String getName(BlobClient blob) {
+        Path blobPath = Paths.get(blob.getBlobUrl().getPath());
+
+        // TODO: OAK-8413: simplify or describe and remove sout:
+        System.out.println("TODO: getName(): " + blob.getBlobUrl());
+
+        int nElements = blobPath.getNameCount();
+        return nElements > 1 ? blobPath.subpath(1, nElements - 1).toString() : blobPath.toString();
     }
 
     public static String getName(CloudBlobDirectory directory) {
-        return Paths.get(directory.getUri().getPath()).getFileName().toString();
+        return directory.directory();
     }
 
-    public static List<CloudBlob> getBlobs(CloudBlobDirectory directory) throws IOException {
-        try {
-            return StreamSupport.stream(directory.listBlobs(null, false, EnumSet.of(BlobListingDetails.METADATA), null, null).spliterator(), false)
-                    .filter(i -> i instanceof CloudBlob)
-                    .map(i -> (CloudBlob) i)
-                    .collect(Collectors.toList());
-        } catch (StorageException | URISyntaxException e) {
-            throw new IOException(e);
-        }
+    public static List<BlobClient> getBlobs(CloudBlobDirectory directory) {
+        return directory.listBlobsFlat()
+                .stream()
+                .map(blobItem -> directory.getBlobClient(blobItem.name()))
+                .collect(Collectors.toList());
     }
 
-    public static void readBufferFully(CloudBlob blob, Buffer buffer) throws IOException {
-        try {
-            blob.download(new ByteBufferOutputStream(buffer));
-            buffer.flip();
-        } catch (StorageException e) {
-            throw new RepositoryNotReachableException(e);
-        }
+    public static void readBufferFully(BlobClient blob, Buffer buffer) {
+        blob.download(new ByteBufferOutputStream(buffer));
+        buffer.flip();
     }
 
-    public static void deleteAllEntries(CloudBlobDirectory directory) throws IOException {
-        getBlobs(directory).forEach(b -> {
-            try {
-                b.deleteIfExists();
-            } catch (StorageException e) {
-                log.error("Can't delete blob {}", b.getUri().getPath(), e);
-            }
-        });
+    public static void deleteAllEntries(CloudBlobDirectory directory) {
+        getBlobs(directory).forEach(blob -> directory.deleteBlobIfExists(blob));
     }
 
-    public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageCredentials credentials,
-            String uri, String dir) throws URISyntaxException, StorageException {
-        StorageUri storageUri = new StorageUri(new URI(uri));
-        CloudBlobContainer container = new CloudBlobContainer(storageUri, credentials);
+    public static CloudBlobDirectory cloudBlobDirectoryFrom(SharedKeyCredential credential,
+                                                            String uriString, String dir) throws URISyntaxException, StorageException {
+        URI uri = new URI(uriString);
+        String host = uri.getHost();
+        String containerName = extractContainerName(uri);
+        ContainerClient client = new BlobServiceClientBuilder()
+                .credential(credential)
+                .endpoint(String.format("https://%s", host))
+                .buildClient()
+                .getContainerClient(containerName);
+        return new CloudBlobDirectory(client, containerName, dir);
+    }
 
-        return container.getDirectoryReference(dir);
+    public static String extractContainerName(URI uri) {
+        return Paths.get(uri.getPath()).subpath(0, 1).toString();
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
-            String dir) throws InvalidKeyException, URISyntaxException, StorageException {
-        CloudStorageAccount cloud = CloudStorageAccount.parse(connection);
-        CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(containerName);
-        container.createIfNotExists();
+                                                            String dir) throws StorageException {
+        ContainerClient containerClient;
+        try {
+            containerClient = new BlobClientBuilder()
+                    .connectionString(connection)
+                    .containerName(containerName)
+                    .buildBlobClient()
+                    .getContainerClient();
+        } catch (RuntimeException cause) {
+            throw new IllegalArgumentException(String.format("Invalid connection string - could not parse '%s'", connection), cause);
+        }
 
-        return container.getDirectoryReference(dir);
+        if (!containerClient.exists()) {
+            containerClient.create();
+        }
+        return new CloudBlobDirectory(containerClient, containerName, dir);
     }
 
     private static class ByteBufferOutputStream extends OutputStream {
@@ -126,7 +131,7 @@ public final class AzureUtilities {
 
         @Override
         public void write(int b) {
-            buffer.put((byte)b);
+            buffer.put((byte) b);
         }
 
         @Override

@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.models.StorageException;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
+import org.apache.jackrabbit.oak.segment.file.tar.TarFileTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.file.tar.TarFileTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -28,8 +28,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 
 public class AzureTarFileTest extends TarFileTest {
 
@@ -44,7 +42,7 @@ public class AzureTarFileTest extends TarFileTest {
         try {
             container = azurite.getContainer("oak-test");
             archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
-        } catch (StorageException | InvalidKeyException | URISyntaxException e) {
+        } catch (StorageException e) {
             throw new IOException(e);
         }
     }

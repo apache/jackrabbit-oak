@@ -195,10 +195,7 @@ public class SegmentTarFixture extends OakFixture {
                 .withMemoryMapping(memoryMapping);
 
         if (azureConnectionString != null) {
-            CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
-            CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
-            container.createIfNotExists();
-            CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath);
+            CloudBlobDirectory directory = AzureUtilities.cloudBlobDirectoryFrom(azureConnectionString, azureContainerName,azureRootPath);
             fileStoreBuilder.withCustomPersistence(new AzurePersistence(directory));
         }
 
@@ -238,11 +235,12 @@ public class SegmentTarFixture extends OakFixture {
             FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "primary-" + i));
 
             if (azureConnectionString != null) {
-                CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
-                CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(azureContainerName);
-                container.createIfNotExists();
+                ContainerClient container = AzureUtilities.containerFrom(azureConnectionString, azureContainerName);
+                if (! container.exists()) {
+                    container.create();
+                }
                 containers[i] = container;
-                CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath + "/primary-" + i);
+                CloudBlobDirectory directory = new CloudBlobDirectory(container, azureContainerName, "/primary-" + i);
                 builder.withCustomPersistence(new AzurePersistence(directory));
             }
 
@@ -407,17 +405,19 @@ public class SegmentTarFixture extends OakFixture {
         }
 
         if (containers != null) {
-            for (CloudBlobContainer container : containers) {
+            for (ContainerClient container : containers) {
                 if (container != null) {
                     try {
-                        container.deleteIfExists();
+                        if (container.exists()) {
+                            container.delete();
+                        }
                     } catch (StorageException e) {
                         log.error("Can't remove container", e);
                     }
                 }
             }
         }
-        
+
         FileUtils.deleteQuietly(parentPath);
     }
 

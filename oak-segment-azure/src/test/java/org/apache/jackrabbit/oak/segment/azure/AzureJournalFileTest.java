@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudAppendBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.azure.storage.blob.models.BlobType;
+import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.models.StorageException;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.junit.Before;
@@ -32,9 +32,7 @@ import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class AzureJournalFileTest {
 
@@ -76,20 +74,19 @@ public class AzureJournalFileTest {
         }
     }
 
-    private int countJournalBlobs() throws URISyntaxException, StorageException {
-        List<CloudAppendBlob> result = new ArrayList<>();
-        for (ListBlobItem b : container.getDirectoryReference("journal").listBlobs("journal.log")) {
-            if (b instanceof CloudAppendBlob) {
-                result.add((CloudAppendBlob) b);
-            }
-        }
-        return result.size();
+    private int countJournalBlobs() {
+        return (int) container.getDirectoryReference("journal")
+                .listBlobsFlat(new ListBlobsOptions().prefix("journal.log"), null)
+                .stream()
+                .filter(blobItem -> blobItem.properties().blobType() == BlobType.APPEND_BLOB)
+                .count();
     }
+
 
     private int writeNLines(int index, int n) throws IOException {
         try (JournalFileWriter writer = journal.openJournalWriter()) {
             for (int i = 0; i < n; i++) {
-                writer.writeLine("line " + (index++));
+                writer.writeLine("line " + index++);
             }
         }
         return index;

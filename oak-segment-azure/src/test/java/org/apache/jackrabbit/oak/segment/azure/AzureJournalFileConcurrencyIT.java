@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
+import com.azure.storage.blob.models.StorageException;
+
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobClient;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
+
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudStorageAccount;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;

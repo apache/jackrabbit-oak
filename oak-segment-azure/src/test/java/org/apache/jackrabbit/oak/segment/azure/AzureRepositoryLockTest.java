@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.azure.storage.blob.BlockBlobClient;
+import com.azure.storage.blob.models.StorageException;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
+
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -30,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.rmi.server.ExportException;
 import java.security.InvalidKeyException;
 import java.util.concurrent.Semaphore;
 
@@ -51,8 +51,8 @@ public class AzureRepositoryLockTest {
     }
 
     @Test
-    public void testFailingLock() throws URISyntaxException, IOException, StorageException {
-        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+    public void testFailingLock() throws IOException, StorageException {
+        BlockBlobClient blob = container.getBlockBlobReference("oak/repo.lock");
         new AzureRepositoryLock(blob, () -> {}, 0).lock();
         try {
             new AzureRepositoryLock(blob, () -> {}, 0).lock();
@@ -64,7 +64,7 @@ public class AzureRepositoryLockTest {
 
     @Test
     public void testWaitingLock() throws URISyntaxException, IOException, StorageException, InterruptedException {
-        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+        BlockBlobClient blob = container.getBlockBlobReference("oak/repo.lock");
         Semaphore s = new Semaphore(0);
         new Thread(() -> {
             try {

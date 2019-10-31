@@ -18,9 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.ContainerClient;
+import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.common.credentials.SharedKeyCredential;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -68,27 +71,41 @@ public class AzureSegmentStoreService {
 
     private static SegmentNodeStorePersistence createAzurePersistence(Configuration configuration) throws IOException {
         try {
-            StringBuilder connectionString = new StringBuilder();
+            BlobServiceClientBuilder blobClientBuilder = new BlobServiceClientBuilder();
+
             if (configuration.connectionURL() == null || configuration.connectionURL().trim().isEmpty()) {
-                connectionString.append("DefaultEndpointsProtocol=https;");
-                connectionString.append("AccountName=").append(configuration.accountName()).append(';');
-                connectionString.append("AccountKey=").append(configuration.accessKey()).append(';');
+                blobClientBuilder.credential(new SharedKeyCredential(configuration.accountName(), configuration.accessKey()));
+                log.info("Account name: '{}'", configuration.accountName());
             } else {
-                connectionString.append(configuration.connectionURL());
+                blobClientBuilder.connectionString(configuration.connectionURL());
+                log.info("Connection string: '{}'", configuration.connectionURL());
             }
-            log.info("Connection string: '{}'", connectionString.toString());
-            CloudStorageAccount cloud = CloudStorageAccount.parse(connectionString.toString());
-            CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(configuration.containerName());
-            container.createIfNotExists();
+
+            AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
+
+            ContainerClient containerClient = blobClientBuilder
+                    // TODO OAK-8413: verify
+                    .endpoint(String.format("https://%s.blob.core.windows.net", configuration.accountName()))
+                    .addPolicy(monitorPolicy)
+                    .buildClient()
+                    .getContainerClient(configuration.containerName());
+
+            if (!containerClient.exists()) {
+                containerClient.create();
+            }
+
 
             String path = configuration.rootPath();
             if (path != null && path.length() > 0 && path.charAt(0) == '/') {
                 path = path.substring(1);
             }
 
-            AzurePersistence persistence = new AzurePersistence(container.getDirectoryReference(path));
+            CloudBlobDirectory directory = new CloudBlobDirectory(containerClient, configuration.containerName(), path);
+            directory.setMonitorPolicy(monitorPolicy);
+            AzurePersistence persistence = new AzurePersistence(directory);
+
             return persistence;
-        } catch (StorageException | URISyntaxException | InvalidKeyException e) {
+        } catch (StorageException e) {
             throw new IOException(e);
         }
     }

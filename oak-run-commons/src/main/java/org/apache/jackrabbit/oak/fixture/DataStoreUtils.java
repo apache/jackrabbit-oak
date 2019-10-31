@@ -153,12 +153,15 @@ public class DataStoreUtils {
             return;
         }
         log.info("deleting container [" + containerName + "]");
-        CloudBlobContainer container = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils
-            .getBlobContainer(org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getConnectionString(accountName, accountKey), containerName);
-        if (container.deleteIfExists()) {
+        Properties p = new Properties();
+        p.putAll(config);
+        ContainerClient container = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils
+                .getBlobContainer(p, containerName);
+        if (container.exists()) {
+            container.delete();
             log.info("container [ " + containerName + "] deleted");
         } else {
-            log.info("container [" + containerName + "] doesn't exists");
+            log.info("container [" + containerName + "] doesn't exist");
         }
     }
 }

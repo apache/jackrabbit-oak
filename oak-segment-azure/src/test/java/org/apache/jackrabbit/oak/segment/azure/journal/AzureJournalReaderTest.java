@@ -16,18 +16,25 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.journal;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudAppendBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.azure.storage.blob.AppendBlobClient;
+import com.azure.storage.blob.models.StorageException;
+import com.google.common.base.Charsets;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.JournalReaderTest;
 import org.apache.jackrabbit.oak.segment.azure.AzureJournalFile;
 import org.junit.Before;
 import org.junit.ClassRule;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 
 public class AzureJournalReaderTest extends JournalReaderTest {
@@ -38,18 +45,14 @@ public class AzureJournalReaderTest extends JournalReaderTest {
     private CloudBlobContainer container;
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
+    public void setup() throws StorageException, InvalidKeyException, URISyntaxException, com.azure.storage.blob.models.StorageException {
         container = azurite.getContainer("oak-test");
     }
 
     protected JournalReader createJournalReader(String s) throws IOException {
-        try {
-            CloudAppendBlob blob = container.getAppendBlobReference("journal/journal.log.001");
-            blob.createOrReplace();
-            blob.appendText(s);
-            return new JournalReader(new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log"));
-        } catch (StorageException | URISyntaxException e) {
-            throw new IOException(e);
-        }
+        AppendBlobClient blob = container.getAppendBlobReference("journal/journal.log.001");
+        blob.create();
+        blob.appendBlock(IOUtils.toBufferedInputStream(IOUtils.toInputStream(s, StandardCharsets.UTF_8)), s.length());
+        return new JournalReader(new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log"));
     }
 }
