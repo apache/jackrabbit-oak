@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
 public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
@@ -41,8 +41,8 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
     @Test
     public void testRepExternalIdMultiple() throws Exception {
         Root systemRoot = getSystemRoot();
-        NodeUtil n = new NodeUtil(systemRoot.getTree(testUserPath));
-        n.setStrings(ExternalIdentityConstants.REP_EXTERNAL_ID, "id", "id2");
+        Tree userTree = systemRoot.getTree(testUserPath);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, ImmutableList.of("id", "id2"), Type.STRINGS);
         systemRoot.commit();
     }
 
@@ -69,6 +69,7 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
     }
 
     @Override
+    @Test
     public void testAddRepExternalId() throws Exception {
         root.getTree(testUserPath).setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, "id");
         root.commit();
@@ -82,6 +83,7 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
     }
 
     @Override
+    @Test
     public void testRemoveRepExternalIdWithoutPrincipalNames() throws Exception {
         root.getTree(testUserPath).setProperty(ExternalIdentityConstants.REP_EXTERNAL_ID, "id");
         root.commit();

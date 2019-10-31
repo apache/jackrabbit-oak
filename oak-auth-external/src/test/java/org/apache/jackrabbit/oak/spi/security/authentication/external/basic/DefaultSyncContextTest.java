@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.basic;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -91,10 +93,12 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     }
 
     @Override
+    @NotNull
     protected DefaultSyncConfig createSyncConfig() {
         return new DefaultSyncConfig();
     }
 
+    @NotNull
     private Group createTestGroup() throws Exception {
         return userManager.createGroup("group" + UUID.randomUUID());
     }
@@ -447,7 +451,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
     }
 
     @Test
-    public void testSyncDisabledUserById() throws Exception {
+    public void testSyncUserDisableMissingEnabled() throws Exception {
         // configure to disable missing users
         syncConfig.user().setDisableMissing(true);
 
@@ -478,6 +482,35 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(SyncResult.Status.ENABLE, result.getStatus());
         assertNotNull(userManager.getAuthorizable(userId));
         assertFalse(((User)authorizable).isDisabled());
+
+        // sync again
+        syncCtx.setForceUserSync(true);
+        result = syncCtx.sync(userId);
+        assertEquals(SyncResult.Status.UPDATE, result.getStatus());
+        assertFalse(((User)authorizable).isDisabled());
+    }
+
+    @Test
+    public void testSyncGroupDisableMissingEnabled() throws Exception {
+        // configure to disable missing users
+        syncConfig.user().setDisableMissing(true);
+
+        // mark a regular repo group as external user from the test IDP
+        Group gr = userManager.createGroup("test" + UUID.randomUUID());
+        String groupId = gr.getID();
+        setExternalID(gr, idp.getName());
+
+        // test sync with 'keepmissing' = true
+        syncCtx.setKeepMissing(true);
+        SyncResult result = syncCtx.sync(groupId);
+        assertEquals(SyncResult.Status.MISSING, result.getStatus());
+        assertNotNull(userManager.getAuthorizable(groupId));
+
+        // test sync with 'keepmissing' = false
+        syncCtx.setKeepMissing(false);
+        result = syncCtx.sync(groupId);
+        assertEquals(SyncResult.Status.DELETE, result.getStatus());
+        assertNull(userManager.getAuthorizable(groupId));
     }
 
     @Test
@@ -1369,6 +1402,20 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertTrue(syncCtx.isSameIDP(new TestIdentityProvider.TestIdentity().getExternalId()));
         assertTrue(syncCtx.isSameIDP(idp.listGroups().next().getExternalId()));
         assertTrue(syncCtx.isSameIDP(idp.listUsers().next().getExternalId()));
+    }
+
+    @Test
+    public void testJoinPaths() {
+        assertEquals(PathUtils.concatRelativePaths("a", "b", "c"), DefaultSyncContext.joinPaths("a", "b", "c"));
+    }
+
+    @Test
+    public void testCreateUserWithApplyRFC7613() throws Exception {
+        syncCtx.config.user().setApplyRFC7613UsernameCaseMapped(true);
+
+        String id = "\uff21\uff4d\uff41\uff4c\uff49\uff41\u017F";
+        User user = syncCtx.createUser(new TestIdentityProvider.TestUser(id, idp.getName()));
+        assertEquals(Normalizer.normalize(id.toLowerCase(), Normalizer.Form.NFKC), user.getID());
     }
 
     private final class ExternalUserWithDeclaredGroup extends TestIdentityProvider.TestIdentity implements ExternalUser {

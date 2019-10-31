@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
@@ -69,30 +68,22 @@ public class SyncMBeanImplTest extends AbstractJmxTest {
     public void before() throws Exception {
         super.before();
 
-        syncMgr = new SyncManager() {
-            @Nullable
-            @Override
-            public SyncHandler getSyncHandler(@NotNull String name) {
-                if (SYNC_NAME.equals(name)) {
-                    return new DefaultSyncHandler(syncConfig);
-                } else if (ThrowingSyncHandler.NAME.equals(name)) {
-                    return new ThrowingSyncHandler(false);
-                } else if (ThrowingSyncHandler.NAME_ALLOWS_IDENTITY_LISTING.equals(name)) {
-                    return new ThrowingSyncHandler(true);
-                } else {
-                    return null;
-                }
+        syncMgr = name -> {
+            if (SYNC_NAME.equals(name)) {
+                return new DefaultSyncHandler(syncConfig);
+            } else if (ThrowingSyncHandler.NAME.equals(name)) {
+                return new ThrowingSyncHandler(false);
+            } else if (ThrowingSyncHandler.NAME_ALLOWS_IDENTITY_LISTING.equals(name)) {
+                return new ThrowingSyncHandler(true);
+            } else {
+                return null;
             }
         };
-        idpMgr = new ExternalIdentityProviderManager() {
-            @Nullable
-            @Override
-            public ExternalIdentityProvider getProvider(@NotNull String name) {
-                if (name.equals(idp.getName())) {
-                    return idp;
-                } else {
-                    return null;
-                }
+        idpMgr = name -> {
+            if (name.equals(idp.getName())) {
+                return idp;
+            } else {
+                return null;
             }
         };
 

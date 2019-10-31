@@ -18,10 +18,13 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -48,6 +51,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * DefaultSyncHandlerTest
@@ -267,6 +272,28 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
     }
 
     @Test
+    public void testListIdentitiesIgnoresMissingExternalIdRef() throws Exception {
+        Iterator<Authorizable> it = Iterators.singletonIterator(getTestUser());
+
+        UserManager um = mock(UserManager.class);
+        when(um.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null)).thenReturn(it);
+
+        Iterator<SyncedIdentity> identities = syncHandler.listIdentities(um);
+        assertFalse(identities.hasNext());
+    }
+
+    @Test
+    public void testListIdentitiesIgnoresNull() throws Exception {
+        Iterator<Authorizable> it = Iterators.singletonIterator(null);
+
+        UserManager um = mock(UserManager.class);
+        when(um.findAuthorizables(DefaultSyncContext.REP_EXTERNAL_ID, null)).thenReturn(it);
+
+        Iterator<SyncedIdentity> identities = syncHandler.listIdentities(um);
+        assertFalse(identities.hasNext());
+    }
+
+    @Test
     public void testLastSynced() throws Exception {
         sync(USER_ID, false);
 
@@ -285,5 +312,14 @@ public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
 
         // the conflict handler needs to fix overlapping update
         root.commit();
+    }
+
+    @Test
+    public void testActivate() {
+        DefaultSyncHandler handler = new DefaultSyncHandler();
+        Map<String,Object> props = ImmutableMap.of(DefaultSyncConfigImpl.PARAM_NAME, "testName");
+        context.registerInjectActivateService(handler, props);
+
+        assertEquals("testName", handler.getName());
     }
 }
