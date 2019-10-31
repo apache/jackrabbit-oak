@@ -66,8 +66,8 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
     private final List<String> nodePaths = new ArrayList<>();
     private Subject subject;
 
-    public EagerCacheSizeTest(int itemsToRead, int numberOfACEs, int subjectSize, long eagerCacheSize, boolean doReport) {
-        super(false, itemsToRead, doReport, false);
+    public EagerCacheSizeTest(int itemsToRead, int repeatedRead,  int numberOfACEs, int subjectSize, long eagerCacheSize, boolean doReport) {
+        super(false, itemsToRead, doReport, false, repeatedRead);
         this.numberOfACEs = numberOfACEs;
         this.subjectSize = subjectSize;
         this.eagerCacheSize = eagerCacheSize;
