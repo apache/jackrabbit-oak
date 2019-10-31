@@ -235,7 +235,7 @@ public class SegmentTarFixture extends OakFixture {
             FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "primary-" + i));
 
             if (azureConnectionString != null) {
-                ContainerClient container = AzureUtilities.containerFrom(azureConnectionString, azureContainerName);
+                ContainerClient container = AzureUtilities.getContainerClient(azureConnectionString, azureContainerName);
                 if (! container.exists()) {
                     container.create();
                 }
