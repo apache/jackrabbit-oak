@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -60,6 +59,8 @@ public class AzureManifestFile implements ManifestFile {
         properties.store(bos, null);
 
         byte[] data = bos.toByteArray();
-        manifestBlob.upload(new BufferedInputStream(new ByteArrayInputStream(data)), data.length);
+        try (ByteArrayInputStream in = new ByteArrayInputStream(data)) {
+            manifestBlob.upload(in, data.length);
+        }
     }
 }
