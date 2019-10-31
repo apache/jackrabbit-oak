@@ -26,8 +26,7 @@ import javax.annotation.Nonnull;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.InputSupplier;
+import com.google.common.io.ByteSource;
 
 import org.apache.jackrabbit.oak.api.Blob;
 
@@ -38,10 +37,10 @@ import org.apache.jackrabbit.oak.api.Blob;
  */
 public abstract class AbstractBlob implements Blob {
 
-    private static InputSupplier<InputStream> supplier(final Blob blob) {
-        return new InputSupplier<InputStream>() {
+    private static ByteSource supplier(final Blob blob) {
+        return new ByteSource() {
             @Override
-            public InputStream getInput() throws IOException {
+            public InputStream openStream() throws IOException {
                 return blob.getNewStream();
             }
         };
@@ -65,7 +64,7 @@ public abstract class AbstractBlob implements Blob {
         }
 
         try {
-            return ByteStreams.equal(supplier(a), supplier(b));
+            return supplier(a).contentEquals(supplier(b));
         } catch (IOException e) {
             throw new IllegalStateException("Blob equality check failed", e);
         }
@@ -105,7 +104,7 @@ public abstract class AbstractBlob implements Blob {
         // Blobs are immutable so we can safely cache the hash
         if (hashCode == null) {
             try {
-                hashCode = ByteStreams.hash(supplier(this), Hashing.sha256());
+                hashCode = supplier(this).hash(Hashing.sha256());
             } catch (IOException e) {
                 throw new IllegalStateException("Hash calculation failed", e);
             }
