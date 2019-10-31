@@ -92,6 +92,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
         Collection<String> indexPaths = new IndexLookup(rootState, getIndexDefinitionPredicate())
                 .collectIndexNodePaths(filter);
+        indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState);
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
         for (String path : indexPaths) {
             IndexNode indexNode = null;
