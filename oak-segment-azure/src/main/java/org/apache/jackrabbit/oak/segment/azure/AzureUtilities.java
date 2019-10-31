@@ -103,6 +103,12 @@ public final class AzureUtilities {
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
                                                             String dir) throws StorageException {
+        ContainerClient containerClient = getContainerClient(connection, containerName);
+        return new CloudBlobDirectory(containerClient, containerName, dir);
+    }
+
+    @NotNull
+    public static ContainerClient getContainerClient(String connection, String containerName) {
         ContainerClient containerClient;
         try {
             containerClient = new BlobClientBuilder()
@@ -117,7 +123,7 @@ public final class AzureUtilities {
         if (!containerClient.exists()) {
             containerClient.create();
         }
-        return new CloudBlobDirectory(containerClient, containerName, dir);
+        return containerClient;
     }
 
     private static class ByteBufferOutputStream extends OutputStream {
