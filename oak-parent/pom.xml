@@ -127,7 +127,7 @@
             <aggregate>true</aggregate>
             <links>
               <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
-              <link>http://jackrabbit.apache.org/api/trunk/</link>
+              <link>https://jackrabbit.apache.org/api/2.16/</link>
             </links>
           </configuration>
         </plugin>
