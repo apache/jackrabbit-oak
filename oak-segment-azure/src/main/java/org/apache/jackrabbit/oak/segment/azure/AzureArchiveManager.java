@@ -181,9 +181,10 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             UUID uuid = UUID.fromString(m.group(2));
             long length = blobClient.getProperties().blobSize();
             if (length > 0) {
-                ByteArrayOutputStream dataStream = new ByteArrayOutputStream((int) length);
-                blobClient.download(dataStream);
-                entryList.add(new RecoveredEntry(position, uuid, dataStream.toByteArray(), name));
+                try (ByteArrayOutputStream dataStream = new ByteArrayOutputStream((int) length)) {
+                    blobClient.download(dataStream);
+                    entryList.add(new RecoveredEntry(position, uuid, dataStream.toByteArray(), name));
+                }
             }
         }
         Collections.sort(entryList);
