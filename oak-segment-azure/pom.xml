@@ -116,6 +116,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <dependency>
+            <groupId>javax.activation</groupId>
+            <artifactId>activation</artifactId>
+            <version>1.1.1</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Nullability annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>
