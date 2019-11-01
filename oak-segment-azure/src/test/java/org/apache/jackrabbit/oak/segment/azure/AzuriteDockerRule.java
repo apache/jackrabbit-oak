@@ -18,10 +18,11 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.ContainerClient;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
-import org.apache.jackrabbit.oak.segment.azure.compat.CloudStorageAccount;
 import org.junit.Assume;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -30,32 +31,28 @@ import org.junit.runners.model.Statement;
 
 public class AzuriteDockerRule implements TestRule {
 
-    private static final String IMAGE = "trekawek/azurite";
+    private static final String IMAGE = "mcr.microsoft.com/azure-storage/azurite";
 
-    private final DockerRule wrappedRule;
-
-    public AzuriteDockerRule() {
-        wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
-                .image(IMAGE)
-                .name("oak-test-azurite")
-                .ports("10000")
-                .addStartedListener(container -> {
-                    container.waitForPort("10000/tcp");
-                    container.waitForLog("Azure Blob Storage Emulator listening on port 10000");
-                })
-                .addContainerConfigurer(builder -> builder.env("executable=blob"))
-                .alwaysRemoveContainer(true)
-                .build());
-
-    }
+    private final DockerRule wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
+            .image(IMAGE)
+            .name("oak-test-azurite")
+            .ports("10000")
+            .addStartedListener(container -> {
+                container.waitForPort("10000/tcp");
+                container.waitForLog("Azurite Blob service successfully listens");
+            })
+            .addContainerConfigurer(builder -> builder.env("executable=blob"))
+            .alwaysRemoveContainer(true)
+            .build());
 
     public CloudBlobContainer getContainer(String name) {
-        int mappedPort = getMappedPort();
-        CloudStorageAccount cloud = CloudStorageAccount.parse("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:" + mappedPort + "/devstoreaccount1;");
-        CloudBlobContainer container = cloud.createCloudBlobClient().getContainerReference(name);
-        container.deleteIfExists();
+        ContainerClient container = new BlobServiceClientBuilder()
+                .connectionString("UseDevelopmentStorage=true;")
+                .buildClient()
+                .getContainerClient(name);
+        if (container.exists()) container.delete();
         container.create();
-        return container;
+        return CloudBlobContainer.withContainerClient(container, name);
     }
 
     @Override
