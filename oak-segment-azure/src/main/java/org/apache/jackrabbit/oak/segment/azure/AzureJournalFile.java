@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.segment.azure;
 import com.azure.storage.blob.AppendBlobClient;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.ListBlobsOptions;
-import com.azure.storage.blob.models.Metadata;
 import com.azure.storage.blob.models.StorageException;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -31,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -114,14 +112,15 @@ public class AzureJournalFile implements JournalFile {
         public String readLine() throws IOException {
             if (reader == null) {
                 try {
-                    if (!metadataFetched) {
-                        metadataFetched = true;
-                        Metadata metadata = blob.getProperties().metadata();
-                        if (metadata.containsKey(AzureBlobMetadata.METADATA_LAST_ENTRY)) {
-                            firstLineReturned = true;
-                            return metadata.get(AzureBlobMetadata.METADATA_LAST_ENTRY);
-                        }
-                    }
+                    // TODO OAK-8413: metadata currently does not work
+//                    if (!metadataFetched) {
+//                        metadataFetched = true;
+//                        Metadata metadata = blob.getPrmoperties().metadata();
+//                        if (metadata.containsKey(AzureBlobMetadata.METADATA_LAST_ENTRY)) {
+//                            firstLineReturned = true;
+//                            return metadata.get(AzureBlobMetadata.METADATA_LAST_ENTRY);
+//                        }
+//                    }
                     reader = new ReverseFileReader(blob);
                     if (firstLineReturned) {
                         while ("".equals(reader.readLine()))
@@ -178,9 +177,8 @@ public class AzureJournalFile implements JournalFile {
             try (ByteArrayInputStream in = new ByteArrayInputStream(lineBytes); BufferedInputStream data = new BufferedInputStream(in)) {
                 currentBlob.appendBlock(data, lineBytes.length);
             }
-            Metadata metadata = currentBlob.getProperties().metadata();
-            metadata.put("lastEntry", line);
-            currentBlob.setMetadata(metadata);
+            // TODO OAK-8413: metadata currently does not work
+//            currentBlob.setMetadata(new Metadata(Collections.singletonMap("lastEntry", line)));
             blockCount++;
         }
 
