@@ -44,7 +44,7 @@ import static org.junit.Assert.assertNull;
 /**
  * Testing improvements made for <a href="https://issues.apache.org/jira/browse/OAK-3508">OAK-3508</a>
  */
-public class PreAuthDefaultExternalLoginModuleTest extends ExternalLoginTestBase {
+public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
 
     private Map<String, Object> preAuthOptions = new HashMap<>();
 

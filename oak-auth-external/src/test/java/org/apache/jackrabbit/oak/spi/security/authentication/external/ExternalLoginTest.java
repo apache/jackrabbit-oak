@@ -36,9 +36,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * ExternalLoginModuleTest...
+ * ExternalLoginTest...
  */
-public class ExternalLoginModuleTest extends ExternalLoginTestBase {
+public class ExternalLoginTest extends ExternalLoginTestBase {
 
     @Before
     public void before() throws Exception {

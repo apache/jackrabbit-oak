@@ -91,6 +91,7 @@ public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
     }
 
     @Override
+    @NotNull
     protected ExternalIdentityProvider createIDP() {
         return new IDP();
     }

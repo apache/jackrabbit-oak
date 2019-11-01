@@ -53,7 +53,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase {
+public class ExternalLoginAutoMembershipTest extends ExternalLoginTestBase {
 
     private static final String NON_EXISTING_NAME = "nonExisting";
 
@@ -111,6 +111,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
 
     @Override
     public void after() throws Exception {
+        options.clear();
         try {
             syncConfig.user().setAutoMembership().setExpirationTime(0);
 
@@ -154,10 +155,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
 
     @Test
     public void testLoginSyncAutoMembershipSetup1() throws Exception {
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, new char[0]));
-
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))){
             // the login must set the existing auto-membership principals to the subject
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
             assertTrue(principals.contains(setup1.gr.getPrincipal()));
@@ -176,11 +174,6 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
 
             assertFalse(gr.isDeclaredMember(user));
             assertFalse(gr.isMember(user));
-        } finally {
-            options.clear();
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
@@ -188,10 +181,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
     public void testLoginAfterSyncSetup1() throws Exception {
         setup1.sync(USER_ID, false);
 
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, new char[0]));
-
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
             // the login must set the configured + existing auto-membership principals
             // to the subject; non-existing auto-membership entries must be ignored.
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
@@ -211,11 +201,6 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
 
             assertFalse(gr.isDeclaredMember(user));
             assertFalse(gr.isMember(user));
-        } finally {
-            options.clear();
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
@@ -223,9 +208,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
     public void testLoginAfterSyncSetup2() throws Exception {
         setup2.sync(USER_ID, false);
 
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, new char[0]));
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
 
             // the login must set the existing auto-membership principals to the subject
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
@@ -245,11 +228,6 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
 
             assertFalse(gr.isDeclaredMember(user));
             assertFalse(gr.isMember(user));
-        } finally {
-            options.clear();
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
@@ -257,9 +235,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
     public void testLoginAfterSyncSetup3() throws Exception {
         setup3.sync(USER_ID, false);
 
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, new char[0]));
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
 
             // the login must set the existing auto-membership principals to the subject
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
@@ -279,11 +255,6 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
 
             assertTrue(gr.isDeclaredMember(user));
             assertTrue(gr.isMember(user));
-        } finally {
-            options.clear();
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
@@ -291,9 +262,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
     public void testLoginAfterSyncSetup4() throws Exception {
         setup4.sync(USER_ID, false);
 
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, new char[0]));
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
 
             // the login must set the existing auto-membership principals to the subject
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
@@ -314,11 +283,6 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
 
             assertFalse(gr.isDeclaredMember(user));
             assertFalse(gr.isMember(user));
-        } finally {
-            options.clear();
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
@@ -326,10 +290,7 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
     public void testLoginAfterSyncSetup5() throws Exception {
         setup5.sync(USER_ID, false);
 
-        ContentSession cs = null;
-        try {
-            cs = login(new SimpleCredentials(USER_ID, new char[0]));
-
+        try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
             // the login must not set any auto-membership principals to the subject
             // as auto-membership is not configured on this setup.
             Set<Principal> principals = cs.getAuthInfo().getPrincipals();
@@ -342,11 +303,6 @@ public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase
             assertFalse(principals.contains(setup2.gr.getPrincipal()));
             assertFalse(principals.contains(setup3.gr.getPrincipal()));
             assertFalse(principals.contains(setup4.gr.getPrincipal()));
-        } finally {
-            options.clear();
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 

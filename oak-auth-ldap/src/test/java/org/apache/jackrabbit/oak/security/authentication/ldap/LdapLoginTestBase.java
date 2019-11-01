@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -140,6 +141,7 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
     }
 
     @Override
+    @NotNull
     protected ExternalIdentityProvider createIDP() {
         LdapProviderConfig cfg = new LdapProviderConfig()
                 .setName("ldap")

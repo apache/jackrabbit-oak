@@ -38,6 +38,7 @@ import static org.junit.Assert.assertFalse;
 public class PrincipalResolutionTest extends DynamicSyncContextTest {
 
     @Override
+    @NotNull
     protected ExternalIdentityProvider createIDP() {
         return new PrincipalResolvingIDP();
     }

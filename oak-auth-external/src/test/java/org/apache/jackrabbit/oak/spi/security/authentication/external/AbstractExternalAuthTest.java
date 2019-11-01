@@ -124,25 +124,23 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         throw e;
     }
 
+    @NotNull
     private static Iterator<String> getAllAuthorizableIds(@NotNull UserManager userManager) throws Exception {
         Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
-        return Iterators.filter(Iterators.transform(iter, new Function<Authorizable, String>() {
-            @Nullable
-            @Override
-            public String apply(Authorizable input) {
-                try {
-                    if (input != null) {
-                        return input.getID();
-                    }
-                } catch (RepositoryException e) {
-                    // failed to retrieve ID
+        return Iterators.filter(Iterators.transform(iter, input -> {
+            try {
+                if (input != null) {
+                    return input.getID();
                 }
-                return null;
+            } catch (RepositoryException e) {
+                // failed to retrieve ID
             }
+            return null;
         }), Predicates.notNull());
     }
 
     @Override
+    @NotNull
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
             securityProvider = TestSecurityProvider.newTestSecurityProvider(getSecurityConfigParameters(), externalPrincipalConfiguration);
@@ -153,6 +151,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         return securityProvider;
     }
 
+    @NotNull
     protected ExternalIdentityProvider createIDP() {
         return new TestIdentityProvider();
     }
@@ -165,6 +164,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         ((TestIdentityProvider) idp).addUser(new TestIdentityProvider.TestUser(id, idp.getName()));
     }
 
+    @NotNull
     protected DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig syncConfig = new DefaultSyncConfig();
         Map<String, String> mapping = new HashMap<>();
@@ -178,6 +178,7 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
         return syncConfig;
     }
 
+    @NotNull
     protected Root getSystemRoot() throws Exception {
         if (systemRoot == null) {
             systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
