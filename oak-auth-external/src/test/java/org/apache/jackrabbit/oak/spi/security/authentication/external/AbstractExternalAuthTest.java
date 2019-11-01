@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -51,6 +52,8 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Abstract base test for external-authentication tests.
@@ -113,6 +116,12 @@ public abstract class AbstractExternalAuthTest extends AbstractSecurityTest {
             root.refresh();
             super.after();
         }
+    }
+
+    protected static void assertException(@NotNull CommitFailedException e, @NotNull String expectedType, int expectedCode) throws CommitFailedException {
+        assertEquals(expectedType, e.getType());
+        assertEquals(expectedCode, e.getCode());
+        throw e;
     }
 
     private static Iterator<String> getAllAuthorizableIds(@NotNull UserManager userManager) throws Exception {

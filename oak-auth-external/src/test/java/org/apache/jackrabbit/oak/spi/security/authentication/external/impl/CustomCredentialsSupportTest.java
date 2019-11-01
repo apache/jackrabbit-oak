@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGr
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.jetbrains.annotations.NotNull;
@@ -51,7 +51,7 @@ import static org.junit.Assert.fail;
  * a custom implementation of {@link CredentialsSupport} and an {@link ExternalIdentityProvider}
  * that deals with these supported credentials.
  */
-public class CustomCredentialsSupportTest extends ExternalLoginModuleTestBase {
+public class CustomCredentialsSupportTest extends ExternalLoginTestBase {
 
     private static void assertAttributes(@NotNull Map<String, ?> expected, @NotNull AuthInfo info) {
         assertEquals(expected.size(), info.getAttributeNames().length);

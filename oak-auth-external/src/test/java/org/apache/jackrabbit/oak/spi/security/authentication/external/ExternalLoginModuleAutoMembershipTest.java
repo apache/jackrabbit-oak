@@ -53,7 +53,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginModuleTestBase {
+public class ExternalLoginModuleAutoMembershipTest extends ExternalLoginTestBase {
 
     private static final String NON_EXISTING_NAME = "nonExisting";
 

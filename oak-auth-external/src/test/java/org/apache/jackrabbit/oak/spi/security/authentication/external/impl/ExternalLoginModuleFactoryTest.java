@@ -26,7 +26,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -46,7 +46,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase {
+public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
 
     @Override
     protected Oak withEditors(Oak oak) {
