@@ -41,6 +41,9 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
+    /**
+     * That directory contains the tar directories, journals, repo.lock, etc.
+     */
     protected final CloudBlobDirectory segmentstoreDirectory;
 
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
@@ -73,12 +76,12 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public boolean segmentFilesExist() {
-            for (BlobItem blobItem : segmentstoreDirectory.listBlobsFlat()) {
-                if (blobItem.name().endsWith(".tar")) {
-                    return true;
-                }
+        for (BlobItem blobItem : segmentstoreDirectory.listBlobsFlat()) {
+            if (blobItem.name().endsWith(".tar")) {
+                return true;
             }
-            return false;
+        }
+        return false;
     }
 
     @Override
