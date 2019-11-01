@@ -118,7 +118,7 @@
             <links>
               <link>http://docs.oracle.com/javase/6/docs/api/</link>
               <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
-              <link>http://jackrabbit.apache.org/api/2.8/</link>
+              <link>https://jackrabbit.apache.org/api/2.8/</link>
             </links>
           </configuration>
         </plugin>
