@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -89,7 +90,7 @@ public class AzureJournalFile implements JournalFile {
         return directory
                 .listBlobsFlat(new ListBlobsOptions().prefix(journalNamePrefix), null)
                 .stream()
-                .map(blobItem -> directory.getBlobClient(blobItem.name()))
+                .map(directory::getBlobClientAbsolute)
                 .map(BlobClient::asAppendBlobClient)
                 .sorted(BY_NAME_REVERSED)
                 .collect(Collectors.toList());
