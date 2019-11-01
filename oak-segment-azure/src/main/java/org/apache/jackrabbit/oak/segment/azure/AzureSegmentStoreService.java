@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.ContainerClient;
 import com.azure.storage.blob.models.StorageException;
@@ -35,8 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.Properties;
 
 @Component(

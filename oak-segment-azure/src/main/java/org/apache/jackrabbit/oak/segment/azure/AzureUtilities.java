@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -71,13 +72,15 @@ public final class AzureUtilities {
     public static List<BlobClient> getBlobs(CloudBlobDirectory directory) {
         return directory.listBlobsFlat()
                 .stream()
-                .map(blobItem -> directory.getBlobClient(blobItem.name()))
+                .map(directory::getBlobClientAbsolute)
                 .collect(Collectors.toList());
     }
 
-    public static void readBufferFully(BlobClient blob, Buffer buffer) {
-        blob.download(new ByteBufferOutputStream(buffer));
-        buffer.flip();
+    public static void readBufferFully(BlobClient blob, Buffer buffer) throws IOException {
+        try (ByteBufferOutputStream stream = new ByteBufferOutputStream(buffer)) {
+            blob.download(stream);
+            buffer.flip();
+        }
     }
 
     public static void deleteAllEntries(CloudBlobDirectory directory) {
