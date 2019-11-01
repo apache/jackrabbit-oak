@@ -85,9 +85,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.lucene.analysis.util.CharFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
@@ -261,6 +259,14 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED = "deletedBlobsCollectionEnabled";
 
+    private static final int LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT = 300;
+    @Property(
+            intValue = LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT,
+            label = "Lucene index stats update interval (seconds)",
+            description = "Delay in seconds after which Lucene stats are updated in async index update cycle."
+    )
+    private static final String LUCENE_INDEX_STATS_UPDATE_INTERVAL = "luceneIndexStatsUpdateInterval";
+
     private static final int PROP_INDEX_CLEANER_INTERVAL_DEFAULT = 10*60;
     @Property(
             intValue = PROP_INDEX_CLEANER_INTERVAL_DEFAULT,
@@ -348,10 +354,14 @@ public class LuceneIndexProviderService {
     private IndexTracker tracker;
 
     private PropertyIndexCleaner cleaner;
+    private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException, IOException {
+        asyncIndexesSizeStatsUpdate = new AsyncIndexesSizeStatsUpdateImpl(
+                PropertiesUtil.toLong(config.get(LUCENE_INDEX_STATS_UPDATE_INTERVAL),
+                        LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT) * 1000); // convert seconds to millis
         boolean disabled = PropertiesUtil.toBoolean(config.get(PROP_DISABLED), PROP_DISABLED_DEFAULT);
         hybridIndex = PropertiesUtil.toBoolean(config.get(PROP_HYBRID_INDEXING), PROP_DISABLED_DEFAULT);
 
@@ -508,6 +518,7 @@ public class LuceneIndexProviderService {
                     mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
         }
         editorProvider.setBlobStore(blobStore);
+        editorProvider.withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
 
         if (hybridIndex){
             editorProvider.setIndexingQueue(checkNotNull(documentQueue));
