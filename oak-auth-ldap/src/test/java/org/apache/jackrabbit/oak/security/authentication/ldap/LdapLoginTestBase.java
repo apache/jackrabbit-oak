@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
@@ -55,7 +55,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
+public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
 
     protected static final InternalLdapServer LDAP_SERVER = new InternalLdapServer();
 
