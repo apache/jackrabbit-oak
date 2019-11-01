@@ -416,6 +416,10 @@ public class UnionQueryImpl implements Query {
         right.verifyNotPotentiallySlow();
     }
     
+    public Query[] getChildren() {
+        return new Query[] { left, right };
+    }
+    
     public QueryExecutionStats getQueryExecutionStats() {
         return left.getQueryExecutionStats();
     }
