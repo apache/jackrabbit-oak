@@ -38,49 +38,60 @@ import java.time.Duration;
 
 /**
  * Represents a virtual directory of blobs, designated by a delimiter character.
- *
+ * <p>
  * TODO OAK-8413: verify
- *
+ * <p>
  * Implements the same interface as the azure-storage-java v8 (https://azure.github.io/azure-storage-java/com/microsoft/azure/storage/blob/CloudBlobDirectory.html)
  */
 public class CloudBlobDirectory {
     private static Logger LOG = LoggerFactory.getLogger(CloudBlobDirectory.class);
 
-    private final ContainerClient client;
+    private final ContainerClient containerClient;
     private final String containerName;
     private final String directory;
 
     private AzureStorageMonitorPolicy storageMonitorPolicy = null;
 
-    public CloudBlobDirectory(@NotNull final ContainerClient client,
+    public CloudBlobDirectory(@NotNull final ContainerClient containerClient,
                               @NotNull final String containerName,
                               @NotNull final String directory) {
-        this.client = client;
+        this.containerClient = containerClient;
         this.containerName = containerName;
         this.directory = directory;
     }
 
-    public ContainerClient client() { return client; }
-    public String directory() { return directory; }
+    public ContainerClient client() {
+        return containerClient;
+    }
+
+    public String directory() {
+        return directory;
+    }
 
     public PagedIterable<BlobItem> listBlobsFlat() {
         return listBlobsFlat(new ListBlobsOptions().prefix(directory), null);
     }
 
     public PagedIterable<BlobItem> listBlobsFlat(ListBlobsOptions options, Duration timeout) {
-        return client.listBlobsHierarchy("/", new ListBlobsOptions().prefix(Paths.get(directory, options.prefix()).toString()), timeout);
+        return containerClient.listBlobsHierarchy("/", new ListBlobsOptions().prefix(Paths.get(directory, options.prefix()).toString()), timeout);
     }
 
     /**
      * @param filename filename without the directory prefix
-     * @return
      */
     public BlobClient getBlobClient(@NotNull final String filename) {
-        return client.getBlobClient(Paths.get(directory, filename).toString());
+        return containerClient.getBlobClient(Paths.get(directory, filename).toString());
+    }
+
+    /**
+     * @param blobItem a reference to a blob (contains the directory prefix)
+     */
+    public BlobClient getBlobClientAbsolute(@NotNull BlobItem blobItem) {
+        return containerClient.getBlobClient(blobItem.name());
     }
 
     public CloudBlobDirectory getDirectoryReference(@NotNull final String dirName) {
-        return new CloudBlobDirectory(client, containerName, Paths.get(directory, dirName).toString());
+        return new CloudBlobDirectory(containerClient, containerName, Paths.get(directory, dirName).toString());
     }
 
     public void deleteBlobIfExists(BlobClient blob) {
@@ -88,7 +99,7 @@ public class CloudBlobDirectory {
     }
 
     public URI getUri() {
-        URL containerUrl = client.getContainerUrl();
+        URL containerUrl = containerClient.getContainerUrl();
         String path = Paths.get(containerUrl.getPath(), directory).toString();
         try {
             return new URI(containerUrl.getProtocol(),
@@ -98,8 +109,7 @@ public class CloudBlobDirectory {
                     path,
                     containerUrl.getQuery(),
                     null);
-        }
-        catch (URISyntaxException e) {
+        } catch (URISyntaxException e) {
             LOG.warn("Unable to format directory URI", e);
             return null;
         }
