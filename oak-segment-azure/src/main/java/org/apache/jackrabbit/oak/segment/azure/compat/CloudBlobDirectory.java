@@ -19,12 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment.azure.compat;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Paths;
-import java.time.Duration;
-
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.ContainerClient;
@@ -35,6 +29,12 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
+import java.time.Duration;
 
 /**
  * Represents a virtual directory of blobs, designated by a delimiter character.
@@ -71,8 +71,12 @@ public class CloudBlobDirectory {
         return client.listBlobsHierarchy("/", new ListBlobsOptions().prefix(Paths.get(directory, options.prefix()).toString()), timeout);
     }
 
-    public BlobClient getBlobClient(@NotNull final String blobName) {
-        return client.getBlobClient(Paths.get(directory, blobName).toString());
+    /**
+     * @param filename filename without the directory prefix
+     * @return
+     */
+    public BlobClient getBlobClient(@NotNull final String filename) {
+        return client.getBlobClient(Paths.get(directory, filename).toString());
     }
 
     public CloudBlobDirectory getDirectoryReference(@NotNull final String dirName) {
