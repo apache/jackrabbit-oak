@@ -72,6 +72,9 @@ public class AzureRepositoryLock implements RepositoryLock {
         Exception ex = null;
         do {
             try {
+                // Make sure to create the blob before locking it.
+                blob.getBlobOutputStream().close();
+
                 leaseId = blobLeaseClient.acquireLease(INTERVAL);
 
                 log.info("Acquired lease {}", leaseId);
