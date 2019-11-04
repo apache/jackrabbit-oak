@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobRange;
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.BlobClientBase;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import static java.lang.Math.min;
@@ -37,7 +36,7 @@ public class ReverseFileReader {
 
     private int bufferSize;
 
-    private final BlobClient blobClient;
+    private final BlobClientBase blobClient;
 
     private byte[] buffer;
 
@@ -45,14 +44,14 @@ public class ReverseFileReader {
 
     private int fileOffset;
 
-    public ReverseFileReader(BlobClient blobClient) throws StorageException {
+    public ReverseFileReader(BlobClientBase blobClient) throws BlobStorageException {
         this (blobClient, BUFFER_SIZE);
     }
 
-    public ReverseFileReader(BlobClient blobClient, int bufferSize) throws StorageException {
+    public ReverseFileReader(BlobClientBase blobClient, int bufferSize) throws BlobStorageException {
         this.blobClient = blobClient;
         if (blobClient.exists()) {
-            this.fileOffset = (int) blobClient.getProperties().blobSize();
+            this.fileOffset = (int) blobClient.getProperties().getBlobSize();
         } else {
             this.fileOffset = 0;
         }
@@ -74,7 +73,7 @@ public class ReverseFileReader {
                 try (InputStream in = blobClient.openInputStream( range, null) ) {
                     buffer = IOUtils.toByteArray(in);
                 }
-            } catch (StorageException e) {
+            } catch (BlobStorageException e) {
                 throw new IOException(e);
             }
         }

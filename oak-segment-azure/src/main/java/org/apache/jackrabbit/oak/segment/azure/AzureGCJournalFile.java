@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.AppendBlobClient;
-import com.azure.storage.blob.BlobInputStream;
+import com.azure.storage.blob.specialized.AppendBlobClient;
+import com.azure.storage.blob.specialized.BlobInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 

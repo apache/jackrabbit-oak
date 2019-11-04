@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.ContainerClient;
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class AzureJournalFileConcurrencyIT {
     private static final Logger log = LoggerFactory.getLogger(AzureJournalFileConcurrencyIT.class);
 
-    private static ContainerClient container;
+    private static BlobContainerClient container;
 
     private static int suffix;
 
@@ -46,7 +46,7 @@ public class AzureJournalFileConcurrencyIT {
     private static String containerName;
 
     @BeforeClass
-    public static void connectToAzure() throws URISyntaxException, InvalidKeyException, StorageException {
+    public static void connectToAzure() throws URISyntaxException, InvalidKeyException, BlobStorageException {
         String azureConnectionString = System.getenv("AZURE_CONNECTION");
         Assume.assumeNotNull(azureConnectionString);
 
@@ -54,14 +54,14 @@ public class AzureJournalFileConcurrencyIT {
          container = new BlobServiceClientBuilder()
                 .connectionString(azureConnectionString)
                 .buildClient()
-                .getContainerClient(containerName);
+                .getBlobContainerClient(containerName);
 
         if (!container.exists()) container.create();
         suffix = 1;
     }
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException, IOException, InterruptedException {
+    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException, IOException, InterruptedException {
         String directoryName = "oak-" + (suffix++);
         persistence = new AzurePersistence(new CloudBlobDirectory(container, containerName, directoryName));
         writeJournalLines(300, 0);
@@ -69,7 +69,7 @@ public class AzureJournalFileConcurrencyIT {
     }
 
     @AfterClass
-    public static void cleanupContainer() throws StorageException {
+    public static void cleanupContainer() throws BlobStorageException {
         if (container != null && container.exists()) {
             container.delete();
         }

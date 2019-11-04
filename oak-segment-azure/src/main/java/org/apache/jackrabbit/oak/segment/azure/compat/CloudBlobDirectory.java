@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.segment.azure.compat;
 
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.ContainerClient;
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageMonitorPolicy;
@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -46,13 +47,13 @@ import java.time.Duration;
 public class CloudBlobDirectory {
     private static Logger LOG = LoggerFactory.getLogger(CloudBlobDirectory.class);
 
-    private final ContainerClient containerClient;
+    private final BlobContainerClient containerClient;
     private final String containerName;
     private final String directory;
 
     private AzureStorageMonitorPolicy storageMonitorPolicy = null;
 
-    public CloudBlobDirectory(@NotNull final ContainerClient containerClient,
+    public CloudBlobDirectory(@NotNull final BlobContainerClient containerClient,
                               @NotNull final String containerName,
                               @NotNull final String directory) {
         this.containerClient = containerClient;
@@ -60,7 +61,7 @@ public class CloudBlobDirectory {
         this.directory = directory;
     }
 
-    public ContainerClient client() {
+    public BlobContainerClient client() {
         return containerClient;
     }
 
@@ -69,11 +70,13 @@ public class CloudBlobDirectory {
     }
 
     public PagedIterable<BlobItem> listBlobsFlat() {
-        return listBlobsFlat(new ListBlobsOptions().prefix(directory), null);
+        return listBlobsFlat(new ListBlobsOptions().setPrefix(directory), null);
     }
 
     public PagedIterable<BlobItem> listBlobsFlat(ListBlobsOptions options, Duration timeout) {
-        return containerClient.listBlobsHierarchy("/", new ListBlobsOptions().prefix(Paths.get(directory, options.prefix()).toString()), timeout);
+        String prefix = Paths.get(directory, options.getPrefix()).toString();
+        return containerClient.listBlobsByHierarchy("/",
+                new ListBlobsOptions().setPrefix(prefix), timeout);
     }
 
     /**
@@ -87,7 +90,7 @@ public class CloudBlobDirectory {
      * @param blobItem a reference to a blob (contains the directory prefix)
      */
     public BlobClient getBlobClientAbsolute(@NotNull BlobItem blobItem) {
-        return containerClient.getBlobClient(blobItem.name());
+        return containerClient.getBlobClient(blobItem.getName());
     }
 
     public CloudBlobDirectory getDirectoryReference(@NotNull final String dirName) {
@@ -99,9 +102,9 @@ public class CloudBlobDirectory {
     }
 
     public URI getUri() {
-        URL containerUrl = containerClient.getContainerUrl();
-        String path = Paths.get(containerUrl.getPath(), directory).toString();
         try {
+            URL containerUrl = new URL(containerClient.getBlobContainerUrl());
+            String path = Paths.get(containerUrl.getPath(), directory).toString();
             return new URI(containerUrl.getProtocol(),
                     containerUrl.getUserInfo(),
                     containerUrl.getHost(),
@@ -109,7 +112,7 @@ public class CloudBlobDirectory {
                     path,
                     containerUrl.getQuery(),
                     null);
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException | MalformedURLException e) {
             LOG.warn("Unable to format directory URI", e);
             return null;
         }

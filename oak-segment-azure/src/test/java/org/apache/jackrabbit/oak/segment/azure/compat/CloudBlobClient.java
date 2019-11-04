@@ -39,7 +39,7 @@ public class CloudBlobClient {
 
     public CloudBlobContainer getContainerReference(@NotNull final String containerName) {
         return CloudBlobContainer.withContainerClient(
-                blobServiceClient.getContainerClient(containerName),
+                blobServiceClient.getBlobContainerClient(containerName),
                 containerName
         );
     }

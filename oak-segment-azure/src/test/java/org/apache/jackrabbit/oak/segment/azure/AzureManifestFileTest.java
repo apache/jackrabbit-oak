@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.junit.Before;
@@ -41,7 +41,7 @@ public class AzureManifestFileTest {
     private CloudBlobContainer container;
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
+    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
     }
 

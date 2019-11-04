@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.ContainerClient;
-import com.azure.storage.blob.models.StorageException;
-import com.azure.storage.common.credentials.SharedKeyCredential;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.osgi.framework.ServiceRegistration;
@@ -71,7 +71,7 @@ public class AzureSegmentStoreService {
             BlobServiceClientBuilder blobClientBuilder = new BlobServiceClientBuilder();
 
             if (configuration.connectionURL() == null || configuration.connectionURL().trim().isEmpty()) {
-                blobClientBuilder.credential(new SharedKeyCredential(configuration.accountName(), configuration.accessKey()));
+                blobClientBuilder.credential(new StorageSharedKeyCredential(configuration.accountName(), configuration.accessKey()));
                 log.info("Account name: '{}'", configuration.accountName());
             } else {
                 blobClientBuilder.connectionString(configuration.connectionURL());
@@ -80,12 +80,12 @@ public class AzureSegmentStoreService {
 
             AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
 
-            ContainerClient containerClient = blobClientBuilder
+            BlobContainerClient containerClient = blobClientBuilder
                     // TODO OAK-8413: verify
                     .endpoint(String.format("https://%s.blob.core.windows.net", configuration.accountName()))
                     .addPolicy(monitorPolicy)
                     .buildClient()
-                    .getContainerClient(configuration.containerName());
+                    .getBlobContainerClient(configuration.containerName());
 
             if (!containerClient.exists()) {
                 containerClient.create();
@@ -102,7 +102,7 @@ public class AzureSegmentStoreService {
             AzurePersistence persistence = new AzurePersistence(directory);
 
             return persistence;
-        } catch (StorageException e) {
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }

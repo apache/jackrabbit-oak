@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.AppendBlobClient;
-import com.azure.storage.blob.BlockBlobClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.specialized.AppendBlobClient;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -77,7 +77,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     @Override
     public boolean segmentFilesExist() {
         for (BlobItem blobItem : segmentstoreDirectory.listBlobsFlat()) {
-            if (blobItem.name().endsWith(".tar")) {
+            if (blobItem.getName().endsWith(".tar")) {
                 return true;
             }
         }
@@ -108,11 +108,11 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     private BlockBlobClient getBlockBlob(String path) {
-        return segmentstoreDirectory.getBlobClient(path).asBlockBlobClient();
+        return segmentstoreDirectory.getBlobClient(path).getBlockBlobClient();
     }
 
     private AppendBlobClient getAppendBlob(String path) {
-        return segmentstoreDirectory.getBlobClient(path).asAppendBlobClient();
+        return segmentstoreDirectory.getBlobClient(path).getAppendBlobClient();
     }
 
     // TODO OAK-8413: verify

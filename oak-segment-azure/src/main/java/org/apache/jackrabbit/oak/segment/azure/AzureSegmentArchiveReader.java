@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobProperties;
-import com.azure.storage.blob.BlockBlobClient;
-import com.azure.storage.blob.models.Metadata;
+import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
@@ -29,11 +28,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.Boolean.getBoolean;
@@ -59,12 +54,12 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
         long length = 0;
         for (BlobClient blob : AzureUtilities.getBlobs(archiveDirectory)) {
             BlobProperties properties = blob.getProperties();
-            Metadata blobMetadata = properties.metadata();
+            Map<String, String> blobMetadata = properties.getMetadata();
             if (AzureBlobMetadata.isSegment(blobMetadata)) {
-                AzureSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(blobMetadata, (int) properties.blobSize());
+                AzureSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(blobMetadata, (int) properties.getBlobSize());
                 index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
             }
-            length += properties.blobSize();
+            length += properties.getBlobSize();
         }
         this.length = length;
     }
@@ -148,7 +143,7 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     private BlockBlobClient getBlob(String name) {
-        return archiveDirectory.getBlobClient(name).asBlockBlobClient();
+        return archiveDirectory.getBlobClient(name).getBlockBlobClient();
     }
 
     private Buffer readBlob(String name) throws IOException {
@@ -156,7 +151,7 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
         if (!blob.exists()) {
             return null;
         }
-        long length = blob.getProperties().blobSize();
+        long length = blob.getProperties().getBlobSize();
         Buffer buffer = Buffer.allocate((int) length);
         AzureUtilities.readBufferFully(blob, buffer);
         return buffer;

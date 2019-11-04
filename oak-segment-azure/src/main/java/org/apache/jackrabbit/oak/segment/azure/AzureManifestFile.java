@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.BlobInputStream;
-import com.azure.storage.blob.BlockBlobClient;
+import com.azure.storage.blob.specialized.BlobInputStream;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

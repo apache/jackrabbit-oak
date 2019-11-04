@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.AppendBlobClient;
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.specialized.AppendBlobClient;
+import com.azure.storage.blob.specialized.BlobClientBase;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
@@ -48,7 +49,7 @@ public class AzureJournalFile implements JournalFile {
     private final String journalNamePrefix;
 
     private final int lineLimit;
-    private static final Comparator<AppendBlobClient> BY_NAME_REVERSED = Comparator.<AppendBlobClient, String>comparing(AzureUtilities::getName).reversed();
+    private static final Comparator<BlobClientBase> BY_NAME_REVERSED = Comparator.<BlobClientBase, String>comparing(AzureUtilities::getName).reversed();
 
     AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, int lineLimit) {
         this.directory = directory;
@@ -86,17 +87,17 @@ public class AzureJournalFile implements JournalFile {
 
     private List<AppendBlobClient> getJournalBlobs() {
         return directory
-                .listBlobsFlat(new ListBlobsOptions().prefix(journalNamePrefix), null)
+                .listBlobsFlat(new ListBlobsOptions().setPrefix(journalNamePrefix), null)
                 .stream()
                 .map(directory::getBlobClientAbsolute)
-                .map(BlobClient::asAppendBlobClient)
+                .map(BlobClient::getAppendBlobClient)
                 .sorted(BY_NAME_REVERSED)
                 .collect(Collectors.toList());
     }
 
     private static class AzureJournalReader implements JournalFileReader {
 
-        private final BlobClient blob;
+        private final BlobClientBase blob;
 
         private ReverseFileReader reader;
 
@@ -104,7 +105,7 @@ public class AzureJournalFile implements JournalFile {
 
         private boolean firstLineReturned;
 
-        private AzureJournalReader(BlobClient blobClient) {
+        private AzureJournalReader(BlobClientBase blobClient) {
             this.blob = blobClient;
         }
 
@@ -126,7 +127,7 @@ public class AzureJournalFile implements JournalFile {
                         while ("".equals(reader.readLine()))
                             ; // the first line was already returned, let's fast-forward it
                     }
-                } catch (StorageException e) {
+                } catch (BlobStorageException e) {
                     throw new IOException(e);
                 }
             }
@@ -147,12 +148,12 @@ public class AzureJournalFile implements JournalFile {
         public AzureJournalWriter() {
             List<AppendBlobClient> blobs = getJournalBlobs();
             if (blobs.isEmpty()) {
-                currentBlob = directory.getBlobClient(getJournalFileName(1)).asAppendBlobClient();
+                currentBlob = directory.getBlobClient(getJournalFileName(1)).getAppendBlobClient();
                 currentBlob.create();
             } else {
                 currentBlob = blobs.get(0);
             }
-            Integer bc = currentBlob.getProperties().committedBlockCount();
+            Integer bc = currentBlob.getProperties().getCommittedBlockCount();
             blockCount = bc == null ? 0 : bc;
         }
 
@@ -183,7 +184,7 @@ public class AzureJournalFile implements JournalFile {
         }
 
         private void createNextFile(int suffix) {
-            currentBlob = directory.getBlobClient(getJournalFileName(suffix + 1)).asAppendBlobClient();
+            currentBlob = directory.getBlobClient(getJournalFileName(suffix + 1)).getAppendBlobClient();
             currentBlob.create();
             blockCount = 0;
         }

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFileTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
@@ -42,7 +42,7 @@ public class AzureTarFileTest extends TarFileTest {
         try {
             container = azurite.getContainer("oak-test");
             archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
-        } catch (StorageException e) {
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }

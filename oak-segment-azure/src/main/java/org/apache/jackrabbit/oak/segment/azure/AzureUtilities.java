@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.ContainerClient;
-import com.azure.storage.blob.models.StorageException;
-import com.azure.storage.common.credentials.SharedKeyCredential;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.BlobClientBase;
+import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.jetbrains.annotations.NotNull;
@@ -30,8 +30,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -55,8 +57,13 @@ public final class AzureUtilities {
         return String.format("%04x.%s", offset, new UUID(msb, lsb).toString());
     }
 
-    public static String getName(BlobClient blob) {
-        Path blobPath = Paths.get(blob.getBlobUrl().getPath());
+    public static String getName(BlobClientBase blob)  {
+        Path blobPath = null;
+        try {
+            blobPath = Paths.get(new URL(blob.getBlobUrl()).getPath());
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException("invalid blob url: " + blob.getBlobUrl(), e);
+        }
 
         // TODO: OAK-8413: simplify or describe and remove sout:
         System.out.println("TODO: getName(): " + blob.getBlobUrl());
@@ -76,7 +83,7 @@ public final class AzureUtilities {
                 .collect(Collectors.toList());
     }
 
-    public static void readBufferFully(BlobClient blob, Buffer buffer) throws IOException {
+    public static void readBufferFully(BlobClientBase blob, Buffer buffer) throws IOException {
         try (ByteBufferOutputStream stream = new ByteBufferOutputStream(buffer)) {
             blob.download(stream);
             buffer.flip();
@@ -87,16 +94,16 @@ public final class AzureUtilities {
         getBlobs(directory).forEach(blob -> directory.deleteBlobIfExists(blob));
     }
 
-    public static CloudBlobDirectory cloudBlobDirectoryFrom(SharedKeyCredential credential,
-                                                            String uriString, String dir) throws URISyntaxException, StorageException {
+    public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageSharedKeyCredential credential,
+                                                            String uriString, String dir) throws URISyntaxException, BlobStorageException {
         URI uri = new URI(uriString);
         String host = uri.getHost();
         String containerName = extractContainerName(uri);
-        ContainerClient client = new BlobServiceClientBuilder()
+        BlobContainerClient client = new BlobServiceClientBuilder()
                 .credential(credential)
                 .endpoint(String.format("https://%s", host))
                 .buildClient()
-                .getContainerClient(containerName);
+                .getBlobContainerClient(containerName);
         return new CloudBlobDirectory(client, containerName, dir);
     }
 
@@ -105,20 +112,19 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
-                                                            String dir) throws StorageException {
-        ContainerClient containerClient = getContainerClient(connection, containerName);
+                                                            String dir) throws BlobStorageException {
+        BlobContainerClient containerClient = getContainerClient(connection, containerName);
         return new CloudBlobDirectory(containerClient, containerName, dir);
     }
 
     @NotNull
-    public static ContainerClient getContainerClient(String connection, String containerName) {
-        ContainerClient containerClient;
+    public static BlobContainerClient getContainerClient(String connection, String containerName) {
+        BlobContainerClient containerClient;
         try {
-            containerClient = new BlobClientBuilder()
+            containerClient = new BlobServiceClientBuilder()
                     .connectionString(connection)
-                    .containerName(containerName)
-                    .buildBlobClient()
-                    .getContainerClient();
+                    .buildClient()
+                    .createBlobContainer(containerName);
         } catch (RuntimeException cause) {
             throw new IllegalArgumentException(String.format("Invalid connection string - could not parse '%s'", connection), cause);
         }

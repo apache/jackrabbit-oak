@@ -16,24 +16,19 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.journal;
 
-import com.azure.storage.blob.AppendBlobClient;
-import com.azure.storage.blob.models.StorageException;
-import com.google.common.base.Charsets;
-
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.AppendBlobClient;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.segment.azure.AzureJournalFile;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.JournalReaderTest;
-import org.apache.jackrabbit.oak.segment.azure.AzureJournalFile;
 import org.junit.Before;
 import org.junit.ClassRule;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 
@@ -45,7 +40,7 @@ public class AzureJournalReaderTest extends JournalReaderTest {
     private CloudBlobContainer container;
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException, com.azure.storage.blob.models.StorageException {
+    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException, com.azure.storage.blob.models.BlobStorageException {
         container = azurite.getContainer("oak-test");
     }
 

@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.BlobType;
 import com.azure.storage.blob.models.ListBlobsOptions;
-import com.azure.storage.blob.models.StorageException;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -29,8 +29,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -44,13 +42,13 @@ public class AzureJournalFileTest {
     private AzureJournalFile journal;
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
+    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
         journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", 50);
     }
 
     @Test
-    public void testSplitJournalFiles() throws IOException, URISyntaxException, StorageException {
+    public void testSplitJournalFiles() throws IOException, URISyntaxException, BlobStorageException {
         assertFalse(journal.exists());
 
         int index = 0;
@@ -76,9 +74,9 @@ public class AzureJournalFileTest {
 
     private int countJournalBlobs() {
         return (int) container.getDirectoryReference("journal")
-                .listBlobsFlat(new ListBlobsOptions().prefix("journal.log"), null)
+                .listBlobsFlat(new ListBlobsOptions().setPrefix("journal.log"), null)
                 .stream()
-                .filter(blobItem -> blobItem.properties().blobType() == BlobType.APPEND_BLOB)
+                .filter(blobItem -> blobItem.getProperties().getBlobType() == BlobType.APPEND_BLOB)
                 .count();
     }
 

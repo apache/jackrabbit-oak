@@ -19,25 +19,25 @@
 
 package org.apache.jackrabbit.oak.segment.azure.compat;
 
-import com.azure.storage.blob.AppendBlobClient;
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlockBlobClient;
-import com.azure.storage.blob.ContainerClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.specialized.AppendBlobClient;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Paths;
 
 public class CloudBlobContainer {
-    private final ContainerClient containerClient;
+    private final BlobContainerClient containerClient;
     private final String containerName;
 
-    private CloudBlobContainer(@NotNull final ContainerClient containerClient,
+    private CloudBlobContainer(@NotNull final BlobContainerClient containerClient,
                                @NotNull final String containerName) {
         this.containerClient = containerClient;
         this.containerName = containerName;
     }
 
-    public static CloudBlobContainer withContainerClient(@NotNull final ContainerClient containerClient,
+    public static CloudBlobContainer withContainerClient(@NotNull final BlobContainerClient containerClient,
                                                          @NotNull final String containerName) {
         return new CloudBlobContainer(containerClient, containerName);
     }
@@ -75,10 +75,10 @@ public class CloudBlobContainer {
     }
 
     public BlockBlobClient getBlockBlobReference(@NotNull final String path) {
-        return getBlobReference(path).asBlockBlobClient();
+        return getBlobReference(path).getBlockBlobClient();
     }
 
     public AppendBlobClient getAppendBlobReference(@NotNull final String path) {
-        return getBlobReference(path).asAppendBlobClient();
+        return getBlobReference(path).getAppendBlobClient();
     }
 }

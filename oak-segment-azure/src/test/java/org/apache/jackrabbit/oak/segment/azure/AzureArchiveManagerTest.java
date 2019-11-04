@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.ListBlobsOptions;
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.models.BlobStorageException;
 
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 
@@ -62,12 +62,12 @@ public class AzureArchiveManagerTest {
     private CloudBlobContainer container;
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
+    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
     }
 
     @Test
-    public void testRecovery() throws StorageException, IOException {
+    public void testRecovery() throws BlobStorageException, IOException {
         SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
@@ -89,7 +89,7 @@ public class AzureArchiveManagerTest {
     }
 
     @Test
-    public void testUncleanStop() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, StorageException {
+    public void testUncleanStop() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, BlobStorageException {
         AzurePersistence p = new AzurePersistence(container.getDirectoryReference("oak"));
         FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
@@ -110,7 +110,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     // see OAK-8566
-    public void testUncleanStopWithEmptyArchive() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, StorageException {
+    public void testUncleanStopWithEmptyArchive() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, BlobStorageException {
         AzurePersistence p = new AzurePersistence(container.getDirectoryReference("oak"));
         FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
         SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
@@ -129,9 +129,9 @@ public class AzureArchiveManagerTest {
 
         // remove the segment 0000 from the second archive
         CloudBlobDirectory dir = container.getDirectoryReference("oak/data00001a.tar");
-        BlobItem segment0000 = dir.listBlobsFlat(new ListBlobsOptions().prefix("0000."), null)
+        BlobItem segment0000 = dir.listBlobsFlat(new ListBlobsOptions().setPrefix("0000."), null)
                         .iterator().next();
-        dir.getBlobClient(segment0000.name()).delete();
+        dir.getBlobClient(segment0000.getName()).delete();
         container.getBlockBlobReference("oak/data00001a.tar/closed").delete();
 
         fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();

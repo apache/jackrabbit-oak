@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.BlockBlobClient;
-import com.azure.storage.blob.models.Metadata;
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
@@ -89,7 +88,7 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         blob.upload(new ByteArrayInputStream(data), size);
-        blob.setMetadata(new Metadata(AzureBlobMetadata.toSegmentMetadata(indexEntry)));
+        blob.setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
         // TODO OAK-8413: is it really  segmentFileName for ioMonitor?
         ioMonitor.afterSegmentWrite(new File(segmentFileName), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
     }
@@ -185,7 +184,7 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         return AzureUtilities.getName(archiveDirectory);
     }
 
-    private BlockBlobClient getBlob(String name) throws StorageException {
-        return archiveDirectory.getBlobClient(name).asBlockBlobClient();
+    private BlockBlobClient getBlob(String name) throws BlobStorageException {
+        return archiveDirectory.getBlobClient(name).getBlockBlobClient();
     }
 }

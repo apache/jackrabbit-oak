@@ -18,24 +18,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
-import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.URISyntaxException;
-import java.text.MessageFormat;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import com.azure.storage.blob.models.StorageException;
-import com.azure.storage.common.credentials.SharedKeyCredential;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.common.StorageSharedKeyCredential;
 import com.google.common.base.Stopwatch;
-
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
@@ -49,6 +34,17 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URISyntaxException;
+import java.text.MessageFormat;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.*;
+import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 /**
  * Utility class for common stuff pertaining to tooling.
@@ -80,7 +76,7 @@ public class ToolUtils {
 
     public static FileStore newFileStore(SegmentNodeStorePersistence persistence, File directory,
             boolean strictVersionCheck, int segmentCacheSize, long gcLogInterval)
-            throws IOException, InvalidFileStoreVersionException, StorageException {
+            throws IOException, InvalidFileStoreVersionException, BlobStorageException {
         FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(directory)
                 .withCustomPersistence(persistence).withMemoryMapping(false).withStrictVersionCheck(strictVersionCheck)
                 .withSegmentCacheSize(segmentCacheSize)
@@ -124,9 +120,9 @@ public class ToolUtils {
         String accountName = config.get(KEY_ACCOUNT_NAME);
         String key = System.getenv("AZURE_SECRET_KEY");
 
-        SharedKeyCredential credential = null;
+        StorageSharedKeyCredential credential = null;
         try {
-            credential = new SharedKeyCredential(accountName, key);
+            credential = new StorageSharedKeyCredential(accountName, key);
 
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
@@ -139,7 +135,7 @@ public class ToolUtils {
 
         try {
             return AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir);
-        } catch (URISyntaxException | StorageException e) {
+        } catch (URISyntaxException | BlobStorageException e) {
             throw new IllegalArgumentException(
                     "Could not connect to the Azure Storage. Please verify the path provided!");
         }

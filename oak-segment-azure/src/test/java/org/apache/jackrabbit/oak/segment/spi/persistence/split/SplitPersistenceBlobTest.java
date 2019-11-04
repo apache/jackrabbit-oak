@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.spi.persistence.split;
 
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -71,7 +71,7 @@ public class SplitPersistenceBlobTest {
     private SegmentNodeStorePersistence splitPersistence;
 
     @Before
-    public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException, StorageException {
+    public void setup() throws IOException, InvalidFileStoreVersionException, CommitFailedException, URISyntaxException, InvalidKeyException, BlobStorageException {
         SegmentNodeStorePersistence sharedPersistence =
             new AzurePersistence(azurite.getContainer("oak-test").getDirectoryReference("oak"));
         File dataStoreDir = new File(folder.getRoot(), "blobstore");

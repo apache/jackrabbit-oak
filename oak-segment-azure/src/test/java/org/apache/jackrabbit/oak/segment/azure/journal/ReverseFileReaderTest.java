@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.journal;
 
-import com.azure.storage.blob.AppendBlobClient;
-import com.azure.storage.blob.models.StorageException;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.google.common.base.Charsets;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.ReverseFileReader;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -44,46 +44,46 @@ public class ReverseFileReaderTest {
     private CloudBlobContainer container;
 
     @Before
-    public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
+    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
-        getBlob().create();
+        getBlob().getAppendBlobClient().create();
     }
 
-    private AppendBlobClient getBlob() throws URISyntaxException, StorageException {
-        return container.getAppendBlobReference("test-blob");
+    private BlobClient getBlob() throws URISyntaxException, BlobStorageException {
+        return container.getBlobReference("test-blob");
     }
 
     @Test
-    public void testReverseReader() throws IOException, URISyntaxException, StorageException {
+    public void testReverseReader() throws IOException, URISyntaxException, BlobStorageException {
         List<String> entries = createFile( 1024, 80);
         ReverseFileReader reader = new ReverseFileReader(getBlob(), 256);
         assertEquals(entries, reader);
     }
 
     @Test
-    public void testEmptyFile() throws IOException, URISyntaxException, StorageException {
+    public void testEmptyFile() throws IOException, URISyntaxException, BlobStorageException {
         List<String> entries = createFile( 0, 80);
         ReverseFileReader reader = new ReverseFileReader(getBlob(), 256);
         assertEquals(entries, reader);
     }
 
     @Test
-    public void test1ByteBlock() throws IOException, URISyntaxException, StorageException {
+    public void test1ByteBlock() throws IOException, URISyntaxException, BlobStorageException {
         List<String> entries = createFile( 10, 16);
         ReverseFileReader reader = new ReverseFileReader(getBlob(), 1);
         assertEquals(entries, reader);
     }
 
 
-    private List<String> createFile(int lines, int maxLineLength) throws URISyntaxException, StorageException {
+    private List<String> createFile(int lines, int maxLineLength) throws URISyntaxException, BlobStorageException {
         Random random = new Random();
         List<String> entries = new ArrayList<>();
-        AppendBlobClient blob = getBlob();
+        BlobClient blob = getBlob();
         for (int i = 0; i < lines; i++) {
             int entrySize = random.nextInt(maxLineLength) + 1;
             String entry = randomString(entrySize);
             String toAppend = entry + '\n';
-            blob.appendBlock(IOUtils.toInputStream(toAppend, Charsets.UTF_8), entry.length());
+            blob.getAppendBlobClient().appendBlock(IOUtils.toInputStream(toAppend, Charsets.UTF_8), entry.length());
             entries.add(entry);
         }
 

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.ContainerClient;
+import com.azure.storage.blob.BlobContainerClient;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
@@ -46,10 +46,10 @@ public class AzuriteDockerRule implements TestRule {
             .build());
 
     public CloudBlobContainer getContainer(String name) {
-        ContainerClient container = new BlobServiceClientBuilder()
+        BlobContainerClient container = new BlobServiceClientBuilder()
                 .connectionString("UseDevelopmentStorage=true;")
                 .buildClient()
-                .getContainerClient(name);
+                .getBlobContainerClient(name);
         if (container.exists()) container.delete();
         container.create();
         return CloudBlobContainer.withContainerClient(container, name);
