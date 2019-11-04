@@ -133,7 +133,7 @@ public class AzureJournalFileConcurrencyIT {
         JournalFile file = persistence.getJournalFile();
         try (JournalFileWriter writer = file.openJournalWriter()) {
             for (int i = 0; i < lines; i++) {
-                writer.writeLine(String.format("%4X - %s", i, UUID.randomUUID().toString()));
+                writer.writeLine(String.format("%04X - %s", i, UUID.randomUUID().toString()));
                 Thread.sleep(delayMillis);
             }
         }
