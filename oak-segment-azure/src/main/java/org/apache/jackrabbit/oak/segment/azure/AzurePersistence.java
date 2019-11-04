@@ -76,7 +76,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public boolean segmentFilesExist() {
-        for (BlobItem blobItem : segmentstoreDirectory.listBlobsFlat()) {
+        for (BlobItem blobItem : segmentstoreDirectory.listBlobs()) {
             if (blobItem.getName().endsWith(".tar")) {
                 return true;
             }

@@ -89,7 +89,7 @@ public class AzureJournalFile implements JournalFile {
 
     private List<AppendBlobClient> getJournalBlobs() {
         return directory
-                .listBlobsFlat(new ListBlobsOptions().setPrefix(journalNamePrefix), null)
+                .listBlobs(new ListBlobsOptions().setPrefix(journalNamePrefix), null)
                 .stream()
                 .map(directory::getBlobClientAbsolute)
                 .map(BlobClient::getAppendBlobClient)

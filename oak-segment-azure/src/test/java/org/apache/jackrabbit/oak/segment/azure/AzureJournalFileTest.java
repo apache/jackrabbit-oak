@@ -74,7 +74,7 @@ public class AzureJournalFileTest {
 
     private int countJournalBlobs() {
         return (int) container.getDirectoryReference("journal")
-                .listBlobsFlat(new ListBlobsOptions().setPrefix("journal.log"), null)
+                .listBlobs(new ListBlobsOptions().setPrefix("journal.log"), null)
                 .stream()
                 .filter(blobItem -> blobItem.getProperties().getBlobType() == BlobType.APPEND_BLOB)
                 .count();

@@ -69,11 +69,11 @@ public class CloudBlobDirectory {
         return directory;
     }
 
-    public PagedIterable<BlobItem> listBlobsFlat() {
-        return listBlobsFlat(new ListBlobsOptions().setPrefix(directory), null);
+    public PagedIterable<BlobItem> listBlobs() {
+        return containerClient.listBlobsByHierarchy(directory);
     }
 
-    public PagedIterable<BlobItem> listBlobsFlat(ListBlobsOptions options, Duration timeout) {
+    public PagedIterable<BlobItem> listBlobs(ListBlobsOptions options, Duration timeout) {
         String prefix = Paths.get(directory, options.getPrefix()).toString();
         return containerClient.listBlobsByHierarchy("/",
                 new ListBlobsOptions().setPrefix(prefix), timeout);
@@ -93,6 +93,11 @@ public class CloudBlobDirectory {
         return containerClient.getBlobClient(blobItem.getName());
     }
 
+    /**
+     *
+     * @param dirName name of the sub directory
+     * @return a sub directory
+     */
     public CloudBlobDirectory getDirectoryReference(@NotNull final String dirName) {
         return new CloudBlobDirectory(containerClient, containerName, Paths.get(directory, dirName).toString());
     }

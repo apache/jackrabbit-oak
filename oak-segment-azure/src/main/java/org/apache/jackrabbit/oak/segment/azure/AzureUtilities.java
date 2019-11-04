@@ -81,7 +81,7 @@ public final class AzureUtilities {
     }
 
     public static List<BlobClient> getBlobs(CloudBlobDirectory directory) {
-        return directory.listBlobsFlat()
+        return directory.listBlobs()
                 .stream()
                 .map(directory::getBlobClientAbsolute)
                 .collect(Collectors.toList());

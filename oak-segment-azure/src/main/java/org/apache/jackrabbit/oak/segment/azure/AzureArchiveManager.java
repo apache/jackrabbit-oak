@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.CopyStatusType;
 import com.azure.storage.blob.models.ListBlobsOptions;
@@ -33,11 +35,15 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getName;
 
@@ -61,14 +67,10 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public List<String> listArchives() throws IOException {
         try {
-
             // TODO OAK-8413: verify
             List<String> archiveNames =
-                    StreamSupport.stream(
-                            cloudBlobDirectory.listBlobsFlat()
-                                    .spliterator(),
-                            false
-                    )
+                    cloudBlobDirectory.listBlobs()
+                            .stream()
                             .filter(blobItem -> Paths.get(blobItem.getName()).getNameCount() > 1)
                             .filter(blobItem -> blobItem.getName().endsWith(".tar"))
                             // TODO OAK-8413: extract to method, explain why to use only a subpath
@@ -96,9 +98,9 @@ public class AzureArchiveManager implements SegmentArchiveManager {
      * @return true if the archive is empty (no 0000.* segment)
      */
     private boolean isArchiveEmpty(String archiveName) throws BlobStorageException {
-        return !getDirectory(archiveName).listBlobsFlat(
-                new ListBlobsOptions().setPrefix("0000."), null)
-                .iterator().hasNext();
+        PagedIterable<BlobItem> blobs = getDirectory(archiveName).listBlobs(
+                new ListBlobsOptions().setPrefix("0000."), null);
+        return !blobs.iterator().hasNext();
     }
 
     @Override
@@ -162,7 +164,6 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public boolean exists(String archiveName) {
-
         return !getBlobs(archiveName).isEmpty();
     }
 

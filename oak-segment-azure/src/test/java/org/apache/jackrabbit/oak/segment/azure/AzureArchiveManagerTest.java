@@ -129,7 +129,7 @@ public class AzureArchiveManagerTest {
 
         // remove the segment 0000 from the second archive
         CloudBlobDirectory dir = container.getDirectoryReference("oak/data00001a.tar");
-        BlobItem segment0000 = dir.listBlobsFlat(new ListBlobsOptions().setPrefix("0000."), null)
+        BlobItem segment0000 = dir.listBlobs(new ListBlobsOptions().setPrefix("0000."), null)
                         .iterator().next();
         dir.getBlobClient(segment0000.getName()).delete();
         container.getBlockBlobReference("oak/data00001a.tar/closed").delete();
