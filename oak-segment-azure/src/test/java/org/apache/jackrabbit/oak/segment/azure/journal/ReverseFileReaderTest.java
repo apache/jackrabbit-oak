@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.journal;
 
-import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.google.common.base.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
@@ -46,11 +46,11 @@ public class ReverseFileReaderTest {
     @Before
     public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
-        getBlob().getAppendBlobClient().create();
+        getBlob().create();
     }
 
-    private BlobClient getBlob() throws URISyntaxException, BlobStorageException {
-        return container.getBlobReference("test-blob");
+    private AppendBlobClient getBlob() throws URISyntaxException, BlobStorageException {
+        return container.getAppendBlobReference("test-blob");
     }
 
     @Test
@@ -78,12 +78,12 @@ public class ReverseFileReaderTest {
     private List<String> createFile(int lines, int maxLineLength) throws URISyntaxException, BlobStorageException {
         Random random = new Random();
         List<String> entries = new ArrayList<>();
-        BlobClient blob = getBlob();
+        AppendBlobClient blob = getBlob();
         for (int i = 0; i < lines; i++) {
             int entrySize = random.nextInt(maxLineLength) + 1;
             String entry = randomString(entrySize);
             String toAppend = entry + '\n';
-            blob.getAppendBlobClient().appendBlock(IOUtils.toInputStream(toAppend, Charsets.UTF_8), entry.length());
+            blob.appendBlock(IOUtils.toInputStream(toAppend, Charsets.UTF_8), entry.length());
             entries.add(entry);
         }
 
