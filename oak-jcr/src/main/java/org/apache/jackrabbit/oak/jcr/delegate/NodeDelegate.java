@@ -438,16 +438,7 @@ public class NodeDelegate extends ItemDelegate {
                 tree.setProperty(JCR_MIXINTYPES, mixinNames, NAMES);
             }
 
-            // 3. deal with locked nodes
-            boolean wasLockable = isNodeType(MIX_LOCKABLE);
-            boolean isLockable = isNodeType(MIX_LOCKABLE);
-            if (wasLockable && !isLockable && holdsLock(false)) {
-                // TODO: This should probably be done in a commit hook
-                unlock();
-                sessionDelegate.refresh(true);
-            }
-
-            // 4. clean up set of properties and child nodes such that all child items
+            // 3. clean up set of properties and child nodes such that all child items
             // have a valid item definition according to the effective node type present
             // after having updated the mixin property. this includes removing all
             // protected properties and child nodes associated with the removed mixin
