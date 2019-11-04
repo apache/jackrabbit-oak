@@ -57,7 +57,7 @@ public final class AzureUtilities {
         return String.format("%04x.%s", offset, new UUID(msb, lsb).toString());
     }
 
-    public static String getName(BlobClientBase blob)  {
+    public static String getName(BlobClientBase blob) {
         Path blobPath = null;
         try {
             blobPath = Paths.get(new URL(blob.getBlobUrl()).getPath());
@@ -72,8 +72,12 @@ public final class AzureUtilities {
         return nElements > 1 ? blobPath.subpath(1, nElements - 1).toString() : blobPath.toString();
     }
 
+    /**
+     * @param directory
+     * @return the name of the directory *only*
+     */
     public static String getName(CloudBlobDirectory directory) {
-        return directory.directory();
+        return Paths.get(directory.getUri().getPath()).getFileName().toString();
     }
 
     public static List<BlobClient> getBlobs(CloudBlobDirectory directory) {
