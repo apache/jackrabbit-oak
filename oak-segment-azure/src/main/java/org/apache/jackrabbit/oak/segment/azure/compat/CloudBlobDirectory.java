@@ -61,16 +61,15 @@ public class CloudBlobDirectory {
         this.directory = directory;
     }
 
-    public BlobContainerClient client() {
-        return containerClient;
-    }
-
-    public String directory() {
-        return directory;
-    }
-
     public PagedIterable<BlobItem> listBlobs() {
-        return containerClient.listBlobsByHierarchy(directory);
+        return containerClient.listBlobs(new ListBlobsOptions().setPrefix(getPrefix()), null);
+    }
+
+    public PagedIterable<BlobItem> listBlobsStartingWith(String filePrefix) {
+        String prefix = Paths.get(directory, filePrefix).toString();
+        return containerClient.listBlobsByHierarchy("/",
+                new ListBlobsOptions().setPrefix(prefix), null);
+
     }
 
     public PagedIterable<BlobItem> listBlobs(ListBlobsOptions options, Duration timeout) {
@@ -94,7 +93,6 @@ public class CloudBlobDirectory {
     }
 
     /**
-     *
      * @param dirName name of the sub directory
      * @return a sub directory
      */
@@ -128,6 +126,10 @@ public class CloudBlobDirectory {
     }
 
     // TODO OAK-8413: change missleading name
+
+    /**
+     * @return The path of this directory - parent directories and this directory.
+     */
     public String getPrefix() {
         return directory;
     }
