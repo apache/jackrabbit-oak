@@ -377,7 +377,7 @@ public class UnionQueryImpl implements Query {
 
     @Override
     public boolean isSortedByIndex() {
-        return left.isSortedByIndex() && right.isSortedByIndex();
+        return left.isSortedByIndex() || right.isSortedByIndex();
     }
 
     @Override
