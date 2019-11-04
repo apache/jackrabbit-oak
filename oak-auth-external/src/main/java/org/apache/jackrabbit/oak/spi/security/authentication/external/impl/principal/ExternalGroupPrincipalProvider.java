@@ -222,7 +222,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
 
     private Set<Principal> getGroupPrincipals(@NotNull Tree userTree) {
-        if (userTree.exists() && UserUtil.isType(userTree, AuthorizableType.USER) && userTree.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES)) {
+        if (userTree.exists() && UserUtil.isType(userTree, AuthorizableType.USER)) {
             PropertyState ps = userTree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (ps != null) {
                 // we have an 'external' user that has been synchronized with the dynamic-membership option
@@ -401,14 +401,14 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         protected Principal getNext() {
             if (!propValues.hasNext()) {
                 if (rows.hasNext()) {
-                    propValues = rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator();
+                    propValues = Iterators.filter(rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator(), Predicates.notNull());
                 } else {
                     propValues = Collections.emptyIterator();
                 }
             }
             while (propValues.hasNext()) {
                 String principalName = propValues.next();
-                if (principalName != null && !processed.contains(principalName) && matchesQuery(principalName) ) {
+                if (!processed.contains(principalName) && matchesQuery(principalName) ) {
                     processed.add(principalName);
                     return new ExternalGroupPrincipal(principalName);
                 }

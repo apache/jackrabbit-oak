@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_ITEMS_TD_READ;
+import static org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest.DEFAULT_REPEATED_READ;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -155,7 +157,9 @@ public class BenchmarkRunner {
         OptionSpec<String> importBehavior = parser.accepts("importBehavior", "Protected Item Import Behavior")
                 .withOptionalArg().ofType(String.class).defaultsTo(ImportBehavior.NAME_BESTEFFORT);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(DEFAULT_ITEMS_TD_READ);
+        OptionSpec<Integer> repeatedRead = parser.accepts("repeatedRead", "Number of repetitions")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(DEFAULT_REPEATED_READ);
         OptionSpec<Integer> concurrency = parser.accepts("concurrency", "Number of test threads.")
                 .withRequiredArg().ofType(Integer.class).withValuesSeparatedBy(',');
         OptionSpec<Boolean> report = parser.accepts("report", "Whether to output intermediate results")
@@ -382,6 +386,7 @@ public class BenchmarkRunner {
                     useAggregationFilter.value(options),
                     report.value(options)),
             new EagerCacheSizeTest(itemsToRead.value(options),
+                    repeatedRead.value(options),
                     numberOfInitialAce.value(options),
                     numberOfUsers.value(options),
                     cacheSize,

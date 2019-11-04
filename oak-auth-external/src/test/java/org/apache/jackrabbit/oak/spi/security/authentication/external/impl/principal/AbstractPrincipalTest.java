@@ -16,13 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import java.security.Principal;
-import java.util.Set;
-import java.util.UUID;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
@@ -38,6 +33,9 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.Dynam
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
+
+import java.security.Principal;
+import java.util.UUID;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -68,17 +66,21 @@ public abstract class AbstractPrincipalTest extends AbstractExternalAuthTest {
 
     @NotNull
     private PrincipalProvider createPrincipalProvider() {
-        Set<String> autoMembership = ImmutableSet.copyOf(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()));
         return new ExternalGroupPrincipalProvider(root, getSecurityProvider().getConfiguration(UserConfiguration.class),
-                NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), autoMembership.toArray(new String[0])));
+                NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), getAutoMembership()));
     }
 
     @Override
+    @NotNull
     protected DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig config = super.createSyncConfig();
         DefaultSyncConfig.User u = config.user();
         u.setDynamicMembership(true);
         return config;
+    }
+
+    String[] getAutoMembership() {
+        return Iterables.toArray(Iterables.concat(syncConfig.user().getAutoMembership(),syncConfig.group().getAutoMembership()), String.class);
     }
 
     GroupPrincipal getGroupPrincipal() throws Exception {

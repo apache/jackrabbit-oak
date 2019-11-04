@@ -92,6 +92,7 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
     }
 
     @Override
+    @NotNull
     protected DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig sc = super.createSyncConfig();
         sc.user().setDynamicMembership(true);

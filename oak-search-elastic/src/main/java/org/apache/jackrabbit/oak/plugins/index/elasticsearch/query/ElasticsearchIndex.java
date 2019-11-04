@@ -124,4 +124,9 @@ public class ElasticsearchIndex extends FulltextIndex {
         estimators.putIfAbsent(path, new LMSEstimator());
         return estimators.get(path);
     }
+
+    @Override
+    protected boolean filterReplacedIndexes() {
+        return true;
+    }
 }

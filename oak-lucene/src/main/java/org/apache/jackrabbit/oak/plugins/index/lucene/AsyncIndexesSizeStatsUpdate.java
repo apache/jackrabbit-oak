@@ -16,20 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
+public interface AsyncIndexesSizeStatsUpdate {
 
-import java.io.IOException;
-import java.util.List;
+    AsyncIndexesSizeStatsUpdate NOOP = new AsyncIndexesSizeStatsUpdate() {
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+        @Override
+        public long getScheduleTimeInMillis() {
+            return -1;
+        }
 
-public interface LuceneIndexReaderFactory {
+        @Override
+        public long getLastStatsUpdateTime(String indexName) {
+            return Long.MAX_VALUE;
+        }
 
-    List<LuceneIndexReader> createReaders(LuceneIndexDefinition definition, NodeState definitionState, String indexPath) throws IOException;
-    
-    MountInfoProvider getMountInfoProvider();
-    
+        @Override
+        public void setLastStatsUpdateTime(String indexName, long timeInMillis) {
+        }
+    };
+
+    long getScheduleTimeInMillis();
+
+    long getLastStatsUpdateTime(String indexName);
+
+    void setLastStatsUpdateTime(String indexName, long timeInMillis);
 }

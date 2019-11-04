@@ -57,6 +57,9 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.text.Normalizer.Form.NFKC;
+import static java.text.Normalizer.normalize;
+
 /**
  * Internal implementation of the sync context
  */
@@ -254,9 +257,7 @@ public class DefaultSyncContext implements SyncContext {
             } else {
                 throw new IllegalArgumentException("identity must be user or group but was: " + identity);
             }
-            if (log.isDebugEnabled()) {
-                log.debug("sync({}) -> {} {}", ref.getString(), identity.getId(), timer.getString());
-            }
+            debug("sync({}) -> {} {}", ref.getString(), identity.getId(), timer.getString());
             if (created) {
                 ret.setStatus(SyncResult.Status.ADD);
             }
@@ -305,9 +306,7 @@ public class DefaultSyncContext implements SyncContext {
                     timer.mark("sync");
                 }
             }
-            if (log.isDebugEnabled()) {
-                log.debug("sync({}) -> {} {}", id, ref.getString(), timer.getString());
-            }
+            debug("sync({}) -> {} {}", id, ref.getString(), timer.getString());
             return ret;
         } catch (RepositoryException | ExternalIdentityException e) {
             throw new SyncException(e);
@@ -378,7 +377,7 @@ public class DefaultSyncContext implements SyncContext {
     protected User createUser(@NotNull ExternalUser externalUser) throws RepositoryException {
         Principal principal = new PrincipalImpl(externalUser.getPrincipalName());
         String authId = config.user().isApplyRFC7613UsernameCaseMapped() ?
-                        java.text.Normalizer.normalize(externalUser.getId().toLowerCase(), java.text.Normalizer.Form.NFKC) : externalUser.getId();
+                        normalize(externalUser.getId().toLowerCase(), NFKC) : externalUser.getId();
         User user = userManager.createUser(
                 authId,
                 null,
@@ -503,9 +502,7 @@ public class DefaultSyncContext implements SyncContext {
         if (depth <= 0) {
             return;
         }
-        if (log.isDebugEnabled()) {
-            log.debug("Syncing membership '{}' -> '{}'", external.getExternalId().getString(), auth.getID());
-        }
+        debug("Syncing membership '{}' -> '{}'", external.getExternalId().getString(), auth.getID());
 
         final DebugTimer timer = new DebugTimer();
         Iterable<ExternalIdentityRef> externalGroups;
@@ -587,10 +584,8 @@ public class DefaultSyncContext implements SyncContext {
             grp.removeMember(auth);
             log.debug("- removing member '{}' for group '{}'", auth.getID(), grp.getID());
         }
-        if (log.isDebugEnabled()) {
-            timer.mark("removing");
-            log.debug("syncMembership({}) {}", external.getId(), timer.getString());
-        }
+        timer.mark("removing");
+        debug("syncMembership({}) {}", external.getId(), timer.getString());
     }
 
     /**
@@ -670,19 +665,13 @@ public class DefaultSyncContext implements SyncContext {
     protected boolean isExpired(@NotNull Authorizable auth, long expirationTime, @NotNull String type) throws RepositoryException {
         Value[] values = auth.getProperty(REP_LAST_SYNCED);
         if (values == null || values.length == 0) {
-            if (log.isDebugEnabled()) {
-                log.debug("{} of {} '{}' need sync. {} not set.", type, auth.isGroup() ? "group" : "user", auth.getID(), REP_LAST_SYNCED);
-            }
+            debug("{} of {} '{}' need sync. {} not set.", type, auth.isGroup() ? "group" : "user", auth.getID(), REP_LAST_SYNCED);
             return true;
         } else if (now - values[0].getLong() > expirationTime) {
-            if (log.isDebugEnabled()) {
-                log.debug("{} of {} '{}' need sync. {} expired ({} > {})", type, auth.isGroup() ? "group" : "user", auth.getID(), now - values[0].getLong(), expirationTime, REP_LAST_SYNCED);
-            }
+            debug("{} of {} '{}' need sync. {} expired ({} > {})", type, auth.isGroup() ? "group" : "user", auth.getID(), now - values[0].getLong(), expirationTime, REP_LAST_SYNCED);
             return true;
         } else {
-            if (log.isDebugEnabled()) {
-                log.debug("{} of {} '{}' do not need sync.", type, auth.isGroup() ? "group" : "user", auth.getID());
-            }
+            debug("{} of {} '{}' do not need sync.", type, auth.isGroup() ? "group" : "user", auth.getID());
             return false;
         }
     }
@@ -765,5 +754,11 @@ public class DefaultSyncContext implements SyncContext {
      */
     protected boolean isSameIDP(@NotNull ExternalIdentityRef ref) {
         return idp.getName().equals(ref.getProviderName());
+    }
+
+    private static void debug(@NotNull String mgs, @NotNull Object... objects) {
+        if (log.isDebugEnabled()) {
+            log.debug(mgs, objects);
+        }
     }
 }

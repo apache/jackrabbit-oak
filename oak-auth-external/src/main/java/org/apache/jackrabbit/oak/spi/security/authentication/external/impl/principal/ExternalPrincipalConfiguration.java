@@ -19,17 +19,11 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
 import java.security.Principal;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.ObjectArrays;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -38,7 +32,6 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
@@ -48,11 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
 import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
@@ -60,10 +49,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceReference;
-import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,13 +148,12 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     @Activate
     private void activate(BundleContext bundleContext, Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
+
         syncHandlerMappingTracker = new SyncHandlerMappingTracker(bundleContext);
         syncHandlerMappingTracker.open();
 
         syncConfigTracker = new SyncConfigTracker(bundleContext, syncHandlerMappingTracker);
         syncConfigTracker.open();
-
-
     }
 
     @SuppressWarnings("UnusedDeclaration")
@@ -185,139 +170,10 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
     //------------------------------------------------------------< private >---
 
     private boolean dynamicMembershipEnabled() {
-        return syncConfigTracker != null && syncConfigTracker.isEnabled;
+        return syncConfigTracker != null && syncConfigTracker.isEnabled();
     }
 
     private boolean protectedExternalIds() {
         return getParameters().getConfigValue(ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS, ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS);
-    }
-
-    /**
-     * {@code ServiceTracker} to detect any {@link SyncHandler} that has
-     * dynamic membership enabled.
-     */
-    private static final class SyncConfigTracker extends ServiceTracker {
-
-        private final SyncHandlerMappingTracker mappingTracker;
-
-        private Set<ServiceReference> enablingRefs = new HashSet<>();
-        private boolean isEnabled = false;
-
-        private SyncConfigTracker(@NotNull BundleContext context, @NotNull SyncHandlerMappingTracker mappingTracker) {
-            super(context, SyncHandler.class.getName(), null);
-            this.mappingTracker = mappingTracker;
-        }
-
-        @Override
-        public Object addingService(ServiceReference reference) {
-            if (hasDynamicMembership(reference)) {
-                enablingRefs.add(reference);
-                isEnabled = true;
-            }
-            return super.addingService(reference);
-        }
-
-        @Override
-        public void modifiedService(ServiceReference reference, Object service) {
-            if (hasDynamicMembership(reference)) {
-                enablingRefs.add(reference);
-                isEnabled = true;
-            } else {
-                enablingRefs.remove(reference);
-                isEnabled = !enablingRefs.isEmpty();
-            }
-            super.modifiedService(reference, service);
-        }
-
-        @Override
-        public void removedService(ServiceReference reference, Object service) {
-            enablingRefs.remove(reference);
-            isEnabled = !enablingRefs.isEmpty();
-            super.removedService(reference, service);
-        }
-
-        private static boolean hasDynamicMembership(ServiceReference reference) {
-            return PropertiesUtil.toBoolean(reference.getProperty(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP), DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP_DEFAULT);
-        }
-
-        private Map<String, String[]> getAutoMembership() {
-            Map<String, String[]> autoMembership = new HashMap<>();
-            for (ServiceReference ref : enablingRefs) {
-                String syncHandlerName = PropertiesUtil.toString(ref.getProperty(DefaultSyncConfigImpl.PARAM_NAME), DefaultSyncConfigImpl.PARAM_NAME_DEFAULT);
-                String[] userAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_USER_AUTO_MEMBERSHIP), new String[0]);
-                String[] groupAuthMembership = PropertiesUtil.toStringArray(ref.getProperty(DefaultSyncConfigImpl.PARAM_GROUP_AUTO_MEMBERSHIP), new String[0]);
-                String[] membership =  ObjectArrays.concat(userAuthMembership, groupAuthMembership, String.class);
-
-                for (String idpName : mappingTracker.getIdpNames(syncHandlerName)) {
-                    String[] previous = autoMembership.put(idpName, membership);
-                    if (previous != null) {
-                        String msg = (Arrays.equals(previous, membership)) ? "Duplicate" : "Colliding";
-                        log.debug(msg + " auto-membership configuration for IDP '{}'; replacing previous values {} by {} defined by SyncHandler '{}'",
-                                idpName, Arrays.toString(previous), Arrays.toString(membership), syncHandlerName);
-                    }
-                }
-            }
-            return autoMembership;
-        }
-    }
-
-    /**
-     * {@code ServiceTracker} to detect any {@link SyncHandler} that has
-     * dynamic membership enabled.
-     */
-    private static final class SyncHandlerMappingTracker extends ServiceTracker {
-
-        private Map<ServiceReference, String[]> referenceMap = new HashMap<>();
-
-        private SyncHandlerMappingTracker(@NotNull BundleContext context) {
-            super(context, SyncHandlerMapping.class.getName(), null);
-        }
-
-        @Override
-        public Object addingService(ServiceReference reference) {
-            addMapping(reference);
-            return super.addingService(reference);
-        }
-
-        @Override
-        public void modifiedService(ServiceReference reference, Object service) {
-            addMapping(reference);
-            super.modifiedService(reference, service);
-        }
-
-        @Override
-        public void removedService(ServiceReference reference, Object service) {
-            referenceMap.remove(reference);
-            super.removedService(reference, service);
-        }
-
-        private void addMapping(ServiceReference reference) {
-            String idpName = PropertiesUtil.toString(reference.getProperty(ExternalLoginModuleFactory.PARAM_IDP_NAME), null);
-            String syncHandlerName = PropertiesUtil.toString(reference.getProperty(ExternalLoginModuleFactory.PARAM_SYNC_HANDLER_NAME), null);
-
-            if (idpName != null && syncHandlerName != null) {
-                referenceMap.put(reference, new String[]{syncHandlerName, idpName});
-            } else {
-                log.warn("Ignoring SyncHandlerMapping with incomplete mapping of IDP '{}' and SyncHandler '{}'", idpName, syncHandlerName);
-            }
-        }
-
-        private Iterable<String> getIdpNames(@NotNull final String syncHandlerName) {
-            return Iterables.filter(Iterables.transform(referenceMap.values(), new Function<String[], String>() {
-                        @Nullable
-                        @Override
-                        public String apply(@Nullable String[] input) {
-                            if (input != null && input.length == 2) {
-                                if (syncHandlerName.equals(input[0])) {
-                                    return input[1];
-                                } // else: different sync-handler
-                            } else {
-                                log.warn("Unexpected value of reference map. Expected String[] with length = 2");
-                            }
-                            return null;
-                        }
-                    }
-            ), Predicates.notNull());
-        }
     }
 }

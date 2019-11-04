@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -96,6 +97,10 @@ public class IndexTracker {
     public IndexTracker(LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory){
         this.readerFactory = readerFactory;
         this.nrtFactory = nrtFactory;
+    }
+    
+    public MountInfoProvider getMountInfoProvider() {
+        return readerFactory.getMountInfoProvider();
     }
 
     public synchronized void close() {
@@ -304,4 +309,5 @@ public class IndexTracker {
     private static boolean isIndexDefinitionChanged(NodeState before, NodeState after) {
         return !EqualsDiff.equals(before.getChildNode(INDEX_DEFINITION_NODE), after.getChildNode(INDEX_DEFINITION_NODE));
     }
+
 }

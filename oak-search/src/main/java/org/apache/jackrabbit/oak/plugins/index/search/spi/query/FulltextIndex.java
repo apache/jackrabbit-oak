@@ -87,11 +87,22 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     protected abstract Predicate<NodeState> getIndexDefinitionPredicate();
 
     protected abstract String getFulltextRequestString(IndexPlan plan, IndexNode indexNode);
+    
+    /**
+     * Whether replaced indexes (that is, if a new version of the index is
+     * available) should be filtered out.
+     * 
+     * @return true if yes (e.g. in a blue-green deployment model)
+     */
+    protected abstract boolean filterReplacedIndexes();
 
     @Override
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
         Collection<String> indexPaths = new IndexLookup(rootState, getIndexDefinitionPredicate())
                 .collectIndexNodePaths(filter);
+        if (filterReplacedIndexes()) {
+            indexPaths = IndexName.filterReplacedIndexes(indexPaths, rootState);
+        }
         List<IndexPlan> plans = Lists.newArrayListWithCapacity(indexPaths.size());
         for (String path : indexPaths) {
             IndexNode indexNode = null;
@@ -115,7 +126,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         }
         return plans;
     }
-
+    
     @Override
     public double getCost(Filter filter, NodeState root) {
         throw new UnsupportedOperationException("Not supported as implementing AdvancedQueryIndex");
