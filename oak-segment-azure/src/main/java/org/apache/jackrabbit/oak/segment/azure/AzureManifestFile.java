@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.specialized.BlobInputStream;
+import com.azure.storage.blob.specialized.BlobOutputStream;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Properties;
@@ -58,9 +58,8 @@ public class AzureManifestFile implements ManifestFile {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         properties.store(bos, null);
 
-        byte[] data = bos.toByteArray();
-        try (ByteArrayInputStream in = new ByteArrayInputStream(data)) {
-            manifestBlob.upload(in, data.length);
+        try (BlobOutputStream blobOutputStream = manifestBlob.getBlobOutputStream()) {
+            blobOutputStream.write(bos.toByteArray());
         }
     }
 }
