@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.specialized.BlobOutputStream;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -27,10 +28,13 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureSegmentArchiveReader.OFF_HEAP;
@@ -87,7 +91,9 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         ioMonitor.beforeSegmentWrite(new File(segmentFileName), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        blob.upload(new ByteArrayInputStream(data), size);
+        try (BlobOutputStream blobOutputStream = blob.getBlobOutputStream()) {
+            blobOutputStream.write(data, offset, size);
+        }
         blob.setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
         // TODO OAK-8413: is it really  segmentFileName for ioMonitor?
         ioMonitor.afterSegmentWrite(new File(segmentFileName), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
@@ -136,7 +142,9 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
     }
 
     private void writeDataFile(byte[] data, String extension) throws IOException {
-        getBlob(getName() + extension).upload(new ByteArrayInputStream(data), data.length);
+        try (BlobOutputStream outputStream = getBlob(getName() + extension).getBlobOutputStream()) {
+            outputStream.write(data);
+        }
         totalLength += data.length;
         monitor.written(data.length);
     }
@@ -158,8 +166,9 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
             q.flush();
             q.close();
         }
-        try (ByteArrayInputStream emptyStream = new ByteArrayInputStream(new byte[0])) {
-            getBlob("closed").upload(emptyStream, 0);
+        try (BlobOutputStream outputStream = getBlob("closed").getBlobOutputStream()) {
+            // write empty array
+            outputStream.write(new byte[0]);
         }
     }
 
