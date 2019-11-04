@@ -31,9 +31,11 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -113,15 +115,14 @@ public class AzureJournalFile implements JournalFile {
         public String readLine() throws IOException {
             if (reader == null) {
                 try {
-                    // TODO OAK-8413: metadata currently does not work
-//                    if (!metadataFetched) {
-//                        metadataFetched = true;
-//                        Metadata metadata = blob.getPrmoperties().metadata();
-//                        if (metadata.containsKey(AzureBlobMetadata.METADATA_LAST_ENTRY)) {
-//                            firstLineReturned = true;
-//                            return metadata.get(AzureBlobMetadata.METADATA_LAST_ENTRY);
-//                        }
-//                    }
+                    if (!metadataFetched) {
+                        metadataFetched = true;
+                        Map<String, String> metadata = blob.getProperties().getMetadata();
+                        if (metadata.containsKey(AzureBlobMetadata.METADATA_LAST_ENTRY)) {
+                            firstLineReturned = true;
+                            return metadata.get(AzureBlobMetadata.METADATA_LAST_ENTRY);
+                        }
+                    }
                     reader = new ReverseFileReader(blob);
                     if (firstLineReturned) {
                         while ("".equals(reader.readLine()))
@@ -178,8 +179,7 @@ public class AzureJournalFile implements JournalFile {
             try (ByteArrayInputStream in = new ByteArrayInputStream(lineBytes); BufferedInputStream data = new BufferedInputStream(in)) {
                 currentBlob.appendBlock(data, lineBytes.length);
             }
-            // TODO OAK-8413: metadata currently does not work
-//            currentBlob.setMetadata(new Metadata(Collections.singletonMap("lastEntry", line)));
+            currentBlob.setMetadata(Collections.singletonMap("lastEntry", line));
             blockCount++;
         }
 
