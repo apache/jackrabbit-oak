@@ -125,7 +125,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
     private static final String BLOB_COMPLETE_DIRECT_UPLOAD_ERROR_COUNT = "BLOB_COMPLETE_DIRECT_UPLOAD_ERROR_COUNT";
     private static final String BLOB_GET_DIRECT_DOWNLOAD_URI_COUNT = "BLOB_GET_DIRECT_DOWNLOAD_URI_COUNT";
     private static final String BLOB_GET_DIRECT_DOWNLOAD_URI_TIME = "BLOB_GET_DIRECT_DOWNLOAD_URI_TIME";
-    private static final String BLOB_GET_DIRECT_DOWNLOAD_URI_ERROR_COUNT = "BLOB_DIRECT_DBA_DOWNLOAD_URI_ERROR_COUNT";
+    private static final String BLOB_GET_DIRECT_DOWNLOAD_URI_ERROR_COUNT = "BLOB_GET_DIRECT_DOWNLOAD_URI_ERROR_COUNT";
 
 
 
@@ -461,7 +461,7 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
 
     @Override
     public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) {
-        getRecordFromRefSizeSeries.mark();
+        getRecordFromRefSizeSeries.mark(size);
         getRecordFromRefTimeSeries.mark(recordedTimeUnit.convert(timeTaken, unit));
         opsLogger.debug("Get record from reference called - {} ms", unit.toMillis(timeTaken));
     }
