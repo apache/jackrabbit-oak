@@ -142,8 +142,8 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
         return new File(archiveDirectory.getUri().getPath());
     }
 
-    private BlockBlobClient getBlob(String name) {
-        return archiveDirectory.getBlobClient(name).getBlockBlobClient();
+    private BlockBlobClient getBlob(String filename) {
+        return archiveDirectory.getBlobClient(filename).getBlockBlobClient();
     }
 
     private Buffer readBlob(String name) throws IOException {

@@ -107,12 +107,12 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         }).lock();
     }
 
-    private BlockBlobClient getBlockBlob(String path) {
-        return segmentstoreDirectory.getBlobClient(path).getBlockBlobClient();
+    private BlockBlobClient getBlockBlob(String filename) {
+        return segmentstoreDirectory.getBlobClient(filename).getBlockBlobClient();
     }
 
-    private AppendBlobClient getAppendBlob(String path) {
-        return segmentstoreDirectory.getBlobClient(path).getAppendBlobClient();
+    private AppendBlobClient getAppendBlob(String filename) {
+        return segmentstoreDirectory.getBlobClient(filename).getAppendBlobClient();
     }
 
     // TODO OAK-8413: verify

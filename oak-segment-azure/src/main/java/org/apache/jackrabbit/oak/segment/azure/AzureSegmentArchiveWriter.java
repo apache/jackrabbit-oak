@@ -193,7 +193,7 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         return archiveDirectory.getFilename();
     }
 
-    private BlockBlobClient getBlob(String name) throws BlobStorageException {
-        return archiveDirectory.getBlobClient(name).getBlockBlobClient();
+    private BlockBlobClient getBlob(String filename) throws BlobStorageException {
+        return archiveDirectory.getBlobClient(filename).getBlockBlobClient();
     }
 }

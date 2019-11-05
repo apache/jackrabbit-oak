@@ -64,17 +64,13 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public List<String> listArchives() throws IOException {
         try {
-            // TODO OAK-8413: verify
-            List<BlobItem> list = cloudBlobDirectory.listBlobs()
+            List<String> archiveNames = cloudBlobDirectory.listItemsInDirectory()
                     .stream()
+                    // Note that isPrefix() returns null for regular blobs
+                    .filter(b -> Boolean.TRUE.equals(b.isPrefix()))
+                    .map(blobItem -> Paths.get(blobItem.getName()).getFileName().toString())
+                    .filter(filename -> filename.endsWith(".tar"))
                     .collect(Collectors.toList());
-            List<String> archiveNames =
-                    list.stream()
-                            .filter(blobItem -> Paths.get(blobItem.getName()).getNameCount() > 1)
-                            .filter(blobItem -> blobItem.getName().endsWith(".tar"))
-                            // TODO OAK-8413: extract to method, explain why to use only a subpath
-                            .map(blobItem -> extractPath(blobItem))
-                            .collect(Collectors.toList());
 
             Iterator<String> it = archiveNames.iterator();
             while (it.hasNext()) {
@@ -90,11 +86,6 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         }
     }
 
-
-    public String extractPath(BlobItem blobItem) {
-    // TODO OAK-8413: I have no idea what is happending here. Describe or simplify. Rename method.
-        return Paths.get(blobItem.getName()).subpath(0, Paths.get(blobItem.getName()).getNameCount() - 2).toString();
-    }
 
     /**
      * Check if there's a valid 0000. segment in the archive

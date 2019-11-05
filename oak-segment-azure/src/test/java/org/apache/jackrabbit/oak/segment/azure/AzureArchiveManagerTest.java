@@ -130,7 +130,7 @@ public class AzureArchiveManagerTest {
         CloudBlobDirectory dir = container.getDirectoryReference("oak/data00001a.tar");
         BlobItem segment0000 = dir.listBlobsStartingWith("0000.")
                         .iterator().next();
-        dir.getBlobClient(segment0000.getName()).delete();
+        dir.getBlobClientAbsolute(segment0000).delete();
         container.getBlockBlobReference("oak/data00001a.tar/closed").delete();
 
         fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();

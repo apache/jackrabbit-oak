@@ -70,12 +70,28 @@ public class CloudBlobDirectory {
         String prefix = Paths.get(directory, filePrefix).toString();
         return containerClient.listBlobsByHierarchy("/",
                 new ListBlobsOptions().setPrefix(prefix)
-                        // While "Details" is an optional parameter, Azurite 3.2 complained that it must no be empty.
+                        // While "Details" is an optional parameter, Azurite 3.2 complained that it must not be empty.
                         // TODO OAK-8413: verify after development
                         .setDetails(new BlobListDetails().setRetrieveMetadata(true))
                 , null);
 
     }
+
+    public PagedIterable<BlobItem> listItemsInDirectory() {
+        // It is important that the prefix ends with a slash:
+        String prefixWithSlash = getPrefix().endsWith("/")
+                ? getPrefix()
+                : getPrefix() + "/";
+
+        return containerClient.listBlobsByHierarchy("/",
+                new ListBlobsOptions().setPrefix(prefixWithSlash)
+                        // While "Details" is an optional parameter, Azurite 3.2 complained that it must not be empty.
+                        // TODO OAK-8413: verify after development
+                        .setDetails(new BlobListDetails().setRetrieveMetadata(true))
+                , null);
+
+    }
+
 
     public PagedIterable<BlobItem> listBlobs(ListBlobsOptions options, Duration timeout) {
         String prefix = Paths.get(directory, options.getPrefix()).toString();
