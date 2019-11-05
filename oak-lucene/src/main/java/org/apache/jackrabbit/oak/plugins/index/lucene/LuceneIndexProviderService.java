@@ -227,7 +227,7 @@ public class LuceneIndexProviderService {
 
         configureBooleanClauseLimit(config);
         initializeFactoryClassLoaders(getClass().getClassLoader());
-        initializeClasses();
+
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
         initializeExtractedTextCache(bundleContext, config);
@@ -429,6 +429,7 @@ public class LuceneIndexProviderService {
             //so switch the TCCL so that static initializer picks up the right
             //classloader
             initializeFactoryClassLoaders0(classLoader);
+            initializeClasses();
         } catch (Throwable t) {
             log.warn("Error occurred while initializing the Lucene " +
                     "Factories", t);
