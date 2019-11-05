@@ -125,10 +125,8 @@ public class CloudBlobDirectory {
         return containerName;
     }
 
-    // TODO OAK-8413: change missleading name
-
     /**
-     * @return The path of this directory - parent directories and this directory.
+     * @return The path of this directory: parent directories and this directory.
      */
     public String getPrefix() {
         return directory;
