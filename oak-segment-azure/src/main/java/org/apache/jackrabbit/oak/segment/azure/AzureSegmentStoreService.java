@@ -81,7 +81,6 @@ public class AzureSegmentStoreService {
             AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
 
             BlobContainerClient containerClient = blobClientBuilder
-                    // TODO OAK-8413: verify
                     .endpoint(String.format("https://%s.blob.core.windows.net", configuration.accountName()))
                     .addPolicy(monitorPolicy)
                     .buildClient()
