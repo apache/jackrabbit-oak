@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
-import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
@@ -28,32 +28,39 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-
 public class AzuriteDockerRule implements TestRule {
 
-    private static final String IMAGE = "mcr.microsoft.com/azure-storage/azurite";
+    private static final String IMAGE = "trekawek/azurite";
 
-    private final DockerRule wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
-            .image(IMAGE)
-            .name("oak-test-azurite")
-            .ports("10000")
-            .addStartedListener(container -> {
-                container.waitForPort("10000/tcp");
-                container.waitForLog("Azurite Blob service successfully listens");
-            })
-            .addContainerConfigurer(builder -> builder.env("executable=blob"))
-            .alwaysRemoveContainer(true)
-            .build());
+    private final DockerRule wrappedRule;
 
-    public CloudBlobContainer getContainer(String name) {
-        BlobContainerClient container = new BlobServiceClientBuilder()
-                .connectionString("UseDevelopmentStorage=true;")
-                .buildClient()
-                .getBlobContainerClient(name);
-        if (container.exists()) container.delete();
-        container.create();
-        return CloudBlobContainer.withContainerClient(container, name);
+    public AzuriteDockerRule() {
+        wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
+                .image(IMAGE)
+                .name("oak-test-azurite")
+                .ports("10000")
+                .addStartedListener(container -> {
+                    container.waitForPort("10000/tcp");
+                    container.waitForLog("Azure Blob Storage Emulator listening on port 10000");
+                })
+                .addContainerConfigurer(builder -> builder.env("executable=blob"))
+                .alwaysRemoveContainer(true)
+                .build());
+
     }
+
+
+    public org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer getContainer(String name) {
+        // Creating a unique container ID for each run because there were problems with the container.delete() command.
+        String containerName = name + System.currentTimeMillis();
+        BlobContainerClient container = new BlobServiceClientBuilder()
+                .connectionString("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:"+getMappedPort()+"/devstoreaccount1;")
+                .buildClient()
+                .getBlobContainerClient(containerName);
+        container.create();
+        return CloudBlobContainer.withContainerClient(container, containerName);
+    }
+
 
     @Override
     public Statement apply(Statement statement, Description description) {
