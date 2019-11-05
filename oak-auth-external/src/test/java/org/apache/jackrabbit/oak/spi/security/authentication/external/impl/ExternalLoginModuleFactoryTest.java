@@ -171,6 +171,32 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
     }
 
     @Test
+    public void testUnbindSyncManager() throws Exception {
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+        factory.bindSyncManager(syncManager);
+
+        Field f = ExternalLoginModuleFactory.class.getDeclaredField("syncManager");
+        f.setAccessible(true);
+        assertSame(syncManager, f.get(factory));
+
+        factory.unbindSyncManager(syncManager);
+        assertNull(f.get(factory));
+    }
+
+    @Test
+    public void testUnbindIdpManager() throws Exception {
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+        factory.bindIdpManager(idpManager);
+
+        Field f = ExternalLoginModuleFactory.class.getDeclaredField("idpManager");
+        f.setAccessible(true);
+        assertSame(idpManager, f.get(factory));
+
+        factory.unbindIdpManager(idpManager);
+        assertNull(f.get(factory));
+    }
+
+    @Test
     public void testMbeanRegistration() throws Exception {
         context.registerService(SyncManager.class, mock(SyncManager.class));
         context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));

@@ -47,6 +47,7 @@ public abstract class ExternalLoginTestBase extends AbstractExternalAuthTest {
     protected Whiteboard whiteboard;
 
     protected SyncManager syncManager;
+    protected ExternalIdentityProviderManager idpManager;
 
     @Before
     public void before() throws Exception {
@@ -81,7 +82,7 @@ public abstract class ExternalLoginTestBase extends AbstractExternalAuthTest {
         whiteboard = oak.getWhiteboard();
         syncManager = new SyncManagerImpl(whiteboard);
         whiteboard.register(SyncManager.class, syncManager, Collections.emptyMap());
-        ExternalIdentityProviderManager idpManager = new ExternalIDPManagerImpl(whiteboard);
+        idpManager = new ExternalIDPManagerImpl(whiteboard);
         whiteboard.register(ExternalIdentityProviderManager.class, idpManager, Collections.emptyMap());
 
         return oak;
