@@ -190,7 +190,7 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
 
     @Override
     public String getName() {
-        return AzureUtilities.getName(archiveDirectory);
+        return archiveDirectory.getFilename();
     }
 
     private BlockBlobClient getBlob(String name) throws BlobStorageException {

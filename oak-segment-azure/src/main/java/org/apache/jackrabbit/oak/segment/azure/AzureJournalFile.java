@@ -50,7 +50,7 @@ public class AzureJournalFile implements JournalFile {
     private final String journalNamePrefix;
 
     private final int lineLimit;
-    private static final Comparator<BlobClientBase> BY_NAME_REVERSED = Comparator.<BlobClientBase, String>comparing(AzureUtilities::getName).reversed();
+    private static final Comparator<BlobClientBase> BY_NAME_REVERSED = Comparator.<BlobClientBase, String>comparing(AzureUtilities::getFilename).reversed();
 
     AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, int lineLimit) {
         this.directory = directory;
@@ -189,7 +189,7 @@ public class AzureJournalFile implements JournalFile {
         }
 
         private int parseCurrentSuffix() {
-            String name = AzureUtilities.getName(currentBlob);
+            String name = AzureUtilities.getFilename(currentBlob);
             Pattern pattern = Pattern.compile(Pattern.quote(journalNamePrefix) + "\\.(\\d+)");
             Matcher matcher = pattern.matcher(name);
             int parsedSuffix;

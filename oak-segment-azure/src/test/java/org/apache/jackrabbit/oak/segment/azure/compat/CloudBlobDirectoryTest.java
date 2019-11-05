@@ -150,4 +150,10 @@ public class CloudBlobDirectoryTest {
         assertEquals("oak", blobDirectory.getPrefix());
     }
 
+    @Test
+    public void getFilename() {
+        CloudBlobDirectory subDirectory = blobDirectory.getSubDirectory("my-dir");
+        assertEquals("my-dir", subDirectory.getFilename());
+    }
+
 }

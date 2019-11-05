@@ -125,7 +125,7 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
 
     @Override
     public String getName() {
-        return AzureUtilities.getName(archiveDirectory);
+        return archiveDirectory.getFilename();
     }
 
     @Override

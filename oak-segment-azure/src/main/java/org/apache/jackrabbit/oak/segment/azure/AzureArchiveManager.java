@@ -44,8 +44,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getName;
-
 // TODO OAK-8413: verify error handling
 public class AzureArchiveManager implements SegmentArchiveManager {
 
@@ -179,8 +177,8 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         List<RecoveredEntry> entryList = new ArrayList<>();
 
         for (BlobClient blobClient : getBlobs(archiveName)) {
-            String name = getName(blobClient);
-            Matcher m = pattern.matcher(name);
+            String filename = AzureUtilities.getFilename(blobClient);
+            Matcher m = pattern.matcher(filename);
             if (!m.matches()) {
                 continue;
             }
@@ -190,7 +188,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             if (length > 0) {
                 try (ByteArrayOutputStream dataStream = new ByteArrayOutputStream((int) length)) {
                     blobClient.download(dataStream);
-                    entryList.add(new RecoveredEntry(position, uuid, dataStream.toByteArray(), name));
+                    entryList.add(new RecoveredEntry(position, uuid, dataStream.toByteArray(), filename));
                 }
             }
         }
@@ -224,7 +222,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private void copyBlob(BlockBlobClient blob, CloudBlobDirectory newParent) throws IOException {
         try {
-            String blobName = getName(blob);
+            String blobName = AzureUtilities.getFilename(blob);
             BlockBlobClient newBlob = newParent.getBlobClient(blobName).getBlockBlobClient();
             newBlob.copyFromUrl(blob.getBlobUrl());
 

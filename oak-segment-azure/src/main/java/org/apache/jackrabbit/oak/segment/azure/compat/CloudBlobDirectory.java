@@ -146,4 +146,12 @@ public class CloudBlobDirectory {
             storageMonitorPolicy.setMonitor(remoteStoreMonitor);
         }
     }
+
+    /**
+     * @return the name of the directory *only*
+     */
+    public String getFilename() {
+        return Paths.get(getPrefix()).getFileName().toString();
+
+    }
 }

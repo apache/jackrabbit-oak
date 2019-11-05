@@ -65,7 +65,9 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testRecovery() throws BlobStorageException, IOException {
-        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        AzurePersistence persistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        SegmentArchiveManager manager = persistence.createArchiveManager(false, false, new IOMonitorAdapter(),
+                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();

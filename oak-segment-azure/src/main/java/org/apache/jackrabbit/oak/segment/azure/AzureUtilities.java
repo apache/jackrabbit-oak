@@ -30,11 +30,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
@@ -57,27 +54,8 @@ public final class AzureUtilities {
         return String.format("%04x.%s", offset, new UUID(msb, lsb).toString());
     }
 
-    public static String getName(BlobClientBase blob) {
-        Path blobPath = null;
-        try {
-            blobPath = Paths.get(new URL(blob.getBlobUrl()).getPath());
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("invalid blob url: " + blob.getBlobUrl(), e);
-        }
-
-        // TODO: OAK-8413: simplify or describe and remove sout:
-        System.out.println("TODO: getName(): " + blob.getBlobUrl());
-
-        int nElements = blobPath.getNameCount();
-        return nElements > 1 ? blobPath.subpath(1, nElements - 1).toString() : blobPath.toString();
-    }
-
-    /**
-     * @param directory
-     * @return the name of the directory *only*
-     */
-    public static String getName(CloudBlobDirectory directory) {
-        return Paths.get(directory.getUri().getPath()).getFileName().toString();
+    public static String getFilename(BlobClientBase blob) {
+        return Paths.get(blob.getBlobName()).getFileName().toString();
     }
 
     public static List<BlobClient> getBlobs(CloudBlobDirectory directory) {
