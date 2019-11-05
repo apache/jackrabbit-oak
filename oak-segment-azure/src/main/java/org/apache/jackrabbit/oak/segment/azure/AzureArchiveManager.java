@@ -75,7 +75,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
                             .filter(blobItem -> Paths.get(blobItem.getName()).getNameCount() > 1)
                             .filter(blobItem -> blobItem.getName().endsWith(".tar"))
                             // TODO OAK-8413: extract to method, explain why to use only a subpath
-                            .map(blobItem -> Paths.get(blobItem.getName()).subpath(0, Paths.get(blobItem.getName()).getNameCount() - 2).toString())
+                            .map(blobItem -> extractPath(blobItem))
                             .collect(Collectors.toList());
 
             Iterator<String> it = archiveNames.iterator();
@@ -90,6 +90,12 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }
+    }
+
+
+    public String extractPath(BlobItem blobItem) {
+    // TODO OAK-8413: I have no idea what is happending here. Describe or simplify. Rename method.
+        return Paths.get(blobItem.getName()).subpath(0, Paths.get(blobItem.getName()).getNameCount() - 2).toString();
     }
 
     /**
