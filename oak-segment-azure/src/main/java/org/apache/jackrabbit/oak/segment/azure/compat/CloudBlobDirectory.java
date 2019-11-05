@@ -23,6 +23,7 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageMonitorPolicy;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -68,7 +69,11 @@ public class CloudBlobDirectory {
     public PagedIterable<BlobItem> listBlobsStartingWith(String filePrefix) {
         String prefix = Paths.get(directory, filePrefix).toString();
         return containerClient.listBlobsByHierarchy("/",
-                new ListBlobsOptions().setPrefix(prefix), null);
+                new ListBlobsOptions().setPrefix(prefix)
+                        // While "Details" is an optional parameter, Azurite 3.2 complained that it must no be empty.
+                        // TODO OAK-8413: verify after development
+                        .setDetails(new BlobListDetails().setRetrieveMetadata(true))
+                , null);
 
     }
 
