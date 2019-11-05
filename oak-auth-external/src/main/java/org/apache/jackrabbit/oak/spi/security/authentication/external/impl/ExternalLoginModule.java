@@ -339,21 +339,13 @@ public class ExternalLoginModule extends AbstractLoginModule {
      * @throws SyncException if an error occurs
      */
     private void syncUser(@NotNull ExternalUser user) throws SyncException {
-        Root root = getRoot();
-        if (root == null) {
-            throw new SyncException("Cannot synchronize user. root == null");
-        }
-        UserManager userManager = getUserManager();
-        if (userManager == null) {
-            throw new SyncException("Cannot synchronize user. userManager == null");
-        }
-
+        Root root = getRootOrThrow();
+        UserManager userManager = getUsermanagerOrThrow();
         int numAttempt = 0;
         while (numAttempt++ < MAX_SYNC_ATTEMPTS) {
-            SyncContext context = null;
+            SyncContext context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
             try {
                 DebugTimer timer = new DebugTimer();
-                context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
                 SyncResult syncResult =  context.sync(user);
                 timer.mark("sync");
                 if (root.hasPendingChanges()) {
@@ -363,12 +355,10 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 debug("syncUser({}) {}, status: {}", user.getId(), timer.getString(), syncResult.getStatus().toString());
                 return;
             } catch (CommitFailedException e) {
-                log.warn("User synchronization failed during commit: {}. (attempt {}/{})", e.toString(), numAttempt, MAX_SYNC_ATTEMPTS);
+                log.warn("User synchronization failed during commit: {}. (attempt {}/{})", e, numAttempt, MAX_SYNC_ATTEMPTS);
                 root.refresh();
             } finally {
-                if (context != null) {
-                    context.close();
-                }
+                context.close();
             }
         }
         throw new SyncException("User synchronization failed during commit after " + MAX_SYNC_ATTEMPTS + " attempts");
@@ -379,16 +369,10 @@ public class ExternalLoginModule extends AbstractLoginModule {
      * @param id the user id
      */
     private void validateUser(@NotNull String id) throws SyncException {
-        SyncContext context = null;
+        Root root = getRootOrThrow();
+        UserManager userManager = getUsermanagerOrThrow();
+        SyncContext context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
         try {
-            Root root = getRoot();
-            if (root == null) {
-                throw new SyncException("Cannot synchronize user. root == null");
-            }
-            UserManager userManager = getUserManager();
-            if (userManager == null) {
-                throw new SyncException("Cannot synchronize user. userManager == null");
-            }
             DebugTimer timer = new DebugTimer();
             context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
             context.sync(id);
@@ -399,11 +383,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
         } catch (CommitFailedException e) {
             throw new SyncException("User synchronization failed during commit.", e);
         } finally {
-            if (context != null) {
-                context.close();
-            }
+            context.close();
         }
-
     }
 
     @NotNull
@@ -417,13 +398,30 @@ public class ExternalLoginModule extends AbstractLoginModule {
         Map<String, Object> attributes = new HashMap<>();
         Object shared = sharedState.get(SHARED_KEY_ATTRIBUTES);
         if (shared instanceof Map) {
-            for (Map.Entry<?,?> entry : ((Map<?,?>) shared).entrySet()) {
-                attributes.put(entry.getKey().toString(), entry.getValue());
-            }
-        } else if (creds != null) {
+            ((Map<?, ?>) shared).forEach((key, value) -> attributes.put(key.toString(), value));
+        }
+        if (creds != null) {
             attributes.putAll(credentialsSupport.getAttributes(creds));
         }
         return new AuthInfoImpl(userId, attributes, principals);
+    }
+
+    @NotNull
+    private Root getRootOrThrow() throws SyncException {
+        Root root = getRoot();
+        if (root == null) {
+            throw new SyncException("Cannot synchronize user. root == null");
+        }
+        return root;
+    }
+
+    @NotNull
+    private UserManager getUsermanagerOrThrow() throws SyncException {
+        UserManager userManager = getUserManager();
+        if (userManager == null) {
+            throw new SyncException("Cannot synchronize user. userManager == null");
+        }
+        return userManager;
     }
 
     private static void debug(@NotNull String msg, String... args) {
