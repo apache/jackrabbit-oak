@@ -31,6 +31,7 @@ import org.junit.runners.model.Statement;
 public class AzuriteDockerRule implements TestRule {
 
     private static final String IMAGE = "trekawek/azurite";
+    private static final boolean USE_REAL_AZURE_CONNECTION = false;
 
     private final DockerRule wrappedRule;
 
@@ -46,15 +47,19 @@ public class AzuriteDockerRule implements TestRule {
                 .addContainerConfigurer(builder -> builder.env("executable=blob"))
                 .alwaysRemoveContainer(true)
                 .build());
-
     }
-
 
     public org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer getContainer(String name) {
         // Creating a unique container ID for each run because there were problems with the container.delete() command.
         String containerName = name + System.currentTimeMillis();
+
+        String connectionString = USE_REAL_AZURE_CONNECTION
+                        ? System.getenv("AZURE_CONNECTION")
+                        : "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:" + getMappedPort() + "/devstoreaccount1;";
+
+
         BlobContainerClient container = new BlobServiceClientBuilder()
-                .connectionString("DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:"+getMappedPort()+"/devstoreaccount1;")
+                .connectionString(connectionString)
                 .buildClient()
                 .getBlobContainerClient(containerName);
         container.create();
