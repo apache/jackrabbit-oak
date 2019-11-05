@@ -105,11 +105,10 @@ public class CloudBlobDirectoryTest {
     public void getBlobClient() {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        blobDirectory.getBlobClient("manifest")
-        .download(out);
+        blobDirectory.getBlobClient("manifest").download(out);
         String actual = new String(out.toByteArray());
 
-        assertTrue( actual.contains("store.version"));
+        assertTrue(actual.contains("store.version"));
     }
 
     @Test
@@ -138,24 +137,17 @@ public class CloudBlobDirectoryTest {
 
     @Test
     public void getUri() {
-        assertEquals("", blobDirectory.getUri());
+        assertTrue(blobDirectory.getUri().toString().endsWith("/oak"));
     }
 
     @Test
     public void getContainerName() {
-        assertEquals("", blobDirectory.getContainerName());
+        assertTrue(blobDirectory.getContainerName().contains("oak"));
     }
 
     @Test
     public void getPrefix() {
-        assertEquals("", blobDirectory.getPrefix());
+        assertEquals("oak", blobDirectory.getPrefix());
     }
 
-    @Test
-    public void setMonitorPolicy() {
-    }
-
-    @Test
-    public void setRemoteStoreMonitor() {
-    }
 }
