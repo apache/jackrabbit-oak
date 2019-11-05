@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
@@ -25,7 +26,14 @@ import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.spi.persistence.*;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +41,16 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.fetchByteArray;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescription;
@@ -86,7 +102,7 @@ public class SegmentStoreMigrator implements Closeable  {
         try (JournalFileReader reader = source.getJournalFile().openJournalReader()) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.trim().isEmpty()) {
+                if (StringUtils.isNotBlank(line)) {
                     journal.add(line);
                 }
                 if (!journal.isEmpty() && onlyLastJournalEntry) {
