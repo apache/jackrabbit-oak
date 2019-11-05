@@ -17,22 +17,19 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.models.BlobStorageException;
-
-import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -129,7 +126,7 @@ public class AzureArchiveManagerTest {
 
         // remove the segment 0000 from the second archive
         CloudBlobDirectory dir = container.getDirectoryReference("oak/data00001a.tar");
-        BlobItem segment0000 = dir.listBlobs(new ListBlobsOptions().setPrefix("0000."), null)
+        BlobItem segment0000 = dir.listBlobsStartingWith("0000.")
                         .iterator().next();
         dir.getBlobClient(segment0000.getName()).delete();
         container.getBlockBlobReference("oak/data00001a.tar/closed").delete();

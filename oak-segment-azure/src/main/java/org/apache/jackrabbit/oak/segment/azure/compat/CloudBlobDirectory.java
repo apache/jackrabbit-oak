@@ -96,7 +96,7 @@ public class CloudBlobDirectory {
      * @param dirName name of the sub directory
      * @return a sub directory
      */
-    public CloudBlobDirectory getDirectoryReference(@NotNull final String dirName) {
+    public CloudBlobDirectory getSubDirectory(@NotNull final String dirName) {
         return new CloudBlobDirectory(containerClient, containerName, Paths.get(directory, dirName).toString());
     }
 

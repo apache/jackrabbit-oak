@@ -21,7 +21,6 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.CopyStatusType;
-import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -68,9 +67,11 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     public List<String> listArchives() throws IOException {
         try {
             // TODO OAK-8413: verify
+            List<BlobItem> list = cloudBlobDirectory.listBlobs()
+                    .stream()
+                    .collect(Collectors.toList());
             List<String> archiveNames =
-                    cloudBlobDirectory.listBlobs()
-                            .stream()
+                    list.stream()
                             .filter(blobItem -> Paths.get(blobItem.getName()).getNameCount() > 1)
                             .filter(blobItem -> blobItem.getName().endsWith(".tar"))
                             // TODO OAK-8413: extract to method, explain why to use only a subpath
@@ -98,8 +99,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
      * @return true if the archive is empty (no 0000.* segment)
      */
     private boolean isArchiveEmpty(String archiveName) throws BlobStorageException {
-        PagedIterable<BlobItem> blobs = getDirectory(archiveName).listBlobs(
-                new ListBlobsOptions().setPrefix("0000."), null);
+        PagedIterable<BlobItem> blobs = getDirectory(archiveName).listBlobsStartingWith("0000.");
         return !blobs.iterator().hasNext();
     }
 
@@ -204,7 +204,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
 
     protected CloudBlobDirectory getDirectory(String archiveName) {
-        return cloudBlobDirectory.getDirectoryReference(archiveName);
+        return cloudBlobDirectory.getSubDirectory(archiveName);
     }
 
     private List<BlobClient> getBlobs(String archiveName) {

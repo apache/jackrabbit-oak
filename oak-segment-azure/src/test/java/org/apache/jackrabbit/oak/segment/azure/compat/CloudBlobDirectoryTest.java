@@ -120,8 +120,8 @@ public class CloudBlobDirectoryTest {
     }
 
     @Test
-    public void getDirectoryReference() {
-        CloudBlobDirectory tarDirectory = blobDirectory.getDirectoryReference("data00000a.tar");
+    public void getSubDirectory() {
+        CloudBlobDirectory tarDirectory = blobDirectory.getSubDirectory("data00000a.tar");
         List<BlobItem> list = tarDirectory.listBlobs().stream().collect(Collectors.toList());
 
         assertTrue(list.stream().anyMatch(item -> item.getName().equals("oak/data00000a.tar/data00000a.tar.brf")));
@@ -132,18 +132,23 @@ public class CloudBlobDirectoryTest {
 
     @Test
     public void deleteBlobIfExists() {
+        // Test: no exception thrown
+        blobDirectory.deleteBlobIfExists(blobDirectory.getBlobClient("not-existing-blob"));
     }
 
     @Test
     public void getUri() {
+        assertEquals("", blobDirectory.getUri());
     }
 
     @Test
     public void getContainerName() {
+        assertEquals("", blobDirectory.getContainerName());
     }
 
     @Test
     public void getPrefix() {
+        assertEquals("", blobDirectory.getPrefix());
     }
 
     @Test

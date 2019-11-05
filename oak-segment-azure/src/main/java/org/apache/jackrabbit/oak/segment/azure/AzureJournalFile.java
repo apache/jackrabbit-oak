@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlobClientBase;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
@@ -89,7 +88,7 @@ public class AzureJournalFile implements JournalFile {
 
     private List<AppendBlobClient> getJournalBlobs() {
         return directory
-                .listBlobs(new ListBlobsOptions().setPrefix(journalNamePrefix), null)
+                .listBlobsStartingWith(journalNamePrefix)
                 .stream()
                 .map(directory::getBlobClientAbsolute)
                 .map(BlobClient::getAppendBlobClient)

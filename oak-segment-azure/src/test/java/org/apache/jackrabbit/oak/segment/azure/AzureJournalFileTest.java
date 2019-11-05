@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.BlobType;
-import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -74,7 +73,7 @@ public class AzureJournalFileTest {
 
     private int countJournalBlobs() {
         return (int) container.getDirectoryReference("journal")
-                .listBlobs(new ListBlobsOptions().setPrefix("journal.log"), null)
+                .listBlobsStartingWith("journal.log")
                 .stream()
                 .filter(blobItem -> blobItem.getProperties().getBlobType() == BlobType.APPEND_BLOB)
                 .count();
