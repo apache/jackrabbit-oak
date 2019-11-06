@@ -16,14 +16,17 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.util;
 
-import org.jetbrains.annotations.NotNull;
-
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.*;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.ACCOUNT_KEY;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.BLOB_ENDPOINT;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.CONTAINER_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.DEFAULT_ENDPOINTS_PROTOCOL;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.AzureConnectionKey.DIRECTORY;
 
 /**
  * Utility class for parsing Oak Segment Azure configuration (e.g. connection
@@ -94,7 +97,16 @@ public class AzureConfigurationParserUtils {
      *         <b>containerName</b> and <b>dir</b> (key names in bold)
      */
     public static Map<String, String> parseAzureConfigurationFromCustomConnection(String conn) {
-        Map<AzureConnectionKey, String> tempConfig = parseAzureConnectionString(conn);
+        Map<AzureConnectionKey, String> tempConfig = new HashMap<>();
+
+        String[] connKeys = conn.split(";");
+        for (AzureConnectionKey key : AzureConnectionKey.values()) {
+            for (String connKey : connKeys) {
+                if (connKey.toLowerCase().startsWith(key.text().toLowerCase())) {
+                    tempConfig.put(key, connKey.substring(connKey.indexOf("=") + 1));
+                }
+            }
+        }
 
         StringBuilder connectionString = new StringBuilder();
         connectionString.append(DEFAULT_ENDPOINTS_PROTOCOL.text()).append("=").append(tempConfig.get(DEFAULT_ENDPOINTS_PROTOCOL)).append(";");
@@ -107,21 +119,6 @@ public class AzureConfigurationParserUtils {
         config.put(KEY_CONTAINER_NAME, tempConfig.get(CONTAINER_NAME));
         config.put(KEY_DIR, tempConfig.get(DIRECTORY));
         return config;
-    }
-
-    @NotNull
-    public static Map<AzureConnectionKey, String> parseAzureConnectionString(String conn) {
-        Map<AzureConnectionKey, String> tempConfig = new HashMap<>();
-
-        String[] connKeys = conn.split(";");
-        for (AzureConnectionKey key : AzureConnectionKey.values()) {
-            for (String connKey : connKeys) {
-                if (connKey.toLowerCase().startsWith(key.text().toLowerCase())) {
-                    tempConfig.put(key, connKey.substring(connKey.indexOf("=") + 1));
-                }
-            }
-        }
-        return tempConfig;
     }
 
     /**
