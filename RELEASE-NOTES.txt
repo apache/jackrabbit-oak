@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.4.26
+Release Notes -- Apache Jackrabbit Oak -- Version 1.4.25
 
 Introduction
 ------------
@@ -7,27 +7,22 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.4.26 is a patch release that contains fixes and
+Jackrabbit Oak 1.4.25 is a patch release that contains fixes and
 improvements over Oak 1.4. Jackrabbit Oak 1.4.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
+Note that an "end of life" date has already been planned for this branch. See
+<https://jackrabbit.apache.org/oak/docs/roadmap.html> for details.
 
-Changes in Oak 1.4.26
+
+Changes in Oak 1.4.25
 ---------------------
 
-Bug
+(TICKETS GO HERE)
 
-    [OAK-8012] - Unmerged branch changes visible after restart
-    [OAK-8123] - Build failure with Maven 3.6.0
-    [OAK-8133] - Word SHA1 no longer allowed
-
-Test
-
-    [OAK-5027] - Test utils for commonly used functionality
-    [OAK-8353] - Additional test for OAK-8012
     
 In addition to the above-mentioned changes, this release contains
 all changes included up to the Apache Jackrabbit Oak 1.4.x release.
