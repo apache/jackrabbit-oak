@@ -1,4 +1,3 @@
-
 Release Notes -- Apache Jackrabbit Oak -- Version 1.0.43
 
 Introduction
@@ -25,9 +24,8 @@ Changes in Oak 1.0.43
 (TICKETS GO HERE)
 
 
-    
 In addition to the above-mentioned changes, this release contains
-all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
+all changes included in previous Apache Jackrabbit Oak 1.0.x release.
 
 Please note, the backported RDB support for the DocumentNodeStore is considered
 experimental at this point and is not yet ready for production use. Feel free 
