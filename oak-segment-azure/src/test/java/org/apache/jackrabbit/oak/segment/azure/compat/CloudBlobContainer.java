@@ -25,8 +25,6 @@ import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.file.Paths;
-
 public class CloudBlobContainer {
     private final BlobContainerClient containerClient;
     private final String containerName;
@@ -67,11 +65,7 @@ public class CloudBlobContainer {
     }
 
     public BlobClient getBlobReference(@NotNull final String path) {
-        String dirName = Paths.get(path).toFile().getParentFile().toString();
-        String blobName = Paths.get(path).getFileName().toString();
-        return null == dirName ?
-                containerClient.getBlobClient(blobName) :
-                getDirectoryReference(dirName).getBlobClient(blobName);
+        return containerClient.getBlobClient(path);
     }
 
     public BlockBlobClient getBlockBlobReference(@NotNull final String path) {
