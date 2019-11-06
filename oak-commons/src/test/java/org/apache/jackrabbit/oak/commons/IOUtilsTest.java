@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
+import com.google.common.collect.Lists;
+import junit.framework.TestCase;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,8 +31,7 @@ import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.collect.Lists;
-import junit.framework.TestCase;
+import static org.apache.commons.io.FileUtils.writeByteArrayToFile;
 
 /**
  * Test the utility classes.
@@ -400,6 +400,14 @@ public class IOUtilsTest extends TestCase {
         assertEquals("0", IOUtils.humanReadableByteCount(Long.MIN_VALUE));
     }
 
+    public void addTrailingSlash() throws IOException {
+        assertEquals("foo/", IOUtils.addTrailingSlash("foo"));
+        assertEquals("foo/", IOUtils.addTrailingSlash("foo/"));
+        assertEquals("foo/bar", IOUtils.addTrailingSlash("foo/bar"));
+        assertEquals("foo/bar/", IOUtils.addTrailingSlash("foo/bar/"));
+        assertEquals("/", IOUtils.addTrailingSlash("/"));
+    }
+
     private static void testVarInt(int x, int expectedLen) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         IOUtils.writeVarInt(out, x);
@@ -456,5 +464,6 @@ public class IOUtilsTest extends TestCase {
             assertEquals(expected[i], got[i]);
         }
     }
+
 
 }

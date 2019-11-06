@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;
@@ -393,5 +395,17 @@ public final class IOUtils {
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         char pre = "kMGTPE".charAt(exp - 1);
         return String.format(Locale.ENGLISH, "%.1f %sB", bytes / Math.pow(unit, exp), pre);
+    }
+
+    /**
+     * Adds a trailing slash, unless there one already.
+     * @param path path to change
+     * @return new string with trailing slash
+     */
+    @NotNull
+    public static String addTrailingSlash(String path) {
+        return path.endsWith("/")
+                ? path
+                : path + "/";
     }
 }
