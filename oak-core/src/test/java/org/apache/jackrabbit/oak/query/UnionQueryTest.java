@@ -64,6 +64,9 @@ public class UnionQueryTest extends AbstractQueryTest {
         t = t.addChild("d");
         t = t.addChild("e");
 
+        Tree t2 = root.getTree("/").addChild("UnionQueryTest2");
+        t2 = t2.addChild("a");
+
         root.commit();
     }
 
@@ -72,6 +75,52 @@ public class UnionQueryTest extends AbstractQueryTest {
         // Remove test tree
         root.getTree("/UnionQueryTest").remove();
         root.commit();
+    }
+
+    @Test
+    public void testMergeSortedVsConcat() throws  Exception {
+        String left = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest2')";
+        String right = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest/a')";
+        String order = "ORDER BY [jcr:path]";
+        String union = String.format("%s UNION %s %s", left, right, order);
+        final int limit = 10;
+        final int offset = 0;
+        // Execute query with ORDER BY clause - This should use mergeSorted and the final result should be sorted across both the subqueries.
+        String[] expected = {
+                "/UnionQueryTest/a/b",
+                "/UnionQueryTest/a/b/c",
+                "/UnionQueryTest/a/b/c/d",
+                "/UnionQueryTest/a/b/c/d/e",
+                "/UnionQueryTest2/a"
+        };
+
+        Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset,
+                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+        int i = 0;
+        for (ResultRow rr: result.getRows()) {
+            assertEquals(rr.getPath(), expected[i++]);
+
+        }
+
+        // Now we execute the same union query without the order by clause. Expectation is the subqueries results should simply be concatenated without
+        // sorting of the overall result
+        String[] expected2 = {
+                "/UnionQueryTest2/a",
+                "/UnionQueryTest/a/b",
+                "/UnionQueryTest/a/b/c",
+                "/UnionQueryTest/a/b/c/d",
+                "/UnionQueryTest/a/b/c/d/e"
+        };
+
+        union = String.format("%s UNION %s", left, right);
+
+        result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset,
+                QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+         i = 0;
+        for (ResultRow rr: result.getRows()) {
+            assertEquals(rr.getPath(), expected2[i++]);
+        }
+
     }
 
     @Test
