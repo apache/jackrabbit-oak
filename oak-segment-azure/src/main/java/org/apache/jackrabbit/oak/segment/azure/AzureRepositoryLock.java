@@ -75,7 +75,7 @@ public class AzureRepositoryLock implements RepositoryLock {
                 leaseId = blobLeaseClient.acquireLease(INTERVAL);
 
                 log.info("Acquired lease {}", leaseId);
-            } catch (BlobStorageException e) {
+            } catch (BlobStorageException | IOException e) {
                 if (ex == null) {
                     log.info("Can't acquire the lease. Retrying every 1s. Timeout is set to {}s.", timeoutSec);
                 }
