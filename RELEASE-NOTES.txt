@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.2.31
+Release Notes -- Apache Jackrabbit Oak -- Version 1.2.32
 
 Introduction
 ------------
@@ -7,33 +7,25 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.2.31 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.2.32 is a patch release that contains fixes and
 improvements over Oak 1.2. Jackrabbit Oak 1.2.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.2.31
+Note that an "end of life" date has already been planned for this branch. See
+<https://jackrabbit.apache.org/oak/docs/roadmap.html> for details.
+
+
+Changes in Oak 1.2.32
 ---------------------
 
-Bug
-
-    [OAK-7935] - RDB*Store: createOrUpdate may fail on stale cache
-    when document was removed on different instance
-
-Improvement
-
-    [OAK-7925] - OakUpgrade for RDBMK: user name and password must
-    match
-
-Task
-
-    [OAK-7868] - Update Oak 1.4 and 1.2 to Jackrabbit 2.12.10
+(RELEASE NOTES GO HERE)
 
 
 In addition to the above-mentioned changes, this release contains
-all changes included up to the Apache Jackrabbit Oak 1.2.28 release.
+all changes included up to the previous Apache Jackrabbit Oak 1.2.* release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
