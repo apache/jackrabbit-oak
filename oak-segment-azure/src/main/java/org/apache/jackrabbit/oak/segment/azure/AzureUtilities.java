@@ -86,7 +86,7 @@ public final class AzureUtilities {
                 .endpoint(String.format("https://%s", host))
                 .buildClient()
                 .getBlobContainerClient(containerName);
-        return new CloudBlobDirectory(client, containerName, dir);
+        return new CloudBlobDirectory(client, dir);
     }
 
     public static String extractContainerName(URI uri) {
@@ -96,7 +96,7 @@ public final class AzureUtilities {
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
                                                             String dir) throws BlobStorageException {
         BlobContainerClient containerClient = getContainerClient(connection, containerName);
-        return new CloudBlobDirectory(containerClient, containerName, dir);
+        return new CloudBlobDirectory(containerClient, dir);
     }
 
     @NotNull

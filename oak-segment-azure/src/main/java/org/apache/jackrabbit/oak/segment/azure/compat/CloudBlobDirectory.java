@@ -49,16 +49,13 @@ public class CloudBlobDirectory {
     private static Logger LOG = LoggerFactory.getLogger(CloudBlobDirectory.class);
 
     private final BlobContainerClient containerClient;
-    private final String containerName;
     private final String directory;
 
     private AzureStorageMonitorPolicy storageMonitorPolicy = null;
 
     public CloudBlobDirectory(@NotNull final BlobContainerClient containerClient,
-                              @NotNull final String containerName,
                               @NotNull final String directory) {
         this.containerClient = containerClient;
-        this.containerName = containerName;
         this.directory = directory;
     }
 
@@ -133,7 +130,7 @@ public class CloudBlobDirectory {
      * @return a sub directory
      */
     public CloudBlobDirectory getSubDirectory(@NotNull final String dirName) {
-        return new CloudBlobDirectory(containerClient, containerName, Paths.get(directory, dirName).toString());
+        return new CloudBlobDirectory(containerClient, Paths.get(directory, dirName).toString());
     }
 
     public void deleteBlobIfExists(BlobClient blob) {
@@ -158,7 +155,7 @@ public class CloudBlobDirectory {
     }
 
     public String getContainerName() {
-        return containerName;
+        return containerClient.getBlobContainerName();
     }
 
     /**

@@ -96,11 +96,9 @@ public class AzureSegmentStoreService {
                 path = path.substring(1);
             }
 
-            CloudBlobDirectory directory = new CloudBlobDirectory(containerClient, configuration.containerName(), path);
+            CloudBlobDirectory directory = new CloudBlobDirectory(containerClient,  path);
             directory.setMonitorPolicy(monitorPolicy);
-            AzurePersistence persistence = new AzurePersistence(directory);
-
-            return persistence;
+            return  new AzurePersistence(directory);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }

@@ -61,7 +61,7 @@ public class CloudBlobContainer {
     }
 
     public CloudBlobDirectory getDirectoryReference(@NotNull final String directoryName) {
-        return new CloudBlobDirectory(containerClient, containerName, directoryName);
+        return new CloudBlobDirectory(containerClient, directoryName);
     }
 
     public BlobClient getBlobReference(@NotNull final String path) {

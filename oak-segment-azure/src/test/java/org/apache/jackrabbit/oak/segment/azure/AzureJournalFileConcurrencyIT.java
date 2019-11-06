@@ -43,15 +43,14 @@ public class AzureJournalFileConcurrencyIT {
     private static int suffix;
 
     private AzurePersistence persistence;
-    private static String containerName;
 
     @BeforeClass
     public static void connectToAzure() throws URISyntaxException, InvalidKeyException, BlobStorageException {
         String azureConnectionString = System.getenv("AZURE_CONNECTION");
         Assume.assumeNotNull(azureConnectionString);
 
-        containerName = "oak-test-" + System.currentTimeMillis();
-         container = new BlobServiceClientBuilder()
+        String containerName = "oak-test-" + System.currentTimeMillis();
+        container = new BlobServiceClientBuilder()
                 .connectionString(azureConnectionString)
                 .buildClient()
                 .getBlobContainerClient(containerName);
@@ -63,7 +62,7 @@ public class AzureJournalFileConcurrencyIT {
     @Before
     public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException, IOException, InterruptedException {
         String directoryName = "oak-" + (suffix++);
-        persistence = new AzurePersistence(new CloudBlobDirectory(container, containerName, directoryName));
+        persistence = new AzurePersistence(new CloudBlobDirectory(container, directoryName));
         writeJournalLines(300, 0);
         log.info("Finished writing initial content to journal!");
     }
@@ -85,7 +84,7 @@ public class AzureJournalFileConcurrencyIT {
                 while (!stop.get()) {
                     writeJournalLines(300, 100);
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 exContainer.set(e);
                 stop.set(true);
             }
