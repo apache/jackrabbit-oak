@@ -21,7 +21,7 @@ Note that an "end of life" date has already been planned for this branch. See
 Changes in Oak 1.2.32
 ---------------------
 
-(RELEASE NOTES GO HERE)
+(TICKETS GO HERE)
 
 
 In addition to the above-mentioned changes, this release contains
