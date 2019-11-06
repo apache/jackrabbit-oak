@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.segment.azure.journal;
 
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.AppendBlobClient;
-import com.google.common.base.Charsets;
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.ReverseFileReader;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
@@ -28,6 +26,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -55,35 +54,37 @@ public class ReverseFileReaderTest {
 
     @Test
     public void testReverseReader() throws IOException, URISyntaxException, BlobStorageException {
-        List<String> entries = createFile( 1024, 80);
+        List<String> entries = createFile(1024, 80);
         ReverseFileReader reader = new ReverseFileReader(getBlob(), 256);
         assertEquals(entries, reader);
     }
 
     @Test
     public void testEmptyFile() throws IOException, URISyntaxException, BlobStorageException {
-        List<String> entries = createFile( 0, 80);
+        List<String> entries = createFile(0, 80);
         ReverseFileReader reader = new ReverseFileReader(getBlob(), 256);
         assertEquals(entries, reader);
     }
 
     @Test
     public void test1ByteBlock() throws IOException, URISyntaxException, BlobStorageException {
-        List<String> entries = createFile( 10, 16);
+        List<String> entries = createFile(10, 16);
         ReverseFileReader reader = new ReverseFileReader(getBlob(), 1);
         assertEquals(entries, reader);
     }
 
 
-    private List<String> createFile(int lines, int maxLineLength) throws URISyntaxException, BlobStorageException {
+    private List<String> createFile(int lines, int maxLineLength) throws URISyntaxException, BlobStorageException, IOException {
         Random random = new Random();
         List<String> entries = new ArrayList<>();
         AppendBlobClient blob = getBlob();
         for (int i = 0; i < lines; i++) {
             int entrySize = random.nextInt(maxLineLength) + 1;
             String entry = randomString(entrySize);
-            String toAppend = entry + '\n';
-            blob.appendBlock(IOUtils.toInputStream(toAppend, Charsets.UTF_8), entry.length());
+            byte[] data = (entry + '\n').getBytes();
+            try (ByteArrayInputStream input = new ByteArrayInputStream(data)) {
+                blob.appendBlock(input, data.length);
+            }
             entries.add(entry);
         }
 

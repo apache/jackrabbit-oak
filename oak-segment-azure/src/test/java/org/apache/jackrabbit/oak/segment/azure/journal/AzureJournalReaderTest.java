@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.azure.journal;
 
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.AppendBlobClient;
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzureJournalFile;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.oak.segment.file.JournalReaderTest;
 import org.junit.Before;
 import org.junit.ClassRule;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -47,7 +47,10 @@ public class AzureJournalReaderTest extends JournalReaderTest {
     protected JournalReader createJournalReader(String s) throws IOException {
         AppendBlobClient blob = container.getAppendBlobReference("journal/journal.log.001");
         blob.create();
-        blob.appendBlock(IOUtils.toBufferedInputStream(IOUtils.toInputStream(s, StandardCharsets.UTF_8)), s.length());
+        byte[] data = s.getBytes(StandardCharsets.UTF_8);
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
+            blob.appendBlock(inputStream, data.length);
+        }
         return new JournalReader(new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log"));
     }
 }
