@@ -41,9 +41,7 @@ import java.time.Duration;
 /**
  * Represents a virtual directory of blobs, designated by a delimiter character.
  * <p>
- * TODO OAK-8413: verify
- * <p>
- * Implements the same interface as the azure-storage-java v8 (https://azure.github.io/azure-storage-java/com/microsoft/azure/storage/blob/CloudBlobDirectory.html)
+ * Inspired by azure-storage-java v8 (https://azure.github.io/azure-storage-java/com/microsoft/azure/storage/blob/CloudBlobDirectory.html)
  */
 public class CloudBlobDirectory {
     private static Logger LOG = LoggerFactory.getLogger(CloudBlobDirectory.class);
