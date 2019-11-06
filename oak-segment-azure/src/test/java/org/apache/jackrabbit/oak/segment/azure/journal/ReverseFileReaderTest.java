@@ -29,7 +29,6 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,7 +42,7 @@ public class ReverseFileReaderTest {
     private CloudBlobContainer container;
 
     @Before
-    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException {
+    public void setup() throws BlobStorageException, URISyntaxException {
         container = azurite.getContainer("oak-test");
         getBlob().create();
     }

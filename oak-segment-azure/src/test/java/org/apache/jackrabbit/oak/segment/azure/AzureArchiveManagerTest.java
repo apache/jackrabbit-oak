@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
-import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -127,10 +126,8 @@ public class AzureArchiveManagerTest {
         fs.close();
 
         // remove the segment 0000 from the second archive
-        CloudBlobDirectory dir = container.getDirectoryReference("oak/data00001a.tar");
-        BlobItem segment0000 = dir.listBlobsStartingWith("0000.")
-                        .iterator().next();
-        dir.getBlobClientAbsolute(segment0000).delete();
+        BlobClient segment0000 = container.getDirectoryReference("oak/data00001a.tar").listBlobClientsStartingWith("0000.").iterator().next();
+        segment0000.delete();
         container.getBlockBlobReference("oak/data00001a.tar/closed").delete();
 
         fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();

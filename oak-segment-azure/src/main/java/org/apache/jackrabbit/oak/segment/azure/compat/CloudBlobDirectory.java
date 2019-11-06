@@ -71,8 +71,14 @@ public class CloudBlobDirectory {
                         // TODO OAK-8413: verify after development
                         .setDetails(new BlobListDetails().setRetrieveMetadata(true))
                 , null);
-
     }
+
+    public Stream<BlobClient> listBlobClientsStartingWith(String filePrefix) {
+        return this.listBlobsStartingWith(filePrefix)
+                .stream()
+                .map(this::getBlobClientAbsolute);
+    }
+
 
     /**
      * Get the files and directories in this directory.
@@ -165,6 +171,14 @@ public class CloudBlobDirectory {
         return directory;
     }
 
+    /**
+     * @return the name of the directory *only*
+     */
+    public String getFilename() {
+        return Paths.get(getPrefix()).getFileName().toString();
+
+    }
+
     public void setMonitorPolicy(@NotNull final AzureStorageMonitorPolicy monitorPolicy) {
         this.storageMonitorPolicy = monitorPolicy;
     }
@@ -175,11 +189,4 @@ public class CloudBlobDirectory {
         }
     }
 
-    /**
-     * @return the name of the directory *only*
-     */
-    public String getFilename() {
-        return Paths.get(getPrefix()).getFileName().toString();
-
-    }
 }

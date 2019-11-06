@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlobInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -38,31 +38,41 @@ public class AzureGCJournalFile implements GCJournalFile {
 
     @Override
     public void writeLine(String line) throws IOException {
-        if (!gcJournal.exists()) {
-            gcJournal.create();
+        try {
+            if (!gcJournal.exists()) {
+                gcJournal.create();
+            }
+            byte[] lineBytes = (line + "\n").getBytes();
+            try (ByteArrayInputStream in = new ByteArrayInputStream(lineBytes)) {
+                gcJournal.appendBlock(in, lineBytes.length);
+            }
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
-        byte[] lineBytes = (line + "\n").getBytes();
-        try (ByteArrayInputStream in = new ByteArrayInputStream(lineBytes); BufferedInputStream data = new BufferedInputStream(in)) {
-            gcJournal.appendBlock(data, lineBytes.length);
-        }
-
     }
 
     @Override
     public List<String> readLines() throws IOException {
-        if (!gcJournal.exists()) {
-            return Collections.emptyList();
-        }
-        // TODO OAK-8413: verify try()
-        try (BlobInputStream input = gcJournal.openInputStream()) {
-            return IOUtils.readLines(input, Charset.defaultCharset());
+        try {
+            if (!gcJournal.exists()) {
+                return Collections.emptyList();
+            }
+            try (BlobInputStream input = gcJournal.openInputStream()) {
+                return IOUtils.readLines(input, Charset.defaultCharset());
+            }
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
     }
 
     @Override
     public void truncate() throws IOException {
-        if (gcJournal.exists()) {
-            gcJournal.delete();
+        try {
+            if (gcJournal.exists()) {
+                gcJournal.delete();
+            }
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
     }
 }

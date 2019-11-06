@@ -35,9 +35,6 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
 
-    /**
-     * The  duration of the lease, in seconds
-     */
     private static int INTERVAL = 60;
 
     private final Runnable shutdownHook;
@@ -144,7 +141,6 @@ public class AzureRepositoryLock implements RepositoryLock {
     private void releaseLease() throws IOException {
         try {
             blobLeaseClient.releaseLease();
-
             blob.delete();
             log.info("Released lease {}", leaseId);
             leaseId = null;

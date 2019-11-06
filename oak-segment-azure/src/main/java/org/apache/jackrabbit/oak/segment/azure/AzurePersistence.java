@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
@@ -80,8 +81,13 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public boolean segmentFilesExist() {
-        return segmentstoreDirectory.listItemsInDirectory()
-                .anyMatch(filename -> filename.endsWith(".tar"));
+        try {
+            return segmentstoreDirectory.listItemsInDirectory()
+                    .anyMatch(filename -> filename.endsWith(".tar"));
+        } catch (BlobStorageException e) {
+            log.error("Can't check if the segment archives exists", e);
+            return false;
+        }
     }
 
     @Override
@@ -90,12 +96,12 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     @Override
-    public GCJournalFile getGCJournalFile() {
+    public GCJournalFile getGCJournalFile() throws IOException {
         return new AzureGCJournalFile(getAppendBlob("gc.log"));
     }
 
     @Override
-    public ManifestFile getManifestFile() {
+    public ManifestFile getManifestFile() throws IOException {
         return new AzureManifestFile(getBlockBlob("manifest"));
     }
 
@@ -107,8 +113,12 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         }).lock();
     }
 
-    private BlockBlobClient getBlockBlob(String filename) {
-        return segmentstoreDirectory.getBlobClient(filename).getBlockBlobClient();
+    private BlockBlobClient getBlockBlob(String filename) throws IOException {
+        try {
+            return segmentstoreDirectory.getBlobClient(filename).getBlockBlobClient();
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
+        }
     }
 
     private AppendBlobClient getAppendBlob(String filename) {

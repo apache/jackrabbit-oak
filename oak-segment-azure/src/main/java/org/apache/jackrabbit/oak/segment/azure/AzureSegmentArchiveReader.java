@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -28,7 +29,11 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.Boolean.getBoolean;
@@ -48,7 +53,7 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
 
     private Boolean hasGraph;
 
-    AzureSegmentArchiveReader(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor) {
+    AzureSegmentArchiveReader(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor) throws IOException {
         this.archiveDirectory = archiveDirectory;
         this.ioMonitor = ioMonitor;
         long length = 0;
@@ -142,19 +147,27 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
         return new File(archiveDirectory.getUri().getPath());
     }
 
-    private BlockBlobClient getBlob(String filename) {
-        return archiveDirectory.getBlobClient(filename).getBlockBlobClient();
+    private BlockBlobClient getBlob(String filename) throws IOException {
+        try {
+            return archiveDirectory.getBlobClient(filename).getBlockBlobClient();
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
+        }
     }
 
     private Buffer readBlob(String name) throws IOException {
-        BlockBlobClient blob = getBlob(name);
-        if (!blob.exists()) {
-            return null;
+        try {
+            BlockBlobClient blob = getBlob(name);
+            if (!blob.exists()) {
+                return null;
+            }
+            long length = blob.getProperties().getBlobSize();
+            Buffer buffer = Buffer.allocate((int) length);
+            AzureUtilities.readBufferFully(blob, buffer);
+            return buffer;
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
-        long length = blob.getProperties().getBlobSize();
-        Buffer buffer = Buffer.allocate((int) length);
-        AzureUtilities.readBufferFully(blob, buffer);
-        return buffer;
     }
 
 }

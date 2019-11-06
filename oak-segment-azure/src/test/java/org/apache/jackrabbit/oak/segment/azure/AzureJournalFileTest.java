@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class AzureJournalFileTest {
 
@@ -79,11 +81,10 @@ public class AzureJournalFileTest {
                 .count();
     }
 
-
     private int writeNLines(int index, int n) throws IOException {
         try (JournalFileWriter writer = journal.openJournalWriter()) {
             for (int i = 0; i < n; i++) {
-                writer.writeLine("line " + index++);
+                writer.writeLine("line " + (index++));
             }
         }
         return index;

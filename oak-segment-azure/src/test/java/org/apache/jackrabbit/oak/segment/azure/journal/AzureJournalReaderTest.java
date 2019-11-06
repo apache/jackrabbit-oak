@@ -28,9 +28,7 @@ import org.junit.ClassRule;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
 
 public class AzureJournalReaderTest extends JournalReaderTest {
 
@@ -40,17 +38,25 @@ public class AzureJournalReaderTest extends JournalReaderTest {
     private CloudBlobContainer container;
 
     @Before
-    public void setup() throws BlobStorageException, InvalidKeyException, URISyntaxException, com.azure.storage.blob.models.BlobStorageException {
+    public void setup() throws BlobStorageException {
         container = azurite.getContainer("oak-test");
     }
 
     protected JournalReader createJournalReader(String s) throws IOException {
-        AppendBlobClient blob = container.getAppendBlobReference("journal/journal.log.001");
-        blob.create();
-        byte[] data = s.getBytes(StandardCharsets.UTF_8);
-        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
-            blob.appendBlock(inputStream, data.length);
+        try {
+            AppendBlobClient blob = container.getAppendBlobReference("journal/journal.log.001");
+            blob.create();
+            byte[] data = s.getBytes(StandardCharsets.UTF_8);
+            if (!s.isEmpty()) {
+                // AppendBlob seems not to like empty data. let's avoid that problem for tests.
+                try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
+                    blob.appendBlock(inputStream, data.length);
+                }
+
+            }
+            return new JournalReader(new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log"));
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
-        return new JournalReader(new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log"));
     }
 }

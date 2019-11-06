@@ -24,8 +24,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.junit.Before;
 import org.junit.ClassRule;
 
-import java.io.IOException;
-
 public class AzureTarRevisionsTest extends TarRevisionsTest {
 
     @ClassRule
@@ -40,7 +38,7 @@ public class AzureTarRevisionsTest extends TarRevisionsTest {
     }
 
     @Override
-    protected SegmentNodeStorePersistence getPersistence() throws IOException {
+    protected SegmentNodeStorePersistence getPersistence() {
         return new AzurePersistence(container.getDirectoryReference("oak"));
     }
 }

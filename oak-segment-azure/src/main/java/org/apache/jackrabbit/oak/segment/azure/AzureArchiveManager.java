@@ -81,7 +81,6 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         }
     }
 
-
     /**
      * Check if there's a valid 0000. segment in the archive
      *
@@ -96,7 +95,6 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     @Override
     public SegmentArchiveReader open(String archiveName) throws IOException {
         try {
-            // TODO OAK-8413: verify which exception to throw
             CloudBlobDirectory archiveDirectory = getDirectory(archiveName);
             if (!archiveDirectory.getBlobClient("closed").exists()) {
                 throw new IOException("The archive " + archiveName + " hasn't been closed correctly.");
@@ -120,41 +118,55 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public boolean delete(String archiveName) {
-        // TODO OAK-8413: verify that no error handling is required
-        getBlobs(archiveName).forEach(BlobClient::delete);
-        return true;
+        try {
+            getBlobs(archiveName).forEach(BlobClient::delete);
+            return true;
+        } catch (BlobStorageException | IOException e) {
+            log.error("Can't delete archive {}", archiveName, e);
+            return false;
+        }
     }
 
     @Override
     public boolean renameTo(String from, String to) {
-        CloudBlobDirectory targetDirectory = getDirectory(to);
-        getBlobs(from)
-                .forEach(blobClient -> {
-                    try {
-                        renameBlob(blobClient.getBlockBlobClient(), targetDirectory);
-                    } catch (IOException e) {
-                        log.error("Can't rename segment {}", blobClient.getBlobUrl(), e);
-                    }
-                });
-        return true;
+        try {
+            CloudBlobDirectory targetDirectory = getDirectory(to);
+            getBlobs(from)
+                    .forEach(blobClient -> {
+                        try {
+                            renameBlob(blobClient.getBlockBlobClient(), targetDirectory);
+                        } catch (IOException e) {
+                            log.error("Can't rename segment {}", AzureUtilities.getBlobPath(blobClient), e);
+                        }
+                    });
+            return true;
+        } catch (BlobStorageException | IOException e) {
+            log.error("Can't rename archive {} to {}", from, to, e);
+            return false;
+        }
     }
 
     @Override
-    public void copyFile(String from, String to) {
+    public void copyFile(String from, String to) throws IOException {
         CloudBlobDirectory targetDirectory = getDirectory(to);
         getBlobs(from)
                 .forEach(blobClient -> {
                     try {
                         copyBlob(blobClient.getBlockBlobClient(), targetDirectory);
                     } catch (IOException e) {
-                        log.error("Can't copy segment {}", blobClient.getBlobUrl(), e);
+                        log.error("Can't copy segment {}", AzureUtilities.getBlobPath(blobClient), e);
                     }
                 });
     }
 
     @Override
     public boolean exists(String archiveName) {
-        return !getBlobs(archiveName).isEmpty();
+        try {
+            return !getBlobs(archiveName).isEmpty();
+        } catch (BlobStorageException | IOException e) {
+            log.error("Can't check the existence of {}", archiveName, e);
+            return false;
+        }
     }
 
     @Override
@@ -174,7 +186,10 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             if (length > 0) {
                 try (ByteArrayOutputStream dataStream = new ByteArrayOutputStream((int) length)) {
                     blobClient.download(dataStream);
+
                     entryList.add(new RecoveredEntry(position, uuid, dataStream.toByteArray(), filename));
+                } catch (BlobStorageException e) {
+                    throw new IOException(e);
                 }
             }
         }
@@ -197,13 +212,17 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         return cloudBlobDirectory.getSubDirectory(archiveName);
     }
 
-    private List<BlobClient> getBlobs(String archiveName) {
+    private List<BlobClient> getBlobs(String archiveName) throws IOException {
         return AzureUtilities.getBlobs(getDirectory(archiveName));
     }
 
     private void renameBlob(BlockBlobClient blob, CloudBlobDirectory newParent) throws IOException {
-        copyBlob(blob, newParent);
-        blob.delete();
+        try {
+            copyBlob(blob, newParent);
+            blob.delete();
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
+        }
     }
 
     private void copyBlob(BlockBlobClient blob, CloudBlobDirectory newParent) throws IOException {

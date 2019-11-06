@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.segment.azure;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.osgi.framework.ServiceRegistration;
@@ -68,19 +67,20 @@ public class AzureSegmentStoreService {
 
     private static SegmentNodeStorePersistence createAzurePersistence(Configuration configuration) throws IOException {
         try {
-            BlobServiceClientBuilder blobClientBuilder = new BlobServiceClientBuilder();
-
+            StringBuilder connectionString = new StringBuilder();
             if (configuration.connectionURL() == null || configuration.connectionURL().trim().isEmpty()) {
-                blobClientBuilder.credential(new StorageSharedKeyCredential(configuration.accountName(), configuration.accessKey()));
-                log.info("Account name: '{}'", configuration.accountName());
+                connectionString.append("DefaultEndpointsProtocol=https;");
+                connectionString.append("AccountName=").append(configuration.accountName()).append(';');
+                connectionString.append("AccountKey=").append(configuration.accessKey()).append(';');
             } else {
-                blobClientBuilder.connectionString(configuration.connectionURL());
-                log.info("Connection string: '{}'", configuration.connectionURL());
+                connectionString.append(configuration.connectionURL());
             }
+            log.info("Connection string: '{}'", connectionString.toString());
 
             AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
 
-            BlobContainerClient containerClient = blobClientBuilder
+            BlobContainerClient containerClient = new BlobServiceClientBuilder()
+                    .connectionString(configuration.connectionURL())
                     .endpoint(String.format("https://%s.blob.core.windows.net", configuration.accountName()))
                     .addPolicy(monitorPolicy)
                     .buildClient()
@@ -96,9 +96,10 @@ public class AzureSegmentStoreService {
                 path = path.substring(1);
             }
 
-            CloudBlobDirectory directory = new CloudBlobDirectory(containerClient,  path);
+            CloudBlobDirectory directory = new CloudBlobDirectory(containerClient, path);
             directory.setMonitorPolicy(monitorPolicy);
-            return  new AzurePersistence(directory);
+
+            return new AzurePersistence(directory);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.BlobInputStream;
 import com.azure.storage.blob.specialized.BlobOutputStream;
 import com.azure.storage.blob.specialized.BlockBlobClient;
@@ -39,7 +40,12 @@ public class AzureManifestFile implements ManifestFile {
 
     @Override
     public boolean exists() {
-        return manifestBlob.exists();
+        try {
+            return manifestBlob.exists();
+        } catch (BlobStorageException e) {
+            log.error("Can't check if the manifest exists", e);
+            return false;
+        }
     }
 
     @Override
@@ -48,6 +54,8 @@ public class AzureManifestFile implements ManifestFile {
         if (exists()) {
             try (BlobInputStream inStream = manifestBlob.openInputStream()) {
                 properties.load(inStream);
+            } catch (BlobStorageException e) {
+                throw new IOException(e);
             }
         }
         return properties;
@@ -60,6 +68,8 @@ public class AzureManifestFile implements ManifestFile {
 
         try (BlobOutputStream blobOutputStream = manifestBlob.getBlobOutputStream()) {
             blobOutputStream.write(bos.toByteArray());
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
     }
 }

@@ -20,10 +20,13 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class CloudBlobDirectoryTest {
 
@@ -137,7 +140,9 @@ public class CloudBlobDirectoryTest {
 
     @Test
     public void getUri() {
-        assertTrue(blobDirectory.getUri().toString().endsWith("/oak"));
+        URI uri = blobDirectory.getUri();
+        System.out.println(uri);
+        assertTrue(uri.toString().endsWith("/oak"));
     }
 
     @Test

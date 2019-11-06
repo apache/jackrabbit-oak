@@ -24,6 +24,7 @@ import com.azure.storage.blob.specialized.BlobClientBase;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,35 +59,46 @@ public final class AzureUtilities {
         return Paths.get(blob.getBlobName()).getFileName().toString();
     }
 
-    public static List<BlobClient> getBlobs(CloudBlobDirectory directory) {
-        return directory.listBlobs()
-                .stream()
-                .map(directory::getBlobClientAbsolute)
-                .collect(Collectors.toList());
+    public static List<BlobClient> getBlobs(CloudBlobDirectory directory) throws IOException {
+        try {
+            return directory.listBlobs()
+                    .stream()
+                    .map(directory::getBlobClientAbsolute)
+                    .collect(Collectors.toList());
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
+        }
     }
 
     public static void readBufferFully(BlobClientBase blob, Buffer buffer) throws IOException {
         try (ByteBufferOutputStream stream = new ByteBufferOutputStream(buffer)) {
             blob.download(stream);
             buffer.flip();
+        } catch (BlobStorageException e) {
+            throw new RepositoryNotReachableException(e);
         }
     }
 
-    public static void deleteAllEntries(CloudBlobDirectory directory) {
-        getBlobs(directory).forEach(blob -> directory.deleteBlobIfExists(blob));
+    public static void deleteAllEntries(CloudBlobDirectory directory) throws IOException {
+        getBlobs(directory).forEach(blob -> {
+            try {
+                directory.deleteBlobIfExists(blob);
+            } catch (BlobStorageException e) {
+                log.error("Can't delete blob {}", AzureUtilities.getBlobPath(blob), e);
+            }
+        });
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageSharedKeyCredential credential,
                                                             String uriString, String dir) throws URISyntaxException, BlobStorageException {
         URI uri = new URI(uriString);
-        String host = uri.getHost();
         String containerName = extractContainerName(uri);
-        BlobContainerClient client = new BlobServiceClientBuilder()
+        BlobContainerClient container = new BlobServiceClientBuilder()
                 .credential(credential)
-                .endpoint(String.format("https://%s", host))
+                .endpoint(String.format("https://%s", uri.getHost()))
                 .buildClient()
                 .getBlobContainerClient(containerName);
-        return new CloudBlobDirectory(client, dir);
+        return new CloudBlobDirectory(container, dir);
     }
 
     public static String extractContainerName(URI uri) {
@@ -115,6 +127,18 @@ public final class AzureUtilities {
             containerClient.create();
         }
         return containerClient;
+    }
+
+    /**
+     * @param blobClient blob
+     * @return the absolute path of a blob
+     */
+    public static String getBlobPath(BlobClient blobClient) {
+        try {
+            return new URI(blobClient.getBlobUrl()).getPath();
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     private static class ByteBufferOutputStream extends OutputStream {

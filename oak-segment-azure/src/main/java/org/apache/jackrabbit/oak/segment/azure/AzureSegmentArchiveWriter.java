@@ -87,16 +87,17 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         long lsb = indexEntry.getLsb();
         String segmentFileName = getSegmentFileName(indexEntry);
         BlockBlobClient blob = getBlob(segmentFileName);
-        // TODO OAK-8413: is it really  segmentFileName for ioMonitor?
-        ioMonitor.beforeSegmentWrite(new File(segmentFileName), msb, lsb, size);
+        ioMonitor.beforeSegmentWrite(new File(blob.getBlobName()), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
-
-        try (BlobOutputStream blobOutputStream = blob.getBlobOutputStream()) {
-            blobOutputStream.write(data, offset, size);
+        try {
+            try (BlobOutputStream blobOutputStream = blob.getBlobOutputStream()) {
+                blobOutputStream.write(data, offset, size);
+            }
+            blob.setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
+            ioMonitor.afterSegmentWrite(new File(blob.getBlobName()), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
-        blob.setMetadata(AzureBlobMetadata.toSegmentMetadata(indexEntry));
-        // TODO OAK-8413: is it really  segmentFileName for ioMonitor?
-        ioMonitor.afterSegmentWrite(new File(segmentFileName), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
     }
 
     @Override
@@ -144,6 +145,8 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
     private void writeDataFile(byte[] data, String extension) throws IOException {
         try (BlobOutputStream outputStream = getBlob(getName() + extension).getBlobOutputStream()) {
             outputStream.write(data);
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
         totalLength += data.length;
         monitor.written(data.length);
@@ -167,8 +170,10 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
             q.close();
         }
         try (BlobOutputStream outputStream = getBlob("closed").getBlobOutputStream()) {
-            // write empty array
+            // write empty array to make sure the file exists.
             outputStream.write(new byte[0]);
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
         }
     }
 
@@ -193,7 +198,11 @@ public class AzureSegmentArchiveWriter implements SegmentArchiveWriter {
         return archiveDirectory.getFilename();
     }
 
-    private BlockBlobClient getBlob(String filename) throws BlobStorageException {
-        return archiveDirectory.getBlobClient(filename).getBlockBlobClient();
+    private BlockBlobClient getBlob(String filename) throws IOException {
+        try {
+            return archiveDirectory.getBlobClient(filename).getBlockBlobClient();
+        } catch (BlobStorageException e) {
+            throw new IOException(e);
+        }
     }
 }
