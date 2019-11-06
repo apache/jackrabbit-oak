@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
-import org.apache.jackrabbit.oak.segment.spi.persistence.*;
+import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,12 +80,8 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public boolean segmentFilesExist() {
-        for (BlobItem blobItem : segmentstoreDirectory.listBlobs()) {
-            if (blobItem.getName().endsWith(".tar")) {
-                return true;
-            }
-        }
-        return false;
+        return segmentstoreDirectory.listItemsInDirectory()
+                .anyMatch(filename -> filename.endsWith(".tar"));
     }
 
     @Override

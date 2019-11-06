@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -65,10 +64,6 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     public List<String> listArchives() throws IOException {
         try {
             List<String> archiveNames = cloudBlobDirectory.listItemsInDirectory()
-                    .stream()
-                    // Note that isPrefix() returns null for regular blobs
-                    .filter(b -> Boolean.TRUE.equals(b.isPrefix()))
-                    .map(blobItem -> Paths.get(blobItem.getName()).getFileName().toString())
                     .filter(filename -> filename.endsWith(".tar"))
                     .collect(Collectors.toList());
 

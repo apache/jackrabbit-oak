@@ -25,6 +25,7 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.ListBlobsOptions;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.segment.azure.AzureStorageMonitorPolicy;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.jetbrains.annotations.NotNull;
@@ -37,6 +38,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.stream.Stream;
 
 /**
  * Represents a virtual directory of blobs, designated by a delimiter character.
@@ -75,18 +77,33 @@ public class CloudBlobDirectory {
 
     }
 
-    public PagedIterable<BlobItem> listItemsInDirectory() {
+    /**
+     * Get the files and directories in this directory.
+     *
+     * <p>
+     * E.g. listing a directory containing  a blob 'journal.log' and a 'data00000a.tar' directory
+     * (which contains a blobs '0000.cafe'), will return the following results:
+     *
+     * <ul>
+     * <li>data00000a.tar
+     * <li>journal.log
+     * </ul>
+     *
+     * @return all files and directories
+     */
+    public Stream<String> listItemsInDirectory() {
         // It is important that the prefix ends with a slash:
-        String prefixWithSlash = getPrefix().endsWith("/")
-                ? getPrefix()
-                : getPrefix() + "/";
+        String prefixWithSlash = IOUtils.addTrailingSlash(getPrefix());
 
         return containerClient.listBlobsByHierarchy("/",
                 new ListBlobsOptions().setPrefix(prefixWithSlash)
                         // While "Details" is an optional parameter, Azurite 3.2 complained that it must not be empty.
                         // TODO OAK-8413: verify after development
                         .setDetails(new BlobListDetails().setRetrieveMetadata(true))
-                , null);
+                , null)
+                .stream()
+                // getName() returns the full path with trailing slash. Just use the filename.
+                .map(blobItem -> Paths.get(blobItem.getName()).getFileName().toString());
 
     }
 
