@@ -17,22 +17,9 @@
 
 package org.apache.jackrabbit.oak.fixture;
 
-import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.Collections;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.google.common.base.StandardSystemProperty;
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.Oak;
@@ -43,6 +30,8 @@ import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
+import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
@@ -55,6 +44,17 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.Collections;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
+
 public class SegmentTarFixture extends OakFixture {
 
     private static final Logger log = LoggerFactory.getLogger(SegmentTarFixture.class);
@@ -66,14 +66,14 @@ public class SegmentTarFixture extends OakFixture {
         @Override
         public void notify(@NotNull SegmentId id, @NotNull SegmentNotFoundException snfe) { }
     };
-    
+
     private static final int MB = 1024 * 1024;
     private static final int DEFAULT_TIMEOUT = 60_000;
 
     static class SegmentTarFixtureBuilder {
         private final String name;
         private final File base;
-        
+
         private int maxFileSize;
         private int segmentCacheSize;
         private boolean memoryMapping;
@@ -82,36 +82,36 @@ public class SegmentTarFixture extends OakFixture {
         private String azureConnectionString;
         private String azureContainerName;
         private String azureRootPath;
-        
+
         public static SegmentTarFixtureBuilder segmentTarFixtureBuilder(String name, File directory) {
             return new SegmentTarFixtureBuilder(name, directory);
         }
-        
+
         private SegmentTarFixtureBuilder(String name, File base) {
             this.name = name;
             this.base = base;
         }
-        
+
         public SegmentTarFixtureBuilder withMaxFileSize(int maxFileSize) {
             this.maxFileSize = maxFileSize;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withSegmentCacheSize(int segmentCacheSize) {
             this.segmentCacheSize = segmentCacheSize;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withMemoryMapping(boolean memoryMapping) {
             this.memoryMapping = memoryMapping;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withBlobStore(boolean useBlobStore) {
             this.useBlobStore = useBlobStore;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withDSCacheSize(int dsCacheSize) {
             this.dsCacheSize = dsCacheSize;
             return this;
@@ -123,19 +123,19 @@ public class SegmentTarFixture extends OakFixture {
             this.azureRootPath = azureRootPath;
             return this;
         }
-        
+
         public SegmentTarFixture build() {
             return new SegmentTarFixture(this);
         }
     }
-    
+
     private final File base;
     private final int maxFileSize;
     private final int segmentCacheSize;
     private final boolean memoryMapping;
     private final boolean useBlobStore;
     private final int dsCacheSize;
-    
+
     private final boolean withColdStandby;
     private final int syncInterval;
     private final boolean shareBlobStore;
@@ -149,22 +149,22 @@ public class SegmentTarFixture extends OakFixture {
     private final File parentPath;
 
     private FileStore[] stores;
-    private BlobStoreFixture[] blobStoreFixtures; 
-    
+    private BlobStoreFixture[] blobStoreFixtures;
+
     private StandbyServerSync[] serverSyncs;
     private StandbyClientSync[] clientSyncs;
     private ScheduledExecutorService[] executors;
 
-    private CloudBlobContainer[] containers;
-    
+    private BlobContainerClient[] containers;
+
     public SegmentTarFixture(SegmentTarFixtureBuilder builder) {
         this(builder, false, -1);
     }
-    
+
     public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval) {
         this(builder, withColdStandby, syncInterval, false, false, false);
     }
-    
+
     public SegmentTarFixture(SegmentTarFixtureBuilder builder, boolean withColdStandby, int syncInterval,
             boolean shareBlobStore, boolean oneShotRun, boolean secure) {
         super(builder.name);
@@ -195,7 +195,7 @@ public class SegmentTarFixture extends OakFixture {
                 .withMemoryMapping(memoryMapping);
 
         if (azureConnectionString != null) {
-            CloudBlobDirectory directory = AzureUtilities.cloudBlobDirectoryFrom(azureConnectionString, azureContainerName,azureRootPath);
+            org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory directory = AzureUtilities.cloudBlobDirectoryFrom(azureConnectionString, azureContainerName,azureRootPath, null);
             fileStoreBuilder.withCustomPersistence(new AzurePersistence(directory));
         }
 
@@ -205,10 +205,10 @@ public class SegmentTarFixture extends OakFixture {
             fds.setMinRecordLength(4092);
             fds.init(parentPath.getAbsolutePath());
             blobStore = new DataStoreBlobStore(fds);
-            
+
             fileStoreBuilder.withBlobStore(blobStore);
         }
-        
+
         FileStore fs = fileStoreBuilder.build();
         Oak oak = newOak(SegmentNodeStoreBuilders.builder(fs).build());
         if (blobStore != null) {
@@ -222,9 +222,9 @@ public class SegmentTarFixture extends OakFixture {
     @Override
     public Oak[] setUpCluster(int n, StatisticsProvider statsProvider) throws Exception {
         init(n);
-        
+
         Oak[] cluster = new Oak[n];
-        
+
         for (int i = 0; i < cluster.length; i++) {
             BlobStore blobStore = null;
             if (useBlobStore) {
@@ -235,19 +235,19 @@ public class SegmentTarFixture extends OakFixture {
             FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "primary-" + i));
 
             if (azureConnectionString != null) {
-                ContainerClient container = AzureUtilities.getContainerClient(azureConnectionString, azureContainerName);
+                @NotNull BlobContainerClient container = AzureUtilities.getContainerClient(azureConnectionString, azureContainerName, null);
                 if (! container.exists()) {
                     container.create();
                 }
                 containers[i] = container;
-                CloudBlobDirectory directory = new CloudBlobDirectory(container, azureContainerName, "/primary-" + i);
+                CloudBlobDirectory directory = new CloudBlobDirectory(container,  "/primary-" + i);
                 builder.withCustomPersistence(new AzurePersistence(directory));
             }
 
             if (blobStore != null) {
                 builder.withBlobStore(blobStore);
             }
-            
+
             stores[i] = builder
                     .withMaxFileSize(maxFileSize)
                     .withStatisticsProvider(statsProvider)
@@ -255,11 +255,11 @@ public class SegmentTarFixture extends OakFixture {
                     .withMemoryMapping(memoryMapping)
                     .withStrictVersionCheck(true)
                     .build();
-            
+
             if (withColdStandby) {
                 attachStandby(i, n, statsProvider, blobStore);
             }
-            
+
             cluster[i] = newOak(SegmentNodeStoreBuilders.builder(stores[i]).build());
             if (blobStore != null) {
                 cluster[i].getWhiteboard()
@@ -272,7 +272,7 @@ public class SegmentTarFixture extends OakFixture {
     /**
      * Attaches a standby instance located at index (n+i) in the cluster to the
      * primary located at index i
-     * 
+     *
      * @param i
      *            the primary index
      * @param n
@@ -289,7 +289,7 @@ public class SegmentTarFixture extends OakFixture {
     private void attachStandby(int i, int n, StatisticsProvider statsProvider, BlobStore blobStore)
             throws InvalidFileStoreVersionException, IOException {
         FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "standby-" + i));
-        
+
         if (useBlobStore) {
             if (shareBlobStore) {
                 builder.withBlobStore(blobStore);
@@ -310,7 +310,7 @@ public class SegmentTarFixture extends OakFixture {
             .withMemoryMapping(memoryMapping)
             .withSnfeListener(IGNORE_SNFE)
             .build();
-        
+
         int port = 0;
         try (ServerSocket socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
@@ -323,7 +323,7 @@ public class SegmentTarFixture extends OakFixture {
             .withSecureConnection(secure)
             .build();
         clientSyncs[i] = new StandbyClientSync("127.0.0.1", port, stores[n + i], secure, DEFAULT_TIMEOUT, false, new File(StandardSystemProperty.JAVA_IO_TMPDIR.value()));
-        
+
         if (!oneShotRun) {
             serverSyncs[i].start();
             clientSyncs[i].start();
@@ -337,28 +337,28 @@ public class SegmentTarFixture extends OakFixture {
      * Initializes various arrays holding internal references based on the
      * settings provided (e.g. use data store or not, attach cold standby
      * instance, etc.)
-     * 
+     *
      * @param n
      *            number of primary instances in the cluster
      */
     private void init(int n) {
         int fileStoresLength = n;
         int blobStoresLength = 0;
-        
+
         if (withColdStandby) {
             fileStoresLength = 2 * n;
-            
+
             if (useBlobStore) {
                 if (shareBlobStore) {
                     blobStoresLength = n;
                 } else {
                     blobStoresLength = 2 * n;
                 }
-            } 
-            
+            }
+
             serverSyncs = new StandbyServerSync[n];
             clientSyncs = new StandbyClientSync[n];
-            
+
             if (!oneShotRun) {
                 executors = new ScheduledExecutorService[n];
             }
@@ -367,12 +367,12 @@ public class SegmentTarFixture extends OakFixture {
                 blobStoresLength = n;
             }
         }
-        
+
         stores = new FileStore[fileStoresLength];
         blobStoreFixtures = new BlobStoreFixture[blobStoresLength];
 
         if (azureConnectionString != null) {
-            containers = new CloudBlobContainer[n];
+            containers = new BlobContainerClient[n];
         }
     }
 
@@ -382,22 +382,22 @@ public class SegmentTarFixture extends OakFixture {
             for (StandbyClientSync clientSync : clientSyncs) {
                 clientSync.close();
             }
-            
+
             for (StandbyServerSync serverSync : serverSyncs) {
                 serverSync.close();
             }
-            
+
             if (!oneShotRun) {
                 for (ExecutorService executor : executors) {
                     executor.shutdownNow();
                 }
             }
         }
-        
+
         for (FileStore store : stores) {
             store.close();
         }
-        
+
         if (blobStoreFixtures != null) {
             for (BlobStoreFixture bsf : blobStoreFixtures) {
                 bsf.tearDown();
@@ -405,13 +405,13 @@ public class SegmentTarFixture extends OakFixture {
         }
 
         if (containers != null) {
-            for (ContainerClient container : containers) {
+            for (BlobContainerClient container : containers) {
                 if (container != null) {
                     try {
                         if (container.exists()) {
                             container.delete();
                         }
-                    } catch (StorageException e) {
+                    } catch (BlobStorageException e) {
                         log.error("Can't remove container", e);
                     }
                 }
@@ -436,5 +436,5 @@ public class SegmentTarFixture extends OakFixture {
     public StandbyClientSync[] getClientSyncs() {
         return clientSyncs;
     }
-    
+
 }

@@ -18,22 +18,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -95,14 +79,28 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REFERENCES;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
-import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.DASH;
-import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.HASH;
-import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.filterFiles;
+import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.*;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -798,7 +796,7 @@ public class DataStoreCommandTest {
                 container = container + System.currentTimeMillis();
                 // Create the azure segment container
                 String connectionString = getAzureConnectionString(accessKey, secretKey, container, AZURE_DIR);
-                AzureUtilities.cloudBlobDirectoryFrom(connectionString, container, AZURE_DIR);
+                AzureUtilities.cloudBlobDirectoryFrom(connectionString, container, AZURE_DIR, null);
 
                 // get the azure uri expected by the command
                 storePath = getAzureUri(accessKey, container, AZURE_DIR);
