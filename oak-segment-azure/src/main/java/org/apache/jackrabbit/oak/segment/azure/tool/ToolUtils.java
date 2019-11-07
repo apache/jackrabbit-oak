@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -62,6 +63,8 @@ public class ToolUtils {
     public enum SegmentStoreType {
         TAR("TarMK Segment Store"), AZURE("Azure Segment Store");
 
+        public static final String AZ_PREFIX = "az:";
+
         private String type;
 
         SegmentStoreType(String type) {
@@ -69,12 +72,17 @@ public class ToolUtils {
         }
 
         public String description(String pathOrUri) {
-            String location = pathOrUri;
-            if (pathOrUri.startsWith("az:")) {
-                location = pathOrUri.substring(3);
-            }
-
+            String location = withoutAzPrefix(pathOrUri);
             return type + "@" + location;
+        }
+
+        @NotNull
+        public static String withoutAzPrefix(String location) {
+            if (location.startsWith(AZ_PREFIX)) {
+                return location.substring(AZ_PREFIX.length());
+            } else {
+                return location;
+            }
         }
     }
 
@@ -94,13 +102,13 @@ public class ToolUtils {
         SegmentNodeStorePersistence persistence = null;
 
         switch (storeType) {
-        case AZURE:
-            AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
-            CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3), monitorPolicy);
-            persistence = new AzurePersistence(cloudBlobDirectory).setMonitorPolicy(monitorPolicy);
-            break;
-        default:
-            persistence = new TarPersistence(new File(pathOrUri));
+            case AZURE:
+                AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
+                CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(SegmentStoreType.withoutAzPrefix(pathOrUri), monitorPolicy);
+                persistence = new AzurePersistence(cloudBlobDirectory).setMonitorPolicy(monitorPolicy);
+                break;
+            default:
+                persistence = new TarPersistence(new File(pathOrUri));
         }
 
         return persistence;
@@ -119,8 +127,8 @@ public class ToolUtils {
         return archiveManager;
     }
 
-    public static CloudBlobDirectory createCloudBlobDirectory(String path, AzureStorageMonitorPolicy monitorPolicy) {
-        Map<String, String> config = parseAzureConfigurationFromUri(path);
+    public static CloudBlobDirectory createCloudBlobDirectory(String uriString, AzureStorageMonitorPolicy monitorPolicy) {
+        Map<String, String> config = parseAzureConfigurationFromUri(uriString);
 
         String accountName = config.get(KEY_ACCOUNT_NAME);
         String key = System.getenv("AZURE_SECRET_KEY");
@@ -142,7 +150,7 @@ public class ToolUtils {
             return AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir, monitorPolicy);
         } catch (URISyntaxException | BlobStorageException e) {
             throw new IllegalArgumentException(
-                    "Could not connect to the Azure Storage. Please verify the path provided!");
+                    "Could not connect to the Azure Storage. Please verify the uri provided!");
         }
     }
 
