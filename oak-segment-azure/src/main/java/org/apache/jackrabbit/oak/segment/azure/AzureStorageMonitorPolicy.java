@@ -19,34 +19,55 @@
 
 package org.apache.jackrabbit.oak.segment.azure;
 
-import java.util.concurrent.TimeUnit;
-
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
 import com.azure.core.http.HttpResponse;
 import com.azure.core.http.policy.HttpPipelinePolicy;
+import io.netty.handler.codec.http.HttpStatusClass;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
+import java.util.concurrent.TimeUnit;
+
 /**
- * TODO OAK-8413: verify
+ * HttpPipelinePolicy is what we use to hook into the network events.
+ * It gives access to outgoing requests and incoming responses/errors. The metrics are reported
+ * to an instance of {@link RemoteStoreMonitor}
  */
 public class AzureStorageMonitorPolicy implements HttpPipelinePolicy {
     private RemoteStoreMonitor monitor;
 
-    public void setMonitor(@NotNull final RemoteStoreMonitor monitor) {
+    public AzureStorageMonitorPolicy setMonitor(@NotNull final RemoteStoreMonitor monitor) {
         this.monitor = monitor;
+        return this;
     }
 
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
         long start = System.currentTimeMillis();
         return next.process()
-                .doOnNext(rsp -> {
-                    monitor.requestDuration(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
-                    monitor.requestCount();
+                // OnSuccess also includes 5xx responses (which did not throw an exception)
+                .doOnSuccess(e -> {
+                    HttpStatusClass httpStatusClass = HttpStatusClass.valueOf(e.getStatusCode());
+                    if (httpStatusClass == HttpStatusClass.SUCCESS) {
+                        handleSuccess(start);
+                    } else if (httpStatusClass == HttpStatusClass.CLIENT_ERROR || httpStatusClass == HttpStatusClass.SERVER_ERROR) {
+                        handleError(start);
+                    }
+                    // ignore other codes like redirect and informational.
                 })
-                .doOnError(err -> monitor.requestError());
+                // doOnError handles exceptions thrown from the httpclient.
+                .doOnError(e -> handleError(start));
+    }
+
+    public void handleSuccess(long start) {
+        monitor.requestCount();
+        monitor.requestDuration(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
+    }
+
+    public void handleError(long start) {
+        monitor.requestError();
+        monitor.requestDuration(System.currentTimeMillis() - start, TimeUnit.MILLISECONDS);
     }
 }
