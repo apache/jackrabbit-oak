@@ -50,12 +50,12 @@ public class AzureStorageMonitorPolicy implements HttpPipelinePolicy {
                 // OnSuccess also includes 5xx responses (which did not throw an exception)
                 .doOnSuccess(e -> {
                     HttpStatusClass httpStatusClass = HttpStatusClass.valueOf(e.getStatusCode());
-                    if (httpStatusClass == HttpStatusClass.SUCCESS) {
+                    if (httpStatusClass == HttpStatusClass.SUCCESS || httpStatusClass == HttpStatusClass.REDIRECTION) {
                         handleSuccess(start);
                     } else if (httpStatusClass == HttpStatusClass.CLIENT_ERROR || httpStatusClass == HttpStatusClass.SERVER_ERROR) {
                         handleError(start);
                     }
-                    // ignore other codes like redirect and informational.
+                    // ignore other informational codes .
                 })
                 // doOnError handles exceptions thrown from the httpclient.
                 .doOnError(e -> handleError(start));
