@@ -23,6 +23,7 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -53,9 +54,7 @@ public class AzuriteDockerRule implements TestRule {
         // Creating a unique container ID for each run because there were problems with the container.delete() command.
         String containerName = name + System.currentTimeMillis();
 
-        String connectionString = USE_REAL_AZURE_CONNECTION
-                        ? System.getenv("AZURE_CONNECTION")
-                        : "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:" + getMappedPort() + "/devstoreaccount1;";
+        String connectionString = getConnectionString();
 
 
         BlobContainerClient container = new BlobServiceClientBuilder()
@@ -64,6 +63,13 @@ public class AzuriteDockerRule implements TestRule {
                 .getBlobContainerClient(containerName);
         container.create();
         return CloudBlobContainer.withContainerClient(container, containerName);
+    }
+
+    @NotNull
+    public String getConnectionString() {
+        return USE_REAL_AZURE_CONNECTION
+                            ? System.getenv("AZURE_CONNECTION")
+                            : "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:" + getMappedPort() + "/devstoreaccount1;";
     }
 
 
