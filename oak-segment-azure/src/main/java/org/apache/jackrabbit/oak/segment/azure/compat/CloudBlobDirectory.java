@@ -26,8 +26,6 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageMonitorPolicy;
-import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,8 +48,6 @@ public class CloudBlobDirectory {
 
     private final BlobContainerClient containerClient;
     private final String directory;
-
-    private AzureStorageMonitorPolicy storageMonitorPolicy = null;
 
     public CloudBlobDirectory(@NotNull final BlobContainerClient containerClient,
                               @NotNull final String directory) {
@@ -179,14 +175,5 @@ public class CloudBlobDirectory {
 
     }
 
-    public void setMonitorPolicy(@NotNull final AzureStorageMonitorPolicy monitorPolicy) {
-        this.storageMonitorPolicy = monitorPolicy;
-    }
-
-    public void setRemoteStoreMonitor(@NotNull final RemoteStoreMonitor remoteStoreMonitor) {
-        if (null != storageMonitorPolicy) {
-            storageMonitorPolicy.setMonitor(remoteStoreMonitor);
-        }
-    }
 
 }

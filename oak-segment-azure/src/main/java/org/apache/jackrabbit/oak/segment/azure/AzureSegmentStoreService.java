@@ -97,9 +97,9 @@ public class AzureSegmentStoreService {
             }
 
             CloudBlobDirectory directory = new CloudBlobDirectory(containerClient, path);
-            directory.setMonitorPolicy(monitorPolicy);
 
-            return new AzurePersistence(directory);
+            return new AzurePersistence(directory)
+                    .setMonitorPolicy(monitorPolicy);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }

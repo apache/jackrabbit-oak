@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,9 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
      * That directory contains the tar directories, journals, repo.lock, etc.
      */
     protected final CloudBlobDirectory segmentstoreDirectory;
+
+    @Nullable
+    private AzureStorageMonitorPolicy monitorPolicy;
 
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
         this.segmentstoreDirectory = segmentStoreDirectory;
@@ -125,9 +129,15 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         return segmentstoreDirectory.getBlobClient(filename).getAppendBlobClient();
     }
 
-    // TODO OAK-8413: verify
+    public AzurePersistence setMonitorPolicy(@Nullable AzureStorageMonitorPolicy monitorPolicy) {
+        this.monitorPolicy = monitorPolicy;
+        return this;
+    }
+
     private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-        segmentstoreDirectory.setRemoteStoreMonitor(remoteStoreMonitor);
+        if (monitorPolicy != null) {
+            monitorPolicy.setMonitor(remoteStoreMonitor);
+        }
     }
 
 }

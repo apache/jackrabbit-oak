@@ -23,6 +23,7 @@ import com.azure.storage.common.StorageSharedKeyCredential;
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageMonitorPolicy;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -94,8 +95,9 @@ public class ToolUtils {
 
         switch (storeType) {
         case AZURE:
-            CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3));
-            persistence = new AzurePersistence(cloudBlobDirectory);
+            AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
+            CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(pathOrUri.substring(3), monitorPolicy);
+            persistence = new AzurePersistence(cloudBlobDirectory).setMonitorPolicy(monitorPolicy);
             break;
         default:
             persistence = new TarPersistence(new File(pathOrUri));
@@ -117,7 +119,7 @@ public class ToolUtils {
         return archiveManager;
     }
 
-    public static CloudBlobDirectory createCloudBlobDirectory(String path) {
+    public static CloudBlobDirectory createCloudBlobDirectory(String path, AzureStorageMonitorPolicy monitorPolicy) {
         Map<String, String> config = parseAzureConfigurationFromUri(path);
 
         String accountName = config.get(KEY_ACCOUNT_NAME);
@@ -137,7 +139,7 @@ public class ToolUtils {
         String dir = config.get(KEY_DIR);
 
         try {
-            return AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir);
+            return AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir, monitorPolicy);
         } catch (URISyntaxException | BlobStorageException e) {
             throw new IllegalArgumentException(
                     "Could not connect to the Azure Storage. Please verify the path provided!");

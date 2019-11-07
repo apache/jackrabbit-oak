@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.azure.tool;
 import org.apache.commons.lang.StringUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
+import org.apache.jackrabbit.oak.segment.azure.AzureStorageMonitorPolicy;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
@@ -295,8 +296,8 @@ public class SegmentStoreMigrator implements Closeable  {
             return this;
         }
 
-        public Builder withSource(CloudBlobDirectory dir){
-            this.source = new AzurePersistence(dir);
+        public Builder withSource(CloudBlobDirectory dir, AzureStorageMonitorPolicy monitorPolicy){
+            this.source = new AzurePersistence(dir).setMonitorPolicy(monitorPolicy);
             this.sourceName = storeDescription(SegmentStoreType.AZURE, Paths.get(dir.getContainerName(), dir.getPrefix()).toString());
             return this;
         }
@@ -319,8 +320,8 @@ public class SegmentStoreMigrator implements Closeable  {
             return this;
         }
 
-        public Builder withTarget(CloudBlobDirectory dir) {
-            this.target = new AzurePersistence(dir);
+        public Builder withTarget(CloudBlobDirectory dir, AzureStorageMonitorPolicy monitorPolicy) {
+            this.target = new AzurePersistence(dir).setMonitorPolicy(monitorPolicy);
             this.targetName = storeDescription(SegmentStoreType.AZURE, Paths.get(dir.getContainerName(), dir.getPrefix()).toString());
 
             return this;

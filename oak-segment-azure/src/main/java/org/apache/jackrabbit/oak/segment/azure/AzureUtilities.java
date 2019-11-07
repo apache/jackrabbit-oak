@@ -90,12 +90,14 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageSharedKeyCredential credential,
-                                                            String uriString, String dir) throws URISyntaxException, BlobStorageException {
+                                                            String uriString, String dir, AzureStorageMonitorPolicy monitorPolicy) throws URISyntaxException, BlobStorageException {
         URI uri = new URI(uriString);
         String containerName = extractContainerName(uri);
+
         BlobContainerClient container = new BlobServiceClientBuilder()
                 .credential(credential)
                 .endpoint(String.format("https://%s", uri.getHost()))
+                .addPolicy(monitorPolicy)
                 .buildClient()
                 .getBlobContainerClient(containerName);
         return new CloudBlobDirectory(container, dir);
@@ -106,17 +108,19 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
-                                                            String dir) throws BlobStorageException {
-        BlobContainerClient containerClient = getContainerClient(connection, containerName);
+                                                            String dir, AzureStorageMonitorPolicy monitorPolicy) throws BlobStorageException {
+        BlobContainerClient containerClient = getContainerClient(connection, containerName, monitorPolicy);
         return new CloudBlobDirectory(containerClient, dir);
     }
 
     @NotNull
-    public static BlobContainerClient getContainerClient(String connection, String containerName) {
+    public static BlobContainerClient getContainerClient(String connection, String containerName, AzureStorageMonitorPolicy monitorPolicy) {
+
         BlobContainerClient containerClient;
         try {
             containerClient = new BlobServiceClientBuilder()
                     .connectionString(connection)
+                    .addPolicy(monitorPolicy)
                     .buildClient()
                     .createBlobContainer(containerName);
         } catch (RuntimeException cause) {
