@@ -29,13 +29,12 @@ public class AzureStorageMonitorPolicyTest {
     }
 
     public BlobContainerClient setupClient(String connectionString) {
-        BlobContainerClient container = new BlobServiceClientBuilder()
+        return new BlobServiceClientBuilder()
                 .addPolicy(new AzureStorageMonitorPolicy()
                         .setMonitor(simpleRemoteStoreMonitor))
                 .connectionString(connectionString)
                 .buildClient()
                 .getBlobContainerClient("oak-test");
-        return container;
     }
 
 
