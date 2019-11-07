@@ -17,19 +17,10 @@
 
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.createArchiveManager;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStore;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
-import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.io.Files;
-
 import org.apache.jackrabbit.oak.segment.SegmentCache;
-import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.*;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -42,6 +33,11 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
+import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.*;
 
 /**
  * Perform an offline compaction of an existing Azure Segment Store.
@@ -184,7 +180,7 @@ public class AzureCompact {
             JournalFile journal = persistence.getJournalFile();
             String head;
             try (JournalReader journalReader = new JournalReader(journal)) {
-                head = String.format("%s root %s\n", journalReader.next().getRevision(), System.currentTimeMillis());
+                head = String.format("%s root %s", journalReader.next().getRevision(), System.currentTimeMillis());
             }
 
             try (JournalFileWriter journalWriter = journal.openJournalWriter()) {
