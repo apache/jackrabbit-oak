@@ -18,13 +18,6 @@
  */
 package org.apache.jackrabbit.oak.fixture;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -32,7 +25,6 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.google.common.base.Strings;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzureConstants;
@@ -43,6 +35,13 @@ import org.apache.jackrabbit.oak.blob.cloud.s3.Utils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Extension to {@link DataStoreUtils} to enable S3 / AzureBlob extensions for cleaning and initialization.
@@ -155,8 +154,8 @@ public class DataStoreUtils {
         log.info("deleting container [" + containerName + "]");
         Properties p = new Properties();
         p.putAll(config);
-        ContainerClient container = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils
-                .getBlobContainer(p, containerName);
+        CloudBlobContainer container = org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils
+                .getBlobContainer(org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.Utils.getConnectionString(accountName, accountKey), containerName);
         if (container.exists()) {
             container.delete();
             log.info("container [ " + containerName + "] deleted");
