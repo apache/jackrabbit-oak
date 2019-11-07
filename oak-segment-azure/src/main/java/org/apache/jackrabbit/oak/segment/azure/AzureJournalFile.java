@@ -192,7 +192,8 @@ public class AzureJournalFile implements JournalFile {
                 try (ByteArrayInputStream in = new ByteArrayInputStream(lineBytes)) {
                     currentBlob.appendBlock(in, lineBytes.length);
                 }
-                currentBlob.setMetadata(Collections.singletonMap("lastEntry", line));
+                // The metadata must not contain newlines and not start with a space. trim() asserts both.
+                currentBlob.setMetadata(Collections.singletonMap("lastEntry", line.trim()));
                 blockCount++;
             } catch (BlobStorageException e) {
                 throw new IOException(e);
