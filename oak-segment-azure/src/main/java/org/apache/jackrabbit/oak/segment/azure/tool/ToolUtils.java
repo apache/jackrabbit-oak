@@ -155,7 +155,7 @@ public class ToolUtils {
     }
 
     public static SegmentStoreType storeTypeFromPathOrUri(String pathOrUri) {
-        if (pathOrUri.startsWith("az:")) {
+        if (pathOrUri.startsWith(SegmentStoreType.AZ_PREFIX)) {
             return SegmentStoreType.AZURE;
         }
 
