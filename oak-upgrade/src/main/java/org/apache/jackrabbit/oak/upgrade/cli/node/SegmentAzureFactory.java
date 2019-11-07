@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.node;
 
-import com.azure.storage.blob.models.StorageException;
-import com.azure.storage.common.credentials.SharedKeyCredential;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.common.StorageSharedKeyCredential;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -106,7 +106,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         AzurePersistence azPersistence = null;
         try {
             azPersistence = createAzurePersistence();
-        } catch (StorageException | URISyntaxException | InvalidKeyException e) {
+        } catch (BlobStorageException | URISyntaxException | InvalidKeyException e) {
             throw new IllegalStateException(e);
         }
 
@@ -140,15 +140,15 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         }
     }
 
-    private AzurePersistence createAzurePersistence() throws StorageException, URISyntaxException, InvalidKeyException {
+    private AzurePersistence createAzurePersistence() throws BlobStorageException, URISyntaxException, InvalidKeyException {
         CloudBlobDirectory cloudBlobDirectory = null;
 
         if (accountName != null && uri != null) {
             String key = System.getenv("AZURE_SECRET_KEY");
-            SharedKeyCredential credential = new SharedKeyCredential(accountName, key);
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir);
+            StorageSharedKeyCredential credential = new StorageSharedKeyCredential(accountName, key);
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir, null);
         } else if (connectionString != null && containerName != null) {
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir);
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir, null);
         }
 
         if (cloudBlobDirectory == null) {
@@ -163,7 +163,7 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         AzurePersistence azPersistence = null;
         try {
             azPersistence = createAzurePersistence();
-        } catch (StorageException | URISyntaxException | InvalidKeyException e) {
+        } catch (BlobStorageException | URISyntaxException | InvalidKeyException e) {
             throw new IllegalStateException(e);
         }
 
