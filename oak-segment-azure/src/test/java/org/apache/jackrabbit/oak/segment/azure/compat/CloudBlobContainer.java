@@ -75,4 +75,9 @@ public class CloudBlobContainer {
     public AppendBlobClient getAppendBlobReference(@NotNull final String path) {
         return getBlobReference(path).getAppendBlobClient();
     }
+
+    public BlobContainerClient getContainerClient() {
+        return containerClient;
+    }
+
 }
