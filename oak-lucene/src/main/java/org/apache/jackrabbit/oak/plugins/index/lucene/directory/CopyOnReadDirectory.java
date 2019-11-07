@@ -263,6 +263,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
     }
 
     /**
+     * Close the files _after_ the method returns (asynchronously).
+     * 
      * On close file which are not present in remote are removed from local.
      * CopyOnReadDir is opened at different revisions of the index state
      *
@@ -274,8 +276,6 @@ public class CopyOnReadDirectory extends FilterDirectory {
      * be ensured that any currently opened IndexSearcher does not get affected.
      * The way IndexSearchers get created in IndexTracker it ensures that new searcher
      * pinned to newer revision gets opened first and then existing ones are closed.
-     *
-     *
      */
     @Override
     public void close() throws IOException {

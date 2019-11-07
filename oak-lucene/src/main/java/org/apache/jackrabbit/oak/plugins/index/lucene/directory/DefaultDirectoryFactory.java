@@ -66,7 +66,19 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
                 // (copy from the remote directory to the local directory)
                 // to avoid having to stream it when merging
                 String indexPath = definition.getIndexPath();
-                Directory d = indexCopier.wrapForRead(indexPath, definition, directory, dirName);
+
+                // Here we create a new index directory, because
+                // re-using the existing directory (opened above) would
+                // mean that the directory returned by the method
+                // shares the same OakDirectory instance.
+                // That in turn could result in concurrently changing
+                // the NodeBuilder on close, as d.close() closes the directory
+                // _asynchronously_ (after the method returned).
+                // With newIndexDirectory, the internal OakDirectory is not shared
+                Directory readerDir = newIndexDirectory(definition, builder, dirName);
+                Directory d = indexCopier.wrapForRead(indexPath, definition, readerDir, dirName);
+                
+                // closing is done asynchronously
                 d.close();
             }
             directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName, cowDirectoryTracker);
