@@ -28,13 +28,10 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeTypeFr
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
-import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.text.MessageFormat;
 
 /**
  * Perform a full-copy of repository data at segment level.
@@ -181,7 +178,6 @@ public class SegmentCopy {
 
     public int run() {
         Stopwatch watch = Stopwatch.createStarted();
-        RepositoryLock srcRepositoryLock = null;
 
         SegmentStoreType srcType = storeTypeFromPathOrUri(source);
         SegmentStoreType destType = storeTypeFromPathOrUri(destination);
@@ -199,14 +195,6 @@ public class SegmentCopy {
             printMessage(outWriter, "Source: {0}", srcDescription);
             printMessage(outWriter, "Destination: {0}", destDescription);
 
-            try {
-                srcRepositoryLock = srcPersistence.lockRepository();
-            } catch (Exception e) {
-                throw new Exception(MessageFormat.format(
-                        "Cannot lock source segment store {0} for starting copying process. Giving up!",
-                        srcDescription));
-            }
-
             SegmentStoreMigrator migrator = new SegmentStoreMigrator.Builder()
                     .withSourcePersistence(srcPersistence, srcDescription)
                     .withTargetPersistence(destPersistence, destDescription)
@@ -218,15 +206,6 @@ public class SegmentCopy {
             printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source, destination);
             e.printStackTrace(errWriter);
             return 1;
-        } finally {
-            if (srcRepositoryLock != null) {
-                try {
-                    srcRepositoryLock.unlock();
-                } catch (IOException e) {
-                    printMessage(errWriter, "A problem occured while unlocking source repository {0} ", srcDescription);
-                    e.printStackTrace(errWriter);
-                }
-            }
         }
 
         watch.stop();
