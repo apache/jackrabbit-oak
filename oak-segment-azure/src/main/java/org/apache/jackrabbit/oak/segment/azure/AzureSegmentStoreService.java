@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobStorageException;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.osgi.framework.ServiceRegistration;
@@ -84,13 +85,8 @@ public class AzureSegmentStoreService {
                 containerClient.create();
             }
 
-            String path = configuration.rootPath();
-            if (path != null && path.length() > 0 && path.charAt(0) == '/') {
-                path = path.substring(1);
-            }
-
+            String path = IOUtils.removeLeadingSlash(configuration.rootPath());
             CloudBlobDirectory directory = new CloudBlobDirectory(containerClient, path);
-
             return new AzurePersistence(directory)
                     .setMonitorPolicy(monitorPolicy);
         } catch (BlobStorageException e) {
