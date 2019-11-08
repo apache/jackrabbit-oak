@@ -63,6 +63,7 @@ public class AzuriteDockerRule implements TestRule {
                 : "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:" + getMappedPort() + "/devstoreaccount1;";
 
         BlobServiceClientBuilder blobServiceClientBuilder = new BlobServiceClientBuilder()
+                .addPolicy(new AzureStorageMonitorPolicy())
                 .connectionString(connectionString);
         if (pipelinePolicy != null) {
             blobServiceClientBuilder.addPolicy(pipelinePolicy);
