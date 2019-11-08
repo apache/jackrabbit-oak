@@ -25,9 +25,9 @@ public class AzureStorageMonitorPolicyTest {
     public void setup() throws BlobStorageException {
         simpleRemoteStoreMonitor = new SimpleRemoteStoreMonitor();
 
-        container = azurite.getContainer("oak-test",
-                new AzureStorageMonitorPolicy().setMonitor(simpleRemoteStoreMonitor))
-                .getContainerClient();
+        container = azurite.getContainer("oak-test").getContainerClient();
+
+        AzurePersistence.findAzureStorageMonitorPolicy(container).setMonitor(simpleRemoteStoreMonitor);
     }
 
     @Test

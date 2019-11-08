@@ -91,11 +91,11 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
         return configureRequestOptions(builder)
                 .buildClient()
-                .createBlobContainer(containerName);
+                .getBlobContainerClient(containerName);
     }
 
     @NotNull
-    public static BlobServiceClientBuilder configureRequestOptions(BlobServiceClientBuilder builder) {
+    private static BlobServiceClientBuilder configureRequestOptions(BlobServiceClientBuilder builder) {
         Integer tryTimeout = null;
 
         RetryPolicyType retryPolicyType = RetryPolicyType.FIXED;
@@ -178,15 +178,15 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     }
 
     private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
-        AzureStorageMonitorPolicy monitorPolicy = findAzureStorageMonitorPolicy();
+        AzureStorageMonitorPolicy monitorPolicy = findAzureStorageMonitorPolicy(segmentstoreDirectory.getContainerClient());
         if (monitorPolicy != null) {
             monitorPolicy.setMonitor(remoteStoreMonitor);
         }
     }
 
     @Nullable
-    private AzureStorageMonitorPolicy findAzureStorageMonitorPolicy() {
-        HttpPipeline httpPipeline = segmentstoreDirectory.getContainerClient().getHttpPipeline();
+    static AzureStorageMonitorPolicy findAzureStorageMonitorPolicy(BlobContainerClient containerClient) {
+        HttpPipeline httpPipeline = containerClient.getHttpPipeline();
         for (int i = 0; i < httpPipeline.getPolicyCount(); i++) {
             HttpPipelinePolicy policy = httpPipeline.getPolicy(i);
             if (policy instanceof AzureStorageMonitorPolicy) {

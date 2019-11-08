@@ -18,9 +18,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
-import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobContainer;
@@ -51,10 +49,6 @@ public class AzuriteDockerRule implements TestRule {
     }
 
     public CloudBlobContainer getContainer(String name) {
-        return getContainer(name, new AzureStorageMonitorPolicy());
-    }
-
-    public CloudBlobContainer getContainer(String name, HttpPipelinePolicy pipelinePolicy) {
         // Creating a unique container ID for each run because there were problems with the container.delete() command.
         String containerName = name + System.currentTimeMillis();
 
@@ -62,17 +56,12 @@ public class AzuriteDockerRule implements TestRule {
                 ? System.getenv("AZURE_CONNECTION")
                 : "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:" + getMappedPort() + "/devstoreaccount1;";
 
+        BlobContainerClient container = AzurePersistence.createBlobContainerClient(connectionString, containerName);
 
-        BlobContainerClient container = new BlobServiceClientBuilder()
-                .connectionString(connectionString)
-                .addPolicy(pipelinePolicy)
-                .buildClient()
-                .getBlobContainerClient(containerName);
         container.create();
 
         return CloudBlobContainer.withContainerClient(container, containerName);
     }
-
 
     @Override
     public Statement apply(Statement statement, Description description) {
