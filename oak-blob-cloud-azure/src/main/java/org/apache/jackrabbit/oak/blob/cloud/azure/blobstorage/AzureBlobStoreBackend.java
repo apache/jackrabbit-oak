@@ -818,7 +818,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     headers.setContentDisposition(contentDisposition);
                 }
 
-                String domain = getDirectDownloadBlobStorageDomain();
+                String domain = getDirectDownloadBlobStorageDomain(downloadOptions.isDomainOverrideIgnored());
                 if (null == domain) {
                     throw new NullPointerException("Could not determine domain for direct download");
                 }
@@ -1047,8 +1047,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         return String.format("%s.blob.core.windows.net", accountName);
     }
 
-    private String getDirectDownloadBlobStorageDomain() {
-        String domain = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+    private String getDirectDownloadBlobStorageDomain(boolean ignoreDomainOverride) {
+        String domain = ignoreDomainOverride
+                ? getDefaultBlobStorageDomain()
+                : properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
         if (Strings.isNullOrEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
