@@ -29,15 +29,15 @@ import static org.junit.Assert.assertTrue;
 public class AzurePersistenceRetryTest {
     static {
         // Because the settings are statically written and loaded, they can not be changed between tests.
-        System.getProperties().setProperty("segment.azure.retry.attempts", "4");
-        System.getProperties().setProperty("segment.azure.retry.backoff", "2");
+        System.getProperties().setProperty("segment.azure.retry.attempts", "2");
+        System.getProperties().setProperty("segment.azure.retry.backoff", "3");
     }
 
     @Test
     public void testRetryCount() {
         SimpleRemoteStoreMonitor monitor = runInvalidExecution();
 
-        assertEquals(4, monitor.error);
+        assertEquals(2, monitor.error);
         assertEquals(0, monitor.success);
     }
 
@@ -46,7 +46,9 @@ public class AzurePersistenceRetryTest {
         SimpleRemoteStoreMonitor monitor = runInvalidExecution();
 
         // 4 attempts = 1 original request + 3 retries
-        assertTrue(monitor.totalDurationMs > 3 * 2000);
+        System.out.println("Total delay: " + monitor.totalDurationMs);
+        assertTrue(monitor.totalDurationMs > 3_000);
+        assertTrue(monitor.totalDurationMs < 4_000);
     }
 
     @NotNull
