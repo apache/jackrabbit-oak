@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.BlobClientBase;
 import com.azure.storage.common.StorageSharedKeyCredential;
@@ -113,11 +112,7 @@ public final class AzureUtilities {
 
         BlobContainerClient containerClient;
         try {
-            containerClient = new BlobServiceClientBuilder()
-                    .connectionString(connection)
-                    .addPolicy(new AzureStorageMonitorPolicy())
-                    .buildClient()
-                    .createBlobContainer(containerName);
+            containerClient = AzurePersistence.createBlobContainerClient(connection, containerName);
         } catch (RuntimeException cause) {
             throw new IllegalArgumentException(String.format("Invalid connection string - could not parse '%s'", connection), cause);
         }

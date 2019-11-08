@@ -99,6 +99,14 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
                 .getBlobContainerClient(containerName);
     }
 
+    public static BlobContainerClient createBlobContainerClient(String connectionString, String containerName) {
+        return new BlobServiceClientBuilder()
+                .connectionString(connectionString)
+                .addPolicy(new AzureStorageMonitorPolicy())
+                .buildClient()
+                .createBlobContainer(containerName);
+    }
+
     @Override
     public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
         attachRemoteStoreMonitor(remoteStoreMonitor);
