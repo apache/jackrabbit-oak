@@ -32,7 +32,7 @@ import org.junit.runners.model.Statement;
 public class AzuriteDockerRule implements TestRule {
 
     private static final String IMAGE = "trekawek/azurite";
-    private static final boolean USE_REAL_AZURE_CONNECTION = true;
+    private static final boolean USE_REAL_AZURE_CONNECTION = false;
 
     private final DockerRule wrappedRule;
 
