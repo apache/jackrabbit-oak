@@ -676,7 +676,7 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 
 ### <a name="segment-copy"/> Segment-Copy
 ```
-java -jar oak-run.jar segment-copy [--verbose] SOURCE DESTINATION
+java -jar oak-run.jar segment-copy SOURCE DESTINATION
 ```
 
 The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure Segment Store), saving the resulted Segment Store at `DESTINATION`. 
@@ -686,11 +686,6 @@ Unlike a sidegrade peformed with `oak-upgrade` (see [Repository Migration](#../.
 `DESTINATION` must be a valid path/uri for the resulting Segment Store. 
 Both are specified as `PATH | cloud-prefix:URI`. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
-
-If the `--verbose` option is specified, the command will print detailed progress information messages. 
-These include individual segments being transfered from `SOURCE` to `DESTINATION` at a certain point in time.
-If not specified, progress information messages will be disabled.
-
 
 ### <a name="backup"/> Backup
 
