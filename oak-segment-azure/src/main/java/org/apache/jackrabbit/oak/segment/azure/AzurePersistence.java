@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
@@ -75,6 +77,15 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 //                defaultRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_INTERVAL));
 //            }
 //        }
+    }
+
+    public static BlobContainerClient createBlobContainerClient(AzureStorageMonitorPolicy monitorPolicy, String connectionString, String accountName, String containerName) {
+        return new BlobServiceClientBuilder()
+                        .connectionString(connectionString)
+                        .endpoint(String.format("https://%s.blob.core.windows.net", accountName))
+                        .addPolicy(monitorPolicy)
+                        .buildClient()
+                        .getBlobContainerClient(containerName);
     }
 
     @Override

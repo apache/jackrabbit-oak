@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
@@ -79,17 +78,11 @@ public class AzureSegmentStoreService {
 
             AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
 
-            BlobContainerClient containerClient = new BlobServiceClientBuilder()
-                    .connectionString(configuration.connectionURL())
-                    .endpoint(String.format("https://%s.blob.core.windows.net", configuration.accountName()))
-                    .addPolicy(monitorPolicy)
-                    .buildClient()
-                    .getBlobContainerClient(configuration.containerName());
+            BlobContainerClient containerClient = AzurePersistence.createBlobContainerClient(monitorPolicy, configuration.connectionURL(), configuration.accountName(), configuration.containerName());
 
             if (!containerClient.exists()) {
                 containerClient.create();
             }
-
 
             String path = configuration.rootPath();
             if (path != null && path.length() > 0 && path.charAt(0) == '/') {
