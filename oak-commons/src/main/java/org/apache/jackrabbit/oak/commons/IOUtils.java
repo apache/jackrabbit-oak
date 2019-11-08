@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.commons;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.EOFException;
@@ -399,6 +400,7 @@ public final class IOUtils {
 
     /**
      * Adds a trailing slash, unless there one already.
+     *
      * @param path path to change
      * @return new string with trailing slash
      */
@@ -407,5 +409,21 @@ public final class IOUtils {
         return path.endsWith("/")
                 ? path
                 : path + "/";
+    }
+
+    /**
+     * Remove a leading slash, if there one.
+     *
+     * @param path path to change
+     * @return new string without leading slash
+     */
+    @Nullable
+    public static String removeLeadingSlash(@Nullable String path) {
+        if (path == null) {
+            return null;
+        }
+        return path.startsWith("/")
+                ? path.substring(1)
+                : path;
     }
 }
