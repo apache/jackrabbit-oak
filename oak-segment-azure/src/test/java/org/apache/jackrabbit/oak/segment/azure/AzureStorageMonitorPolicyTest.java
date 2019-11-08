@@ -28,9 +28,7 @@ public class AzureStorageMonitorPolicyTest {
         container = azurite.getContainer("oak-test",
                 new AzureStorageMonitorPolicy().setMonitor(simpleRemoteStoreMonitor))
                 .getContainerClient();
-
     }
-
 
     @Test
     public void testSuccess() {
