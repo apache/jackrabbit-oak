@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
 
@@ -105,8 +106,8 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
         if (RETRY_ATTEMPTS > 0) {
             maxTries = RETRY_ATTEMPTS;
-            retryDelayInMs = (long) RETRY_BACKOFF_SECONDS;
-            maxRetryDelayInMs = (long) RETRY_BACKOFF_SECONDS;
+            retryDelayInMs = TimeUnit.SECONDS.toMillis( RETRY_BACKOFF_SECONDS);
+            maxRetryDelayInMs = retryDelayInMs;
         }
 
         if (TIMEOUT_EXECUTION_SECONDS > 0) {

@@ -63,13 +63,13 @@ public class AzureStorageMonitorPolicyTest {
         container.getProperties();
         container.exists();
 
-        assertTrue(simpleRemoteStoreMonitor.totalDuration > 0);
+        assertTrue(simpleRemoteStoreMonitor.totalDurationMs > 0);
     }
 
-    private static class SimpleRemoteStoreMonitor implements RemoteStoreMonitor {
+    static class SimpleRemoteStoreMonitor implements RemoteStoreMonitor {
         int success;
         int error;
-        int totalDuration;
+        long totalDurationMs;
 
         @Override
         public void requestCount() {
@@ -83,7 +83,7 @@ public class AzureStorageMonitorPolicyTest {
 
         @Override
         public void requestDuration(long duration, TimeUnit timeUnit) {
-            totalDuration += duration;
+            totalDurationMs += timeUnit.toMillis(duration);
         }
     }
 }
