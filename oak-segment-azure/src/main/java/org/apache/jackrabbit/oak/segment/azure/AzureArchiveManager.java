@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +44,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-// TODO OAK-8413: verify error handling
 public class AzureArchiveManager implements SegmentArchiveManager {
 
     private static final Logger log = LoggerFactory.getLogger(AzureSegmentArchiveReader.class);
@@ -60,6 +60,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         this.monitor = fileStoreMonitor;
     }
 
+    @NotNull
     @Override
     public List<String> listArchives() throws IOException {
         try {
@@ -84,7 +85,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     /**
      * Check if there's a valid 0000. segment in the archive
      *
-     * @param archiveName
+     * @param archiveName tar archive directory name (e.g. data00000a.tar)
      * @return true if the archive is empty (no 0000.* segment)
      */
     private boolean isArchiveEmpty(String archiveName) throws BlobStorageException {

@@ -108,7 +108,6 @@ public class AzureRepositoryLock implements RepositoryLock {
                 long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
                 if (timeSinceLastUpdate > INTERVAL / 2) {
                     blobLeaseClient.renewLease();
-                    // TODO OAK-8413: matt used here:    blob.releaseLease(leaseId);
                     lastUpdate = System.currentTimeMillis();
                 }
             } catch (BlobStorageException e) {
