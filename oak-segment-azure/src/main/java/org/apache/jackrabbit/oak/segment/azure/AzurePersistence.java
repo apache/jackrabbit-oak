@@ -24,6 +24,8 @@ import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -34,6 +36,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +50,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     private static int RETRY_BACKOFF_SECONDS = Integer.getInteger("segment.azure.retry.backoff", 5);
 
-    private static int TIMEOUT_EXECUTION = Integer.getInteger("segment.timeout.execution", 30);
+    private static int TIMEOUT_EXECUTION_SECONDS = Integer.getInteger("segment.timeout.execution", 30);
 
     private static int TIMEOUT_INTERVAL = Integer.getInteger("segment.timeout.interval", 1);
 
@@ -60,51 +63,66 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
         this.segmentstoreDirectory = segmentStoreDirectory;
-
-
-        // TODO OAK-8413: add retry handling
-//        BlobRequestOptions defaultRequestOptions = segmentStoreDirectory.getServiceClient().getDefaultRequestOptions();
-//        if (defaultRequestOptions.getRetryPolicyFactory() == null) {
-//            if (RETRY_ATTEMPTS > 0) {
-//                defaultRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(RETRY_BACKOFF_SECONDS), RETRY_ATTEMPTS));
-//            }
-//        }
-//        if (defaultRequestOptions.getMaximumExecutionTimeInMs() == null) {
-//            if (TIMEOUT_EXECUTION > 0) {
-//                defaultRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_EXECUTION));
-//            }
-//        }
-//        if (defaultRequestOptions.getTimeoutIntervalInMs() == null) {
-//            if (TIMEOUT_INTERVAL > 0) {
-//                defaultRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_INTERVAL));
-//            }
-//        }
     }
 
     public static BlobContainerClient createBlobContainerClient(String connectionString, String accountName, String containerName) {
-        return new BlobServiceClientBuilder()
+        BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
                 .connectionString(connectionString)
-                .endpoint(String.format("https://%s.blob.core.windows.net", accountName))
-                .addPolicy(new AzureStorageMonitorPolicy())
+                .endpoint(String.format("https://%s.blob.core.windows.net", accountName));
+
+        return configureRequestOptions(builder)
                 .buildClient()
                 .getBlobContainerClient(containerName);
     }
 
     public static BlobContainerClient createBlobContainerClient(StorageSharedKeyCredential credential, URI uri, String containerName) {
-        return new BlobServiceClientBuilder()
+        BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
                 .credential(credential)
-                .endpoint(String.format("https://%s", uri.getHost()))
-                .addPolicy(new AzureStorageMonitorPolicy())
+                .endpoint(String.format("https://%s", uri.getHost()));
+
+        return configureRequestOptions(builder)
                 .buildClient()
                 .getBlobContainerClient(containerName);
     }
 
     public static BlobContainerClient createBlobContainerClient(String connectionString, String containerName) {
-        return new BlobServiceClientBuilder()
-                .connectionString(connectionString)
-                .addPolicy(new AzureStorageMonitorPolicy())
+        BlobServiceClientBuilder builder = new BlobServiceClientBuilder()
+                .connectionString(connectionString);
+
+        return configureRequestOptions(builder)
                 .buildClient()
                 .createBlobContainer(containerName);
+    }
+
+    @NotNull
+    public static BlobServiceClientBuilder configureRequestOptions(BlobServiceClientBuilder builder) {
+        Integer tryTimeout = null;
+
+        RetryPolicyType retryPolicyType = RetryPolicyType.FIXED;
+        Integer maxTries = null;
+        Long retryDelayInMs = null;
+        Long maxRetryDelayInMs = null;
+
+        if (RETRY_ATTEMPTS > 0) {
+            maxTries = RETRY_ATTEMPTS;
+            retryDelayInMs = (long) RETRY_BACKOFF_SECONDS;
+            maxRetryDelayInMs = (long) RETRY_BACKOFF_SECONDS;
+        }
+
+        if (TIMEOUT_EXECUTION_SECONDS > 0) {
+            tryTimeout = TIMEOUT_EXECUTION_SECONDS;
+        }
+
+        if (TIMEOUT_INTERVAL > 0) {
+            // TODO OAK-8413: there is no API for default request timeout
+        }
+
+        return builder
+                .addPolicy(new AzureStorageMonitorPolicy())
+                .retryOptions(new RequestRetryOptions(
+                        retryPolicyType, maxTries, tryTimeout, retryDelayInMs, maxRetryDelayInMs, null
+                ));
+
     }
 
     @Override
