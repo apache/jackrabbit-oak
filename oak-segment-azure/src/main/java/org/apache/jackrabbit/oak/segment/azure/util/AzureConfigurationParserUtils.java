@@ -148,13 +148,16 @@ public class AzureConfigurationParserUtils {
         int dotPosHost = host.indexOf(".");
 
         String accountName = host.substring(0, dotPosHost);
-        String container = path.substring(0, lastSlashPosPath);
-        String storageUri = scheme + "://" + host + container;
+        // Substring with offset 1 to skip the slash
+        String container = path.substring(1, lastSlashPosPath);
+        String storageUri = scheme + "://" + host + "/" + container;
+        // Substring with offset 1 to skip the slash
         String dir = path.substring(lastSlashPosPath + 1);
 
         config.put(KEY_ACCOUNT_NAME, accountName);
         config.put(KEY_STORAGE_URI, storageUri);
         config.put(KEY_DIR, dir);
+        config.put(KEY_CONTAINER_NAME, container);
 
         return config;
     }

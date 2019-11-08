@@ -16,19 +16,13 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.config;
 
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONNECTION_STRING;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONTAINER_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils;
+import org.junit.Test;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils;
-import org.junit.Test;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.*;
+import static org.junit.Assert.*;
 
 public class AzureConfigurationParserUtilsTest {
 
@@ -82,5 +76,6 @@ public class AzureConfigurationParserUtilsTest {
         assertEquals("myaccount", config.get(KEY_ACCOUNT_NAME));
         assertEquals("https://myaccount.blob.core.windows.net/oak-test", config.get(KEY_STORAGE_URI));
         assertEquals("repository", config.get(KEY_DIR));
+        assertEquals("oak-test", config.get(KEY_CONTAINER_NAME));
     }
 }
