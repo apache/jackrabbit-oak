@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.azure.core.http.HttpPipeline;
+import com.azure.core.http.policy.HttpPipelinePolicy;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -56,11 +58,9 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
      */
     protected final CloudBlobDirectory segmentstoreDirectory;
 
-    @Nullable
-    private AzureStorageMonitorPolicy monitorPolicy;
-
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
         this.segmentstoreDirectory = segmentStoreDirectory;
+
 
         // TODO OAK-8413: add retry handling
 //        BlobRequestOptions defaultRequestOptions = segmentStoreDirectory.getServiceClient().getDefaultRequestOptions();
@@ -81,22 +81,22 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 //        }
     }
 
-    public static BlobContainerClient createBlobContainerClient(AzureStorageMonitorPolicy monitorPolicy, String connectionString, String accountName, String containerName) {
+    public static BlobContainerClient createBlobContainerClient(String connectionString, String accountName, String containerName) {
         return new BlobServiceClientBuilder()
-                        .connectionString(connectionString)
-                        .endpoint(String.format("https://%s.blob.core.windows.net", accountName))
-                        .addPolicy(monitorPolicy)
-                        .buildClient()
-                        .getBlobContainerClient(containerName);
+                .connectionString(connectionString)
+                .endpoint(String.format("https://%s.blob.core.windows.net", accountName))
+                .addPolicy(new AzureStorageMonitorPolicy())
+                .buildClient()
+                .getBlobContainerClient(containerName);
     }
 
-    public static BlobContainerClient createBlobContainerClient(StorageSharedKeyCredential credential, AzureStorageMonitorPolicy monitorPolicy, URI uri, String containerName) {
+    public static BlobContainerClient createBlobContainerClient(StorageSharedKeyCredential credential, URI uri, String containerName) {
         return new BlobServiceClientBuilder()
-                    .credential(credential)
-                    .endpoint(String.format("https://%s", uri.getHost()))
-                    .addPolicy(monitorPolicy)
-                    .buildClient()
-                    .getBlobContainerClient(containerName);
+                .credential(credential)
+                .endpoint(String.format("https://%s", uri.getHost()))
+                .addPolicy(new AzureStorageMonitorPolicy())
+                .buildClient()
+                .getBlobContainerClient(containerName);
     }
 
     @Override
@@ -151,15 +151,23 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         return segmentstoreDirectory.getBlobClient(filename).getAppendBlobClient();
     }
 
-    public AzurePersistence setMonitorPolicy(@Nullable AzureStorageMonitorPolicy monitorPolicy) {
-        this.monitorPolicy = monitorPolicy;
-        return this;
-    }
-
     private void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
+        AzureStorageMonitorPolicy monitorPolicy = findAzureStorageMonitorPolicy();
         if (monitorPolicy != null) {
             monitorPolicy.setMonitor(remoteStoreMonitor);
         }
+    }
+
+    @Nullable
+    private AzureStorageMonitorPolicy findAzureStorageMonitorPolicy() {
+        HttpPipeline httpPipeline = segmentstoreDirectory.getContainerClient().getHttpPipeline();
+        for (int i = 0; i < httpPipeline.getPolicyCount(); i++) {
+            HttpPipelinePolicy policy = httpPipeline.getPolicy(i);
+            if (policy instanceof AzureStorageMonitorPolicy) {
+                return (AzureStorageMonitorPolicy) policy;
+            }
+        }
+        return null;
     }
 
 }

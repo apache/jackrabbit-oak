@@ -175,5 +175,11 @@ public class CloudBlobDirectory {
 
     }
 
+    public BlobContainerClient getContainerClient() {
+        return containerClient;
+    }
+
+
+
 
 }

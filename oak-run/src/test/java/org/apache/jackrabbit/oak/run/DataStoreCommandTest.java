@@ -796,7 +796,7 @@ public class DataStoreCommandTest {
                 container = container + System.currentTimeMillis();
                 // Create the azure segment container
                 String connectionString = getAzureConnectionString(accessKey, secretKey, container, AZURE_DIR);
-                AzureUtilities.cloudBlobDirectoryFrom(connectionString, container, AZURE_DIR, null);
+                AzureUtilities.cloudBlobDirectoryFrom(connectionString, container, AZURE_DIR);
 
                 // get the azure uri expected by the command
                 storePath = getAzureUri(accessKey, container, AZURE_DIR);

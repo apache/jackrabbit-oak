@@ -195,7 +195,7 @@ public class SegmentTarFixture extends OakFixture {
                 .withMemoryMapping(memoryMapping);
 
         if (azureConnectionString != null) {
-            org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory directory = AzureUtilities.cloudBlobDirectoryFrom(azureConnectionString, azureContainerName,azureRootPath, null);
+            org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory directory = AzureUtilities.cloudBlobDirectoryFrom(azureConnectionString, azureContainerName,azureRootPath);
             fileStoreBuilder.withCustomPersistence(new AzurePersistence(directory));
         }
 
@@ -235,7 +235,7 @@ public class SegmentTarFixture extends OakFixture {
             FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "primary-" + i));
 
             if (azureConnectionString != null) {
-                @NotNull BlobContainerClient container = AzureUtilities.getContainerClient(azureConnectionString, azureContainerName, null);
+                @NotNull BlobContainerClient container = AzureUtilities.getContainerClient(azureConnectionString, azureContainerName);
                 if (! container.exists()) {
                     container.create();
                 }

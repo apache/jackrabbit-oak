@@ -45,7 +45,7 @@ public class AzureStorageMonitorPolicy implements HttpPipelinePolicy {
 
     @Override
     public Mono<HttpResponse> process(HttpPipelineCallContext context, HttpPipelineNextPolicy next) {
-        if(this.monitor==null) {
+        if (this.monitor == null) {
             return next.process();
         }
         long start = System.currentTimeMillis();

@@ -90,11 +90,11 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(StorageSharedKeyCredential credential,
-                                                            String uriString, String dir, AzureStorageMonitorPolicy monitorPolicy) throws URISyntaxException, BlobStorageException {
+                                                            String uriString, String dir) throws URISyntaxException, BlobStorageException {
         URI uri = new URI(uriString);
         String containerName = extractContainerName(uri);
 
-        BlobContainerClient container = AzurePersistence.createBlobContainerClient(credential, monitorPolicy, uri, containerName);
+        BlobContainerClient container = AzurePersistence.createBlobContainerClient(credential,  uri, containerName);
         return new CloudBlobDirectory(container, dir);
     }
 
@@ -103,19 +103,19 @@ public final class AzureUtilities {
     }
 
     public static CloudBlobDirectory cloudBlobDirectoryFrom(String connection, String containerName,
-                                                            String dir, AzureStorageMonitorPolicy monitorPolicy) throws BlobStorageException {
-        BlobContainerClient containerClient = getContainerClient(connection, containerName, monitorPolicy);
+                                                            String dir) throws BlobStorageException {
+        BlobContainerClient containerClient = getContainerClient(connection, containerName);
         return new CloudBlobDirectory(containerClient, dir);
     }
 
     @NotNull
-    public static BlobContainerClient getContainerClient(String connection, String containerName, AzureStorageMonitorPolicy monitorPolicy) {
+    public static BlobContainerClient getContainerClient(String connection, String containerName) {
 
         BlobContainerClient containerClient;
         try {
             containerClient = new BlobServiceClientBuilder()
                     .connectionString(connection)
-                    .addPolicy(monitorPolicy)
+                    .addPolicy(new AzureStorageMonitorPolicy())
                     .buildClient()
                     .createBlobContainer(containerName);
         } catch (RuntimeException cause) {

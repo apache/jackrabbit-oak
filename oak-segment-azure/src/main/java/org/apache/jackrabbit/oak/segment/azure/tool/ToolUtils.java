@@ -23,7 +23,6 @@ import com.azure.storage.common.StorageSharedKeyCredential;
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
-import org.apache.jackrabbit.oak.segment.azure.AzureStorageMonitorPolicy;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -45,10 +44,7 @@ import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.*;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 /**
@@ -103,9 +99,8 @@ public class ToolUtils {
 
         switch (storeType) {
             case AZURE:
-                AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
-                CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(SegmentStoreType.withoutAzPrefix(pathOrUri), monitorPolicy);
-                persistence = new AzurePersistence(cloudBlobDirectory).setMonitorPolicy(monitorPolicy);
+                CloudBlobDirectory cloudBlobDirectory = createCloudBlobDirectory(SegmentStoreType.withoutAzPrefix(pathOrUri));
+                persistence = new AzurePersistence(cloudBlobDirectory);
                 break;
             default:
                 persistence = new TarPersistence(new File(pathOrUri));
@@ -127,7 +122,7 @@ public class ToolUtils {
         return archiveManager;
     }
 
-    public static CloudBlobDirectory createCloudBlobDirectory(String uriString, AzureStorageMonitorPolicy monitorPolicy) {
+    public static CloudBlobDirectory createCloudBlobDirectory(String uriString) {
         Map<String, String> config = parseAzureConfigurationFromUri(uriString);
 
         String accountName = config.get(KEY_ACCOUNT_NAME);
@@ -147,7 +142,7 @@ public class ToolUtils {
         String dir = config.get(KEY_DIR);
 
         try {
-            return AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir, monitorPolicy);
+            return AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir);
         } catch (URISyntaxException | BlobStorageException e) {
             throw new IllegalArgumentException(
                     "Could not connect to the Azure Storage. Please verify the uri provided!");

@@ -146,9 +146,9 @@ public class SegmentAzureFactory implements NodeStoreFactory {
         if (accountName != null && uri != null) {
             String key = System.getenv("AZURE_SECRET_KEY");
             StorageSharedKeyCredential credential = new StorageSharedKeyCredential(accountName, key);
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir, null);
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(credential, uri, dir);
         } else if (connectionString != null && containerName != null) {
-            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir, null);
+            cloudBlobDirectory = AzureUtilities.cloudBlobDirectoryFrom(connectionString, containerName, dir);
         }
 
         if (cloudBlobDirectory == null) {

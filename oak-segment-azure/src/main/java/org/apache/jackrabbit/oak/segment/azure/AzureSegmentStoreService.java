@@ -77,9 +77,8 @@ public class AzureSegmentStoreService {
             }
             log.info("Connection string: '{}'", connectionString.toString());
 
-            AzureStorageMonitorPolicy monitorPolicy = new AzureStorageMonitorPolicy();
 
-            BlobContainerClient containerClient = AzurePersistence.createBlobContainerClient(monitorPolicy, configuration.connectionURL(), configuration.accountName(), configuration.containerName());
+            BlobContainerClient containerClient = AzurePersistence.createBlobContainerClient(configuration.connectionURL(), configuration.accountName(), configuration.containerName());
 
             if (!containerClient.exists()) {
                 containerClient.create();
@@ -87,8 +86,7 @@ public class AzureSegmentStoreService {
 
             String path = IOUtils.removeLeadingSlash(configuration.rootPath());
             CloudBlobDirectory directory = new CloudBlobDirectory(containerClient, path);
-            return new AzurePersistence(directory)
-                    .setMonitorPolicy(monitorPolicy);
+            return new AzurePersistence(directory);
         } catch (BlobStorageException e) {
             throw new IOException(e);
         }
