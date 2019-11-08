@@ -94,12 +94,7 @@ public final class AzureUtilities {
         URI uri = new URI(uriString);
         String containerName = extractContainerName(uri);
 
-        BlobContainerClient container = new BlobServiceClientBuilder()
-                .credential(credential)
-                .endpoint(String.format("https://%s", uri.getHost()))
-                .addPolicy(monitorPolicy)
-                .buildClient()
-                .getBlobContainerClient(containerName);
+        BlobContainerClient container = AzurePersistence.createBlobContainerClient(credential, monitorPolicy, uri, containerName);
         return new CloudBlobDirectory(container, dir);
     }
 

@@ -21,6 +21,7 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.specialized.AppendBlobClient;
 import com.azure.storage.blob.specialized.BlockBlobClient;
+import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.jackrabbit.oak.segment.azure.compat.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -36,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
 
@@ -86,6 +88,15 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
                         .addPolicy(monitorPolicy)
                         .buildClient()
                         .getBlobContainerClient(containerName);
+    }
+
+    public static BlobContainerClient createBlobContainerClient(StorageSharedKeyCredential credential, AzureStorageMonitorPolicy monitorPolicy, URI uri, String containerName) {
+        return new BlobServiceClientBuilder()
+                    .credential(credential)
+                    .endpoint(String.format("https://%s", uri.getHost()))
+                    .addPolicy(monitorPolicy)
+                    .buildClient()
+                    .getBlobContainerClient(containerName);
     }
 
     @Override
