@@ -168,6 +168,9 @@ public class SegmentStoreMigrator implements Closeable  {
                     migrateSegments(reader, writer);
                     migrateBinaryRef(reader, writer);
                     migrateGraph(reader, writer);
+                } catch (Exception e) {
+                    log.error("Can't write archive", e);
+                    throw e;
                 } finally {
                     writer.close();
                 }
