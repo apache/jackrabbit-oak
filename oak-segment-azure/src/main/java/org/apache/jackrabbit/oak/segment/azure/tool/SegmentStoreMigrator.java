@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeDescri
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
@@ -104,7 +103,7 @@ public class SegmentStoreMigrator implements Closeable  {
         try (JournalFileReader reader = source.getJournalFile().openJournalReader()) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (StringUtils.isNotBlank(line)) {
+                if (line.length() > 0 && !line.trim().equals("")) {
                     journal.add(line);
                 }
                 if (!journal.isEmpty() && onlyLastJournalEntry) {
