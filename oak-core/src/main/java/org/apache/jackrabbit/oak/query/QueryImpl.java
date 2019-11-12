@@ -1378,6 +1378,7 @@ public class QueryImpl implements Query {
         u.setExplain(explain);
         u.setMeasure(measure);
         u.setInternal(isInternal);
+        u.setQueryOptions(queryOptions);
         return u;
     }
     
@@ -1401,7 +1402,10 @@ public class QueryImpl implements Query {
             this.settings,
             this.stats);
         copy.explain = this.explain;
+        copy.measure = this.measure;
+        copy.isInternal = this.isInternal;
         copy.distinct = this.distinct;
+        copy.queryOptions = this.queryOptions;
         
         return copy;        
     }

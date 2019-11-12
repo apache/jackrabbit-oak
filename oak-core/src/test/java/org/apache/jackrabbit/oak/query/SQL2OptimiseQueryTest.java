@@ -276,6 +276,21 @@ public class SQL2OptimiseQueryTest extends  AbstractQueryTest {
         assertEquals(expected,  optimized);
     }
     
+    @Test
+    public void optimizeKeepsQueryOptions() throws ParseException {
+        SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(
+                getMappings(), getNodeTypes(), qeSettings);
+        Query original;
+        String statement = "select * from [nt:unstructured] as [c] " + 
+                "where [a]=1 or [b]=2 option(index tag x)";
+        original = parser.parse(statement, false);
+        assertNotNull(original);
+        UnionQueryImpl alt = (UnionQueryImpl) original.buildAlternativeQuery();
+        for(Query c : alt.getChildren()) {
+            assertEquals("x", ((QueryImpl) c).getQueryOptions().indexTag);
+        }
+    }
+    
     private NamePathMapper getMappings() {
         return new NamePathMapperImpl(
             new LocalNameMapper(root, QueryEngine.NO_MAPPINGS));
