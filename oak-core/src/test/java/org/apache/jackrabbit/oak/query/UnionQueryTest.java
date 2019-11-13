@@ -17,6 +17,11 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -25,6 +30,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -34,18 +40,45 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
+import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
+import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
+import org.apache.jackrabbit.oak.query.ast.DescendantNodeImpl;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
+import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
+import org.apache.jackrabbit.oak.query.ast.Order;
+import org.apache.jackrabbit.oak.query.ast.OrderingImpl;
+import org.apache.jackrabbit.oak.query.ast.PropertyValueImpl;
+import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.ast.SourceImpl;
+import org.apache.jackrabbit.oak.query.stats.QueryStatsData;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import javax.jcr.NamespaceRegistry;
+import javax.xml.transform.Source;
 
 public class UnionQueryTest extends AbstractQueryTest {
 
+    MemoryNodeStore store;
+    QueryEngineSettings qeSettings;
+
     @Override
     protected ContentRepository createRepository() {
-        return new Oak()
+        store = new MemoryNodeStore();
+        qeSettings = new QueryEngineSettings();
+
+        return new Oak(store)
                 .with(new OpenSecurityProvider())
                 .with(new InitialContent())
+                .with(qeSettings)
                 .createContentRepository();
     }
 
@@ -65,7 +98,8 @@ public class UnionQueryTest extends AbstractQueryTest {
         t = t.addChild("e");
 
         Tree t2 = root.getTree("/").addChild("UnionQueryTest2");
-        t2 = t2.addChild("a");
+        Tree t3 = t2.addChild("a");
+        t2.addChild("a");
 
         root.commit();
     }
@@ -119,6 +153,63 @@ public class UnionQueryTest extends AbstractQueryTest {
          i = 0;
         for (ResultRow rr: result.getRows()) {
             assertEquals(rr.getPath(), expected2[i++]);
+        }
+
+    }
+
+    @Test
+    public void testSortWithOneSubquerySortedByIndexAndOtherNot() throws Exception {
+
+        String left  = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest2')";
+        String right  = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest/a')";
+
+        NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(store.getRoot());
+        NodeTypeInfo type = nodeTypes.getNodeTypeInfo("nt:base");
+        SourceImpl sImpl = new SelectorImpl(type, "a");
+        SourceImpl sImpl2 = new SelectorImpl(type, "a");
+        SourceImpl sImpl3 = new SelectorImpl(type, "a");
+
+        QueryImpl qImplLeft = createQuery(left, new DescendantNodeImpl("a","/UnionQueryTest2"), sImpl);
+        qImplLeft.setExecutionContext(((QueryEngineImpl)root.getQueryEngine()).getExecutionContext());
+        QueryImpl qImplRight = createQuery(right, new DescendantNodeImpl("a","/UnionQueryTest/a"), sImpl2);
+        qImplRight.setExecutionContext(((QueryEngineImpl)root.getQueryEngine()).getExecutionContext());
+
+        PropertyValueImpl propValImpl = new PropertyValueImpl("a", "jcr:path");
+        propValImpl.bindSelector(sImpl);
+
+        PropertyValueImpl propValImpl2 = new PropertyValueImpl("a", "jcr:path");
+        propValImpl2.bindSelector(sImpl2);
+
+        PropertyValueImpl propValImpl3 = new PropertyValueImpl("a", "jcr:path");
+        propValImpl2.bindSelector(sImpl3);
+
+        /// One subquery sorted by index and the other not and orderBY != null in UnionQueryImpl
+        QueryImpl spyLeft = Mockito.spy(qImplLeft);
+        QueryImpl spyRight = Mockito.spy(qImplRight);
+        Mockito.doReturn(true).when(spyLeft).isSortedByIndex();
+        Mockito.doReturn(false).when(spyRight).isSortedByIndex();
+
+        spyLeft.setOrderings(new OrderingImpl[] {new OrderingImpl(propValImpl, Order.DESCENDING)});
+        spyRight.setOrderings(new OrderingImpl[] {new OrderingImpl(propValImpl2, Order.DESCENDING)});
+        UnionQueryImpl unionImpl = new UnionQueryImpl(true, spyLeft, spyRight, new QueryEngineSettings());
+        unionImpl.setOrderings(new OrderingImpl[] {new OrderingImpl(propValImpl3, Order.ASCENDING)});
+
+        unionImpl.init();
+
+        // Execute query with ORDER BY clause - This should use mergeSorted and the final result should be sorted across both the subqueries.
+        String[] expected = {
+                "/UnionQueryTest/a/b",
+                "/UnionQueryTest/a/b/c",
+                "/UnionQueryTest/a/b/c/d",
+                "/UnionQueryTest/a/b/c/d/e",
+                "/UnionQueryTest2/a"
+        };
+
+        Result result = unionImpl.executeQuery();
+
+        int i = 0;
+        for (ResultRow rr: result.getRows()) {
+            assertEquals(expected[i++], rr.getPath());
         }
 
     }
@@ -255,5 +346,23 @@ public class UnionQueryTest extends AbstractQueryTest {
         for (ResultRow rr: result.getRows()) {
             assertEquals(rr.getPath(), expected[i++]);
         }
+    }
+
+    @Override
+    protected void createTestIndexNode() throws  Exception {
+        Tree index = root.getTree("/");
+        Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
+                TEST_INDEX_NAME);
+        indexDef.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME);
+        indexDef.setProperty(TYPE_PROPERTY_NAME, "lucene");
+        root.commit();
+    }
+
+    private QueryImpl createQuery (String statement, ConstraintImpl c, SourceImpl sImpl) throws Exception {
+
+        NamePathMapper namePathMapper = new NamePathMapperImpl(new GlobalNameMapper(root));
+        return new QueryImpl(statement, sImpl, c,
+                new ColumnImpl[]{new ColumnImpl("a", "jcr:path", "jcr:path")}, namePathMapper, qeSettings, new QueryStatsData("", "").new QueryExecutionStats());
+
     }
 }
