@@ -23,14 +23,12 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -42,7 +40,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.GlobalNameMapper;
-import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
@@ -61,9 +58,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import javax.jcr.NamespaceRegistry;
-import javax.xml.transform.Source;
 
 public class UnionQueryTest extends AbstractQueryTest {
 
@@ -99,7 +93,6 @@ public class UnionQueryTest extends AbstractQueryTest {
 
         Tree t2 = root.getTree("/").addChild("UnionQueryTest2");
         Tree t3 = t2.addChild("a");
-        t2.addChild("a");
 
         root.commit();
     }
@@ -156,7 +149,7 @@ public class UnionQueryTest extends AbstractQueryTest {
         }
 
     }
-
+    // TODO - Write a similar test that might fail with guava's merge sort on some conditions
     @Test
     public void testSortWithOneSubquerySortedByIndexAndOtherNot() throws Exception {
 
