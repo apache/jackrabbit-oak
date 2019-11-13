@@ -172,6 +172,22 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
         unregisterSyncMBean();
     }
 
+    public void bindSyncManager(SyncManager syncManager) {
+        this.syncManager = syncManager;
+    }
+
+    public void unbindSyncManager(SyncManager syncManager) {
+        this.syncManager = null;
+    }
+
+    public void bindIdpManager(ExternalIdentityProviderManager idpManager) {
+        this.idpManager = idpManager;
+    }
+
+    public void unbindIdpManager(ExternalIdentityProviderManager idpManager) {
+        this.idpManager = null;
+    }
+
     private void mayRegisterSyncMBean() {
         log.debug("Trying to register SynchronizationMBean");
 

@@ -182,6 +182,12 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         return SUPPORTED_CREDENTIALS;
     }
 
+    @Nullable
+    @Override
+    protected Credentials getCommittedCredentials() {
+        return credentials;
+    }
+
     @Override
     protected void clearState() {
         super.clearState();

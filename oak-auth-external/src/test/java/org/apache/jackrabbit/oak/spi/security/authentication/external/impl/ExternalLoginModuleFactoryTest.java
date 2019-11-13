@@ -26,7 +26,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -46,7 +46,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase {
+public class ExternalLoginModuleFactoryTest extends ExternalLoginTestBase {
 
     @Override
     protected Oak withEditors(Oak oak) {
@@ -168,6 +168,32 @@ public class ExternalLoginModuleFactoryTest extends ExternalLoginModuleTestBase 
         factory.unbindSecurityProvider(getSecurityProvider());
 
         assertNull(getMBeanRegistration(factory));
+    }
+
+    @Test
+    public void testUnbindSyncManager() throws Exception {
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+        factory.bindSyncManager(syncManager);
+
+        Field f = ExternalLoginModuleFactory.class.getDeclaredField("syncManager");
+        f.setAccessible(true);
+        assertSame(syncManager, f.get(factory));
+
+        factory.unbindSyncManager(syncManager);
+        assertNull(f.get(factory));
+    }
+
+    @Test
+    public void testUnbindIdpManager() throws Exception {
+        ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+        factory.bindIdpManager(idpManager);
+
+        Field f = ExternalLoginModuleFactory.class.getDeclaredField("idpManager");
+        f.setAccessible(true);
+        assertSame(idpManager, f.get(factory));
+
+        factory.unbindIdpManager(idpManager);
+        assertNull(f.get(factory));
     }
 
     @Test

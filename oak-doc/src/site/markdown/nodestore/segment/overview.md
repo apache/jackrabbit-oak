@@ -676,7 +676,7 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 
 ### <a name="segment-copy"/> Segment-Copy
 ```
-java -jar oak-run.jar segment-copy [--verbose] SOURCE DESTINATION
+java -jar oak-run.jar segment-copy SOURCE DESTINATION
 ```
 
 The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure Segment Store), saving the resulted Segment Store at `DESTINATION`. 
@@ -687,9 +687,35 @@ Unlike a sidegrade peformed with `oak-upgrade` (see [Repository Migration](#../.
 Both are specified as `PATH | cloud-prefix:URI`. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
-If the `--verbose` option is specified, the command will print detailed progress information messages. 
-These include individual segments being transfered from `SOURCE` to `DESTINATION` at a certain point in time.
-If not specified, progress information messages will be disabled.
+To enable logging during segment copy a Logback configuration file has to be injected via the `logback.configurationFile` property.
+
+##### Example
+
+The following command uses `logback-segment-copy.xml` to configure Logback logging for segment-copy to the console.
+
+```
+java -Dlogback.configurationFile=logback-segment-copy.xml -jar oak-run.jar segment-copy cloud-prefix:URI some/local/path
+```
+
+logback-compaction.xml:
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator" level="INFO"/>
+
+  <root level="warn">
+    <appender-ref ref="console"/>
+  </root>
+</configuration>
+```
 
 
 ### <a name="backup"/> Backup

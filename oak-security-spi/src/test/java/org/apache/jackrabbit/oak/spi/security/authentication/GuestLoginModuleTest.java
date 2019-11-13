@@ -49,7 +49,7 @@ public class GuestLoginModuleTest {
     @Test
     public void testNullLogin() throws LoginException {
         CallbackHandler cbh = new TestCallbackHandler(null);
-        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
 
         assertTrue(guestLoginModule.login());
         Object sharedCreds = sharedState.get(AbstractLoginModule.SHARED_KEY_CREDENTIALS);
@@ -63,10 +63,29 @@ public class GuestLoginModuleTest {
         assertTrue(guestLoginModule.logout());
     }
 
+    @Test(expected = LoginException.class)
+    public void testNullLoginReadOnlySubject() throws LoginException {
+        CallbackHandler cbh = new TestCallbackHandler(null);
+        Subject readOnly = new Subject(true, Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        guestLoginModule.initialize(readOnly, cbh, sharedState, Collections.emptyMap());
+
+        assertTrue(guestLoginModule.login());
+        Object sharedCreds = sharedState.get(AbstractLoginModule.SHARED_KEY_CREDENTIALS);
+        assertNotNull(sharedCreds);
+        assertTrue(sharedCreds instanceof GuestCredentials);
+
+        assertTrue(guestLoginModule.commit());
+        assertTrue(subject.getPrincipals(EveryonePrincipal.class).isEmpty());
+        assertTrue(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+
+        // subject is readonly and credentials cannot be destroyed => loginexception required
+        guestLoginModule.logout();
+    }
+
     @Test
     public void testGuestCredentials() throws LoginException {
         CallbackHandler cbh = new TestCallbackHandler(new GuestCredentials());
-        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
 
         assertFalse(guestLoginModule.login());
         assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
@@ -81,7 +100,7 @@ public class GuestLoginModuleTest {
     @Test
     public void testSimpleCredentials() throws LoginException {
         CallbackHandler cbh = new TestCallbackHandler(new SimpleCredentials("test", new char[0]));
-        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
 
         assertFalse(guestLoginModule.login());
         assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
@@ -96,7 +115,7 @@ public class GuestLoginModuleTest {
     @Test
     public void testThrowingCallbackhandler() throws LoginException {
         CallbackHandler cbh = new ThrowingCallbackHandler(true);
-        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
 
         assertFalse(guestLoginModule.login());
         assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
@@ -110,7 +129,7 @@ public class GuestLoginModuleTest {
     @Test
     public void testThrowingCallbackhandler2() throws LoginException {
         CallbackHandler cbh = new ThrowingCallbackHandler(false);
-        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
 
         assertFalse(guestLoginModule.login());
         assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
@@ -123,7 +142,7 @@ public class GuestLoginModuleTest {
 
     @Test
     public void testMissingCallbackhandler() throws LoginException {
-        guestLoginModule.initialize(subject, null, sharedState, Collections.<String, Object>emptyMap());
+        guestLoginModule.initialize(subject, null, sharedState, Collections.emptyMap());
 
         assertFalse(guestLoginModule.login());
         assertFalse(sharedState.containsKey(AbstractLoginModule.SHARED_KEY_CREDENTIALS));
@@ -143,7 +162,7 @@ public class GuestLoginModuleTest {
     public void testCommitWithReadOnlySubject() throws Exception {
         subject.setReadOnly();
         CallbackHandler cbh = new TestCallbackHandler(null);
-        guestLoginModule.initialize(subject, cbh, sharedState, Collections.<String, Object>emptyMap());
+        guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
 
         assertTrue(guestLoginModule.login());
         assertTrue(guestLoginModule.commit());

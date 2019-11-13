@@ -31,7 +31,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
 /**
  * DefaultSyncHandlerTest
  */
-public class DefaultSyncHandlerTest extends ExternalLoginModuleTestBase {
+public class DefaultSyncHandlerTest extends ExternalLoginTestBase {
 
     private UserManager userManager;
     private DefaultSyncHandler syncHandler;

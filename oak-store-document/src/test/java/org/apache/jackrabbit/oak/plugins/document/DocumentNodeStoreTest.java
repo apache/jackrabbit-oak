@@ -952,7 +952,7 @@ public class DocumentNodeStoreTest {
         for (String id : Sets.newHashSet(readSet)) {
             doc = store.find(NODES, id);
             assertNotNull(doc);
-            if (doc.isSplitDocument() && !doc.getMainPath().equals("/")) {
+            if (doc.isSplitDocument() && !doc.getMainPath().equals(Path.ROOT)) {
                 fail("must not access previous document: " + id);
             }
         }

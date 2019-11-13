@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginTestBase;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
@@ -49,7 +49,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ExternalIdentityValidatorTest extends ExternalLoginModuleTestBase {
+public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
 
     String testUserPath;
     String externalUserPath;
@@ -80,12 +80,6 @@ public class ExternalIdentityValidatorTest extends ExternalLoginModuleTestBase {
 
     protected boolean isDynamic() {
         return true;
-    }
-
-    static void assertException(@NotNull CommitFailedException e, @NotNull String expectedType, int expectedCode) throws CommitFailedException {
-        assertEquals(expectedType, e.getType());
-        assertEquals(expectedCode, e.getCode());
-        throw e;
     }
 
     @Test(expected = CommitFailedException.class)

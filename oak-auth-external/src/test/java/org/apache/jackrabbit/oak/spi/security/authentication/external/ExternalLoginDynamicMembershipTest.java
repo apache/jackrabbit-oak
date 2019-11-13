@@ -45,7 +45,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class ExternalLoginModuleDynamicMembershipTest extends ExternalLoginModuleTest {
+public class ExternalLoginDynamicMembershipTest extends ExternalLoginTest {
 
     @Override
     public void before() throws Exception {

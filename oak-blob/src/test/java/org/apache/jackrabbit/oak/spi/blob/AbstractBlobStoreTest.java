@@ -549,19 +549,84 @@ public abstract class AbstractBlobStoreTest {
         }
 
         @Override
-        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) {
-            this.size += size;
-        }
-
-        @Override
         public void uploadCompleted(String blobId) {
             uploadCount++;
         }
 
         @Override
-        public void downloadCompleted(String blobId) {
-            downloadCount++;
-        }
+        public void uploadFailed() { }
+
+        @Override
+        public void downloaded(String blobId, long timeTaken, TimeUnit unit, long size) { this.size += size; }
+
+        @Override
+        public void downloadCompleted(String blobId) { downloadCount++; }
+
+        @Override
+        public void downloadFailed(String blobId) { }
+
+        @Override
+        public void deleted(String blobId, long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void deleteCompleted(String blobId) { }
+
+        @Override
+        public void deleteFailed() { }
+
+        @Override
+        public void deletedAllOlderThan(long timeTaken, TimeUnit unit, long min) { }
+
+        @Override
+        public void deleteAllOlderThanCompleted(int deletedCount) { }
+
+        @Override
+        public void deleteAllOlderThanFailed(long min) { }
+
+        @Override
+        public void recordAdded(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void addRecordCompleted(String blobId) { }
+
+        @Override
+        public void addRecordFailed() { }
+
+        @Override
+        public void getRecordCalled(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void getRecordCompleted(String blobId) { }
+
+        @Override
+        public void getRecordFailed(String blobId) { }
+
+        @Override
+        public void getRecordIfStoredCalled(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void getRecordIfStoredCompleted(String blobId) { }
+
+        @Override
+        public void getRecordIfStoredFailed(String blobId) { }
+
+        @Override
+        public void getRecordFromReferenceCalled(long timeTaken, TimeUnit unit, long size) { }
+
+        @Override
+        public void getRecordFromReferenceCompleted(String reference) { }
+
+        @Override
+        public void getRecordFromReferenceFailed(String reference) { }
+
+        @Override
+        public void getAllIdentifiersCalled(long timeTaken, TimeUnit unit) { }
+
+        @Override
+        public void getAllIdentifiersCompleted() { }
+
+        @Override
+        public void getAllIdentifiersFailed() { }
 
         void reset(){
             size = 0;

@@ -37,7 +37,7 @@ import org.junit.Before;
  * Abstract base test for external-authentication including proper OSGi service
  * registrations required for repository login respecting the {@link ExternalLoginModule}.
  */
-public abstract class ExternalLoginModuleTestBase extends AbstractExternalAuthTest {
+public abstract class ExternalLoginTestBase extends AbstractExternalAuthTest {
 
     private Registration testIdpReg;
     private Registration syncHandlerReg;
@@ -47,7 +47,6 @@ public abstract class ExternalLoginModuleTestBase extends AbstractExternalAuthTe
     protected Whiteboard whiteboard;
 
     protected SyncManager syncManager;
-
     protected ExternalIdentityProviderManager idpManager;
 
     @Before

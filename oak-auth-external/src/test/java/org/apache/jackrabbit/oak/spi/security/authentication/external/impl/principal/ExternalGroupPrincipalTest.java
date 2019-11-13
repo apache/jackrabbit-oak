@@ -161,4 +161,30 @@ public class ExternalGroupPrincipalTest extends AbstractPrincipalTest {
         assertTrue(gp instanceof GroupPrincipal);
         assertFalse(((GroupPrincipal)gp).members().hasMoreElements());
     }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testAddNewMember() throws Exception {
+        java.security.acl.Group principal = (java.security.acl.Group) getGroupPrincipal();
+        principal.addMember(new PrincipalImpl("newMember"));
+    }
+
+    @Test
+    public void testAddExistingMember() throws Exception {
+        java.security.acl.Group principal = (java.security.acl.Group) getGroupPrincipal();
+        Principal existingMember = getUserManager(root).getAuthorizable(USER_ID).getPrincipal();
+        assertFalse(principal.addMember(existingMember));
+    }
+
+    @Test
+    public void testRemoveeNewMember() throws Exception {
+        java.security.acl.Group principal = (java.security.acl.Group) getGroupPrincipal();
+        assertFalse(principal.removeMember(new PrincipalImpl("newMember")));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRemoveExistingMember() throws Exception {
+        java.security.acl.Group principal = (java.security.acl.Group) getGroupPrincipal();
+        Principal existingMember = getUserManager(root).getAuthorizable(USER_ID).getPrincipal();
+        principal.removeMember(existingMember);
+    }
 }

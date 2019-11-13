@@ -24,6 +24,7 @@ import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
@@ -131,8 +132,19 @@ public final class GuestLoginModule implements LoginModule {
     }
 
     @Override
-    public boolean logout() {
-        return authenticationSucceeded();
+    public boolean logout() throws LoginException {
+        if (authenticationSucceeded()) {
+            if (!subject.isReadOnly()) {
+                subject.getPublicCredentials().remove(guestCredentials);
+                subject.getPrincipals().remove(EveryonePrincipal.getInstance());
+                return true;
+            } else {
+                throw new LoginException("Cannot destroy GuestCredentials");
+            }
+        } else {
+            // ignore this login module
+            return false;
+        }
     }
 
     private boolean authenticationSucceeded() {
