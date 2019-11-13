@@ -16,23 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Credentials;
-import javax.jcr.NoSuchWorkspaceException;
-import javax.security.auth.Subject;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.UnsupportedCallbackException;
-import javax.security.auth.login.LoginException;
-import javax.security.auth.spi.LoginModule;
-
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -52,10 +36,27 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.osgi.annotation.versioning.ProviderType;
+import javax.jcr.Credentials;
+import javax.jcr.NoSuchWorkspaceException;
+import javax.security.auth.DestroyFailedException;
+import javax.security.auth.Destroyable;
+import javax.security.auth.Subject;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.login.LoginException;
+import javax.security.auth.spi.LoginModule;
+import java.io.IOException;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Abstract implementation of the {@link LoginModule} interface that can act
@@ -175,6 +176,7 @@ public abstract class AbstractLoginModule implements LoginModule {
 
     private ContentSession systemSession;
     private Root root;
+    private Set<Principal> principals;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
@@ -185,18 +187,47 @@ public abstract class AbstractLoginModule implements LoginModule {
         this.options = (options == null) ? ConfigurationParameters.EMPTY : ConfigurationParameters.of(options);
     }
 
+    /**
+     * If {@link #getCommittedCredentials()} does not return {@code null} and either {@link #getPrincipals(String)} or
+     * {@link #getPrincipals(Principal)} has been called during the login/commit phases, this method will removed these
+     * credentials and principals from the subject or destroy the credentials in case of read-only subject.
+     *
+     * If either credentials or principals is {@code null}, this method will return {@code false}, indicating that
+     * this moduld should be ignored.
+     *
+     * @return {@code true} if the logout was successful and {@code false} if this module should be ignored.
+     * @throws LoginException If the subject is read-only and the committed credentials cannot be destroyed.
+     * @see #getCommittedCredentials()
+     * @see  <a href="https://docs.oracle.com/javase/8/docs/technotes/guides/security/jaas/JAASLMDevGuide.html#logout>Jaas Dev Guide</a> for additional details.
+     */
     @Override
-    public boolean logout() {
-        boolean success = false;
-        if (!subject.getPrincipals().isEmpty() && !subject.getPublicCredentials(Credentials.class).isEmpty()) {
-            // clear subject if not readonly
+    public boolean logout() throws LoginException {
+        Credentials creds = getCommittedCredentials();
+        if (creds != null && principals != null) {
             if (!subject.isReadOnly()) {
-                subject.getPrincipals().clear();
-                subject.getPublicCredentials().clear();
+                subject.getPublicCredentials().remove(creds);
+                subject.getPrincipals().removeAll(principals);
+            } else {
+                destroyCredentials(creds);
             }
-            success = true;
+            return true;
+        } else {
+            // this login module didn't add credentials/principals to the subject upon commit
+            // -> logout of this LoginModule should be ignored
+            return false;
         }
-        return success;
+    }
+
+    private static void destroyCredentials(@NotNull Credentials credentials) throws LoginException {
+        if (credentials instanceof Destroyable) {
+            try {
+                ((Destroyable) credentials).destroy();
+            } catch (DestroyFailedException e) {
+                throw new LoginException(e.getMessage());
+            }
+        } else {
+            throw new LoginException("Unable to destroy credentials of read-only subject.");
+        }
     }
 
     @Override
@@ -298,6 +329,20 @@ public abstract class AbstractLoginModule implements LoginModule {
         }
 
         return shared;
+    }
+
+    /**
+     * Return the credentials that have been pushed to the {@code Subject} during the {@link #commit()} or {@code null},
+     * if this login module should be ignored for the {@link #logout()}. Since {@code AbstractLoginModule}
+     * does not implement the commit-phase, the default implementation returns {@code null}.
+     *
+     * @return null. Subclasses of {@link AbstractLoginModule} that modify the subject upon commit should override this
+     * default implementation returning those credentials that have been extracted during {@link #login() login} and
+     * added to the subject upon {@link #commit()}.
+     */
+    @Nullable
+    protected Credentials getCommittedCredentials() {
+        return null;
     }
 
     /**
@@ -485,10 +530,11 @@ public abstract class AbstractLoginModule implements LoginModule {
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider == null) {
             log.debug("Cannot retrieve principals. No principal provider configured.");
-            return Collections.emptySet();
+            principals = Collections.emptySet();
         } else {
-            return principalProvider.getPrincipals(userId);
+            principals = ImmutableSet.<Principal>builder().addAll(principalProvider.getPrincipals(userId)).build();
         }
+        return principals;
     }
 
     @NotNull
@@ -496,13 +542,13 @@ public abstract class AbstractLoginModule implements LoginModule {
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider == null) {
             log.debug("Cannot retrieve principals. No principal provider configured.");
-            return Collections.emptySet();
+            principals = Collections.emptySet();
         } else {
-            Set<Principal> principals = new HashSet<>();
-            principals.add(userPrincipal);
-            principals.addAll(principalProvider.getMembershipPrincipals(userPrincipal));
-            return principals;
+            principals = ImmutableSet.<Principal>builder().
+                    add(userPrincipal).
+                    addAll(principalProvider.getMembershipPrincipals(userPrincipal)).build();
         }
+        return principals;
     }
 
     protected static void setAuthInfo(@NotNull AuthInfo authInfo, @NotNull Subject subject) {
