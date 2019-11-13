@@ -193,12 +193,6 @@ public final class TokenLoginModule extends AbstractLoginModule {
         return Collections.singleton(TokenCredentials.class);
     }
 
-    @Nullable
-    @Override
-    protected Credentials getCommittedCredentials() {
-        return tokenCredentials;
-    }
-
     @Override
     protected void clearState() {
         super.clearState();
