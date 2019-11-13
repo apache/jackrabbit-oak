@@ -45,7 +45,7 @@ public class AzurePersistenceRetryTest {
     public void testRetryBackoff() {
         SimpleRemoteStoreMonitor monitor = runInvalidExecution();
 
-        // 4 attempts = 1 original request + 3 retries
+        // 2 attempts = 1 original request + 1 retry
         System.out.println("Total delay: " + monitor.totalDurationMs);
         assertTrue(monitor.totalDurationMs > 3_000);
         assertTrue(monitor.totalDurationMs < 4_000);
