@@ -74,7 +74,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     }
 
     private CugPolicyImpl createCugPolicy(int importBehavior, @NotNull Iterable<Principal> principals) {
-        return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, importBehavior, exclude, principals);
+        return new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, importBehavior, exclude, principals, false);
     }
 
     private Principal getExcludedPrincipal() {
@@ -286,5 +286,17 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
         Principal excluded = getExcludedPrincipal();
         CugPolicyImpl cug = createCugPolicy(ImportBehavior.ABORT, Collections.singleton(excluded));
         assertTrue(cug.removePrincipals(excluded));
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testImmutableAddPrincipals() throws Exception {
+        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT, exclude, principals, true);
+        cug.addPrincipals(EveryonePrincipal.getInstance());
+    }
+
+    @Test(expected = AccessControlException.class)
+    public void testImmutableRemovePrincipals() throws Exception {
+        CugPolicy cug = new CugPolicyImpl(path, NamePathMapper.DEFAULT, principalManager, ImportBehavior.ABORT, exclude, principals, true);
+        cug.removePrincipals(EveryonePrincipal.getInstance());
     }
 }

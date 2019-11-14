@@ -120,7 +120,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     @NotNull
     @Override
     public AccessControlManager getAccessControlManager(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
-        return new CugAccessControlManager(root, namePathMapper, getSecurityProvider(), supportedPaths, getExclude());
+        return new CugAccessControlManager(root, namePathMapper, getSecurityProvider(), supportedPaths, getExclude(), getRootProvider());
     }
 
     @NotNull
