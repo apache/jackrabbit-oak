@@ -341,16 +341,6 @@ public class UnionQueryTest extends AbstractQueryTest {
         }
     }
 
-    @Override
-    protected void createTestIndexNode() throws  Exception {
-        Tree index = root.getTree("/");
-        Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
-                TEST_INDEX_NAME);
-        indexDef.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME);
-        indexDef.setProperty(TYPE_PROPERTY_NAME, "lucene");
-        root.commit();
-    }
-
     private QueryImpl createQuery (String statement, ConstraintImpl c, SourceImpl sImpl) throws Exception {
 
         NamePathMapper namePathMapper = new NamePathMapperImpl(new GlobalNameMapper(root));
