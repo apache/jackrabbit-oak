@@ -321,15 +321,15 @@ public class UnionQueryImpl implements Query {
             leftIter = ((MeasuringIterator) leftRows).getDelegate();
             rightIter = ((MeasuringIterator) rightRows).getDelegate();
         }
-        // Since sorted by index use a merge iterator
-        if (isSortedByIndex()) {
-            it = FilterIterators
-                .newCombinedFilter(Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy), distinct,
-                    limit, offset, null, settings);
+        if (orderBy == null) {
+            it = Iterators.concat(leftIter, rightIter);
         } else {
-            it = FilterIterators
-            .newCombinedFilter(Iterators.concat(leftIter, rightIter), distinct, limit, offset, orderBy, settings);
+            // This would suggest either the sub queries are sorted by index or explicitly by QueryImpl (in case of traversing index)
+            // So use mergeSorted here.
+            it = Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy);
         }
+
+        it = FilterIterators.newCombinedFilter(it, distinct, limit, offset, null, settings);
 
         if (measure) {
             // return the measuring iterator for the union
