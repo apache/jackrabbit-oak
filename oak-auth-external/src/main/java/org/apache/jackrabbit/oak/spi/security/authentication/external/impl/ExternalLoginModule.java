@@ -187,19 +187,19 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (idp == null || syncHandler == null) {
             return false;
         }
-        Credentials creds = getCredentials();
+        credentials = getCredentials();
 
         // check if we have a pre authenticated login from a previous login module
         final PreAuthenticatedLogin preAuthLogin = getSharedPreAuthLogin();
-        final String userId = getUserId(preAuthLogin, creds);
+        final String userId = getUserId(preAuthLogin, credentials);
 
-        if (userId == null && creds == null) {
+        if (userId == null && credentials == null) {
             log.debug("No credentials|userId found for external login module. ignoring.");
             return false;
         }
 
         // remember identification for log-output
-        Object logId = (userId != null) ? userId : creds;
+        Object logId = (userId != null) ? userId : credentials;
         try {
             // check if there exists a user with the given ID that has been synchronized
             // before into the repository.
@@ -217,15 +217,15 @@ public class ExternalLoginModule extends AbstractLoginModule {
             if (preAuthLogin != null) {
                 externalUser = idp.getUser(preAuthLogin.getUserId());
             } else {
-                externalUser = idp.authenticate(creds);
+                externalUser = idp.authenticate(credentials);
             }
 
             if (externalUser != null) {
                 log.debug("IDP {} returned valid user {}", idp.getName(), externalUser);
 
-                if (creds != null) {
+                if (credentials != null) {
                     //noinspection unchecked
-                    sharedState.put(SHARED_KEY_CREDENTIALS, creds);
+                    sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
                 }
 
                 //noinspection unchecked
@@ -233,8 +233,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
                 syncUser(externalUser);
 
-                // login successful -> remember credentials for commit/logout
-                credentials = creds;
                 return true;
             } else {
                 debug("IDP {} returned null for {}", idp.getName(), logId.toString());
@@ -449,12 +447,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
     @Override
     protected Set<Class> getSupportedCredentials() {
         return credentialsSupport.getCredentialClasses();
-    }
-
-    @Nullable
-    @Override
-    protected Credentials getCommittedCredentials() {
-        return credentials;
     }
 
     //----------------------------------------------< public setters (JAAS) >---
