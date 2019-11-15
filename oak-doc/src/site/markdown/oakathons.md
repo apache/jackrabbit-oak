@@ -23,6 +23,7 @@ Oakathons follow loose, community-driven schedules that evolve in real time to a
 
 ## Purpose
 Oakathons serve three primary purposes which all hold equal importance:
+
 * To conduct a "state of the project" review, where we can discuss major Oak components and the strategic direction.
 * To provide time and space for free-form, synchronized discussions on issues important to key project components as well as issues impacting the whole project.
 * To hack on Oak itself - trying experiments, implementing new features, fixing bugs, or collaborating with others on such efforts.
@@ -36,6 +37,7 @@ Prior to the beginning of the Oakathon, the initial schedule will be announced o
 
 ## Planning
 Planning for an Oakathon is as follows:
+
 * The PMC determines a specific date for the next Oakathon.  This is done usually between six and twelve weeks in advance of the selected date, to allow opportunity for remote attendees who wish to attend to obtain travel budget and make appropriate plans.
 * An issue is created in the Oak issue tracker to gather input and feedback on proposed discussion topics and projects.
 * The upcoming Oakathon is announced on the public mailing list (oak-dev@).
