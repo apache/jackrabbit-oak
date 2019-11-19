@@ -43,6 +43,7 @@ Bug
 New Feature
 
     [OAK-8703] - Configure the maximum number of revisions to be checked by consistency check
+    [OAK-8777] - benchmark ISO8601 formatters
 
 Improvement
 
@@ -118,6 +119,7 @@ Technical task
     [OAK-8707] - Mark exported APIs that we don't want to expose with an @Internal annotation
     [OAK-8730] - Add option for repeated read to ReadDeepTreeTest
     [OAK-8764] - RDBDocumentStore: avoid potential dangerous use of addAll(entrySet) in logging code
+    [OAK-8775] - update Tomcat JDBC dependency to 8.5.47
 
 Documentation
 
