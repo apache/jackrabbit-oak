@@ -76,6 +76,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Nullability annotations -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+        </dependency>
+
         <!-- JCR and Jackrabbit dependencies -->
         <dependency>
             <groupId>javax.jcr</groupId>
