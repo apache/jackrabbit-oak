@@ -92,7 +92,6 @@ public class DocumentNodeBuilderTest {
         assertStateEquals(state, builder.getBaseState());
     }
 
-    @Ignore("OAK-8691")
     @Test
     public void getBaseStateFromBuilderFromStateFromModifiedBuilder() {
         NodeState state = ns.getRoot();
