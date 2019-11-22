@@ -24,6 +24,8 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVer
 
 import java.lang.management.ManagementFactory;
 import java.net.NetworkInterface;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -704,7 +706,7 @@ public class ClusterNodeInfo {
             // (note that once a lease check failed it would not
             // be updated again, ever, as guaranteed by checking
             // for leaseCheckFailed in renewLease() )
-            throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
+            throw leaseExpired(LEASE_CHECK_FAILED_MSG + " (since " + asISO8601(leaseEndTime) + ")", true);
         }
         long now = getCurrentTime();
         // OAK-3238 put the barrier 1/3 of 60sec=20sec before the end
@@ -719,7 +721,7 @@ public class ClusterNodeInfo {
         synchronized(this) {
             if (leaseCheckFailed) {
                 // someone else won and marked leaseCheckFailed - so we only log/throw
-                throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
+                throw leaseExpired(LEASE_CHECK_FAILED_MSG + " (since " + asISO8601(leaseEndTime) + ")", true);
             }
             // only retry in lenient mode, fail immediately in strict mode
             final int maxRetries = leaseCheckMode == LeaseCheckMode.STRICT ?
@@ -770,20 +772,19 @@ public class ClusterNodeInfo {
             }
             if (leaseCheckFailed) {
                 // someone else won and marked leaseCheckFailed - so we only log/throw
-                throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
+                throw leaseExpired(LEASE_CHECK_FAILED_MSG + " (since " + asISO8601(leaseEndTime) + ")", true);
             }
             leaseCheckFailed = true; // make sure only one thread 'wins', ie goes any further
         }
 
-        final String errorMsg = LEASE_CHECK_FAILED_MSG+" (leaseEndTime: "+leaseEndTime+
-                ", leaseTime: "+leaseTime+
-                ", leaseFailureMargin: "+leaseFailureMargin+
-                ", lease check end time (leaseEndTime-leaseFailureMargin): "+(leaseEndTime - leaseFailureMargin)+
-                ", now: "+now+
-                ", remaining: "+((leaseEndTime - leaseFailureMargin) - now)+
-                ") Need to stop oak-store-document/DocumentNodeStoreService.";
-        LOG.error(errorMsg);
+        String template = "%s (mode: %s, leaseEndTime: %d (%s), leaseTime: %d, leaseFailureMargin: %d, "
+                + "lease check end time (leaseEndTime - leaseFailureMargin): %d (%s), now: %d (%s), remaining: %d)"
+                + " Need to stop oak-store-document/DocumentNodeStoreService.";
+        String errorMsg = String.format(template, LEASE_CHECK_FAILED_MSG, leaseCheckMode.name(), leaseEndTime,
+                asISO8601(leaseEndTime), leaseTime, leaseFailureMargin, leaseEndTime - leaseFailureMargin,
+                asISO8601(leaseEndTime - leaseFailureMargin), now, asISO8601(now), (leaseEndTime - leaseFailureMargin) - now);
 
+        LOG.error(errorMsg);
         handleLeaseFailure(errorMsg);
     }
 
@@ -867,7 +868,7 @@ public class ClusterNodeInfo {
 
             if (leaseCheckFailed) {
                 // prevent lease renewal after it failed
-                throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
+                throw leaseExpired(LEASE_CHECK_FAILED_MSG + " (since " + asISO8601(leaseEndTime) + ")", true);
             }
             // synchronized could have delayed the 'now', so
             // set it again..
@@ -881,20 +882,18 @@ public class ClusterNodeInfo {
                 synchronized (this) {
                     if (leaseCheckFailed) {
                         // some other thread already noticed and calls failure handler
-                        throw leaseExpired(LEASE_CHECK_FAILED_MSG, true);
+                        throw leaseExpired(LEASE_CHECK_FAILED_MSG + " (since " + asISO8601(leaseEndTime) + ")", true);
                     }
                     // current thread calls failure handler
                     // outside synchronized block
                     leaseCheckFailed = true;
                 }
-                final String errorMsg = LEASE_CHECK_FAILED_MSG + " (mode: " + leaseCheckMode.name() +
-                        ",leaseEndTime: " + leaseEndTime +
-                        ", leaseTime: " + leaseTime +
-                        ", leaseFailureMargin: " + leaseFailureMargin +
-                        ", lease check end time (leaseEndTime-leaseFailureMargin): " + (leaseEndTime - leaseFailureMargin) +
-                        ", now: " + now +
-                        ", remaining: " + ((leaseEndTime - leaseFailureMargin) - now) +
-                        ") Need to stop oak-store-document/DocumentNodeStoreService.";
+                String template = "%s (mode: %s, leaseEndTime: %d (%s), leaseTime: %d, leaseFailureMargin: %d, "
+                        + "lease check end time (leaseEndTime - leaseFailureMargin): %d (%s), now: %d (%s), remaining: %d)"
+                        + " Need to stop oak-store-document/DocumentNodeStoreService.";
+                String errorMsg = String.format(template, LEASE_CHECK_FAILED_MSG, leaseCheckMode.name(), leaseEndTime,
+                        asISO8601(leaseEndTime), leaseTime, leaseFailureMargin, leaseEndTime - leaseFailureMargin,
+                        asISO8601(leaseEndTime - leaseFailureMargin), now, asISO8601(now), (leaseEndTime - leaseFailureMargin) - now);
                 LOG.error(errorMsg);
                 handleLeaseFailure(errorMsg);
                 // should never be reached: handleLeaseFailure throws a DocumentStoreException
@@ -1248,4 +1247,8 @@ public class ClusterNodeInfo {
         }
         return new DocumentStoreException(msg);
     }
+
+    private static String asISO8601(long ms) {
+        return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(ms));
+   }
 }
