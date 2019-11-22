@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.stats;
 
 import java.io.Closeable;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,8 +28,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Mechanism for keeping track of time at millisecond accuracy.
+ * <p>
+ * As of Oak 1.20, this extends from {@link java.time.Clock}.
  */
-public abstract class Clock {
+public abstract class Clock extends java.time.Clock {
 
     /**
      * Maximum amount (in ms) of random noise to include in the time
@@ -63,6 +67,7 @@ public abstract class Clock {
      * Returns the current time in milliseconds since the epoch.
      *
      * @see System#currentTimeMillis()
+     * @see java.time.Clock#millis()
      * @return current time in milliseconds since the epoch
      */
     public abstract long getTime();
@@ -154,6 +159,24 @@ public abstract class Clock {
             Thread.sleep(timestamp - now);
             now = getTimeIncreasing();
         }
+    }
+
+    @Override
+    public ZoneId getZone() {
+        return ZoneId.of("Z");
+    }
+
+    @Override
+    public Instant instant() {
+        return Instant.ofEpochMilli(getTime());
+    }
+
+    @Override
+    public java.time.Clock withZone(ZoneId zone) {
+        if (!zone.equals(ZoneId.of("Z"))) {
+            throw new UnsupportedOperationException("ZoneIds other than 'Z' are not supported by this clock");
+        }
+        return this;
     }
 
     /**
@@ -334,7 +357,5 @@ public abstract class Clock {
         public String toString() {
             return "Clock.Virtual";
         }
-
     };
-
 }

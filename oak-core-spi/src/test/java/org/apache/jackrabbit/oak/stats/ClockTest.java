@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.time.ZoneId;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -63,6 +65,20 @@ public class ClockTest {
         } finally {
             executor.shutdown();
         }
+    }
+
+    @Test
+    public void testClockJavaTime() throws InterruptedException {
+        Clock c = Clock.SIMPLE;
+
+        long t1 = c.millis();
+        long t2 = c.getTime();
+        long t3 = c.millis();
+        assertTrue(t1 <= t2);
+        assertTrue(t2 <= t3);
+
+        java.time.Clock c2 = c.withZone(ZoneId.of("Z"));
+        assertEquals(c2.getZone(), c.getZone());
     }
 
     private void testClockDrift(Clock clock) throws InterruptedException {
