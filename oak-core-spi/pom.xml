@@ -28,6 +28,13 @@
   <name>Oak Core SPI</name>
   <packaging>bundle</packaging>
 
+  <properties>
+    <!-- enable execution of jacoco and set minimal line coverage -->
+    <skip.coverage>false</skip.coverage>
+    <minimum.line.coverage>0.46</minimum.line.coverage>
+    <minimum.branch.coverage>0.41</minimum.branch.coverage>
+  </properties>
+
   <build>
     <plugins>
       <plugin>
