@@ -447,7 +447,7 @@ public class UploadStagingCache implements Closeable {
      * Removes all cached from attic
      */
     private void remove() {
-        LOG.info("Starting purge of uploaded files");
+        LOG.info("Starting purge of uploaded files, current size [{}]", humanReadableByteCount(currentSize.get()));
 
         Iterator<String> iterator = attic.keySet().iterator();
         int count = 0;
@@ -470,7 +470,7 @@ public class UploadStagingCache implements Closeable {
             }
         }
 
-        LOG.info("Finished removal of [{}] files", count);
+        LOG.info("Finished removal of [{}] files, current size [{}]", count, humanReadableByteCount(currentSize.get()));
     }
 
     /**
