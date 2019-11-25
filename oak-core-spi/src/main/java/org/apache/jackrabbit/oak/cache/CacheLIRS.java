@@ -88,10 +88,9 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     private static final boolean PUT_HOT = Boolean.parseBoolean(System.getProperty("oak.cacheLIRS.putHot", "true"));
 
     // see OAK-8702
-    private static final List<String> ALLOWED_USERS = Collections
-            .unmodifiableList(Arrays
-                    .asList(new String[] { "org.apache.jackrabbit.oak.plugins.blob.", "org.apache.jackrabbit.oak.plugins.document.",
-                            "org.apache.jackrabbit.oak.segment." }));
+    private static final List<String> ALLOWED_USERS = Collections.unmodifiableList(
+            Arrays.asList(new String[] { "org.apache.jackrabbit.oak.plugins.blob.", "org.apache.jackrabbit.oak.plugins.document.",
+                    "org.apache.jackrabbit.oak.segment.", "org.apache.jackrabbit.oak.plugins.segment." }));
 
     /**
      * Listener for items that are evicted from the cache. The listener
