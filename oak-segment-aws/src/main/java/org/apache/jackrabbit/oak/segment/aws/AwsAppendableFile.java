@@ -16,17 +16,30 @@
 */
 package org.apache.jackrabbit.oak.segment.aws;
 
+import static org.apache.jackrabbit.oak.segment.aws.AwsContext.TABLE_ATTR_CONTENT;
+
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
+
+import com.amazonaws.services.dynamodbv2.document.Item;
+
+import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AwsAppendableFile {
+
+    private static final Logger log = LoggerFactory.getLogger(AwsAppendableFile.class);
+
     private final AwsContext awsContext;
     private final String fileName;
 
     /**
      * Initializes a file that is backed by AWS DynamoDB documents. Every line in a
-     * files that is read/written is the 'content' attribute in a document.
+     * files that is read/written is the "{@link AwsContext#TABLE_ATTR_CONTENT}"
+     * attribute in a document.
      * 
      * @param awsContext The AWS context.
      * @param fileName   The name of the file.
@@ -36,8 +49,25 @@ public class AwsAppendableFile {
         this.fileName = fileName;
     }
 
+    public String getName() {
+        return fileName;
+    }
+
     public JournalFileWriter openJournalWriter() {
         return new AwsFileWriter(awsContext, fileName);
+    }
+
+    public JournalFileReader openJournalReader() {
+        return new AwsFileReader(awsContext, fileName);
+    }
+
+    public boolean exists() {
+        try {
+            return openJournalReader().readLine() != null;
+        } catch (IOException e) {
+            log.error("Can't check if the file exists", e);
+            return false;
+        }
     }
 
     public List<String> readLines() throws IOException {
@@ -54,7 +84,7 @@ public class AwsAppendableFile {
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
             // Do nothing
         }
 
@@ -66,6 +96,37 @@ public class AwsAppendableFile {
         @Override
         public void writeLine(String line) throws IOException {
             awsContext.putDocument(fileName, line);
+        }
+    }
+
+    private static class AwsFileReader implements JournalFileReader {
+
+        private final AwsContext awsContext;
+        private final String fileName;
+
+        private Iterator<Item> iterator;
+
+        public AwsFileReader(AwsContext awsContext, String fileName) {
+            this.awsContext = awsContext;
+            this.fileName = fileName;
+        }
+
+        @Override
+        public void close() {
+            // Do nothing
+        }
+
+        @Override
+        public String readLine() throws IOException {
+            if (iterator == null) {
+                iterator = awsContext.getDocumentsStream(fileName).iterator();
+            }
+
+            if (iterator.hasNext()) {
+                return iterator.next().getString(TABLE_ATTR_CONTENT);
+            }
+
+            return null;
         }
     }
 }

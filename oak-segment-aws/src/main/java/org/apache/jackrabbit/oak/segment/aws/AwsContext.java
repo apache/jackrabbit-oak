@@ -59,7 +59,7 @@ public final class AwsContext {
 
     private static final String TABLE_ATTR_FILENAME = "filename";
 
-    private static final String TABLE_ATTR_CONTENT = "content";
+    public static final String TABLE_ATTR_CONTENT = "content";
 
     private static final int TABLE_MAX_BATCH_WRITE_SIZE = 25;
 
