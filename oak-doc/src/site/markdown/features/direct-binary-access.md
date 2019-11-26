@@ -267,7 +267,7 @@ Note that you are not required to configure both domains, nor is it required tha
 
 ## Ignoring the Domain Override
 
-`@since Oak 1.20 (AzureDataStore)`
+`@since Oak 1.22 (AzureDataStore)`
 
 Usually if a domain override is configured, this value should be used for all signed URI requests because using this domain should result in a better experience.  However, there can be cases where a client does not want to use the domain override even if it is configured.
 
