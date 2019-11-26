@@ -42,23 +42,25 @@ import java.util.Set;
 class CugPolicyImpl implements CugPolicy {
 
     private static final Logger log = LoggerFactory.getLogger(CugPolicyImpl.class);
+    private static final String IMMUTABLE_ERR = "Immutable CUG. Use getApplicablePolicies or getPolicies in order to obtain a modifiable policy.";
 
     private final String oakPath;
     private final NamePathMapper namePathMapper;
     private final PrincipalManager principalManager;
     private final int importBehavior;
     private final CugExclude cugExclude;
+    private final boolean immutable;
 
     private final Map<String,Principal> principals = new LinkedHashMap<>();
 
     CugPolicyImpl(@NotNull String oakPath, @NotNull NamePathMapper namePathMapper,
                   @NotNull PrincipalManager principalManager, int importBehavior, @NotNull CugExclude cugExclude) {
-        this(oakPath, namePathMapper, principalManager, importBehavior, cugExclude, Collections.<Principal>emptySet());
+        this(oakPath, namePathMapper, principalManager, importBehavior, cugExclude, Collections.emptySet(), false);
     }
 
     CugPolicyImpl(@NotNull String oakPath, @NotNull NamePathMapper namePathMapper,
                   @NotNull PrincipalManager principalManager, int importBehavior,
-                  @NotNull CugExclude cugExclude, @NotNull Iterable<Principal> principals) {
+                  @NotNull CugExclude cugExclude, @NotNull Iterable<Principal> principals, boolean immutable) {
         ImportBehavior.nameFromValue(importBehavior);
         this.oakPath = oakPath;
         this.namePathMapper = namePathMapper;
@@ -67,6 +69,13 @@ class CugPolicyImpl implements CugPolicy {
         this.cugExclude = cugExclude;
         for (Principal principal : principals) {
             this.principals.put(principal.getName(), principal);
+        }
+        this.immutable = immutable;
+    }
+
+    private void checkIsMutable() throws AccessControlException {
+        if (immutable) {
+            throw new AccessControlException(IMMUTABLE_ERR);
         }
     }
 
@@ -78,6 +87,7 @@ class CugPolicyImpl implements CugPolicy {
 
     @Override
     public boolean addPrincipals(@NotNull Principal... principals) throws AccessControlException {
+        checkIsMutable();
         boolean modified = false;
         for (Principal principal : principals) {
             if (isValidPrincipal(principal) && !this.principals.containsKey(principal.getName())) {
@@ -89,7 +99,8 @@ class CugPolicyImpl implements CugPolicy {
     }
 
     @Override
-    public boolean removePrincipals(@NotNull Principal... principals) {
+    public boolean removePrincipals(@NotNull Principal... principals) throws AccessControlException {
+        checkIsMutable();
         boolean modified = false;
         for (Principal principal : principals) {
             if (principal != null && this.principals.containsKey(principal.getName())) {

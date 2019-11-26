@@ -1384,7 +1384,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createSingleState(
                 oakName, value, Type.fromTag(value.getType(), false));
-        if (value != null && value.getType() == PropertyType.STRING) {
+        if (value.getType() == PropertyType.STRING) {
             logLargeStringProperties(jcrName, value.getString());
         }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {

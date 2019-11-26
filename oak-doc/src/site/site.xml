@@ -144,6 +144,7 @@ under the License.
     <menu name="Developing Oak">
       <item href="dev_getting_started.html" name="Getting Started" />
       <item href="participating.html" name="Participating" />
+      <item href="oakathons.html" name="Oakathons" />
       <item href="developing-with-git.html" name="Developing with Git" />
       <item href="diagnostic-builds.html" name="Cutting diagnostic builds" />
       <item href="branching.html" name="Branching off a new stable" />
