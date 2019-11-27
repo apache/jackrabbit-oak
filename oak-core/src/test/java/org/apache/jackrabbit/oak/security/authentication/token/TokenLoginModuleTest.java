@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -36,6 +39,7 @@ import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -48,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
@@ -68,6 +73,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TokenLoginModuleTest extends AbstractSecurityTest {
+
+    private static TokenProvider mockTokenProvider(@NotNull String userId) {
+        TokenInfo info = mock(TokenInfo.class);
+        when(info.isExpired(anyLong())).thenReturn(false);
+        when(info.matches(any(TokenCredentials.class))).thenReturn(true);
+        when(info.getUserId()).thenReturn(userId);
+
+        TokenProvider tp = when(mock(TokenProvider.class).getTokenInfo(anyString())).thenReturn(info).getMock();
+        return tp;
+    }
 
     @Override
     protected Configuration getConfiguration() {
@@ -251,12 +266,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testMissingUserPrincipal() throws Exception {
-        TokenInfo info = mock(TokenInfo.class);
-        when(info.isExpired(anyLong())).thenReturn(false);
-        when(info.matches(any(TokenCredentials.class))).thenReturn(true);
-        when(info.getUserId()).thenReturn(getTestUser().getID());
-
-        TokenProvider tp = when(mock(TokenProvider.class).getTokenInfo(anyString())).thenReturn(info).getMock();
+        TokenProvider tp = mockTokenProvider(getTestUser().getID());
         TokenCredentials tc = new TokenCredentials("token");
 
         TokenLoginModule lm = new TokenLoginModule();
@@ -381,6 +391,27 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         assertFalse(lm.login());
         assertFalse(lm.commit());
         verify(tp, times(1)).createToken(sc);
+    }
+
+    @Test
+    public void testSuccessCommitRespectsSubjectPrincipals() throws Exception {
+        Principal principal = new PrincipalImpl("subjetPrincipal");
+        Subject subject = new Subject();
+        subject.getPrincipals().add(principal);
+
+        Map<String, Object> shared = Maps.newHashMap();
+        shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TokenCredentials("token"));
+
+        TokenLoginModule lm = new TokenLoginModule();
+        lm.initialize(subject, new TestCallbackHandler(mockTokenProvider("userId")), shared, new HashMap<>());
+
+        assertTrue(lm.login());
+        assertTrue(lm.commit());
+
+        Set<AuthInfo> authInfoSet = subject.getPublicCredentials(AuthInfo.class);
+        assertFalse(authInfoSet.isEmpty());
+        AuthInfo info = authInfoSet.iterator().next();
+        assertTrue(info.getPrincipals().contains(principal));
     }
 
     private final class TestCallbackHandler implements CallbackHandler {

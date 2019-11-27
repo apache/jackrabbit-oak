@@ -21,12 +21,17 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.jcr.Credentials;
+import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
@@ -119,6 +124,8 @@ public final class TokenLoginModule extends AbstractLoginModule {
     private TokenCredentials tokenCredentials;
     private TokenInfo tokenInfo;
     private Principal principal;
+    private Set<? extends Principal> principals;
+    private AuthInfo authInfo;
 
     //--------------------------------------------------------< LoginModule >---
     @Override
@@ -149,12 +156,13 @@ public final class TokenLoginModule extends AbstractLoginModule {
     @Override
     public boolean commit() throws LoginException {
         if (tokenCredentials != null && tokenInfo != null) {
-            Set<? extends Principal> principals = (principal != null) ? getPrincipals(principal) : getPrincipals(tokenInfo.getUserId());
-            updateSubject(tokenCredentials, getAuthInfo(tokenInfo, principals), principals);
-            clearState();
+            principals = (principal != null) ? getPrincipals(principal) : getPrincipals(tokenInfo.getUserId());
+            authInfo = getAuthInfo(tokenInfo, Iterables.concat(principals, subject.getPrincipals()));
+            updateSubject(subject, tokenCredentials, authInfo);
+            clearState(); // FIXME see OAK-8803
             return true;
         }
-        try{
+        try {
             if (tokenProvider != null && sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
                 Credentials shared = getSharedCredentials();
                 if (shared != null && tokenProvider.doCreateToken(shared)) {
@@ -168,7 +176,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
                         ti.getPrivateAttributes().forEach((key, value) -> tc.setAttribute(key, value));
                         ti.getPublicAttributes().forEach((key, value) -> tc.setAttribute(key, value));
                         sharedState.put(SHARED_KEY_ATTRIBUTES, ti.getPublicAttributes());
-                        updateSubject(tc, null, null);
+                        updateSubject(subject, tc, null);
                     } else {
                         // failed to create token -> fail commit()
                         onError();
@@ -200,6 +208,9 @@ public final class TokenLoginModule extends AbstractLoginModule {
         tokenCredentials = null;
         tokenInfo = null;
         tokenProvider = null;
+        principal = null;
+        principals = null;
+        authInfo = null;
     }
 
     //------------------------------------------------------------< private >---
@@ -238,22 +249,17 @@ public final class TokenLoginModule extends AbstractLoginModule {
      * @return The {@code AuthInfo} resulting from the successful login.
      */
     @NotNull
-    private static AuthInfo getAuthInfo(@NotNull TokenInfo tokenInfo, @NotNull Set<? extends Principal> principals) {
+    private static AuthInfo getAuthInfo(@NotNull TokenInfo tokenInfo, @NotNull Iterable<? extends Principal> principals) {
         Map<String, Object> attributes = new HashMap<>();
         tokenInfo.getPublicAttributes().forEach((key, value) -> attributes.put(key, value));
         return new AuthInfoImpl(tokenInfo.getUserId(), attributes, principals);
     }
 
-    private void updateSubject(@NotNull TokenCredentials tc, @Nullable AuthInfo authInfo,
-                               @Nullable Set<? extends Principal> principals) {
+    private static void updateSubject(@NotNull Subject subject, @NotNull TokenCredentials tc, @Nullable AuthInfo authInfo) {
         if (!subject.isReadOnly()) {
             subject.getPublicCredentials().add(tc);
-
-            if (principals != null) {
-                subject.getPrincipals().addAll(principals);
-            }
-
             if (authInfo != null) {
+                subject.getPrincipals().addAll(authInfo.getPrincipals());
                 setAuthInfo(authInfo, subject);
             }
         }
