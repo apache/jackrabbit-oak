@@ -99,6 +99,13 @@ public class S3DataStore extends AbstractSharedCachingDataStore implements Confi
     @Override
     public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException, DataRecordUploadException {
+        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, false);
+    }
+
+    @Nullable
+    @Override
+    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, boolean domainOverrideIgnored)
+        throws IllegalArgumentException, DataRecordUploadException {
         if (null == s3Backend) {
             throw new DataRecordUploadException("Backend not initialized");
         }

@@ -265,6 +265,13 @@ public class PartialValueFactory {
         @Override
         public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes,
                                              int maxNumberOfURIs) {
+            return initiateBlobUpload(maxUploadSizeInBytes, maxNumberOfURIs, false);
+        }
+
+        @Nullable
+        public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes,
+                                             int maxNumberOfURIs,
+                                             boolean domainOverrideIgnore) {
             return null;
         }
 

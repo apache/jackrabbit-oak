@@ -135,6 +135,12 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
         @Override
         public @Nullable BlobUpload initiateBlobUpload(long maxSize, int maxURIs) throws IllegalArgumentException {
+            return initiateBlobUpload(maxSize, maxURIs, false);
+        }
+
+        @Override
+        public @Nullable BlobUpload initiateBlobUpload(long maxSize, int maxURIs, boolean domainOverrideIgnore)
+                throws IllegalArgumentException {
             return new BlobUpload() {
                 @Override
                 public @NotNull String getUploadToken() {

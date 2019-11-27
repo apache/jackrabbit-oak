@@ -943,13 +943,20 @@ public class DataStoreBlobStore
     @Override
     public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
             throws IllegalArgumentException {
+        return initiateBlobUpload(maxUploadSizeInBytes, maxNumberOfURIs, false);
+    }
+
+    @Nullable
+    @Override
+    public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, boolean domainOverrideIgnore)
+            throws IllegalArgumentException {
         if (delegate instanceof DataRecordAccessProvider) {
             try {
                 long start = System.nanoTime();
 
                 DataRecordAccessProvider provider = (DataRecordAccessProvider) this.delegate;
 
-                DataRecordUpload upload = provider.initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs);
+                DataRecordUpload upload = provider.initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, domainOverrideIgnore);
 
                 if (upload == null) {
                     if (stats instanceof ExtendedBlobStatsCollector) {

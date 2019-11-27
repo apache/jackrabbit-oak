@@ -454,6 +454,11 @@ public class BlobStoreStatsTestableFileDataStore extends OakFileDataStore implem
 
     @Override
     public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) throws IllegalArgumentException {
+        return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, false);
+    }
+
+    @Override
+    public DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, boolean domainOverrideIgnored) throws IllegalArgumentException {
         delay(initUploadDelay);
         if (withInitUploadError) throw new IllegalArgumentException();
         return new DataRecordUpload() {

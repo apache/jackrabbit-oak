@@ -136,7 +136,13 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
     @Override
     @Nullable
     public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts) {
-        BlobUpload upload = getBlobAccessProvider().initiateBlobUpload(maxSize, maxParts);
+        return initiateBinaryUpload(maxSize, maxParts, false);
+    }
+
+    @Override
+    @Nullable
+    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts, boolean domainOverrideIgnore) {
+        BlobUpload upload = getBlobAccessProvider().initiateBlobUpload(maxSize, maxParts, domainOverrideIgnore);
         if (null == upload) {
             return null;
         }

@@ -159,6 +159,51 @@ public interface JackrabbitValueFactory extends ValueFactory {
             throws IllegalArgumentException, AccessDeniedException;
 
     /**
+     * Initiate a transaction to upload a binary directly to a storage
+     * location and return {@link BinaryUpload} instructions for a remote client.
+     * Returns {@code null} if the feature is not available.
+     *
+     * <p>
+     * {@link IllegalArgumentException} will be thrown if an upload
+     * cannot be supported for the required parameters, or if the parameters are
+     * otherwise invalid. Each service provider has specific limitations.
+     *
+     * @param maxSize The exact size of the binary to be uploaded or the
+     *                estimated maximum size if the exact size is unknown.
+     *                If the estimation was too small, the transaction
+     *                should be restarted by invoking this method again
+     *                using the correct size.
+     * @param maxURIs The maximum number of upload URIs that the client can
+     *                accept, for example due to message size limitations.
+     *                A value of -1 indicates no limit.
+     *                Upon a successful return, it is ensured that an upload
+     *                of {@code maxSize} can be completed by splitting the
+     *                binary into {@code maxURIs} parts, otherwise
+     *                {@link IllegalArgumentException} will be thrown.
+     * @param domainOverrideIgnore Set to true if the implementation should
+     *                ignore any domain override setting and instead use the
+     *                default domain name for signed URIs.  Default is false.
+     *
+     * @return A {@link BinaryUpload} providing the upload instructions,
+     *         or {@code null} if the implementation does not support the direct
+     *         upload feature.
+     *
+     * @throws IllegalArgumentException if the provided arguments are
+     *         invalid or if an upload cannot be completed given the
+     *         provided arguments. For example, if the value of {@code maxSize}
+     *         exceeds the size limits for a single binary upload for the
+     *         implementation or the service provider, or if the value of
+     *         {@code maxSize} divided by {@code maxParts} exceeds the size
+     *         limit for an upload or upload part.
+     *
+     * @throws AccessDeniedException if the session has insufficient
+     *         permission to perform the upload.
+     */
+    @Nullable
+    BinaryUpload initiateBinaryUpload(long maxSize, int maxURIs, boolean domainOverrideIgnore)
+            throws IllegalArgumentException, AccessDeniedException;
+
+    /**
      * Complete the transaction of uploading a binary directly to a storage
      * location and return a {@link Binary} to set as value for a binary
      * JCR property. The binary is not automatically associated with
