@@ -1,31 +1,31 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import static org.junit.Assert.fail;
-
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 
-import javax.jcr.RepositoryException;
-
-import org.apache.commons.io.IOUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.core.data.RandomInputStream;
+import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.blob.CompositeDataStoreCache;
-import org.apache.jackrabbit.util.TransientFileFactory;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,196 +33,220 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-public class FSBackendTest  {
+public class FSBackendTest {
 
-	
-	 protected static final Logger LOG = LoggerFactory.getLogger(FSBackendTest.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(FSBackendTest.class);
 
-	    @Rule
-	    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-	    private Properties props;
-	    protected FSBackend backend;
-	    protected String dataStoreDir;
-	    protected DataStore ds;
-	    /**
-	     * Array of hexadecimal digits.
-	     */
-	    private static final char[] HEX = "0123456789abcdef".toCharArray();
+    private Properties props;
+    private FSBackend backend;
+    private String dataStoreDir;
+    private DataStore ds;
+    private ListeningExecutorService executor;
+    private Random rand = new Random(0);
 
-	    /**
-	     * The digest algorithm used to uniquely identify records.
-	     */
-	    protected String DIGEST = System.getProperty("ds.digest.algorithm", "SHA-256");
-	    
+    @Before
+    public void setUp() throws Exception {
+        dataStoreDir = folder.newFolder().getAbsolutePath();
+        props = new Properties();
+        props.setProperty("cacheSize", "0");
+        props.setProperty("fsBackendPath", dataStoreDir);
+        ds = createDataStore();
+        backend = (FSBackend) ((CachingFileDataStore) ds).getBackend();
+        this.executor = MoreExecutors.listeningDecorator(Executors
+            .newFixedThreadPool(25, new NamedThreadFactory("oak-backend-test-write-thread")));
+    }
 
-	    @Before
-	    public void setUp() throws Exception {
-	    	dataStoreDir = folder.newFolder().getAbsolutePath();
-	        props = new Properties();
-	        props.setProperty("cacheSize", "0");
-	        props.setProperty("fsBackendPath", dataStoreDir);
-	        ds = createDataStore();
-	        backend = (FSBackend)((CachingFileDataStore) ds).getBackend();
-	    }
+    protected DataStore createDataStore() {
+        CachingFileDataStore ds = null;
+        try {
+            ds = new CachingFileDataStore();
+            Map<String, ?> config = DataStoreUtils.getConfig();
+            props.putAll(config);
+            PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
+            ds.setProperties(props);
+            ds.init(dataStoreDir);
+        } catch (Exception e) {
+            LOG.error("Exception creating DataStore", e);
+        }
+        return ds;
+    }
 
-	    protected DataStore createDataStore() throws RepositoryException {
-	        CachingFileDataStore ds = null;
-	        try {
-	            ds = new CachingFileDataStore();
-	            Map<String, ?> config = DataStoreUtils.getConfig();
-	            props.putAll(config);
-	            PropertiesUtil.populate(ds, Maps.fromProperties(props), false);
-	            ds.setProperties(props);
-	            ds.init(dataStoreDir);
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	        }
-	        return ds;
-	    }
-     
-	    /**
-	     * Testcase to validate mixed scenario use of {@link DataStore}.
-	     */
-	    @Test
-        public void testSingleThreadFSBackend() {
-	        try {
-	            long start = System.currentTimeMillis();
-	            LOG.info("Testcase: " + this.getClass().getName()
-	                + "#testSingleThread, testDir=" + dataStoreDir);
-	            doTestSingleThreadBackend();
-	            LOG.info("Testcase: " + this.getClass().getName()
-	                + "#testSingleThread finished, time taken = ["
-	                + (System.currentTimeMillis() - start) + "]ms");
-	        } catch (Exception e) {
-	            LOG.error("error:", e);
-	            fail(e.getMessage());
-	        }
-	    }
-	    
-	    /**
-	     * Testcase to validate mixed scenario use of {@link DataStore} in
-	     * multi-threaded concurrent environment.
-	     */
-        @Test
-	    public void testMultiThreadedFSBackend() {
-	        try {
-	            long start = System.currentTimeMillis();
-	            LOG.info("Testcase: " + this.getClass().getName()
-	                + "#testMultiThreaded, testDir=" + dataStoreDir);
-	            doTestMultiThreadedBackend();
-	            LOG.info("Testcase: " + this.getClass().getName()
-	                + "#testMultiThreaded finished, time taken = ["
-	                + (System.currentTimeMillis() - start) + "]ms");
-	        } catch (Exception e) {
-	            LOG.error("error:", e);
-	            fail(e.getMessage());
-	        }
-	    }
+    /**
+     * Test for write single threaded to FSBackend.
+     */
+    @Test
+    public void testSingleThreadFSBackend() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName() + "#testSingleThread, testDir=" + dataStoreDir);
+            doTest(ds, 1, true);
+            LOG.info("Testcase: " + this.getClass().getName() + "#testSingleThread finished, time taken = [" + (
+                System.currentTimeMillis() - start) + "]ms");
+        } catch (Exception e) {
+            LOG.error("error", e);
+            fail(e.getMessage());
+        }
+    }
 
-	    @After
-	    public void tearDown() {
-	    	try {
-				ds.close();
-			} catch (DataStoreException e) {
-				LOG.error("error:", e);
-	            fail(e.getMessage());
-			}
-	    }
-	    
-	    /**
-	     * Method to validate mixed scenario use of {@link DataStore}.
-	     */
-	    protected void doTestSingleThreadBackend() throws Exception {
-	        doTestMultiThreaded(ds, 1);
-	    }
+    /**
+     * Tests for multi-threaded write of same file to FSBackend
+     */
+    @Test
+    public void testMultiThreadedSame() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSame, testDir=" + dataStoreDir);
+            doTest(ds, 10, true);
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSame finished, time taken = [" + (
+                System.currentTimeMillis() - start) + "]ms");
+        } catch (Exception e) {
+            LOG.error("error", e);
+            fail(e.getMessage());
+        }
+    }
 
-	    /**
-	     * Method to validate mixed scenario use of {@link DataStore} in
-	     * multi-threaded concurrent environment.
-	     */	    
-	    protected void doTestMultiThreadedBackend() throws Exception {
-	        doTestMultiThreaded(ds, 4);
-	    }
+    /**
+     * Tests for multi-threaded write of same file to FSBackend
+     */
+    @Test
+    public void testMultiThreadedSameLarge() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSameLarge, testDir=" + dataStoreDir);
+            doTest(ds, 100, true);
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedSameLarge finished, time taken = [" + (
+                System.currentTimeMillis() - start) + "]ms");
+        } catch (Exception e) {
+            LOG.error("error", e);
+            fail(e.getMessage());
+        }
+    }
 
-	    /**
-	     * Method to run {@link FSBackendTest#doTest(DataStore, int)} in multiple
-	     * concurrent threads.
-	     */	    
-	    protected void doTestMultiThreaded(final DataStore ds, int threadCount)
-	            throws Exception {
-	        final Exception[] exception = new Exception[1];
-	        Thread[] threads = new Thread[threadCount];
-	        for (int i = 0; i < threadCount; i++) {
-	            final int x = i;
-	            Thread t = new Thread() {
-	                public void run() {
-	                    try {
-	                        doTest(ds, x);
-	                    } catch (Exception e) {
-	                        exception[0] = e;
-	                    }
-	                }
-	            };
-	            threads[i] = t;
-	            t.start();
-	        }
-	        for (int i = 0; i < threadCount; i++) {
-	            threads[i].join();
-	        }
-	        if (exception[0] != null) {
-	            throw exception[0];
-	        }
-	    }
-	    
-	    /**
-	     * Method to assert record while writing and deleting record from FSBackend
-	     */
-	    void doTest(DataStore ds, int offset) throws Exception {
-	        String path = dataStoreDir + "/repository/datastore";
-	        ArrayList<DataRecord> list = new ArrayList<DataRecord>();
-	        File rootDirectory = new File(path);
-	        File tmp = new File(rootDirectory, "tmp");
-	        HashMap<DataRecord, Integer> map = new HashMap<DataRecord, Integer>();
-	        for (int i = 0; i < 10; i++) {
-	            int size = 100000 - (i * 100);
-	            RandomInputStream in = new RandomInputStream(size + offset, size);
-	            TransientFileFactory fileFactory = TransientFileFactory.getInstance();
-	            File tmpFile = fileFactory.createTransientFile("upload", null, tmp);
-	            MessageDigest digest = MessageDigest.getInstance(DIGEST);
-	            OutputStream output = new DigestOutputStream(new FileOutputStream(tmpFile), digest);
-	            try {
-	                 IOUtils.copyLarge(in, output);
-	            } finally {
-	                output.close();
-	            }
-	            DataIdentifier identifier = new DataIdentifier(encodeHexString(digest.digest()));
-	            backend.write(identifier, tmpFile);
-	            DataRecord rec = ds.getRecordIfStored(identifier);
-	            Assert.assertEquals(rec.getIdentifier(), identifier);
-	            list.add(rec);
-	            map.put(rec, size);
-	            System.out.println("Write "+i+" record " +rec);
-	        }
-	        Random random = new Random(1);
-	        for (int i = 0; i < list.size(); i++) {
-	            int pos = random.nextInt(list.size());
-	            DataRecord rec1 = list.get(pos);
-	            DataIdentifier di = rec1.getIdentifier();
-	            backend.deleteRecord(di);
-	            DataRecord rec2 = ds.getRecordIfStored(di);
-	            Assert.assertNotEquals(rec1, rec2);
-	        }
-	    }
+    /**
+     * Tests for multi-threaded write of different file to FSBackend
+     */
+    @Test
+    public void testMultiThreadedDifferent() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferent, testDir=" + dataStoreDir);
+            doTest(ds, 10, false);
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferent finished, time taken = [" + (
+                System.currentTimeMillis() - start) + "]ms");
+        } catch (Exception e) {
+            LOG.error("error", e);
+            fail(e.getMessage());
+        }
+    }
 
-	    protected static String encodeHexString(byte[] value) {
-	        char[] buffer = new char[value.length * 2];
-	        for (int i = 0; i < value.length; i++) {
-	            buffer[2 * i] = HEX[(value[i] >> 4) & 0x0f];
-	            buffer[2 * i + 1] = HEX[value[i] & 0x0f];
-	        }
-	        return new String(buffer);
-	    }
+    /**
+     * Tests for multi-threaded write of different file to FSBackend
+     */
+    @Test
+    public void testMultiThreadedDifferentLarge() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferentLarge, testDir=" + dataStoreDir);
+            doTest(ds, 100, false);
+            LOG.info("Testcase: " + this.getClass().getName() + "#testMultiThreadedDifferentLarge finished, time taken = [" + (
+                System.currentTimeMillis() - start) + "]ms");
+        } catch (Exception e) {
+            LOG.error("error", e);
+            fail(e.getMessage());
+        }
+    }
+
+    @After
+    public void tearDown() {
+        try {
+            new ExecutorCloser(executor).close();
+            ds.close();
+        } catch (DataStoreException e) {
+            LOG.error("error", e);
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Method to assert record while writing and deleting record from FSBackend
+     */
+    void doTest(DataStore ds, int concurrency, boolean same) throws Exception {
+        List<ListenableFuture<Integer>> futures = Lists.newArrayList();
+        CountDownLatch latch = new CountDownLatch(concurrency);
+
+        int seed = 0;
+        for (int i = 0; i < concurrency; i++) {
+            if (!same) {
+                seed = rand.nextInt(1000);
+            }
+            put(folder, futures, seed, latch);
+        }
+
+        for (int i = 0; i < concurrency; i++) {
+            latch.countDown();
+        }
+
+        assertFuture(futures);
+    }
+
+    private List<ListenableFuture<Integer>> put(TemporaryFolder folder, List<ListenableFuture<Integer>> futures,
+        int seed, CountDownLatch writeLatch)
+        throws IOException {
+
+        File f = copyToFile(randomStream(seed, 4 * 1024 * 1024), folder.newFile());
+
+        ListenableFuture<Integer> future = executor.submit(() -> {
+            try {
+                writeLatch.await();
+                backend.write(new DataIdentifier("0000ID" + seed), f);
+                LOG.info("Added file to backend");
+                return seed;
+            } catch (Exception e) {
+                LOG.error("Error adding file to backend", e);
+                throw e;
+            }
+        });
+        futures.add(future);
+
+        return futures;
+    }
+
+    private void waitFinish(List<ListenableFuture<Integer>> futures) {
+        ListenableFuture<List<Integer>> listenableFutures = Futures.successfulAsList(futures);
+        try {
+            listenableFutures.get();
+        } catch (Exception e) {
+            LOG.error("Error in finishing threads", e);
+        }
+    }
+
+    private void assertFuture(List<ListenableFuture<Integer>> futures) throws Exception {
+        waitFinish(futures);
+
+        for (ListenableFuture future : futures) {
+            assertFile((Integer) future.get(), folder);
+        }
+    }
+
+    private void assertFile(int seed, TemporaryFolder folder) throws IOException, DataStoreException {
+        DataRecord backendRecord = backend.getRecord(new DataIdentifier("0000ID" + seed));
+
+        assertEquals(backendRecord.getLength(), 4 * 1024 * 1024);
+        File original = copyToFile(randomStream(seed, 4 * 1024 * 1024), folder.newFile());
+        assertTrue("Backend file content differs",
+            FileUtils.contentEquals(original, copyToFile(backendRecord.getStream(), folder.newFile())));
+    }
+
+    static File copyToFile(InputStream stream, File file) throws IOException {
+        FileIOUtils.copyInputStreamToFile(stream, file);
+        return file;
+    }
 }
