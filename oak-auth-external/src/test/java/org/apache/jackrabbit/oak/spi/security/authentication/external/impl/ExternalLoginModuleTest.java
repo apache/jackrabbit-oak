@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManage
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -55,6 +56,7 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
+import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -233,13 +235,18 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), sp, null);
 
+        Principal principal = new PrincipalImpl("preset");
         Subject subject = new Subject();
+        subject.getPrincipals().add(principal);
+
         loginModule.initialize(subject, cbh, sharedState, ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertTrue(loginModule.login());
-        assertFalse(loginModule.commit());
+        assertTrue(loginModule.commit());
 
-        assertFalse(subject.getPublicCredentials(AuthInfo.class).iterator().hasNext());
-        assertTrue(subject.getPrincipals().isEmpty());
+        assertTrue(subject.getPrincipals().contains(principal));
+        assertFalse(subject.getPublicCredentials(AuthInfo.class).isEmpty());
+        AuthInfo info = subject.getPublicCredentials(AuthInfo.class).iterator().next();
+        assertTrue(info.getPrincipals().contains(principal));
     }
 
     @Test

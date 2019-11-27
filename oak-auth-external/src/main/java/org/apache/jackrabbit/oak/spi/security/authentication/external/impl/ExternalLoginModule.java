@@ -16,17 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import javax.jcr.Credentials;
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
-
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -39,13 +29,13 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
+import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.SimpleCredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
@@ -58,6 +48,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.LoginException;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * {@code ExternalLoginModule} implements a {@code LoginModule} that uses an
@@ -109,6 +112,9 @@ public class ExternalLoginModule extends AbstractLoginModule {
      * Login credentials
      */
     private Credentials credentials;
+
+    private Set<? extends Principal> principals;
+    private AuthInfo authInfo;
 
     /**
      * Default constructor for the OSGIi LoginModuleFactory case and the default non-OSGi JAAS case.
@@ -266,22 +272,21 @@ public class ExternalLoginModule extends AbstractLoginModule {
             // login attempt in this login module was not successful
             clearState();
             return false;
-        }
-        Set<? extends Principal> principals = getPrincipals(externalUser.getId());
-        if (!principals.isEmpty()) {
+        } else {
+            principals = getPrincipals(externalUser.getId());
+            authInfo = createAuthInfo(externalUser.getId(), principals);
             if (!subject.isReadOnly()) {
                 subject.getPrincipals().addAll(principals);
                 if (credentials != null) {
                     subject.getPublicCredentials().add(credentials);
                 }
-                setAuthInfo(createAuthInfo(externalUser.getId(), principals), subject);
+                setAuthInfo(authInfo, subject);
             } else {
-                log.debug("Could not add information to read only subject {}", subject);
+                log.debug("Could not add information to read only subject.");
             }
+            // FIXME: close system-session OAK-8803
             return true;
         }
-        clearState();
-        return false;
     }
 
     @Override
@@ -403,7 +408,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (creds != null) {
             attributes.putAll(credentialsSupport.getAttributes(creds));
         }
-        return new AuthInfoImpl(userId, attributes, principals);
+        return new AuthInfoImpl(userId, attributes, Iterables.concat(principals, subject.getPrincipals()));
     }
 
     @NotNull
@@ -437,6 +442,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
         super.clearState();
         externalUser = null;
         credentials = null;
+        authInfo = null;
+        principals = null;
     }
 
     /**
