@@ -61,7 +61,7 @@ public class FSBackendTest {
         ds = createDataStore();
         backend = (FSBackend) ((CachingFileDataStore) ds).getBackend();
         this.executor = MoreExecutors.listeningDecorator(Executors
-            .newFixedThreadPool(25, new NamedThreadFactory("oak-backend-test-write-thread")));
+            .newFixedThreadPool(30, new NamedThreadFactory("oak-backend-test-write-thread")));
     }
 
     protected DataStore createDataStore() {
