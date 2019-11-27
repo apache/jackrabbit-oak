@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -39,6 +40,7 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -108,6 +110,8 @@ public final class LoginModuleImpl extends AbstractLoginModule {
     private String userId;
     private Principal principal;
     private boolean success;
+    private Set<? extends Principal> principals;
+    private AuthInfo authInfo;
 
     //--------------------------------------------------------< LoginModule >---
 
@@ -156,21 +160,23 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             clearState();
             return false;
         } else {
+            principals = Collections.emptySet();
+            if (principal != null) {
+                principals = getPrincipals(principal);
+            } else if (userId != null) {
+                principals = getPrincipals(userId);
+            }
+            authInfo = createAuthInfo(principals);
             if (!subject.isReadOnly()) {
-                Set<Principal> principals = subject.getPrincipals();
-                if (principal != null) {
-                    principals.addAll(getPrincipals(principal));
-                } else if (userId != null) {
-                    principals.addAll(getPrincipals(userId));
-                }
+                subject.getPrincipals().addAll(principals);
                 if (credentials != null) {
                     subject.getPublicCredentials().add(credentials);
                 }
-                setAuthInfo(createAuthInfo(principals), subject);
+                setAuthInfo(authInfo, subject);
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
-            clearState();
+            clearState(); // FIXME see OAK-8803
             return true;
         }
     }
@@ -189,6 +195,8 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         credentials = null;
         userId = null;
         principal = null;
+        principals = null;
+        authInfo = null;
     }
 
     //--------------------------------------------------------------------------
@@ -260,6 +268,6 @@ public final class LoginModuleImpl extends AbstractLoginModule {
                 attributes.put(attrName, sc.getAttribute(attrName));
             }
         }
-        return new AuthInfoImpl(userId, attributes, principals);
+        return new AuthInfoImpl(userId, attributes, Iterables.concat(principals, subject.getPrincipals()));
     }
 }
