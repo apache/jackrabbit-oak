@@ -26,6 +26,8 @@ import java.util.stream.StreamSupport;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBLockClientOptions;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBLockClientOptions.AmazonDynamoDBLockClientOptionsBuilder;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.ItemCollection;
@@ -63,20 +65,24 @@ public final class AwsContext {
 
     private static final int TABLE_MAX_BATCH_WRITE_SIZE = 25;
 
+    private static final String LOCKTABLE_KEY = "key";
+
     private final AmazonS3 s3;
     private final String bucketName;
     private final String rootDirectory;
 
     private final AmazonDynamoDB ddb;
     private final Table journalTable;
+    private final String lockTableName;
 
     private AwsContext(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
-            String journalTableName) {
+            String journalTableName, String lockTableName) {
         this.s3 = s3;
         this.bucketName = bucketName;
         this.rootDirectory = rootDirectory.endsWith("/") ? rootDirectory : rootDirectory + "/";
         this.ddb = ddb;
         this.journalTable = new DynamoDB(ddb).getTable(journalTableName);
+        this.lockTableName = lockTableName;
     }
 
     /**
@@ -95,8 +101,8 @@ public final class AwsContext {
      * @throws IOException
      */
     public static AwsContext create(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
-            String journalTableName) throws IOException {
-        AwsContext awsContext = new AwsContext(s3, bucketName, rootDirectory, ddb, journalTableName);
+            String journalTableName, String lockTableName) throws IOException {
+        AwsContext awsContext = new AwsContext(s3, bucketName, rootDirectory, ddb, journalTableName, lockTableName);
         try {
             if (!s3.doesBucketExistV2(bucketName)) {
                 s3.createBucket(bucketName);
@@ -109,11 +115,21 @@ public final class AwsContext {
                             new AttributeDefinition(TABLE_ATTR_TIMESTAMP, ScalarAttributeType.N))
                     .withProvisionedThroughput(new ProvisionedThroughput(1000L, 1500L));
             TableUtils.createTableIfNotExists(ddb, createJournalTableRequest);
+
+            CreateTableRequest createLockTableRequest = new CreateTableRequest().withTableName(lockTableName)
+                    .withKeySchema(new KeySchemaElement(LOCKTABLE_KEY, KeyType.HASH))
+                    .withAttributeDefinitions(new AttributeDefinition(LOCKTABLE_KEY, ScalarAttributeType.S))
+                    .withProvisionedThroughput(new ProvisionedThroughput(1000L, 1500L));
+            TableUtils.createTableIfNotExists(ddb, createLockTableRequest);
         } catch (AmazonServiceException e) {
             throw new IOException(e);
         }
 
         return awsContext;
+    }
+
+    public AmazonDynamoDBLockClientOptionsBuilder getLockClientOptionsBuilder() {
+        return AmazonDynamoDBLockClientOptions.builder(ddb, lockTableName).withPartitionKeyName(LOCKTABLE_KEY);
     }
 
     public boolean doesObjectExist(String name) {

@@ -18,28 +18,31 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.Date;
-import java.util.Properties;
+import java.util.concurrent.Semaphore;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
+import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class AwsManifestFileTest {
+public class AwsRepositoryLockTest {
+
+    private static final Logger log = LoggerFactory.getLogger(AwsRepositoryLockTest.class);
 
     @ClassRule
     public static final S3MockRule s3Mock = new S3MockRule();
+
+    private static final String lockName = "repo.lock";
 
     private AwsContext awsContext;
 
@@ -52,18 +55,31 @@ public class AwsManifestFileTest {
     }
 
     @Test
-    public void testManifest() throws URISyntaxException, IOException {
-        ManifestFile manifestFile = new AwsManifestFile(awsContext, "manifest");
-        assertFalse(manifestFile.exists());
+    public void testFailingLock() throws IOException {
+        new AwsRepositoryLock(awsContext, lockName, 0).lock();
+        try {
+            new AwsRepositoryLock(awsContext, lockName, 0).lock();
+            fail("The second lock should fail.");
+        } catch (IOException e) {
+            // it's fine
+        }
+    }
 
-        Properties props = new Properties();
-        props.setProperty("xyz", "abc");
-        props.setProperty("version", "123");
-        manifestFile.save(props);
+    @Test
+    public void testWaitingLock() throws InterruptedException, IOException {
+        Semaphore s = new Semaphore(0);
+        new Thread(() -> {
+            try {
+                RepositoryLock lock = new AwsRepositoryLock(awsContext, lockName, 0).lock();
+                s.release();
+                Thread.sleep(1000);
+                lock.unlock();
+            } catch (Exception e) {
+                log.error("Can't lock or unlock the repo", e);
+            }
+        }).start();
 
-        assertTrue(manifestFile.exists());
-
-        Properties loaded = manifestFile.load();
-        assertEquals(props, loaded);
+        s.acquire();
+        new AwsRepositoryLock(awsContext, lockName, 10).lock();
     }
 }
