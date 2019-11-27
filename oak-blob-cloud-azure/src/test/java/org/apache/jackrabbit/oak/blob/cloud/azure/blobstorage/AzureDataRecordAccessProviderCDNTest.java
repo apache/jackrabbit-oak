@@ -140,4 +140,18 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
         assertNotNull(accountName);
         assertEquals(String.format("%s.blob.core.windows.net", accountName), downloadUri.getHost());
     }
+
+    @Test
+    public void testVetoUploadDomainOverride() throws Exception {
+        ConfigurableDataRecordAccessProvider ds = getCDNEnabledDataStore();
+        DataRecordUpload upload = ds.initiateDataRecordUpload(ONE_MB, 10, true);
+        assertNotNull(upload);
+        assertTrue(upload.getUploadURIs().size() > 0);
+
+        Properties properties = AzureDataStoreUtils.getDirectAccessDataStoreProperties();
+        String defaultDomain = String.format("%s.blob.core.windows.net", properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME));
+        for (URI uri : upload.getUploadURIs()) {
+            assertEquals(defaultDomain, uri.getHost());
+        }
+    }
 }

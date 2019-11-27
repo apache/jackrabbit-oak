@@ -847,7 +847,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         );
     }
 
-    DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs) {
+    DataRecordUpload initiateHttpUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, boolean domainOverrideIgnored) {
         List<URI> uploadPartURIs = Lists.newArrayList();
         long minPartSize = MIN_MULTIPART_UPLOAD_PART_SIZE;
         long maxPartSize = MAX_MULTIPART_UPLOAD_PART_SIZE;
@@ -923,7 +923,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             }
 
             String key = getKeyName(newIdentifier);
-            String domain = getDirectUploadBlobStorageDomain();
+            String domain = getDirectUploadBlobStorageDomain(domainOverrideIgnored);
             if (null == domain) {
                 throw new NullPointerException("Could not determine domain for direct upload");
             }
@@ -1057,8 +1057,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         return domain;
     }
 
-    private String getDirectUploadBlobStorageDomain() {
-        String domain = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
+    private String getDirectUploadBlobStorageDomain(boolean ignoreDomainOverride) {
+        String domain = ignoreDomainOverride
+                ? getDefaultBlobStorageDomain()
+                : properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
         if (Strings.isNullOrEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
