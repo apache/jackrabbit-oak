@@ -57,10 +57,7 @@ import javax.security.auth.login.LoginException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * {@code ExternalLoginModule} implements a {@code LoginModule} that uses an
@@ -284,7 +281,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             } else {
                 log.debug("Could not add information to read only subject.");
             }
-            // FIXME: close system-session OAK-8803
+            closeSystemSession();
             return true;
         }
     }

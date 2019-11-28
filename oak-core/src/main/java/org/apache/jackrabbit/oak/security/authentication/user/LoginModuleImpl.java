@@ -176,7 +176,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
-            clearState(); // FIXME see OAK-8803
+            closeSystemSession();
             return true;
         }
     }

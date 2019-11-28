@@ -212,7 +212,15 @@ public abstract class AbstractLoginModule implements LoginModule {
      */
     protected void clearState() {
         securityProvider = null;
-        root = null;
+        closeSystemSession();
+    }
+
+    /**
+     * Close the system session acquired upon {@link #getRoot()} and reset the associated root field.
+     * This method should be used instead of {@link #clearState()}, if {@link #login()} and {@link #commit()} were
+     * successfully completed but the system session is not needed for a successful {@link #logout()}
+     */
+    protected void closeSystemSession() {
         if (systemSession != null) {
             try {
                 systemSession.close();
@@ -221,6 +229,7 @@ public abstract class AbstractLoginModule implements LoginModule {
                 log.error(e.getMessage(), e);
             }
             systemSession = null;
+            root = null;
         }
     }
 

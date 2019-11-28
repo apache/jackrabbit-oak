@@ -21,10 +21,7 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
@@ -159,7 +156,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
             principals = (principal != null) ? getPrincipals(principal) : getPrincipals(tokenInfo.getUserId());
             authInfo = getAuthInfo(tokenInfo, Iterables.concat(principals, subject.getPrincipals()));
             updateSubject(subject, tokenCredentials, authInfo);
-            clearState(); // FIXME see OAK-8803
+            closeSystemSession();
             return true;
         }
         try {

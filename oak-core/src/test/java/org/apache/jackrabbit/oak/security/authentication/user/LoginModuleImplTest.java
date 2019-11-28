@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authentication.user;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -27,9 +28,13 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModuleTest;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.security.user.UserAuthenticationFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -37,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -55,8 +61,10 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,8 +76,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class LoginModuleImplTest extends AbstractSecurityTest {
@@ -489,6 +502,29 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         AuthInfo authInfo = subject.getPublicCredentials(AuthInfo.class).iterator().next();
         assertNull(authInfo.getUserID());
         assertTrue(subject.getPrincipals().isEmpty());
+    }
+
+    @Test
+    public void testCommitReadOnlySubject() throws Exception {
+        Principal principal = new PrincipalImpl("subjetPrincipal");
+        Subject subject = new Subject(true, ImmutableSet.of(principal), ImmutableSet.of(), ImmutableSet.of());
+
+        Map<String, Object> shared = Maps.newHashMap();
+        shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()));
+
+        LoginModuleImpl loginModule = new LoginModuleImpl();
+        loginModule.initialize(subject, new TestCallbackHandler(new UserAuthenticationFactoryImpl()), shared, Maps.newHashMap());
+
+        assertTrue(loginModule.login());
+        assertTrue(loginModule.commit());
+
+        // auth-Info field must not be cleared by successful commit
+        Field f = LoginModuleImpl.class.getDeclaredField("authInfo");
+        f.setAccessible(true);
+        AuthInfo ai = (AuthInfo) f.get(loginModule);
+        assertNotNull(ai);
+        assertTrue(ai.getPrincipals().contains(principal));
+        assertTrue(ai.getPrincipals().contains(getTestUser().getPrincipal()));
     }
 
 

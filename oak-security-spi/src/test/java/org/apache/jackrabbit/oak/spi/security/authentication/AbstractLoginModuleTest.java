@@ -216,6 +216,18 @@ public class AbstractLoginModuleTest {
     }
 
     @Test
+    public void testCloseSystemSession() throws Exception {
+        TestContentRepository cr = new TestContentRepository();
+
+        CallbackHandler cbh = new TestCallbackHandler(cr, mock(SecurityProvider.class), null);
+
+        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, cbh);
+        loginModule.getRoot();
+        loginModule.closeSystemSession();
+        verify(cr.cs, times(1)).close();
+    }
+
+    @Test
     public void testGetSharedLoginName() {
         Map<String, String> sharedState = new HashMap<>();
 
