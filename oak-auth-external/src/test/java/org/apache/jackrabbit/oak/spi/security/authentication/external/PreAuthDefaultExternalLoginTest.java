@@ -96,7 +96,7 @@ public class PreAuthDefaultExternalLoginTest extends ExternalLoginTestBase {
     public void testNonExistingUser() throws Exception {
         PreAuthCredentials creds = new PreAuthCredentials("nonExisting");
 
-        try (ContentSession cs = login(creds)){
+        try (ContentSession cs = login(creds)) {
         } finally {
             assertEquals(PreAuthCredentials.PRE_AUTH_DONE, creds.getMessage());
 
