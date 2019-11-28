@@ -121,12 +121,16 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         verify(extIPMgr, never()).getProvider("idp");
         verify(syncManager, never()).getSyncHandler("syncHandler");
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
     public void testInitializeMissingIdpSyncHandler() throws LoginException {
         loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null), Collections.emptyMap(), ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -139,6 +143,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         verify(extIPMgr, times(1)).getProvider("idp");
         verify(syncManager, times(1)).getSyncHandler("syncHandler");
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -161,6 +167,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
     @Test
     public void testLoginWithoutInit() throws Exception {
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -170,6 +178,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null), Collections.emptyMap(), Collections.singletonMap(PARAM_IDP_NAME, "idpName"));
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -189,6 +199,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         loginModule.initialize(new Subject(), cbh, new HashMap<>(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -215,6 +227,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         root.refresh();
         assertNotNull(getUserManager(root).getAuthorizable(ID_TEST_USER));
+
+        assertTrue(loginModule.logout());
+        assertTrue(subject.getPublicCredentials().isEmpty());
     }
 
     @Test
@@ -247,6 +262,13 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(subject.getPublicCredentials(AuthInfo.class).isEmpty());
         AuthInfo info = subject.getPublicCredentials(AuthInfo.class).iterator().next();
         assertTrue(info.getPrincipals().contains(principal));
+
+        assertTrue(loginModule.logout());
+
+        // authinfo must be removed upon logout
+        assertTrue(subject.getPublicCredentials(AuthInfo.class).isEmpty());
+        // predefined principal must _not_ be removed
+        assertTrue(subject.getPrincipals().contains(principal));
     }
 
     @Test
@@ -277,6 +299,10 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         AuthInfo authInfo = subject.getPublicCredentials(AuthInfo.class).iterator().next();
         assertNull(authInfo.getAttribute("attr"));
+
+        assertTrue(loginModule.logout());
+        assertTrue(subject.getPublicCredentials().isEmpty());
+        assertTrue(subject.getPrincipals().isEmpty());
     }
 
     @Test
@@ -300,6 +326,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         root.refresh();
         assertNotNull(getUserManager(root).getAuthorizable(ID_TEST_USER));
+
+        assertTrue(loginModule.logout());
     }
 
     @Test(expected = LoginException.class)
@@ -398,6 +426,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(loginModule.login());
         root.refresh();
         assertNull(getUserManager(root).getAuthorizable("local"));
+
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test(expected = LoginException.class)

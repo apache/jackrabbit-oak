@@ -57,7 +57,10 @@ import javax.security.auth.login.LoginException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * {@code ExternalLoginModule} implements a {@code LoginModule} that uses an
@@ -190,19 +193,19 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (idp == null || syncHandler == null) {
             return false;
         }
-        credentials = getCredentials();
+        Credentials creds = getCredentials();
 
         // check if we have a pre authenticated login from a previous login module
         final PreAuthenticatedLogin preAuthLogin = getSharedPreAuthLogin();
-        final String userId = getUserId(preAuthLogin, credentials);
+        final String userId = getUserId(preAuthLogin, creds);
 
-        if (userId == null && credentials == null) {
+        if (userId == null && creds == null) {
             log.debug("No credentials|userId found for external login module. ignoring.");
             return false;
         }
 
         // remember identification for log-output
-        Object logId = (userId != null) ? userId : credentials;
+        Object logId = (userId != null) ? userId : creds;
         try {
             // check if there exists a user with the given ID that has been synchronized
             // before into the repository.
@@ -220,15 +223,15 @@ public class ExternalLoginModule extends AbstractLoginModule {
             if (preAuthLogin != null) {
                 externalUser = idp.getUser(preAuthLogin.getUserId());
             } else {
-                externalUser = idp.authenticate(credentials);
+                externalUser = idp.authenticate(creds);
             }
 
             if (externalUser != null) {
                 log.debug("IDP {} returned valid user {}", idp.getName(), externalUser);
 
-                if (credentials != null) {
+                if (creds != null) {
                     //noinspection unchecked
-                    sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
+                    sharedState.put(SHARED_KEY_CREDENTIALS, creds);
                 }
 
                 //noinspection unchecked
@@ -236,6 +239,8 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
                 syncUser(externalUser);
 
+                // login successful -> remember credentials for commit/logout
+                credentials = creds;
                 return true;
             } else {
                 debug("IDP {} returned null for {}", idp.getName(), logId.toString());
@@ -291,6 +296,12 @@ public class ExternalLoginModule extends AbstractLoginModule {
         clearState();
         // do we need to remove the user again, in case we created it during login() ?
         return true;
+    }
+
+    @Override
+    public boolean logout() throws LoginException {
+        Set creds = Stream.of(credentials, authInfo).filter(Objects::nonNull).collect(Collectors.toSet());
+        return logout((creds.isEmpty() ? null : creds), principals);
     }
 
     //------------------------------------------------------------< private >---

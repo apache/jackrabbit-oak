@@ -59,7 +59,6 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -196,6 +195,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), null, ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -204,6 +205,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), new TestCallbackHandler(null), ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
 
@@ -216,6 +219,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
         assertFalse(lm.login());
         assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -226,6 +230,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), new TestCallbackHandler(tp), ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -234,6 +240,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), new ThrowingCallbackHandler(UnsupportedCallbackException.class), ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -242,6 +250,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), new ThrowingCallbackHandler(IOException.class), ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test(expected = LoginException.class)
@@ -261,6 +271,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
             lm.commit();
         } finally {
             verify(tp, times(1)).doCreateToken(any(Credentials.class));
+            assertFalse(lm.logout());
         }
     }
 
@@ -288,6 +299,12 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         assertTrue(lm.commit());
 
         assertEquals(ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance()), subject.getPrincipals());
+        assertFalse(subject.getPublicCredentials(AuthInfo.class).isEmpty());
+        assertFalse(subject.getPublicCredentials(TokenCredentials.class).isEmpty());
+
+        assertTrue(lm.logout());
+        assertTrue(subject.getPublicCredentials().isEmpty());
+        assertTrue(subject.getPrincipals().isEmpty());
     }
 
     @Test
@@ -311,6 +328,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         assertFalse(lm.commit());
         verify(tp, times(1)).createToken(sc);
         assertTrue(subject.getPublicCredentials(TokenCredentials.class).isEmpty());
+
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -325,6 +344,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         assertFalse(lm.login());
         assertFalse(lm.commit());
         verify(tp, never()).createToken(any(Credentials.class));
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -339,6 +359,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         assertFalse(lm.login());
         assertFalse(lm.commit());
         verify(tp, never()).doCreateToken(any(Credentials.class));
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -365,6 +386,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         assertFalse(lm.login());
         assertFalse(lm.commit());
         verify(tp, times(1)).createToken(sc);
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -391,6 +413,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         assertFalse(lm.login());
         assertFalse(lm.commit());
         verify(tp, times(1)).createToken(sc);
+        assertFalse(lm.logout());
     }
 
     @Test
