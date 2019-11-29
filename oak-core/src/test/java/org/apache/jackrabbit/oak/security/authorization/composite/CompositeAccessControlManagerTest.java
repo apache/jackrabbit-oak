@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
@@ -36,6 +37,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -139,6 +142,9 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         AccessControlPolicyIterator it = acMgr.getApplicablePolicies(TEST_PATH);
         while (it.hasNext()) {
             AccessControlPolicy plc = it.nextAccessControlPolicy();
+            if (plc instanceof AccessControlList) {
+                ((AccessControlList) plc).addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ));
+            }
             acMgr.setPolicy(TEST_PATH, plc);
         }
         root.commit();

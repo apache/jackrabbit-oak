@@ -217,6 +217,11 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         return ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
     }
 
+    private static void assertPolicies(@Nullable AccessControlPolicy[] policies, long expectedSize) {
+        assertNotNull(policies);
+        assertEquals(expectedSize, policies.length);
+    }
+
     private ACL getApplicablePolicy(@Nullable String path) throws RepositoryException {
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(path);
         if (itr.hasNext()) {
@@ -1139,6 +1144,21 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     }
 
     //---------------------------------------< getEffectivePolicies(String) >---
+    @Test
+    public void testGetEffectivePoliciesNoPoliciesSet() throws Exception {
+        assertPolicies(acMgr.getEffectivePolicies(testPath), 0);
+    }
+
+    @Test
+    public void testGetEffectivePoliciesEmptyACL() throws Exception {
+        // set empty policy -> no effective ACEs
+        acMgr.setPolicy(testPath, acMgr.getApplicablePolicies(testPath).nextAccessControlPolicy());
+        root.commit();
+
+        // resulting effective policies should be empty array
+        assertPolicies(acMgr.getEffectivePolicies(testPath), 0);
+    }
+
     @Test
     public void testGetEffectivePolicies() throws Exception {
         AccessControlPolicy[] policies = acMgr.getEffectivePolicies(testPath);
