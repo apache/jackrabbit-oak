@@ -77,19 +77,35 @@ import org.osgi.annotation.versioning.ProviderType;
  * <h3>Steps</h3>
  * <ol>
  *     <li>
- *         If {@code (fileSize / maxPartSize) > numUploadURIs}, then the
- *         client cannot proceed and will have to request a new set of URIs
- *         with the right fileSize as {@code maxSize}
+ *         If {@code (fileSize / maxPartSize) > numUploadURIs}, then the client
+ *         cannot proceed and will have to request a new set of URIs with the
+ *         right fileSize as {@code maxSize}
  *     </li>
  *     <li>
  *         If {@code fileSize < minPartSize}, then take the first provided
  *         upload URI to upload the entire binary, with
- *         {@code partSize = fileSize}
+ *         {@code partSize = fileSize}.  Note that it is not required to use all
+ *         of the URIs provided in {@code uploadURIs}.
  *     </li>
  *     <li>
- *         (optional) If the client has more information to optimize, the
- *         {@code partSize} can be chosen, under the condition that all of these are
- *         true:
+ *         Select a value to be used for {@code partSize}.  The easiest way to
+ *         do this is to use the {@code maxPartSize} as the value for
+ *         {@code partSize}.  As long as the size of the actual binary upload is
+ *         less than or equal to the size passed to
+ *         {@link JackrabbitValueFactory#initiateBinaryUpload(long, int)}, a
+ *         non-null BinaryUpload object returned from that call means you are
+ *         guaranteed to be able to upload the binary successfully, using the
+ *         provided {@code uploadURIs}, so long the value you use for
+ *         {@code partSize} is {@code maxPartSize}.  Note that it is not
+ *         required to use of all the URIs provided in {@code uploadURIs} if not
+ *         all URIs are required to upload the entire binary with the selected
+ *         {@code partSize}.
+ *         <br/>
+ *         Optionally, a client may select a different {@code partSize}, for
+ *         example if the client has more information about the conditions of
+ *         the network or other information that would make a different
+ *         {@code partSize} preferable.  In this case a different value may be
+ *         chosen, under the condition that all of the following are true:
  *         <ol>
  *             <li>{@code partSize >= minPartSize}</li>
  *             <li>{@code partSize <= maxPartSize}
@@ -103,18 +119,35 @@ import org.osgi.annotation.versioning.ProviderType;
  *         <pre>partSize = (fileSize + numUploadURIs - 1) / numUploadURIs</pre>
  *     </li>
  *     <li>
- *         Upload: segment the binary into {@code partSize}, for each segment take the
- *         next URI from {@code uploadURIs} (strictly in order), proceed with a standard
- *         HTTP PUT for each, and for the last part use whatever segment size is left
+ *         Upload: segment the binary into {@code partSize}, for each segment
+ *         take the next URI from {@code uploadURIs} (strictly in order),
+ *         proceed with a standard HTTP PUT for each, and for the last part use
+ *         whatever segment size is left.
  *     </li>
  *     <li>
- *         If a segment fails during upload, retry (up to a certain timeout)
+ *         If a segment fails during upload, retry (up to a certain timeout).
  *     </li>
  *     <li>
  *         After the upload has finished successfully, notify the application,
  *         for example through a complete request, passing the {@link
  *         #getUploadToken() upload token}, and the application will call {@link
- *         JackrabbitValueFactory#completeBinaryUpload(String)} with the token
+ *         JackrabbitValueFactory#completeBinaryUpload(String)} with the token.
+ *         <br/>
+ *         The only timeout restrictions for calling
+ *         {@link JackrabbitValueFactory#completeBinaryUpload(String)} are those
+ *         imposed by the cloud blob storage service on uploaded blocks.  Upload
+ *         tokens themselves do not time out, which allows you to be very
+ *         lenient in allowing uploads to complete, and very resilient in
+ *         handling temporary network issues or other issues that might impact
+ *         the uploading of one or more blocks.
+ *         <br/>
+ *         In the case that the upload cannot be finished (for example, one or
+ *         more segments cannot be uploaded even after a reasonable number of
+ *         retries), do not call
+ *         {@link JackrabbitValueFactory#completeBinaryUpload(String)}.
+ *         Instead, simply restart the upload from the beginning by calling
+ *         {@link JackrabbitValueFactory#initiateBinaryUpload(long, int)} when
+ *         the situation preventing a successful upload has been resolved.
  *     </li>
  * </ol>
  *
