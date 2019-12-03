@@ -43,6 +43,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.LazyFileInputStream;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
+import org.apache.jackrabbit.util.TransientFileFactory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,21 +105,38 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public void write(DataIdentifier identifier, File file) throws DataStoreException {
-        File dest = getFile(identifier, fsPathDir);
-        synchronized (this) {
-            if (dest.exists()) {
-                long now = System.currentTimeMillis();
-                if (getLastModified(dest) < now + ACCESS_TIME_RESOLUTION) {
-                    setLastModified(dest, now + ACCESS_TIME_RESOLUTION);
+        TransientFileFactory fileFactory = TransientFileFactory.getInstance();
+        File tmpFile = null;
+
+        try {
+            tmpFile = fileFactory.createTransientFile("fsbackend", null, fsPathDir);
+            try {
+                FileUtils.copyFile(file, tmpFile);
+            } catch (IOException ie) {
+                LOG.error("failed to copy [{}] to temporary file [{}]", file.getAbsolutePath(),
+                        tmpFile.getAbsolutePath());
+                throw new DataStoreException("Not able to copy file [" + identifier + "] to temporary file", ie);
+            }
+
+            File dest = getFile(identifier, fsPathDir);
+            synchronized (this) {
+                File parent = dest.getParentFile();
+                parent.mkdirs();
+                if (tmpFile.renameTo(dest)) {
+                    // no longer need to delete the temporary file
+                    tmpFile = null;
+                } else {
+                    throw new IOException(
+                        "Can not rename " + tmpFile.getAbsolutePath()
+                         + " to " + dest.getAbsolutePath()
+                         + " (media read only?)");
                 }
-            } else {
-                try {
-                    FileUtils.copyFile(file, dest);
-                } catch (IOException ie) {
-                    LOG.error("failed to copy [{}] to [{}]", file.getAbsolutePath(),
-                        dest.getAbsolutePath());
-                    throw new DataStoreException("Not able to write file [" + identifier + "]", ie);
-                }
+            }
+        }  catch (IOException e) {
+            throw new DataStoreException("Could not add record", e);
+        } finally {
+            if (tmpFile != null) {
+                tmpFile.delete();
             }
         }
     }
