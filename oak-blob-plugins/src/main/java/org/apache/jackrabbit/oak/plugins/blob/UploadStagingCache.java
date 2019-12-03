@@ -316,7 +316,11 @@ public class UploadStagingCache implements Closeable {
             }
         } else {
             currentSize.addAndGet(-length);
-
+            if(!ignoreSize) {
+                LOG.info("Current cache size [{}] and upload staging cache size is [{}]",
+                        humanReadableByteCount(currentSize.get()),
+                        humanReadableByteCount(size));
+            }
             // if file is still pending upload, count it as present
             if (map.containsKey(id) || attic.containsKey(id)) {
                 SettableFuture<Integer> result = SettableFuture.create();
