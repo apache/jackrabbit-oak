@@ -202,7 +202,7 @@ public abstract class AbstractLoginModule implements LoginModule {
      *
      * @return {@code true} if neither principals nor public credentials of type {@link Credentials} or {@link AuthInfo}
      * stored in the {@link Subject} are empty; {@code false} otherwise
-     * @throws {@code LoginException} if the subject is readonly and destroying {@link Destroyable} credentials fails
+     * @throws LoginException if the subject is readonly and destroying {@link Destroyable} credentials fails
      * with {@link DestroyFailedException}.
      */
     @Override
