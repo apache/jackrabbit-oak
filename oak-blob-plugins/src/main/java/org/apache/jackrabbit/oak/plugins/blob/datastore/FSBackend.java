@@ -105,28 +105,20 @@ public class FSBackend extends AbstractSharedBackend {
     @Override
     public void write(DataIdentifier identifier, File file) throws DataStoreException {
         File dest = getFile(identifier, fsPathDir);
-        if (dest.exists()) {
-            long now = System.currentTimeMillis();
-            if (getLastModified(dest) < now + ACCESS_TIME_RESOLUTION) {
-                setLastModified(dest, now + ACCESS_TIME_RESOLUTION);
-            }
-        } else {
-            try {
-                File parent = dest.getParentFile();
-                parent.mkdirs();
-                if (file.renameTo(dest)) {
-                    // no longer need to delete the temporary file
-                    file = null;
-                } else {
-                    throw new IOException(
-                            "Can not rename " + file.getAbsolutePath()
-                            + " to " + dest.getAbsolutePath()
-                            + " (media read only?)");
+        synchronized (this) {
+            if (dest.exists()) {
+                long now = System.currentTimeMillis();
+                if (getLastModified(dest) < now + ACCESS_TIME_RESOLUTION) {
+                    setLastModified(dest, now + ACCESS_TIME_RESOLUTION);
                 }
-            } catch (IOException ie) {
-                LOG.error("failed to copy [{}] to [{}]", file.getAbsolutePath(),
-                    dest.getAbsolutePath());
-                throw new DataStoreException("Not able to write file [" + identifier + "]", ie);
+            } else {
+                try {
+                    FileUtils.copyFile(file, dest);
+                } catch (IOException ie) {
+                    LOG.error("failed to copy [{}] to [{}]", file.getAbsolutePath(),
+                        dest.getAbsolutePath());
+                    throw new DataStoreException("Not able to write file [" + identifier + "]", ie);
+                }
             }
         }
     }
@@ -168,11 +160,13 @@ public class FSBackend extends AbstractSharedBackend {
     @Override
     public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
         File file = getFile(identifier, fsPathDir);
-        if (file.exists()) {
-            if (file.delete()) {
-                deleteEmptyParentDirs(file);
-            } else {
-                LOG.warn("Failed to delete file " + file.getAbsolutePath());
+        synchronized (this) {
+            if (file.exists()) {
+                if (file.delete()) {
+                    deleteEmptyParentDirs(file);
+                } else {
+                    LOG.warn("Failed to delete file " + file.getAbsolutePath());
+                }
             }
         }
     }

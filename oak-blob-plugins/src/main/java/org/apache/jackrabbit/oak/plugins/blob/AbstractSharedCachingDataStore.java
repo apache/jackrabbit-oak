@@ -24,14 +24,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.ref.WeakReference;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -149,25 +145,6 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
     protected ExecutorService executor;
 
-    /**
-     * Name of the directory used for temporary files.
-     * Must be at least 3 characters.
-     */
-    private static final String TMP = "tmp";
-
-    /**
-     * The directory that contains all the data record files. The structure
-     * of content within this directory is controlled by this class.
-     */
-    private File directory;
-
-    /**
-     * All data identifiers that are currently in use are in this set until they are garbage collected.
-     */
-    protected Map<DataIdentifier, WeakReference<DataIdentifier>> inUse =
-        Collections.synchronizedMap(new WeakHashMap<DataIdentifier, WeakReference<DataIdentifier>>());
-
-
     public void init(String homeDir) throws DataStoreException {
         if (path == null) {
             path = homeDir + "/repository/datastore";
@@ -248,12 +225,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     @Override
     public DataRecord addRecord(InputStream inputStream, BlobOptions blobOptions)
         throws DataStoreException {
-        File tmpFile = null;
         Stopwatch watch = Stopwatch.createStarted();
         try {
-            tmpFile = newTemporaryFile();
-            DataIdentifier tempId = new DataIdentifier(tmpFile.getName());
-            usesIdentifier(tempId);
+            TransientFileFactory fileFactory = TransientFileFactory.getInstance();
+            File tmpFile = fileFactory.createTransientFile("upload", null, tmp);
 
             // Copy the stream to the temporary file and calculate the
             // stream length and the message digest of the stream
@@ -408,22 +383,6 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
     protected CompositeDataStoreCache getCache() {
         return cache;
-    }
-
-    /**
-     * Returns a unique temporary file to be used for creating a new
-     * data record.
-     *
-     * @return temporary file
-     * @throws IOException
-     */
-    private File newTemporaryFile() throws IOException {
-        // the directory is already created in the init method
-        return File.createTempFile(TMP, null, directory);
-    }
-
-    protected void usesIdentifier(DataIdentifier identifier) {
-        inUse.put(identifier, new WeakReference<DataIdentifier>(identifier));
     }
 
     /**------------------------- setters ----------------------------------------------**/
