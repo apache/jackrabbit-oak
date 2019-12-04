@@ -18,14 +18,29 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.core.data.DataRecord;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordAccessProvider;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.spi.blob.BlobOptions;
+import org.apache.jackrabbit.util.Base64;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -71,12 +86,17 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
             props.setProperty(S3Constants.S3_RENAME_KEYS, "true");
             ds = createDataStore();
 
+            Assert.assertNotEquals(null, ds);
+            rec = ds.getRecord(rec.getIdentifier());
+            Assert.assertNotEquals(null, rec);
             rec = ds.getRecord(rec.getIdentifier());
             Assert.assertEquals(data.length, rec.getLength());
             assertRecord(data, rec);
 
             randomGen.nextBytes(data);
-            ds.addRecord(new ByteArrayInputStream(data));
+            rec = ds.addRecord(new ByteArrayInputStream(data));
+            DataRecord rec1 = ds.getRecord(rec.getIdentifier());
+            Assert.assertEquals(rec.getLength(), rec1.getLength());
             ds.close();
         } catch (Exception e) {
             LOG.error("error:", e);
