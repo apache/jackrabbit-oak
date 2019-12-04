@@ -98,11 +98,8 @@ public interface DataRecordAccessProvider {
      *        parameter.  A caller may also pass in -1 to indicate that it is
      *        able to accept any number of URIs.  Any other negative number or
      *        0 may result in {@link IllegalArgumentException}.
-     * @param domainOverrideIgnored - set to true if the implementation should
-     *        ignore any configured domain name override value and instead use
-     *        the standard URI domain name when generating signed upload URIs.
-     *        The default value of this should be false, to maintain backward
-     *        compatibility with {@link #initiateDataRecordUpload(long, int)}.
+     * @param options - a {@link DataRecordUploadOptions} instance containing
+     *                any caller-specified options for upload URI generation.
      * @return A {@link DataRecordUpload} referencing this direct upload,
      *         or {@code null} if the implementation does not support direct
      *         upload.
@@ -114,7 +111,7 @@ public interface DataRecordAccessProvider {
     @Nullable
     DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes,
                                               int maxNumberOfURIs,
-                                              boolean domainOverrideIgnored)
+                                              DataRecordUploadOptions options)
             throws IllegalArgumentException, DataRecordUploadException;
 
     /**

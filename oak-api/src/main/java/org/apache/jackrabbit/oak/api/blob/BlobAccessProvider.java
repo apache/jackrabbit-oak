@@ -110,9 +110,8 @@ public interface BlobAccessProvider {
      *         parameter.  If the client is able to accept any number of URIs, a
      *         value of -1 may be passed in to indicate that the implementation
      *         is free to return as many URIs as it desires.
-     * @param domainOverrideIgnore Set to true if the implementation should
-     *         ignore any domain override setting and instead use the default
-     *         domain.  Default value is false.
+     * @param options an instance of {@link BlobUploadOptions} which allows the
+     *                caller to specify any desired upload URI options.
      * @return A {@link BlobUpload} referencing this direct upload, or
      *         {@code null} if the underlying implementation doesn't support
      *         direct uploading.
@@ -125,7 +124,7 @@ public interface BlobAccessProvider {
     @Nullable
     BlobUpload initiateBlobUpload(long maxUploadSizeInBytes,
                                   int maxNumberOfURIs,
-                                  boolean domainOverrideIgnore)
+                                  @NotNull final BlobUploadOptions options)
             throws IllegalArgumentException;
 
     /**

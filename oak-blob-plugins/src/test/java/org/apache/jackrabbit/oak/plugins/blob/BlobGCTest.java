@@ -88,6 +88,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordA
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -865,11 +866,11 @@ public class BlobGCTest {
         @Override
         public @Nullable DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs)
                 throws IllegalArgumentException, DataRecordUploadException {
-            return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, false);
+            return initiateDataRecordUpload(maxUploadSizeInBytes, maxNumberOfURIs, DataRecordUploadOptions.DEFAULT);
         }
 
         @Override
-        public @Nullable DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, boolean domainOverrideIgnored)
+        public @Nullable DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes, int maxNumberOfURIs, @NotNull final DataRecordUploadOptions options)
                 throws IllegalArgumentException, DataRecordUploadException {
             String upToken = UUID.randomUUID().toString();
             Random rand = new Random();

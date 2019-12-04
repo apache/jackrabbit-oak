@@ -61,6 +61,17 @@ public class BlobDownloadOptions {
         this(mediaType, characterEncoding, fileName, dispositionType, false);
     }
 
+    /**
+     * Creates new download options.
+     *
+     * @param mediaType the internet media type for the blob.
+     * @param characterEncoding the character encoding for the blob.
+     * @param fileName the file name for the blob.
+     * @param dispositionType the disposition type.
+     * @param domainOverrideIgnored true if any configured domain override
+     *                              should be ignored when generating URIs;
+     *                              false otherwise.
+     */
     public BlobDownloadOptions(@Nullable String mediaType,
                                @Nullable String characterEncoding,
                                @Nullable String fileName,

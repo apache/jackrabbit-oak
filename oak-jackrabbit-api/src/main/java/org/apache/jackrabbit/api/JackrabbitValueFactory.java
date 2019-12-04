@@ -28,6 +28,7 @@ import javax.jcr.ValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
+import org.apache.jackrabbit.api.binary.BinaryUploadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -92,7 +93,10 @@ import org.osgi.annotation.versioning.ProviderType;
  *         <b>Initialize</b>: A remote client makes request to the
  *         Jackrabbit-based application to request an upload, which calls {@link
  *         #initiateBinaryUpload(long, int)} and returns the resulting {@link
- *         BinaryUpload instructions} to the remote client.
+ *         BinaryUpload instructions} to the remote client.  A client may
+ *         optionally choose to provide a {@link BinaryUploadOptions} via
+ *         {@link #initiateBinaryUpload(long, int, BinaryUploadOptions)} if
+ *         additional options must be specified.
  *     </li>
  *     <li>
  *         <b>Upload</b>: The remote client performs the actual binary upload
@@ -180,9 +184,8 @@ public interface JackrabbitValueFactory extends ValueFactory {
      *                of {@code maxSize} can be completed by splitting the
      *                binary into {@code maxURIs} parts, otherwise
      *                {@link IllegalArgumentException} will be thrown.
-     * @param domainOverrideIgnore Set to true if the implementation should
-     *                ignore any domain override setting and instead use the
-     *                default domain name for signed URIs.  Default is false.
+     * @param options A {@link BinaryUploadOptions} instance containing any
+     *                options for this call.
      *
      * @return A {@link BinaryUpload} providing the upload instructions,
      *         or {@code null} if the implementation does not support the direct
@@ -200,7 +203,7 @@ public interface JackrabbitValueFactory extends ValueFactory {
      *         permission to perform the upload.
      */
     @Nullable
-    BinaryUpload initiateBinaryUpload(long maxSize, int maxURIs, boolean domainOverrideIgnore)
+    BinaryUpload initiateBinaryUpload(long maxSize, int maxURIs, BinaryUploadOptions options)
             throws IllegalArgumentException, AccessDeniedException;
 
     /**
