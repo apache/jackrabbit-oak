@@ -34,7 +34,6 @@ import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -197,6 +196,7 @@ public final class Utils {
         int socketTimeOut = Integer.parseInt(prop.getProperty(S3Constants.S3_SOCK_TIMEOUT));
         int maxConnections = Integer.parseInt(prop.getProperty(S3Constants.S3_MAX_CONNS));
         int maxErrorRetry = Integer.parseInt(prop.getProperty(S3Constants.S3_MAX_ERR_RETRY));
+        String encryptionType = prop.getProperty(S3Constants.S3_ENCRYPTION);
 
         String protocol = prop.getProperty(S3Constants.S3_CONN_PROTOCOL);
         String proxyHost = prop.getProperty(S3Constants.PROXY_HOST);
@@ -220,6 +220,10 @@ public final class Utils {
         cc.setSocketTimeout(socketTimeOut);
         cc.setMaxConnections(maxConnections);
         cc.setMaxErrorRetry(maxErrorRetry);
+        if (encryptionType != null
+                && encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
+            cc.withSignerOverride("AWSS3V4SignerType");
+        }
         return cc;
     }
 

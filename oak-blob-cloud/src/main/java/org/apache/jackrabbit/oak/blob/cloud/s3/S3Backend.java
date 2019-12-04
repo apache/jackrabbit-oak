@@ -82,6 +82,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.protocol.HTTP;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -847,7 +848,7 @@ public class S3Backend extends AbstractSharedBackend {
             else {
                 // multi-part
                 InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucket, blobId);
-                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(req);
+                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(s3ReqDecorator.decorate(req));
                 uploadId = res.getUploadId();
 
                 long numParts;
@@ -1005,6 +1006,10 @@ public class S3Backend extends AbstractSharedBackend {
             GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
                     .withMethod(method)
                     .withExpiration(expiration);
+
+            if (method != HttpMethod.GET) {
+               request = s3ReqDecorator.decorate(request);
+            }
 
             for (Map.Entry<String, String> e : reqParams.entrySet()) {
                 request.addRequestParameter(e.getKey(), e.getValue());
