@@ -106,6 +106,7 @@ import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.fil
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeFalse;
 
 /**
  * Tests for {@link DataStoreCommand}
@@ -139,6 +140,11 @@ public class DataStoreCommandTest {
 
     @Before
     public void setup() throws Exception {
+        if (storeFixture instanceof StoreFixture.AzureSegmentStoreFixture) {
+            assumeFalse("Environment variable \"AZURE_SECRET_KEY\" must be set to run Azure Segment fixture",
+                    Strings.isNullOrEmpty(System.getenv("AZURE_SECRET_KEY")));
+        }
+
         setupDataStore = blobFixture.init(temporaryFolder);
         store = storeFixture.init(setupDataStore, temporaryFolder.newFolder());
         additionalParams = "--ds-read-write";
@@ -828,8 +834,6 @@ public class DataStoreCommandTest {
                 builder.append("AccountName=").append(accountName).append(";");
                 builder.append("DefaultEndpointsProtocol=https;");
                 builder.append("BlobEndpoint=https://").append(accountName).append(".blob.core.windows.net").append(";");
-                builder.append("ContainerName=").append(container).append(";");
-                builder.append("Directory=").append(directory).append(";");
                 builder.append("AccountKey=").append(secret);
 
                 return builder.toString();
