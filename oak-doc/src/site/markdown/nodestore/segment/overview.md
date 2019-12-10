@@ -697,7 +697,7 @@ The following command uses `logback-segment-copy.xml` to configure Logback loggi
 java -Dlogback.configurationFile=logback-segment-copy.xml -jar oak-run.jar segment-copy cloud-prefix:URI some/local/path
 ```
 
-logback-compaction.xml:
+logback-segment-copy.xml:
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
