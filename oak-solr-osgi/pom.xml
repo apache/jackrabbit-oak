@@ -275,11 +275,13 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
+            <version><!-- see OAK-8829-->2.9.10</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-smile</artifactId>
+            <version><!-- see OAK-8829-->2.9.10</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
