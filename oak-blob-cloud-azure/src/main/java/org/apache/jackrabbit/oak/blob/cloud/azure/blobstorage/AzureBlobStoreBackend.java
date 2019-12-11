@@ -1104,7 +1104,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                     null) :
                             blob.generateSharedAccessSignature(policy,
                                     optionalHeaders,
-                                    null);
+                                    null,
+                                    null,
+                                    null,
+                                    true);
             // Shared access signature is returned encoded already.
 
             String uriString = String.format("https://%s/%s/%s?%s",

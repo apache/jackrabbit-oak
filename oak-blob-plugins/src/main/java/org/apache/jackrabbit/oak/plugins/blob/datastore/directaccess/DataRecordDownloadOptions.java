@@ -138,7 +138,7 @@ public class DataRecordDownloadOptions {
                 if (Strings.isNullOrEmpty(dispositionType)) {
                     dispositionType = DISPOSITION_TYPE_INLINE;
                 }
-                contentDispositionHeader = formatContentDispositionHeader(dispositionType, fileName, null);
+                contentDispositionHeader = formatContentDispositionHeader(dispositionType, fileName, rfc8187Encode(fileName));
             }
             else if (DISPOSITION_TYPE_ATTACHMENT.equals(this.dispositionType)) {
                 contentDispositionHeader = DISPOSITION_TYPE_ATTACHMENT;

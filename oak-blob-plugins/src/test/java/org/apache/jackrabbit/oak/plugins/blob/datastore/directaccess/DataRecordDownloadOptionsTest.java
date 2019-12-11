@@ -24,8 +24,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-import java.nio.charset.StandardCharsets;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -38,7 +36,9 @@ public class DataRecordDownloadOptionsTest {
     private static final String CHARACTER_ENCODING_UTF_8 = "utf-8";
     private static final String CHARACTER_ENCODING_ISO_8859_1 = "ISO-8859-1";
     private static final String FILE_NAME_IMAGE = "amazing summer sunset.png";
+    private static final String ENCODED_FILE_NAME_IMAGE = "amazing%20summer%20sunset.png";
     private static final String FILE_NAME_TEXT = "journal_entry_01-01-2000.txt";
+    private static final String ENCODED_FILE_NAME_TEXT = FILE_NAME_TEXT;
     private static final String DISPOSITION_TYPE_INLINE = "inline";
     private static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
 
@@ -118,7 +118,7 @@ public class DataRecordDownloadOptionsTest {
                 );
     }
 
-    private String getContentDispositionHeader(String fileName, String dispositionType) {
+    private String getContentDispositionHeader(String fileName, String encodedFileName, String dispositionType) {
         if (Strings.isNullOrEmpty(fileName)) {
             if (dispositionType.equals(DISPOSITION_TYPE_ATTACHMENT)) {
                 return DISPOSITION_TYPE_ATTACHMENT;
@@ -129,13 +129,9 @@ public class DataRecordDownloadOptionsTest {
         if (Strings.isNullOrEmpty(dispositionType)) {
             dispositionType = DISPOSITION_TYPE_INLINE;
         }
-        String fileNameStar = new String(fileName.getBytes(StandardCharsets.UTF_8));
-//        This proper behavior is disabled due to https://github.com/Azure/azure-sdk-for-java/issues/2900
-//        (see also https://issues.apache.org/jira/browse/OAK-8013).  We can re-enable the full test
-//        once the issue is resolved.  -MR
-//        return String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-//                dispositionType, fileName, fileNameStar);
-        return String.format("%s; filename=\"%s\"", dispositionType, fileName);
+
+        return String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
+                dispositionType, fileName, encodedFileName);
     }
 
     @Test
@@ -223,7 +219,9 @@ public class DataRecordDownloadOptionsTest {
             for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
                 verifyContentDispositionHeader(
                         getOptions(null, null, fileName, dispositionType),
-                        getContentDispositionHeader(fileName, dispositionType)
+                        getContentDispositionHeader(fileName,
+                                fileName.equals(FILE_NAME_IMAGE) ? ENCODED_FILE_NAME_IMAGE : ENCODED_FILE_NAME_TEXT,
+                                dispositionType)
                 );
             }
         }
@@ -234,7 +232,7 @@ public class DataRecordDownloadOptionsTest {
         // Ensures that the default disposition type is "inline"
         verifyContentDispositionHeader(
                 getOptions(null, null, FILE_NAME_IMAGE, null),
-                getContentDispositionHeader(FILE_NAME_IMAGE, DISPOSITION_TYPE_INLINE)
+                getContentDispositionHeader(FILE_NAME_IMAGE, ENCODED_FILE_NAME_IMAGE, DISPOSITION_TYPE_INLINE)
         );
     }
 

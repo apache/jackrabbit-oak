@@ -33,16 +33,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
@@ -61,8 +63,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Integration test for direct binary GET/PUT via HTTP, that requires a fully working data store
@@ -367,6 +367,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedName = "beautiful landscape.png";
+        String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withFileName(expectedName)
@@ -376,20 +377,9 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
-        // This proper behavior is disabled due to
-        // https://github.com/Azure/azure-sdk-for-java/issues/2900
-        // (see also https://issues.apache.org/jira/browse/OAK-8013,
-        // https://issues.apache.org/jira/browse/OAK-8104, and
-        // https://issues.apache.org/jira/browse/OAK-8105).  We can re-enable
-        // the full test once the issue is resolved.  -MR
-//        assertEquals(
-//                String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
-//                        expectedName, encodedName),
-//                contentDisposition
-//        );
         assertEquals(
-                String.format("inline; filename=\"%s\"", expectedName),
+                String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
+                        expectedName, encodedName),
                 contentDisposition
         );
 
@@ -407,6 +397,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedName = "beautiful landscape.png";
+        String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withFileName(expectedName)
@@ -417,20 +408,9 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
-        // This proper behavior is disabled due to
-        // https://github.com/Azure/azure-sdk-for-java/issues/2900
-        // (see also https://issues.apache.org/jira/browse/OAK-8013,
-        // https://issues.apache.org/jira/browse/OAK-8104, and
-        // https://issues.apache.org/jira/browse/OAK-8105).  We can re-enable
-        // the full test once the issue is resolved.  -MR
-//        assertEquals(
-//                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
-//                        expectedName, encodedName),
-//                contentDisposition
-//        );
         assertEquals(
-                String.format("attachment; filename=\"%s\"", expectedName),
+                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+                        expectedName, encodedName),
                 contentDisposition
         );
 
@@ -487,6 +467,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         String expectedMediaType = "image/png";
         String expectedCharacterEncoding = "utf-8";
         String expectedName = "beautiful landscape.png";
+        String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withMediaType(expectedMediaType)
@@ -505,20 +486,9 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
 
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
-        // This proper behavior is disabled due to
-        // https://github.com/Azure/azure-sdk-for-java/issues/2900
-        // (see also https://issues.apache.org/jira/browse/OAK-8013,
-        // https://issues.apache.org/jira/browse/OAK-8104, and
-        // https://issues.apache.org/jira/browse/OAK-8105).  We can re-enable
-        // the full test once the issue is resolved.  -MR
-//        assertEquals(
-//                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
-//                        expectedName, encodedName),
-//                contentDisposition
-//        );
         assertEquals(
-                String.format("attachment; filename=\"%s\"", expectedName),
+                String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
+                        expectedName, encodedName),
                 contentDisposition
         );
 
