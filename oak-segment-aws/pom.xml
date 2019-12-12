@@ -32,6 +32,10 @@
 
     <name>Oak Segment AWS</name>
 
+    <properties>
+        <aws.version>1.11.475</aws.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -49,6 +53,7 @@
                             com.amazonaws*,
                         </Export-Package>
                         <Embed-Dependency>
+                            aws-java-sdk-s3
                         </Embed-Dependency>
                     </instructions>
                 </configuration>
@@ -130,6 +135,13 @@
             <version>3.9</version>
         </dependency>
 
+        <!-- AWS dependencies -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${aws.version}</version>
+        </dependency>
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
@@ -180,6 +192,17 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.arakelian</groupId>
+            <artifactId>docker-junit-rule</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.findify</groupId>
+            <artifactId>s3mock_2.12</artifactId>
+            <version>0.2.5</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
