@@ -73,6 +73,7 @@
     <module>oak-examples</module>
     <module>oak-it</module>
     <module>oak-segment-tar</module>
+    <module>oak-segment-aws</module>
     <module>oak-segment-azure</module>
     <module>oak-benchmarks</module>
     <module>oak-search-elastic</module>
