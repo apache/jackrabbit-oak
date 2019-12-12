@@ -104,4 +104,9 @@ public class WrappingSplitBlobStore implements BlobStoreWrapper, SplitBlobStore 
         return getSplitBlobStore().isMigrated(blobId);
     }
 
+    @Override
+    public void close() throws Exception {
+        getSplitBlobStore().close();
+    }
+
 }

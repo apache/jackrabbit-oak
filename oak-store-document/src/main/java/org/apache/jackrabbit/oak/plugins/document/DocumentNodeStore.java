@@ -827,13 +827,12 @@ public final class DocumentNodeStore
 
         store.dispose();
 
-        if (blobStore instanceof Closeable) {
-            try {
-                ((Closeable) blobStore).close();
-            } catch (IOException e) {
-                LOG.debug("Error closing blob store " + blobStore, e);
-            }
+        try {
+            blobStore.close();
+        } catch (Exception e) {
+            LOG.debug("Error closing blob store " + blobStore, e);
         }
+
         if (persistentCache != null) {
             persistentCache.close();
         }

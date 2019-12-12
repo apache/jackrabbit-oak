@@ -108,4 +108,8 @@ public class LoopbackBlobStore implements BlobStore {
     public String getReference(@NotNull String blobId) {
         return checkNotNull(blobId);
     }
+
+    @Override
+    public void close() throws Exception {
+    }
 }

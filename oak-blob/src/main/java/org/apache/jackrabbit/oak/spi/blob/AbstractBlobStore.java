@@ -611,7 +611,11 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         return (chunkIds.size() == countDeleteChunks(chunkIds, maxLastModifiedTime));
     }
-    
+
+    @Override
+    public void close() throws Exception {
+    }
+
     /**
      * A block id. Blocks are small enough to fit in memory, so they can be
      * cached.

@@ -124,4 +124,26 @@ public class DefaultSplitBlobStore implements SplitBlobStore {
     public String toString() {
         return String.format("SplitBlobStore[old=%s, new=%s]", oldBlobStore, newBlobStore);
     }
+
+    @Override
+    public void close() throws Exception {
+        Exception thrown = null;
+        try {
+            oldBlobStore.close();
+        } catch (Exception ex) {
+            thrown = ex;
+        }
+        try {
+            newBlobStore.close();
+        } catch (Exception ex) {
+            if (thrown != null) {
+                thrown.addSuppressed(ex);
+            } else {
+                thrown = ex;
+            }
+        }
+        if (thrown != null) {
+            throw thrown;
+        }
+    }
 }
