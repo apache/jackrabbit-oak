@@ -27,6 +27,8 @@ import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.Properties;
 
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
@@ -44,8 +46,9 @@ public class AwsManifestFileTest {
     @Before
     public void setup() throws IOException {
         AmazonS3 s3 = s3Mock.createClient();
+        AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, "bucket-" + time, "oak");
+        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time);
     }
 
     @Test
