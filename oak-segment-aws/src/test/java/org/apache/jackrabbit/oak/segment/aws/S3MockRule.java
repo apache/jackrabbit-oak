@@ -29,7 +29,7 @@ import org.junit.rules.ExternalResource;
 
 import io.findify.s3mock.S3Mock;
 
-public class S3MockRule extends ExternalResource {
+public class S3MockRule extends ExternalResource implements AutoCloseable {
     private Integer port;
     private S3Mock api;
 
@@ -43,6 +43,15 @@ public class S3MockRule extends ExternalResource {
                 .withEndpointConfiguration(endpoint)
                 .withCredentials(new AWSStaticCredentialsProvider(new AnonymousAWSCredentials())).build();
         return client;
+    }
+
+    public void init() throws IOException {
+        this.before();
+    }
+
+    @Override
+    public void close() {
+        this.after();
     }
 
     @Override

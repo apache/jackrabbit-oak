@@ -70,7 +70,7 @@
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
       more fixtures space separated. See org.apache.jackrabbit.oak.jcr.FixturesHelper#AVAILABLE_FIXTURES 
-      for the possible values: SEGMENT_MK SEGMENT_TAR SEGMENT_AZURE DOCUMENT_NS DOCUMENT_RDB -->
+      for the possible values: SEGMENT_MK SEGMENT_TAR SEGMENT_AWS SEGMENT_AZURE DOCUMENT_NS DOCUMENT_RDB -->
     <fixtures>SEGMENT_TAR</fixtures>
 
    <!-- whether skip the surefire unit testing during the integration testing. 

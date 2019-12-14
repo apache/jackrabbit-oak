@@ -29,6 +29,7 @@ import java.util.stream.StreamSupport;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBLockClientOptions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBLockClientOptions.AmazonDynamoDBLockClientOptionsBuilder;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
@@ -48,6 +49,7 @@ import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
@@ -98,6 +100,31 @@ public final class AwsContext {
     /**
      * Creates the context used to interact with AWS services.
      * 
+     * @param bucketName       Name for the bucket that will store segments.
+     * @param rootDirectory    The root directory under which the segment store is
+     *                         setup.
+     * @param journalTableName Name of table used for storing log entries for
+     *                         journal and gc. The table will be created if it
+     *                         doesn't already exist. It should have a partition key
+     *                         on "{@link #TABLE_ATTR_FILENAME}" and sort key on
+     *                         "{@link #TABLE_ATTR_TIMESTAMP}".
+     * @param lockTableName    Name of table used for managing the distributed lock.
+     *                         The table will be created if it doesn't already
+     *                         exist. It should have a partition key on
+     *                         "{@link #LOCKTABLE_KEY}".
+     * @return The context.
+     * @throws IOException
+     */
+    public static AwsContext create(String bucketName, String rootDirectory, String journalTableName,
+            String lockTableName) throws IOException {
+        AmazonS3 s3 = AmazonS3Client.builder().build();
+        AmazonDynamoDB ddb = AmazonDynamoDBClient.builder().build();
+        return create(s3, bucketName, rootDirectory, ddb, journalTableName, lockTableName);
+    }
+
+    /**
+     * Creates the context used to interact with AWS services.
+     * 
      * @param s3               Client for accessing Amazon S3.
      * @param bucketName       Name for the bucket that will store segments.
      * @param rootDirectory    The root directory under which the segment store is
@@ -106,7 +133,12 @@ public final class AwsContext {
      * @param journalTableName Name of table used for storing log entries for
      *                         journal and gc. The table will be created if it
      *                         doesn't already exist. It should have a partition key
-     *                         on "filename" and sort key on "timestamp".
+     *                         on "{@link #TABLE_ATTR_FILENAME}" and sort key on
+     *                         "{@link #TABLE_ATTR_TIMESTAMP}".
+     * @param lockTableName    Name of table used for managing the distributed lock.
+     *                         The table will be created if it doesn't already
+     *                         exist. It should have a partition key on
+     *                         "{@link #LOCKTABLE_KEY}".
      * @return The context.
      * @throws IOException
      */

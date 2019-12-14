@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
+import org.apache.jackrabbit.oak.segment.aws.AwsContext;
+import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -79,6 +81,12 @@ public class SegmentTarFixture extends OakFixture {
         private boolean memoryMapping;
         private boolean useBlobStore;
         private int dsCacheSize;
+
+        private String awsBucketName;
+        private String awsRootPath;
+        private String awsJournalTableName;
+        private String awsLockTableName;
+
         private String azureConnectionString;
         private String azureContainerName;
         private String azureRootPath;
@@ -111,9 +119,17 @@ public class SegmentTarFixture extends OakFixture {
             this.useBlobStore = useBlobStore;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withDSCacheSize(int dsCacheSize) {
             this.dsCacheSize = dsCacheSize;
+            return this;
+        }
+
+        public SegmentTarFixtureBuilder withAws(String awsBucketName, String awsRootPath, String awsJournalTableName, String awsLockTableName) {
+            this.awsBucketName = awsBucketName;
+            this.awsRootPath = awsRootPath;
+            this.awsJournalTableName = awsJournalTableName;
+            this.awsLockTableName = awsLockTableName;
             return this;
         }
 
@@ -141,6 +157,11 @@ public class SegmentTarFixture extends OakFixture {
     private final boolean shareBlobStore;
     private final boolean oneShotRun;
     private final boolean secure;
+
+    private final String awsBucketName;
+    private final String awsRootPath;
+    private final String awsJournalTableName;
+    private final String awsLockTableName;
 
     private final String azureConnectionString;
     private final String azureContainerName;
@@ -176,6 +197,12 @@ public class SegmentTarFixture extends OakFixture {
         this.memoryMapping = builder.memoryMapping;
         this.useBlobStore = builder.useBlobStore;
         this.dsCacheSize = builder.dsCacheSize;
+
+        this.awsBucketName = builder.awsBucketName;
+        this.awsRootPath = builder.awsRootPath;
+        this.awsJournalTableName = builder.awsJournalTableName;
+        this.awsLockTableName = builder.awsLockTableName;
+
         this.azureConnectionString = builder.azureConnectionString;
         this.azureContainerName = builder.azureContainerName;
         this.azureRootPath = builder.azureRootPath;
@@ -193,6 +220,11 @@ public class SegmentTarFixture extends OakFixture {
                 .withMaxFileSize(maxFileSize)
                 .withSegmentCacheSize(segmentCacheSize)
                 .withMemoryMapping(memoryMapping);
+
+        if (awsBucketName != null) {
+            AwsContext awsContext = AwsContext.create(awsBucketName, awsRootPath, awsJournalTableName, awsLockTableName);
+            fileStoreBuilder.withCustomPersistence(new AwsPersistence(awsContext));
+        }
 
         if (azureConnectionString != null) {
             CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
@@ -236,6 +268,11 @@ public class SegmentTarFixture extends OakFixture {
             }
 
             FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "primary-" + i));
+
+            if (awsBucketName != null) {
+                AwsContext awsContext = AwsContext.create(awsBucketName, awsRootPath, awsJournalTableName, awsLockTableName);
+                builder.withCustomPersistence(new AwsPersistence(awsContext, "primary-" + i));
+            }
 
             if (azureConnectionString != null) {
                 CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);

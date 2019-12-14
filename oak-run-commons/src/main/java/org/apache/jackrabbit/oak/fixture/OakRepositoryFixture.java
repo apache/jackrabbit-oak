@@ -113,6 +113,13 @@ public class OakRepositoryFixture implements RepositoryFixture {
                 memoryMapping, useBlobStore, dsCacheInMB, syncInterval, shareBlobStore, secure, oneShotRun));
     }
 
+    public static RepositoryFixture getSegmentTarWithAwsSegmentStore(final File base, final String awsBucketName,
+            final String awsRootPath, final String awsJournalTableName, final String awsLockTableName,
+            final int maxFileSizeMB, final int cacheSizeMB, final boolean useBlobStore, final int dsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture.getSegmentTarWithAwsSegmentStore(base, awsBucketName, awsRootPath,
+                awsJournalTableName, awsLockTableName, maxFileSizeMB, cacheSizeMB, useBlobStore, dsCacheInMB));
+    }
+
     public static RepositoryFixture getSegmentTarWithAzureSegmentStore(final File base, final String azureConnectionString,
                                                                        final String azureContainerName, final String azureRootPath,
                                                                        final int maxFileSizeMB, final int cacheSizeMB, final boolean useBlobStore,
