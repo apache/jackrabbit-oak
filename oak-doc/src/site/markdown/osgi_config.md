@@ -262,12 +262,18 @@ sharedDSRepoId | "" | Custom SharedDataStore repositoryId. Used when custom blob
 blobTrackSnapshotIntervalInSecs | 43200 (12 hrs) | The blob ids cached/tracked locally are synchronized with the DataStore at this interval. Any additions and deletions will be visible to other cluster nodes or repositories connected to the shared DatStore after this. This should be less than the blobGcMaxAgeInSecs parameter above and the frequency of blob gc. See [Blob tracker][blobtracker]. | 1.5.6 
 updateLimit | 100000 | The number of updates kept in memory until changes are written to a branch in the DocumentStore | 1.7.0  
 leaseCheckMode | STRICT | The lease check mode. `STRICT` is the default and will stop the DocumentNodeStore as soon as the lease expires. `LENIENT` will give the background lease update a chance to renew the lease even when the lease expired. This mode is only recommended for development, e.g. when debugging an application and the lease may expire when the JVM is stopped at a breakpoint. | 1.9.6
+documentStoreType | MONGO | Set to "RDB" for `RDBDocumentStore`; will require a configured Sling DataSource called `oak`. | 1.0
 
-Example config file
+Example config file for `MongoDocumentStore`:
 
     mongouri=mongodb://localhost:27017
     db=oak
     
+Example config file for `RDBDocumentStore`:
+
+    documentStoreType=RDB
+    datasource.target=(datasource.name=oak)
+
 ##### Mongo Configuration
 
 All the configuration related to Mongo can be specified via [Mongo URI][1]
@@ -286,6 +292,14 @@ All the configuration related to Mongo can be specified via [Mongo URI][1]
   
 One can also specify the connection pool size, socket timeout etc. For complete details about various 
 possible option refer to [Mongo URI][1]  
+
+##### RDB Configuration
+
+The service operates on a JDBC `DataSource`. The configuration happens through
+the OSGi service that provides the data source, for instance the
+[Sling DataSource provider](https://sling.apache.org/documentation/bundles/datasource-providers.html).
+
+
 
 <a name="config-blobstore"></a>  
 ### Configuring DataStore/BlobStore

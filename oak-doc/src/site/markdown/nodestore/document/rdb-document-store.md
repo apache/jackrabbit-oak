@@ -57,6 +57,53 @@ will attempt to start anyway):
 ~~~
 
 
+## <a name="initialization"></a> Initialization
+
+The recommended method to initialize a `DocumentNodeStore` with an
+`RDBDocumentStore` is using an OSGi container and configure the
+`DocumentNodeStoreService`. See corresponding [Repository OSGi Configuration](../../osgi_config.html#document-node-store).
+
+This will also require deploying the [Sling DataSource provider](https://sling.apache.org/documentation/bundles/datasource-providers.html)
+and furthermore the associated JDBC driver as OSGi bundle. The details of the
+latter vary by database:
+
+1. If the JDBC driver already is an OSGI bundle, it can be deployed as is. This
+   is the case for Apache Derby, H2DB, IBM DB2, Microsoft SQL Server, MySQL,
+   and PostgreSQL. Some of these drivers also implement the [OSGi Data Service Specification for JDBC](https://osgi.org/specification/osgi.cmpn/7.0.0/service.jdbc.html) ,
+   in which case `org.osgi.service.jdbc-1.0.0.jar` needs to be deployed as well (this is the case for IBM DB2, Microsoft SQL Server, and PostgreSQL).
+2. Otherwise (e.g., Oracle), an OSGi wrapper needs to be built. See [below](#wrap-osgi).
+
+
+
+Alternatively an RDB based DocumentNodeStore can be created with the help of
+a `RDBDocumentNodeStoreBuilder`.
+
+    DataSource dataSource = RDBDataSourceFactory.forJdbcUrl(jdbcurl, user, pw);
+    DocumentNodeStore store = RDBDocumentNodeStoreBuilder().newRDBDocumentNodeStoreBuilder()
+        .setRDBConnection(dataSource).build();
+    // do something with the store
+    NodeState root = store.getRoot();
+
+    // dispose it when done
+    store.dispose();
+
+### <a name="wrap-osgi"></a> Example: Creating OSGi Bundle for Oracle JDBC driver
+
+1. Make sure to have a local copy of the JDBC driver, for instance `ojdbc8-12.2.0.1.jar`.
+2. Get BND command line tool from https://repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bnd/4.3.1/biz.aQute.bnd-4.3.1.jar
+3. Create BND `ora.bnd` below:
+~~~
+ -classpath: ojdbc8-12.2.0.1.jar
+ Bundle-SymbolicName: com.oracle.jdbc.ojdbc8
+ ver: 12.2.0.1
+ -output: ${bsn}-${ver}.jar
+ Bundle-Version: ${ver}
+ Include-Resource: @ojdbc8-12.2.0.1.jar
+ Import-Package: *;resolution:=optional
+~~~
+Then run `java -jar biz.aQute.bnd-4.3.1.jar ora.bnd`; this should create the OSGi bundle `com.oracle.jdbc.ojdbc8-12.2.0.1.jar`.
+
+
 ## <a name="database-creation"></a> Database Creation
 
 `RDBDocumentStore` relies on JDBC, and thus, in general, can not create
