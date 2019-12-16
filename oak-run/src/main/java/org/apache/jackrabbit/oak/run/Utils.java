@@ -72,7 +72,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
-class Utils {
+public class Utils {
 
     private static final long MB = 1024 * 1024;
 
@@ -341,7 +341,7 @@ class Utils {
         };
     }
 
-    static Closer createCloserWithShutdownHook() {
+    public static Closer createCloserWithShutdownHook() {
         Closer closer = Closer.create();
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
