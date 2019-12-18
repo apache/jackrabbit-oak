@@ -179,6 +179,15 @@ public final class AwsContext {
                 lockTableName);
     }
 
+    public String getConfig() {
+        StringBuilder uri = new StringBuilder("aws:");
+        uri.append(bucketName).append(';');
+        uri.append(rootDirectory).append(';');
+        uri.append(journalTable.getTableName()).append(';');
+        uri.append(lockTableName);
+        return uri.toString();
+    }
+
     public String getPath() {
         return rootDirectory;
     }
