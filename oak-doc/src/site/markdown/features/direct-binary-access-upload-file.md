@@ -15,38 +15,54 @@
    limitations under the License.
   -->
 
-# Direct Binary Access upload file process
+# Direct Binary Access upload file process using SSE Encryption
 
-The direct binary upload process is split into 3 phases:
+The direct binary upload process is split into [3 phases](direct-binary-access.html)
 
-1. **Initialize:** A remote client makes request to the Jackrabbit-based application to request an upload, which calls `initiateBinaryUpload(long, int)` and returns the resulting information to the remote client.
-2. **Upload:** The remote client performs the actual binary upload directly to the binary storage provider. The BinaryUpload returned from the previous call to `initiateBinaryUpload(long, int)` contains detailed instructions on how to complete the upload successfully. For more information, see the `BinaryUpload` documentation.
-3. **Complete:** The remote client notifies the Jackrabbit-based application that step 2 is complete. The upload token returned in the first step (obtained by calling `BinaryUpload.getUploadToken()`) is passed by the client to `completeBinaryUpload(String)`. This will provide the application with a regular JCR Binary that can then be used to write JCR content including the binary (such as an `nt:file` structure) and persist it.
+The remote client performs the actual binary upload directly to the binary storage provider. The BinaryUpload returned  to `initiateBinaryUpload(long, int)` contains detailed instructions on how to complete the upload successfully. For more information, see the `BinaryUpload` documentation.
 
-Example A: Here’s how to generate a pre-signed PUT URL using SSE-KMS:
+Example A: Here’s how to initiateHttpUpload:
 ```
-String myKmsCmkId = ...;
-GeneratePresignedUrlRequest genreq = new GeneratePresignedUrlRequest(
-    myExistingBucket, myKey, HttpMethod.PUT)
-    .withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm())
+long ONE_GB = 1048576000;
+/*Set all the properties for SSE*/
+if(properties != null){
+    setProperties(properties);
+}
+DataRecordUpload uploadContext = initiateHttpUpload(ONE_GB, 1);
+String uploadToken = uploadContext.getUploadToken();
+/*resultHttpStatusCode should be returned as 200 */
+int resultHttpStatusCode =  httpPut(uploadContext);
+```
+
+Here’s how to make use of the context returned by the `initiateHttpUpload` in Example A to upload a file using different SSE Encryption:
+```
+int httpPut(@Nullable DataRecordUpload uploadContext) throws IOException  {
+    File fileToUpload = ...;
+    String keyId = null;
+    URI puturl = uploadContext.getUploadURIs().iterator().next();
+    HttpPut putreq = new HttpPut(puturl);
+
+    String encryptionType = props.getProperty(s3Encryption);
+
+    if (encryptionType.equals(SSE_KMS)) {
+        keyId = props.getProperty(kmsKeyId);
+        putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION,
+               SSEAlgorithm.KMS.getAlgorithm()));
+        if(keyId != null) {
+            putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID,
+               keyId));
+        }
+    } else {
+        putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION,
+            SSEAlgorithm.AES256.getAlgorithm()));
+    }
+
     // Explicitly specifying your KMS customer master key id
-    .withKmsCmkId(myKmsCmkId);
-URL puturl = s3.generatePresignedUrl(genreq);
-System.out.println("Presigned PUT URL using SSE-KMS with explicit CMK ID: "
-    + puturl);
-```
-
-Here’s how to make use of the generated pre-signed PUT URL from (Example A) via the Apache HttpClient:
-```
-File fileToUpload = ...;
-HttpPut putreq = new HttpPut(URI.create(puturl.toExternalForm()));
-putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION,
-    SSEAlgorithm.KMS.getAlgorithm()));
-putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID,
-    myKmsCmkId)); // Explicitly specifying your KMS customer master key id
-putreq.setEntity(new FileEntity(fileToUpload));
-CloseableHttpClient httpclient = HttpClients.createDefault();
-httpclient.execute(putreq);
+    putreq.setEntity(new FileEntity(fileToUpload));
+    CloseableHttpClient httpclient = HttpClients.createDefault();
+    CloseableHttpResponse response  = httpclient.execute(putreq);
+    return response.getStatusLine().getStatusCode();
+}
 ```
 
 Here is an example of a [test case](https://github.com/apache/jackrabbit-oak/blob/5f89d905e96de6f9bb9314a08529e262607ba406/oak-blob-cloud/src/test/java/org/apache/jackrabbit/oak/blob/cloud/s3/TestS3Ds.java#L180) where initiate, upload and complete binary upload phases are shown.

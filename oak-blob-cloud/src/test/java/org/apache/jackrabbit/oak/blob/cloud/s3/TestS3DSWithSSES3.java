@@ -59,48 +59,8 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        String bucket = props.getProperty(S3Constants.S3_BUCKET);
         props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_S3);
-        props.setProperty("cacheSize", "0");
-    }
-
-    /**
-     * Test data migration enabling SSE_S3 encryption.
-     */
-    @Test
-    public void testDataMigration() {
-        try {
-            //manually close the setup ds and remove encryption
-            ds.close();
-            props.remove(S3Constants.S3_ENCRYPTION);
-            ds = createDataStore();
-
-            byte[] data = new byte[dataLength];
-            randomGen.nextBytes(data);
-            DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
-            Assert.assertEquals(data.length, rec.getLength());
-            assertRecord(data, rec);
-            ds.close();
-
-            // turn encryption now anc recreate datastore instance
-            props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_S3);
-            props.setProperty(S3Constants.S3_RENAME_KEYS, "true");
-            ds = createDataStore();
-
-            Assert.assertNotEquals(null, ds);
-            rec = ds.getRecord(rec.getIdentifier());
-            Assert.assertNotEquals(null, rec);
-            rec = ds.getRecord(rec.getIdentifier());
-            Assert.assertEquals(data.length, rec.getLength());
-            assertRecord(data, rec);
-
-            randomGen.nextBytes(data);
-            rec = ds.addRecord(new ByteArrayInputStream(data));
-            DataRecord rec1 = ds.getRecord(rec.getIdentifier());
-            Assert.assertEquals(rec.getLength(), rec1.getLength());
-            ds.close();
-        } catch (Exception e) {
-            LOG.error("error:", e);
-            fail(e.getMessage());
-        }
+        props.setProperty("s3Bucket", bucket);
     }
 }
