@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * If the node name doesn't contain version numbers / dashes, then version 0 is
  * assumed (for both the product version number and customer version number).
  */
-class IndexName implements Comparable<IndexName> {
+public class IndexName implements Comparable<IndexName> {
 
     private final static Logger LOG = LoggerFactory.getLogger(IndexName.class);
     
@@ -192,6 +192,30 @@ class IndexName implements Comparable<IndexName> {
             }
         }
         return false;
+    }
+
+    public String getNodeName() {
+        return nodeName;
+    }
+
+    public int getCustomerVersion() {
+        return customerVersion;
+    }
+
+    public int getProductVersion() {
+        return productVersion;
+    }
+
+    public String getBaseName() {
+        return baseName;
+    }
+
+    public boolean isVersioned() {
+        return isVersioned;
+    }
+
+    public boolean isLegal() {
+        return isLegal;
     }
     
 }
