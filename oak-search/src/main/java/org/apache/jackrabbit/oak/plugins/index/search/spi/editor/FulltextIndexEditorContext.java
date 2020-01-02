@@ -48,7 +48,10 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.REGEX_ALL_PROPS;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.REINDEX_COMPLETION_TIMESTAMP;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 
 /**
  *
@@ -60,8 +63,6 @@ public abstract class FulltextIndexEditorContext<D> {
 
   private static final PerfLogger PERF_LOGGER =
       new PerfLogger(LoggerFactory.getLogger(FulltextIndexEditorContext.class.getName() + ".perf"));
-  private final static String CREATION_TIMESTAMP = "creationTimestamp";
-  private final static String REINDEX_COMPLETION_TIMESTAMP = "reindexCompletionTimestamp";
 
   protected IndexDefinition definition;
 
@@ -166,9 +167,9 @@ public abstract class FulltextIndexEditorContext<D> {
       NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
       status.setProperty(IndexDefinition.STATUS_LAST_UPDATED, getUpdatedTime(currentTime), Type.DATE);
       status.setProperty("indexedNodes", indexedNodes);
-      if (reindex) {
-        NodeBuilder indexDefinition = definitionBuilder.child(INDEX_DEFINITION_NODE);
-        indexDefinition.setProperty(REINDEX_COMPLETION_TIMESTAMP, ISO8601.format(currentTime), Type.DATE);
+      if (!IndexDefinition.isDisableStoredIndexDefinition() && reindex) {
+        NodeBuilder indexDefinition = definitionBuilder.child(STATUS_NODE);
+        indexDefinition.setProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP, ISO8601.format(currentTime), Type.DATE);
       }
 
       PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
@@ -274,7 +275,7 @@ public abstract class FulltextIndexEditorContext<D> {
           NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);
           definition.setChildNode(INDEX_DEFINITION_NODE, clonedState);
           definition.getChildNode(INDEX_DEFINITION_NODE)
-                  .setProperty(CREATION_TIMESTAMP, ISO8601.format(Calendar.getInstance()), Type.DATE);
+                  .setProperty(IndexDefinition.CREATION_TIMESTAMP, ISO8601.format(Calendar.getInstance()), Type.DATE);
           log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
           if (log.isDebugEnabled()) {
             log.debug("Updated index definition is {}", NodeStateUtils.toString(clonedState));
@@ -282,7 +283,7 @@ public abstract class FulltextIndexEditorContext<D> {
         } else if (!definition.hasChildNode(INDEX_DEFINITION_NODE)) {
           definition.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
           definition.getChildNode(INDEX_DEFINITION_NODE)
-                  .setProperty(CREATION_TIMESTAMP, ISO8601.format(Calendar.getInstance()), Type.DATE);
+                  .setProperty(IndexDefinition.CREATION_TIMESTAMP, ISO8601.format(Calendar.getInstance()), Type.DATE);
           log.info("Stored the cloned index definition for [{}]. Changes in index definition would now only be " +
                   "effective post reindexing", indexingContext.getIndexPath());
         } else {

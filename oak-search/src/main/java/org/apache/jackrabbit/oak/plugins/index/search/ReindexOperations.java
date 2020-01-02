@@ -19,17 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search;
 
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCloner;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Calendar;
-
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.REINDEX_COMPLETION_TIMESTAMP;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext.configureUniqueId;
 
 /**
@@ -37,7 +35,6 @@ import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.Fulltext
  */
 public class ReindexOperations {
     private static final Logger log = LoggerFactory.getLogger(ReindexOperations.class);
-    private final static String CREATION_TIMESTAMP = "creationTimestamp";
     private final NodeState root;
     private final NodeBuilder definitionBuilder;
     private final String indexPath;
@@ -66,9 +63,10 @@ public class ReindexOperations {
         NodeState defnState = useStateFromBuilder ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
         if (!IndexDefinition.isDisableStoredIndexDefinition()) {
             definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
-            String creationTimestamp = ISO8601.format(Calendar.getInstance());
-            definitionBuilder.getChildNode(INDEX_DEFINITION_NODE).setProperty(CREATION_TIMESTAMP, creationTimestamp, Type.DATE);
-            log.debug("Index Definition Creation TimeStamp Updated Value: {}", creationTimestamp);
+            if (definitionBuilder.getChildNode(STATUS_NODE).exists()) {
+                definitionBuilder.getChildNode(STATUS_NODE).removeProperty(REINDEX_COMPLETION_TIMESTAMP);
+                log.info(REINDEX_COMPLETION_TIMESTAMP + " property removed for index at {}", this.indexPath);
+            }
         }
         String uid = configureUniqueId(definitionBuilder);
         //Refresh the index definition based on update builder state

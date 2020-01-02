@@ -1,6 +1,7 @@
 package org.apache.jackrabbit.oak.indexversion;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -21,8 +22,6 @@ public class IndexVersionOperation {
     }
 
     private static final Logger log = LoggerFactory.getLogger(IndexVersionOperation.class);
-    private static String INDEX_DEFINITION_NODE = ":index-definition";
-    private static String REINDEX_COMPLETION_TIMESTAMP = "reindexCompletionTimestamp";
 
     private IndexName indexName;
 
@@ -57,20 +56,20 @@ public class IndexVersionOperation {
                     .getChildNode(indexNameObjectList.get(i).getNodeName());
             if (activeProductVersion == -1) {
                 indexVersionOperationList.add(new IndexVersionOperation(indexNameObjectList.get(i)));
-                if (indexNode.hasChildNode(INDEX_DEFINITION_NODE)) {
-                    if (indexNode.getChildNode(INDEX_DEFINITION_NODE)
-                            .getProperty(REINDEX_COMPLETION_TIMESTAMP) != null) {
+                if (indexNode.hasChildNode(IndexDefinition.STATUS_NODE)) {
+                    if (indexNode.getChildNode(IndexDefinition.STATUS_NODE)
+                            .getProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP) != null) {
                         String reindexCompletionTime = indexDefParentNode
                                 .getChildNode(indexNameObjectList.get(i).getNodeName())
-                                .getChildNode(INDEX_DEFINITION_NODE)
-                                .getProperty(REINDEX_COMPLETION_TIMESTAMP).getValue(Type.DATE);
+                                .getChildNode(IndexDefinition.STATUS_NODE)
+                                .getProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP).getValue(Type.DATE);
                         long reindexCompletionTimeInMillis = PurgeOldVersionUtils.getMillisFromString(reindexCompletionTime);
                         long currentTimeInMillis = System.currentTimeMillis();
                         if (currentTimeInMillis - reindexCompletionTimeInMillis > threshold) {
                             activeProductVersion = indexNameObjectList.get(i).getProductVersion();
                         }
                     } else {
-                        log.warn(REINDEX_COMPLETION_TIMESTAMP
+                        log.warn(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP
                                 + " property is not set for index " + indexNameObjectList.get(i).getNodeName());
                     }
                 }
