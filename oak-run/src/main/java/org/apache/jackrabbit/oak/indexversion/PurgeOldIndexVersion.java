@@ -103,11 +103,31 @@ public class PurgeOldIndexVersion {
         return indexPaths;
     }
 
+    private boolean isIndexPathOptionValid(String indexPathOption, String indexPath) {
+        String slashTrimmedIndexPathOption = PurgeOldVersionUtils.trimSlash(indexPathOption);
+        String slashTrimmedIndexPath = PurgeOldVersionUtils.trimSlash(indexPath);
+        if (slashTrimmedIndexPath.startsWith(slashTrimmedIndexPathOption)) {
+            if (slashTrimmedIndexPathOption.length() == slashTrimmedIndexPath.length()
+                    || (slashTrimmedIndexPathOption.length() < slashTrimmedIndexPath.length()
+                    && (slashTrimmedIndexPath.charAt(slashTrimmedIndexPathOption.length()) == '/'
+                    || slashTrimmedIndexPath.charAt(slashTrimmedIndexPathOption.length()) == '-'))) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param indexPathList: list of indexpaths retrieved from  index service
+     * @return returns set of indexpaths which are to be considered for purging
+     */
     private Set<String> filterIndexPaths(Iterable<String> indexPathList) {
         Set<String> filteredIndexPaths = new HashSet<>();
         for (String indexPathOption : this.indexPaths) {
             for (String indexPath : indexPathList) {
-                if (indexPath.startsWith(indexPathOption)) {
+                if (isIndexPathOptionValid(indexPathOption, indexPath)) {
                     filteredIndexPaths.add(PurgeOldVersionUtils.trimSlash(indexPath));
                 }
             }
@@ -192,7 +212,15 @@ public class PurgeOldIndexVersion {
         Options opts = new Options();
         OptionSet optionSet = opts.parseAndConfigure(parser, args);
         this.threshold = optionSet.valueOf(thresholdOption);
-        this.indexPaths = optionSet.valuesOf(indexPathsOption);
+        this.indexPaths = getBaseIndexPathsOptions(optionSet.valuesOf(indexPathsOption));
         return opts;
+    }
+
+    private List<String> getBaseIndexPathsOptions(List<String> indexPathOptions) {
+        List<String> baseIndexPathOption = new ArrayList<>();
+        for (String indexPathOption : indexPathOptions) {
+            baseIndexPathOption.add(PurgeOldVersionUtils.getBaseIndexName(indexPathOption));
+        }
+        return baseIndexPathOption;
     }
 }

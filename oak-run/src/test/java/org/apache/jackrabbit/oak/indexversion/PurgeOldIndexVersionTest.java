@@ -46,8 +46,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
+    private final static String FOO1_INDEX_PATH = "/oak:index/fooIndex1";
 
-    private void createCustomFooIndex(int ootbVersion, int customVersion, boolean asyncIndex) throws IOException, RepositoryException {
+    private void createCustomIndex(String path, int ootbVersion, int customVersion, boolean asyncIndex) throws IOException, RepositoryException {
         IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
@@ -56,8 +57,8 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
 
         Session session = fixture.getAdminSession();
         String indexName = customVersion != 0
-                ? TEST_INDEX_PATH + "-" + ootbVersion + "-custom-" + customVersion
-                : TEST_INDEX_PATH + "-" + ootbVersion;
+                ? path + "-" + ootbVersion + "-custom-" + customVersion
+                : path + "-" + ootbVersion;
         Node fooIndex = getOrCreateByPath(indexName,
                 "oak:QueryIndexDefinition", session);
 
@@ -72,13 +73,13 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     @Test
     public void deleteOldIndexCompletely() throws Exception {
         createTestData(false);
-        createCustomFooIndex(2, 1, false);
-        createCustomFooIndex(3, 0, false);
-        createCustomFooIndex(3, 1, false);
-        createCustomFooIndex(3, 2, false);
-        createCustomFooIndex(4, 0, false);
-        createCustomFooIndex(4, 1, false);
-        createCustomFooIndex(4, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
         fixture.getAsyncIndexUpdate("async").run();
         fixture.close();
         PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
@@ -115,12 +116,12 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         try {
             custom.starting();
             createTestData(false);
-            createCustomFooIndex(2, 1, false);
-            createCustomFooIndex(3, 0, false);
-            createCustomFooIndex(3, 1, false);
-            createCustomFooIndex(3, 2, false);
-            createCustomFooIndex(4, 1, false);
-            createCustomFooIndex(4, 2, false);
+            createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
             fixture.getAsyncIndexUpdate("async").run();
             fixture.close();
             PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
@@ -154,14 +155,14 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     @Test
     public void deleteOldIndexPartially() throws Exception {
         createTestData(false);
-        createCustomFooIndex(2, 1, false);
-        createCustomFooIndex(3, 0, false);
-        createCustomFooIndex(3, 1, false);
-        createCustomFooIndex(3, 2, false);
-        createCustomFooIndex(4, 0, false);
-        createCustomFooIndex(4, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
         fixture.getAsyncIndexUpdate("async").run();
-        createCustomFooIndex(4, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
         PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
         PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(fixture.getNodeStore(),
                 PurgeOldVersionUtils.trimSlash("/oak:index/fooIndex-4-custom-2"));
@@ -194,13 +195,13 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     @Test
     public void donotDeleteDisabledIndexes() throws Exception {
         createTestData(false);
-        createCustomFooIndex(2, 1, false);
-        createCustomFooIndex(3, 0, false);
-        createCustomFooIndex(3, 1, false);
-        createCustomFooIndex(3, 2, false);
-        createCustomFooIndex(4, 0, false);
-        createCustomFooIndex(4, 1, false);
-        createCustomFooIndex(4, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
         NodeStore store = fixture.getNodeStore();
         NodeBuilder rootBuilder = store.getRoot().builder();
         NodeBuilder nodeBuilder = rootBuilder.getChildNode("oak:index")
@@ -232,6 +233,50 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     }
 
     @Test
+    public void onlyDeleteVersionIndexesMentionedUnderIndexPaths() throws Exception {
+        createTestData(false);
+        createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+        createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
+        createCustomIndex(FOO1_INDEX_PATH, 2, 1, false);
+        createCustomIndex(FOO1_INDEX_PATH, 2, 2, false);
+        createCustomIndex(FOO1_INDEX_PATH, 3, 0, false);
+        createCustomIndex(FOO1_INDEX_PATH, 3, 1, false);
+        createCustomIndex(FOO1_INDEX_PATH, 3, 2, false);
+
+        fixture.getAsyncIndexUpdate("async").run();
+        fixture.close();
+        PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
+        File storeDir = fixture.getDir();
+        String[] args = {
+                storeDir.getAbsolutePath(),
+                "--read-write",
+                "--threshold=1",
+                "--index-paths=/oak:index/fooIndex"
+        };
+        command.execute(args);
+        fixture = new RepositoryFixture(storeDir);
+        fixture.close();
+
+        Assert.assertFalse("Index:" + "fooIndex-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex-2-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-2-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-1").exists());
+        Assert.assertFalse("Index:" + "fooIndex-3-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-3-custom-2").exists());
+        Assert.assertFalse("Index:" + "fooIndex" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex").exists());
+        Assert.assertEquals(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4").getProperty("type").getValue(Type.STRING), "disabled");
+        Assert.assertFalse(isHiddenChildNodePresent(fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4")));
+        Assert.assertFalse("Index:" + "fooIndex-4-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-1").exists());
+        Assert.assertTrue("Index:" + "fooIndex-4-custom-2" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex-4-custom-2").exists());
+
+        Assert.assertTrue("Index:" + "fooIndex1-3-custom-1" + " deleted", fixture.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex1-3-custom-1").exists());
+    }
+
+    @Test
     public void donotDeleteNonReadWriteMode() throws Exception {
         LogCustomizer custom = LogCustomizer
                 .forLogger(
@@ -240,13 +285,13 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         try {
             custom.starting();
             createTestData(false);
-            createCustomFooIndex(2, 1, false);
-            createCustomFooIndex(3, 0, false);
-            createCustomFooIndex(3, 1, false);
-            createCustomFooIndex(3, 2, false);
-            createCustomFooIndex(4, 0, false);
-            createCustomFooIndex(4, 1, false);
-            createCustomFooIndex(4, 2, false);
+            createCustomIndex(TEST_INDEX_PATH, 2, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 0, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 3, 2, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 0, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 1, false);
+            createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
             fixture.getAsyncIndexUpdate("async").run();
             fixture.close();
             PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
