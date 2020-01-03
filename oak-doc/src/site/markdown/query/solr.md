@@ -173,7 +173,7 @@ Default is _SOFT_.
 
 The number of documents per 'page' to be fetched for each query.
 
-Default is _10_.
+Default is _Integer.MAX_VALUE_ (was _50_ in Oak 1.0).
 
 #### Collapse _jcr:content_ nodes
 
