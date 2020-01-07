@@ -153,7 +153,7 @@ public class IndexVersionOperation {
         for (int i = 0; i < indexNameObjectList.size(); i++) {
             NodeState indexNode = indexDefParentNode
                     .getChildNode(indexNameObjectList.get(i).getNodeName());
-            if (indexNode.getProperty("type").getValue(Type.STRING).equals("disabled")) {
+            if (indexNode.getProperty("type") != null && indexNode.getProperty("type").getValue(Type.STRING).equals("disabled")) {
                 indexNameObjectList.remove(i);
             }
         }
