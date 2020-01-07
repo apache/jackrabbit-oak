@@ -115,7 +115,6 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
     @Test
     public void testCDNUploadURIContainsUploadDomain() throws Exception {
         Properties properties = new Properties();
-        properties.put(PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS, "false");
         ConfigurableDataRecordAccessProvider ds = getDataStore(properties);
         DataRecordUpload upload = ds.initiateDataRecordUpload(ONE_MB, 10);
         assertNotNull(upload);
@@ -152,7 +151,9 @@ public class AzureDataRecordAccessProviderCDNTest extends AzureDataRecordAccessP
         assertTrue(upload.getUploadURIs().size() > 0);
 
         Properties properties = AzureDataStoreUtils.getDirectAccessDataStoreProperties();
-        String defaultDomain = String.format("%s.blob.core.windows.net", properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME));
+        String accountName = properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, null);
+        assertNotNull(accountName);
+        String defaultDomain = String.format("%s.blob.core.windows.net", accountName);
         for (URI uri : upload.getUploadURIs()) {
             assertEquals(defaultDomain, uri.getHost());
         }
