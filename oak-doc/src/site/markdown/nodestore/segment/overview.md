@@ -676,14 +676,18 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 
 ### <a name="segment-copy"/> Segment-Copy
 ```
-java -jar oak-run.jar segment-copy SOURCE DESTINATION
+java -jar oak-run.jar segment-copy SOURCE DESTINATION [--last <REV_COUNT>]
 ```
 
 The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure Segment Store), saving the resulted Segment Store at `DESTINATION`. 
 Unlike a sidegrade peformed with `oak-upgrade` (see [Repository Migration](#../../migration.md)) which includes only the current head state, this translation includes __all previous revisions persisted in the Segment Store__, therefore retaining the entire history.
+If `--last` option is present, the tool will start with the most recent revision and will copy at most <REV_COUNT> journal revisions.
 
 `SOURCE` must be a valid path/uri to an existing Segment Store. 
 `DESTINATION` must be a valid path/uri for the resulting Segment Store. 
+
+The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be copied from the journal (default is 1).
+
 Both are specified as `PATH | cloud-prefix:URI`. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
@@ -697,7 +701,7 @@ The following command uses `logback-segment-copy.xml` to configure Logback loggi
 java -Dlogback.configurationFile=logback-segment-copy.xml -jar oak-run.jar segment-copy cloud-prefix:URI some/local/path
 ```
 
-logback-compaction.xml:
+logback-segment-copy.xml:
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>

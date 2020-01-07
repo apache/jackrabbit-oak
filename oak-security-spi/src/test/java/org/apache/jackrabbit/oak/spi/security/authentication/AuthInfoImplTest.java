@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,6 +27,7 @@ import javax.security.auth.Subject;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.junit.Test;
@@ -116,7 +118,6 @@ public class AuthInfoImplTest {
         assertEquals(0, info.getAttributeNames().length);
     }
 
-
     @Test
     public void testCreateFromSubjectWithAnyCredentials() {
         Subject subject = new Subject();
@@ -127,5 +128,18 @@ public class AuthInfoImplTest {
         assertNull(info.getUserID());
         assertTrue(info.getPrincipals().isEmpty());
         assertEquals(0, info.getAttributeNames().length);
+    }
+
+    @Test
+    public void testCreateFromPrincipalIterables() {
+        AuthInfo info = new AuthInfoImpl(USER_ID, ATTRIBUTES, Iterables.concat(PRINCIPALS, Collections.emptyList()));
+        assertEquals(authInfo.toString(), info.toString());
+    }
+
+    @Test
+    public void testCreateFromNullParams() {
+        AuthInfo info = new AuthInfoImpl(null, null, (Iterable) null);
+        AuthInfo info2 = new AuthInfoImpl(null, null, (Set) null);
+        assertEquals(info.toString(), info2.toString());
     }
 }

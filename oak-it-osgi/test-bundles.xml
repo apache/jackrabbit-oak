@@ -29,9 +29,16 @@
       <scope>test</scope>
       <includes>
         <include>javax.jcr:jcr</include>
+        <include>javax.servlet:javax.servlet-api</include>
         <include>com.google.guava:guava</include>
+        <include>org.slf4j:slf4j-api</include>
+        <include>ch.qos.logback:logback-core</include>
+        <include>ch.qos.logback:logback-classic</include>
         <include>commons-codec:commons-codec</include>
         <include>commons-io:commons-io</include>
+        <include>commons-collections:commons-collections</include>
+        <include>commons-fileupload:commons-fileupload</include>
+        <include>commons-logging:commons-logging</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:jackrabbit-data</include>
         <include>org.apache.jackrabbit:oak-api</include>
@@ -50,6 +57,7 @@
         <include>org.apache.jackrabbit:oak-query-spi</include>
         <include>org.apache.jackrabbit:oak-security-spi</include>
         <include>org.apache.jackrabbit:oak-blob-plugins</include>
+        <include>org.apache.jackrabbit:oak-solr-osgi</include>
         <include>io.dropwizard.metrics:metrics-core</include>
       </includes>
     </dependencySet>

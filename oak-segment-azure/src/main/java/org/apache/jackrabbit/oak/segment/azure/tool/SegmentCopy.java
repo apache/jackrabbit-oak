@@ -63,6 +63,8 @@ public class SegmentCopy {
 
         private PrintWriter errWriter;
 
+        private Integer revisionsCount = Integer.MAX_VALUE;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -141,6 +143,18 @@ public class SegmentCopy {
         }
 
         /**
+         * The last {@code revisionsCount} revisions to be copied.
+         * This parameter is not required and defaults to {@code 1}.
+         *
+         * @param revisionsCount number of revisions to copied.
+         * @return this builder.
+         */
+        public Builder withRevisionsCount(Integer revisionsCount) {
+            this.revisionsCount = revisionsCount;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Check} command.
          *
          * @return an instance of {@link Runnable}.
@@ -150,6 +164,7 @@ public class SegmentCopy {
                 checkNotNull(source);
                 checkNotNull(destination);
             }
+
             return new SegmentCopy(this);
         }
     }
@@ -162,6 +177,8 @@ public class SegmentCopy {
 
     private final PrintWriter errWriter;
 
+    private final Integer revisionCount;
+
     private SegmentNodeStorePersistence srcPersistence;
 
     private SegmentNodeStorePersistence destPersistence;
@@ -172,6 +189,7 @@ public class SegmentCopy {
         this.destination = builder.destination;
         this.srcPersistence = builder.srcPersistence;
         this.destPersistence = builder.destPersistence;
+        this.revisionCount = builder.revisionsCount;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
     }
@@ -198,6 +216,7 @@ public class SegmentCopy {
             SegmentStoreMigrator migrator = new SegmentStoreMigrator.Builder()
                     .withSourcePersistence(srcPersistence, srcDescription)
                     .withTargetPersistence(destPersistence, destDescription)
+                    .withRevisionCount(revisionCount)
                     .build();
 
             migrator.migrate();

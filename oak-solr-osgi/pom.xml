@@ -66,6 +66,10 @@
                             org.apache.curator.framework.*;resolution:=optional,
                             org.apache.curator.*;resolution:=optional,
                             com.github.benmanes.caffeine.*;resolution:=optional,
+                            org.apache.solr.handler.extraction.*;resolution:=optional,
+                            com.ibm.security.krb5.internal.*;resolution:=optional,
+                            sun.misc.*;resolution:=optional,
+                            sun.security.krb5.*;resolution:=optional,
                             *
                         </Import-Package>
                         <Embed-Dependency>*;scope=runtime;inline=true</Embed-Dependency>
@@ -271,11 +275,13 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
+            <version><!-- see OAK-8829-->2.9.10</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-smile</artifactId>
+            <version><!-- see OAK-8829-->2.9.10</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>

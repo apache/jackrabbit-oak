@@ -241,6 +241,10 @@ public class ExternalBlobIT {
         public String getReference(@NotNull String blobId) {
             return blobId;
         }
+
+        @Override
+        public void close() throws Exception {
+        }
     }
 
     @Test

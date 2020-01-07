@@ -55,15 +55,15 @@
     <lucene.version>4.7.1</lucene.version>
     <solr.version>6.6.6</solr.version>
     <mongo.driver.version>3.8.2</mongo.driver.version>
-    <slf4j.api.version>1.7.26</slf4j.api.version>
-    <slf4j.version>1.7.26</slf4j.version> <!-- sync with logback version -->
+    <slf4j.api.version>1.7.29</slf4j.api.version>
+    <slf4j.version>1.7.29</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.3</logback.version>
     <h2.version>1.4.194</h2.version>
-    <tika.version>1.22</tika.version>
+    <tika.version>1.23</tika.version>
     <guava.version>15.0</guava.version>
     <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.9.10</jackson.version>
+    <jackson.version>2.10.1</jackson.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
@@ -141,14 +141,14 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>3.5.1</version>
+          <version>4.2.1</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
           <dependencies>
             <dependency>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>org.apache.felix.scr.bnd</artifactId>
-                <version>1.9.0</version>
+                <version>1.9.6</version>
                 <exclusions>
                     <!--
                         This SCR plugin pulls in a bnd version with a different artifactId, thus leading
@@ -540,7 +540,7 @@
       <dependency>
         <groupId>org.jetbrains</groupId>
         <artifactId>annotations</artifactId>
-        <version>17.0.0</version>
+        <version>18.0.0</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
@@ -672,7 +672,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}.1<!--OAK-8709--></version>
+        <version>${jackson.version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -712,7 +712,7 @@
       <dependency>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-storage</artifactId>
-        <version>8.4.0</version>
+        <version>8.6.0</version>
       </dependency>
       <dependency>
         <groupId>com.microsoft.azure</groupId>
@@ -1057,7 +1057,7 @@
         <dependency>
           <groupId>mysql</groupId>
           <artifactId>mysql-connector-java</artifactId>
-          <version>8.0.17</version>
+          <version>8.0.18</version>
         </dependency>
       </dependencies>
     </profile>

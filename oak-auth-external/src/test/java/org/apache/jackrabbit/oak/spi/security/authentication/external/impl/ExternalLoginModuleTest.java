@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManage
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EmptyPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -55,6 +56,7 @@ import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
+import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -119,12 +121,16 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         verify(extIPMgr, never()).getProvider("idp");
         verify(syncManager, never()).getSyncHandler("syncHandler");
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
     public void testInitializeMissingIdpSyncHandler() throws LoginException {
         loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null), Collections.emptyMap(), ImmutableMap.of(PARAM_IDP_NAME, "idp", PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -137,6 +143,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         verify(extIPMgr, times(1)).getProvider("idp");
         verify(syncManager, times(1)).getSyncHandler("syncHandler");
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -159,6 +167,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
     @Test
     public void testLoginWithoutInit() throws Exception {
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -168,6 +178,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         loginModule.initialize(new Subject(), createCallbackHandler(wb, null, null, null), Collections.emptyMap(), Collections.singletonMap(PARAM_IDP_NAME, "idpName"));
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -187,6 +199,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         loginModule.initialize(new Subject(), cbh, new HashMap<>(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertFalse(loginModule.login());
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test
@@ -213,6 +227,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         root.refresh();
         assertNotNull(getUserManager(root).getAuthorizable(ID_TEST_USER));
+
+        assertTrue(loginModule.logout());
+        assertTrue(subject.getPublicCredentials().isEmpty());
     }
 
     @Test
@@ -233,13 +250,25 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), sp, null);
 
+        Principal principal = new PrincipalImpl("preset");
         Subject subject = new Subject();
+        subject.getPrincipals().add(principal);
+
         loginModule.initialize(subject, cbh, sharedState, ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
         assertTrue(loginModule.login());
-        assertFalse(loginModule.commit());
+        assertTrue(loginModule.commit());
 
-        assertFalse(subject.getPublicCredentials(AuthInfo.class).iterator().hasNext());
-        assertTrue(subject.getPrincipals().isEmpty());
+        assertTrue(subject.getPrincipals().contains(principal));
+        assertFalse(subject.getPublicCredentials(AuthInfo.class).isEmpty());
+        AuthInfo info = subject.getPublicCredentials(AuthInfo.class).iterator().next();
+        assertTrue(info.getPrincipals().contains(principal));
+
+        assertTrue(loginModule.logout());
+
+        // authinfo must be removed upon logout
+        assertTrue(subject.getPublicCredentials(AuthInfo.class).isEmpty());
+        // predefined principal must _not_ be removed
+        assertTrue(subject.getPrincipals().contains(principal));
     }
 
     @Test
@@ -270,6 +299,10 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         AuthInfo authInfo = subject.getPublicCredentials(AuthInfo.class).iterator().next();
         assertNull(authInfo.getAttribute("attr"));
+
+        assertTrue(loginModule.logout());
+        assertTrue(subject.getPublicCredentials().isEmpty());
+        assertTrue(subject.getPrincipals().isEmpty());
     }
 
     @Test
@@ -293,6 +326,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
         root.refresh();
         assertNotNull(getUserManager(root).getAuthorizable(ID_TEST_USER));
+
+        assertTrue(loginModule.logout());
     }
 
     @Test(expected = LoginException.class)
@@ -391,6 +426,9 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         assertFalse(loginModule.login());
         root.refresh();
         assertNull(getUserManager(root).getAuthorizable("local"));
+
+        assertFalse(loginModule.commit());
+        assertFalse(loginModule.logout());
     }
 
     @Test(expected = LoginException.class)
