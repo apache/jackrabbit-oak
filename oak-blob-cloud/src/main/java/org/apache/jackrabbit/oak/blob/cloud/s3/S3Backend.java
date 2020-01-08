@@ -269,16 +269,7 @@ public class S3Backend extends AbstractSharedBackend {
             if (!s3service.doesBucketExist(bucket)) {
                 CreateBucketRequest req = new CreateBucketRequest(bucket, s3Region);
                 s3service.createBucket(req);
-                boolean created = s3service.doesBucketExist(bucket);
-                long end = System.currentTimeMillis() + 5000;
-                try {
-                    while (!created && System.currentTimeMillis() < end) {
-                        Thread.sleep(100);
-                        created = s3service.doesBucketExist(bucket);
-                    }
-                } catch (InterruptedException ie) {
-                }
-                if (!created && !s3service.doesBucketExist(bucket)) {
+                if (Utils.waitForBucket(s3service, bucket)) {
                     LOG.error("Bucket [{}] does not exist in [{}] and was not automatically created",
                             bucket, s3Region.name());
                     return;
