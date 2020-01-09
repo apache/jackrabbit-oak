@@ -46,12 +46,14 @@ import java.util.concurrent.TimeUnit;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsResult;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -194,12 +196,7 @@ public class S3Backend extends AbstractSharedBackend {
                 }
             }
 
-            if (!s3service.doesBucketExist(bucket)) {
-                s3service.createBucket(bucket, s3Region);
-                LOG.info("Created bucket [{}] in [{}] ", bucket, region);
-            } else {
-                LOG.info("Using bucket [{}] in [{}] ", bucket, region);
-            }
+            createBucketIfNeeded(s3Region);
 
             int writeThreads = 10;
             String writeThreadsStr = properties.getProperty(S3Constants.S3_WRITE_THREADS);
@@ -264,6 +261,27 @@ public class S3Backend extends AbstractSharedBackend {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
+        }
+    }
+
+    private void createBucketIfNeeded(@NotNull final Region s3Region) {
+        try {
+            if (!s3service.doesBucketExist(bucket)) {
+                CreateBucketRequest req = new CreateBucketRequest(bucket, s3Region);
+                s3service.createBucket(req);
+                if (Utils.waitForBucket(s3service, bucket)) {
+                    LOG.error("Bucket [{}] does not exist in [{}] and was not automatically created",
+                            bucket, s3Region.name());
+                    return;
+                }
+                LOG.info("Created bucket [{}] in [{}] ", bucket, s3Region.name());
+            } else {
+                LOG.info("Using bucket [{}] in [{}] ", bucket, s3Region.name());
+            }
+        }
+        catch (SdkClientException awsException) {
+            LOG.error("Attempt to create S3 bucket [{}] in [{}] failed",
+                    bucket, s3Region.name(), awsException);
         }
     }
 
