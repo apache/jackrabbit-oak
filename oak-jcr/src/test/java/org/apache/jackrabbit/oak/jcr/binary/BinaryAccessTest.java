@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.api.blob.BlobUpload;
+import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -135,6 +136,12 @@ public class BinaryAccessTest extends AbstractRepositoryTest {
 
         @Override
         public @Nullable BlobUpload initiateBlobUpload(long maxSize, int maxURIs) throws IllegalArgumentException {
+            return initiateBlobUpload(maxSize, maxURIs, BlobUploadOptions.DEFAULT);
+        }
+
+        @Override
+        public @Nullable BlobUpload initiateBlobUpload(long maxSize, int maxURIs, @NotNull final BlobUploadOptions options)
+                throws IllegalArgumentException {
             return new BlobUpload() {
                 @Override
                 public @NotNull String getUploadToken() {

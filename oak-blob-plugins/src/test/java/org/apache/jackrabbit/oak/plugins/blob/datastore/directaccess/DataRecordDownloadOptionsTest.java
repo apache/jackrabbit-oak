@@ -42,11 +42,11 @@ public class DataRecordDownloadOptionsTest {
     private static final String DISPOSITION_TYPE_INLINE = "inline";
     private static final String DISPOSITION_TYPE_ATTACHMENT = "attachment";
 
-    private void verifyOptions(DataRecordDownloadOptions options,
-                               String mediaType,
-                               String characterEncoding,
-                               String fileName,
-                               String dispositionType) {
+    private void verifyDownloadOptions(DataRecordDownloadOptions options,
+                                       String mediaType,
+                                       String characterEncoding,
+                                       String fileName,
+                                       String dispositionType) {
         assertNotNull(options);
         if (null != mediaType) {
             assertEquals(mediaType, options.getMediaType());
@@ -146,7 +146,7 @@ public class DataRecordDownloadOptionsTest {
         DataRecordDownloadOptions options =
                 DataRecordDownloadOptions.fromBlobDownloadOptions(blobDownloadOptions);
 
-        verifyOptions(options,
+        verifyDownloadOptions(options,
                 MEDIA_TYPE_TEXT_PLAIN,
                 CHARACTER_ENCODING_UTF_8,
                 FILE_NAME_TEXT,
@@ -155,12 +155,12 @@ public class DataRecordDownloadOptionsTest {
 
     @Test
     public void testDefault() {
-        verifyOptions(DataRecordDownloadOptions.DEFAULT,
+        verifyDownloadOptions(DataRecordDownloadOptions.DEFAULT,
                 null,
                 null,
                 null,
                 DISPOSITION_TYPE_INLINE);
-        verifyOptions(DataRecordDownloadOptions
+        verifyDownloadOptions(DataRecordDownloadOptions
                 .fromBlobDownloadOptions(BlobDownloadOptions.DEFAULT),
                 null,
                 null,

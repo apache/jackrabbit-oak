@@ -61,7 +61,8 @@ public class DataRecordDownloadOptions {
                 downloadOptions.getMediaType(),
                 downloadOptions.getCharacterEncoding(),
                 downloadOptions.getFileName(),
-                downloadOptions.getDispositionType()
+                downloadOptions.getDispositionType(),
+                downloadOptions.isDomainOverrideIgnored()
         );
     }
 
@@ -74,12 +75,14 @@ public class DataRecordDownloadOptions {
             new DataRecordDownloadOptions(null,
                     null,
                     null,
-                    DISPOSITION_TYPE_INLINE);
+                    DISPOSITION_TYPE_INLINE,
+                    false);
 
     private final String mediaType;
     private final String characterEncoding;
     private final String fileName;
     private final String dispositionType;
+    private boolean domainOverrideIgnored = false;
 
     private String contentTypeHeader = null;
     private String contentDispositionHeader = null;
@@ -87,13 +90,15 @@ public class DataRecordDownloadOptions {
     private DataRecordDownloadOptions(final String mediaType,
                                       final String characterEncoding,
                                       final String fileName,
-                                      final String dispositionType) {
+                                      final String dispositionType,
+                                      boolean domainOverrideIgnored) {
         this.mediaType = mediaType;
         this.characterEncoding = characterEncoding;
         this.fileName = fileName;
         this.dispositionType = Strings.isNullOrEmpty(dispositionType) ?
                 DISPOSITION_TYPE_INLINE :
                 dispositionType;
+        this.domainOverrideIgnored = domainOverrideIgnored;
     }
 
     /**
@@ -211,4 +216,12 @@ public class DataRecordDownloadOptions {
     public String getDispositionType() {
         return dispositionType;
     }
+
+    /**
+     * Indicates whether the data store should ignore any configured download
+     * domain override value when generating the signed download URI.
+     *
+     * @return true if the domain override should be ignored; false otherwise.
+     */
+    public boolean isDomainOverrideIgnored() { return domainOverrideIgnored; }
 }

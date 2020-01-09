@@ -38,6 +38,7 @@ public class BlobDownloadOptions {
     private final String characterEncoding;
     private final String fileName;
     private final String dispositionType;
+    private boolean domainOverrideIgnored = false;
 
     public static final BlobDownloadOptions DEFAULT = new BlobDownloadOptions();
 
@@ -57,6 +58,25 @@ public class BlobDownloadOptions {
                                @Nullable String characterEncoding,
                                @Nullable String fileName,
                                @NotNull String dispositionType) {
+        this(mediaType, characterEncoding, fileName, dispositionType, false);
+    }
+
+    /**
+     * Creates new download options.
+     *
+     * @param mediaType the internet media type for the blob.
+     * @param characterEncoding the character encoding for the blob.
+     * @param fileName the file name for the blob.
+     * @param dispositionType the disposition type.
+     * @param domainOverrideIgnored true if any configured domain override
+     *                              should be ignored when generating URIs;
+     *                              false otherwise.
+     */
+    public BlobDownloadOptions(@Nullable String mediaType,
+                               @Nullable String characterEncoding,
+                               @Nullable String fileName,
+                               @NotNull String dispositionType,
+                               boolean domainOverrideIgnored) {
         if (dispositionType == null) {
             throw new NullPointerException("dispositionType must not be null");
         }
@@ -64,6 +84,7 @@ public class BlobDownloadOptions {
         this.characterEncoding = characterEncoding;
         this.fileName = fileName;
         this.dispositionType = dispositionType;
+        this.domainOverrideIgnored = domainOverrideIgnored;
     }
 
     /**
@@ -115,4 +136,12 @@ public class BlobDownloadOptions {
     public String getDispositionType() {
         return dispositionType;
     }
+
+    /**
+     * Indicates whether the data store should ignore any provided download
+     * domain override configuration value when generating the signed URI.
+     *
+     * @return true if the domain override should be ignored; false otherwise.
+     */
+    public boolean isDomainOverrideIgnored() { return domainOverrideIgnored; }
 }

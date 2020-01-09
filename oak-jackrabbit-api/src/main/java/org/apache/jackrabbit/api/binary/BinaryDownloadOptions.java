@@ -41,15 +41,18 @@ public final class BinaryDownloadOptions {
     private final String characterEncoding;
     private final String fileName;
     private final String dispositionType;
+    private boolean downloadDomainIgnored = false;
 
     private BinaryDownloadOptions(final String mediaType,
                                   final String characterEncoding,
                                   final String fileName,
-                                  final String dispositionType) {
+                                  final String dispositionType,
+                                  boolean downloadDomainIgnored) {
         this.mediaType = mediaType;
         this.characterEncoding = characterEncoding;
         this.fileName = fileName;
         this.dispositionType = dispositionType;
+        this.downloadDomainIgnored = downloadDomainIgnored;
     }
 
     /**
@@ -125,6 +128,17 @@ public final class BinaryDownloadOptions {
     }
 
     /**
+     * Returns a boolean value that indicates whether the data store should
+     * ignore any provided download domain override configuration value when
+     * generating the signed URI.  This value can be set by calling {@link
+     * BinaryDownloadOptionsBuilder#withDomainOverrideIgnored(boolean)}.  The
+     * default value of this setting is false.
+     *
+     * @return true if the domain override should be ignored; false otherwise.
+     */
+    public boolean isDownloadDomainIgnored() { return downloadDomainIgnored; }
+
+    /**
      * Returns a {@link BinaryDownloadOptionsBuilder} instance to be used for
      * creating an instance of this class.
      *
@@ -144,6 +158,7 @@ public final class BinaryDownloadOptions {
         private String characterEncoding = null;
         private String fileName = null;
         private DispositionType dispositionType = DispositionType.INLINE;
+        private boolean domainOverrideIgnored = false;
 
         private BinaryDownloadOptionsBuilder() { }
 
@@ -283,6 +298,36 @@ public final class BinaryDownloadOptions {
         }
 
         /**
+         * Sets a flag to indicate whether any configured download domain
+         * override value should be ignored when generating the signed download
+         * URI.
+         * <p>
+         *
+         * The default value of this flag is false.  This means that if a
+         * download domain override configuration value is provided, that value
+         * will be used in a signed download URI as the hostname, and if not
+         * provided the default hostname will be used instead.  However, if this
+         * flag is set to true, the implementation will use the default hostname
+         * for the signed download URI regardless of whether the download domain
+         * override value is configured or not.
+         *
+         * Most clients will want to accept the default behavior.  However, if a
+         * client understands its deployment topology it may know that ignoring
+         * the download domain override will provide better performance.  An
+         * example of this is if the client is a service running in the same
+         * cloud region as the blob store, in which case accessing the storage
+         * directly is almost always faster than going through a domain override
+         * (e.g. CDN domain).
+         *
+         * @param domainOverrideIgnored
+         * @return The calling instance.
+         */
+        public BinaryDownloadOptionsBuilder withDomainOverrideIgnored(boolean domainOverrideIgnored) {
+            this.domainOverrideIgnored = domainOverrideIgnored;
+            return this;
+        }
+
+        /**
          * Construct a {@link BinaryDownloadOptions} instance with the
          * properties specified to the builder.
          *
@@ -296,7 +341,8 @@ public final class BinaryDownloadOptions {
                     fileName,
                     null != dispositionType
                             ? dispositionType.toString()
-                            : DispositionType.INLINE.toString()
+                            : DispositionType.INLINE.toString(),
+                    domainOverrideIgnored
             );
         }
 

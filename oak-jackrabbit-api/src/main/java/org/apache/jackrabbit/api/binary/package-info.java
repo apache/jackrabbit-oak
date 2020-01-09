@@ -20,7 +20,7 @@
 /**
  * Interfaces related to direct upload/download of binaries.
  */
-@Version("1.0.0")
+@Version("1.1.0")
 package org.apache.jackrabbit.api.binary;
 
 import org.osgi.annotation.versioning.Version;
