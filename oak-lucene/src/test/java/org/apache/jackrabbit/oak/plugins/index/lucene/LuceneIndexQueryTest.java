@@ -71,7 +71,10 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         TestUtil.enablePropertyIndex(props, "b/name", false);
         TestUtil.enableFunctionIndex(props, "length([name])");
         TestUtil.enableFunctionIndex(props, "lower([name])");
-        TestUtil.enableFunctionIndex(props, "upper([name])");
+        Tree upper = TestUtil.enableFunctionIndex(props, "upper([name])");
+        // OAK-8845 This is used for function based sorting in tests in this class and we need
+        // to set the ordered property = true for the index to support sorting on this prop
+        upper.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
 
         root.commit();
     }

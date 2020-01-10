@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -238,6 +239,114 @@ public class FunctionIndexTest extends AbstractQueryTest {
         query = "select [jcr:path] from [nt:unstructured] where upper([name]) like '10\\% FOO'";
         assertThat(explain(query), containsString("lucene:upper"));
         assertQuery(query, paths);        
+    }
+
+    @Test
+    public void testOrdering2() throws Exception {
+        Tree index = root.getTree("/");
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        useV2(indexDefn);
+        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:unstructured");
+        props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+        Tree upper = TestUtil.enableFunctionIndex(props, "upper([foo])");
+        upper.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+
+        Tree a = test.addChild("n1");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "hello");
+
+        a = test.addChild("n2");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "World!");
+        a = test.addChild("n3");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "Hallo");
+        a = test.addChild("n4");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "10%");
+        a = test.addChild("n5");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "10 percent");
+
+        a = test.addChild("n0");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a = test.addChild("n9");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+        String query = "select a.[foo]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo)";
+
+        root.commit();
+
+        assertThat(explain(query),containsString("lucene:test-index(/oak:index/test-index)"));
+
+        List<String> result = executeQuery(query,SQL2);
+        assertEquals("Ordering doesn't match", asList("10 percent","10%","Hallo","hello","World!"), result);
+
+    }
+
+    @Test
+    public void testOrdering() throws Exception {
+        Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
+        Tree nonFunc = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
+                .addChild("nt:base")
+                .addChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("foo");
+        nonFunc.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        nonFunc.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX,true);
+        nonFunc.setProperty("name", "foo");
+
+        Tree func = luceneIndex.getChild(FulltextIndexConstants.INDEX_RULES)
+                .getChild("nt:base")
+                .getChild(FulltextIndexConstants.PROP_NODE)
+                .addChild("fooUpper");
+        func.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+        func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(@foo)");
+        func.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX,true);
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+        List<String> paths = Lists.newArrayList();
+        for (int idx = 0; idx < 10; idx++) {
+            paths.add("/test/n" + idx);
+            if(idx%2 ==0) continue;
+            Tree a = test.addChild("n"+idx);
+            a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            a.setProperty("foo", "bar"+idx);
+
+        }
+        for(int idx =0 ; idx<10 ; idx++) {
+            if(idx%2 != 0) continue;
+            Tree a = test.addChild("n"+idx);
+            a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            a.setProperty("foo", "bar"+idx);
+        }
+        root.commit();
+        System.out.println(paths);
+
+        String query = "/jcr:root//element(*, nt:unstructured) [jcr:like(fn:upper-case(@foo),'BAR%')] order by foo";
+        assertThat(explainXpath(query), containsString("lucene:upper"));
+        List<String> result = assertQuery(query, "xpath", paths);
+        assertEquals("Ordering doesn't match", paths, result);
+
+
+        query = "/jcr:root//element(*, nt:unstructured) [jcr:like(fn:upper-case(@foo),'BAR%')] order by fn:upper-case(@foo)";
+        assertThat(explainXpath(query), containsString("lucene:upper"));
+        List<String> result2 = assertQuery(query, "xpath", paths);
+        assertEquals("Ordering doesn't match", paths, result2);
     }
 
     @Test

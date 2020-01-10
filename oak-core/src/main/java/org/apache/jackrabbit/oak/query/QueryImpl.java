@@ -626,8 +626,8 @@ public class QueryImpl implements Query {
                         OrderingImpl o = orderings[i];
                         DynamicOperandImpl op = o.getOperand();
                         if (!(op instanceof PropertyValueImpl)) {
-                            // ordered by a function: currently not supported
-                            canSortByIndex = false;
+                            // ordered by a function - supported by index so we simply break here and set canSortByIndex = true
+                            // so that QueryImpl does not sort the entries again
                             break;
                         }
                         // we only have one selector, so no need to check that
