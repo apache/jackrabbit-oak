@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
-import org.apache.commons.lang.text.StrSubstitutor;
+import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.BlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.ConstantBlobStoreFactory;
