@@ -258,6 +258,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
         return true;
       }
     } catch (IOException e) {
+      log.warn("Failed to index the node [{}] due to {}", path, e.getMessage());
       CommitFailedException ce = new CommitFailedException("Fulltext", 3,
           "Failed to index the node " + path, e);
       context.getIndexingContext().indexUpdateFailed(ce);
