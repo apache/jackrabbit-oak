@@ -267,6 +267,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 return true;
             }
         } catch (IOException e) {
+            log.warn("Failed to index the node [{}] due to {}", path, e.getMessage());
             CommitFailedException ce = new CommitFailedException("Lucene", 3,
                     "Failed to index the node " + path, e);
             context.getIndexingContext().indexUpdateFailed(ce);
