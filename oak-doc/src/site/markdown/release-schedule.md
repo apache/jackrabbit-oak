@@ -19,7 +19,7 @@
 
 ## Schedule
 
-We *aim* at keeping this frequency for releses. However dates may slip 
+We *aim* at keeping this frequency for releases. However dates may slip 
 according to needs
 
 - trunk: every 8 weeks (~6 / year)

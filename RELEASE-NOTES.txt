@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.20.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.20.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.22.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,118 +15,78 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.20.0
+Changes in Oak 1.22.0
 ---------------------
 
 Bug
 
-    [OAK-5369] - Lucene Property Index: Syntax Error, cannot parse
-    [OAK-8244] - Build failure: ThreadLeakError
-    [OAK-8656] - ListenerStatsData.toCompositeData() throws NPE
-    [OAK-8665] - DynamicSyncContext doesn't verify the same IDP
-    [OAK-8667] - Merge may fail when commit root is a bundled node
-    [OAK-8668] - Commit throws exception with incorrect UpdateOp
-    [OAK-8670] - [Direct Binary Access] When completeHttpUpload fails, the wrong exception is logged
-    [OAK-8689] - AccessControlManager.getEffectivePolicies doesn't include ReadPolicy for subtrees
-    [OAK-8691] - Incorrect base state from node builder
-    [OAK-8697] - Filter sensitive information when logging parameters for 'datastore' command
-    [OAK-8698] - NoClassDefFound running tests in oak-search-mt
-    [OAK-8700] - ExternalIdentityConflictHandler prone to NPE
-    [OAK-8715] - AzureArchiveManager#exists() lists all blobs in archive
-    [OAK-8720] - Test failure in oak-jcr due to direct binary access change
-    [OAK-8722] - dead locking related code in NodeDelegate.updateMixins
-    [OAK-8734] - Sorted query with multiple path restrictions and sorting performs very slowly if one of the passed paths is a traversal
-    [OAK-8746] - Bullets not well formatted in Oakathon documentation page
-    [OAK-8758] - tests make "equals" comparison of Path and String
-    [OAK-8767] - CugAccessControlManager.getEffectivePolicies(String) throws PathNotFoundException if parent node is not accessible
-
-New Feature
-
-    [OAK-8703] - Configure the maximum number of revisions to be checked by consistency check
-    [OAK-8777] - benchmark ISO8601 formatters
+    [OAK-6098] - Build timeout
+    [OAK-8104] - [Direct Binary Access] DataRecordDownloadOptions should properly support filename* for Content-Disposition
+    [OAK-8695] - [Direct Binary Access] upload algorithm documentation should make it clear that not all URIs have to be used
+    [OAK-8696] - [Direct Binary Access] upload algorithm documentation should also be on the website
+    [OAK-8710] - AbstractLoginModule#logout() must not remove 'foreign' principals/credentials
+    [OAK-8760] - ClusterViewDocument uses static instance of SimpleDateFormat
+    [OAK-8781] - Add debug logs before and after cache purge to get the uploadCache size info
+    [OAK-8786] - Remove temporary file on upload immediately after a sync upload
+    [OAK-8799] - oak-http: broken Export-Package statement
+    [OAK-8800] - TokenLoginModule does not add principals from subject to AuthInfo
+    [OAK-8801] - LoginModuleImpl will not populate auth info if subject is readonly
+    [OAK-8802] - ExternalLoginModule.commit will fail if no principals can be resolved for externalUser
+    [OAK-8803] - AbstractLoginModule and subclasses: successful commit must not clear state information required for successful logout
+    [OAK-8807] - Update FileCache to use non-cache segment blocking method
+    [OAK-8818] - oak-run test failures when running with -Dazure.config defined
+    [OAK-8825] - S3 tests fail due to non-existent bucket
 
 Improvement
 
-    [OAK-7937] - Implement CugAccessControlManager.getEffectivePolicies(Set<Principal> principals)
-    [OAK-8551] - Minimize network calls in cloud data stores (performance optimization)
-    [OAK-8572] - oak-upgrade's IndexAccessor lives in o.a.j.core
-    [OAK-8593] - Enable a transient cluster-node to connect as invisible to oak discovery
-    [OAK-8605] - Read the journal lazily in the SplitPersistence
-    [OAK-8623] - Improve collision handling performance
-    [OAK-8639] - Composite node store tests with document store
-    [OAK-8648] - Log reason why NodeDocumentSweeper.sweep is called
-    [OAK-8654] - Introduce auto-retry in the SegmentStoreMigrator
-    [OAK-8655] - List changes for revisions
-    [OAK-8671] - respect PARAM_READ_PATHS configuration option
-    [OAK-8674] - Update Azure SDK to 8.4.0
-    [OAK-8680] - logging config missing in oak-commons tests
-    [OAK-8688] - Move ReadPolicy from core to security-spi
-    [OAK-8694] - state time of start of LeaseFailure in exception/log entry
-    [OAK-8708] - Keep track of unsupported system-user principals in FilterImpl
-    [OAK-8718] - LuceneIndexStatsUpdateCallback is slow and synchronous which leads to slowness
-    [OAK-8719] - Oak run check command must return the status of repository consistency check
-    [OAK-8721] - Automatically pick the latest active index version
-    [OAK-8723] - oak-auth-external: replace usage of easymock by mockito
-    [OAK-8724] - Delegatee: extract result message handling into separate class
-    [OAK-8725] - Improve tests for oak-external-auth
-    [OAK-8727] - Delegatee.isMyIDP contains redundant test for empty provider name
-    [OAK-8728] - Delegatee.internalListOrphanedIdentities contains redundant check for null
-    [OAK-8729] - Lucene Directory concurrency issue
-    [OAK-8733] - Simplify ExternalGroupPrincipalProvider
-    [OAK-8735] - Jackrabbit Javadoc link should be consistent with used jackrabbit.version and use https
-    [OAK-8737] - Extract SyncConfigTracker and SyncHandlerMappingTracker from ExternalPrincipalConfiguration
-    [OAK-8738] - DefaultSyncContext: separate private method for conditional log output
-    [OAK-8739] - Simplify ExternalLoginModule
-    [OAK-8744] - ExternalLoginModuleFactory: add bind/unbind for all osgi references
-    [OAK-8752] - SegmentCopy should not lock/unlock source repository before/after copying
+    [OAK-5787] - BlobStore should be AutoCloseable
+    [OAK-8280] - [Direct Binary Access] Allow client to veto use of CDN URI
+    [OAK-8778] - NodeImpl: remove unnecessary null check
+    [OAK-8804] - AuthInfoImpl: add constructor with iterable-principals instead of set
+    [OAK-8828] - Configure the maximum number of journal entries to be copied with segment-copy
+    [OAK-8854] - Improved log message when failed to index an node due to IOException
 
 Task
 
-    [OAK-8649] - Update to jacoco 0.8.5 (version compatible with Java 14)
-    [OAK-8650] - PrincipalProviderTest fails with java 14
-    [OAK-8651] - Update mockito dependency to 2.28.2
-    [OAK-8652] - Update jacoco dependency to 0.8.4
-    [OAK-8653] - bump up logging for deprecated security APIs to INFO
-    [OAK-8663] - Implement IndexStatistics in Oak ES
-    [OAK-8672] - Update jackson dependency to 2.9.10
-    [OAK-8709] - Update jackson-databind dependency to 2.9.10.1
-    [OAK-8712] - oak-blob-* and oak-segment-azure need to declare nullability annotations dependency
-    [OAK-8713] - oak-it-osgi: update jackrabbit-api dependency to use new location within Oak
-    [OAK-8742] - Update trunk and 1.10 to Jackrabbit 2.18.4
-    [OAK-8750] - SegmentStoreMigrator should catch and log exceptions thrown while migrating archives
-    [OAK-8774] - oak-benchmarks: update commons-compress dependency to 1.19
-
-Technical task
-
-    [OAK-8567] - update tomcat-jdbc dependency to 8.5.43
-    [OAK-8570] - RDB*Store: update mssql-jdbc driver reference to 7.4.1.jre8
-    [OAK-8576] - Add instrumentation to track cloud data store usage
-    [OAK-8633] - Add warn logs if we add/update a string property larger than 100KB.
-    [OAK-8642] - Add warn logs while indexing if string property is larger than 100KB (index)
-    [OAK-8660] - Dedicated benchmark for eagerCacheSize option
-    [OAK-8661] - deprecate public LazyInputStream(ByteSource byteSource)
-    [OAK-8662] - Benchmark results for eagercachesize
-    [OAK-8666] - deprecate FileIOUtils.BurnOnCloseFileIterator
-    [OAK-8676] - deprecate FileIOUtils.FileLineDifferenceIterator
-    [OAK-8677] - deprecate FileIOUtils.writeStrings with Guava Function parameter
-    [OAK-8679] - RDB*Store: update postgresql jdbc driver reference to 42.2.8
-    [OAK-8682] - oak-commons: deprecate uses of Guava in exported API
-    [OAK-8685] - deprecate Guava based APIs in WhiteboardUtils
-    [OAK-8687] - deprecate Guava based APIs in ManagementOperation
-    [OAK-8692] - run permissionevaluation and hasgetitem benchmarks
-    [OAK-8693] - update documentation
-    [OAK-8702] - deprecate Guava based APIs in o.a.j.o.cache
-    [OAK-8707] - Mark exported APIs that we don't want to expose with an @Internal annotation
-    [OAK-8730] - Add option for repeated read to ReadDeepTreeTest
-    [OAK-8764] - RDBDocumentStore: avoid potential dangerous use of addAll(entrySet) in logging code
-    [OAK-8775] - update Tomcat JDBC dependency to 8.5.47
+    [OAK-8743] - org.apache.jackrabbit.oak.stats.Clock should extend from java.time.Clock
+    [OAK-8782] - enable coverage checks for oak-core-spi
+    [OAK-8789] - bump up logging for deprecated security APIs to WARN
+    [OAK-8796] - Update maven-assembly-plugin to 3.2.0
+    [OAK-8798] - Upgrade maven-bundle-plugin to 4.2.1
+    [OAK-8805] - update org.apache.felix.scr.bnd dependency to 1.9.4
+    [OAK-8808] - Update maven-bundle-plugin to 4.1.0
+    [OAK-8810] - oak-lucene: adjust Import-Package declaration for upgrade of maven-bundle-plugin to 4.2.1
+    [OAK-8813] - oak-it-osgi: cover oak-solr-osgi bundle
+    [OAK-8816] - oak-solr-osgi: adjust Import-Package declaration for upgrade of maven-bundle-plugin to 4.2.1
+    [OAK-8819] - Update jetbrains nullability annotions to 18.0.0
+    [OAK-8820] - Update slf4j dependency to 1.7.29
+    [OAK-8821] - Update Tika dependency to 1.23
+    [OAK-8823] - Update org.apache.felix.scr.bnd to 1.9.6
+    [OAK-8824] - update jackson dependency to 2.10.1
+    [OAK-8829] - oak-solr-osgi: decouple jackson dependency from project dependency
+    [OAK-8830] - oak-store-document: update org.quartz-scheduler dependency to 2.3.2
+    [OAK-8835] - Update Oak trunk to Jackrabbit 2.20.0
+    [OAK-8839] - update release schedule
+    [OAK-8844] - update jackson dependency to 2.10.2
+    [OAK-8846] - oak-store-document: remove commons-lang test dependency
+    [OAK-8847] - update to commons-lang3 3.9 and define version globally
+    [OAK-8850] - oak-jcr tests: switch to commons-lang3
+    [OAK-8851] - oak-upgrade: switch to commons-lang3
+    [OAK-8852] - oak-it: remove unused commons-lang dependency
+    [OAK-8853] - oak-segment-tar tests: switch to commons-lang3
 
 Documentation
 
-    [OAK-8701] - DocumentMK documentation: fix INTERMEDIATE SplitDocType value
-    [OAK-8745] - document the Oak roadmap
-    [OAK-8751] - SegmentCopyCommand does not support verbose option anymore
-    [OAK-8756] - Oak-run segment-copy command logging documentation
+    [OAK-8826] - Update incorrect logback segment-copy configuration file name
+
+Technical task
+
+    [OAK-8607] - Undo workarounds for improper Content-Disposition support
+    [OAK-8791] - oak-core-spi: bump up logging for deprecated Guava based APIs to INFO
+    [OAK-8792] - oak-core-spi: CacheLIRS deprecation: add 'org.apache.jackrabbit.oak.plugins.segment' to allowed caller list
+    [OAK-8795] - oak-commons: bump up logging for deprecated Guava based APIs to INFO
+    [OAK-8831] - RDB*Store: update mysql jdbc driver reference to 8.0.18
+    [OAK-8833] - RDB*Store: improve OSGi related documentation
 
 
 In addition to the above-mentioned changes, this release contains all

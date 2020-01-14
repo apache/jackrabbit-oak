@@ -27,7 +27,6 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
-import static org.apache.commons.lang.StringUtils.split;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 
@@ -46,7 +45,7 @@ public class DocumentStoreStatsPrinterTest {
         PrintWriter pw = new PrintWriter(sw);
         printer.print(pw, Format.TEXT, false);
 
-        List<String> lines = asList(split(sw.toString(),"\r\n"));
+        List<String> lines = asList(sw.toString().split("\\r?\\n"));
         assertThat(lines, hasItem("type=memory"));
         assertThat(lines, hasItem("nodes=1"));
         assertThat(lines, hasItem("clusterNodes=1"));

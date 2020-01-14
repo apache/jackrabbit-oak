@@ -83,6 +83,38 @@ public interface DataRecordAccessProvider {
             throws IllegalArgumentException, DataRecordUploadException;
 
     /**
+     * Begin a transaction to perform a direct binary upload to the storage
+     * location.
+     *
+     * @param maxUploadSizeInBytes - the largest size of the binary to be
+     *        uploaded, in bytes, based on the caller's best guess.  If the
+     *        actual size of the file to be uploaded is known, that value should
+     *        be used.
+     * @param maxNumberOfURIs - the maximum number of URIs the client is able to
+     *        accept.  If the caller does not support multi-part uploading, this
+     *        value should be 1.  Note that the implementing class is not
+     *        required to support multi-part uploading so it may return only a
+     *        single upload URI regardless of the value passed in for this
+     *        parameter.  A caller may also pass in -1 to indicate that it is
+     *        able to accept any number of URIs.  Any other negative number or
+     *        0 may result in {@link IllegalArgumentException}.
+     * @param options - a {@link DataRecordUploadOptions} instance containing
+     *                any caller-specified options for upload URI generation.
+     * @return A {@link DataRecordUpload} referencing this direct upload,
+     *         or {@code null} if the implementation does not support direct
+     *         upload.
+     * @throws IllegalArgumentException if the service provider or
+     *         implementation cannot support the requested upload.
+     * @throws DataRecordUploadException if the upload cannot be completed as
+     *         requested.
+     */
+    @Nullable
+    DataRecordUpload initiateDataRecordUpload(long maxUploadSizeInBytes,
+                                              int maxNumberOfURIs,
+                                              DataRecordUploadOptions options)
+            throws IllegalArgumentException, DataRecordUploadException;
+
+    /**
      * Completes the transaction to perform a direct binary upload.  This method
      * verifies that the uploaded binary has been created and is now
      * referenceable.  For some providers doing multi-part upload, this also

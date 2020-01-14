@@ -633,7 +633,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
                 uri.getQuery())
         );
         int code = content.httpPUT(changedURI);
-        assertTrue(isFailedHttpPut(code));
+        assertTrue("Expected failed request but got " + String.valueOf(code), isFailedHttpPut(code));
     }
 
     // A1 - get put URI, upload, then try reading from the same URI

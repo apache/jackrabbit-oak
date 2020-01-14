@@ -264,3 +264,18 @@ When set, the property value should be a valid fully-qualified domain name, e.g.
 CDNs may be used for direct upload as well as direct download, if the CDN in question supports such behavior.  CDNs that support this behavior include AWS CloudFront, all Azure CDN offerings, and some other third-party CDNs do as well; however, these capabilities are the responsibility of the service providers, not Oak.  Check with your CDN provider for authoritative information on suitability; comprehensive testing is recommended.
 
 Note that you are not required to configure both domains, nor is it required that both domains be the same.  For example, if one CDN offers the best download performance and another CDN offers the best upload performance, you may choose to implement both and set each configuration parameter to a different domain.  Likewise, you are not required to set them both.  If you only wish to use CDNs for download but not upload, simply configure the download parameter with the CDN domain and don't configure an upload domain.
+
+## Ignoring the Domain Override
+
+`@since Oak 1.22 (AzureDataStore)`
+
+Usually if a domain override is configured, this value should be used for all signed URI requests because using this domain should result in a better experience.  However, there can be cases where a client does not want to use the domain override even if it is configured.
+
+For example, suppose you have a service running in the cloud and this service will be issuing requests with signed URIs.  Suppose that this service is running in the same cloud region as your blob storage.  In such a case, it will probably be much faster for the service to resolve the URI request using the default URI domain rather than the CDN domain, because most cloud service providers resolve these DNS names internally and route the traffic much more efficiently.  If the client that asks for the signed URI knows that it will be giving the URI to such a service to download, it may wish to indicate that it wants to ignore any configured domain override for this URI.
+
+To specify this behavior for signed download URIs, the client requesting the URI should specify to ignore the domain override when building the `BinaryDownloadOptions`:
+
+```
+BinaryDownloadOptions.BinaryDownloadOptionsBuilder builder = BinaryDownloadOptions.builder()
+    .withDomainOverrideIgnored(true);
+```
