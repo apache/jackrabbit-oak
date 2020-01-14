@@ -75,6 +75,10 @@ public class LogCustomizer {
         return new LogCustomizerBuilder(name);
     }
 
+    public static LogCustomizerBuilder forLogger(Class<?> clazz) {
+        return new LogCustomizerBuilder(clazz.getName());
+    }
+
     public static class LogCustomizerBuilder {
 
         private final String name;
@@ -93,8 +97,18 @@ public class LogCustomizer {
             return this;
         }
 
+        public LogCustomizerBuilder enable(org.slf4j.event.Level level) {
+            this.enableLevel = fromSlf4jLevel(level);
+            return this;
+        }
+
         public LogCustomizerBuilder filter(Level level) {
             this.filterLevel = level;
+            return this;
+        }
+
+        public LogCustomizerBuilder filter(org.slf4j.event.Level level) {
+            this.filterLevel = fromSlf4jLevel(level);
             return this;
         }
 
@@ -115,6 +129,23 @@ public class LogCustomizer {
 
         public LogCustomizer create() {
             return new LogCustomizer(name, enableLevel, filterLevel, matchExactMessage, matchContainsMessage, matchRegexMessage);
+        }
+
+        private static Level fromSlf4jLevel(org.slf4j.event.Level level) {
+            switch (level) {
+                case DEBUG:
+                    return Level.DEBUG;
+                case ERROR:
+                    return Level.ERROR;
+                case INFO:
+                    return Level.INFO;
+                case TRACE:
+                    return Level.TRACE;
+                case WARN:
+                    return Level.WARN;
+                default:
+                    throw new IllegalArgumentException("Log level not supported: " + level);
+            }
         }
     }
 

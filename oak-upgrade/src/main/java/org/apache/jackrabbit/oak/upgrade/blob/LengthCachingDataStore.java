@@ -342,7 +342,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
             }
             log.info("Total {} mapping entries found", mapping.size());
         } finally {
-            itr.close();
+            LineIterator.closeQuietly(itr);
         }
         return mapping;
     }

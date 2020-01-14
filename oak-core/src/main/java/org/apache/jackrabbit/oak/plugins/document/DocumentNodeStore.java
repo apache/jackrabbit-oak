@@ -149,6 +149,11 @@ public final class DocumentNodeStore
             Boolean.getBoolean("oak.disableJournalDiff");
 
     /**
+     * How many collision entries to collect in a single call.
+     */
+    private int collisionGarbageBatchSize = Integer.getInteger("oak.documentMK.collisionGarbageBatchSize", 1000);
+
+    /**
      * The document store without potentially lease checking wrapper.
      */
     private final DocumentStore nonLeaseCheckingStore;
@@ -1742,7 +1747,7 @@ public final class DocumentNodeStore
             long time = start;
             // clean orphaned branches and collisions
             cleanOrphanedBranches();
-            cleanCollisions();
+            cleanRootCollisions();
             long cleanTime = clock.getTime() - time;
             time = clock.getTime();
             // split documents (does not create new revisions)
@@ -2002,16 +2007,19 @@ public final class DocumentNodeStore
             store.findAndUpdate(NODES, op);
         }
     }
-    
-    private void cleanCollisions() {
+
+    private void cleanRootCollisions() {
         String id = Utils.getIdFromPath("/");
         NodeDocument root = store.find(NODES, id);
-        if (root == null) {
-            return;
+        if (root != null) {
+            cleanCollisions(root, Integer.MAX_VALUE);
         }
+    }
+
+    private void cleanCollisions(NodeDocument doc, int limit) {
         RevisionVector head = getHeadRevision();
-        Map<Revision, String> map = root.getLocalMap(NodeDocument.COLLISIONS);
-        UpdateOp op = new UpdateOp(id, false);
+        Map<Revision, String> map = doc.getLocalMap(NodeDocument.COLLISIONS);
+        UpdateOp op = new UpdateOp(doc.getId(), false);
         for (Revision r : map.keySet()) {
             if (r.getClusterId() == clusterId) {
                 // remove collision if there is no active branch with
@@ -2021,11 +2029,15 @@ public final class DocumentNodeStore
                 if (branches.getBranchCommit(r) == null 
                         && !head.isRevisionNewer(r)) {
                     NodeDocument.removeCollision(op, r);
+                    if (--limit <= 0) {
+                        break;
+                    }
                 }
             }
         }
         if (op.hasChanges()) {
-            LOG.debug("Removing collisions {}", op.getChanges().keySet());
+            LOG.debug("Removing collisions {} on {}",
+                    op.getChanges().keySet(), doc.getId());
             store.findAndUpdate(NODES, op);
         }
     }
@@ -2038,6 +2050,7 @@ public final class DocumentNodeStore
             if (doc == null) {
                 continue;
             }
+            cleanCollisions(doc, collisionGarbageBatchSize);
             for (UpdateOp op : doc.split(this, head)) {
                 NodeDocument before = null;
                 if (!op.isNew() ||
@@ -2723,27 +2736,38 @@ public final class DocumentNodeStore
         /** OAK-4859 : log if time between two renewClusterIdLease calls is too long **/
         private long lastRenewClusterIdLeaseCall = -1;
 
+        /** elapsed time for previous update operation **/
+        private long elapsedForPreviousRenewal  = -1;
+
+        private static int INTERVAL_MS = 1000;
+        private static int TOLERANCE_FOR_WARNING_MS = 2000;
+
         BackgroundLeaseUpdate(DocumentNodeStore nodeStore,
                               AtomicBoolean isDisposed) {
-            super(nodeStore, isDisposed, Suppliers.ofInstance(1000));
+            super(nodeStore, isDisposed, Suppliers.ofInstance(INTERVAL_MS));
         }
 
         @Override
         protected void execute(@Nonnull DocumentNodeStore nodeStore) {
             // OAK-4859 : keep track of invocation time of renewClusterIdLease
             // and warn if time since last call is longer than 5sec
-            final long now = System.currentTimeMillis();
-            if (lastRenewClusterIdLeaseCall <= 0) {
-                lastRenewClusterIdLeaseCall = now;
-            } else {
+            Clock clock = nodeStore.getClock();
+            long now = clock.getTime();
+
+            if (lastRenewClusterIdLeaseCall >= 0) {
                 final long diff = now - lastRenewClusterIdLeaseCall;
-                if (diff > 5000) {
-                    LOG.warn("BackgroundLeaseUpdate.execute: time since last renewClusterIdLease() call longer than expected: {}ms", diff);
+                if (diff > INTERVAL_MS + TOLERANCE_FOR_WARNING_MS) {
+                    String renewTimeMessage = elapsedForPreviousRenewal <= 0 ? ""
+                            : String.format(" (of which the last update operation took %dms)", elapsedForPreviousRenewal);
+                    LOG.warn(
+                            "BackgroundLeaseUpdate.execute: time since last renewClusterIdLease() call longer than expected: {}ms{} (expected ~{}ms)",
+                            diff, renewTimeMessage, INTERVAL_MS);
                 }
-                lastRenewClusterIdLeaseCall = now;
             }
-            // first renew the clusterId lease
+            lastRenewClusterIdLeaseCall = now;
+
             nodeStore.renewClusterIdLease();
+            elapsedForPreviousRenewal = clock.getTime() - now;
         }
     }
 

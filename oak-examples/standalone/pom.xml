@@ -38,8 +38,6 @@
     <oak.version>1.4.25</oak.version>
     <tika.version>1.7</tika.version>
     <skip.deployment>true</skip.deployment>
-    <slf4j.version>1.7.21</slf4j.version>
-    <slf4j.api.version>1.7.21</slf4j.api.version>
     <spring.boot.version>1.3.8.RELEASE</spring.boot.version>
   </properties>
 
@@ -175,7 +173,10 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.1.7</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
     </dependency>
 
     <!-- Required for Felix WebConsole -->
@@ -255,6 +256,10 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>${spring.boot.version}</version>
+        <configuration>
+          <!-- see https://stackoverflow.com/questions/42082131/maven-surefire-verify-java-lang-classnotfoundexception -->
+          <classifier>exec</classifier>
+        </configuration>
         <executions>
           <execution>
             <goals>

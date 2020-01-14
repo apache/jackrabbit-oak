@@ -41,7 +41,7 @@
       <plugin>
         <groupId>org.codehaus.gmaven</groupId>
         <artifactId>gmaven-plugin</artifactId>
-        <version>1.4</version>
+        <version>1.5</version>
         <!--suppress MavenModelInspection -->
         <configuration>
           <providerSelection>2.0</providerSelection>
@@ -288,7 +288,7 @@
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
+      <artifactId>mockito-core</artifactId>
       <version>1.10.19</version>
       <scope>test</scope>
     </dependency>

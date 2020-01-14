@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -83,7 +82,6 @@ public class NodeTypeRegistryTest {
     }
     
     // OAK-7886
-    @Ignore("OAK-7886")
     @Test
     public void reRegisterNtResource() throws Exception {
         NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {

@@ -32,10 +32,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 class RecoveryCommand implements Command {
 
+    MapFactory oldf = MapFactory.getInstance();
+
     @Override
     public void execute(String... args) throws Exception {
-        MapFactory.setInstance(new MapDBMapFactory());
         Closer closer = Closer.create();
+        MapDBMapFactory mdbmf = new MapDBMapFactory();
+        closer.register(mdbmf);
         String h = "recovery mongodb://host:port/database { dryRun }";
         try {
             NodeStore store = Utils.bootstrapNodeStore(args, closer, h);
@@ -59,6 +62,7 @@ class RecoveryCommand implements Command {
             throw closer.rethrow(e);
         } finally {
             closer.close();
+            MapFactory.setInstance(oldf);
         }
     }
 
