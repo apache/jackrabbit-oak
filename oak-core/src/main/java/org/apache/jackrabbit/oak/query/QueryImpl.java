@@ -625,7 +625,8 @@ public class QueryImpl implements Query {
                         OrderEntry e = list.get(i);
                         OrderingImpl o = orderings[i];
                         DynamicOperandImpl op = o.getOperand();
-                        if (!(op instanceof PropertyValueImpl)) {
+                        // Temporarily commenting this out - this flow seems redundant 
+                        /*if (!(op instanceof PropertyValueImpl)) {
                             // ordered by a function - supported by index so we simply break here and set canSortByIndex = true
                             // so that QueryImpl does not sort the entries again
                             break;
@@ -637,7 +638,7 @@ public class QueryImpl implements Query {
                             // ordered by another property
                             canSortByIndex = false;
                             break;
-                        }
+                        }*/
                         if (o.isDescending() != (e.getOrder() == Order.DESCENDING)) {
                             // ordered ascending versus descending
                             canSortByIndex = false;

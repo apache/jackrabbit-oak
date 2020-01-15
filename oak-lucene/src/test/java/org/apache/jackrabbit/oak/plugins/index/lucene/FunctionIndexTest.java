@@ -295,6 +295,378 @@ public class FunctionIndexTest extends AbstractQueryTest {
 
     }
 
+
+    /*
+    Test order by func(a),func(b)
+    order by func(b),func(a)
+    func(a) DESC,func(b)
+    func(a),func(b)DESC
+    where both func(a) and func(b) have ordered set = true
+    Correct ordering is effectively served by the index
+     */
+    @Test
+    public void testOrdering3() throws Exception {
+
+        Tree index = root.getTree("/");
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        useV2(indexDefn);
+        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:unstructured");
+        props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+
+        Tree upper = TestUtil.enableFunctionIndex(props, "upper([foo])");
+        upper.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+
+        Tree upper2 = TestUtil.enableFunctionIndex(props, "upper([foo2])");
+        upper2.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+
+        Tree a = test.addChild("n1");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b2");
+
+        a = test.addChild("n2");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a2");
+        a.setProperty("foo2", "b3");
+
+        a = test.addChild("n3");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a3");
+        a.setProperty("foo2", "b1");
+
+        a = test.addChild("n4");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b3");
+
+        a = test.addChild("n5");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b1");
+
+
+        String query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo),upper(a.foo2)";
+
+        root.commit();
+
+        List<String> result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a1, b1","a1, b2","a1, b3","a2, b3","a3, b1"), result);
+
+        query = "select a.[foo2],a.[foo]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo2),upper(a.foo)";
+
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("b1, a1","b1, a3","b2, a1","b3, a1","b3, a2"), result);
+
+        query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo) DESC, upper(a.foo2)";
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a3, b1","a2, b3","a1, b1","a1, b2","a1, b3"), result);
+
+        query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo), upper(a.foo2) DESC";
+
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a1, b3", "a1, b2", "a1, b1", "a2, b3", "a3, b1"), result);
+
+
+    }
+
+    /*
+    Test order by func(a),func(b)
+    order by func(b),func(a)
+    func(a) DESC,func(b)
+    func(a),func(b)DESC
+    where only func(a) is ordered by index
+    The effective ordering in this case will be done by QueryEngine
+     */
+    @Test
+    public void testOrdering4() throws Exception {
+        Tree index = root.getTree("/");
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        useV2(indexDefn);
+        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:unstructured");
+        props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+
+        Tree upper = TestUtil.enableFunctionIndex(props, "upper([foo])");
+        upper.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+
+        TestUtil.enableFunctionIndex(props, "upper([foo2])");
+
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+
+        Tree a = test.addChild("n1");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b2");
+
+        a = test.addChild("n2");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a2");
+        a.setProperty("foo2", "b3");
+
+        a = test.addChild("n3");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a3");
+        a.setProperty("foo2", "b1");
+
+        a = test.addChild("n4");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b3");
+
+        a = test.addChild("n5");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b1");
+
+
+        String query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo),upper(a.foo2)";
+
+        root.commit();
+
+        List<String> result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a1, b1","a1, b2","a1, b3","a2, b3","a3, b1"), result);
+
+        query = "select a.[foo2],a.[foo]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo2),upper(a.foo)";
+
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("b1, a1","b1, a3","b2, a1","b3, a1","b3, a2"), result);
+
+        query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo) DESC, upper(a.foo2)";
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a3, b1","a2, b3","a1, b1","a1, b2","a1, b3"), result);
+
+        query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo), upper(a.foo2) DESC";
+
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a1, b3", "a1, b2", "a1, b1", "a2, b3", "a3, b1"), result);
+
+    }
+
+    /*
+    Test order by func(a),b
+    order by b,func(a)
+    order by func(a) DESC,b
+    order by func(a),b DESC
+    where both b and func(a) have ordered=true
+     */
+    @Test
+    public void testOrdering5() throws Exception {
+        Tree index = root.getTree("/");
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        useV2(indexDefn);
+        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:unstructured");
+        props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+
+        Tree upper = TestUtil.enableFunctionIndex(props, "upper([foo])");
+        upper.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+
+
+        Tree upper2 = TestUtil.enablePropertyIndex(props, "foo2", false);
+        upper2.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+
+        Tree a = test.addChild("n1");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b2");
+
+        a = test.addChild("n2");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a2");
+        a.setProperty("foo2", "b3");
+
+        a = test.addChild("n3");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a3");
+        a.setProperty("foo2", "b1");
+
+        a = test.addChild("n4");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b3");
+
+        a = test.addChild("n5");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b1");
+
+
+        String query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo),a.foo2";
+
+        root.commit();
+
+        List<String> result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a1, b1","a1, b2","a1, b3","a2, b3","a3, b1"), result);
+
+       query = "select a.[foo2],a.[foo]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by a.foo2,upper(a.foo)";
+
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("b1, a1","b1, a3","b2, a1","b3, a1","b3, a2"), result);
+
+        query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo) DESC, a.foo2";
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a3, b1","a2, b3","a1, b1","a1, b2","a1, b3"), result);
+
+        query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo), a.foo2 DESC";
+
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a1, b3", "a1, b2", "a1, b1", "a2, b3", "a3, b1"), result);
+
+    }
+
+    /*
+    Test order by func(a),b
+    orrder by b,func(a)
+    order by func(a) DESC,b
+    order by func(a),b DESC
+    where func(a) does not have ordered = true
+     */
+    @Test
+    public void testOrdering6() throws Exception {
+        Tree index = root.getTree("/");
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        useV2(indexDefn);
+        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:unstructured");
+        props.getParent().setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
+        TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+
+        TestUtil.enableFunctionIndex(props, "upper([foo])");
+
+
+        Tree upper2 = TestUtil.enablePropertyIndex(props, "foo2", false);
+        upper2.setProperty(FulltextIndexConstants.PROP_ORDERED,true);
+
+
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+
+        Tree a = test.addChild("n1");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b2");
+
+        a = test.addChild("n2");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a2");
+        a.setProperty("foo2", "b3");
+
+        a = test.addChild("n3");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a3");
+        a.setProperty("foo2", "b1");
+
+        a = test.addChild("n4");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b3");
+
+        a = test.addChild("n5");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("foo", "a1");
+        a.setProperty("foo2", "b1");
+
+
+        String query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo),a.foo2";
+
+        root.commit();
+
+        List<String> result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a1, b1","a1, b2","a1, b3","a2, b3","a3, b1"), result);
+
+        query = "select a.[foo2],a.[foo]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by a.foo2,upper(a.foo)";
+
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("b1, a1","b1, a3","b2, a1","b3, a1","b3, a2"), result);
+
+        query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo) DESC, a.foo2";
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a3, b1","a2, b3","a1, b1","a1, b2","a1, b3"), result);
+
+        query = "select a.[foo],a.[foo2]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where a.foo is not null and isdescendantnode(a , '/test') order by upper(a.foo), a.foo2 DESC";
+
+        result = executeQuery(query,SQL2);
+
+        assertEquals("Ordering doesn't match", asList("a1, b3", "a1, b2", "a1, b1", "a2, b3", "a3, b1"), result);
+    }
+
     @Test
     public void testOrdering() throws Exception {
         Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
