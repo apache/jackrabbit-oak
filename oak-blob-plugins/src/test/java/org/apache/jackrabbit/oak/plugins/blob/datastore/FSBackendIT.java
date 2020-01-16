@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -226,11 +227,10 @@ public class FSBackendIT {
                 writeLatch.await();
                 backend.write(new DataIdentifier("0000ID" + seed), f);
                 LOG.info("Added file to backend");
-                return seed;
             } catch (Exception e) {
                 LOG.error("Error adding file to backend", e);
-                throw e;
             }
+            return seed;
         });
         futures.add(future);
 
