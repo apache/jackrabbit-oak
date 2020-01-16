@@ -34,7 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.spi.editor.Fulltext
  * Reindexing operations
  */
 public class ReindexOperations {
-    private static final Logger log = LoggerFactory.getLogger(ReindexOperations.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReindexOperations.class);
     private final NodeState root;
     private final NodeBuilder definitionBuilder;
     private final String indexPath;
@@ -65,7 +65,7 @@ public class ReindexOperations {
             definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
             if (definitionBuilder.getChildNode(STATUS_NODE).exists()) {
                 definitionBuilder.getChildNode(STATUS_NODE).removeProperty(REINDEX_COMPLETION_TIMESTAMP);
-                log.info(REINDEX_COMPLETION_TIMESTAMP + " property removed for index at {}", this.indexPath);
+                LOG.info("{} property removed for index at {}", REINDEX_COMPLETION_TIMESTAMP, this.indexPath);
             }
         }
         String uid = configureUniqueId(definitionBuilder);

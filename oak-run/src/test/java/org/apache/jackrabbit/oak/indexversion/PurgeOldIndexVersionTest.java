@@ -164,10 +164,8 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
         fixture.getAsyncIndexUpdate("async").run();
         createCustomIndex(TEST_INDEX_PATH, 4, 2, false);
         PurgeOldIndexVersionCommand command = new PurgeOldIndexVersionCommand();
-        PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(fixture.getNodeStore(),
-                PurgeOldVersionUtils.trimSlash("/oak:index/fooIndex-4-custom-2"));
-        PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(fixture.getNodeStore(),
-                PurgeOldVersionUtils.trimSlash("/oak:index/fooIndex-3-custom-2"));
+        PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(fixture.getNodeStore(), "/oak:index/fooIndex-4-custom-2");
+        PurgeOldVersionUtils.recursiveDeleteHiddenChildNodes(fixture.getNodeStore(), "/oak:index/fooIndex-3-custom-2");
         fixture.close();
 
         File storeDir = fixture.getDir();
@@ -306,7 +304,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
             fixture.close();
             List<String> logs = custom.getLogs();
             assertThat("repository is opened in read only mode ", logs.toString(),
-                    containsString("Repository is opened in read-write mode"));
+                    containsString("Repository is opened in read-only mode"));
         } finally {
             custom.finished();
         }

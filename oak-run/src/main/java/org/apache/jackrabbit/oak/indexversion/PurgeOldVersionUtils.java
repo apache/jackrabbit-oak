@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.indexversion;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.RecursiveDelete;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -34,28 +35,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class PurgeOldVersionUtils {
 
-    public static String trimSlash(String str) {
-        int startIndex = 0;
-        int endIndex = str.length() - 1;
-        if (str.charAt(startIndex) == '/') {
-            startIndex++;
-        }
-        if (str.charAt(endIndex) == '/') {
-            endIndex--;
-        }
-        return str.substring(startIndex, endIndex + 1);
-    }
+    public static final String OAK_INDEX = "oak:index";
 
     public static long getMillisFromString(String strDate) {
         long millis = ISO8601.parse(strDate).getTimeInMillis();
         return millis;
     }
 
-    public static String getBaseIndexName(String versionedIndexName) {
-        String indexBaseName = versionedIndexName.split("-")[0];
-        return indexBaseName;
-    }
-
+    /**
+     * @param nodeBuilder
+     * @param path        Path of node whose nodeBuilder object should be returned.
+     * @return nodeBuilder object of node at @param{path}
+     */
     public static NodeBuilder getNode(@NotNull NodeBuilder nodeBuilder, @NotNull String path) {
         for (String name : PathUtils.elements(checkNotNull(path))) {
             nodeBuilder = nodeBuilder.getChildNode(checkNotNull(name));
@@ -63,14 +54,49 @@ public class PurgeOldVersionUtils {
         return nodeBuilder;
     }
 
-    public static void recursiveDeleteHiddenChildNodes(NodeStore store, String trimmedPath) throws CommitFailedException {
-        NodeState nodeState = NodeStateUtils.getNode(store.getRoot(), "/" + trimmedPath);
+    /**
+     * @param store
+     * @param path
+     * @throws CommitFailedException recursively deletes child nodes under path
+     */
+    public static void recursiveDeleteHiddenChildNodes(NodeStore store, String path) throws CommitFailedException {
+        NodeState nodeState = NodeStateUtils.getNode(store.getRoot(), path);
         Iterable<String> childNodeNames = nodeState.getChildNodeNames();
         for (String childNodeName : childNodeNames) {
             if (NodeStateUtils.isHidden(childNodeName)) {
                 RecursiveDelete recursiveDelete = new RecursiveDelete(store, EmptyHook.INSTANCE, () -> CommitInfo.EMPTY);
-                recursiveDelete.run("/" + trimmedPath + "/" + childNodeName);
+                recursiveDelete.run(path + "/" + childNodeName);
             }
         }
+    }
+
+    /**
+     * @param commandlineIndexPath
+     * @param repositoryIndexPath
+     * @return true if baseIndexName at  commandlineIndexPath and repositoryIndexPath are equal
+     */
+    public static boolean isBaseIndexEqual(String commandlineIndexPath, String repositoryIndexPath) {
+        if (PathUtils.getName(PathUtils.getParentPath(commandlineIndexPath)).equals(OAK_INDEX)) {
+            String commandlineIndexBaseName = IndexName.parse(commandlineIndexPath).getBaseName();
+            String repositoryIndexBaseName = IndexName.parse(repositoryIndexPath).getBaseName();
+            if (commandlineIndexBaseName.equals(repositoryIndexBaseName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param commandlineIndexPath
+     * @param repositoryIndexPath
+     * @return true if repositoryIndexPath is child of commandlineIndexPath
+     */
+    public static boolean isIndexChildNode(String commandlineIndexPath, String repositoryIndexPath) {
+        if (PathUtils.getName(commandlineIndexPath).equals(OAK_INDEX)) {
+            if (repositoryIndexPath.startsWith(commandlineIndexPath)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
