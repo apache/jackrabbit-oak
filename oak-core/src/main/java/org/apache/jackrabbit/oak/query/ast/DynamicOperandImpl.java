@@ -114,4 +114,11 @@ public abstract class DynamicOperandImpl extends AstElement {
      */
     public abstract OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o);
 
+    /**
+     *
+     * @param s
+     * @return the property name as defined in the OrderEntry for the DynamicOperand
+     */
+    public abstract String getOrderEntryPropertyName(SelectorImpl s);
+
 }

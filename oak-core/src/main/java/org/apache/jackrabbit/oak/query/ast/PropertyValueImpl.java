@@ -59,6 +59,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
         return selectorName;
     }
 
+
     public String getPropertyName() {
         return propertyName;
     }
@@ -178,6 +179,15 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             Type.UNDEFINED, 
             o.isDescending() ? 
             OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+    }
+
+    @Override
+    public String getOrderEntryPropertyName(SelectorImpl s) {
+        if (!s.equals(selector)) {
+            // ordered by a different selector
+            return null;
+        }
+        return normalizePropertyName(propertyName);
     }
 
 }

@@ -192,4 +192,13 @@ public class NodeNameImpl extends DynamicOperandImpl {
             OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
     }
 
+    @Override
+    public String getOrderEntryPropertyName(SelectorImpl s) {
+        String fn = getFunction(s);
+        if (fn != null) {
+            return  QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn;
+        }
+        return null;
+    }
+
 }
