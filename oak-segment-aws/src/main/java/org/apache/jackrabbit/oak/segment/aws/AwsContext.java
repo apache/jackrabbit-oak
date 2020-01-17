@@ -28,8 +28,13 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBLockClientOptions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBLockClientOptions.AmazonDynamoDBLockClientOptionsBuilder;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
@@ -50,6 +55,7 @@ import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
@@ -62,6 +68,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +93,8 @@ public final class AwsContext {
     private final AmazonDynamoDB ddb;
     private final Table journalTable;
     private final String lockTableName;
+
+    private RemoteStoreMonitor remoteStoreMonitor;
 
     private AwsContext(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
             String journalTableName, String lockTableName) {
@@ -120,6 +129,33 @@ public final class AwsContext {
         AmazonS3 s3 = AmazonS3Client.builder().build();
         AmazonDynamoDB ddb = AmazonDynamoDBClient.builder().build();
         return create(s3, bucketName, rootDirectory, ddb, journalTableName, lockTableName);
+    }
+
+    /**
+     * Creates the context used to interact with AWS services.
+     * 
+     * @param configuration The configuration used to initialize the context.
+     * @return The context.
+     * @throws IOException
+     */
+    public static AwsContext create(Configuration configuration) throws IOException {
+        String region = configuration.region();
+        String rootDirectory = configuration.rootDirectory();
+        if (rootDirectory != null && rootDirectory.length() > 0 && rootDirectory.charAt(0) == '/') {
+            rootDirectory = rootDirectory.substring(1);
+        }
+
+        AWSCredentials credentials = configuration.sessionToken() == null || configuration.sessionToken().isEmpty()
+                ? new BasicAWSCredentials(configuration.accessKey(), configuration.secretKey())
+                : new BasicSessionCredentials(configuration.accessKey(), configuration.secretKey(),
+                        configuration.sessionToken());
+        AWSStaticCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(credentials);
+
+        AmazonS3 s3 = AmazonS3ClientBuilder.standard().withCredentials(credentialsProvider).withRegion(region).build();
+        AmazonDynamoDB ddb = AmazonDynamoDBClientBuilder.standard().withCredentials(credentialsProvider)
+                .withRegion(region).build();
+        return create(s3, configuration.bucketName(), rootDirectory, ddb, configuration.journalTableName(),
+                configuration.lockTableName());
     }
 
     /**

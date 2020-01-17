@@ -51,11 +51,19 @@
                             *
                         </Import-Package>
                         <Export-Package>
+                            com.amazonaws.metrics.internal.cloudwatch,
+                            com.amazonaws.services.securitytoken.internal,
                             com.amazonaws*,
+                            com.fasterxml.jackson.dataformat.cbor,
+                            com.sun.org.apache.xpath.internal,
+                            kotlin,
+                            org.bouncycastle.jce.provider,
+                            software.amazon.ion*
                         </Export-Package>
                         <Embed-Dependency>
                             aws-java-sdk-dynamodb,
-                            aws-java-sdk-s3
+                            aws-java-sdk-s3,
+                            dynamodb-lock-client
                         </Embed-Dependency>
                     </instructions>
                 </configuration>
