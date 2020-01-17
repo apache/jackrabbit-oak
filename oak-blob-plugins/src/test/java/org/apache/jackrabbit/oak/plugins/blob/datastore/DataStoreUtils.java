@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -117,5 +120,12 @@ public class DataStoreUtils {
 
         DataStoreBlobStore dbs = getBlobStore();
         assertEquals(1000, dbs.getDataStore().getMinRecordLength());
+    }
+
+    public static InputStream randomStream(int seed, long size) {
+        Random r = new Random(seed);
+        byte[] data = new byte[(int) size];
+        r.nextBytes(data);
+        return new ByteArrayInputStream(data);
     }
 }
