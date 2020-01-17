@@ -17,6 +17,11 @@ Apache Jackrabbit is a project of the Apache Software Foundation.
 Changes in Oak 1.8.19
 ---------------------
 
+Bug
+
+    [OAK-8780] - Remove the synchronized block on the FSBackend
+    [OAK-8781] - Add debug logs before and after cache purge to get the uploadCache size info
+
 Improvement
 
     [OAK-8648] - Log reason why NodeDocumentSweeper.sweep is called
