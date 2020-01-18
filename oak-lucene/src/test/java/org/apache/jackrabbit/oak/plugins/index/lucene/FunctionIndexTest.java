@@ -706,6 +706,10 @@ public class FunctionIndexTest extends AbstractQueryTest {
         fn = TestUtil.enableFunctionIndex(props, "lower(coalesce([foo2], coalesce([foo], localname())))");
         fn.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
 
+        fn = TestUtil.enableFunctionIndex(props, "length(coalesce([foo], coalesce([foo2], localname())))");
+        fn.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
+        fn.setProperty(FulltextIndexConstants.PROP_TYPE, "Long");
+
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -797,6 +801,15 @@ public class FunctionIndexTest extends AbstractQueryTest {
         result = executeQuery(query, SQL2);
 
         assertEquals("Ordering doesn't match", asList("/test/d1", "/test/d3", "/test/jcr:content", "/test/d2"), result);
+
+
+        query = "select [jcr:path]\n" +
+                "\t  from [nt:unstructured] as a\n" +
+                "\t  where  a.[foo] is not null AND isdescendantnode(a , '/test') order by length(coalesce([foo], coalesce([foo2], localname()))), localname() DESC";
+
+        result = executeQuery(query, SQL2);
+
+        assertEquals("Ordering doesn't match", asList("/test/d1", "/test/d3", "/test/d2", "/test/jcr:content"), result);
 
 
     }
