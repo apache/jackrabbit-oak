@@ -747,7 +747,7 @@ public class FunctionIndexTest extends AbstractQueryTest {
 
         result = executeQuery(query, SQL2);
 
-        assertEquals("Ordering doesn't match", asList("aaa", "bb", "c", "test"), result);
+        assertEquals("Ordering doesn't match", asList("aa", "bbbb", "c", "test"), result);
 
         query = "select [jcr:path]\n" +
                 "\t  from [nt:unstructured] as a\n" +
