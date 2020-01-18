@@ -627,6 +627,7 @@ public class QueryImpl implements Query {
                         DynamicOperandImpl op = o.getOperand();
                         String pn = op.getOrderEntryPropertyName(selectors.get(0));
                         if (!pn.equals(e.getPropertyName())) {
+                            // ordered by another property
                             canSortByIndex = false;
                             break;
                         }
