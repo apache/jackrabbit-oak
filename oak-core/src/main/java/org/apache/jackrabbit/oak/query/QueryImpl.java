@@ -625,6 +625,8 @@ public class QueryImpl implements Query {
                         OrderEntry e = list.get(i);
                         OrderingImpl o = orderings[i];
                         DynamicOperandImpl op = o.getOperand();
+                        // we only have one selector, so no need to check that
+                        // TODO support joins
                         String pn = op.getOrderEntryPropertyName(selectors.get(0));
                         if (!pn.equals(e.getPropertyName())) {
                             // ordered by another property
