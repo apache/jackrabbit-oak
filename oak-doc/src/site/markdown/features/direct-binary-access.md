@@ -276,6 +276,19 @@ For example, suppose you have a service running in the cloud and this service wi
 To specify this behavior for signed download URIs, the client requesting the URI should specify to ignore the domain override when building the `BinaryDownloadOptions`:
 
 ```
-BinaryDownloadOptions.BinaryDownloadOptionsBuilder builder = BinaryDownloadOptions.builder()
-    .withDomainOverrideIgnored(true);
+BinaryDownloadOptions options = BinaryDownloadOptions.builder()
+    .withDomainOverrideIgnored(true)
+    .build();
 ```
+
+Default behavior is to use the domain override if one is configured.
+
+To ignore any configured domain override for signed upload URIs, the client requesting the URI should specify to ignore the domain override via the optional `BinaryUploadOptions` parameter:
+
+```
+BinaryUploadOptions options = BinaryUploadOptions.builder()
+    .withDomainOverrideIgnored(true)
+    .build();
+```
+
+Default behavior is to use the domain override if one is configured.  Note that providing a `BinaryUploadOptions` to `JackrabbitValueFactory.initiateBinaryUpload()` is optional, and if not provided the default behavior is used.

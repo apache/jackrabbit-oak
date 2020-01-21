@@ -83,6 +83,10 @@ public class MigrationOptions {
     private final String srcS3Config;
 
     private final String srcS3;
+    
+    private final String srcAzureConfig;
+
+    private final String srcAzure;
 
     private final String dstFbs;
 
@@ -91,6 +95,10 @@ public class MigrationOptions {
     private final String dstS3Config;
 
     private final String dstS3;
+    
+    private final String dstAzureConfig;
+
+    private final String dstAzure;
 
     private final Boolean srcExternalBlobs;
 
@@ -139,11 +147,15 @@ public class MigrationOptions {
         this.srcFds = args.getOption(OptionParserFactory.SRC_FDS);
         this.srcS3 = args.getOption(OptionParserFactory.SRC_S3);
         this.srcS3Config = args.getOption(OptionParserFactory.SRC_S3_CONFIG);
+        this.srcAzure = args.getOption(OptionParserFactory.SRC_AZURE);
+        this.srcAzureConfig = args.getOption(OptionParserFactory.SRC_AZURE_CONFIG);
 
         this.dstFbs = args.getOption(OptionParserFactory.DST_FBS);
         this.dstFds = args.getOption(OptionParserFactory.DST_FDS);
         this.dstS3 = args.getOption(OptionParserFactory.DST_S3);
         this.dstS3Config = args.getOption(OptionParserFactory.DST_S3_CONFIG);
+        this.dstAzure = args.getOption(OptionParserFactory.DST_AZURE);
+        this.dstAzureConfig = args.getOption(OptionParserFactory.DST_AZURE_CONFIG);
 
         if (args.hasOption(OptionParserFactory.SRC_EXTERNAL_BLOBS)) {
             this.srcExternalBlobs = args.getBooleanOption(OptionParserFactory.SRC_EXTERNAL_BLOBS);
@@ -259,6 +271,14 @@ public class MigrationOptions {
     public String getSrcS3() {
         return srcS3;
     }
+    
+    public String getSrcAzureConfig() {
+        return srcAzureConfig;
+    }
+
+    public String getSrcAzure() {
+        return srcAzure;
+    }
 
     public String getDstFbs() {
         return dstFbs;
@@ -275,6 +295,14 @@ public class MigrationOptions {
     public String getDstS3() {
         return dstS3;
     }
+    
+    public String getDstAzureConfig() {
+        return dstAzureConfig;
+    }
+
+    public String getDstAzure() {
+        return dstAzure;
+    }
 
     public boolean isSrcFds() {
         return StringUtils.isNotBlank(srcFds);
@@ -286,6 +314,12 @@ public class MigrationOptions {
 
     public boolean isSrcS3() {
         return StringUtils.isNotBlank(srcS3) && StringUtils.isNotBlank(srcS3Config);
+    }
+    
+    public boolean isSrcAzure() {
+    	
+    	// OAK-6632 - only Azure config should be required (path not needed)
+        return StringUtils.isNotBlank(srcAzureConfig);
     }
 
     public boolean isDstFds() {
@@ -299,13 +333,18 @@ public class MigrationOptions {
     public boolean isDstS3() {
         return StringUtils.isNotBlank(dstS3) && StringUtils.isNotBlank(dstS3Config);
     }
+    
+    public boolean isDstAzure() {
+    	// OAK-6632 - only Azure config should be required (path not needed)
+        return StringUtils.isNotBlank(dstAzureConfig);
+    }
 
     public boolean isSrcBlobStoreDefined() {
-        return isSrcFbs() || isSrcFds() || isSrcS3();
+        return isSrcFbs() || isSrcFds() || isSrcS3() || isSrcAzure();
     }
 
     public boolean isDstBlobStoreDefined() {
-        return isDstFbs() || isDstFds() || isDstS3();
+        return isDstFbs() || isDstFds() || isDstS3() || isDstAzure();
     }
 
     public void logOptions() {
