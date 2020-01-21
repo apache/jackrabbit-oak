@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 /**
@@ -113,5 +114,18 @@ public abstract class DynamicOperandImpl extends AstElement {
      * @return the entry
      */
     public abstract OrderEntry getOrderEntry(SelectorImpl s, OrderingImpl o);
+
+    /**
+     *
+     * @param s
+     * @return the property name as defined in the OrderEntry for the DynamicOperand
+     */
+    public String getOrderEntryPropertyName(SelectorImpl s) {
+        String fn = getFunction(s);
+        if (fn != null) {
+            return  QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn;
+        }
+        return null;
+    }
 
 }

@@ -118,4 +118,9 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
         return null;
     }
 
+    @Override
+    public String getOrderEntryPropertyName(SelectorImpl s) {
+        return null;
+    }
+
 }

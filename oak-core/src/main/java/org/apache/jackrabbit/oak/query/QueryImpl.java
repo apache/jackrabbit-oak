@@ -625,19 +625,16 @@ public class QueryImpl implements Query {
                         OrderEntry e = list.get(i);
                         OrderingImpl o = orderings[i];
                         DynamicOperandImpl op = o.getOperand();
-                        if (!(op instanceof PropertyValueImpl)) {
-                            // ordered by a function: currently not supported
-                            canSortByIndex = false;
-                            break;
-                        }
                         // we only have one selector, so no need to check that
                         // TODO support joins
-                        String pn = ((PropertyValueImpl) op).getPropertyName();
-                        if (!pn.equals(e.getPropertyName())) {
+                        String pn = op.getOrderEntryPropertyName(selectors.get(0));
+
+                        if (pn == null || !pn.equals(e.getPropertyName())) {
                             // ordered by another property
                             canSortByIndex = false;
                             break;
                         }
+
                         if (o.isDescending() != (e.getOrder() == Order.DESCENDING)) {
                             // ordered ascending versus descending
                             canSortByIndex = false;
