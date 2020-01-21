@@ -628,7 +628,8 @@ public class QueryImpl implements Query {
                         // we only have one selector, so no need to check that
                         // TODO support joins
                         String pn = op.getOrderEntryPropertyName(selectors.get(0));
-                        if (!pn.equals(e.getPropertyName())) {
+
+                        if (pn == null || !pn.equals(e.getPropertyName())) {
                             // ordered by another property
                             canSortByIndex = false;
                             break;

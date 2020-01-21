@@ -151,14 +151,5 @@ public class LowerCaseImpl extends DynamicOperandImpl {
         return null;
     }
 
-    @Override
-    public String getOrderEntryPropertyName(SelectorImpl s) {
-        String fn = getFunction(s);
-        if (fn != null) {
-            return  QueryConstants.FUNCTION_RESTRICTION_PREFIX + fn;
-        }
-        return null;
-    }
-
 
 }
