@@ -22,19 +22,19 @@ import java.util.UUID;
 
 public final class AzureBlobMetadata {
 
-    private static final String METADATA_TYPE = "type";
+    static final String METADATA_TYPE = "type";
 
-    private static final String METADATA_SEGMENT_UUID = "uuid";
+    static final String METADATA_SEGMENT_UUID = "uuid";
 
-    private static final String METADATA_SEGMENT_POSITION = "position";
+    static final String METADATA_SEGMENT_POSITION = "position";
 
-    private static final String METADATA_SEGMENT_GENERATION = "generation";
+    static final String METADATA_SEGMENT_GENERATION = "generation";
 
-    private static final String METADATA_SEGMENT_FULL_GENERATION = "fullGeneration";
+    static final String METADATA_SEGMENT_FULL_GENERATION = "fullGeneration";
 
-    private static final String METADATA_SEGMENT_COMPACTED = "compacted";
+    static final String METADATA_SEGMENT_COMPACTED = "compacted";
 
-    private static final String TYPE_SEGMENT = "segment";
+    static final String TYPE_SEGMENT = "segment";
 
     public static HashMap<String, String> toSegmentMetadata(AzureSegmentArchiveEntry indexEntry) {
         HashMap<String, String> map = new HashMap<>();
@@ -48,18 +48,23 @@ public final class AzureBlobMetadata {
     }
 
     public static AzureSegmentArchiveEntry toIndexEntry(Map<String, String> metadata, int length) {
-        UUID uuid = UUID.fromString(metadata.get(METADATA_SEGMENT_UUID));
+        Map<String, String> caseInsensitiveMetadata = CaseInsensitiveMapAccess.convert(metadata);
+
+
+        UUID uuid = UUID.fromString(caseInsensitiveMetadata.get(METADATA_SEGMENT_UUID));
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
-        int position = Integer.parseInt(metadata.get(METADATA_SEGMENT_POSITION));
-        int generation = Integer.parseInt(metadata.get(METADATA_SEGMENT_GENERATION));
-        int fullGeneration = Integer.parseInt(metadata.get(METADATA_SEGMENT_FULL_GENERATION));
-        boolean compacted = Boolean.parseBoolean(metadata.get(METADATA_SEGMENT_COMPACTED));
+        int position = Integer.parseInt(caseInsensitiveMetadata.get(METADATA_SEGMENT_POSITION));
+        int generation = Integer.parseInt(caseInsensitiveMetadata.get(METADATA_SEGMENT_GENERATION));
+        int fullGeneration = Integer.parseInt(caseInsensitiveMetadata.get(METADATA_SEGMENT_FULL_GENERATION));
+        boolean compacted = Boolean.parseBoolean(caseInsensitiveMetadata.get(METADATA_SEGMENT_COMPACTED));
         return new AzureSegmentArchiveEntry(msb, lsb, position, length, generation, fullGeneration, compacted);
     }
 
     public static boolean isSegment(Map<String, String> metadata) {
-        return metadata != null && TYPE_SEGMENT.equals(metadata.get(METADATA_TYPE));
+        Map<String, String> caseInsensitiveMetadata = CaseInsensitiveMapAccess.convert(metadata);
+
+        return metadata != null && TYPE_SEGMENT.equals(caseInsensitiveMetadata.get(METADATA_TYPE));
     }
 
 }
