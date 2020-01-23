@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
@@ -579,12 +580,24 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
     private IndexPlan getIndexPlan(Filter filter, OakSolrConfiguration configuration, LMSEstimator estimator,
                                    List<OrderEntry> sortOrder, String path) {
         if (getMatchingFilterRestrictions(filter, configuration) > 0) {
+
+            // we can't order by functions
+            // so remove those entries from the plan's sort order
+            ArrayList<OrderEntry> sortOrder2 = new ArrayList<>();
+            if (sortOrder != null) {
+                for (OrderEntry e : sortOrder) {
+                    if (!e.getPropertyName().startsWith(FieldNames.FUNCTION_PREFIX)) {
+                        sortOrder2.add(e);
+                    }
+                }
+            }
+
             IndexPlan indexPlan = planBuilder(filter)
-                .setEstimatedEntryCount(estimator.estimate(filter))
-                .setSortOrder(sortOrder)
-                .setPlanName(path)
-                .setPathPrefix(getPathPrefix(path))
-                .build();
+                    .setEstimatedEntryCount(estimator.estimate(filter))
+                    .setSortOrder(sortOrder2)
+                    .setPlanName(path)
+                    .setPathPrefix(getPathPrefix(path))
+                    .build();
             log.debug("index plan {}", indexPlan);
             return indexPlan;
         } else {
