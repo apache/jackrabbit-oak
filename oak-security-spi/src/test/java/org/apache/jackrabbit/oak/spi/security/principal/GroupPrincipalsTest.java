@@ -16,19 +16,25 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.junit.Test;
+
+import java.security.Principal;
+import java.security.acl.Group;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.Set;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-
-import java.security.Principal;
-import java.util.Collections;
-import java.util.Enumeration;
-
-import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.junit.Test;
+import static org.mockito.Mockito.when;
 
 public class GroupPrincipalsTest {
 
@@ -37,11 +43,16 @@ public class GroupPrincipalsTest {
         Principal p0 = new PrincipalImpl("test");
         assertFalse(GroupPrincipals.isGroup(p0));
 
-        GroupPrincipal g = new GroupPrincipal() {
+        Group g = new Group() {
 
             @Override
             public String getName() {
                 return "testG";
+            }
+
+            @Override
+            public boolean removeMember(Principal user) {
+                return false;
             }
 
             @Override
@@ -53,9 +64,72 @@ public class GroupPrincipalsTest {
             public boolean isMember(Principal member) {
                 return false;
             }
+
+            @Override
+            public boolean addMember(Principal user) {
+                return false;
+            }
         };
 
         assertTrue(GroupPrincipals.isGroup(g));
+        assertTrue(GroupPrincipals.isGroup(new GroupPrincipalWrapper(g)));
+    }
+
+    @Test
+    public void testTransformGroupSet() {
+        Group g = new Group() {
+
+            @Override
+            public String getName() {
+                return "testG";
+            }
+
+            @Override
+            public boolean removeMember(Principal user) {
+                return false;
+            }
+
+            @Override
+            public Enumeration<? extends Principal> members() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public boolean isMember(Principal member) {
+                return false;
+            }
+
+            @Override
+            public boolean addMember(Principal user) {
+                return false;
+            }
+        };
+
+        Set<Principal> t = GroupPrincipals.transform(ImmutableSet.of(g));
+        assertEquals(1, t.size());
+        Principal p = t.iterator().next();
+        assertEquals(p.getName(), g.getName());
+    }
+
+    @Test
+    public void testTransformEnumeration() {
+        Group g = when(mock(Group.class).getName()).thenReturn("g").getMock();
+        Set<Principal> set = ImmutableSet.of(g, mock(Principal.class), mock(GroupPrincipal.class));
+        Enumeration<? extends Principal> e = GroupPrincipals.transform(Collections.enumeration(set));
+
+        Set<Principal> t = Sets.newHashSet(Iterators.forEnumeration(e));
+        assertEquals(set.size(), t.size());
+        for (Principal p : t) {
+            assertFalse(p instanceof Group);
+        }
+    }
+
+    @Test
+    public void testTransformEmptyEnumeration() {
+        Enumeration members = Collections.emptyEnumeration();
+
+        Enumeration<Principal> t = GroupPrincipals.transform(members);
+        assertFalse(t.hasMoreElements());
     }
 
     @Test
@@ -72,6 +146,14 @@ public class GroupPrincipalsTest {
     }
 
     @Test
+    public void testMembersOfGroup() {
+        Group g = mock(Group.class);
+
+        GroupPrincipals.members(g);
+        verify(g, times(1)).members();
+    }
+
+    @Test
     public void testIsMemberOfNonGroup() {
         assertFalse(GroupPrincipals.isMember(mock(Principal.class), mock(Principal.class)));
     }
@@ -83,5 +165,14 @@ public class GroupPrincipalsTest {
 
         GroupPrincipals.isMember(gp, p);
         verify(gp, times(1)).isMember(p);
+    }
+
+    @Test
+    public void testIsMemberOfGroup() {
+        Group g = mock(Group.class);
+        Principal p = mock(Principal.class);
+
+        GroupPrincipals.isMember(g, p);
+        verify(g, times(1)).isMember(p);
     }
 }

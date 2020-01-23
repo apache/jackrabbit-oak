@@ -59,6 +59,12 @@ public class PrincipalProviderTest {
     }
 
     @Test
+    public void testGetGroupMembership() {
+        Principal p = mock(Principal.class);
+        assertTrue(pp.getGroupMembership(p).isEmpty());
+    }
+
+    @Test
     public void testGetMembershipPrincipals() {
         assertTrue(pp.getMembershipPrincipals(mock(Principal.class)).isEmpty());
     }

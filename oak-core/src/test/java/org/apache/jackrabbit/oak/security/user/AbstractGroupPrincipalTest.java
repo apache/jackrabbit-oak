@@ -180,6 +180,16 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         assertFalse(everyoneAgp.isMember(member));
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testAddMember() throws Exception {
+        new AGP().addMember(new PrincipalImpl("p"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRemoveMember() throws Exception {
+        new AGP().removeMember(new PrincipalImpl("p"));
+    }
+
     private class AGP extends AbstractGroupPrincipal {
 
         private Authorizable member;
