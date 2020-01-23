@@ -63,6 +63,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.AclGroupDeprecation;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -298,11 +299,31 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      * identities that are <strong>not</strong> represented as authorizable group
      * in the repository's user management.
      */
-    private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
+    private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal, java.security.acl.Group {
 
         private ExternalGroupPrincipal(String principalName) {
             super(principalName);
 
+        }
+
+        @Override
+        public boolean addMember(Principal user) {
+            AclGroupDeprecation.handleCall();
+            if (isMember(user)) {
+                return false;
+            } else {
+                throw new UnsupportedOperationException("Adding members to external group principals is not supported.");
+            }
+        }
+
+        @Override
+        public boolean removeMember(Principal user) {
+            AclGroupDeprecation.handleCall();
+            if (!isMember(user)) {
+                return false;
+            } else {
+                throw new UnsupportedOperationException("Removing members from external group principals is not supported.");
+            }
         }
 
         @Override

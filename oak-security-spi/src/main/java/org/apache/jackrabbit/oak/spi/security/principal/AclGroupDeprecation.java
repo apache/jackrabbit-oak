@@ -15,20 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.commons;
+package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GuavaDeprecation {
+public class AclGroupDeprecation {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GuavaDeprecation.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AclGroupDeprecation.class);
 
-    private static final String DEFAULT = "info";
+    private static final String DEFAULT = "warn";
 
-    private static final String TLOGLEVEL = System.getProperty(GuavaDeprecation.class + ".LOGLEVEL", DEFAULT);
+    private static final String TLOGLEVEL = System.getProperty("org.apache.jackrabbit.oak.spi.tools.AclGroupDeprecation.LOGLEVEL",
+            DEFAULT);
 
     private static String LOGLEVEL;
 
@@ -50,31 +51,31 @@ public class GuavaDeprecation {
         LOGLEVEL = t;
     }
 
-    private GuavaDeprecation() {
+    private AclGroupDeprecation() {
     }
 
-    public static void handleCall(String ticket) throws UnsupportedOperationException {
-        String message = "use of deprecated Guava-related API - this method is going to be removed in future Oak releases - see %s for details";
+    public static void handleCall() throws UnsupportedOperationException {
+        String message = "use of deprecated java.acl.Group-related API - this method is going to be removed in future Oak releases - see OAK-7358 for details";
 
         switch (LOGLEVEL) {
             case "error":
                 if (LOG.isErrorEnabled()) {
-                    LOG.error(String.format(message, ticket), new Exception("call stack"));
+                    LOG.error(message, new Exception("call stack"));
                 }
                 break;
             case "warn":
                 if (LOG.isWarnEnabled()) {
-                    LOG.warn(String.format(message, ticket), new Exception("call stack"));
+                    LOG.warn(message, new Exception("call stack"));
                 }
                 break;
             case "info":
                 if (LOG.isInfoEnabled()) {
-                    LOG.info(String.format(message, ticket), new Exception("call stack"));
+                    LOG.info(message, new Exception("call stack"));
                 }
                 break;
             case "debug":
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format(message, ticket), new Exception("call stack"));
+                    LOG.debug(message, new Exception("call stack"));
                 }
                 break;
         }
