@@ -5,7 +5,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class CaseInsensitiveMapAccessTest {
 
