@@ -153,6 +153,8 @@ class UserAuthentication implements Authentication, UserConstants {
             principal = user.getPrincipal();
         } catch (RepositoryException e) {
             throw new LoginException(e.getMessage());
+        } finally {
+            removeNewPwAttribute(credentials);
         }
         return success;
     }
@@ -213,6 +215,12 @@ class UserAuthentication implements Authentication, UserConstants {
             log.error("Failed to change password for user " + loginId, e.getMessage());
         }
         return false;
+    }
+
+    private static void removeNewPwAttribute(@NotNull Credentials credentials) {
+        if (credentials instanceof SimpleCredentials) {
+            ((SimpleCredentials) credentials).removeAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD);
+        }
     }
 
     private boolean impersonate(AuthInfo info, User user) {
