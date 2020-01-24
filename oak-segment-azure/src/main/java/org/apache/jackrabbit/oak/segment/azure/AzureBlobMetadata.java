@@ -20,6 +20,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Provides access to the blob metadata.
+ * <p>
+ * In azure blob metadata keys are case-insensitive. A bug in the tool azcopy v10 make each key to start with
+ * an uppercase letter.  To avoid future bugs we should be tolerant in what we read.
+ * <p>
+ * Azure Blobs metadata can not store multiple entries with the same key where only the case differs. Therefore it is
+ * safe to use the same concept in java, see {@link CaseInsensitiveMapAccess}
+ */
 public final class AzureBlobMetadata {
 
     static final String METADATA_TYPE = "type";
