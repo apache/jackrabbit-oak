@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.10.7
+Release Notes -- Apache Jackrabbit Oak -- Version 1.10.8
 
 Introduction
 ------------
@@ -7,44 +7,21 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.10.7 is a patch release that contains fixes and
+Jackrabbit Oak 1.10.8 is a patch release that contains fixes and
 improvements over Oak 1.10. Jackrabbit Oak 1.10.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.10.7
+Changes in Oak 1.10.8
 ---------------------
-
-Technical task
-
-    [OAK-8679] - RDB*Store: update postgresql jdbc driver reference to 42.2.8
-    [OAK-8764] - RDBDocumentStore: avoid potential dangerous use of addAll(entrySet) in logging code
-    [OAK-8775] - update Tomcat JDBC dependency to 8.5.47
-
 
 Bug
 
-    [OAK-8691] - Incorrect base state from node builder
-    [OAK-8722] - dead locking related code in NodeDelegate.updateMixins
-
-
-Improvement
-
-    [OAK-8648] - Log reason why NodeDocumentSweeper.sweep is called
-    [OAK-8680] - logging config missing in oak-commons tests
-    [OAK-8694] - state time of start of LeaseFailure in exception/log entry
-
-
-Task
-
-    [OAK-8649] - Update to jacoco 0.8.5 (version compatible with Java 14)
-    [OAK-8651] - Update mockito dependency to 2.28.2
-    [OAK-8652] - Update jacoco dependency to 0.8.4
-    [OAK-8712] - oak-blob-* and oak-segment-azure need to declare nullability annotations dependency
-    [OAK-8742] - Update trunk and 1.10 to Jackrabbit 2.18.4
-    [OAK-8774] - oak-benchmarks: update commons-compress dependency to 1.19
+    [OAK-8780] - Remove the synchronized block on the FSBackend
+    [OAK-8781] - Add debug logs before and after cache purge to get the uploadCache size info
+    [OAK-8870] - UserAuthentication.authenticate should remove pw attribute
 
 
 
