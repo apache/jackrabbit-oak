@@ -20,28 +20,25 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtur
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.isS3Configured;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.HttpURLConnection;
+import java.io.StringWriter;
 import java.net.URI;
-import java.net.URL;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
 import javax.jcr.RepositoryException;
-import javax.net.ssl.HttpsURLConnection;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
@@ -55,13 +52,18 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.SSEAlgorithm;
 import com.google.common.collect.Lists;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.time.DateUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.FileEntity;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.util.EntityUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -163,6 +165,37 @@ public class TestS3Ds extends AbstractDataStoreTest {
     }
 
     @Test
+    public void testGetDownloadURI() throws IOException, RepositoryException {
+        DataRecord record = null;
+        String actual =null;
+        DataStore ds = createDataStore();
+        byte[] data = new byte[256];
+        randomGen.nextBytes(data);
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(new ByteArrayInputStream(data), writer, "UTF-8");
+        String old = writer.toString();
+        record = doSynchronousAddRecord(ds, new ByteArrayInputStream(data));
+        URI uri = ((DataRecordAccessProvider) ds).getDownloadURI(record.getIdentifier(),
+                                 DataRecordDownloadOptions.DEFAULT);
+        Assert.assertNotNull("uri is null", uri);
+        HttpGet getreq = new HttpGet(uri);
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+        CloseableHttpResponse res = httpclient.execute(getreq);
+        Assert.assertEquals(200, res.getStatusLine().getStatusCode());
+        HttpEntity entity = res.getEntity();
+        if (entity != null) {
+            actual = EntityUtils.toString(entity,StandardCharsets.UTF_8);
+        }
+        System.out.println(actual);
+        Assert.assertEquals(actual, old);
+
+        DataRecord getrec = ds.getRecord(record.getIdentifier());
+        Assert.assertNotNull(getrec);
+        Assert.assertEquals(data.length, getrec.getLength());
+        assertRecord(data, getrec);
+    }
+
+    @Test
     public void testDataMigration() {
         try {
             String encryption = props.getProperty(S3Constants.S3_ENCRYPTION);
@@ -200,10 +233,9 @@ public class TestS3Ds extends AbstractDataStoreTest {
         }
     }
 
-
     @Test
-    public void testPresigned() throws IOException, RepositoryException, IllegalArgumentException, DataRecordUploadException {
-        ConfigurableDataRecordAccessProvider ds = (ConfigurableDataRecordAccessProvider) createDataStore();
+    public void testInitiateCompleteUpload() throws IOException, RepositoryException, IllegalArgumentException, DataRecordUploadException {
+        S3DataStore ds = (S3DataStore) createDataStore();
         ds.setDirectUploadURIExpirySeconds(60*5);
         ds.setDirectDownloadURIExpirySeconds(60*5);
         ds.setDirectDownloadURICacheSize(60*5);
@@ -212,18 +244,26 @@ public class TestS3Ds extends AbstractDataStoreTest {
         assertNotNull(uploadContext);
 
         String uploadToken = uploadContext.getUploadToken();
+        File fileToUpload = createFile();
+        byte[] data = fileToByteArray(fileToUpload);
 
-        int res =  httpPut(uploadContext);
-        Assert.assertEquals(200, res);
+        CloseableHttpResponse response =  httpPut(uploadContext, fileToUpload);
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
         DataRecord uploadedRecord = ds.completeDataRecordUpload(uploadToken);
         assertNotNull(uploadedRecord);
+        Assert.assertEquals(data.length, uploadedRecord.getLength());
+        assertRecord(data, uploadedRecord);
+
+        DataRecord getrec = ds.getRecord(uploadedRecord.getIdentifier());
+        Assert.assertNotNull(getrec);
+        Assert.assertEquals(data.length, getrec.getLength());
+        assertRecord(data, getrec);
     }
 
-    public int httpPut(@Nullable DataRecordUpload uploadContext) throws IOException  {
+    public CloseableHttpResponse httpPut(@Nullable DataRecordUpload uploadContext, File fileToUpload) throws IOException  {
         // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
         assertNotNull(uploadContext);
-        
-        File fileToUpload = createFile();
+
         URI puturl = uploadContext.getUploadURIs().iterator().next();
         HttpPut putreq = new HttpPut(puturl);
 
@@ -238,17 +278,19 @@ public class TestS3Ds extends AbstractDataStoreTest {
                  putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID,
                          keyId));
              }
-        } else {
-            putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION,
-                    SSEAlgorithm.AES256.getAlgorithm()));
         }
 
-        // Explicitly specifying your KMS customer master key id
-        putreq.setEntity(new FileEntity(fileToUpload));
+        InputStream is = new FileInputStream(fileToUpload);
+        putreq.setEntity(new InputStreamEntity(is , fileToUpload.length()));
         CloseableHttpClient httpclient = HttpClients.createDefault();
         CloseableHttpResponse response  = httpclient.execute(putreq);
-        return response.getStatusLine().getStatusCode();
+        return response;
     }
+
+    protected DataRecord doSynchronousAddRecord(DataStore ds, InputStream in) throws DataStoreException {
+        return ((S3DataStore)ds).addRecord(in, new BlobOptions().setUpload(BlobOptions.UploadType.SYNCHRONOUS));
+    }
+
 
     @Override
     @After
@@ -289,8 +331,14 @@ public class TestS3Ds extends AbstractDataStoreTest {
         ((S3DataStore)ds).deleteRecord(identifier);
     }
 
+    public static InputStream randomStream(int seed, long size) {
+        Random r = new Random(seed);
+        byte[] data = new byte[(int) size];
+        r.nextBytes(data);
+        return new ByteArrayInputStream(data);
+    }
+
     protected File createFile() {
-        long count=0;
         File file = null;
         file = new File("bigfile.txt");
         InputStream testStream = randomStream(0, 256);
@@ -300,6 +348,19 @@ public class TestS3Ds extends AbstractDataStoreTest {
             e.printStackTrace();
         }
         return file;
+    }
+
+    protected byte[] fileToByteArray(File file) throws FileNotFoundException {
+        byte[] bytesArray = new byte[(int) file.length()];
+
+        FileInputStream fis = new FileInputStream(file);
+        try {
+            fis.read(bytesArray);
+            fis.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return bytesArray;
     }
     /**----------Not supported-----------**/
     @Override

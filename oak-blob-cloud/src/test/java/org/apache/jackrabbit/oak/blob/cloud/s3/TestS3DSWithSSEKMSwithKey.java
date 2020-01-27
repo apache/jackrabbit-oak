@@ -1,20 +1,8 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-
-import java.io.ByteArrayInputStream;
-
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.AWSKMSClientBuilder;
-import com.amazonaws.services.kms.model.CreateKeyRequest;
-import com.amazonaws.services.kms.model.CreateKeyResult;
-import static org.junit.Assert.fail;
 
 /**
  * Test S3DataStore operation with SSE_S3 encryption.

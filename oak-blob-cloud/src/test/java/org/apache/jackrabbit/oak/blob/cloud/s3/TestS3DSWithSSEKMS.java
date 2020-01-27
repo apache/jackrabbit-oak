@@ -1,17 +1,10 @@
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-
-import java.io.ByteArrayInputStream;
-
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
-import static org.junit.Assert.fail;
 
 /**
  * Test S3DataStore operation with SSE_S3 encryption.

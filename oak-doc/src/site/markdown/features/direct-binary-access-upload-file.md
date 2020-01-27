@@ -57,7 +57,6 @@ int httpPut(@Nullable DataRecordUpload uploadContext) throws IOException  {
             SSEAlgorithm.AES256.getAlgorithm()));
     }
 
-    // Explicitly specifying your KMS customer master key id
     putreq.setEntity(new FileEntity(fileToUpload));
     CloseableHttpClient httpclient = HttpClients.createDefault();
     CloseableHttpResponse response  = httpclient.execute(putreq);
