@@ -38,8 +38,7 @@ public class PurgeOldVersionUtils {
     public static final String OAK_INDEX = "oak:index";
 
     public static long getMillisFromString(String strDate) {
-        long millis = ISO8601.parse(strDate).getTimeInMillis();
-        return millis;
+        return ISO8601.parse(strDate).getTimeInMillis();
     }
 
     /**
@@ -48,10 +47,11 @@ public class PurgeOldVersionUtils {
      * @return nodeBuilder object of node at @param{path}
      */
     public static NodeBuilder getNode(@NotNull NodeBuilder nodeBuilder, @NotNull String path) {
+        NodeBuilder resultNodeBuilder = nodeBuilder;
         for (String name : PathUtils.elements(checkNotNull(path))) {
-            nodeBuilder = nodeBuilder.getChildNode(checkNotNull(name));
+            resultNodeBuilder = resultNodeBuilder.getChildNode(checkNotNull(name));
         }
-        return nodeBuilder;
+        return resultNodeBuilder;
     }
 
     /**

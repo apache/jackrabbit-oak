@@ -49,7 +49,7 @@ import java.util.Set;
 public class PurgeOldIndexVersion {
     private static final Logger LOG = LoggerFactory.getLogger(PurgeOldIndexVersion.class);
 
-    public void execute(Options opts, long threshold, List<String> indexPaths) throws Exception {
+    public void execute(Options opts, long purgeThresholdMillis, List<String> indexPaths) throws Exception {
         boolean isReadWriteRepository = opts.getCommonOpts().isReadWrite();
         if (!isReadWriteRepository) {
             LOG.info("Repository connected in read-only mode. Use '--read-write' for write operations");
@@ -66,7 +66,7 @@ public class PurgeOldIndexVersion {
                 NodeState indexDefParentNode = NodeStateUtils.getNode(nodeStore.getRoot(),
                         parentPath);
                 List<IndexVersionOperation> toDeleteIndexNameObjectList =
-                        IndexVersionOperation.applyOperation(indexDefParentNode, indexNameObjectList, threshold);
+                        IndexVersionOperation.generateIndexVersionOperationList(indexDefParentNode, indexNameObjectList, purgeThresholdMillis);
                 if (isReadWriteRepository && !toDeleteIndexNameObjectList.isEmpty()) {
                     purgeOldIndexVersion(nodeStore, toDeleteIndexNameObjectList);
                 } else {
@@ -80,7 +80,7 @@ public class PurgeOldIndexVersion {
     /**
      * @param userIndexPaths indexpaths provided by user
      * @return a list of Indexpaths having baseIndexpaths or path till oak:index
-     * @throws RuntimeException if the paths provided are not till oak:index or till index
+     * @throws IllegalArgumentException if the paths provided are not till oak:index or till index
      */
     private List<String> sanitiseUserIndexPaths(List<String> userIndexPaths) {
         List<String> sanitisedUserIndexPaths = new ArrayList<>();
@@ -90,7 +90,7 @@ public class PurgeOldIndexVersion {
             } else if (PathUtils.getName(PathUtils.getParentPath(userIndexPath)).equals(PurgeOldVersionUtils.OAK_INDEX)) {
                 sanitisedUserIndexPaths.add(IndexName.parse(userIndexPath).getBaseName());
             } else {
-                throw new RuntimeException(userIndexPath + " indexpath is not valid");
+                throw new IllegalArgumentException(userIndexPath + " indexpath is not valid");
             }
         }
         return sanitisedUserIndexPaths;

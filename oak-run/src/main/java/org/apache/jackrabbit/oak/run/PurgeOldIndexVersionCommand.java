@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 public class PurgeOldIndexVersionCommand implements Command {
     private long threshold;
     private List<String> indexPaths;
-    private long DEFAULT_THRESHOLD = TimeUnit.DAYS.toMillis(5); // 5 days in millis
+    private long DEFAULT_PURGE_THRESHOLD = TimeUnit.DAYS.toMillis(5); // 5 days in millis
     private final static String DEFAULT_INDEX_PATH = "/oak:index";
 
     @Override
@@ -42,7 +42,7 @@ public class PurgeOldIndexVersionCommand implements Command {
     private Options parseCommandLineParams(String... args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Long> thresholdOption = parser.accepts("threshold")
-                .withOptionalArg().ofType(Long.class).defaultsTo(DEFAULT_THRESHOLD);
+                .withOptionalArg().ofType(Long.class).defaultsTo(DEFAULT_PURGE_THRESHOLD);
         OptionSpec<String> indexPathsOption = parser.accepts("index-paths", "Comma separated list of index paths for which the " +
                 "selected operations need to be performed")
                 .withOptionalArg().ofType(String.class).withValuesSeparatedBy(",").defaultsTo(DEFAULT_INDEX_PATH);
