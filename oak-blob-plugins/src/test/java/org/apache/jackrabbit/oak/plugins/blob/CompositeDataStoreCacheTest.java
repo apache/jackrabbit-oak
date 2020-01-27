@@ -381,7 +381,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
         assertEquals(0, cache.getStagingCacheStats().getLoadSuccessCount());
 
-        assertCacheStats(cache.getCacheStats(), 1, 4 * 1024, 0, 3);
+        assertCacheStats(cache.getCacheStats(), 1, 4 * 1024, 0, 2);
         assertEquals(1, cache.getCacheStats().getLoadCount());
         assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
 
@@ -414,7 +414,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
         assertEquals(0, cache.getStagingCacheStats().getLoadSuccessCount());
 
-        assertCacheStats(cache.getCacheStats(), 0, 0, 0, 3);
+        assertCacheStats(cache.getCacheStats(), 0, 0, 0, 2);
         assertEquals(1, cache.getCacheStats().getLoadCount());
         assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
 
@@ -468,7 +468,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
         assertEquals(0, cache.getStagingCacheStats().getLoadSuccessCount());
 
-        assertCacheStats(cache.getCacheStats(), 2, 8 * 1024, 0, 4);
+        assertCacheStats(cache.getCacheStats(), 2, 8 * 1024, 0, 2);
         assertEquals(2, cache.getCacheStats().getLoadCount());
         assertEquals(2, cache.getCacheStats().getLoadSuccessCount());
 
@@ -533,7 +533,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         assertEquals(2, cache.getStagingCacheStats().getLoadCount());
         assertEquals(1, cache.getStagingCacheStats().getLoadSuccessCount());
 
-        assertCacheStats(cache.getCacheStats(), 2, 8 * 1024, 0, 2);
+        assertCacheStats(cache.getCacheStats(), 2, 8 * 1024, 0, 1);
         assertEquals(1, cache.getCacheStats().getLoadCount());
         assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
 
