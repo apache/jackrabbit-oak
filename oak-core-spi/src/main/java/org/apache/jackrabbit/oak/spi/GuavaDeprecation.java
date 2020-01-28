@@ -27,7 +27,7 @@ public class GuavaDeprecation {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuavaDeprecation.class);
 
-    private static final String DEFAULT = "info";
+    private static final String DEFAULT = "warn";
 
     private static final String TLOGLEVEL = System.getProperty(GuavaDeprecation.class + ".LOGLEVEL", DEFAULT);
 
