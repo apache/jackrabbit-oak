@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -23,7 +24,6 @@ import java.util.regex.PatternSyntaxException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +46,7 @@ public class StringConstraint implements Predicate<Value> {
     }
 
     @Override
-    public boolean apply(Value value) {
+    public boolean test(Value value) {
         if (value == null) {
             return false;
         }

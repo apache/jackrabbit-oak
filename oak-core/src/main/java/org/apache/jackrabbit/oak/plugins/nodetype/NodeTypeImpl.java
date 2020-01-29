@@ -665,7 +665,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
         // Any of the constraints must be met
         for (String constraint : constraints) {
-            if (Constraints.valueConstraint(value.getType(), constraint).apply(value)) {
+            if (Constraints.valueConstraint(value.getType(), constraint).test(value)) {
                 return true;
             }
         }

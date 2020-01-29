@@ -624,7 +624,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         for (ChildNodeEntry entry : versionHistory.getChildNodeEntries()) {
             String name = entry.getName();
             NodeState node = entry.getNodeState();
-            if (!JCR_ROOTVERSION.equals(name) && isVersion.apply(node)) {
+            if (!JCR_ROOTVERSION.equals(name) && isVersion.test(node)) {
                 return false; // a checked-in version
             }
         }
