@@ -230,14 +230,14 @@ public class BlobStoreStats extends AnnotatedStandardMBean implements BlobStoreS
         this.uploadHisto = sp.getHistogram(BLOB_UPLOADS, StatsOptions.DEFAULT);
         this.uploadCount = sp.getMeter(BLOB_UPLOAD_COUNT, StatsOptions.DEFAULT);
         this.uploadErrorCount = sp.getMeter(BLOB_UPLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
-        this.uploadSizeSeries = sp.getMeter(BLOB_UPLOAD_SIZE, StatsOptions.TIME_SERIES_ONLY);
-        this.uploadTimeSeries = sp.getMeter(BLOB_UPLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.uploadSizeSeries = sp.getMeter(BLOB_UPLOAD_SIZE, StatsOptions.DEFAULT);
+        this.uploadTimeSeries = sp.getMeter(BLOB_UPLOAD_TIME, StatsOptions.DEFAULT);
         this.uploadRateSeries = getAvgTimeSeries(BLOB_UPLOAD_SIZE, BLOB_UPLOAD_TIME);
 
         this.downloadHisto = sp.getHistogram(BLOB_DOWNLOADS, StatsOptions.DEFAULT);
         this.downloadCount = sp.getMeter(BLOB_DOWNLOAD_COUNT, StatsOptions.DEFAULT);
-        this.downloadSizeSeries = sp.getMeter(BLOB_DOWNLOAD_SIZE, StatsOptions.TIME_SERIES_ONLY);
-        this.downloadTimeSeries = sp.getMeter(BLOB_DOWNLOAD_TIME, StatsOptions.TIME_SERIES_ONLY);
+        this.downloadSizeSeries = sp.getMeter(BLOB_DOWNLOAD_SIZE, StatsOptions.DEFAULT);
+        this.downloadTimeSeries = sp.getMeter(BLOB_DOWNLOAD_TIME, StatsOptions.DEFAULT);
         this.downloadRateSeries = getAvgTimeSeries(BLOB_DOWNLOAD_SIZE, BLOB_DOWNLOAD_TIME);
         this.downloadErrorCount = sp.getMeter(BLOB_DOWNLOAD_ERROR_COUNT, StatsOptions.DEFAULT);
 
