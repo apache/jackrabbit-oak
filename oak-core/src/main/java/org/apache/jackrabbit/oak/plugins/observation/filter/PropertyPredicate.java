@@ -21,7 +21,8 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -46,8 +47,8 @@ public class PropertyPredicate implements Predicate<NodeState> {
     }
 
     @Override
-    public boolean apply(NodeState node) {
+    public boolean test(NodeState node) {
         PropertyState property = node.getProperty(name);
-        return property != null && propertyPredicate.apply(property);
+        return property != null && propertyPredicate.test(property);
     }
 }

@@ -22,7 +22,8 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -45,7 +46,7 @@ public class UuidPredicate implements Predicate<NodeState> {
     }
 
     @Override
-    public boolean apply(NodeState node) {
+    public boolean test(NodeState node) {
         if (uuids.length == 0) {
             return false;
         }

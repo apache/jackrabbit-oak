@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
-import javax.jcr.Value;
+import java.util.function.Predicate;
 
-import com.google.common.base.Predicate;
+import javax.jcr.Value;
 
 public class ReferenceConstraint implements Predicate<Value> {
 
@@ -29,7 +29,7 @@ public class ReferenceConstraint implements Predicate<Value> {
     }
 
     @Override
-    public boolean apply(Value value) {
+    public boolean test(Value value) {
         // TODO implement ReferenceConstraint
         return true;
     }
