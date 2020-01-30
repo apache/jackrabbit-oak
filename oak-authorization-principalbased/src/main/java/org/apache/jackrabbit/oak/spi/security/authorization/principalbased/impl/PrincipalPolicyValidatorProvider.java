@@ -185,7 +185,7 @@ class PrincipalPolicyValidatorProvider extends ValidatorProvider implements Cons
             if (!NT_REP_PRINCIPAL_POLICY.equals(NodeStateUtils.getPrimaryTypeName(nodeState))) {
                 throw accessControlViolation(32, "Reserved node name 'rep:principalPolicy' must only be used for nodes of type 'rep:PrincipalPolicy'.");
             }
-            if (!isMixPrincipalBased.test(parent)) {
+            if (!isMixPrincipalBased.apply(parent)) {
                 throw accessControlViolation(33, "Parent node not of mixin type 'rep:PrincipalBasedMixin'.");
             }
         }

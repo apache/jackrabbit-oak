@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.Arrays;
 import java.util.Set;
-import java.util.function.Predicate;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.Tree;
@@ -156,37 +156,48 @@ public class TypePredicate implements Predicate<NodeState> {
         }
     }
 
-    public boolean test(String primary, Iterable<String> mixins) {
+    public boolean apply(String primary, Set<String> mixins) {
         init();
         if (primaryTypes != null && primaryTypes.contains(primary)) {
             return true;
-        } else if (mixinTypes != null && any(mixins, in(mixinTypes))) {
-            return true;
-        } else {
-            return false;
         }
+        if (mixinTypes != null && any(mixins, in(mixinTypes))) {
+            return true;
+        }
+        return false;
     }
 
-    public boolean test(@Nullable Tree input) {
+    public boolean apply(@Nullable Tree input) {
         if (input != null) {
             init();
-            return test(TreeUtil.getPrimaryTypeName(input), TreeUtil.getNames(input, JCR_MIXINTYPES));
+            if (primaryTypes != null
+                    && primaryTypes.contains(TreeUtil.getPrimaryTypeName(input))) {
+                return true;
+            }
+            if (mixinTypes != null
+                    && any(TreeUtil.getNames(input, JCR_MIXINTYPES), in(mixinTypes))) {
+                return true;
+            }
         }
-        else {
-            return false;
-        }
+        return false;
     }
 
     //---------------------------------------------------------< Predicate >--
 
     @Override
-    public boolean test(@Nullable NodeState input) {
+    public boolean apply(@Nullable NodeState input) {
         if (input != null) {
             init();
-            return test(input.getName(JCR_PRIMARYTYPE), input.getNames(JCR_MIXINTYPES));
-        } else {
-            return false;
+            if (primaryTypes != null
+                    && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
+                return true;
+            }
+            if (mixinTypes != null
+                    && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
+                return true;
+            }
         }
+        return false;
     }
 
     //------------------------------------------------------------< Object >--

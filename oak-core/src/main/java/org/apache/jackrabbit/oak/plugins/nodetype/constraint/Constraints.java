@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
-import java.util.function.Predicate;
-
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
+import com.google.common.base.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

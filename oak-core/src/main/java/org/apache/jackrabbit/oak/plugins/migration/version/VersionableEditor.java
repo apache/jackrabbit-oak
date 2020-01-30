@@ -122,7 +122,7 @@ public class VersionableEditor extends DefaultEditor {
         this.path = path;
 
         final VersionCopyConfiguration c = provider.config;
-        if (isVersionable.test(after)) {
+        if (isVersionable.apply(after)) {
             final String versionableUuid = getProperty(after, JCR_UUID, Type.STRING);
             if (c.isCopyVersions() && c.skipOrphanedVersionsCopy()) {
                 copyVersionHistory(after);
@@ -139,7 +139,7 @@ public class VersionableEditor extends DefaultEditor {
             } else {
                 NodeBuilder versionableBuilder = getNodeBuilder(rootBuilder, this.path);
                 removeVersionProperties(versionableBuilder, isReferenceable);
-                if (isVersionable.test(versionableBuilder.getNodeState())) {
+                if (isVersionable.apply(versionableBuilder.getNodeState())) {
                     logger.warn("Node {} is still versionable. Creating empty version history.", path);
                     createEmptyHistory(versionableBuilder);
                 }

@@ -39,12 +39,12 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -427,7 +427,7 @@ public class TypeEditor extends DefaultEditor {
         for (String constraint : constraints.getValue(STRINGS)) {
             Predicate<Value> predicate = valueConstraint(requiredType, constraint);
             for (Value v : valueFactory.createValues(property)) {
-                if (predicate.test(v)) {
+                if (predicate.apply(v)) {
                     return;
                 }
             }

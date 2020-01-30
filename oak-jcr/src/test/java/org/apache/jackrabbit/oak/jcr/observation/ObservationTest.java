@@ -57,7 +57,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
@@ -83,6 +82,7 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.version.VersionException;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -1005,7 +1005,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         builder.condition(builder.property(Selectors.PARENT, "foo",
                 new Predicate<PropertyState>() {
                     @Override
-                    public boolean test(PropertyState property) {
+                    public boolean apply(PropertyState property) {
                         return "bar".equals(property.getValue(STRING));
                     }
                 }));
@@ -1042,7 +1042,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         builder.condition(builder.property(Selectors.fromThis("b/c"), "foo",
                 new Predicate<PropertyState>() {
                     @Override
-                    public boolean test(PropertyState property) {
+                    public boolean apply(PropertyState property) {
                         return "bar".equals(property.getValue(STRING));
                     }
                 }));

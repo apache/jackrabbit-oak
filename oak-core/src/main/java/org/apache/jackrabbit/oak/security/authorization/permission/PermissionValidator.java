@@ -317,11 +317,11 @@ class PermissionValidator extends DefaultValidator {
         // doesn't reveal if a given property is expected to be never modified
         // after creation.
         NodeState parentNs = provider.getTreeProvider().asNodeState(parent);
-        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.test(parentNs)) {
+        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parentNs)) {
             return true;
         } else {
             return (JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
-                    && isCreated.test(parentNs);
+                    && isCreated.apply(parentNs);
         }
     }
 

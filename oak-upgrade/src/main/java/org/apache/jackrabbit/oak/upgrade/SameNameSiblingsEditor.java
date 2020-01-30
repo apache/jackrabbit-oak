@@ -277,9 +277,9 @@ public class SameNameSiblingsEditor extends DefaultEditor {
 
         public boolean applies(NodeState parent, String childName) {
             boolean result = true;
-            result &= parentType.test(parent);
+            result &= parentType.apply(parent);
             result &= childNameConstraint == null || childName.startsWith(this.childNameConstraint + '[');
-            result &= childType.test(parent.getChildNode(childName));
+            result &= childType.apply(parent.getChildNode(childName));
             return result;
         }
 

@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.oak.commons.UUIDUtils.generateUUID;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -34,7 +35,7 @@ public class UuidPredicateTest {
     public void emptyUuidList() {
         UuidPredicate p = new UuidPredicate(new String[] {});
         NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
-        assertFalse(p.test(tree));
+        assertFalse(p.apply(tree));
     }
 
     @Test
@@ -42,14 +43,14 @@ public class UuidPredicateTest {
         String uuid = UUIDUtils.generateUUID();
         UuidPredicate p = new UuidPredicate(new String[] {uuid});
         NodeState tree = createNodeWithUuid(uuid);
-        assertTrue(p.test(tree));
+        assertTrue(p.apply(tree));
     }
 
     @Test
     public void singleUuidMiss() {
         UuidPredicate p = new UuidPredicate(new String[] {UUIDUtils.generateUUID()});
         NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
-        assertFalse(p.test(tree));
+        assertFalse(p.apply(tree));
     }
 
     @Test
@@ -58,7 +59,7 @@ public class UuidPredicateTest {
         UuidPredicate p = new UuidPredicate(
                 new String[] {UUIDUtils.generateUUID(), UUIDUtils.generateUUID(), uuid});
         NodeState tree = createNodeWithUuid(uuid);
-        assertTrue(p.test(tree));
+        assertTrue(p.apply(tree));
     }
 
     @Test
@@ -66,7 +67,7 @@ public class UuidPredicateTest {
         UuidPredicate p = new UuidPredicate(
                 new String[] {UUIDUtils.generateUUID(), UUIDUtils.generateUUID(), UUIDUtils.generateUUID()});
         NodeState tree = createNodeWithUuid(UUIDUtils.generateUUID());
-        assertFalse(p.test(tree));
+        assertFalse(p.apply(tree));
     }
 
     private static NodeState createNodeWithUuid(String uuid) {

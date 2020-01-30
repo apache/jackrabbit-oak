@@ -357,7 +357,7 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     private void setChildOrder() {
-        if (isOrderable.test(this)) {
+        if (isOrderable.apply(this)) {
             properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
                     OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
         }
@@ -425,7 +425,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         }
 
         if (bundle.isReferenceable()
-                || isReferenceable.test(primary, mixins)) {
+                || isReferenceable.apply(primary, mixins)) {
             properties.put(JCR_UUID, PropertyStates.createProperty(
                     JCR_UUID, bundle.getId().toString()));
         }
@@ -439,7 +439,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         PropertyState frozenUuid = properties.get(JCR_FROZENUUID);
         if (frozenUuid != null
                 && frozenUuid.getType() == STRING
-                && isFrozenNode.test(this)) {
+                && isFrozenNode.apply(this)) {
             String frozenPrimary = NT_BASE;
             Set<String> frozenMixins = newHashSet();
 
@@ -452,7 +452,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                 addAll(frozenMixins, property.getValue(NAMES));
             }
 
-            if (!isReferenceable.test(frozenPrimary, frozenMixins)) {
+            if (!isReferenceable.apply(frozenPrimary, frozenMixins)) {
                 String parentFrozenUuid = parent.getString(JCR_FROZENUUID);
                 if (parentFrozenUuid != null) {
                     frozenUuid = PropertyStates.createProperty(

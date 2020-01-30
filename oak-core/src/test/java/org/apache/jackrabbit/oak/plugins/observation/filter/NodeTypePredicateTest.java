@@ -40,21 +40,21 @@ public class NodeTypePredicateTest {
     public void emptyNodeTypeList() {
         NodeState node = createNodeOfType(NT_BASE);
         TypePredicate p = new TypePredicate(node, new String[] {});
-        assertFalse(p.test(node));
+        assertFalse(p.apply(node));
     }
 
     @Test
     public void singleNodeTypeMatch() {
         NodeState node = createNodeOfType(NT_BASE);
         TypePredicate p = new TypePredicate(node, new String[] {NT_BASE});
-        assertTrue(p.test(node));
+        assertTrue(p.apply(node));
     }
 
     @Test
     public void singleNodeTypeMiss() {
         NodeState node = createNodeOfType(NT_BASE);
         TypePredicate p = new TypePredicate(node, new String[] {NT_FILE});
-        assertFalse(p.test(node));
+        assertFalse(p.apply(node));
     }
 
     @Test
@@ -62,7 +62,7 @@ public class NodeTypePredicateTest {
         NodeState node = createNodeOfType(NT_FILE);
         TypePredicate p = new TypePredicate(node,
                 new String[] { NT_FOLDER, NT_RESOURCE, NT_FILE });
-        assertTrue(p.test(node));
+        assertTrue(p.apply(node));
     }
 
     @Test
@@ -70,7 +70,7 @@ public class NodeTypePredicateTest {
         NodeState node = createNodeOfType(NT_FILE);
         TypePredicate p = new TypePredicate(node,
                 new String[] { NT_FOLDER, NT_RESOURCE, JCR_CONTENT });
-        assertFalse(p.test(node));
+        assertFalse(p.apply(node));
     }
 
     private static NodeState createNodeOfType(String ntName) {
