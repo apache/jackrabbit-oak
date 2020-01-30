@@ -107,9 +107,9 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
     @Override
     public Editor childNodeAdded(String name, NodeState after) throws CommitFailedException {
         NodeBuilder nodeBuilder = builder.getChildNode(name);
-        if (isVersionable.test(after)) {
+        if (isVersionable.apply(after)) {
             fixProperties(nodeBuilder);
-        } else if (isFrozenNode.test(after)) {
+        } else if (isFrozenNode.apply(after)) {
             updateFrozenMixins(nodeBuilder);
         }
         return new VersionablePropertiesEditor(this, nodeBuilder);
@@ -172,7 +172,7 @@ public final class VersionablePropertiesEditor extends DefaultEditor {
         NodeState lastVersion = versionHistory.getChildNode(JCR_ROOTVERSION);
         for (ChildNodeEntry child : versionHistory.getChildNodeEntries()) {
             NodeState v = child.getNodeState();
-            if (!isNtVersion.test(v)) {
+            if (!isNtVersion.apply(v)) {
                 continue;
             }
             if (v.getProperty(JCR_SUCCESSORS).count() == 0) { // no successors

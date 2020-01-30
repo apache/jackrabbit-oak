@@ -34,7 +34,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 
@@ -45,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -53,6 +53,8 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+
+import com.google.common.base.Predicate;
 
 /**
  * Index editor for keeping a property index up to date.
@@ -258,11 +260,11 @@ class PropertyIndexEditor implements IndexEditor {
                 beforeKeys = getMatchingKeys(before, getPropertyNames(), valuePattern);
                 afterKeys = getMatchingKeys(after, getPropertyNames(), valuePattern);
             }
-            if (beforeKeys != null && !typePredicate.test(before)) {
+            if (beforeKeys != null && !typePredicate.apply(before)) {
                 // the before state doesn't match the type, so clear its values
                 beforeKeys = null;
             }
-            if (afterKeys != null && !typePredicate.test(after)) {
+            if (afterKeys != null && !typePredicate.apply(after)) {
                 // the after state doesn't match the type, so clear its values
                 afterKeys = null;
             }
@@ -274,7 +276,7 @@ class PropertyIndexEditor implements IndexEditor {
         if (beforeKeys != null || afterKeys != null) {
             // first make sure that both the before and after sets are non-null
             if (beforeKeys == null
-                    || (typePredicate != null && !typePredicate.test(before))) {
+                    || (typePredicate != null && !typePredicate.apply(before))) {
                 beforeKeys = newHashSet();
             } else if (afterKeys == null) {
                 afterKeys = newHashSet();

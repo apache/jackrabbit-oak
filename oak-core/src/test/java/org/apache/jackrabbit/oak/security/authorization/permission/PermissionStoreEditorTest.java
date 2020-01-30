@@ -114,8 +114,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         new PermissionStoreEditor("/test", AccessControlConstants.REP_POLICY, nodeState, mock(NodeBuilder.class), isACE, isGrantACE, bitsProvider, restrictionProvider, getTreeProvider());
 
         verify(nodeState, times(3)).getChildNode(anyString());
-        verify(isACE, times(3)).test(nodeState);
-        verify(isGrantACE, never()).test(nodeState);
+        verify(isACE, times(3)).apply(nodeState);
+        verify(isGrantACE, never()).apply(nodeState);
     }
 
     @Test
@@ -131,8 +131,8 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
         createPermissionStoreEditor(nodeState, mock(NodeBuilder.class));
 
         verify(nodeState, times(3)).getChildNode(anyString());
-        verify(isACE, times(3)).test(ace);
-        verify(isGrantACE, times(3)).test(ace);
+        verify(isACE, times(3)).apply(ace);
+        verify(isGrantACE, times(3)).apply(ace);
     }
 
     @Test
