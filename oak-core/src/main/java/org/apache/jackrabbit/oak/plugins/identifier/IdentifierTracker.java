@@ -43,7 +43,7 @@ public class IdentifierTracker {
         this.name = null;
 
         String uuid = root.getString(JCR_UUID);
-        if (uuid != null && referenceable.apply(root)) {
+        if (uuid != null && referenceable.test(root)) {
             this.identifier = uuid;
         } else {
             this.identifier = "/";
@@ -60,7 +60,7 @@ public class IdentifierTracker {
 
     public IdentifierTracker getChildTracker(String name, NodeState state) {
         String uuid = state.getString(JCR_UUID);
-        if (uuid != null && !referenceable.apply(state)) {
+        if (uuid != null && !referenceable.test(state)) {
             uuid = null; // discard jcr:uuid value of a non-referenceable node
         }
         return new IdentifierTracker(this, name, uuid);

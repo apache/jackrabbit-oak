@@ -80,8 +80,8 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         int index = 0;
         for (String childName : orderedChildNames) {
             NodeState ace = node.getChildNode(childName);
-            if (isACE.apply(ace)) {
-                boolean isAllow = isGrantACE.apply(ace);
+            if (isACE.test(ace)) {
+                boolean isAllow = isGrantACE.test(ace);
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
                 Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), treeProvider.createReadOnlyTree(ace));
 

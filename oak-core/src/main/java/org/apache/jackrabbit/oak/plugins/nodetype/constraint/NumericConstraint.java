@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class NumericConstraint<T> implements Predicate<Value> {
+public abstract class NumericConstraint<T> implements Predicate<Value>, com.google.common.base.Predicate<Value> {
     private static final Logger log = LoggerFactory.getLogger(NumericConstraint.class);
 
     private boolean invalid;
@@ -69,7 +70,7 @@ public abstract class NumericConstraint<T> implements Predicate<Value> {
     protected abstract T getBound(String bound);
 
     @Override
-    public boolean apply(@Nullable Value value) {
+    public boolean test(@Nullable Value value) {
         if (value == null || invalid) {
             return false;
         }
@@ -104,6 +105,16 @@ public abstract class NumericConstraint<T> implements Predicate<Value> {
             log.warn("Error checking numeric constraint " + this, e);
             return false;
         }
+    }
+
+    /**
+     * @deprecated use {@link #test(Value)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     */
+    @Deprecated
+    @Override
+    public boolean apply(@Nullable Value value) {
+        GuavaDeprecation.handleCall("OAK-8874");
+        return test(value);
     }
 
     protected abstract T getValue(Value value) throws RepositoryException;

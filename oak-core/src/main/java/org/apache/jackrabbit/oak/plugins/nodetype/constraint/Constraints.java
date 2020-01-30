@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.constraint;
 
+import java.util.function.Predicate;
+
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +31,7 @@ public final class Constraints {
     private Constraints() {
     }
 
-    public static Predicate<Value> valueConstraint(int type, String constraint) {
+    public static Predicate<Value> asPredicate(int type, String constraint) {
         switch (type) {
             case PropertyType.STRING:
                 return new StringConstraint(constraint);
@@ -62,4 +64,13 @@ public final class Constraints {
         }
     }
 
+    /**
+     * @deprecated use {@link #asPredicate(int, String)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     */
+    @SuppressWarnings("unchecked")
+    @Deprecated
+    public static com.google.common.base.Predicate<Value> valueConstraint(int type, String constraint) {
+        GuavaDeprecation.handleCall("OAK-8874");
+        return (com.google.common.base.Predicate<Value>) asPredicate(type, constraint);
+    }
 }

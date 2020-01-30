@@ -103,31 +103,31 @@ public class OakEventFilterImpl extends OakEventFilter {
 
         @Override
         public boolean includeAdd(String name, NodeState after) {
-            return includeThis && predicate.apply(after);
+            return includeThis && predicate.test(after);
         }
 
         @Override
         public boolean includeDelete(String name, NodeState before) {
-            return includeThis && predicate.apply(before);
+            return includeThis && predicate.test(before);
         }
 
         @Override
         public boolean includeMove(String sourcePath, String name, NodeState moved) {
-            return includeThis && predicate.apply(moved);
+            return includeThis && predicate.test(moved);
         }
 
         @Override
         public boolean includeReorder(String destName, String name, NodeState reordered) {
-            return includeThis && predicate.apply(reordered);
+            return includeThis && predicate.test(reordered);
         }
 
         @Override
         public EventFilter create(String name, NodeState before, NodeState after) {
             boolean predicateMatches = false;
             if (after.exists()) {
-                predicateMatches = predicate.apply(after);
+                predicateMatches = predicate.test(after);
             } else {
-                predicateMatches = predicate.apply(before);
+                predicateMatches = predicate.test(before);
             }
             if (predicateMatches) {
                 // greedy match - we switch to the globbing path filters
@@ -174,7 +174,7 @@ public class OakEventFilterImpl extends OakEventFilter {
             for (int i = 0; i < depth; i++) {
                 ChildNodeEntry child = parents.get(i);
                 NodeState nodeState = child.getNodeState();
-                if (!nodeTypePredicate.apply(nodeState)) {
+                if (!nodeTypePredicate.test(nodeState)) {
                     continue;
                 }
                 if (i + 1 <= depth) {
@@ -196,7 +196,7 @@ public class OakEventFilterImpl extends OakEventFilter {
             for (int i = 0; i < depth; i++) {
                 ChildNodeEntry child = parents.get(i);
                 NodeState nodeState = child.getNodeState();
-                if (!nodeTypePredicate.apply(nodeState)) {
+                if (!nodeTypePredicate.test(nodeState)) {
                     continue;
                 }
                 if (i + 1 <= depth) {
