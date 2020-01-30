@@ -51,7 +51,7 @@ class CugValidatorProvider extends ValidatorProvider implements CugConstants {
         if (!NT_REP_CUG_POLICY.equals(NodeStateUtils.getPrimaryTypeName(nodeState))) {
             throw accessViolation(21, "Reserved name 'rep:cugPolicy' must only be used for nodes of type 'rep:CugPolicy'.");
         }
-        if (!isMixCug.test(parent)) {
+        if (!isMixCug.apply(parent)) {
             throw accessViolation(22, "Parent node not of mixin type 'rep:CugMixin'.");
         }
     }

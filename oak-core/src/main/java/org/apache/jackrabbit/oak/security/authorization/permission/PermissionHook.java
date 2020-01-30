@@ -155,7 +155,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 return true;
             }
             String path = parentPath + '/' + name;
-            if (isACL.test(after)) {
+            if (isACL.apply(after)) {
                 PermissionStoreEditor psEditor = createPermissionStoreEditor(name, after);
                 modified.put(psEditor.getPath(), psEditor);
             } else {
@@ -171,8 +171,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 return true;
             }
             String path = parentPath + '/' + name;
-            if (isACL.test(before)) {
-                if (isACL.test(after)) {
+            if (isACL.apply(before)) {
+                if (isACL.apply(after)) {
                     PermissionStoreEditor psEditor = createPermissionStoreEditor(name, after);
                     modified.put(psEditor.getPath(), psEditor);
 
@@ -187,7 +187,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                     PermissionStoreEditor psEditor = createPermissionStoreEditor(name, before);
                     deleted.put(psEditor.getPath(), psEditor);
                 }
-            } else if (isACL.test(after)) {
+            } else if (isACL.apply(after)) {
                 PermissionStoreEditor psEditor = createPermissionStoreEditor(name, after);
                 modified.put(psEditor.getPath(), psEditor);
             } else {
@@ -203,7 +203,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 return true;
             }
             String path = parentPath + '/' + name;
-            if (isACL.test(before)) {
+            if (isACL.apply(before)) {
                 PermissionStoreEditor psEditor = createPermissionStoreEditor(name, before);
                 deleted.put(psEditor.getPath(), psEditor);
             } else {
