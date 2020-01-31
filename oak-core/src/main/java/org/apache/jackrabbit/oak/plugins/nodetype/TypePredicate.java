@@ -204,7 +204,7 @@ public class TypePredicate implements Predicate<NodeState>, com.google.common.ba
     // backwards compatibility, see OAK-8874
 
     /**
-     * @deprecated use {@link #test(NodeState) instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     * @deprecated use {@link #test(NodeState)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
     @Deprecated
     public boolean apply(@Nullable NodeState input) {
@@ -213,7 +213,7 @@ public class TypePredicate implements Predicate<NodeState>, com.google.common.ba
     }
 
     /**
-     * @deprecated use {@link #test(Tree) instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     * @deprecated use {@link #test(Tree)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
     @Deprecated
     public boolean apply(@Nullable Tree input) {
@@ -222,7 +222,7 @@ public class TypePredicate implements Predicate<NodeState>, com.google.common.ba
     }
 
     /**
-     * @deprecated use {@link #test(String, Set)) instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     * @deprecated use {@link #test(String, Set)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
      */
     @Deprecated
     public boolean apply(String primary, Set<String> mixins) {
