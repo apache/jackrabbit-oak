@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.blob.FileBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.FileDataStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.LoopbackBlobStoreFactory;
 import org.apache.jackrabbit.oak.upgrade.cli.blob.S3DataStoreFactory;
+import org.apache.jackrabbit.oak.upgrade.cli.blob.AzureDataStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,7 +141,9 @@ public class DatastoreArguments {
             return new FileBlobStoreFactory(options.getSrcFbs());
         } else if (options.isSrcS3()) {
             return new S3DataStoreFactory(options.getSrcS3Config(), options.getSrcS3(), ignoreMissingBinaries);
-        } else if (options.isSrcFds()) {
+        } else if (options.isSrcAzure()) {
+            return new AzureDataStoreFactory(options.getSrcAzureConfig(), options.getSrcAzure(), ignoreMissingBinaries);
+        }  else if (options.isSrcFds()) {
             return new FileDataStoreFactory(options.getSrcFds(), ignoreMissingBinaries);
         } else {
             return null;
@@ -152,6 +155,8 @@ public class DatastoreArguments {
             return new FileBlobStoreFactory(options.getDstFbs());
         } else if (options.isDstS3()) {
             return new S3DataStoreFactory(options.getDstS3Config(), options.getDstS3(), false);
+        } else if (options.isDstAzure()) {
+            return new AzureDataStoreFactory(options.getDstAzureConfig(), options.getDstAzure(), false);
         } else if (options.isDstFds()) {
             return new FileDataStoreFactory(options.getDstFds(), false);
         } else {
