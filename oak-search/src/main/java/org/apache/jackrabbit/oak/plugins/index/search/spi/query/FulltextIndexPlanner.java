@@ -884,7 +884,7 @@ public class FulltextIndexPlanner {
                 orderEntries.add(IndexDefinition.NATIVE_SORT_ORDER);
             }
             for (PropertyDefinition functionIndex : rule.getFunctionRestrictions()) {
-                if (o.getPropertyName().equals(functionIndex.function)) {
+                if (functionIndex.ordered && o.getPropertyName().equals(functionIndex.function)) {
                     // can manage any order desc/asc
                     orderEntries.add(o);
                     result.sortedProperties.add(functionIndex);
