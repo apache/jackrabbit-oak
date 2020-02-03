@@ -16,9 +16,9 @@
  */
 
 /**
- * This package contains oak query index related classes.
+ * This package contains index creation and editing related classes and interfaces.
  */
-@Version("1.3.0")
-package org.apache.jackrabbit.oak.spi.query;
+@Version("1.0.0")
+package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
 import org.osgi.annotation.versioning.Version;

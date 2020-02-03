@@ -16,9 +16,9 @@
  */
 
 /**
- * This package contains oak query index related classes.
+ * This package contains tokenization related classes.
  */
-@Version("1.3.0")
-package org.apache.jackrabbit.oak.spi.query;
+@Version("1.0.0")
+package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
 import org.osgi.annotation.versioning.Version;
