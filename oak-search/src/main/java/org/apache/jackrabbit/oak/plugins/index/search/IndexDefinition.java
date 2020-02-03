@@ -143,6 +143,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      */
     public static final String STATUS_LAST_UPDATED = "lastUpdated";
 
+    public static final String CREATION_TIMESTAMP = "creationTimestamp";
+    public static final String REINDEX_COMPLETION_TIMESTAMP = "reindexCompletionTimestamp";
+
     /**
      * Meta property which provides the unique id
      */
