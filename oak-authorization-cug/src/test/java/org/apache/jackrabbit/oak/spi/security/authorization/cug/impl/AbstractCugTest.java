@@ -75,8 +75,8 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
             CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS,
             CugConstants.PARAM_CUG_ENABLED, true);
 
-    private static final String TEST_GROUP_ID = "testGroup" + UUID.randomUUID();
-    private static final String TEST_USER2_ID = "testUser2" + UUID.randomUUID();
+    static final String TEST_GROUP_ID = "testGroup" + UUID.randomUUID();
+    static final String TEST_USER2_ID = "testUser2" + UUID.randomUUID();
 
     @Override
     public void before() throws Exception {
