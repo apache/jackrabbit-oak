@@ -192,7 +192,7 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
 public class LucenePropertyIndex extends FulltextIndex {
 
 
-    private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+    private static boolean NON_LAZY = Boolean.parseBoolean(System.getProperty("oak.lucene.nonLazyIndex","true"));
 
     private static double MIN_COST = 2.1;
 
