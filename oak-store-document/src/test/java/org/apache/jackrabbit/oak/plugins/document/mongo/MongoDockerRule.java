@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.UUID;
+
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 import com.spotify.docker.client.DefaultDockerClient;
@@ -32,7 +34,7 @@ public class MongoDockerRule extends DockerRule {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDockerRule.class);
 
-    private static final String CONFIG_NAME = "MongoDB";
+    private static final String CONFIG_NAME = "MongoDB-" + UUID.randomUUID().toString().substring(0, 8);
 
     private static final String VERSION = System.getProperty("mongo.version", "3.6");
 
