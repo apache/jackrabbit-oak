@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.security.Principal;
 import java.util.Set;
 import java.util.UUID;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlList;
@@ -73,8 +74,8 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
             CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS,
             CugConstants.PARAM_CUG_ENABLED, true);
 
-    private static final String TEST_GROUP_ID = "testGroup" + UUID.randomUUID();
-    private static final String TEST_USER2_ID = "testUser2" + UUID.randomUUID();
+    static final String TEST_GROUP_ID = "testGroup" + UUID.randomUUID();
+    static final String TEST_USER2_ID = "testUser2" + UUID.randomUUID();
 
     @Override
     public void before() throws Exception {
@@ -149,6 +150,13 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
 
     CugPermissionProvider createCugPermissionProvider(@NotNull Set<String> supportedPaths, @NotNull Principal... principals) {
         return new CugPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals), supportedPaths, getConfig(AuthorizationConfiguration.class).getContext(), getRootProvider(), getTreeProvider());
+    }
+
+    void createTrees(@NotNull Tree tree, @NotNull String ntName, @NotNull String... names) throws AccessDeniedException {
+        Tree parent = tree;
+        for (String n : names) {
+            parent = TreeUtil.addChild(parent, n, ntName);
+        }
     }
 
     void setupCugsAndAcls() throws Exception {
