@@ -34,10 +34,14 @@ import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -848,6 +852,30 @@ public class FacetTest extends AbstractQueryTest {
         }
 
         assertEquals("Unexpected facet labels", newHashSet("t1", "t2", "t3"), facetLabels);
+    }
+
+    /**
+     * Tests the scenario where we have a facet query and the traversal cost is less than the index cost that
+     * serves the facet query. TraversingIndex should not be used for facets.
+     * @throws Exception in case of errors.
+     */
+    public void testTraversalNotAllowed() throws Exception {
+        // Increase cost of lucene index
+        Node luceneGlobal = superuser.getNode("/oak:index/luceneGlobal");
+        luceneGlobal.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.MAX_VALUE);
+        // remove test mode as entry count property is ignored in test mode
+        luceneGlobal.getProperty("testMode").remove();
+        Node n1 = testRootNode.addNode("node1");
+        n1.setProperty("text", "t1");
+        n1.setProperty("name","Node1");
+        markIndexForReindex();
+        superuser.save();
+        QueryManager qm = superuser.getWorkspace().getQueryManager();
+        // use issamenode() so that traversal cost comes low
+        String xpath = "select [rep:facet(text)] from [nt:base] where issamenode('" + n1.getPath() +  "') and [text]='t1'";
+        Query q = qm.createQuery(xpath, Query.JCR_SQL2);
+        QueryResult result = q.execute();
+        assertEquals(result.getRows().getSize(), 1);
     }
 
     public void testMergedFacetsOverUnionSummingCount() throws Exception {
