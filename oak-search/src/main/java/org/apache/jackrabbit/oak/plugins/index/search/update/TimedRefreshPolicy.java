@@ -35,6 +35,7 @@ public class TimedRefreshPolicy implements ReaderRefreshPolicy, IndexUpdateListe
     private final Clock clock;
     private final long refreshDelta;
     private volatile long lastRefreshTime;
+    private final Object lock = new Object();
 
     public TimedRefreshPolicy(Clock clock, TimeUnit unit, long refreshDelta) {
         this.clock = clock;
@@ -53,16 +54,20 @@ public class TimedRefreshPolicy implements ReaderRefreshPolicy, IndexUpdateListe
 
     @Override
     public void updated() {
-        dirty.set(true);
+        synchronized (lock) {
+            dirty.set(true);
+        }
     }
 
     private void refreshIfRequired(Runnable refreshCallback) {
-        if (dirty.get()){
-            long currentTime = clock.getTime();
-            if (currentTime - lastRefreshTime > refreshDelta
-                    && dirty.compareAndSet(true, false)){
-                lastRefreshTime = currentTime;
-                refreshCallback.run();
+        synchronized (lock) {
+            if (dirty.get()) {
+                long currentTime = clock.getTime();
+                if (currentTime - lastRefreshTime > refreshDelta
+                        && dirty.compareAndSet(true, false)) {
+                    lastRefreshTime = currentTime;
+                    refreshCallback.run();
+                }
             }
         }
     }
