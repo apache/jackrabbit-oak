@@ -194,7 +194,6 @@ public class LuceneIndexNodeManager {
         } finally {
             lock.writeLock().unlock();
         }
-
         releaseHolder(searcherHolder);
         closeReaders(readers);
     }
@@ -272,7 +271,9 @@ public class LuceneIndexNodeManager {
     }
 
     private void releaseHolder(SearcherHolder holder) {
-        decrementSearcherUsageCount(holder.searcher);
+        synchronized (holder) {
+            decrementSearcherUsageCount(holder.searcher);
+        }
     }
 
     private void decrementSearcherUsageCount(IndexSearcher searcher) {
