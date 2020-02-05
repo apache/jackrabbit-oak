@@ -14,6 +14,7 @@
 # limitations under the License.
 
 sudo: false
+dist: trusty
 env:
   global:
     - MONGO_VER=2.6.12
