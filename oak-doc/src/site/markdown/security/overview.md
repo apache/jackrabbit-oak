@@ -21,6 +21,7 @@ The Oak Security Layer
 ### General
 
  * [Introduction to Oak Security](introduction.html)
+ * [Security Reports](reports.html)
 
 ### Authentication
 

@@ -18,11 +18,12 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.Arrays;
 import java.util.Set;
+import java.util.function.Predicate;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
@@ -48,7 +49,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_PRIMA
  *
  * @since Oak 0.11
  */
-public class TypePredicate implements Predicate<NodeState> {
+public class TypePredicate implements Predicate<NodeState>, com.google.common.base.Predicate<NodeState> {
 
     @NotNull
     public static TypePredicate isOrderable(@NotNull NodeState root) {
@@ -156,7 +157,7 @@ public class TypePredicate implements Predicate<NodeState> {
         }
     }
 
-    public boolean apply(String primary, Set<String> mixins) {
+    public boolean test(String primary, Set<String> mixins) {
         init();
         if (primaryTypes != null && primaryTypes.contains(primary)) {
             return true;
@@ -167,7 +168,7 @@ public class TypePredicate implements Predicate<NodeState> {
         return false;
     }
 
-    public boolean apply(@Nullable Tree input) {
+    public boolean test(@Nullable Tree input) {
         if (input != null) {
             init();
             if (primaryTypes != null
@@ -185,7 +186,7 @@ public class TypePredicate implements Predicate<NodeState> {
     //---------------------------------------------------------< Predicate >--
 
     @Override
-    public boolean apply(@Nullable NodeState input) {
+    public boolean test(@Nullable NodeState input) {
         if (input != null) {
             init();
             if (primaryTypes != null
@@ -200,11 +201,39 @@ public class TypePredicate implements Predicate<NodeState> {
         return false;
     }
 
+    // backwards compatibility, see OAK-8874
+
+    /**
+     * @deprecated use {@link #test(NodeState)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     */
+    @Deprecated
+    public boolean apply(@Nullable NodeState input) {
+        GuavaDeprecation.handleCall("OAK-8874");
+        return test(input);
+    }
+
+    /**
+     * @deprecated use {@link #test(Tree)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     */
+    @Deprecated
+    public boolean apply(@Nullable Tree input) {
+        GuavaDeprecation.handleCall("OAK-8874");
+        return test(input);
+    }
+
+    /**
+     * @deprecated use {@link #test(String, Set)} instead (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
+     */
+    @Deprecated
+    public boolean apply(String primary, Set<String> mixins) {
+        GuavaDeprecation.handleCall("OAK-8874");
+        return test(primary, mixins);
+    }
+
     //------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {
         return Iterables.toString(names);
     }
-
 }

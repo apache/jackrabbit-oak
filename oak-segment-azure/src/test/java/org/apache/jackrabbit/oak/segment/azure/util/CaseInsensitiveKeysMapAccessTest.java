@@ -14,33 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.principal;
+package org.apache.jackrabbit.oak.segment.azure.util;
 
-import java.security.Principal;
-import java.security.acl.Group;
-import java.util.Enumeration;
+import org.junit.Test;
 
-import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
-import org.jetbrains.annotations.NotNull;
+import java.util.Collections;
+import java.util.Map;
 
-@Deprecated
-class GroupPrincipalWrapper extends PrincipalImpl implements GroupPrincipal {
+import static org.junit.Assert.assertEquals;
 
-    private final Group group;
+public class CaseInsensitiveKeysMapAccessTest {
 
-    GroupPrincipalWrapper(@NotNull Group group) {
-        super(group.getName());
-        this.group = group;
+    @Test
+    public void convert() {
+        Map<String, String> map = CaseInsensitiveKeysMapAccess.convert(Collections.singletonMap("hello", "world"));
+
+        assertEquals("world", map.get("hello"));
+        assertEquals("world", map.get("Hello"));
+        assertEquals("world", map.get("hELLO"));
     }
 
-    @Override
-    public boolean isMember(@NotNull Principal member) {
-        return group.isMember(member);
-    }
-
-    @NotNull
-    @Override
-    public Enumeration<? extends Principal> members() {
-        return GroupPrincipals.transform(group.members());
+    @Test(expected = UnsupportedOperationException.class)
+    public void assertImmutable() {
+        Map<String, String> map = CaseInsensitiveKeysMapAccess.convert(Collections.singletonMap("hello", "world"));
+        map.put("foo", "bar");
     }
 }

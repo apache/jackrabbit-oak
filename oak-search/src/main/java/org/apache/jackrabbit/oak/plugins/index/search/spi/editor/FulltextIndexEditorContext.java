@@ -48,7 +48,10 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.REGEX_ALL_PROPS;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.REINDEX_COMPLETION_TIMESTAMP;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 
 /**
  *
@@ -164,6 +167,11 @@ public abstract class FulltextIndexEditorContext<D> {
       NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
       status.setProperty(IndexDefinition.STATUS_LAST_UPDATED, getUpdatedTime(currentTime), Type.DATE);
       status.setProperty("indexedNodes", indexedNodes);
+      if (!IndexDefinition.isDisableStoredIndexDefinition() && reindex) {
+        NodeBuilder indexDefinition = definitionBuilder.child(STATUS_NODE);
+        indexDefinition.setProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP, ISO8601.format(currentTime), Type.DATE);
+        log.info(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP + " set to current time for index:" + definition.getIndexPath());
+      }
 
       PERF_LOGGER.end(start, -1, "Overall Closed IndexWriter for directory {}", definition);
 
@@ -267,14 +275,20 @@ public abstract class FulltextIndexEditorContext<D> {
           definition.removeProperty(PROP_REFRESH_DEFN);
           NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);
           definition.setChildNode(INDEX_DEFINITION_NODE, clonedState);
+          definition.getChildNode(INDEX_DEFINITION_NODE)
+                  .setProperty(IndexDefinition.CREATION_TIMESTAMP, ISO8601.format(Calendar.getInstance()), Type.DATE);
           log.info("Refreshed the index definition for [{}]", indexingContext.getIndexPath());
+          log.info("IndexDefinition creation timestamp updated for [{}]", indexingContext.getIndexPath());
           if (log.isDebugEnabled()) {
             log.debug("Updated index definition is {}", NodeStateUtils.toString(clonedState));
           }
         } else if (!definition.hasChildNode(INDEX_DEFINITION_NODE)) {
           definition.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
+          definition.getChildNode(INDEX_DEFINITION_NODE)
+                  .setProperty(IndexDefinition.CREATION_TIMESTAMP, ISO8601.format(Calendar.getInstance()), Type.DATE);
           log.info("Stored the cloned index definition for [{}]. Changes in index definition would now only be " +
                   "effective post reindexing", indexingContext.getIndexPath());
+          log.info("IndexDefinition creation timestamp added for [{}]", indexingContext.getIndexPath());
         } else {
           // This is neither reindex nor refresh. So, let's update cloned def with random seed
           // if it doesn't match what's there in main definition

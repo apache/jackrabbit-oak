@@ -23,13 +23,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class BlobStoreStatsTest {
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
@@ -75,5 +81,25 @@ public class BlobStoreStatsTest {
 
         stats.downloadCompleted("foo");
         assertEquals(2, stats.getDownloadCount());
+    }
+
+    @Test
+    public void uploadStatsWithDefaultOptions() {
+        RepositoryStatistics repoStats = mock(RepositoryStatistics.class);
+        statsProvider = mock(StatisticsProvider.class);
+        when(statsProvider.getStats()).thenReturn(repoStats);
+        stats = new BlobStoreStats(statsProvider);
+        verify(statsProvider).getMeter(eq("BLOB_UPLOAD_SIZE"), eq(StatsOptions.DEFAULT));
+        verify(statsProvider).getMeter(eq("BLOB_UPLOAD_TIME"), eq(StatsOptions.DEFAULT));
+    }
+
+    @Test
+    public void downloadStatsWithDefaultOptions() {
+        RepositoryStatistics repoStats = mock(RepositoryStatistics.class);
+        statsProvider = mock(StatisticsProvider.class);
+        when(statsProvider.getStats()).thenReturn(repoStats);
+        stats = new BlobStoreStats(statsProvider);
+        verify(statsProvider).getMeter(eq("BLOB_DOWNLOAD_SIZE"), eq(StatsOptions.DEFAULT));
+        verify(statsProvider).getMeter(eq("BLOB_DOWNLOAD_TIME"), eq(StatsOptions.DEFAULT));
     }
 }
