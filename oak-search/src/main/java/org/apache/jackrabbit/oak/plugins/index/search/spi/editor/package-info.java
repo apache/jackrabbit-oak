@@ -16,7 +16,8 @@
  */
 
 /**
- * This package contains index creation and editing related classes and interfaces.
+ * This package contains classes that deal with updating indexes, including how to build indexing backend
+ * documents (e.g. Lucene and Solr documents)
  */
 @Version("1.0.0")
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
