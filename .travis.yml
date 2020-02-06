@@ -14,10 +14,12 @@
 # limitations under the License.
 
 sudo: false
-dist: trusty
+dist: xenial
+services:
+  - docker
 env:
   global:
-    - MONGODB=4.0.9
+    - MONGODB=4.0.16
   matrix:
     - MODULE=oak-jcr PROFILE="-PintegrationTesting" UT="-Dsurefire.skip.ut=true" MONGODB_MODE="--single"
     - MODULE=oak-jcr PROFILE="" UT="" MONGODB_MODE="--single"
@@ -29,12 +31,17 @@ env:
     - MODULE=oak-upgrade PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
     - MODULE=oak-pojosr PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
     - MODULE=oak-it-osgi PROFILE="-PintegrationTesting" UT="" MONGODB_MODE="--single"
+before_install:
+  - docker pull trekawek/azurite
 install:
   - wget -N http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-${MONGODB}.tgz -P $HOME/.mongodb
   - tar --skip-old-files -C $HOME/.mongodb -xf $HOME/.mongodb/mongodb-linux-x86_64-${MONGODB}.tgz
   - mkdir -p target/mongodb/data
   - cd target/mongodb
-  - virtualenv mtools
+  - pyenv versions
+  - pyenv global 3.6
+  - python -V
+  - python -m venv mtools
   - source mtools/bin/activate
   - pip install --upgrade pip
   - pip install python-dateutil psutil pymongo mtools
@@ -44,7 +51,7 @@ install:
 script:   mvn --batch-mode clean verify -DtrimStackTrace=false -Dbaseline.skip=true ${UT} ${PROFILE} -Dnsfixtures=DOCUMENT_NS -pl :${MODULE} -nsu
 language: java
 jdk:
-  - oraclejdk8
+  - openjdk8
 cache:
   directories:
     - $HOME/.m2
@@ -52,8 +59,6 @@ cache:
 addons:
   apt:
     packages:
-      - python
       - python-pip
-      - python-virtualenv
 notifications:
   email: false

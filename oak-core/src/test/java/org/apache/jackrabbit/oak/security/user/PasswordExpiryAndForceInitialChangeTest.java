@@ -35,8 +35,10 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_PWD;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -136,5 +138,17 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
 
         userManager.setPassword(userTree, "uNew", "pwd", true);
         assertFalse(userTree.hasChild(REP_PWD));
+    }
+
+    @Test
+    public void testAuthenticateWithNewPasswordAttribute() throws Exception {
+        Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
+        SimpleCredentials sc = new SimpleCredentials(userId, userId.toCharArray());
+        sc.setAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD, "SureChangedMyPassword!");
+        try {
+            assertTrue(a.authenticate(sc));
+        } finally {
+            assertNull(sc.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD));
+        }
     }
 }

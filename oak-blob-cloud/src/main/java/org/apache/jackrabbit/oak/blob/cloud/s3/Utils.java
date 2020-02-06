@@ -24,22 +24,21 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
 
-import com.google.common.collect.Maps;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.StringUtils;
+import com.google.common.collect.Maps;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Amazon S3 utilities.
@@ -127,6 +126,33 @@ public final class Utils {
         s3service.setEndpoint(endpoint);
         LOG.info("S3 service endpoint [{}] ", endpoint);
         return s3service;
+    }
+
+    /**
+     * Waits for an S3 bucket, one we expect to exist, to report that it exists.
+     * A check for the bucket is called with a limited number of repeats with
+     * an increasing backoff.
+     *
+     * Usually you would call this after creating a bucket to block until the
+     * bucket is actually available before moving forward with other tasks that
+     * expect the bucket to be available.
+     *
+     * @param s3Client The AmazonS3 client connection to the storage service.
+     * @param bucketName The name of the bucket to check.
+     * @return True if the bucket exists; false otherwise.
+     */
+    public static boolean waitForBucket(@NotNull final AmazonS3 s3Client, @NotNull final String bucketName) {
+        int tries = 0;
+        boolean bucketExists = false;
+        while (20 > tries++) {
+            bucketExists = s3Client.doesBucketExistV2(bucketName);
+            if (bucketExists) break;
+            try {
+                Thread.sleep(100 * tries);
+            }
+            catch (InterruptedException e) { }
+        }
+        return bucketExists;
     }
 
     /**

@@ -112,13 +112,6 @@ public class CompositePrincipalProviderTest {
     }
 
     @Test
-    public void testGetGroupMembership() {
-        for (Principal principal : testPrincipals()) {
-            assertTrue(cpp.getGroupMembership(principal).isEmpty());
-        }
-    }
-
-    @Test
     public void testGetMembershipPrincipals() {
         for (Principal principal : testPrincipals()) {
             boolean atleastEveryone = cpp.getMembershipPrincipals(principal).contains(EveryonePrincipal.getInstance());

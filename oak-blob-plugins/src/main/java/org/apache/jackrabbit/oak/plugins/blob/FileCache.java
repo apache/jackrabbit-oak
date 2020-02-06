@@ -79,6 +79,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
 
     private ExecutorService executor;
 
+    private CacheLoader<String, File> cacheLoader;
+
     /**
      * Convert the size calculation to KB to support max file size of 2 TB
      */
@@ -103,6 +105,30 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         /* convert to 4 KB block */
         long size = Math.round(maxSize / (1024L * 4));
 
+        cacheLoader = new CacheLoader<String, File>() {
+            @Override public File load(String key) throws Exception {
+                // Fetch from local cache directory and if not found load from backend
+                File cachedFile = DataStoreCacheUtils.getFile(key, cacheRoot);
+                if (cachedFile.exists()) {
+                    return cachedFile;
+                } else {
+                    InputStream is = null;
+                    boolean threw = true;
+                    try {
+                        is = loader.load(key);
+                        copyInputStreamToFile(is, cachedFile);
+                        threw = false;
+                    } catch (Exception e) {
+                        LOG.warn("Error reading object for id [{}] from backend", key, e);
+                        throw e;
+                    } finally {
+                        Closeables.close(is, threw);
+                    }
+                    return cachedFile;
+                }
+            }
+        };
+
         cache = new CacheLIRS.Builder<String, File>()
             .maximumWeight(size)
             .recordStats()
@@ -122,30 +148,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                         LOG.info("Cached file deletion failed after eviction", e);
                     }
                 }})
-            .build(new CacheLoader<String, File>() {
-                @Override
-                public File load(String key) throws Exception {
-                    // Fetch from local cache directory and if not found load from backend
-                    File cachedFile = DataStoreCacheUtils.getFile(key, cacheRoot);
-                    if (cachedFile.exists()) {
-                        return cachedFile;
-                    } else {
-                        InputStream is = null;
-                        boolean threw = true;
-                        try {
-                            is = loader.load(key);
-                            copyInputStreamToFile(is, cachedFile);
-                            threw = false;
-                        } catch (Exception e) {
-                            LOG.warn("Error reading object for id [{}] from backend", key, e);
-                            throw e;
-                        } finally {
-                            Closeables.close(is, threw);
-                        }
-                        return cachedFile;
-                    }
-                }
-            });
+            .build();
+
         this.cacheStats =
             new FileCacheStats(cache, weigher, memWeigher, maxSize);
 
@@ -254,7 +258,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     public File get(String key) throws IOException {
         try {
             // get from cache and download if not available
-            return cache.get(key);
+            return cache.get(key, () -> cacheLoader.load(key));
         } catch (ExecutionException e) {
             LOG.error("Error loading [{}] from cache", key);
             throw new IOException(e);

@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.DataStoreFixture;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +37,7 @@ public abstract class FixtureUtils {
     /** Return a nice label for jUnit Parameterized tests for fixtures */
     public static String getFixtureLabel(NodeStoreFixture fixture,
                                   DataStoreFixture dataStoreFixture) {
-        
+
         String nodeStoreName = fixture.getClass().getSimpleName();
         String name = StringUtils.removeEnd(nodeStoreName, "Fixture");
         if (dataStoreFixture != null) {

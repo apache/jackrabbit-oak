@@ -21,6 +21,7 @@ import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -125,9 +127,10 @@ public class AzureJournalFile implements JournalFile {
                     if (!metadataFetched) {
                         blob.downloadAttributes();
                         metadataFetched = true;
-                        if (blob.getMetadata().containsKey("lastEntry")) {
+                        Map<String, String> metadata = CaseInsensitiveKeysMapAccess.convert(blob.getMetadata());
+                        if (metadata.containsKey("lastEntry")) {
                             firstLineReturned = true;
-                            return blob.getMetadata().get("lastEntry");
+                            return metadata.get("lastEntry");
                         }
                     }
                     reader = new ReverseFileReader(blob);

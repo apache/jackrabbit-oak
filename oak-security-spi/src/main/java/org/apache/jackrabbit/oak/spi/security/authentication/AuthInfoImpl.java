@@ -25,6 +25,7 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,9 +41,14 @@ public final class AuthInfoImpl implements AuthInfo {
 
     public AuthInfoImpl(@Nullable String userID, @Nullable Map<String, ?> attributes,
                         @Nullable Set<? extends Principal> principals) {
+        this(userID, attributes, (Iterable) principals);
+    }
+
+    public AuthInfoImpl(@Nullable String userID, @Nullable Map<String, ?> attributes,
+                        @Nullable Iterable<? extends Principal> principals) {
         this.userID = userID;
-        this.attributes = (attributes == null) ? Collections.<String, Object>emptyMap() : attributes;
-        this.principals = (principals == null) ? Collections.<Principal>emptySet() : Collections.unmodifiableSet(principals);
+        this.attributes = (attributes == null) ? Collections.emptyMap() : attributes;
+        this.principals = (principals == null) ? Collections.emptySet() : ImmutableSet.copyOf(principals);
     }
 
     public static AuthInfo createFromSubject(@NotNull Subject subject) {

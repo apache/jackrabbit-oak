@@ -30,7 +30,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class EveryonePrincipalTest  {
 
@@ -39,16 +38,6 @@ public class EveryonePrincipalTest  {
     @Test
     public void testGetName() {
         assertEquals(EveryonePrincipal.NAME, everyone.getName());
-    }
-
-    @Test
-    public void testAddMember() {
-        assertFalse(everyone.addMember(mock(Principal.class)));
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testRemoveMember() {
-        everyone.removeMember(mock(Principal.class));
     }
 
     @Test

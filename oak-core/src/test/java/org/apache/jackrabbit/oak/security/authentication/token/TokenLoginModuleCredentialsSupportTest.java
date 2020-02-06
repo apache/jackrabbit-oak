@@ -95,21 +95,17 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
     @Test
     public void testCustomCredentials() throws Exception {
         TestCredentialsSupport.Creds credentials = new TestCredentialsSupport.Creds();
-
-        ContentSession cs = login(credentials);
-        try {
+        String token = null;
+        try (ContentSession cs = login(credentials)) {
             assertEquals(userId, cs.getAuthInfo().getUserID());
 
             Map<String, ?> attributes = credentialsSupport.getAttributes(credentials);
-            String token = attributes.get(TokenConstants.TOKEN_ATTRIBUTE).toString();
+            token = attributes.get(TokenConstants.TOKEN_ATTRIBUTE).toString();
             assertFalse(token.isEmpty());
+        }
 
-            cs.close();
-
-            cs = login(new TokenCredentials(token));
+        try (ContentSession cs = login(new TokenCredentials(token))) {
             assertEquals(userId, cs.getAuthInfo().getUserID());
-        } finally {
-            cs.close();
         }
     }
 

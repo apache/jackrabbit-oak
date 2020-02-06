@@ -24,7 +24,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -37,12 +38,12 @@ public class PropertyPredicateTest {
         final String value = "bar";
         PropertyPredicate p = new PropertyPredicate(name, new Predicate<PropertyState>() {
             @Override
-            public boolean apply(PropertyState property) {
+            public boolean test(PropertyState property) {
                 return value.equals(property.getValue(STRING));
             }
         });
 
-        assertTrue(p.apply(createWithProperty(name, value)));
+        assertTrue(p.test(createWithProperty(name, value)));
     }
 
     @Test
@@ -51,12 +52,12 @@ public class PropertyPredicateTest {
         final String value = "bar";
         PropertyPredicate p = new PropertyPredicate(name, new Predicate<PropertyState>() {
             @Override
-            public boolean apply(PropertyState property) {
+            public boolean test(PropertyState property) {
                 return "baz".equals(property.getValue(STRING));
             }
         });
 
-        assertFalse(p.apply(createWithProperty(name, value)));
+        assertFalse(p.test(createWithProperty(name, value)));
     }
 
     @Test
@@ -65,12 +66,12 @@ public class PropertyPredicateTest {
         final String value = "bar";
         PropertyPredicate p = new PropertyPredicate("any", new Predicate<PropertyState>() {
             @Override
-            public boolean apply(PropertyState property) {
+            public boolean test(PropertyState property) {
                 return value.equals(property.getValue(STRING));
             }
         });
 
-        assertFalse(p.apply(createWithProperty(name, value)));
+        assertFalse(p.test(createWithProperty(name, value)));
     }
 
     private static NodeState createWithProperty(String name, String value) {

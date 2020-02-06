@@ -86,6 +86,11 @@ public class BlobIdRecordTest {
             return bs.getBlobId(mapId(s));
         }
 
+        @Override
+        public void close() throws Exception {
+            bs.close();
+        }
+
         private String mapId(String in) {
             String out = ids.get(in);
             if (out == null) {
@@ -95,7 +100,6 @@ public class BlobIdRecordTest {
         }
 
         protected abstract String generateId();
-
     }
 
     private static class ShortIdMappingBlobStore extends IdMappingBlobStore {

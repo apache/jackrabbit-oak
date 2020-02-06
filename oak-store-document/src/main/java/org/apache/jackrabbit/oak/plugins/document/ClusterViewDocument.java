@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -30,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,9 +119,6 @@ class ClusterViewDocument {
      **/
     private static final String CLUSTER_VIEW_HISTORY_KEY = "clusterViewHistory";
 
-    /** the format used when storing date+time **/
-    private static final DateFormat standardDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-
     /** number of elements kept in the CLUSTERVIEW_HISTORY_KEY field **/
     static final int HISTORY_LIMIT = 10;
 
@@ -186,7 +182,7 @@ class ClusterViewDocument {
         updateOp.set(ACTIVE_KEY, setToCsv(activeIds));
         updateOp.set(RECOVERING_KEY, setToCsv(recoveringIds));
         updateOp.set(INACTIVE_KEY, setToCsv(inactiveIds));
-        updateOp.set(CREATED_KEY, standardDateFormat.format(now));
+        updateOp.set(CREATED_KEY, ISO8601.format(now));
         updateOp.set(CREATOR_KEY, (long)localClusterId);
         if (previousView != null) {
             Map<Object, String> previousHistory = previousView.getHistory();
@@ -304,7 +300,7 @@ class ClusterViewDocument {
         b.key(CREATOR_KEY);
         b.value(previousView.getCreatedBy());
         b.key(RETIRED_KEY);
-        b.value(String.valueOf(standardDateFormat.format(retireTime)));
+        b.value(String.valueOf(ISO8601.format(retireTime)));
         b.key(RETIRER_KEY);
         b.value(retiringClusterNodeId);
         b.key(ACTIVE_KEY);

@@ -32,10 +32,12 @@ import javax.jcr.ValueFormatException;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
+import org.apache.jackrabbit.api.binary.BinaryUploadOptions;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobUpload;
+import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
@@ -136,7 +138,16 @@ public class ValueFactoryImpl extends PartialValueFactory implements JackrabbitV
     @Override
     @Nullable
     public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts) {
-        BlobUpload upload = getBlobAccessProvider().initiateBlobUpload(maxSize, maxParts);
+        return initiateBinaryUpload(maxSize, maxParts, BinaryUploadOptions.DEFAULT);
+    }
+
+    @Override
+    @Nullable
+    public BinaryUpload initiateBinaryUpload(long maxSize, int maxParts, @NotNull final BinaryUploadOptions options) {
+        BlobUpload upload = getBlobAccessProvider()
+                .initiateBlobUpload(maxSize,
+                        maxParts,
+                        new BlobUploadOptions(options.isDomainOverrideIgnored()));
         if (null == upload) {
             return null;
         }

@@ -28,6 +28,7 @@ import javax.jcr.ValueFactory;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
 import org.apache.jackrabbit.api.binary.BinaryUpload;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
+import org.apache.jackrabbit.api.binary.BinaryUploadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.annotation.versioning.ProviderType;
@@ -92,7 +93,10 @@ import org.osgi.annotation.versioning.ProviderType;
  *         <b>Initialize</b>: A remote client makes request to the
  *         Jackrabbit-based application to request an upload, which calls {@link
  *         #initiateBinaryUpload(long, int)} and returns the resulting {@link
- *         BinaryUpload instructions} to the remote client.
+ *         BinaryUpload instructions} to the remote client.  A client may
+ *         optionally choose to provide a {@link BinaryUploadOptions} via
+ *         {@link #initiateBinaryUpload(long, int, BinaryUploadOptions)} if
+ *         additional options must be specified.
  *     </li>
  *     <li>
  *         <b>Upload</b>: The remote client performs the actual binary upload
@@ -156,6 +160,50 @@ public interface JackrabbitValueFactory extends ValueFactory {
      */
     @Nullable
     BinaryUpload initiateBinaryUpload(long maxSize, int maxURIs)
+            throws IllegalArgumentException, AccessDeniedException;
+
+    /**
+     * Initiate a transaction to upload a binary directly to a storage
+     * location and return {@link BinaryUpload} instructions for a remote client.
+     * Returns {@code null} if the feature is not available.
+     *
+     * <p>
+     * {@link IllegalArgumentException} will be thrown if an upload
+     * cannot be supported for the required parameters, or if the parameters are
+     * otherwise invalid. Each service provider has specific limitations.
+     *
+     * @param maxSize The exact size of the binary to be uploaded or the
+     *                estimated maximum size if the exact size is unknown.
+     *                If the estimation was too small, the transaction
+     *                should be restarted by invoking this method again
+     *                using the correct size.
+     * @param maxURIs The maximum number of upload URIs that the client can
+     *                accept, for example due to message size limitations.
+     *                A value of -1 indicates no limit.
+     *                Upon a successful return, it is ensured that an upload
+     *                of {@code maxSize} can be completed by splitting the
+     *                binary into {@code maxURIs} parts, otherwise
+     *                {@link IllegalArgumentException} will be thrown.
+     * @param options A {@link BinaryUploadOptions} instance containing any
+     *                options for this call.
+     *
+     * @return A {@link BinaryUpload} providing the upload instructions,
+     *         or {@code null} if the implementation does not support the direct
+     *         upload feature.
+     *
+     * @throws IllegalArgumentException if the provided arguments are
+     *         invalid or if an upload cannot be completed given the
+     *         provided arguments. For example, if the value of {@code maxSize}
+     *         exceeds the size limits for a single binary upload for the
+     *         implementation or the service provider, or if the value of
+     *         {@code maxSize} divided by {@code maxParts} exceeds the size
+     *         limit for an upload or upload part.
+     *
+     * @throws AccessDeniedException if the session has insufficient
+     *         permission to perform the upload.
+     */
+    @Nullable
+    BinaryUpload initiateBinaryUpload(long maxSize, int maxURIs, BinaryUploadOptions options)
             throws IllegalArgumentException, AccessDeniedException;
 
     /**
