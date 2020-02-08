@@ -80,7 +80,7 @@
 
   <scm>
     <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-1.22.1</connection>
-    <developerConnection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-1.22.1</developerConnection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-1.22.1</developerConnection>
     <url>https://svn.apache.org/viewvc/jackrabbit/oak/tags/jackrabbit-oak-1.22.1</url>
   </scm>
 

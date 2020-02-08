@@ -23,6 +23,7 @@ Bug
     [OAK-8845] - Function-based indexing don't support ordering
     [OAK-8855] - Permission evaluation of nodes broken after :nestedCug removed from parent node
     [OAK-8870] - UserAuthentication.authenticate should remove pw attribute
+    [OAK-8894] - Build error on travis-ci
 
 Improvement
 
