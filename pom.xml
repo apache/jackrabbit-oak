@@ -80,7 +80,7 @@
 
   <scm>
     <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.22</connection>
-    <developerConnection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.22</developerConnection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.22</developerConnection>
     <url>https://svn.apache.org/viewvc/jackrabbit/oak/branches/1.22</url>
   </scm>
 
