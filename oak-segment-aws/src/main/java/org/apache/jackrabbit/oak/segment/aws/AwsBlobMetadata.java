@@ -30,7 +30,7 @@ public final class AwsBlobMetadata {
 
     private static final String METADATA_SEGMENT_GENERATION = "generation";
 
-    private static final String METADATA_SEGMENT_FULL_GENERATION = "fullGeneration";
+    private static final String METADATA_SEGMENT_FULL_GENERATION = "fullgeneration";
 
     private static final String METADATA_SEGMENT_COMPACTED = "compacted";
 
