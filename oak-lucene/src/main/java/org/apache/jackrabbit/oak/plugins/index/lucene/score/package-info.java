@@ -14,6 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/**
+ * @deprecated Unused package that exposes Lucene API directly - it will be removed in 1.28
+ */
+@Deprecated
 @Version("1.3.1")
 package org.apache.jackrabbit.oak.plugins.index.lucene.score;
 
