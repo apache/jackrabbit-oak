@@ -28,6 +28,10 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactor
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @deprecated Unused interface that exposes Lucene API directly - it will be removed in 1.28
+ */
+@Deprecated
 @Component(metatype = false, immediate = true)
 @Service(value = ScorerProviderFactory.class)
 @Reference(name = "ScorerProvider",
