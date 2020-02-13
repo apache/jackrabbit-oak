@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.search.update;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.stats.Clock;
 
@@ -58,10 +57,10 @@ public class TimedRefreshPolicy implements ReaderRefreshPolicy, IndexUpdateListe
     }
 
     private void refreshIfRequired(Runnable refreshCallback) {
-        if (dirty.get()) {
+        if (dirty.get()){
             long currentTime = clock.getTime();
             if (currentTime - lastRefreshTime > refreshDelta
-                    && dirty.compareAndSet(true, false)) {
+                    && dirty.compareAndSet(true, false)){
                 lastRefreshTime = currentTime;
                 refreshCallback.run();
             }

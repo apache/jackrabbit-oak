@@ -271,6 +271,8 @@ public class LuceneIndexNodeManager {
     }
 
     private void releaseHolder(SearcherHolder holder) {
+        // holder.released is atomicBoolean and act as idempotent key
+        // i.e. decRef is executed only once for a holder
         if (holder.released.compareAndSet(false, true)) {
             try {
                 //Decrement the count by 1 as we increased it while creating the searcher
