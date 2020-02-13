@@ -17,16 +17,9 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.io.ByteArrayInputStream;
-
-import org.apache.jackrabbit.core.data.DataRecord;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.Assert.fail;
 
 /**
  * Test S3DataStore operation with SSE_S3 encryption.
@@ -44,43 +37,8 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        String bucket = props.getProperty(S3Constants.S3_BUCKET);
         props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_S3);
-        props.setProperty("cacheSize", "0");
-    }
-
-    /**
-     * Test data migration enabling SSE_S3 encryption.
-     */
-    @Test
-    public void testDataMigration() {
-        try {
-            //manually close the setup ds and remove encryption
-            ds.close();
-            props.remove(S3Constants.S3_ENCRYPTION);
-            ds = createDataStore();
-
-            byte[] data = new byte[dataLength];
-            randomGen.nextBytes(data);
-            DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
-            Assert.assertEquals(data.length, rec.getLength());
-            assertRecord(data, rec);
-            ds.close();
-
-            // turn encryption now anc recreate datastore instance
-            props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_S3);
-            props.setProperty(S3Constants.S3_RENAME_KEYS, "true");
-            ds = createDataStore();
-
-            rec = ds.getRecord(rec.getIdentifier());
-            Assert.assertEquals(data.length, rec.getLength());
-            assertRecord(data, rec);
-
-            randomGen.nextBytes(data);
-            ds.addRecord(new ByteArrayInputStream(data));
-            ds.close();
-        } catch (Exception e) {
-            LOG.error("error:", e);
-            fail(e.getMessage());
-        }
+        props.setProperty("s3Bucket", bucket);
     }
 }
