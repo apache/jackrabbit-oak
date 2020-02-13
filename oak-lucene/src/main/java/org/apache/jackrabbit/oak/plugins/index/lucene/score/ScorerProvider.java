@@ -19,10 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.score;
 import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.search.Query;
 
-/**
- * @deprecated Unused interface that exposes Lucene API directly - it will be removed in 1.28
- */
-@Deprecated
 public interface ScorerProvider {
     String getName();
     CustomScoreQuery createCustomScoreQuery(Query subQuery);
