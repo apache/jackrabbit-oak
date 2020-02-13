@@ -271,18 +271,14 @@ public class LuceneIndexNodeManager {
     }
 
     private void releaseHolder(SearcherHolder holder) {
-        synchronized (holder) {
-            decrementSearcherUsageCount(holder.searcher);
-        }
-    }
-
-    private void decrementSearcherUsageCount(IndexSearcher searcher) {
-        try {
-            //Decrement the count by 1 as we increased it while creating the searcher
-            //in createReader
-            searcher.getIndexReader().decRef();
-        } catch (IOException e) {
-            log.warn("Error occurred while releasing reader for index [{}]", definition.getIndexPath(), e);
+        if (holder.released.compareAndSet(false, true)) {
+            try {
+                //Decrement the count by 1 as we increased it while creating the searcher
+                //in createReader
+                holder.searcher.getIndexReader().decRef();
+            } catch (IOException e) {
+                log.warn("Error occurred while releasing reader for index [{}]", definition.getIndexPath(), e);
+            }
         }
     }
 
@@ -291,6 +287,7 @@ public class LuceneIndexNodeManager {
         final List<LuceneIndexReader> nrtReaders;
         final int searcherId = SEARCHER_ID_COUNTER.incrementAndGet();
         final LuceneIndexStatistics indexStatistics;
+        private final AtomicBoolean released = new AtomicBoolean();
 
         public SearcherHolder(IndexSearcher searcher, List<LuceneIndexReader> nrtReaders) {
             this.searcher = searcher;
@@ -305,7 +302,6 @@ public class LuceneIndexNodeManager {
 
     private class IndexNodeImpl implements LuceneIndexNode {
         private final SearcherHolder holder;
-        private final AtomicBoolean released = new AtomicBoolean();
 
         private IndexNodeImpl(SearcherHolder searcherHolder) {
             this.holder = searcherHolder;
@@ -313,13 +309,11 @@ public class LuceneIndexNodeManager {
 
         @Override
         public void release() {
-            if (released.compareAndSet(false, true)) {
-                try {
-                    //Decrement on each release
-                    decrementSearcherUsageCount(holder.searcher);
-                } finally {
-                    LuceneIndexNodeManager.this.release();
-                }
+            try {
+                //release holder on each release
+                releaseHolder(holder);
+            } finally {
+                LuceneIndexNodeManager.this.release();
             }
         }
 
