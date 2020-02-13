@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.score;
 
-/**
- * @deprecated Unused interface that exposes Lucene API directly - it will be removed in 1.28
- */
-@Deprecated
 public interface ScorerProviderFactory {
     ScorerProviderFactory DEFAULT = new ScorerProviderFactory() {
         @Override
