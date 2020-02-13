@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+@Deprecated
 @Version("1.3.1")
 package org.apache.jackrabbit.oak.plugins.index.lucene.score;
 
