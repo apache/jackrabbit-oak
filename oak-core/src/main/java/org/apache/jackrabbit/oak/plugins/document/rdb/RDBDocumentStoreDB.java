@@ -346,7 +346,10 @@ public enum RDBDocumentStoreDB {
         @Override
         public String getTableCreationStatement(String tableName) {
             // see https://issues.apache.org/jira/browse/OAK-2395
-            return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA nvarchar(4000), BDATA varbinary(max))");
+            return ("create table " + tableName
+                    + " (ID varbinary(512) not null, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, "
+                    + "DATA nvarchar(4000), BDATA varbinary(max), "
+                    + "constraint "  + tableName + "_PK primary key clustered (ID ASC))");
         }
 
         @Override

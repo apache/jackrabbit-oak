@@ -64,7 +64,8 @@ public enum RDBBlobStoreDB {
         @Override
         public String getDataTableCreationStatement(String tableName) {
             return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
-                    + ") not null primary key, DATA varbinary(max))";
+                    + ") not null, DATA varbinary(max)"
+                    + "constraint "  + tableName + "_PK primary key clustered (ID ASC))";
         }
     },
 
