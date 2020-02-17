@@ -117,7 +117,7 @@ public class DataStoreCheckCommand implements Command {
         String helpStr =
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
-                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose]";
+                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose] [--verboseRootPath <verose_root_path>]";
 
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
             // Options for operations requested
@@ -141,6 +141,10 @@ public class DataStoreCheckCommand implements Command {
 
             // Optional argument to specify tracking
             OptionSpecBuilder verbose = parser.accepts("verbose", "Output backend formatted ids/paths");
+
+            // Optional argument to specify root path under which tracking if to be done. Defaults to "/" if not specified
+            ArgumentAcceptingOptionSpec verboseRootPath = parser.accepts("verboseRootPath", "Root path to output backend formatted ids/paths")
+                    .withRequiredArg().ofType(String.class);
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -242,16 +246,23 @@ public class DataStoreCheckCommand implements Command {
             }
 
             if (options.has(refOp) || options.has(consistencyOp)) {
-                if (options.has(verbose) &&
+
+                if ((options.has(verbose) && 
                     (nodeStore instanceof SegmentNodeStore ||
-                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) {
+                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) || options.has(verboseRootPath)) {
                     NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
                     closer.register(traverser);
-                    traverser.traverse();
+
+                    if (options.has(verboseRootPath)) {
+                        traverser.traverse(options.valueOf(verboseRootPath).toString());
+                    } else {
+                        traverser.traverse();
+                    }
+
                     FileUtils.copyFile(traverser.references, register.createFile(refOp, dumpPath));
                 } else {
                     retrieveBlobReferences(blobStore, marker,
-                        register.createFile(refOp, dumpPath), dsType, options.has(verbose));
+                            register.createFile(refOp, dumpPath), dsType, options.has(verbose));
                 }
             }
 
@@ -487,6 +498,7 @@ public class DataStoreCheckCommand implements Command {
                 String propPath = PathUtils.concat(path, p.getName());
                 try {
                     if (p.getType() == Type.BINARY) {
+                        if(p.getValue(Type.BINARY).getContentIdentity().startsWith("0x")) continue;
                         count.incrementAndGet();
                         writeAsLine(writer,
                             getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), false);
@@ -496,6 +508,10 @@ public class DataStoreCheckCommand implements Command {
                             count.incrementAndGet();
 
                             String id = iterator.next().getContentIdentity();
+                            if(id.startsWith("0x")) {
+                                count.decrementAndGet();
+                                continue;
+                            }
                             writeAsLine(writer,
                                 getLine(id, propPath), false);
                         }
@@ -517,7 +533,7 @@ public class DataStoreCheckCommand implements Command {
             }
         }
 
-        public void traverse() throws IOException {
+        public void traverse(String ... path) throws IOException {
             BufferedWriter writer = null;
             final AtomicInteger count = new AtomicInteger();
             boolean threw = true;
@@ -526,7 +542,11 @@ public class DataStoreCheckCommand implements Command {
 
             try {
                 writer = Files.newWriter(references, Charsets.UTF_8);
-                traverseChildren(nodeStore.getRoot(), "/", writer, count);
+                if (path.length == 0) {
+                    traverseChildren(nodeStore.getRoot(), "/", writer, count);
+                } else {
+                    traverseChildren(nodeStore.getRoot().getChildNode(path[0]), "/" + path[0], writer, count);
+                }
 
                 writer.flush();
                 sort(references, idComparator);
