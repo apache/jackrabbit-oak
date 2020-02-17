@@ -45,6 +45,7 @@ public final class AvailableModes {
             .put("garbage", new GarbageCommand())
             .put("help", new HelpCommand())
             .put("history", new HistoryCommand())
+            .put("index-merge", new IndexMergeCommand())
             .put(IndexCommand.NAME, new IndexCommand())
             .put(IOTraceCommand.NAME, new IOTraceCommand())
             .put(JsonIndexCommand.INDEX, new JsonIndexCommand())

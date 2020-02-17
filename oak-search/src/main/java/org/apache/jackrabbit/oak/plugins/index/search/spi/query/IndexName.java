@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -143,6 +144,47 @@ public class IndexName implements Comparable<IndexName> {
     }
 
     /**
+     * Get the latest index name object that matches this index base name, and
+     * is customized.
+     *
+     * @param all the list of all indexes
+     * @return the lastest customized index, or null if none
+     */
+    public IndexName getLatestCustomized(List<IndexName> all) {
+        IndexName latest = null;
+        for (IndexName n : all) {
+            if (n.baseName.equals(baseName)) {
+                if (n.customerVersion > 0) {
+                    if (latest == null || n.compareTo(latest) > 0) {
+                        latest = n;
+                    }
+                }
+            }
+        }
+        return latest;
+    }
+
+    /**
+     * Get the latest product index that matches this index base name.
+     *
+     * @param all the list of all indexes
+     * @return the latest product index, or null if none
+     */
+    public IndexName getLatestProduct(List<IndexName> all) {
+        IndexName latest = null;
+        for (IndexName n : all) {
+            if (n.baseName.equals(baseName)) {
+                if (compareTo(n) > 0 && n.customerVersion == 0) {
+                    if (latest == null || n.compareTo(latest) > 0) {
+                        latest = n;
+                    }
+                }
+            }
+        }
+        return latest;
+    }
+
+    /**
      * Filter out index that are replaced by another index with the same base
      * name but newer version.
      * 
@@ -179,6 +221,10 @@ public class IndexName implements Comparable<IndexName> {
             result.add(n.nodeName);
         }
         return result;
+    }
+
+    public String nextCustomizedName() {
+        return baseName + "-" + productVersion + "-custom-" + (customerVersion + 1);
     }
 
     private static boolean isIndexActive(String indexPath, NodeState rootState) {
