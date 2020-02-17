@@ -498,7 +498,7 @@ public class DataStoreCheckCommand implements Command {
                 String propPath = PathUtils.concat(path, p.getName());
                 try {
                     if (p.getType() == Type.BINARY) {
-                        if(p.getValue(Type.BINARY).getContentIdentity().startsWith("0x")) continue;
+                        if (p.getValue(Type.BINARY).getContentIdentity().startsWith("0x")) continue;
                         count.incrementAndGet();
                         writeAsLine(writer,
                             getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), false);
@@ -508,7 +508,7 @@ public class DataStoreCheckCommand implements Command {
                             count.incrementAndGet();
 
                             String id = iterator.next().getContentIdentity();
-                            if(id.startsWith("0x")) {
+                            if (id.startsWith("0x")) {
                                 count.decrementAndGet();
                                 continue;
                             }
