@@ -115,9 +115,9 @@ public class DataStoreCheckCommand implements Command {
         parser.allowsUnrecognizedOptions();
 
         String helpStr =
-                "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
-                        + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
-                        + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose] [--verboseRootPath <verose_root_path>]";
+            "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
+                + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
+                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose] [--verboseRootPath <verose_root_path>]";
 
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
             // Options for operations requested
@@ -127,17 +127,17 @@ public class DataStoreCheckCommand implements Command {
 
             // Node Store - needed for --ref, --consistency
             ArgumentAcceptingOptionSpec<String> store = parser.accepts("store", "Node Store")
-                    .requiredIf(refOp, consistencyOp).withRequiredArg().ofType(String.class);
+                .requiredIf(refOp, consistencyOp).withRequiredArg().ofType(String.class);
             // Optional argument to specify the dump path
             ArgumentAcceptingOptionSpec<String> dump = parser.accepts("dump", "Dump Path")
-                    .withRequiredArg().ofType(String.class);
+                .withRequiredArg().ofType(String.class);
 
             // Optional argument to specify tracking
             OptionSpecBuilder trackOverride = parser.accepts("track", "Force override tracked ids");
 
             // Required argument for --consistency to specify tracking folder (otherwise can have inconsistencies)
             ArgumentAcceptingOptionSpec<String> repoHome = parser.accepts("repoHome", "Local repository home folder")
-                    .requiredIf(trackOverride, consistencyOp).withRequiredArg().ofType(String.class);
+                .requiredIf(trackOverride, consistencyOp).withRequiredArg().ofType(String.class);
 
             // Optional argument to specify tracking
             OptionSpecBuilder verbose = parser.accepts("verbose", "Output backend formatted ids/paths");
@@ -147,7 +147,7 @@ public class DataStoreCheckCommand implements Command {
                     .withRequiredArg().ofType(String.class);
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
-                    "show help").forHelp();
+                "show help").forHelp();
 
             // Required rules (any one of --id, --ref, --consistency)
             idOp.requiredUnless(refOp, consistencyOp);
@@ -177,7 +177,7 @@ public class DataStoreCheckCommand implements Command {
                 dumpPath = options.valueOf(dump);
             }
 
-            GarbageCollectableBlobStore blobStore = null;
+            GarbageCollectableBlobStore blobStore  = null;
             BlobReferenceRetriever marker = null;
             NodeStore nodeStore = null;
             if (options.has(store)) {
@@ -186,7 +186,7 @@ public class DataStoreCheckCommand implements Command {
                     MongoClientURI uri = new MongoClientURI(source);
                     MongoClient client = new MongoClient(uri);
                     DocumentNodeStore docNodeStore =
-                            newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase()).build();
+                        newMongoDocumentNodeStoreBuilder().setMongoDB(client, uri.getDatabase()).build();
                     closer.register(Utils.asCloseable(docNodeStore));
                     blobStore = (GarbageCollectableBlobStore) docNodeStore.getBlobStore();
                     marker = new DocumentBlobReferenceRetriever(docNodeStore);
@@ -196,13 +196,13 @@ public class DataStoreCheckCommand implements Command {
                     marker = new SegmentBlobReferenceRetriever(fileStore);
                     closer.register(fileStore);
                     nodeStore =
-                            SegmentNodeStoreBuilders.builder(fileStore).build();
+                        SegmentNodeStoreBuilders.builder(fileStore).build();
                 }
             }
 
             // Initialize S3/FileDataStore if configured
             String dsType = "";
-            GarbageCollectableBlobStore dataStore = Utils.bootstrapDataStore(args, closer);
+            GarbageCollectableBlobStore dataStore  = Utils.bootstrapDataStore(args, closer);
             if (dataStore != null) {
                 dsType = getDSType(args);
                 blobStore = dataStore;
@@ -221,8 +221,7 @@ public class DataStoreCheckCommand implements Command {
             if (options.has(idOp) || options.has(consistencyOp)) {
                 File idTemp = createTempFile("ids", null);
                 closer.register(new Closeable() {
-                    @Override
-                    public void close() throws IOException {
+                    @Override public void close() throws IOException {
                         forceDelete(idTemp);
                     }
                 });
@@ -235,7 +234,7 @@ public class DataStoreCheckCommand implements Command {
                     String trackPath = options.valueOf(repoHome);
                     File trackingFileParent = new File(FilenameUtils.concat(trackPath, "blobids"));
                     File trackingFile = new File(trackingFileParent,
-                            "blob-" + String.valueOf(System.currentTimeMillis()) + ".gen");
+                        "blob-" + String.valueOf(System.currentTimeMillis()) + ".gen");
                     FileUtils.copyFile(idTemp, trackingFile);
                 }
 
@@ -248,9 +247,9 @@ public class DataStoreCheckCommand implements Command {
 
             if (options.has(refOp) || options.has(consistencyOp)) {
 
-                if ((options.has(verbose) &&
-                        (nodeStore instanceof SegmentNodeStore ||
-                                nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) || options.has(verboseRootPath)) {
+                if ((options.has(verbose) && 
+                    (nodeStore instanceof SegmentNodeStore ||
+                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) || options.has(verboseRootPath)) {
                     NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
                     closer.register(traverser);
 
@@ -269,7 +268,7 @@ public class DataStoreCheckCommand implements Command {
 
             if (options.has(consistencyOp)) {
                 checkConsistency(register.get(idOp), register.get(refOp),
-                        register.createFile(consistencyOp, dumpPath), options.valueOf(repoHome), dsType);
+                    register.createFile(consistencyOp, dumpPath), options.valueOf(repoHome), dsType);
             }
 
             return 0;
@@ -285,8 +284,7 @@ public class DataStoreCheckCommand implements Command {
             // Create a temp file to write real ids and register with closer
             File longIdTemp = createTempFile("longids", null);
             closer.register(new Closeable() {
-                @Override
-                public void close() throws IOException {
+                @Override public void close() throws IOException {
                     forceDelete(longIdTemp);
                 }
             });
@@ -320,7 +318,7 @@ public class DataStoreCheckCommand implements Command {
 
         if (dsType.equals(FDS)) {
             return (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value() + blobId
-                    .substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+                .substring(4, 6) + FILE_SEPARATOR.value() + blobId);
         } else if (dsType.equals(S3DS) || dsType.equals(AZUREDS)) {
             return (blobId.substring(0, 4) + DASH + blobId.substring(4));
         }
@@ -329,7 +327,7 @@ public class DataStoreCheckCommand implements Command {
 
     private static String decodeId(String id) {
         List<String> list = Splitter.on(FILE_SEPARATOR.value()).trimResults().omitEmptyStrings().splitToList(id);
-        String pathStrippedId = list.get(list.size() - 1);
+        String pathStrippedId = list.get(list.size() -1);
         return Joiner.on("").join(Splitter.on(DASH).omitEmptyStrings().trimResults().splitToList(pathStrippedId));
     }
 
@@ -370,7 +368,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static void checkConsistency(File ids, File refs, File missing, String trackRoot, String dsType)
-            throws IOException {
+        throws IOException {
         System.out.println("Starting consistency check");
         Stopwatch watch = createStarted();
 
@@ -382,8 +380,7 @@ public class DataStoreCheckCommand implements Command {
                     return input.split(DELIM)[0];
                 }
                 return "";
-            }
-        });
+            }});
 
 
         // write the candidates identified to a temp file
@@ -395,15 +392,13 @@ public class DataStoreCheckCommand implements Command {
             File trackingFileParent = new File(FilenameUtils.concat(trackRoot, "blobids"));
             if (trackingFileParent.exists()) {
                 Collection<File> files =
-                        listFiles(trackingFileParent, FileFilterUtils.suffixFileFilter(".del"), null);
+                    listFiles(trackingFileParent, FileFilterUtils.suffixFileFilter(".del"), null);
 
                 // If a delete file is present filter the tracked deleted ids
                 if (!files.isEmpty()) {
                     File delFile = files.iterator().next();
                     FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(delFile, candTemp, new java.util.function.Function<String, String>() {
-                        @Nullable
-                        @Override
-                        public String apply(@Nullable String input) {
+                        @Nullable @Override public String apply(@Nullable String input) {
                             if (input != null) {
                                 return encodeId(decodeId(input.split(DELIM)[0]), dsType);
                             }
@@ -428,7 +423,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static void retrieveBlobReferences(GarbageCollectableBlobStore blobStore, BlobReferenceRetriever marker,
-                                               File marked, String dsType, boolean isVerbose) throws IOException {
+        File marked, String dsType, boolean isVerbose) throws IOException {
         final BufferedWriter writer = Files.newWriter(marked, Charsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
         boolean threw = true;
@@ -440,26 +435,26 @@ public class DataStoreCheckCommand implements Command {
             Stopwatch watch = createStarted();
 
             marker.collectReferences(
-                    new ReferenceCollector() {
-                        @Override
-                        public void addReference(String blobId, String nodeId) {
-                            try {
-                                Iterator<String> idIter = finalBlobStore.resolveChunks(blobId);
+                new ReferenceCollector() {
+                    @Override
+                    public void addReference(String blobId, String nodeId) {
+                        try {
+                            Iterator<String> idIter = finalBlobStore.resolveChunks(blobId);
 
-                                while (idIter.hasNext()) {
-                                    String id = idIter.next();
-                                    if (isVerbose) {
-                                        id = encodeId(id, dsType);
-                                    }
-                                    String combinedId = delimJoiner.join(id, escapeLineBreak(nodeId));
-                                    count.getAndIncrement();
-                                    writeAsLine(writer, combinedId, false);
+                            while (idIter.hasNext()) {
+                                String id = idIter.next();
+                                if (isVerbose) {
+                                    id = encodeId(id, dsType);
                                 }
-                            } catch (Exception e) {
-                                throw new RuntimeException("Error in retrieving references", e);
+                                String combinedId = delimJoiner.join(id, escapeLineBreak(nodeId));
+                                count.getAndIncrement();
+                                writeAsLine(writer, combinedId, false);
                             }
+                        } catch (Exception e) {
+                            throw new RuntimeException("Error in retrieving references", e);
                         }
                     }
+                }
             );
             writer.flush();
             sort(marked, idComparator);
@@ -473,7 +468,7 @@ public class DataStoreCheckCommand implements Command {
     }
 
     private static void retrieveBlobIds(GarbageCollectableBlobStore blobStore, File blob)
-            throws Exception {
+        throws Exception {
 
         System.out.println("Starting dump of blob ids");
         Stopwatch watch = createStarted();
@@ -503,23 +498,22 @@ public class DataStoreCheckCommand implements Command {
                 String propPath = PathUtils.concat(path, p.getName());
                 try {
                     if (p.getType() == Type.BINARY) {
-                        // Ignore 0x prefixed blobids (which means data is encoded in id itself)
-                        if (p.getValue(Type.BINARY).getContentIdentity().startsWith("0x")) continue;
+                        if(p.getValue(Type.BINARY).getContentIdentity().startsWith("0x")) continue;
                         count.incrementAndGet();
                         writeAsLine(writer,
-                                getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), false);
+                            getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), false);
                     } else if (p.getType() == Type.BINARIES && p.count() > 0) {
                         Iterator<Blob> iterator = p.getValue(Type.BINARIES).iterator();
                         while (iterator.hasNext()) {
                             count.incrementAndGet();
 
                             String id = iterator.next().getContentIdentity();
-                            if (id.startsWith("0x")) {
+                            if(id.startsWith("0x")) {
                                 count.decrementAndGet();
                                 continue;
                             }
                             writeAsLine(writer,
-                                    getLine(id, propPath), false);
+                                getLine(id, propPath), false);
                         }
                     }
                 } catch (Exception e) {
@@ -539,7 +533,7 @@ public class DataStoreCheckCommand implements Command {
             }
         }
 
-        public void traverse(String... path) throws IOException {
+        public void traverse(String ... path) throws IOException {
             BufferedWriter writer = null;
             final AtomicInteger count = new AtomicInteger();
             boolean threw = true;
