@@ -24,44 +24,46 @@ The remote client performs the actual binary upload directly to the binary stora
 Example A: Here’s how to initiateHttpUpload:
 ```
 long ONE_GB = 1048576000;
-/*Set all the properties for SSE*/
-if(properties != null){
-    setProperties(properties);
-}
+int dataLength = 123456;
+
+/*Pre-set all the properties for SSE before this */
+
 DataRecordUpload uploadContext = initiateHttpUpload(ONE_GB, 1);
 String uploadToken = uploadContext.getUploadToken();
-/*resultHttpStatusCode should be returned as 200 */
-int resultHttpStatusCode =  httpPut(uploadContext);
+byte[] data = new byte[dataLength];
+Random randomGen = new Random();
+randomGen.nextBytes(data);
+
+/*StatusCode returned in CloseableHttpResponse should be 200 */
+CloseableHttpResponse resultHttpStatusCode = httpPut(uploadContext, new ByteArrayInputStream(data), data.length);
 ```
 
 Here’s how to make use of the context returned by the `initiateHttpUpload` in Example A to upload a file using different SSE Encryption:
 ```
-int httpPut(@Nullable DataRecordUpload uploadContext) throws IOException  {
-    File fileToUpload = ...;
-    String keyId = null;
+CloseableHttpResponse httpPut(@Nullable DataRecordUpload uploadContext, InputStream inputstream, long length) throws IOException  {
+    // this weird combination of @Nullable and assertNotNull() is for IDEs not warning in test methods
     URI puturl = uploadContext.getUploadURIs().iterator().next();
     HttpPut putreq = new HttpPut(puturl);
 
+    String keyId = null;
     String encryptionType = props.getProperty(s3Encryption);
 
     if (encryptionType.equals(SSE_KMS)) {
-        keyId = props.getProperty(kmsKeyId);
-        putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION,
-               SSEAlgorithm.KMS.getAlgorithm()));
-        if(keyId != null) {
-            putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID,
-               keyId));
+       keyId = props.getProperty(kmsKeyId);
+       putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION,
+                SSEAlgorithm.KMS.getAlgorithm()));
+       if(keyId != null) {
+           putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID,
+                keyId));
         }
-    } else {
-        putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION,
-            SSEAlgorithm.AES256.getAlgorithm()));
     }
 
-    putreq.setEntity(new FileEntity(fileToUpload));
+    putreq.setEntity(new InputStreamEntity(inputstream , length));
     CloseableHttpClient httpclient = HttpClients.createDefault();
     CloseableHttpResponse response  = httpclient.execute(putreq);
-    return response.getStatusLine().getStatusCode();
+    return response;
 }
+
 ```
 
-Here is an example of a [test case](https://github.com/apache/jackrabbit-oak/blob/5f89d905e96de6f9bb9314a08529e262607ba406/oak-blob-cloud/src/test/java/org/apache/jackrabbit/oak/blob/cloud/s3/TestS3Ds.java#L180) where initiate, upload and complete binary upload phases are shown.
+Here is an example of a [test case](https://github.com/apache/jackrabbit-oak/blob/5f89d905e96de6f9bb9314a08529e262607ba406/oak-blob-cloud/src/test/java/org/apache/jackrabbit/oak/blob/cloud/s3/TestS3Ds.java#L219) where initiate, upload and complete binary upload phases are shown.
