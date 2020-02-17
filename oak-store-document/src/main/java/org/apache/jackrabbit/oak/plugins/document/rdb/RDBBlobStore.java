@@ -208,7 +208,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 try {
                     // avoid PreparedStatement due to weird DB2 behavior (OAK-6237)
                     checkStatement = con.createStatement();
-                    ResultSet checkResultSet = checkStatement.executeQuery("select ID from " + tableName + " where ID = '0'");
+                    ResultSet checkResultSet = checkStatement.executeQuery("select * from " + tableName + " where ID = '0'");
 
                     // try to discover metadata
                     tableInfo.put(tableName, RDBJDBCTools.dumpResultSetMeta(checkResultSet.getMetaData()));
