@@ -153,6 +153,8 @@ Below is the canonical index definition structure
       - indexPath (string)
       - codec (string)
       - refresh (boolean)
+      - functionName (string)
+      - useIfExists (string)
       + indexRules (nt:unstructured)
       + aggregates (nt:unstructured)
       + analyzers (nt:unstructured)
@@ -352,7 +354,8 @@ structure
       - notNullCheckEnabled (boolean) = false
       - nullCheckEnabled (boolean) = false
       - excludeFromAggregation (boolean) = false
-      - weight (long) = -1
+      - weight (long) = 5
+      - function (string)
 
 Following are the details about the above mentioned config options which can be
 defined at the property definition level
@@ -717,7 +720,6 @@ The default analyzer can be configured via `analyzers/default` node
       - jcr:primaryType = "oak:QueryIndexDefinition"
       + analyzers
         + default
-        + pathText
           ...
 ```
 
@@ -773,6 +775,30 @@ all the other components (e.g. `charFilters`, `Synonym`) are optional.
           + Synonym
             - synonyms = "synonym.txt"
             + synonym.txt (nt:file)
+```
+
+#### Examples
+
+Adding stemming support
+```
+1. Use an analyzer which has stemming included by default e.g. EnglishAnalyzer which has PorterStemFilter.
+    + analyzers
+      + default
+        - class = "org.apache.lucene.analysis.en.EnglishAnalyzer"
+        
+2. Use stemming as part of analyzer composition (using org.apache.lucene.analysis.hunspell.HunspellStemFilterFactory)
+    + analyzers
+      + default
+        + tokenizer
+          - name = "Standard"
+        + filters (nt:unstructured) //The filters needs to be ordered
+          + LowerCase
+          + HunspellStem
+            - dictionary = "en_gb.dic"
+            - affix = "en_gb.aff"
+            + en_gb.aff (nt:file)
+            + en_gb.dic (nt:file)
+         
 ```
 
 Points to note
