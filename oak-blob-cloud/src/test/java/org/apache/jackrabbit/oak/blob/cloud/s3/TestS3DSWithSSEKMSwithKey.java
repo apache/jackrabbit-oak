@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import com.google.common.base.Strings;
+import org.junit.AssumptionViolatedException;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +39,12 @@ public class TestS3DSWithSSEKMSwithKey extends TestS3Ds {
         public void setUp() throws Exception {
             super.setUp();
             String keyid = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-            props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
-            props.setProperty(S3Constants.S3_SSE_KMS_KEYID, keyid);
+            if (!Strings.isNullOrEmpty(keyid)) {
+                props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
+                props.setProperty(S3Constants.S3_SSE_KMS_KEYID, keyid);
+            } else {
+                LOG.info("Key ID not configured so ignoring test");
+                throw new AssumptionViolatedException("KMS key Id not configured");
+            }
         }
 }
