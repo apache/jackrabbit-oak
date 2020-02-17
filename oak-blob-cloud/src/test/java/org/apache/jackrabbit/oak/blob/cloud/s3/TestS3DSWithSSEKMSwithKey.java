@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
  * See details @ {@link S3DataStoreUtils}.
  * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
-
+ * provide kmsKeyId in above aws.properties file
  */
 public class TestS3DSWithSSEKMSwithKey extends TestS3Ds {
 
@@ -36,10 +36,8 @@ public class TestS3DSWithSSEKMSwithKey extends TestS3Ds {
         @Before
         public void setUp() throws Exception {
             super.setUp();
-            String randomKey = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-            String bucket = props.getProperty(S3Constants.S3_BUCKET);
+            String keyid = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
             props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
-            props.setProperty(S3Constants.S3_SSE_KMS_KEYID, randomKey);
-            props.setProperty("s3Bucket", bucket);
+            props.setProperty(S3Constants.S3_SSE_KMS_KEYID, keyid);
         }
 }

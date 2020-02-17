@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
  * See details @ {@link S3DataStoreUtils}.
  * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
-
  */
 public class TestS3DSWithSSES3 extends TestS3Ds {
 
@@ -37,8 +36,6 @@ public class TestS3DSWithSSES3 extends TestS3Ds {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        String bucket = props.getProperty(S3Constants.S3_BUCKET);
         props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_S3);
-        props.setProperty("s3Bucket", bucket);
     }
 }
