@@ -258,8 +258,8 @@ public class DataStoreCheckCommand implements Command {
                     NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
                     closer.register(traverser);
 
-                        List<String> rootPathList = options.valuesOf(verboseRootPath);
-                        traverser.traverse((String[]) rootPathList.toArray(new String[rootPathList.size()]));
+                    List<String> rootPathList = options.valuesOf(verboseRootPath);
+                    traverser.traverse((String[]) rootPathList.toArray(new String[rootPathList.size()]));
 
                     FileUtils.copyFile(traverser.references, register.createFile(refOp, dumpPath));
                 } else {
