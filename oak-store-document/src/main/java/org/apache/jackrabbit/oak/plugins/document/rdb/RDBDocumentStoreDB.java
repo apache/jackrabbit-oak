@@ -16,15 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -124,7 +120,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    POSTGRES("PostgreSQL") {
+    POSTGRES("PostgreSQL", RDBCommonVendorSpecificCode.POSTGRES) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             String result = RDBJDBCTools.versionCheck(md, 9, 5, 9, 4, description);
@@ -167,33 +163,6 @@ public enum RDBDocumentStoreDB {
                     + (schema >= 1 ? "VERSION smallint, " : "")
                     + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
                     + "DATA varchar(16384), BDATA bytea)");
-        }
-
-        @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<>();
-            try {
-                con = ch.getROConnection();
-                String cat = con.getCatalog();
-                stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
-                stmt.setString(1, cat);
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    result.put("pg_encoding_to_char(encoding)", rs.getString(1));
-                    result.put("datcollate", rs.getString(2));
-                }
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result;
         }
 
         @Override
@@ -257,7 +226,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    DB2("DB2") {
+    DB2("DB2", RDBCommonVendorSpecificCode.DB2) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 5, description);
@@ -285,50 +254,6 @@ public enum RDBDocumentStoreDB {
             statements.add("alter table " + tableName + " add constraint " + pkName + " primary key ( ID )");
             statements.addAll(super.getIndexCreationStatements(tableName, schema));
             return statements;
-        }
-
-        @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<>();
-            try {
-                con = ch.getROConnection();
-
-                // schema name will only be available with JDK 1.7
-                String conSchema = ch.getSchema(con);
-
-                StringBuilder sb = new StringBuilder();
-                sb.append("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
-                if (conSchema != null) {
-                    conSchema = conSchema.trim();
-                    sb.append(" AND UPPER(TABSCHEMA)=UPPER(?)");
-                }
-                stmt = con.prepareStatement(sb.toString());
-                stmt.setString(1, "ID");
-                stmt.setString(2, tableName);
-                if (conSchema != null) {
-                    stmt.setString(3, conSchema);
-                }
-
-                rs = stmt.executeQuery();
-                while (rs.next() && result.size() < 20) {
-                    String schema = rs.getString("TABSCHEMA").trim();
-                    result.put(schema + ".CODEPAGE", rs.getString("CODEPAGE").trim());
-                    result.put(schema + ".COLLATIONSCHEMA", rs.getString("COLLATIONSCHEMA").trim());
-                    result.put(schema + ".COLLATIONNAME", rs.getString("COLLATIONNAME").trim());
-                }
-                stmt.close();
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result;
         }
 
         @Override
@@ -394,7 +319,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    ORACLE("Oracle") {
+    ORACLE("Oracle", RDBCommonVendorSpecificCode.ORACLE) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 12, 1, 12, 2, description);
@@ -420,32 +345,6 @@ public enum RDBDocumentStoreDB {
                     + (schema >= 1 ? "VERSION number, " : "")
                     + (schema >= 2 ? "SDTYPE number, SDMAXREVTIME number, " : "")
                     + "DATA varchar(4000), BDATA blob)");
-        }
-
-        @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            Statement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<>();
-            try {
-                con = ch.getROConnection();
-                stmt = con.createStatement();
-                rs = stmt
-                        .executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
-                while (rs.next()) {
-                    result.put(rs.getString(1), rs.getString(2));
-                }
-                stmt.close();
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result;
         }
 
         @Override
@@ -514,7 +413,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    MYSQL("MySQL") {
+    MYSQL("MySQL", RDBCommonVendorSpecificCode.MYSQL) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 5, 5, description);
@@ -555,41 +454,6 @@ public enum RDBDocumentStoreDB {
                     return startIndex;
                 }
             };
-        }
-
-        @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<>();
-            try {
-                con = ch.getROConnection();
-                stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
-                stmt.setString(1, tableName);
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    result.put("collation", rs.getString("Collation"));
-                }
-                rs.close();
-                stmt.close();
-                stmt = con.prepareStatement(
-                        "SHOW VARIABLES WHERE variable_name LIKE 'character\\_set\\_%' OR variable_name LIKE 'collation%' OR variable_name = 'max_allowed_packet'");
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    result.put(rs.getString(1), rs.getString(2));
-                }
-                rs.close();
-                stmt.close();
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result;
         }
 
         @Override
@@ -647,7 +511,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    MSSQL("Microsoft SQL Server") {
+    MSSQL("Microsoft SQL Server", RDBCommonVendorSpecificCode.MSSQL) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 11, 0, description);
@@ -692,35 +556,6 @@ public enum RDBDocumentStoreDB {
         @Override
         public String getCurrentTimeStampInSecondsSyntax() {
             return "select datediff(second, dateadd(second, datediff(second, getutcdate(), getdate()), '1970-01-01'), getdate())";
-        }
-
-        @Override
-        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<>();
-            try {
-                con = ch.getROConnection();
-                String cat = con.getCatalog();
-                stmt = con.prepareStatement("SELECT collation_name, create_date FROM sys.databases WHERE name=?");
-                stmt.setString(1, cat);
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    result.put("collation_name", rs.getString("collation_name"));
-                    result.put("create_date", rs.getString("create_date"));
-                }
-                rs.close();
-                stmt.close();
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result;
         }
 
         private long parseSize(String readable) {
@@ -898,7 +733,7 @@ public enum RDBDocumentStoreDB {
 
     @NotNull
     public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-        return Collections.emptyMap();
+        return vendorCode.getAdditionalDiagnostics(ch, tableName);
     }
 
     /**
@@ -1014,6 +849,8 @@ public enum RDBDocumentStoreDB {
 
     protected String description;
 
+    protected RDBCommonVendorSpecificCode vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
+
     protected String extractFields(ResultSet rs, String indexStats) throws SQLException {
         StringBuilder data = new StringBuilder();
         for (String f : indexStats.split(" ")) {
@@ -1031,6 +868,12 @@ public enum RDBDocumentStoreDB {
 
     private RDBDocumentStoreDB(String description) {
         this.description = description;
+        this.vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
+    }
+
+    private RDBDocumentStoreDB(String description, RDBCommonVendorSpecificCode vendorCode) {
+        this.description = description;
+        this.vendorCode = vendorCode;
     }
 
     @Override
