@@ -186,8 +186,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
     @AttributeDefinition(
             name = "Delay factor for a Version GC run",
             description = "A Version GC run has a gap of this delay factor to reduce continuous load on system" +
-                    "The default value is " + DocumentNodeStoreService.DEFAULT_RGC_DELAY_FACTOR +
-                    " 0")
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_RGC_DELAY_FACTOR)
     double versionGCDelayFactor() default DocumentNodeStoreService.DEFAULT_RGC_DELAY_FACTOR;
 
     @AttributeDefinition(
