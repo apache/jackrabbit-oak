@@ -119,7 +119,8 @@ public class DataStoreCheckCommand implements Command {
         String helpStr =
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
-                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose] [--verboseRootPath <verbose_root_path>]";
+                + " [--dump <path>] [--repoHome <repo_home>] [--track] " +
+                    "[--verbose] [--verboseRootPath <verbose_root_path>]";
 
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
             // Options for operations requested
@@ -145,7 +146,8 @@ public class DataStoreCheckCommand implements Command {
             OptionSpecBuilder verbose = parser.accepts("verbose", "Output backend formatted ids/paths");
 
             // Optional argument to specify root path under which tracking if to be done. Defaults to "/" if not specified
-            ArgumentAcceptingOptionSpec verboseRootPath = parser.accepts("verboseRootPath", "Root path to output backend formatted ids/paths")
+            ArgumentAcceptingOptionSpec verboseRootPath = parser.accepts("verboseRootPath",
+                    "Root path to output backend formatted ids/paths")
                     .withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
@@ -253,16 +255,13 @@ public class DataStoreCheckCommand implements Command {
                 // is present (find blob references under a specific root path.)
                 if ((options.has(verbose) &&
                     (nodeStore instanceof SegmentNodeStore ||
-                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) || options.has(verboseRootPath)) {
+                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) ||
+                        options.has(verboseRootPath)) {
                     NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
                     closer.register(traverser);
 
-                    if (options.has(verboseRootPath)) {
                         List<String> rootPathList = options.valuesOf(verboseRootPath);
                         traverser.traverse((String[]) rootPathList.toArray(new String[rootPathList.size()]));
-                    } else {
-                        traverser.traverse();
-                    }
 
                     FileUtils.copyFile(traverser.references, register.createFile(refOp, dumpPath));
                 } else {
@@ -506,7 +505,9 @@ public class DataStoreCheckCommand implements Command {
                     if (p.getType() == Type.BINARY) {
                         id = p.getValue(Type.BINARY).getContentIdentity();
                         // Ignore inline encoded binaries in document mk and null references in segment mk
-                        if (id == null || id.startsWith(INLINE_BINARY_SUFFIX)) continue;
+                        if (id == null || p.getValue(Type.BINARY).isInlined()) {
+                            continue;
+                        }
                         writeAsLine(writer,
                                 getLine(id, propPath), false);
                         count.incrementAndGet();
@@ -517,7 +518,7 @@ public class DataStoreCheckCommand implements Command {
 
                             id = iterator.next().getContentIdentity();
                             // Ignore inline encoded binaries in document mk
-                            if (id == null || id.startsWith(INLINE_BINARY_SUFFIX)) {
+                            if (id == null || p.getValue(Type.BINARY).isInlined()) {
                                 continue;
                             }
                             writeAsLine(writer,
@@ -555,10 +556,9 @@ public class DataStoreCheckCommand implements Command {
                     traverseChildren(nodeStore.getRoot(), PATH_DELIM, writer, count);
                 } else {
                     for (String path: paths ) {
-                        String[] nodeList = path.split(PATH_DELIM);
+                        Iterable<String> nodeList = PathUtils.elements(path);
                         NodeState state = nodeStore.getRoot();
                         for (String node: nodeList) {
-                            if (node.isEmpty()) continue;
                             state = state.getChildNode(node);
                         }
                         traverseChildren(state, path, writer, count);
