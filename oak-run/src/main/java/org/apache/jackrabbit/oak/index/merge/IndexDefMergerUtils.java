@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
@@ -34,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 /**
  * Utility that allows to merge index definitions.
  */
-public class IndexDefMerger {
+public class IndexDefMergerUtils {
 
     private static HashSet<String> IGNORE_LEVEL_0 = new HashSet<>(Arrays.asList(
             "reindex", "refresh", "seed", "reindexCount"));
@@ -56,43 +57,30 @@ public class IndexDefMerger {
         return merged;
     }
 
-    private static boolean isSame(String a, String b) {
-        if (a == null || b == null) {
-            return a == b;
-        }
-        return a.equals(b);
-    }
-
-    private static boolean isSame(JsonObject a, JsonObject b) {
-        if (a == null || b == null) {
-            return a == b;
-        }
-        return a.toString().equals(b.toString());
-    }
-
     private static JsonObject merge(int level, JsonObject ancestor, JsonObject custom, JsonObject product,
-                ArrayList<String> conflicts) {
+            ArrayList<String> conflicts) {
+        Objects.requireNonNull(conflicts);
+        return mergeNoNull(level,
+                        ancestor == null ? new JsonObject() : ancestor,
+                        custom == null ? new JsonObject() : custom,
+                        product == null ? new JsonObject() : product,
+                        conflicts);
+    }
+
+    private static JsonObject mergeNoNull(int level, JsonObject ancestor, JsonObject custom, JsonObject product,
+            ArrayList<String> conflicts) {
+        Objects.requireNonNull(ancestor);
+        Objects.requireNonNull(custom);
+        Objects.requireNonNull(product);
+        Objects.requireNonNull(conflicts);
         JsonObject merged = new JsonObject(true);
+
         LinkedHashMap<String, Boolean> properties = new LinkedHashMap<>();
-        if (ancestor == null) {
-            ancestor = new JsonObject();
-        }
-        for(String p : ancestor.getProperties().keySet()) {
-            properties.put(p,  true);
-        }
-        if (custom == null) {
-            custom = new JsonObject();
-        }
-        for(String p : custom.getProperties().keySet()) {
-            properties.put(p,  true);
-        }
-        if (product == null) {
-            product = new JsonObject();
-        }
-        for(String p : product.getProperties().keySet()) {
-            properties.put(p,  true);
-        }
-        for(String k : properties.keySet()) {
+        addAllProperties(ancestor, properties);
+        addAllProperties(custom, properties);
+        addAllProperties(product, properties);
+
+        for (String k : properties.keySet()) {
             if (level == 0 && IGNORE_LEVEL_0.contains(k)) {
                 // ignore some properties
                 continue;
@@ -101,53 +89,76 @@ public class IndexDefMerger {
                 // ignore hidden properties
                 continue;
             }
-            String ap = ancestor.getProperties().get(k);
-            String cp = custom.getProperties().get(k);
-            String pp = product.getProperties().get(k);
-            String result;
-            if (isSame(ap, pp) || isSame(cp, pp)) {
-                result = cp;
-            } else if (isSame(ap, cp)) {
-                result = pp;
-            } else {
-                conflicts.add("Could not merge value; property=" + k + "; ancestor=" + ap + "; custom=" + cp + "; product=" + pp);
-                result = ap;
-            }
+            String result = mergeProperty(k, ancestor, custom, product, conflicts);
             if (result != null) {
                 merged.getProperties().put(k, result);
             }
         }
         LinkedHashMap<String, Boolean> children = new LinkedHashMap<>();
-        for(String c : ancestor.getChildren().keySet()) {
-            children.put(c,  true);
-        }
-        for(String c : custom.getChildren().keySet()) {
-            children.put(c,  true);
-        }
-        for(String c : product.getChildren().keySet()) {
-            children.put(c,  true);
-        }
-        for(String k : children.keySet()) {
+        addAllChildren(ancestor, children);
+        addAllChildren(custom, children);
+        addAllChildren(product, children);
+        for (String k : children.keySet()) {
             if (k.startsWith(":")) {
                 // ignore hidden nodes
                 continue;
             }
-            JsonObject a = ancestor.getChildren().get(k);
-            JsonObject c = custom.getChildren().get(k);
-            JsonObject p = product.getChildren().get(k);
-            JsonObject result;
-            if (isSame(a, p) || isSame(c, p)) {
-                result = c;
-            } else if (isSame(a, c)) {
-                result = p;
-            } else {
-                result = merge(level + 1, a, c, p, conflicts);
-            }
+            JsonObject result = mergeChild(k, level, ancestor, custom, product, conflicts);
             if (result != null) {
                 merged.getChildren().put(k, result);
             }
+
         }
         return merged;
+    }
+
+    private static void addAllProperties(JsonObject source, LinkedHashMap<String, Boolean> target) {
+        for(String k : source.getProperties().keySet()) {
+            target.put(k,  true);
+        }
+    }
+
+    private static void addAllChildren(JsonObject source, LinkedHashMap<String, Boolean> target) {
+        for(String k : source.getChildren().keySet()) {
+            target.put(k,  true);
+        }
+    }
+
+    private static String mergeProperty(String property, JsonObject ancestor, JsonObject custom, JsonObject product,
+            ArrayList<String> conflicts) {
+        String ap = ancestor.getProperties().get(property);
+        String cp = custom.getProperties().get(property);
+        String pp = product.getProperties().get(property);
+        if (Objects.equals(ap, pp) || Objects.equals(cp, pp)) {
+            return cp;
+        } else if (Objects.equals(ap, cp)) {
+            return pp;
+        } else {
+            conflicts.add("Could not merge value; property=" + property + "; ancestor=" + ap + "; custom=" + cp
+                    + "; product=" + pp);
+            return ap;
+        }
+    }
+
+    private static JsonObject mergeChild(String child, int level, JsonObject ancestor, JsonObject custom, JsonObject product,
+            ArrayList<String> conflicts) {
+        JsonObject a = ancestor.getChildren().get(child);
+        JsonObject c = custom.getChildren().get(child);
+        JsonObject p = product.getChildren().get(child);
+        if (isSameJson(a, p) || isSameJson(c, p)) {
+            return c;
+        } else if (isSameJson(a, c)) {
+            return p;
+        } else {
+            return merge(level + 1, a, c, p, conflicts);
+        }
+    }
+
+    private static boolean isSameJson(JsonObject a, JsonObject b) {
+        if (a == null || b == null) {
+            return a == null && b == null;
+        }
+        return a.toString().equals(b.toString());
     }
 
     /**
