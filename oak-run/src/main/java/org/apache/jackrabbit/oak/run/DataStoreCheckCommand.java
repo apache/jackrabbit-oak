@@ -97,8 +97,6 @@ public class DataStoreCheckCommand implements Command {
     private static final String AZUREDS = "--azureblobds";
     private static final String DASH = "-";
     private static final String HASH = "#";
-    private static final String INLINE_BINARY_SUFFIX = "0x";
-    private static final String PATH_DELIM = "/";
 
     private static final Comparator<String> idComparator = new Comparator<String>() {
         @Override
@@ -553,7 +551,7 @@ public class DataStoreCheckCommand implements Command {
             try {
                 writer = Files.newWriter(references, Charsets.UTF_8);
                 if (paths.length == 0) {
-                    traverseChildren(nodeStore.getRoot(), PATH_DELIM, writer, count);
+                    traverseChildren(nodeStore.getRoot(), "/", writer, count);
                 } else {
                     for (String path: paths ) {
                         Iterable<String> nodeList = PathUtils.elements(path);
