@@ -511,8 +511,9 @@ The following options are available:
     --verbose        - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
                        This options would typically be a slower option since, it requires the whole repo traversal.  
                        Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
-    --verboseRootPath- Path under which backend friendly blobids are required (Optional). If not specified, then --verbose uses "/" as the default path. For example,
-                       to list all blobids under /oak:index, pass oak:index as an argument to this option.
+    --verboseRootPath- Nodes under which backend friendly blobids are required (Optional). If not specified, then --verbose uses "/" as the default path. For example,
+                       to list all blobids under /oak:index and /content, use --verboseRootPath oak:index,content (If providing more than one arguments to this option, 
+                       use comma as a delimiter).
 Note:
 
 The command to be executed for S3DataStore

@@ -97,6 +97,7 @@ public class DataStoreCheckCommand implements Command {
     private static final String AZUREDS = "--azureblobds";
     private static final String DASH = "-";
     private static final String HASH = "#";
+    private static final String INLINE_BINARY_SUFFIX = "0x";
 
     private static final Comparator<String> idComparator = new Comparator<String>() {
         @Override
@@ -117,7 +118,7 @@ public class DataStoreCheckCommand implements Command {
         String helpStr =
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
-                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose] [--verboseRootPath <verose_root_path>]";
+                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose] [--verboseRootPath <verbose_root_path>]";
 
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
             // Options for operations requested
@@ -144,7 +145,7 @@ public class DataStoreCheckCommand implements Command {
 
             // Optional argument to specify root path under which tracking if to be done. Defaults to "/" if not specified
             ArgumentAcceptingOptionSpec verboseRootPath = parser.accepts("verboseRootPath", "Root path to output backend formatted ids/paths")
-                    .withRequiredArg().ofType(String.class);
+                    .withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -256,7 +257,8 @@ public class DataStoreCheckCommand implements Command {
                     closer.register(traverser);
 
                     if (options.has(verboseRootPath)) {
-                        traverser.traverse(options.valueOf(verboseRootPath).toString());
+                        List<String> rootPathList = options.valuesOf(verboseRootPath);
+                        traverser.traverse((String[]) rootPathList.toArray(new String[rootPathList.size()]));
                     } else {
                         traverser.traverse();
                     }
@@ -499,27 +501,31 @@ public class DataStoreCheckCommand implements Command {
             for (PropertyState p : state.getProperties()) {
                 String propPath = PathUtils.concat(path, p.getName());
                 try {
+                    String id ;
                     if (p.getType() == Type.BINARY) {
-                        if (p.getValue(Type.BINARY).getContentIdentity().startsWith("0x")) continue;
-                        count.incrementAndGet();
+                        id = p.getValue(Type.BINARY).getContentIdentity();
+                        // Ignore inline encoded binaries in document mk and null references in segment mk
+                        if (id == null || id.startsWith(INLINE_BINARY_SUFFIX)) continue;
                         writeAsLine(writer,
-                            getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), false);
+                                getLine(id, propPath), false);
+                        count.incrementAndGet();
+
                     } else if (p.getType() == Type.BINARIES && p.count() > 0) {
                         Iterator<Blob> iterator = p.getValue(Type.BINARIES).iterator();
                         while (iterator.hasNext()) {
-                            count.incrementAndGet();
 
-                            String id = iterator.next().getContentIdentity();
-                            if (id.startsWith("0x")) {
-                                count.decrementAndGet();
+                            id = iterator.next().getContentIdentity();
+                            // Ignore inline encoded binaries in document mk
+                            if (id == null || id.startsWith(INLINE_BINARY_SUFFIX)) {
                                 continue;
                             }
                             writeAsLine(writer,
                                 getLine(id, propPath), false);
+                            count.incrementAndGet();
                         }
                     }
                 } catch (Exception e) {
-                    System.err.println("Error in retrieving blob id for path " + propPath);
+                   System.err.println("Error in retrieving blob id for path " + propPath);
                 }
             }
         }
@@ -535,7 +541,7 @@ public class DataStoreCheckCommand implements Command {
             }
         }
 
-        public void traverse(String ... path) throws IOException {
+        public void traverse(String ... paths) throws IOException {
             BufferedWriter writer = null;
             final AtomicInteger count = new AtomicInteger();
             boolean threw = true;
@@ -544,10 +550,12 @@ public class DataStoreCheckCommand implements Command {
 
             try {
                 writer = Files.newWriter(references, Charsets.UTF_8);
-                if (path.length == 0) {
+                if (paths.length == 0) {
                     traverseChildren(nodeStore.getRoot(), "/", writer, count);
                 } else {
-                    traverseChildren(nodeStore.getRoot().getChildNode(path[0]), "/" + path[0], writer, count);
+                    for (String path: paths ) {
+                        traverseChildren(nodeStore.getRoot().getChildNode(path), "/" + path, writer, count);
+                    }
                 }
 
                 writer.flush();
