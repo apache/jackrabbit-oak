@@ -247,7 +247,9 @@ public class DataStoreCheckCommand implements Command {
 
             if (options.has(refOp) || options.has(consistencyOp)) {
 
-                if ((options.has(verbose) && 
+                // Find blob ids by traversal for verbose mode + Segment Store or if verboseRootPath option
+                // is present (find blob references under a specific root path.)
+                if ((options.has(verbose) &&
                     (nodeStore instanceof SegmentNodeStore ||
                         nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) || options.has(verboseRootPath)) {
                     NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
