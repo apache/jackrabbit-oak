@@ -98,6 +98,7 @@ public class DataStoreCheckCommand implements Command {
     private static final String DASH = "-";
     private static final String HASH = "#";
     private static final String INLINE_BINARY_SUFFIX = "0x";
+    private static final String PATH_DEIM = "/";
 
     private static final Comparator<String> idComparator = new Comparator<String>() {
         @Override
@@ -551,10 +552,16 @@ public class DataStoreCheckCommand implements Command {
             try {
                 writer = Files.newWriter(references, Charsets.UTF_8);
                 if (paths.length == 0) {
-                    traverseChildren(nodeStore.getRoot(), "/", writer, count);
+                    traverseChildren(nodeStore.getRoot(), PATH_DEIM, writer, count);
                 } else {
                     for (String path: paths ) {
-                        traverseChildren(nodeStore.getRoot().getChildNode(path), "/" + path, writer, count);
+                        String[] nodeList = path.split(PATH_DEIM);
+                        NodeState state = nodeStore.getRoot();
+                        for (String node: nodeList) {
+                            if (node.isEmpty()) continue;
+                            state = state.getChildNode(node);
+                        }
+                        traverseChildren(state, path, writer, count);
                     }
                 }
 
