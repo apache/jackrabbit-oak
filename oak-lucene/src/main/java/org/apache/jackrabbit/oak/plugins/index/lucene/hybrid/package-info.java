@@ -16,9 +16,8 @@
  */
 
 /**
- * This package contains fulltext search condition implementations.
+ * This package contains classes related to lucene hybrid indices that forms the basis of NRT indexing.
  */
-@Version("1.0.0")
-package org.apache.jackrabbit.oak.spi.query.fulltext;
+package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
 import org.osgi.annotation.versioning.Version;

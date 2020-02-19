@@ -16,9 +16,11 @@
  */
 
 /**
- * This package contains fulltext search condition implementations.
+ * This package contains classes related to lucene hybrid index v2 where the index content
+ * is stored using both property index (for recent enrties) and lucene indexes (for older entries). Related
+ * document can be found
+ * <a href="http://jackrabbit.apache.org/archive/wiki/JCR/attachments/115513516/115513517.pdf">here</a>.
  */
-@Version("1.0.0")
-package org.apache.jackrabbit.oak.spi.query.fulltext;
+package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import org.osgi.annotation.versioning.Version;
