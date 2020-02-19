@@ -636,18 +636,25 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
     }
 
     private void maybeCleanUpCheckpoints() {
-        // clean up every five minutes
-        long currentMinutes = TimeUnit.MILLISECONDS.toMinutes(
-                System.currentTimeMillis());
-        if (!indexStats.isFailing()
-                && cleanupIntervalMinutes > -1
-                && lastCheckpointCleanUpTime + cleanupIntervalMinutes < currentMinutes) {
-            try {
-                cleanUpCheckpoints();
-            } catch (Throwable e) {
-                log.warn("Checkpoint clean up failed", e);
+        if (cleanupIntervalMinutes < 0) {
+            log.debug("checkpoint cleanup skipped because cleanupIntervalMinutes set to: " + cleanupIntervalMinutes);
+        } else if (indexStats.isFailing()) {
+            log.debug("checkpoint cleanup skipped because index stats are failing: " + indexStats);
+        } else {
+            // clean up every five minutes by default
+            long currentMinutes = TimeUnit.MILLISECONDS.toMinutes(System.currentTimeMillis());
+            long scheduledInMinutes = (lastCheckpointCleanUpTime + cleanupIntervalMinutes) - currentMinutes;
+
+            if (scheduledInMinutes > 0) {
+                log.debug("checkpoint cleanup scheduled in " + scheduledInMinutes + " minutes");
+            } else {
+                try {
+                    cleanUpCheckpoints();
+                } catch (Throwable e) {
+                    log.warn("Checkpoint clean up failed", e);
+                }
+                lastCheckpointCleanUpTime = currentMinutes;
             }
-            lastCheckpointCleanUpTime = currentMinutes;
         }
     }
 

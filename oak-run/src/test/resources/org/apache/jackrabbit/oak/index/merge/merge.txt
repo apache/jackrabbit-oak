@@ -1,0 +1,204 @@
+{"tests":
+[
+{
+  "ancestor": {"value": 1, "a-old": 0},
+  "custom": {"value": 2, "b-new": 3},
+  "product": {"value": 1, "c-new": 4},
+  "expected": {"value": 2, "b-new": 3, "c-new": 4}
+},
+{
+  "ancestor": {"o": {"a": 1}},
+  "custom": {"o": {"a": 2, "c": 10}},
+  "product": {"o": {"a": 1, "p": 20}},
+  "expected": {"o": {"a": 2, "c": 10, "p": 20}}
+},
+{
+  "ancestor": {"o": {"a": 1}},
+  "custom": {},
+  "product": {"o": {"a": 2}},
+  "expected":"Conflicts detected: [Could not merge value; property=a; ancestor=1; custom=null; product=2]"
+},
+{
+  "ancestor": {"a": 1},
+  "custom": {"a": 2},
+  "product": {"a": 3},
+  "expected": "Conflicts detected: [Could not merge value; property=a; ancestor=1; custom=2; product=3]"
+},
+{
+
+
+  "ancestor": {
+    "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+    "compatVersion": 2,
+    "includedPaths": ["/content/dam"],
+    "type": "lucene",
+    "async": ["async", "nrt"],
+    "evaluatePathRestrictions": true,
+    "aggregates": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "dam:Asset": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "include0": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "path": "str:jcr:content"
+        }
+      }
+    },
+    "facets": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "topChildren": "100",
+      "secure": "statistical"
+    },
+    "indexRules": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "dam:Asset": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "properties": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "cqTags": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nodeScopeIndex": true,
+            "useInSuggest": true,
+            "propertyIndex": true,
+            "useInSpellcheck": true,
+            "name": "str:jcr:content/metadata/cq:tags"
+          }
+        }
+      }
+    }
+  }
+
+
+  , "custom": {
+// changed: facetc
+    "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+    "compatVersion": 2,
+    "includedPaths": ["/content/dam"],
+    "type": "lucene",
+    "async": ["async", "nrt"],
+    "evaluatePathRestrictions": true,
+    "aggregates": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "dam:Asset": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "include0": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "path": "str:jcr:content"
+        }
+      }
+    },
+    "facets": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "topChildren": "200",
+      "secure": "exact"
+    },
+    "indexRules": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "dam:Asset": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "properties": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "cqTags": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nodeScopeIndex": true,
+            "useInSuggest": true,
+            "propertyIndex": true,
+            "useInSpellcheck": true,
+            "name": "str:jcr:content/metadata/cq:tags"
+          }
+        }
+      }
+    }
+  }
+
+
+  , "product":
+// changed: cqTags/nodeScopeIndex = false
+  {
+    "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+    "compatVersion": 2,
+    "includedPaths": ["/content/dam"],
+    "type": "lucene",
+    "async": ["async", "nrt"],
+    "evaluatePathRestrictions": true,
+    "aggregates": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "dam:Asset": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "include0": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "path": "str:jcr:content"
+        }
+      }
+    },
+    "facets": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "topChildren": "100",
+      "secure": "statistical"
+    },
+    "indexRules": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "dam:Asset": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "properties": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "cqTags": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nodeScopeIndex": false,
+            "useInSuggest": true,
+            "propertyIndex": true,
+            "useInSpellcheck": true,
+            "name": "str:jcr:content/metadata/cq:tags"
+          }
+        }
+      }
+    }
+  }
+
+
+  , "expected":
+ {
+    "jcr:primaryType": "nam:oak:QueryIndexDefinition",
+    "compatVersion": 2,
+    "includedPaths": ["/content/dam"],
+    "type": "lucene",
+    "async": ["async", "nrt"],
+    "evaluatePathRestrictions": true,
+    "aggregates": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "dam:Asset": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "include0": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "path": "str:jcr:content"
+        }
+      }
+    },
+    "facets": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "topChildren": "200",
+      "secure": "exact"
+    },
+    "indexRules": {
+      "jcr:primaryType": "nam:nt:unstructured",
+      "dam:Asset": {
+        "jcr:primaryType": "nam:nt:unstructured",
+        "properties": {
+          "jcr:primaryType": "nam:nt:unstructured",
+          "cqTags": {
+            "jcr:primaryType": "nam:nt:unstructured",
+            "nodeScopeIndex": false,
+            "useInSuggest": true,
+            "propertyIndex": true,
+            "useInSpellcheck": true,
+            "name": "str:jcr:content/metadata/cq:tags"
+          }
+        }
+      }
+    }
+  }
+
+
+}
+]
+}
