@@ -85,11 +85,11 @@ public class IndexMerge {
     private EditorHook hook;
     private ExecutorService executorService;
 
+    private boolean quiet;
+
     public static void main(String... args) throws Exception {
         new IndexMerge().execute(args);
     }
-
-    private boolean quiet;
 
     /**
      * Execute the command.
@@ -141,7 +141,7 @@ public class IndexMerge {
             }
             Set<String> indexKeys = indexes.getChildren().keySet();
 
-            IndexDefMerger.merge(indexes, indexes);
+            IndexDefMergerUtils.merge(indexes, indexes);
 
             Set<String> newIndexKeys =  new HashSet<>(indexes.getChildren().keySet());
             newIndexKeys.removeAll(indexKeys);

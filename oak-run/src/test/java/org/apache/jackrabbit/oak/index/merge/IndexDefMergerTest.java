@@ -57,7 +57,7 @@ public class IndexDefMergerTest {
         JsonObject all = e.getChildren().get("all");
         JsonObject newDefs = e.getChildren().get("new");
         JsonObject expectedNew = e.getChildren().get("expectedNew");
-        IndexDefMerger.merge(newDefs, all);
+        IndexDefMergerUtils.merge(newDefs, all);
         assertEquals(
                 expectedNew.toString(),
                 newDefs.toString());
@@ -68,7 +68,7 @@ public class IndexDefMergerTest {
         JsonObject custom = e.getChildren().get("custom");
         JsonObject product = e.getChildren().get("product");
         try {
-            JsonObject got = IndexDefMerger.merge(ancestor, custom, product);
+            JsonObject got = IndexDefMergerUtils.merge(ancestor, custom, product);
             JsonObject expected = e.getChildren().get("expected");
             assertEquals(expected.toString(), got.toString());
         } catch (UnsupportedOperationException e2) {
