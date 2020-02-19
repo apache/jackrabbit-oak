@@ -190,7 +190,8 @@ public class DataStoreCommand implements Command {
         } else {
             if (dataStoreOpts.isVerbose()) {
                 List<String> rootPathList = dataStoreOpts.getVerboseRootPaths();
-                retriever = new NodeTraverserReferenceRetriever(fixture.getStore(), (String[]) rootPathList.toArray(new String[rootPathList.size()]));
+                retriever = new NodeTraverserReferenceRetriever(fixture.getStore(),
+                        (String[]) rootPathList.toArray(new String[rootPathList.size()]));
             } else {
                 ReadOnlyFileStore fileStore = getService(fixture.getWhiteboard(), ReadOnlyFileStore.class);
                 retriever = new SegmentBlobReferenceRetriever(fileStore);
@@ -308,11 +309,9 @@ public class DataStoreCommand implements Command {
         private final BlobStoreOptions.Type blobStoreType;
         private final File outDir;
         private final List<File> outFileList = new ArrayList<File>();
-        private final DataStoreOptions dataStoreOpts;
 
         public VerboseIdLogger(Options options) {
             this.optionBean = options.getOptionBean(BlobStoreOptions.class);
-            this.dataStoreOpts = options.getOptionBean(DataStoreOptions.class);
             this.blobStoreType = optionBean.getBlobStoreType();
             outDir = options.getOptionBean(DataStoreOptions.class).getOutDir();
 
