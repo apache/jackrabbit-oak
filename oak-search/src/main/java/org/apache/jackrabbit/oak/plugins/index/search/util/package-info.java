@@ -16,9 +16,8 @@
  */
 
 /**
- * This package contains fulltext search condition implementations.
+ * This package contains various utility classes.
  */
-@Version("1.0.0")
-package org.apache.jackrabbit.oak.spi.query.fulltext;
+package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import org.osgi.annotation.versioning.Version;

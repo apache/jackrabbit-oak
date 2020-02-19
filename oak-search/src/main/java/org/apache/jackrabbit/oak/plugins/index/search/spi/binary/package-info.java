@@ -16,9 +16,8 @@
  */
 
 /**
- * This package contains fulltext search condition implementations.
+ * This package contains classes related to text extraction from binary sources.
  */
-@Version("1.0.0")
-package org.apache.jackrabbit.oak.spi.query.fulltext;
+package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
 import org.osgi.annotation.versioning.Version;
