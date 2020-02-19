@@ -467,10 +467,12 @@ public class DataStoreCommandTest {
 
         assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
 
-        // Only verbose or Document would have paths suffixed
-        assertFileEquals(dump, "marked-", (verbose || storeFixture instanceof StoreFixture.MongoStoreFixture) ?
-            encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
-            Sets.difference(data.added, data.deleted));
+        // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
+        assertFileEquals(dump, "marked-", verbose ?
+                encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
+                (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
+                        encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
+                        Sets.difference(data.added, data.deleted));
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "gccand-", verbose ?
