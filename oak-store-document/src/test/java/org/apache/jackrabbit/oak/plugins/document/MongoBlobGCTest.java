@@ -69,8 +69,6 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils
-    .SharedStoreRecordType.REPOSITORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -347,9 +345,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
             repoId = ClusterRepositoryInfo.getOrCreateId(store);
-            ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
-                new ByteArrayInputStream(new byte[0]),
-                REPOSITORY.getNameFromId(repoId));
+            ((SharedDataStore) store.getBlobStore()).setRepositoryId(repoId);
         }
         TestGarbageCollector gc =
             new TestGarbageCollector(new DocumentBlobReferenceRetriever(store),
@@ -456,9 +452,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
             repoId = ClusterRepositoryInfo.getOrCreateId(store);
-            ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
-                new ByteArrayInputStream(new byte[0]),
-                REPOSITORY.getNameFromId(repoId));
+            ((SharedDataStore) store.getBlobStore()).setRepositoryId(repoId);
         }
         if (Strings.isNullOrEmpty(root)) {
             root = folder.newFolder().getAbsolutePath();

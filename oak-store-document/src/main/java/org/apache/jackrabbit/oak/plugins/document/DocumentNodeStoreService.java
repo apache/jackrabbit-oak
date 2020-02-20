@@ -30,7 +30,6 @@ import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.ParseException;
@@ -340,8 +339,7 @@ public class DocumentNodeStoreService {
             String repoId = null;
             try {
                 repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
-                ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-                    SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+                ((SharedDataStore) blobStore).setRepositoryId(repoId);
             } catch (Exception e) {
                 throw new IOException("Could not register a unique repositoryId", e);
             }
