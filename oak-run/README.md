@@ -491,6 +491,7 @@ Use the following command:
             [--repoHome <local_repository_root>]
             [--track]
             [--verbose]
+            [--verboseRootPath]
 
 The following options are available:
 
@@ -502,6 +503,7 @@ The following options are available:
     --store          - Path to the segment store of mongo uri (Required for --ref & --consistency option above)
     --dump           - Path where to dump the files (Optional). Otherwise, files will be dumped in the user tmp directory.
     --s3ds           - Path to the S3DataStore configuration file
+    --azureblobds    - Path to the AzureDataStore configuration file
     --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
     --nods           - To check for misconfigured external references when no data store should be there (Use instead of --s3ds or --fds)
     --repoHome       - Path of the local reposity home folder. Mandatory for --consistency & --track options 
@@ -509,6 +511,9 @@ The following options are available:
     --verbose        - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
                        This options would typically be a slower option since, it requires the whole repo traversal.  
                        Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
+    --verboseRootPath- Paths under which backend friendly blobids are required (Optional). If not specified, then --verbose uses "/" as the default path. For example,
+                       to list all blobids under /oak:index and /content/oak:index, use --verboseRootPath /oak:index,/content/oak:index (If providing more than one arguments to this option, 
+                       use comma as a delimiter).
 Note:
 
 The command to be executed for S3DataStore

@@ -117,7 +117,8 @@ public class DataStoreCheckCommand implements Command {
         String helpStr =
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
-                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose]";
+                + " [--dump <path>] [--repoHome <repo_home>] [--track] " +
+                    "[--verbose] [--verboseRootPath <verbose_root_path>]";
 
         try (Closer closer = Utils.createCloserWithShutdownHook()) {
             // Options for operations requested
@@ -141,6 +142,11 @@ public class DataStoreCheckCommand implements Command {
 
             // Optional argument to specify tracking
             OptionSpecBuilder verbose = parser.accepts("verbose", "Output backend formatted ids/paths");
+
+            // Optional argument to specify root path under which tracking if to be done. Defaults to "/" if not specified
+            ArgumentAcceptingOptionSpec verboseRootPath = parser.accepts("verboseRootPath",
+                    "Root path to output backend formatted ids/paths")
+                    .withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -242,12 +248,19 @@ public class DataStoreCheckCommand implements Command {
             }
 
             if (options.has(refOp) || options.has(consistencyOp)) {
-                if (options.has(verbose) &&
+
+                // Find blob ids by traversal for verbose mode + Segment Store or if verboseRootPath option
+                // is present (find blob references under a specific root path.)
+                if ((options.has(verbose) &&
                     (nodeStore instanceof SegmentNodeStore ||
-                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) {
+                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) ||
+                        options.has(verboseRootPath)) {
                     NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
                     closer.register(traverser);
-                    traverser.traverse();
+
+                    List<String> rootPathList = options.valuesOf(verboseRootPath);
+                    traverser.traverse((String[]) rootPathList.toArray(new String[rootPathList.size()]));
+
                     FileUtils.copyFile(traverser.references, register.createFile(refOp, dumpPath));
                 } else {
                     retrieveBlobReferences(blobStore, marker,
@@ -486,18 +499,29 @@ public class DataStoreCheckCommand implements Command {
             for (PropertyState p : state.getProperties()) {
                 String propPath = PathUtils.concat(path, p.getName());
                 try {
+                    String id ;
                     if (p.getType() == Type.BINARY) {
-                        count.incrementAndGet();
+                        id = p.getValue(Type.BINARY).getContentIdentity();
+                        // Ignore inline encoded binaries in document mk and null references in segment mk
+                        if (id == null || p.getValue(Type.BINARY).isInlined()) {
+                            continue;
+                        }
                         writeAsLine(writer,
-                            getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), false);
+                                getLine(id, propPath), false);
+                        count.incrementAndGet();
+
                     } else if (p.getType() == Type.BINARIES && p.count() > 0) {
                         Iterator<Blob> iterator = p.getValue(Type.BINARIES).iterator();
                         while (iterator.hasNext()) {
-                            count.incrementAndGet();
 
-                            String id = iterator.next().getContentIdentity();
+                            id = iterator.next().getContentIdentity();
+                            // Ignore inline encoded binaries in document mk
+                            if (id == null || p.getValue(Type.BINARY).isInlined()) {
+                                continue;
+                            }
                             writeAsLine(writer,
                                 getLine(id, propPath), false);
+                            count.incrementAndGet();
                         }
                     }
                 } catch (Exception e) {
@@ -517,7 +541,7 @@ public class DataStoreCheckCommand implements Command {
             }
         }
 
-        public void traverse() throws IOException {
+        public void traverse(String ... paths) throws IOException {
             BufferedWriter writer = null;
             final AtomicInteger count = new AtomicInteger();
             boolean threw = true;
@@ -526,7 +550,18 @@ public class DataStoreCheckCommand implements Command {
 
             try {
                 writer = Files.newWriter(references, Charsets.UTF_8);
-                traverseChildren(nodeStore.getRoot(), "/", writer, count);
+                if (paths.length == 0) {
+                    traverseChildren(nodeStore.getRoot(), "/", writer, count);
+                } else {
+                    for (String path: paths ) {
+                        Iterable<String> nodeList = PathUtils.elements(path);
+                        NodeState state = nodeStore.getRoot();
+                        for (String node: nodeList) {
+                            state = state.getChildNode(node);
+                        }
+                        traverseChildren(state, path, writer, count);
+                    }
+                }
 
                 writer.flush();
                 sort(references, idComparator);
