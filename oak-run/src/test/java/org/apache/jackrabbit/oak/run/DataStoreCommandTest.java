@@ -44,6 +44,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import joptsimple.OptionException;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -106,6 +107,8 @@ import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.fil
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
 /**
@@ -323,6 +326,71 @@ public class DataStoreCommandTest {
     }
 
     @Test
+    public void testConsistencyVerboseRootPathNoMissing() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 0, 0);
+        storeFixture.close();
+        additionalParams += " --verboseRootPath /c1,/c2";
+
+
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+                data.addedSubset.add(id);
+            }
+        }
+        testConsistency(dump, data, true, true);
+    }
+
+    @Test
+    public void testConsistencyVerboseRootPathWithDeleted() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1);
+        storeFixture.close();
+        additionalParams += " --verboseRootPath /c1,/c2";
+
+
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+                data.addedSubset.add(id);
+            }
+        }
+        testConsistency(dump, data, true, true);
+    }
+
+    @Test
+    public void testConsistencyVerboseRootPath() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 0, 2);
+        storeFixture.close();
+        additionalParams += " --verboseRootPath /c1,/c2";
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+                data.addedSubset.add(id);
+            }
+        }
+        testConsistency(dump, data, true, true);
+    }
+
+    @Test
+    public void testConsistencyVerboseRootPathWithoutVerbose() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
+        storeFixture.close();
+
+        additionalParams += " --verboseRootPath /a";
+        try {
+            // Create exec command without --verbose - It should throw an exception
+            // since we used --verboseRootPath without --verbose
+            testConsistency(dump, data, false, true);
+        } catch (OptionException e) {
+            assertTrue(e.getMessage().equals("Option(s) [verboseRootPath] are unavailable " +
+                    "given other options on the command line"));
+            return;
+        }
+        assertFalse(true);
+    }
+
+    @Test
     public void testConsistencyNoMissing() throws Exception {
         File dump = temporaryFolder.newFolder();
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
@@ -352,6 +420,26 @@ public class DataStoreCommandTest {
         storeFixture.close();
 
         testGc(dump, data, 0, false);
+    }
+    /*
+    Command should throw and exception if --verboseRootPath specified
+    with --collect-garbage
+     */
+    @Test
+    public void gcWithVerboseRootPathOption() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
+        storeFixture.close();
+
+        additionalParams += " --verboseRootPath /a";
+        try {
+            testGc(dump, data, 0, false);
+        } catch (OptionException e) {
+            assertTrue(e.getMessage().equals("Option(s) [verboseRootPath] are unavailable " +
+                    "given other options on the command line"));
+            return;
+        }
+        assertFalse(true);
     }
 
     @Test
@@ -450,13 +538,18 @@ public class DataStoreCommandTest {
         assertFileEquals(dump, "marked-", Sets.difference(data.added, data.deleted));
     }
 
+
     private void testConsistency(File dump, Data data, boolean verbose) throws Exception {
+        testConsistency(dump, data, verbose, false);
+    }
+
+    private void testConsistency(File dump, Data data, boolean verbose, boolean verboseRootPath) throws Exception {
         List<String> argsList = Lists
             .newArrayList("--check-consistency", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath());
         if (!Strings.isNullOrEmpty(additionalParams)) {
-            argsList.add(additionalParams);
+            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
 
         if (verbose) {
@@ -469,14 +562,16 @@ public class DataStoreCommandTest {
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "marked-", verbose ?
-                encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
+                encodedIdsAndPath(Sets.difference(verboseRootPath ? data.addedSubset :
+                        data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
                 (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
                         encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
                         Sets.difference(data.added, data.deleted));
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "gccand-", verbose ?
-            encodedIdsAndPath(data.missingDataStore, blobFixture.getType(), data.idToPath, true) :
+            encodedIdsAndPath(verboseRootPath ? Sets.intersection(data.addedSubset, data.missingDataStore) :
+                    data.missingDataStore, blobFixture.getType(), data.idToPath, true) :
             (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
                 encodedIdsAndPath(data.missingDataStore, blobFixture.getType(), data.idToPath, false) :
                 data.missingDataStore);
@@ -637,12 +732,14 @@ public class DataStoreCommandTest {
         private Map<String, String> idToPath;
         private Set<String> deleted;
         private Set<String> missingDataStore;
+        private Set<String> addedSubset;
 
         public Data() {
             added = Sets.newHashSet();
             idToPath = Maps.newHashMap();
             deleted = Sets.newHashSet();
             missingDataStore = Sets.newHashSet();
+            addedSubset = Sets.newHashSet();
         }
     }
 

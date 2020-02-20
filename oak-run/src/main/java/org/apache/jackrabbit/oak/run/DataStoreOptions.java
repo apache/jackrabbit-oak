@@ -79,8 +79,10 @@ public class DataStoreOptions implements OptionsBean {
         verbose =
             parser.accepts("verbose", "Option to get all the paths and implementation specific blob ids");
 
+        // Option NOT available for garbage collection operation - we throw an exception if both --collect-garbage and
+        // --verboseRootPath are provided in the command.
         verboseRootPath = parser.accepts("verboseRootPath",
-                "Root path to output backend formatted ids/paths").withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);;
+                "Root path to output backend formatted ids/paths").availableUnless(collectGarbage).availableIf(verbose).withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);;
 
         resetLoggingConfig =
             parser.accepts("reset-log-config", "Reset logging config for testing purposes only").withOptionalArg()
