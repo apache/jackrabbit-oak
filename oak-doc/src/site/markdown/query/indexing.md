@@ -426,7 +426,7 @@ NRT indexing expose a few configuration options as part of the [LuceneIndexProvi
   to hold Lucene documents for indexing in the `nrt` mode. 
   The default size is 10000.
 
-## <a name="superseding"></a> Superseding an index
+## <a name="superseding"></a> Superseding an Index
 This helps in replacing one index with another. Suppose we have the following indices:
 
 ```
