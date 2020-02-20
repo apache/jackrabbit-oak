@@ -250,6 +250,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         checkStatement = con.createStatement();
                         checkResultSet = checkStatement.executeQuery("select * from " + tableName + " where ID = '0'");
                         tableInfo.put(tableName, RDBJDBCTools.dumpResultSetMeta(checkResultSet.getMetaData()));
+                        con.commit();
                     } finally {
                         closeResultSet(checkResultSet);
                         closeStatement(checkStatement);
