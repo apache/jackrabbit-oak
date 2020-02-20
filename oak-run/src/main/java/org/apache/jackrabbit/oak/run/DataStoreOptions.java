@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.run;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
@@ -47,8 +48,10 @@ public class DataStoreOptions implements OptionsBean {
     private final Set<String> operationNames;
     private final OptionSpec<Long> blobGcMaxAgeInSecs;
     private final OptionSpec<Void> verbose;
+    private final OptionSpec<String> verboseRootPath;
     private final OptionSpec<Boolean> resetLoggingConfig;
     private OptionSpec<String> exportMetrics;
+    private static final String DELIM = ",";
 
     public DataStoreOptions(OptionParser parser) {
         collectGarbage = parser.accepts("collect-garbage",
@@ -75,6 +78,11 @@ public class DataStoreOptions implements OptionsBean {
 
         verbose =
             parser.accepts("verbose", "Option to get all the paths and implementation specific blob ids");
+
+        // Option NOT available for garbage collection operation - we throw an exception if both --collect-garbage and
+        // --verboseRootPath are provided in the command.
+        verboseRootPath = parser.accepts("verboseRootPath",
+                "Root path to output backend formatted ids/paths").availableUnless(collectGarbage).availableIf(verbose).withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);;
 
         resetLoggingConfig =
             parser.accepts("reset-log-config", "Reset logging config for testing purposes only").withOptionalArg()
@@ -159,6 +167,10 @@ public class DataStoreOptions implements OptionsBean {
         return options.has(verbose);
     }
 
+    public boolean hasVerboseRootPaths() {
+        return options.has(verboseRootPath);
+    }
+
     public boolean isResetLoggingConfig() {
         return resetLoggingConfig.value(options);
     }
@@ -178,4 +190,9 @@ public class DataStoreOptions implements OptionsBean {
     public String exportMetricsArgs() {
         return exportMetrics.value(options);
     }
+
+    public List<String> getVerboseRootPaths() {
+        return options.valuesOf(verboseRootPath);
+    }
+
 }
