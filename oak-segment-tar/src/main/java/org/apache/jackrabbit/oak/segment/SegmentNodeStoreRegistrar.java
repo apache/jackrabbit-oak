@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETA
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -48,7 +47,6 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
@@ -403,7 +401,7 @@ class SegmentNodeStoreRegistrar {
         if (!cfg.isSecondarySegmentStore() && cfg.hasCustomBlobStore() && isShared(cfg.getBlobStore())) {
             SharedDataStore sharedDataStore = (SharedDataStore) cfg.getBlobStore();
             try {
-                sharedDataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]), SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(getOrCreateId(segmentNodeStore)));
+                sharedDataStore.setRepositoryId(getOrCreateId(segmentNodeStore));
             } catch (Exception e) {
                 throw new IOException("Could not register a unique repositoryId", e);
             }

@@ -24,13 +24,11 @@ import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.ht
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.isSuccessfulHttpPut;
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.putBinary;
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.storeBinaryAndRetrieve;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -208,8 +206,7 @@ public class BinaryAccessDSGCIT extends AbstractBinaryAccessIT {
         
         if (null == garbageCollector) {
             String repoId = ClusterRepositoryInfo.getOrCreateId(getNodeStore());
-            blobStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-                    REPOSITORY.getNameFromId(repoId));
+            blobStore.setRepositoryId(repoId);
             if (null == executor) {
                 executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
             }
