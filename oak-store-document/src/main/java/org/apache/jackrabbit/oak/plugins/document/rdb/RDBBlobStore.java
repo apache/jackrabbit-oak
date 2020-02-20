@@ -277,6 +277,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         + (options.isDropTablesOnClose() ? " (will be dropped on exit)" : ""));
             }
 
+            String moreDiags = db.evaluateDiagnostics(diag);
+            if (moreDiags != null) {
+                LOG.info(moreDiags);
+            }
+
             this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBBlobStore creation") : null;
         } finally {
             closeStatement(createStatement);
