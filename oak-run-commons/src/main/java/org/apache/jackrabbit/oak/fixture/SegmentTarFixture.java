@@ -270,8 +270,8 @@ public class SegmentTarFixture extends OakFixture {
             FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "primary-" + i));
 
             if (awsBucketName != null) {
-                AwsContext awsContext = AwsContext.create(awsBucketName, awsRootPath, awsJournalTableName, awsLockTableName);
-                builder.withCustomPersistence(new AwsPersistence(awsContext, "primary-" + i));
+                AwsContext awsContext = AwsContext.create(awsBucketName + "-" + i, awsRootPath, awsJournalTableName + "-" + i, awsLockTableName + "-" + i);
+                builder.withCustomPersistence(new AwsPersistence(awsContext));
             }
 
             if (azureConnectionString != null) {

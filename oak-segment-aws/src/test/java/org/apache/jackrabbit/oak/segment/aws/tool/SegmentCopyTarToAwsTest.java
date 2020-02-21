@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.junit.Before;
 import org.junit.ClassRule;
 
-public class SegmentCopyAzureToTarTest extends SegmentCopyTestBase {
+public class SegmentCopyTarToAwsTest extends SegmentCopyTestBase {
 
     @ClassRule
     public static final S3MockRule s3Mock = new S3MockRule();
@@ -47,21 +47,21 @@ public class SegmentCopyAzureToTarTest extends SegmentCopyTestBase {
 
     @Override
     protected SegmentNodeStorePersistence getSrcPersistence() throws IOException {
-        return getAwsPersistence();
-    }
-
-    @Override
-    protected SegmentNodeStorePersistence getDestPersistence() throws IOException {
         return getTarPersistence();
     }
 
     @Override
+    protected SegmentNodeStorePersistence getDestPersistence() throws IOException {
+        return getAwsPersistence();
+    }
+
+    @Override
     protected String getSrcPathOrUri() {
-        return awsContext.getConfig();
+        return folder.getRoot().getAbsolutePath();
     }
 
     @Override
     protected String getDestPathOrUri() {
-        return folder.getRoot().getAbsolutePath();
+        return awsContext.getConfig();
     }
 }

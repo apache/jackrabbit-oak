@@ -16,37 +16,109 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
+import static org.apache.jackrabbit.oak.segment.aws.AwsContext.TABLE_ATTR_CONTENT;
+
 import java.io.IOException;
+import java.util.Iterator;
+
+import com.amazonaws.services.dynamodbv2.document.Item;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AwsJournalFile implements JournalFile {
 
-    private final AwsAppendableFile file;
+    private static final Logger log = LoggerFactory.getLogger(AwsJournalFile.class);
+
+    private final AwsContext awsContext;
+    private final String fileName;
 
     public AwsJournalFile(AwsContext awsContext, String fileName) {
-        this.file = new AwsAppendableFile(awsContext, fileName);
+        this.awsContext = awsContext;
+        this.fileName = fileName;
     }
 
     @Override
     public JournalFileReader openJournalReader() throws IOException {
-        return file.openJournalReader();
+        return new AwsFileReader(awsContext, fileName);
     }
 
     @Override
     public JournalFileWriter openJournalWriter() throws IOException {
-        return file.openJournalWriter();
+        return new AwsFileWriter(awsContext, fileName);
     }
 
     @Override
     public String getName() {
-        return file.getName();
+        return fileName;
     }
 
     @Override
     public boolean exists() {
-        return file.exists();
+        try {
+            return openJournalReader().readLine() != null;
+        } catch (IOException e) {
+            log.error("Can't check if the file exists", e);
+            return false;
+        }
+    }
+
+    private static class AwsFileWriter implements JournalFileWriter {
+        private final AwsContext awsContext;
+        private final String fileName;
+
+        public AwsFileWriter(AwsContext awsContext, String fileName) {
+            this.awsContext = awsContext;
+            this.fileName = fileName;
+        }
+
+        @Override
+        public void close() {
+            // Do nothing
+        }
+
+        @Override
+        public void truncate() throws IOException {
+            awsContext.deleteAllDocuments(fileName);
+        }
+
+        @Override
+        public void writeLine(String line) throws IOException {
+            awsContext.putDocument(fileName, line);
+        }
+    }
+
+    private static class AwsFileReader implements JournalFileReader {
+
+        private final AwsContext awsContext;
+        private final String fileName;
+
+        private Iterator<Item> iterator;
+
+        public AwsFileReader(AwsContext awsContext, String fileName) {
+            this.awsContext = awsContext;
+            this.fileName = fileName;
+        }
+
+        @Override
+        public void close() {
+            // Do nothing
+        }
+
+        @Override
+        public String readLine() throws IOException {
+            if (iterator == null) {
+                iterator = awsContext.getDocumentsStream(fileName).iterator();
+            }
+
+            if (iterator.hasNext()) {
+                return iterator.next().getString(TABLE_ATTR_CONTENT);
+            }
+
+            return null;
+        }
     }
 }

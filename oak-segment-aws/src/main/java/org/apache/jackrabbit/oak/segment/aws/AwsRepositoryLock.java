@@ -32,7 +32,7 @@ public class AwsRepositoryLock implements RepositoryLock {
 
     private static final Logger log = LoggerFactory.getLogger(AwsContext.class);
 
-    private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
+    private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.aws.lock.timeout", 0);
 
     private static long INTERVAL = 60;
 

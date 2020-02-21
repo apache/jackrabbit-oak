@@ -25,8 +25,8 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 @ObjectClassDefinition(
         pid = {PID},
-        name = "Apache Jackrabbit Oak Azure Segment Store Service",
-        description = "Azure backend for the Oak Segment Node Store")
+        name = "Apache Jackrabbit Oak AWS Segment Store Service",
+        description = "AWS backend for the Oak Segment Node Store")
 @interface Configuration {
 
     String PID = "org.apache.jackrabbit.oak.segment.aws.AwsSegmentStoreService";

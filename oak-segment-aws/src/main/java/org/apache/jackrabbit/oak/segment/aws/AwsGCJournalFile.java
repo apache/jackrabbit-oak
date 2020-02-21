@@ -23,24 +23,26 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 
 public class AwsGCJournalFile implements GCJournalFile {
 
-    private final AwsAppendableFile file;
+    private final AwsContext awsContext;
+    private final String fileName;
 
     public AwsGCJournalFile(AwsContext awsContext, String fileName) {
-        this.file = new AwsAppendableFile(awsContext, fileName);
+        this.awsContext = awsContext;
+        this.fileName = fileName;
     }
 
     @Override
     public void writeLine(String line) throws IOException {
-        file.openJournalWriter().writeLine(line);
+        awsContext.putDocument(fileName, line);
     }
 
     @Override
     public List<String> readLines() throws IOException {
-        return file.readLines();
+        return awsContext.getDocumentContents(fileName);
     }
 
     @Override
     public void truncate() throws IOException {
-        file.openJournalWriter().truncate();
+        awsContext.deleteAllDocuments(fileName);
     }
 }
