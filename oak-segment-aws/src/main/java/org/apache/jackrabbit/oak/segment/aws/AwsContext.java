@@ -264,7 +264,13 @@ public final class AwsContext {
             byte[] data = new byte[length];
             if (length > 0) {
                 try (InputStream stream = object.getObjectContent()) {
-                    stream.read(data, 0, length);
+                    int off = 0;
+                    int remaining = length;
+                    while (remaining > 0) {
+                        int read = stream.read(data, off, remaining);
+                        off += read;
+                        remaining -= read;
+                    }
                 }
             }
             return data;
