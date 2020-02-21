@@ -137,7 +137,7 @@ public class AwsArchiveManagerTest {
         fs.close();
 
         // remove the segment 0000 from the second archive
-        S3ObjectSummary segment0000 = awsContext.listObjects("data00001a.tar/0000.").iterator().next();
+        S3ObjectSummary segment0000 = awsContext.directory.listObjects("data00001a.tar/0000.").iterator().next();
         s3.deleteObject(segment0000.getBucketName(), segment0000.getKey());
         s3.deleteObject(segment0000.getBucketName(), "oak/data00001a.tar/closed");
 

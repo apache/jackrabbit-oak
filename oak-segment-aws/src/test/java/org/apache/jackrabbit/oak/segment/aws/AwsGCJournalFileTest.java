@@ -23,7 +23,6 @@ import java.util.Date;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-import com.amazonaws.services.s3.AmazonS3;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.jackrabbit.oak.segment.file.GcJournalTest;
@@ -37,28 +36,24 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class AwsGCJournalFileTest extends GcJournalTest {
 
-    @ClassRule
-    public static final S3MockRule s3Mock = new S3MockRule();
-
-    private AwsContext awsContext;
+    private DynamoDBClient dynamoDBClient;
 
     @Before
     public void setup() throws IOException {
-        AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient = new DynamoDBClient(ddb, "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient.ensureTables();
     }
 
     @Override
     protected SegmentNodeStorePersistence getPersistence() throws Exception {
-        return new MockPersistence(awsContext);
+        return new MockPersistence(dynamoDBClient);
     }
 
     @Test
@@ -83,10 +78,10 @@ public class AwsGCJournalFileTest extends GcJournalTest {
 
     private static class MockPersistence implements SegmentNodeStorePersistence {
 
-        private final AwsContext awsContext;
+        private final DynamoDBClient dynamoDBClient;
 
-        public MockPersistence(AwsContext awsContext) {
-            this.awsContext = awsContext;
+        public MockPersistence(DynamoDBClient dynamoDBClient) {
+            this.dynamoDBClient = dynamoDBClient;
         }
 
         @Override
@@ -97,7 +92,7 @@ public class AwsGCJournalFileTest extends GcJournalTest {
 
         @Override
         public GCJournalFile getGCJournalFile() throws IOException {
-            return new AwsGCJournalFile(awsContext, "gc.log");
+            return new AwsGCJournalFile(dynamoDBClient, "gc.log");
         }
 
         @Override

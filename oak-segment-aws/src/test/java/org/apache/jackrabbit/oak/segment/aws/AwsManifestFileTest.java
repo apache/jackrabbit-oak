@@ -27,8 +27,6 @@ import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.Properties;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
@@ -41,19 +39,19 @@ public class AwsManifestFileTest {
     @ClassRule
     public static final S3MockRule s3Mock = new S3MockRule();
 
-    private AwsContext awsContext;
+    private S3Directory directory;
 
     @Before
     public void setup() throws IOException {
         AmazonS3 s3 = s3Mock.createClient();
-        AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        directory = new S3Directory(s3, "bucket-" + time, "oak");
+        directory.ensureBucket();
     }
 
     @Test
     public void testManifest() throws URISyntaxException, IOException {
-        ManifestFile manifestFile = new AwsManifestFile(awsContext, "manifest");
+        ManifestFile manifestFile = new AwsManifestFile(directory, "manifest");
         assertFalse(manifestFile.exists());
 
         Properties props = new Properties();

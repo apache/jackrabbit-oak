@@ -43,13 +43,13 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
     @Override
     public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
             FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
-        return new AwsArchiveManager(awsContext, ioMonitor, fileStoreMonitor);
+        return new AwsArchiveManager(awsContext.directory, ioMonitor, fileStoreMonitor);
     }
 
     @Override
     public boolean segmentFilesExist() {
         try {
-            for (String prefix : awsContext.listPrefixes()) {
+            for (String prefix : awsContext.directory.listPrefixes()) {
                 if (prefix.indexOf(".tar/") >= 0) {
                     return true;
                 }
@@ -64,21 +64,21 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public JournalFile getJournalFile() {
-        return new AwsJournalFile(awsContext, "journal.log");
+        return new AwsJournalFile(awsContext.dynamoDBClient, "journal.log");
     }
 
     @Override
     public GCJournalFile getGCJournalFile() throws IOException {
-        return new AwsGCJournalFile(awsContext, "gc.log");
+        return new AwsGCJournalFile(awsContext.dynamoDBClient, "gc.log");
     }
 
     @Override
     public ManifestFile getManifestFile() throws IOException {
-        return new AwsManifestFile(awsContext, "manifest");
+        return new AwsManifestFile(awsContext.directory, "manifest");
     }
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AwsRepositoryLock(awsContext, "repo.lock").lock();
+        return new AwsRepositoryLock(awsContext.dynamoDBClient, "repo.lock").lock();
     }
 }

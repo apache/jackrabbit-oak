@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import static org.apache.jackrabbit.oak.segment.aws.AwsContext.TABLE_ATTR_CONTENT;
+import static org.apache.jackrabbit.oak.segment.aws.DynamoDBClient.TABLE_ATTR_CONTENT;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -33,22 +33,22 @@ public class AwsJournalFile implements JournalFile {
 
     private static final Logger log = LoggerFactory.getLogger(AwsJournalFile.class);
 
-    private final AwsContext awsContext;
+    private final DynamoDBClient dynamoDBClient;
     private final String fileName;
 
-    public AwsJournalFile(AwsContext awsContext, String fileName) {
-        this.awsContext = awsContext;
+    public AwsJournalFile(DynamoDBClient dynamoDBClient, String fileName) {
+        this.dynamoDBClient = dynamoDBClient;
         this.fileName = fileName;
     }
 
     @Override
     public JournalFileReader openJournalReader() throws IOException {
-        return new AwsFileReader(awsContext, fileName);
+        return new AwsFileReader(dynamoDBClient, fileName);
     }
 
     @Override
     public JournalFileWriter openJournalWriter() throws IOException {
-        return new AwsFileWriter(awsContext, fileName);
+        return new AwsFileWriter(dynamoDBClient, fileName);
     }
 
     @Override
@@ -67,11 +67,11 @@ public class AwsJournalFile implements JournalFile {
     }
 
     private static class AwsFileWriter implements JournalFileWriter {
-        private final AwsContext awsContext;
+        private final DynamoDBClient dynamoDBClient;
         private final String fileName;
 
-        public AwsFileWriter(AwsContext awsContext, String fileName) {
-            this.awsContext = awsContext;
+        public AwsFileWriter(DynamoDBClient dynamoDBClient, String fileName) {
+            this.dynamoDBClient = dynamoDBClient;
             this.fileName = fileName;
         }
 
@@ -82,24 +82,24 @@ public class AwsJournalFile implements JournalFile {
 
         @Override
         public void truncate() throws IOException {
-            awsContext.deleteAllDocuments(fileName);
+            dynamoDBClient.deleteAllDocuments(fileName);
         }
 
         @Override
         public void writeLine(String line) throws IOException {
-            awsContext.putDocument(fileName, line);
+            dynamoDBClient.putDocument(fileName, line);
         }
     }
 
     private static class AwsFileReader implements JournalFileReader {
 
-        private final AwsContext awsContext;
+        private final DynamoDBClient dynamoDBClient;
         private final String fileName;
 
         private Iterator<Item> iterator;
 
-        public AwsFileReader(AwsContext awsContext, String fileName) {
-            this.awsContext = awsContext;
+        public AwsFileReader(DynamoDBClient dynamoDBClient, String fileName) {
+            this.dynamoDBClient = dynamoDBClient;
             this.fileName = fileName;
         }
 
@@ -111,7 +111,7 @@ public class AwsJournalFile implements JournalFile {
         @Override
         public String readLine() throws IOException {
             if (iterator == null) {
-                iterator = awsContext.getDocumentsStream(fileName).iterator();
+                iterator = dynamoDBClient.getDocumentsStream(fileName).iterator();
             }
 
             if (iterator.hasNext()) {

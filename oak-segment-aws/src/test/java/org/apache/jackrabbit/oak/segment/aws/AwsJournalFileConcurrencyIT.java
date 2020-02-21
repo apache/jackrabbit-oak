@@ -24,14 +24,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-import com.amazonaws.services.s3.AmazonS3;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,17 +37,14 @@ import org.slf4j.LoggerFactory;
 public class AwsJournalFileConcurrencyIT {
     private static final Logger log = LoggerFactory.getLogger(AwsJournalFileConcurrencyIT.class);
 
-    @ClassRule
-    public static final S3MockRule s3Mock = new S3MockRule();
-
-    private AwsContext awsContext;
+    private DynamoDBClient dynamoDBClient;
 
     @Before
     public void setup() throws IOException, InterruptedException {
-        AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient = new DynamoDBClient(ddb, "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient.ensureTables();
         writeJournalLines(300, 0);
         log.info("Finished writing initial content to journal!");
     }
@@ -103,7 +98,7 @@ public class AwsJournalFileConcurrencyIT {
     }
 
     private void readJournal() throws IOException {
-        JournalFile file = new AwsJournalFile(awsContext, "journal.log");
+        JournalFile file = new AwsJournalFile(dynamoDBClient, "journal.log");
         try (JournalFileReader reader = file.openJournalReader()) {
             String line = null;
             while ((line = reader.readLine()) != null) {
@@ -113,7 +108,7 @@ public class AwsJournalFileConcurrencyIT {
     }
 
     private void writeJournalLines(int lines, int delayMillis) throws IOException, InterruptedException {
-        JournalFile file = new AwsJournalFile(awsContext, "journal.log");
+        JournalFile file = new AwsJournalFile(dynamoDBClient, "journal.log");
         try (JournalFileWriter writer = file.openJournalWriter()) {
             for (int i = 0; i < lines; i++) {
                 writer.writeLine(String.format("%4X - %s", i, UUID.randomUUID().toString()));

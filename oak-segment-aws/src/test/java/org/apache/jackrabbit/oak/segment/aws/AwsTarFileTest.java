@@ -19,14 +19,11 @@ package org.apache.jackrabbit.oak.segment.aws;
 import java.io.IOException;
 import java.util.Date;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 import com.amazonaws.services.s3.AmazonS3;
 
 import org.apache.jackrabbit.oak.segment.file.tar.TarFileTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -41,12 +38,10 @@ public class AwsTarFileTest extends TarFileTest {
     @Override
     public void setUp() throws IOException {
         AmazonS3 s3 = s3Mock.createClient();
-        AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        AwsContext awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
-
-        archiveManager = new AwsPersistence(awsContext).createArchiveManager(true, false, new IOMonitorAdapter(),
-                new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        S3Directory directory = new S3Directory(s3, "bucket-" + time, "oak");
+        directory.ensureBucket();
+        archiveManager = new AwsArchiveManager(directory, new IOMonitorAdapter(), new FileStoreMonitorAdapter());
     }
 
     @Override

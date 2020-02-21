@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 public class AwsSegmentArchiveReader implements SegmentArchiveReader {
     static final boolean OFF_HEAP = getBoolean("access.off.heap");
 
-    private final AwsContext directoryContext;
+    private final S3Directory directory;
 
     private final String archiveName;
 
@@ -51,13 +51,13 @@ public class AwsSegmentArchiveReader implements SegmentArchiveReader {
 
     private Boolean hasGraph;
 
-    AwsSegmentArchiveReader(AwsContext directoryContext, String archiveName, IOMonitor ioMonitor) throws IOException {
-        this.directoryContext = directoryContext;
+    AwsSegmentArchiveReader(S3Directory directory, String archiveName, IOMonitor ioMonitor) throws IOException {
+        this.directory = directory;
         this.archiveName = archiveName;
         this.ioMonitor = ioMonitor;
         long length = 0;
-        for (S3ObjectSummary blob : directoryContext.listObjects("")) {
-            ObjectMetadata allMetadata = directoryContext.getObjectMetadata(blob.getKey());
+        for (S3ObjectSummary blob : directory.listObjects("")) {
+            ObjectMetadata allMetadata = directory.getObjectMetadata(blob.getKey());
             Map<String, String> metadata = allMetadata.getUserMetadata();
             if (AwsBlobMetadata.isSegment(metadata)) {
                 AwsSegmentArchiveEntry indexEntry = AwsBlobMetadata.toIndexEntry(metadata,
@@ -78,7 +78,7 @@ public class AwsSegmentArchiveReader implements SegmentArchiveReader {
 
         ioMonitor.beforeSegmentRead(pathAsFile(), msb, lsb, indexEntry.getLength());
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Buffer buffer = directoryContext.readObjectToBuffer(indexEntry.getFileName(), OFF_HEAP);
+        Buffer buffer = directory.readObjectToBuffer(indexEntry.getFileName(), OFF_HEAP);
         long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
         ioMonitor.afterSegmentRead(pathAsFile(), msb, lsb, indexEntry.getLength(), elapsed);
         return buffer;
@@ -138,14 +138,14 @@ public class AwsSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     private Buffer readObjectToBuffer(String name) throws IOException {
-        if (directoryContext.doesObjectExist(name)) {
-            return directoryContext.readObjectToBuffer(name, false);
+        if (directory.doesObjectExist(name)) {
+            return directory.readObjectToBuffer(name, false);
         }
 
         return null;
     }
 
     private File pathAsFile() {
-        return new File(directoryContext.getPath());
+        return new File(directory.getPath());
     }
 }

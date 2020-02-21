@@ -23,26 +23,26 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 
 public class AwsGCJournalFile implements GCJournalFile {
 
-    private final AwsContext awsContext;
+    private final DynamoDBClient dynamoDBClient;
     private final String fileName;
 
-    public AwsGCJournalFile(AwsContext awsContext, String fileName) {
-        this.awsContext = awsContext;
+    public AwsGCJournalFile(DynamoDBClient dynamoDBClient, String fileName) {
+        this.dynamoDBClient = dynamoDBClient;
         this.fileName = fileName;
     }
 
     @Override
     public void writeLine(String line) throws IOException {
-        awsContext.putDocument(fileName, line);
+        dynamoDBClient.putDocument(fileName, line);
     }
 
     @Override
     public List<String> readLines() throws IOException {
-        return awsContext.getDocumentContents(fileName);
+        return dynamoDBClient.getDocumentContents(fileName);
     }
 
     @Override
     public void truncate() throws IOException {
-        awsContext.deleteAllDocuments(fileName);
+        dynamoDBClient.deleteAllDocuments(fileName);
     }
 }
