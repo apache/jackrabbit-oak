@@ -36,6 +36,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.util.IOUtils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -138,6 +139,7 @@ public final class S3Directory {
         InputStream input = new ByteArrayInputStream(data);
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setUserMetadata(userMetadata);
+        metadata.setContentLength(data.length);
         PutObjectRequest request = new PutObjectRequest(bucketName, rootDirectory + name, input, metadata);
         try {
             s3.putObject(request);
@@ -148,8 +150,12 @@ public final class S3Directory {
 
     public void putObject(String name, InputStream input) throws IOException {
         try {
-            PutObjectRequest request = new PutObjectRequest(bucketName, rootDirectory + name, input,
-                    new ObjectMetadata());
+            byte[] bytes = IOUtils.toByteArray(input);
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentLength(bytes.length);
+            InputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+            PutObjectRequest request = new PutObjectRequest(bucketName, rootDirectory + name, byteArrayInputStream,
+                    metadata);
             s3.putObject(request);
         } catch (AmazonServiceException e) {
             throw new IOException(e);
