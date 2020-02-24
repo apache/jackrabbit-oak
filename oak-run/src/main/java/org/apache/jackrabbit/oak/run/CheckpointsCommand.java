@@ -22,58 +22,60 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
-import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-
 import com.google.common.io.Closer;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoURI;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
+import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.run.commons.Command;
 
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 
 class CheckpointsCommand implements Command {
 
     @Override
     public void execute(String... args) throws Exception {
-        OptionParser parser = new OptionParser();
-        OptionSet options = parser.parse(args);
 
-        if (options.nonOptionArguments().isEmpty()) {
-            System.out.println("usage: checkpoints {<path>|<mongo-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>|info <checkpoint>|set <checkpoint> <name> [<value>]] [--segment]");
+        CheckpointsOptions options = new CheckpointsOptions("checkpoints {<path>|<mongo-uri>|<jdbc-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>|info <checkpoint>|set <checkpoint> <name> [<value>]] [--segment]").parse(args);;
+        if (options.isHelp()) {
+            options.printHelpOn(System.out);
+            System.exit(0);
+        }
+
+        String storeArg = options.getStoreArg();
+        if (storeArg == null || storeArg.length() == 0) {
+            System.err.println("Missing nodestore path/URI");
             System.exit(1);
         }
+        List<String> opArg = options.getOtherArgs();
 
         boolean success = false;
         Checkpoints cps;
         Closer closer = Utils.createCloserWithShutdownHook();
         try {
-            String op = "list";
-            if (options.nonOptionArguments().size() >= 2) {
-                op = options.nonOptionArguments().get(1).toString();
+            String op = "list"; //default operation
+            if (opArg.size() > 0) {
+                op = opArg.get(0);
                 if (!"list".equals(op) && !"rm-all".equals(op) && !"rm-unreferenced".equals(op) && !"rm".equals(op) && !"info".equals(op) && !"set".equals(op)) {
-                    failWith("Unknown command.");
+                    failWith("Unknown operation: " + op);
                 }
             }
 
-            String connection = options.nonOptionArguments().get(0).toString();
-            if (connection.startsWith(MongoURI.MONGODB_PREFIX)) {
-                MongoClientURI uri = new MongoClientURI(connection);
-                MongoClient client = new MongoClient(uri);
-                final DocumentNodeStore store = newMongoDocumentNodeStoreBuilder()
-                        .setMongoDB(client, uri.getDatabase())
-                        .build();
-                closer.register(Utils.asCloseable(store));
-                cps = Checkpoints.onDocumentMK(store);
+            boolean isDocumentNodeStore = storeArg.startsWith("jdbc:") || storeArg.startsWith("mongodb:");
+
+            if (isDocumentNodeStore) {
+                DocumentNodeStoreBuilder<?> builder = Utils.createDocumentMKBuilder(options, closer);
+                if (builder == null) {
+                    System.err.println("Could not create DocumentNodeStoreBuilder");
+                    System.exit(1);
+                }
+                DocumentNodeStore nodeStore = builder.build();
+                closer.register(Utils.asCloseable(nodeStore));
+                cps = Checkpoints.onDocumentMK(nodeStore);
             } else {
-                cps = Checkpoints.onSegmentTar(new File(connection), closer);
+                cps = Checkpoints.onSegmentTar(new File(storeArg), closer);
             }
 
-            System.out.println("Checkpoints " + connection);
+            System.out.println("Checkpoints " + storeArg);
             if ("list".equals(op)) {
                 int cnt = 0;
                 for (Checkpoints.CP cp : cps.list()) {
@@ -103,10 +105,10 @@ class CheckpointsCommand implements Command {
                     failWith("Failed to remove unreferenced checkpoints.");
                 }
             } else if ("rm".equals(op)) {
-                if (options.nonOptionArguments().size() < 3) {
+                if (opArg.size() < 2) {
                     failWith("Missing checkpoint id");
                 } else {
-                    String cp = options.nonOptionArguments().get(2).toString();
+                    String cp = opArg.get(1);
                     long time = System.currentTimeMillis();
                     int cnt = cps.remove(cp);
                     time = System.currentTimeMillis() - time;
@@ -122,10 +124,10 @@ class CheckpointsCommand implements Command {
                     }
                 }
             } else if ("info".equals(op)) {
-                if (options.nonOptionArguments().size() < 3) {
+                if (opArg.size() < 2) {
                     failWith("Missing checkpoint id");
                 } else {
-                    String cp = options.nonOptionArguments().get(2).toString();
+                    String cp = opArg.get(1);
                     Map<String, String> info = cps.getInfo(cp);
                     if (info != null) {
                         for (Map.Entry<String, String> e : info.entrySet()) {
@@ -136,15 +138,14 @@ class CheckpointsCommand implements Command {
                     }
                 }
             } else if ("set".equals(op)) {
-                if (options.nonOptionArguments().size() < 4) {
+                if (opArg.size() < 3) {
                     failWith("Missing checkpoint id");
                 } else {
-                    List<?> l = options.nonOptionArguments();
-                    String cp = l.get(2).toString();
-                    String name = l.get(3).toString();
+                    String cp = opArg.get(1);
+                    String name = opArg.get(2);
                     String value = null;
-                    if (l.size() >= 5) {
-                        value = l.get(4).toString();
+                    if (opArg.size() >= 4) {
+                        value = opArg.get(3);
                     }
                     long time = System.currentTimeMillis();
                     int cnt = cps.setInfoProperty(cp, name, value);
@@ -176,4 +177,20 @@ class CheckpointsCommand implements Command {
         throw new RuntimeException(message);
     }
 
+    private static final class CheckpointsOptions extends Utils.NodeStoreOptions {
+
+        CheckpointsOptions(String usage) {
+            super(usage);
+        }
+
+        @Override
+        public CheckpointsCommand.CheckpointsOptions parse(String[] args) {
+            super.parse(args);
+            return this;
+        }
+
+       boolean isHelp() {
+            return options.has(help);
+        }
+    }
 }
