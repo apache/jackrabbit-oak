@@ -757,7 +757,7 @@ public class DocumentNodeStoreService {
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0, 0);
+        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0, DEFAULT_RGC_DELAY_FACTOR);
         Runnable cancelGC = () -> store.getVersionGarbageCollector().cancel();
         Supplier<String> status = () -> store.getVersionGarbageCollector().getStatus();
         RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, status, executor);
