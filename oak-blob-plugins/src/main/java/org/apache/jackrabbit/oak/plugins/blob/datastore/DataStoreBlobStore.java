@@ -44,6 +44,7 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.Weigher;
 import com.google.common.collect.Iterators;
@@ -94,6 +95,12 @@ public class DataStoreBlobStore
         BlobAccessProvider {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    /**
+     * Flag to determine whether to remove repository id from DataStore on close.
+     */
+    private final boolean SHARED_TRANSIENT = Boolean.parseBoolean(
+        System.getProperty("oak.datastore.sharedTransient"));
+
     protected final DataStore delegate;
 
     protected BlobStatsCollector stats = ExtendedBlobStatsCollector.NOOP;
@@ -137,6 +144,8 @@ public class DataStoreBlobStore
     private final CacheStats cacheStats;
 
     public static final String MEM_CACHE_NAME = "BlobStore-MemCache";
+
+    private String repositoryId;
 
     public DataStoreBlobStore(DataStore delegate) {
         this(delegate, true, DEFAULT_CACHE_SIZE);
@@ -298,6 +307,12 @@ public class DataStoreBlobStore
 
     @Override
     public void close() throws DataStoreException {
+        // If marked as shared transient then delete the repository marker in close
+        if (SHARED_TRANSIENT) {
+            if (!Strings.isNullOrEmpty(getRepositoryId())) {
+                deleteMetadataRecord(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(getRepositoryId()));
+            }
+        }
         delegate.close();
         cache.invalidateAll();
         closeQuietly(tracker);
@@ -737,6 +752,18 @@ public class DataStoreBlobStore
                 throw e;
             }
         }
+    }
+
+    @Override
+    public void setRepositoryId(String repositoryId) throws DataStoreException {
+        this.repositoryId = repositoryId;
+        addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repositoryId));
+    }
+
+    @Override
+    public String getRepositoryId() {
+        return repositoryId;
     }
 
     @Override

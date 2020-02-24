@@ -76,8 +76,6 @@ import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.createFDS;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.getBlobStore;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils
-    .SharedStoreRecordType.REPOSITORY;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.getCurrentTimestamp;
 import static org.apache.jackrabbit.oak.spi.commit.CommitInfo.EMPTY;
 import static org.apache.jackrabbit.oak.spi.commit.EmptyHook.INSTANCE;
@@ -633,9 +631,7 @@ public class DataStoreTrackerGCTest {
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
             nodeStore.runBackgroundOperations();
 
-            ((SharedDataStore) blobStore).addMetadataRecord(
-                new ByteArrayInputStream(new byte[0]),
-                REPOSITORY.getNameFromId(repoId));
+            ((SharedDataStore) blobStore).setRepositoryId(repoId);
 
             String trackerRoot = folder.newFolder(clusterName).getAbsolutePath();
             tracker = BlobIdTracker.build(trackerRoot,

@@ -250,6 +250,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         checkStatement = con.createStatement();
                         checkResultSet = checkStatement.executeQuery("select * from " + tableName + " where ID = '0'");
                         tableInfo.put(tableName, RDBJDBCTools.dumpResultSetMeta(checkResultSet.getMetaData()));
+                        con.commit();
                     } finally {
                         closeResultSet(checkResultSet);
                         closeStatement(checkStatement);
@@ -263,15 +264,22 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 tablesToBeDropped.addAll(tablesCreated);
             }
 
+            Map<String, String> diag = db.getAdditionalDiagnostics(this.ch, this.tnData);
+
             LOG.info("RDBBlobStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
-                    + driverDesc + ", connecting to: " + dbUrl + ", transaction isolation level: " + isolationDiags + ", "
-                    + tableInfo);
+                    + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag.toString()))
+                    + ", transaction isolation level: " + isolationDiags + ", " + tableInfo);
             if (!tablesPresent.isEmpty()) {
                 LOG.info("Tables present upon startup: " + tablesPresent);
             }
             if (!tablesCreated.isEmpty()) {
                 LOG.info("Tables created upon startup: " + tablesCreated
                         + (options.isDropTablesOnClose() ? " (will be dropped on exit)" : ""));
+            }
+
+            String moreDiags = db.evaluateDiagnostics(diag);
+            if (moreDiags != null) {
+                LOG.info(moreDiags);
             }
 
             this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBBlobStore creation") : null;

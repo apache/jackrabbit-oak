@@ -555,6 +555,7 @@ Maintenance commands for the DataStore:
             [--work-dir <temporary_path>] \
             [--max-age <seconds>] \
             [--verbose] \
+            [--verboseRootPath]
             [<store_path>|<mongo_uri>]
             [--metrics] [--export-metrics]
 
@@ -576,6 +577,11 @@ The following options are available:
     --verbose               - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
                                This options would typically be a slower option since, it requires the whole repo traversal.  
                                Adds the sub-directories created in FDS to the id path and the changes done to the id for S3/Azure when stored in the respective container.
+    --verboseRootPath       - Paths under which backend friendly blobids are required (Optional). If not specified, then --verbose uses "/" as the default path. For example,
+                              to list all blobids under /oak:index and /content/oak:index, use --verboseRootPath /oak:index,/content/oak:index (If providing more than one arguments to this option, 
+                              use comma as a delimiter).
+                              This option is NOT available for the collect-garbage operation. If specified with collect-garbage, the command execution will throw
+                              an exception.
     <store_path|mongo_uri>  - Path to the tar segment store or the segment azure uri as specified in 
                                http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
                                or if Mongo NodeStore then the mongo uri.

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
@@ -362,9 +361,7 @@ public class SegmentDataStoreBlobGCIT {
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
-            ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
-                new ByteArrayInputStream(new byte[0]),
-                REPOSITORY.getNameFromId(repoId));
+            ((SharedDataStore) store.getBlobStore()).setRepositoryId(repoId);
         }
         TestGarbageCollector gc = new TestGarbageCollector(
             new SegmentBlobReferenceRetriever(store),
@@ -439,9 +436,7 @@ public class SegmentDataStoreBlobGCIT {
         String repoId = null;
         if (SharedDataStoreUtils.isShared(store.getBlobStore())) {
             repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
-            ((SharedDataStore) store.getBlobStore()).addMetadataRecord(
-                new ByteArrayInputStream(new byte[0]), 
-                REPOSITORY.getNameFromId(repoId));
+            ((SharedDataStore) store.getBlobStore()).setRepositoryId(repoId);
         }
         MarkSweepGarbageCollector gc =
             new MarkSweepGarbageCollector(new SegmentBlobReferenceRetriever(store),

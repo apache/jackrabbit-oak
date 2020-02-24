@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.run;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -183,11 +185,13 @@ public class DataStoreCommand implements Command {
         Options opts, Closer closer) throws IOException {
 
         BlobReferenceRetriever retriever;
-        if (opts.getCommonOpts().isDocument()) {
+        if (opts.getCommonOpts().isDocument() && !dataStoreOpts.hasVerboseRootPaths()) {
             retriever = new DocumentBlobReferenceRetriever((DocumentNodeStore) fixture.getStore());
         } else {
             if (dataStoreOpts.isVerbose()) {
-                retriever = new NodeTraverserReferenceRetriever(fixture.getStore());
+                List<String> rootPathList = dataStoreOpts.getVerboseRootPaths();
+                retriever = new NodeTraverserReferenceRetriever(fixture.getStore(),
+                        (String[]) rootPathList.toArray(new String[rootPathList.size()]));
             } else {
                 ReadOnlyFileStore fileStore = getService(fixture.getWhiteboard(), ReadOnlyFileStore.class);
                 retriever = new SegmentBlobReferenceRetriever(fileStore);
@@ -235,9 +239,11 @@ public class DataStoreCommand implements Command {
      */
     static class NodeTraverserReferenceRetriever implements BlobReferenceRetriever {
         private final NodeStore nodeStore;
+        private final String[] paths;
 
-        public NodeTraverserReferenceRetriever(NodeStore nodeStore) {
+        public NodeTraverserReferenceRetriever(NodeStore nodeStore, String ... paths) {
             this.nodeStore = nodeStore;
+            this.paths = paths;
         }
 
         private void binaryProperties(NodeState state, String path, ReferenceCollector collector) {
@@ -269,7 +275,20 @@ public class DataStoreCommand implements Command {
 
         @Override public void collectReferences(ReferenceCollector collector) throws IOException {
             log.info("Starting dump of blob references by traversing");
-            traverseChildren(nodeStore.getRoot(), "/", collector);
+            if (paths.length == 0) {
+                traverseChildren(nodeStore.getRoot(), "/", collector);
+            } else {
+                for (String path: paths) {
+                    Iterable<String> nodeList = PathUtils.elements(path);
+                    NodeState state = nodeStore.getRoot();
+                    for (String node: nodeList) {
+                        state = state.getChildNode(node);
+                    }
+                    traverseChildren(state, path, collector);
+                }
+            }
+
+
         }
     }
 
@@ -289,15 +308,18 @@ public class DataStoreCommand implements Command {
         private final BlobStoreOptions optionBean;
         private final BlobStoreOptions.Type blobStoreType;
         private final File outDir;
-        private final File outFile;
+        private final List<File> outFileList = new ArrayList<File>();
 
         public VerboseIdLogger(Options options) {
             this.optionBean = options.getOptionBean(BlobStoreOptions.class);
             this.blobStoreType = optionBean.getBlobStoreType();
             outDir = options.getOptionBean(DataStoreOptions.class).getOutDir();
 
-            outFile = filterFiles(outDir, "gccand-");
-            if (outFile == null) {
+            outFileList.add(filterFiles(outDir, "marked-"));
+            outFileList.add(filterFiles(outDir, "gccand-"));
+            outFileList.removeAll(Collections.singleton(null));
+
+            if (outFileList.size() == 0) {
                 throw new IllegalArgumentException("No candidate file found");
             }
         }
@@ -337,12 +359,15 @@ public class DataStoreCommand implements Command {
         }
 
         public void log() throws IOException {
-            File tempFile = new File(outDir, outFile.getName() + "-temp");
-            FileUtils.moveFile(outFile, tempFile);
-            try (BurnOnCloseFileIterator<String> iterator =
+
+            for (File outFile : outFileList) {
+                File tempFile = new File(outDir, outFile.getName() + "-temp");
+                FileUtils.moveFile(outFile, tempFile);
+                try (BurnOnCloseFileIterator<String> iterator =
                     new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(tempFile, UTF_8.toString()), tempFile,
                         (Function<String, String>) input -> encodeId(input, blobStoreType))) {
                 FileIOUtils.writeStrings(iterator, outFile, true, log, "Transformed to verbose ids - ");
+            }
             }
         }
     }

@@ -35,6 +35,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -55,6 +56,8 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -211,6 +214,45 @@ public class SharedDataStoreUtilsTest {
             .refsNotAvailableFromRepos(dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                 dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()));
         assertEquals(Sets.newHashSet(expectedMissingRepoId), missingRepoIds);
+    }
+
+    @Test
+    public void repoMarkerExistOnClose() throws Exception {
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
+        String repoId = UUID.randomUUID().toString();
+        dataStore.setRepositoryId(repoId);
+        assertEquals(repoId, dataStore.getRepositoryId());
+        assertNotNull(dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+
+        assertNotNull(FileUtils.getFile(new File(rootFolder, "repository/datastore"),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+        dataStore.close();
+
+        dataStore = getBlobStore(rootFolder);
+        assertNotNull(dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+    }
+
+    @Test
+    public void transientRepoMarkerDeleteOnClose() throws Exception {
+        System.setProperty("oak.datastore.sharedTransient", "true");
+        try {
+            File rootFolder = folder.newFolder();
+            dataStore = getBlobStore(rootFolder);
+            String repoId = UUID.randomUUID().toString();
+            dataStore.setRepositoryId(repoId);
+            assertEquals(repoId, dataStore.getRepositoryId());
+            assertNotNull(dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+
+            assertNotNull(FileUtils.getFile(new File(rootFolder, "repository/datastore"),
+                SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+            dataStore.close();
+
+            dataStore = getBlobStore(rootFolder);
+            assertNull(dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+        } finally {
+            System.clearProperty("oak.datastore.sharedTransient");
+        }
     }
 
     private void addMultipleMetadata(boolean extended) throws Exception {

@@ -188,9 +188,7 @@ public class BlobGCTest {
             this.blobStore = blobStore;
             if (SharedDataStoreUtils.isShared(blobStore)) {
                 repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
-                ((SharedDataStore) blobStore).addMetadataRecord(
-                    new ByteArrayInputStream(new byte[0]),
-                    REPOSITORY.getNameFromId(repoId));
+                ((SharedDataStore) blobStore).setRepositoryId(repoId);
             }
             referenceRetriever = ((MemoryBlobStoreNodeStore) nodeStore).getBlobReferenceRetriever();
             startReferenceTime = clock.getTime();

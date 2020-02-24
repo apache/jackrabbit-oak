@@ -18,8 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.Locale;
+import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +44,7 @@ public enum RDBBlobStoreDB {
         }
     },
 
-    DB2("DB2") {
+    DB2("DB2", RDBCommonVendorSpecificCode.DB2) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 1, description);
@@ -54,7 +57,7 @@ public enum RDBBlobStoreDB {
         }
     },
 
-    MSSQL("Microsoft SQL Server") {
+    MSSQL("Microsoft SQL Server", RDBCommonVendorSpecificCode.MSSQL) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 11, 0, description);
@@ -73,9 +76,21 @@ public enum RDBBlobStoreDB {
                     + ") not null, LVL int, LASTMOD bigint "
                     + "constraint "  + tableName + "_PK primary key clustered (ID ASC))";
         }
+
+        @Override
+        @Nullable
+        public String evaluateDiagnostics(Map<String, String> diags) {
+            String collation = diags.get("collation_name");
+            if (collation != null && collation.toLowerCase(Locale.ENGLISH).startsWith("sql")) {
+                return "Default server collation is: '" + collation
+                        + "'. There's a risk of performance degradation; see https://issues.apache.org/jira/browse/OAK-8908 for more information.";
+            } else {
+                return null;
+            }
+        }
     },
 
-    MYSQL("MySQL") {
+    MYSQL("MySQL", RDBCommonVendorSpecificCode.MYSQL) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 5, 5, description);
@@ -87,7 +102,7 @@ public enum RDBBlobStoreDB {
         }
     },
 
-    ORACLE("Oracle") {
+    ORACLE("Oracle", RDBCommonVendorSpecificCode.ORACLE) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 12, 1, 12, 1, description);
@@ -100,7 +115,7 @@ public enum RDBBlobStoreDB {
         }
     },
 
-    POSTGRES("PostgreSQL") {
+    POSTGRES("PostgreSQL", RDBCommonVendorSpecificCode.POSTGRES) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 9, 5, 9, 4, description);
@@ -112,7 +127,7 @@ public enum RDBBlobStoreDB {
         }
     },
 
-    DEFAULT("default") {
+    DEFAULT("default", RDBCommonVendorSpecificCode.DEFAULT) {
     };
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStoreDB.class);
@@ -135,8 +150,26 @@ public enum RDBBlobStoreDB {
 
     protected String description;
 
+    protected RDBCommonVendorSpecificCode vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
+
     private RDBBlobStoreDB(String description) {
         this.description = description;
+        this.vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
+    }
+
+    private RDBBlobStoreDB(String description, RDBCommonVendorSpecificCode vendorCode) {
+        this.description = description;
+        this.vendorCode = vendorCode;
+    }
+
+    @NotNull
+    public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        return vendorCode.getAdditionalDiagnostics(ch, tableName);
+    }
+
+    @Nullable
+    public String evaluateDiagnostics(Map<String, String> diags) {
+        return null;
     }
 
     @Override

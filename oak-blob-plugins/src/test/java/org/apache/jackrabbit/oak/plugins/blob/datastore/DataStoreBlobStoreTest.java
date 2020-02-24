@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -225,6 +226,18 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 
         String id = ds.writeBlob(new ByteArrayInputStream(data));
         assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data), ds.getInputStream(id)));
+    }
+
+    @Test
+    public void testAddRepositoryId() throws DataStoreException {
+        String repoId = UUID.randomUUID().toString();
+        ((DataStoreBlobStore) store).setRepositoryId(repoId);
+        assertEquals(repoId, ((DataStoreBlobStore) store).getRepositoryId());
+        DataRecord metadataRecord = ((DataStoreBlobStore) store)
+            .getMetadataRecord(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+
+        assertEquals(repoId, SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY
+            .getIdFromName(metadataRecord.getIdentifier().toString()));
     }
 
     @Override
