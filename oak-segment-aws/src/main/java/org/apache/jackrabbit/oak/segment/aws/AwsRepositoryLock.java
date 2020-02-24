@@ -57,7 +57,7 @@ public class AwsRepositoryLock implements RepositoryLock {
     public AwsRepositoryLock lock() throws IOException {
         try {
             Optional<LockItem> lockItemOptional = lockClient.tryAcquireLock(AcquireLockOptions.builder(lockName)
-                    // .withTimeUnit(TimeUnit.SECONDS).withAdditionalTimeToWaitForLock(timeoutSec)
+                    .withTimeUnit(TimeUnit.SECONDS).withAdditionalTimeToWaitForLock(timeoutSec)
                     .build());
             if (lockItemOptional.isPresent()) {
                 lockItem = lockItemOptional.get();
