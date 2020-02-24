@@ -184,6 +184,12 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
     long versionGCTimeLimitInSecs() default DocumentNodeStoreService.DEFAULT_RGC_TIME_LIMIT_SECS;
 
     @AttributeDefinition(
+            name = "Delay factor for a Version GC run",
+            description = "A Version GC run has a gap of this delay factor to reduce continuous load on system" +
+                    "The default value is " + DocumentNodeStoreService.DEFAULT_RGC_DELAY_FACTOR)
+    double versionGCDelayFactor() default DocumentNodeStoreService.DEFAULT_RGC_DELAY_FACTOR;
+
+    @AttributeDefinition(
             name = "Blob GC Max Age (in secs)",
             description = "Blob Garbage Collector (GC) logic will only consider those blobs for GC which " +
                     "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For " +
