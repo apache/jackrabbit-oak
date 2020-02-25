@@ -65,6 +65,8 @@ public class LuceneIndexNodeManager {
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(LuceneIndexNodeManager.class.getName() + ".perf"));
 
+    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexNodeManager.class);
+
     static LuceneIndexNodeManager open(String indexPath, NodeState root, NodeState defnNodeState,
                                        LuceneIndexReaderFactory readerFactory, @Nullable NRTIndexFactory nrtFactory)
             throws IOException {
@@ -113,10 +115,29 @@ public class LuceneIndexNodeManager {
     private final Runnable refreshCallback = new Runnable() {
         @Override
         public void run() {
+
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            boolean success = false;
+
+            LOG.info("In run {}", Thread.currentThread().getName());
+            System.out.println(System.currentTimeMillis() + "In run " + Thread.currentThread().getName());
             if (refreshLock.tryAcquire()) {
+
                 try {
+                success = true;
+//                LOG.info("REFRESHREADER enter {}", Thread.currentThread().getName());
+System.out.println(System.currentTimeMillis() + "REFRESHREADER enter "+ Thread.currentThread().getName());
                     refreshReaders();
+                LOG.info("REFRESHREADER exit {}", Thread.currentThread().getName());
+                System.out.println(System.currentTimeMillis() + "REFRESHREADER exit "+ Thread.currentThread().getName());
+
                 }finally {
+                if (success)
                     refreshLock.release();
                 }
             }
@@ -194,8 +215,8 @@ public class LuceneIndexNodeManager {
         } finally {
             lock.writeLock().unlock();
         }
-
-        releaseHolder(searcherHolder);
+        //refreshCallback.run();
+        releaseHolder1(searcherHolder,1 );
         closeReaders(readers);
     }
 
@@ -214,13 +235,18 @@ public class LuceneIndexNodeManager {
 
     private void refreshReaders(){
         long start = PERF_LOGGER.start();
+
         List<LuceneIndexReader> newNRTReaders = getNRTReaders();
         //The list reference would differ if index got updated
         //so if they are same no need to reinitialize the searcher
         if (newNRTReaders != searcherHolder.nrtReaders) {
             SearcherHolder old = searcherHolder;
+            LOG.info("REFRESHREADER {}, newNrtReaders: {}, oldNrtReaders: {}",
+            Thread.currentThread().getName(), newNRTReaders.toString(), old.toString() );
             searcherHolder = createHolder(newNRTReaders);
+            System.out.println(System.currentTimeMillis() + "REFRESHREADER new search holder set "+ Thread.currentThread().getName());
             releaseHolder(old);
+            System.out.println(System.currentTimeMillis() + "REFRESHREADER old released "+ Thread.currentThread().getName());
             PERF_LOGGER.end(start, 0, "Refreshed reader for index [{}]", definition);
         }
     }
@@ -272,14 +298,51 @@ public class LuceneIndexNodeManager {
     }
 
     private void releaseHolder(SearcherHolder holder) {
-        decrementSearcherUsageCount(holder.searcher);
+        // releasedHolder is atomicBoolean to make sure that
+        // decRef is executed only once for a holder
+//        if (holder.releasedHolder.compareAndSet(false, true)) {
+        //lock.readLock().lock();
+        try {
+          //  if (!closed) {
+                LOG.info("refresh: {} releaseholder id: {}, searcher: {}", Thread.currentThread().getName(), holder.toString(), holder.searcher.toString());
+                System.out.println(System.currentTimeMillis() +"refresh: "+Thread.currentThread().getName()+ "releaseholder id: "+holder.toString()+ " searcher: "+ holder.searcher.toString());
+                decrementSearcherUsageCount(holder.searcher);
+            //}
+        } finally {
+            //lock.readLock().unlock();
+        }
+
+    }
+
+    private void releaseHolder1(SearcherHolder holder, int a) {
+        // releasedHolder is atomicBoolean to make sure that
+        // decRef is executed only once for a holder
+//        if (holder.releasedHolder.compareAndSet(false, true)) {
+        //lock.readLock().lock();
+        try {
+          //  if (!closed) {
+                LOG.info("close: {} releaseholder id: {}, searcher: {}", Thread.currentThread().getName(), holder.toString(), holder.searcher.toString());
+                System.out.println(System.currentTimeMillis() +"close: "+Thread.currentThread().getName() +" releaseholder id:"+holder.toString() + " searcher: " + holder.searcher.toString());
+                decrementSearcherUsageCount(holder.searcher);
+            //}
+        } finally {
+            //lock.readLock().unlock();
+        }
+
     }
 
     private void decrementSearcherUsageCount(IndexSearcher searcher) {
         try {
             //Decrement the count by 1 as we increased it while creating the searcher
             //in createReader
+            //System.out.println(System.currentTimeMillis() + " "+Thread.currentThread().getName()+" ref decrease start");
             searcher.getIndexReader().decRef();
+           // System.out.println(System.currentTimeMillis() + " "+Thread.currentThread().getName()+ " ref decrease done");
+//            try {
+//                Thread.sleep(2000);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
         } catch (IOException e) {
             log.warn("Error occurred while releasing reader for index [{}]", definition.getIndexPath(), e);
         }
