@@ -92,6 +92,8 @@
       org.apache.jackrabbit.test.api.version.MergeNonVersionableSubNodeTest
       org.apache.jackrabbit.test.api.version.MergeSubNodeTest
 
+      org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testRemoveVHR <!-- OAK-8048 -->
+
       <!-- Permission Evaluation -->
       org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveSubTreeBack4     <!-- Known Limitation of OAK-710 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveDestParent2      <!-- Known Limitation of OAK-710 -->

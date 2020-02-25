@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.jcr.version;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionIterator;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -122,5 +124,39 @@ public class VersionHistoryTest extends AbstractJCRTest {
         String uuid = vMgr.getVersionHistory(n.getPath()).getUUID();
         assertTrue("Session.getNodeByUUID() did not return VersionHistory object for a nt:versionHistory node.",
                 superuser.getNodeByUUID(uuid) instanceof VersionHistory);
+    }
+
+    // see OAK-8048
+    public void testRemoveVHR() throws RepositoryException {
+        int createVersions = 2;
+
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.addMixin(mixVersionable);
+        superuser.save();
+
+        VersionManager vm = superuser.getWorkspace().getVersionManager();
+        for (int i = 0; i < createVersions; i++) {
+            vm.checkout(n.getPath());
+            vm.checkin(n.getPath());
+        }
+
+        VersionHistory vhr = vm.getVersionHistory(n.getPath());
+        String vhrpath = vhr.getPath();
+        n.remove();
+        superuser.save();
+
+        VersionIterator allversions = vhr.getAllVersions();
+        int deletedVersions = 0;
+        while (allversions.hasNext()) {
+            Version version = allversions.nextVersion();
+            if (!JcrConstants.JCR_ROOTVERSION.equals(version.getName())) {
+                vhr.removeVersion(version.getName());
+                deletedVersions += 1;
+            }
+        }
+        assertEquals("unexpected number of version deletions", createVersions, deletedVersions);
+        superuser.save();
+
+        assertFalse("VersionHistory node should have disappeared", superuser.itemExists(vhrpath));
     }
 }
