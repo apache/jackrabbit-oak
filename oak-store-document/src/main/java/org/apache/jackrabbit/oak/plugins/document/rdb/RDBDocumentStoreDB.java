@@ -607,15 +607,16 @@ public enum RDBDocumentStoreDB {
             try {
                 con = ch.getROConnection();
                 try (PreparedStatement stmt = con.prepareStatement(
-                        "SELECT i.[name] AS name, SUM(s.[row_count]) as rows, SUM(s.[used_page_count] * 8) as usedKB, SUM(s.[reserved_page_count] * 8) as reservedKB "
+                        "SELECT i.[name] AS name, i.[fill_factor] as fill_factor, i.[type_desc] as type_desc, SUM(s.[row_count]) as rows, SUM(s.[used_page_count] * 8) as usedKB, SUM(s.[reserved_page_count] * 8) as reservedKB "
                                 + "FROM sys.dm_db_partition_stats AS s "
                                 + "INNER JOIN sys.indexes AS i ON s.[object_id] = i.[object_id] "
-                                + "    AND s.[index_id] = i.[index_id] WHERE i.[object_id]=OBJECT_ID(?) " + "GROUP BY i.[name]")) {
+                                + "AND s.[index_id] = i.[index_id] WHERE i.[object_id]=OBJECT_ID(?) "
+                                + "GROUP BY i.[name], i.[fill_factor], i.[type_desc]")) {
                     stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
                             String index = rs.getString("name");
-                            String data = extractFields(rs, "rows usedKB reservedKB");
+                            String data = extractFields(rs, "rows usedKB reservedKB type_desc fill_factor");
                             result.put("index." + index + "._data", data);
                         }
                     }
