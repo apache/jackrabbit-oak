@@ -571,6 +571,7 @@ public class RDBDocumentStoreJDBC {
         private String message = null;
         private long cnt = 0;
         private long pstart;
+        private int prevIsolationLevel;
 
         public ResultSetIterator(RDBConnectionHandler ch, RDBTableMetaData tmd, String minId, String maxId,
                 List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
@@ -578,6 +579,8 @@ public class RDBDocumentStoreJDBC {
             try {
                 this.ch = ch;
                 this.connection = ch.getROConnection();
+//                this.prevIsolationLevel = this.connection.getTransactionIsolation();
+//                this.connection.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
                 this.tmd = tmd;
                 String fields;
                 if (tmd.hasSplitDocs()) {
@@ -685,6 +688,13 @@ public class RDBDocumentStoreJDBC {
         private void internalClose() {
             this.rs = closeResultSet(this.rs);
             this.stmt = closeStatement(this.stmt);
+//            try {
+//                if (this.prevIsolationLevel != this.connection.getTransactionIsolation()) {
+//                    this.connection.setTransactionIsolation(this.prevIsolationLevel);
+//                }
+//            } catch (SQLException ex) {
+//                LOG.debug("failed to restore isolation level", ex);
+//            }
             this.ch.closeConnection(this.connection);
             this.connection = null;
             if (LOG.isDebugEnabled()) {
