@@ -76,8 +76,8 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         return result;
     }
 
-    private RDBBlobStore blobStore;
-    private String blobStoreName;
+    protected RDBBlobStore blobStore;
+    protected String blobStoreName;
     private RDBDataSourceWrapper dsw;
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBBlobStoreTest.class);
@@ -267,7 +267,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
         }
     }
 
-    private byte[] getDigest(byte[] bytes) throws IOException {
+    protected byte[] getDigest(byte[] bytes) throws IOException {
         MessageDigest messageDigest;
         try {
             messageDigest = MessageDigest.getInstance("SHA-256");

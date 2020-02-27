@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sql.DataSource;
 
@@ -127,6 +128,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         }
         LOG.info("RDBBlobStore (" + getModuleVersion() + ") closed"
                 + (dropped.isEmpty() ? "" : " (tables dropped: " + dropped + ")"));
+        LOG.info("s1 " + s1 + " s2 "  + s2 + " s3 " + s3);
     }
 
     @Override
@@ -304,6 +306,10 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         }
     }
 
+    private AtomicLong s1 = new AtomicLong();
+    private AtomicLong s2 = new AtomicLong();
+    private AtomicLong s3 = new AtomicLong();
+
     private void storeBlockInDatabase(byte[] digest, int level, byte[] data) throws SQLException {
 
         String id = StringUtils.convertBytesToHex(digest);
@@ -312,6 +318,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         try {
             long now = System.currentTimeMillis();
+            long x1 = System.nanoTime();
             PreparedStatement prep = con.prepareStatement("update " + this.tnMeta + " set LASTMOD = ? where ID = ?");
             int count;
             try {
@@ -325,9 +332,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
             finally {
                 prep.close();
+                s1.addAndGet((System.nanoTime() - x1) / 1000);
             }
+
             if (count == 0) {
                 try {
+                    long x2 = System.nanoTime();
                     prep = con.prepareStatement("insert into " + this.tnData + " (ID, DATA) values(?, ?)");
                     try {
                         prep.setString(1, id);
@@ -339,6 +349,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         }
                     } finally {
                         prep.close();
+                        s2.addAndGet((System.nanoTime() - x2) / 1000);
                     }
                 } catch (SQLException ex) {
                     this.ch.rollbackConnection(con);
@@ -375,6 +386,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     }
                 }
                 try {
+                    long x3 = System.nanoTime();
                     prep = con.prepareStatement("insert into " + this.tnMeta + " (ID, LVL, LASTMOD) values(?, ?, ?)");
                     try {
                         prep.setString(1, id);
@@ -387,6 +399,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         }
                     } finally {
                         prep.close();
+                        s3.addAndGet((System.nanoTime() - x3) / 1000);
                     }
                 } catch (SQLException e) {
                     // already exists - ok
