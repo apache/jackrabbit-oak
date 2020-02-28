@@ -17,23 +17,30 @@
 package org.apache.jackrabbit.oak.segment.aws;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.Request;
+import com.amazonaws.Response;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.BasicSessionCredentials;
+import com.amazonaws.handlers.RequestHandler2;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.util.TimingInfo;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 
 public final class AwsContext {
 
     public final S3Directory directory;
     public final DynamoDBClient dynamoDBClient;
     private final String path;
+    private RemoteStoreMonitor monitor;
 
     private AwsContext(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
             String journalTableName, String lockTableName) {
@@ -62,6 +69,37 @@ public final class AwsContext {
             s3ClientBuilder = s3ClientBuilder.withRegion(region);
             dynamoDBClientBuilder = dynamoDBClientBuilder.withRegion(region);
         }
+
+        RequestHandler2 handler = new RequestHandler2() {
+            @Override
+            public void afterError(Request<?> request, Response<?> response, Exception e) {
+                process(request, response, e);
+            }
+
+            @Override
+            public void afterResponse(Request<?> request, Response<?> response) {
+                process(request, response, null);
+            }
+
+            private void process(Request<?> request, Response<?> response, Exception e) {
+                if (monitor != null) {
+                    TimingInfo timing = request.getAWSRequestMetrics().getTimingInfo();
+                    if (timing.isEndTimeKnown()) {
+                        long requestDuration = timing.getEndTimeNano() - timing.getStartTimeNano();
+                        monitor.requestDuration(requestDuration, TimeUnit.NANOSECONDS);
+                    }
+
+                    if (e == null) {
+                        monitor.requestCount();
+                    } else {
+                        monitor.requestError();
+                    }
+                }
+            }
+        };
+
+        s3ClientBuilder = s3ClientBuilder.withRequestHandlers(handler);
+        dynamoDBClientBuilder = dynamoDBClientBuilder.withRequestHandlers(handler);
 
         this.directory = new S3Directory(s3ClientBuilder.build(), configuration.bucketName(),
                 configuration.rootDirectory());
@@ -110,6 +148,10 @@ public final class AwsContext {
         awsContext.directory.ensureBucket();
         awsContext.dynamoDBClient.ensureTables();
         return awsContext;
+    }
+
+    public void setRemoteStoreMonitor(RemoteStoreMonitor monitor) {
+        this.monitor = monitor;
     }
 
     public String getPath(String fileName) {
