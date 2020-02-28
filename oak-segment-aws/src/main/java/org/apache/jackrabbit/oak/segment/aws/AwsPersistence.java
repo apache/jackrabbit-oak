@@ -64,12 +64,12 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public JournalFile getJournalFile() {
-        return new AwsJournalFile(awsContext.dynamoDBClient, "journal.log");
+        return new AwsJournalFile(awsContext.dynamoDBClient, awsContext.getPath("journal.log"));
     }
 
     @Override
     public GCJournalFile getGCJournalFile() throws IOException {
-        return new AwsGCJournalFile(awsContext.dynamoDBClient, "gc.log");
+        return new AwsGCJournalFile(awsContext.dynamoDBClient, awsContext.getPath("gc.log"));
     }
 
     @Override
@@ -79,6 +79,6 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AwsRepositoryLock(awsContext.dynamoDBClient, "repo.lock").lock();
+        return new AwsRepositoryLock(awsContext.dynamoDBClient, awsContext.getPath("repo.lock")).lock();
     }
 }

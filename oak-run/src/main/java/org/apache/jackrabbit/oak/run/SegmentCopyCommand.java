@@ -51,15 +51,17 @@ class SegmentCopyCommand implements Command {
         String destination = options.nonOptionArguments().get(1).toString();
 
         if (AwsSegmentCopy.canExecute(source, destination)) {
-            int statusCode = AwsSegmentCopy.builder()
+            AwsSegmentCopy.Builder builder = AwsSegmentCopy.builder()
                     .withSource(source)
                     .withDestination(destination)
                     .withOutWriter(out)
-                    .withErrWriter(err)
-                    .build()
-                    .run();
+                    .withErrWriter(err);
+    
+            if (options.has(last)) {
+                builder.withRevisionsCount(last.value(options) != null ? last.value(options) : 1);
+            }
 
-            System.exit(statusCode);
+            System.exit(builder.build().run());
         } else {
             SegmentCopy.Builder builder = SegmentCopy.builder()
                     .withSource(source)

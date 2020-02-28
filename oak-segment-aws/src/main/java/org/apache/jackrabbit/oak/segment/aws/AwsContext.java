@@ -33,11 +33,13 @@ public final class AwsContext {
 
     public final S3Directory directory;
     public final DynamoDBClient dynamoDBClient;
+    private final String path;
 
     private AwsContext(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
             String journalTableName, String lockTableName) {
         this.directory = new S3Directory(s3, bucketName, rootDirectory);
         this.dynamoDBClient = new DynamoDBClient(ddb, journalTableName, lockTableName);
+        this.path = bucketName + "/" + rootDirectory + "/";
     }
 
     private AwsContext(Configuration configuration) {
@@ -65,6 +67,7 @@ public final class AwsContext {
                 configuration.rootDirectory());
         this.dynamoDBClient = new DynamoDBClient(dynamoDBClientBuilder.build(), configuration.journalTableName(),
                 configuration.lockTableName());
+        this.path = configuration.bucketName() + "/" + configuration.rootDirectory() + "/";
     }
 
     /**
@@ -107,6 +110,10 @@ public final class AwsContext {
         awsContext.directory.ensureBucket();
         awsContext.dynamoDBClient.ensureTables();
         return awsContext;
+    }
+
+    public String getPath(String fileName) {
+        return path + fileName;
     }
 
     public String getConfig() {
