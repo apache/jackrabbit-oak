@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.segment.aws;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.amazonaws.AmazonServiceException;
@@ -185,20 +187,29 @@ public final class S3Directory {
     }
 
     public List<String> listPrefixes() throws IOException {
-        return listObjectsInternal("").getCommonPrefixes();
+        return listObjectsInternal("", result -> result.getCommonPrefixes());
     }
 
     public List<S3ObjectSummary> listObjects(String prefix) throws IOException {
-        return listObjectsInternal(prefix).getObjectSummaries();
+        return listObjectsInternal(prefix, result -> result.getObjectSummaries());
     }
 
-    private ListObjectsV2Result listObjectsInternal(String prefix) throws IOException {
+    private <T> List<T> listObjectsInternal(String prefix, Function<ListObjectsV2Result, List<T>> callback)
+            throws IOException {
+        List<T> objects = new ArrayList<>();
         ListObjectsV2Request request = new ListObjectsV2Request().withBucketName(bucketName)
                 .withPrefix(rootDirectory + prefix).withDelimiter("/");
-        try {
-            return s3.listObjectsV2(request);
-        } catch (AmazonServiceException e) {
-            throw new IOException(e);
-        }
+        ListObjectsV2Result result;
+        do {
+            try {
+                result = s3.listObjectsV2(request);
+            } catch (AmazonServiceException e) {
+                throw new IOException(e);
+            }
+            objects.addAll(callback.apply(result));
+            request.setContinuationToken(result.getContinuationToken());
+        } while (result.isTruncated());
+
+        return objects;
     }
 }
