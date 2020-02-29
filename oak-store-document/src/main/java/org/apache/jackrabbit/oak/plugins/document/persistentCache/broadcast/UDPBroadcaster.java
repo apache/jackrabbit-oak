@@ -79,7 +79,7 @@ public class UDPBroadcaster implements Broadcaster, Runnable {
                     sendTo = p.split(" ")[1];
                 }
             }                    
-            messageDigest = MessageDigest.getInstance("SHA-256");
+            messageDigest = MessageDigest.getInstance("SHA-512");
             this.key = messageDigest.digest(key.getBytes());
             if (aes) {
                 KeyGenerator kgen = KeyGenerator.getInstance("AES");
