@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.io.Closer;
@@ -30,10 +31,12 @@ import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexWriter;
@@ -80,10 +83,22 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
     @Override
     public void updateDocument(String path, Iterable<? extends IndexableField> doc) throws IOException {
+        Iterator<? extends IndexableField> f = doc.iterator();
+        String fieldName = f.hasNext() ? f.next().name() : null;
+        boolean containsOnlyPath = FieldNames.PATH.equals(fieldName) && !f.hasNext();
         if (reindex) {
+            if (containsOnlyPath) {
+                return;
+            }
             getWriter().addDocument(doc);
         } else {
-            getWriter().updateDocument(newPathTerm(path), doc);
+            // if the new document only contains path field, we don't add it to index. Instead we delete existing
+            // document of the same path.
+            if (containsOnlyPath) {
+                getWriter().deleteDocuments(newPathTerm(path));
+            } else {
+                getWriter().updateDocument(newPathTerm(path), doc);
+            }
         }
         indexUpdated = true;
     }
