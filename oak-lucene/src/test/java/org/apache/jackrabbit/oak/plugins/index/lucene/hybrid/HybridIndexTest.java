@@ -24,22 +24,39 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
+import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import javax.jcr.GuestCredentials;
+import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.Node;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
 import javax.management.AttributeNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.security.auth.login.LoginException;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
+import net.bytebuddy.utility.RandomString;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
@@ -55,6 +72,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -79,6 +97,14 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.facet.FacetResult;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -101,18 +127,27 @@ import org.junit.rules.TemporaryFolder;
 
 import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_STATISTICAL;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNoException;
 
-public class HybridIndexTest extends AbstractQueryTest {
+public class HybridIndexTest extends AbstractQueryTest implements Runnable {
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     @Rule
@@ -124,14 +159,27 @@ public class HybridIndexTest extends AbstractQueryTest {
     private DocumentQueue queue;
     private Clock clock = new Clock.Virtual();
     private Whiteboard wb;
+    private QueryManager qm;
 
     private long refreshDelta = TimeUnit.SECONDS.toMillis(1);
 
     @After
     public void tearDown() throws IOException {
+        System.out.println(System.currentTimeMillis() +Thread.currentThread().getName() + "1");
         luceneIndexProvider.close();
+        try {
+            t.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(System.currentTimeMillis() +Thread.currentThread().getName() + "2");
+
         new ExecutorCloser(executorService).close();
+        System.out.println(System.currentTimeMillis() +Thread.currentThread().getName() + "3");
+
         nrtIndexFactory.close();
+        System.out.println(System.currentTimeMillis() +Thread.currentThread().getName() + "4");
+
     }
 
     @Override
@@ -147,7 +195,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         nrtIndexFactory = new NRTIndexFactory(copier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         nrtIndexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
-        IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
+        IndexTracker tracker = new IndexTracker(indexReaderFactory, nrtIndexFactory);
         luceneIndexProvider = new LuceneIndexProvider(tracker);
         queue = new DocumentQueue(100, tracker, sameThreadExecutor());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
@@ -160,7 +208,8 @@ public class HybridIndexTest extends AbstractQueryTest {
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(queue, StatisticsProvider.NOOP);
 
         nodeStore = new MemoryNodeStore();
-        Oak oak = new Oak(nodeStore)
+
+        oak = new Oak(nodeStore)
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) luceneIndexProvider)
@@ -176,47 +225,261 @@ public class HybridIndexTest extends AbstractQueryTest {
                 .withAsyncIndexing("async", TimeUnit.DAYS.toSeconds(1));
 
         wb = oak.getWhiteboard();
-        return oak.createContentRepository();
+        ContentRepository repo = oak.createContentRepository();
+
+
+        /*jcr = new Jcr(oak);
+        jcrRepo = jcr.createRepository();
+
+        try {
+            //session1 = repository.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
+            //closer.register(session::logout);
+
+        // we'd always query anonymously
+        Session anonSession = jcrRepo.login(new GuestCredentials());
+        //closer.register(anonSession::logout);
+        qm = anonSession.getWorkspace().getQueryManager();
+        } catch (RepositoryException e) {
+            e.printStackTrace();
+        }*/
+
+        return repo;
     }
 
+    Repository jcrRepo;
+    Jcr jcr;
+    Oak oak;
+
     @Test
-    public void hybridIndex() throws Exception{
+    public void hybridIndex() throws Exception {
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
+
+
+        //Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        //facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+        //indexNode.setProperty(PROP_REFRESH_DEFN, true);
+        //session.save();
+
+
+        idx.addChild(FACETS).setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+
         root.commit();
+
+        runAsyncIndex();
+
 
         //Get initial indexing done as local indexing only work
         //for incremental indexing
-        createPath("/a").setProperty("foo", "bar");
-        root.commit();
+        int i = 0;
+        while (true) {
+            testing();
+            if (i == 0) {
+                ++i;
+                Thread t = new Thread(this);
+                t.start();
+            }
+        }
+        //Thread a = new Thread();
 
-        runAsyncIndex();
 
+    }
+
+    int NUM_LABELS = 4;
+    private static final int NUM_LEAF_NODES = STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
+    //private String nodeType = "oak:Unstructured";
+    private String nodeType = "nt:unstructured";
+
+    private void createSmallDataset() throws RepositoryException {
+        createSmallDataset(0);
+    }
+
+    private void createSmallDataset(int k) throws RepositoryException {
+        Random rGen = new Random(42);
+
+        Tree par = createPath("/parent" + k);
+//        par.setProperty("jcr:primaryType", nodeType, Type.NAME);
+        par.setProperty("foo", "bar");
+
+        for (int i = 0; i < NUM_LABELS * 2; i++) {
+            Tree subPar = par.addChild("par" + i);
+            // subPar.setProperty("jcr:primaryType", nodeType, Type.NAME);
+            for (int j = 0; j < NUM_LEAF_NODES / (2 * NUM_LABELS); j++) {
+                Tree child = subPar.addChild("c" + j);
+                child.setProperty("cons", "val");
+                //   child.setProperty("jcr:primaryType", nodeType, Type.NAME);
+
+                // Add a random label out of "l0", "l1", "l2", "l3"
+                int labelNum = rGen.nextInt(NUM_LABELS);
+                child.setProperty("foo", "l" + labelNum);
+                // child.setProperty("jcr:primaryType", nodeType, Type.NAME);
+            }
+        }
+    }
+
+    private void createSmallDataset1() throws RepositoryException {
+        Random rGen = new Random(42);
+
+        Tree par = createPath("/parent");
+        //Tree par = createPath("/");
+        par.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+        for (int i = 0; i < NUM_LABELS; i++) {
+            Tree subPar = par.addChild("par" + i);
+            subPar.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            for (int j = 0; j < NUM_LEAF_NODES / (2 * NUM_LABELS); j++) {
+                Tree child = subPar.addChild("c" + j);
+                child.setProperty("cons", "val");
+                child.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+                // Add a random label out of "l0", "l1", "l2", "l3"
+                int labelNum = rGen.nextInt(NUM_LABELS);
+                child.setProperty("foo", "l1" + labelNum);
+                child.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            }
+        }
+    }
+
+    Thread t;
+
+    @Test
+    public void hybridIndexmine() throws Exception {
+        Thread.currentThread().setName("mainThread");
+        String idxName = "hybridtest";
+        Tree idx = createIndex(root.getTree("/"), idxName);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
         setTraversalEnabled(false);
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
-
-        //Add new node. This would not be reflected in result as local index would not be updated
-        createPath("/b").setProperty("foo", "bar");
         root.commit();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+        jcr = new Jcr(oak);
+        jcrRepo = jcr.createRepository();
+        for (int i = 0; i < 1; i++) {
+            createSmallDataset(i);
 
+            if (i == 0) {
+                clock.waitUntil(clock.getTime() + refreshDelta + 1);
+                //runAsyncIndex();
+            }
+            root.commit();///----------first refresh
+            //Thread.sleep(1000);
+            runAsyncIndex();
+            createSmallDataset(2);
+            clock.waitUntil(clock.getTime() + refreshDelta + 1);
+//clock.waitUntil(clock.getTime() + refreshDelta + 1);
+            root.commit();
+
+            //Thread.sleep(5000);
+
+            try {
+                Session anonSession = jcrRepo.login(new GuestCredentials());
+                qm = anonSession.getWorkspace().getQueryManager();
+
+                Query q = qm.createQuery("SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'", SQL2);
+                System.out.println(System.currentTimeMillis() +"Quering start" + Thread.currentThread().getName() + "-----------");
+                QueryResult qr = q.execute();
+                System.out.println(System.currentTimeMillis() +"Quering stop " + Thread.currentThread().getName() + "-----------");
+                t = new Thread(this);
+                t.start();
+
+
+                //t.join();
+
+                /*root.getTree("/parent0").remove();
+                createSmallDataset(3);
+                clock.waitUntil(clock.getTime() + refreshDelta + 1);
+                clock.waitUntil(clock.getTime() + refreshDelta + 1);
+                root.commit();
+                runAsyncIndex();*/
+
+
+                //createToomuchData(10);
+                //clock.waitUntil(clock.getTime() + refreshDelta + 1);
+                //root.commit();
+                //  anonSession.refresh(true);
+                //  runAsyncIndex();
+
+                FacetResult facetResult;// = new FacetResult(qr); //--------second refresh
+
+                try {
+                System.out.println(System.currentTimeMillis() +"Facet start" + Thread.currentThread().getName() + "-----------");
+                    facetResult = new FacetResult(qr); //--------second refresh
+                System.out.println(System.currentTimeMillis() +"Facet stop " + Thread.currentThread().getName() + "-----------");
+                } catch (RuntimeException e) {
+                    System.out.println(System.currentTimeMillis() +"Already closed " + Thread.currentThread().getName() + "-----------");
+                    throw e;
+                }
+                Map<String, Integer> map = Maps.newHashMap();
+
+                Set<String> dims = facetResult.getDimensions();
+                for (String dim : dims) {
+                    List<FacetResult.Facet> facets = facetResult.getFacets(dim);
+                    for (FacetResult.Facet facet : facets) {
+                        map.put(facet.getLabel(), facet.getCount());
+                    }
+                }
+                System.out.println(System.currentTimeMillis() +Thread.currentThread().getName() + ", " + map.isEmpty());
+                // t.join();
+                //Thread.sleep(10000);
+                System.out.println(System.currentTimeMillis() +Thread.currentThread().getName() + ", " + map.isEmpty());
+            } catch (RepositoryException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+
+        }
+    }
+
+    String loop = RandomString.make(7);
+
+    private void createToomuchData(long numNodes) {
+//    long numNodes = 100000;
+        long i = 0;
+        while (i < numNodes) {
+            createPath("/" + loop + i).setProperty("cons", "val");
+            i++;
+        }
+        loop = RandomString.make(7);
+    }
+
+    void testing() throws CommitFailedException, InterruptedException {
+        try {
+            createSmallDataset();
+
+        } catch (RepositoryException e) {
+            e.printStackTrace();
+        }
+        root.commit();
+        runAsyncIndex();
+        //   assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
+//executeQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", SQL2);
         //Now let some time elapse such that readers can be refreshed
         clock.waitUntil(clock.getTime() + refreshDelta + 1);
 
-        //Now recently added stuff should be visible without async indexing run
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b"));
 
-        createPath("/c").setProperty("foo", "bar");
-        root.commit();
+        try {
+//            Query q = qm.createQuery("SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'", SQL2);
+            Query q = qm.createQuery("select [jcr:path] from [nt:base] where [foo] = 'l1'", SQL2);
+            QueryResult qr = q.execute();
+            Result queryResult = executeQuery("select [jcr:path] from [nt:base] where [cons] = 'val'", SQL2, NO_BINDINGS);
+            FacetResult facetResult = new FacetResult(qr);
+            Map<String, Integer> map = Maps.newHashMap();
 
-        //Post async index it should still be upto date
-        runAsyncIndex();
-        assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b", "/c"));
+            Set<String> dims = facetResult.getDimensions();
+            for (String dim : dims) {
+                List<FacetResult.Facet> facets = facetResult.getFacets(dim);
+                for (FacetResult.Facet facet : facets) {
+                    map.put(facet.getLabel(), facet.getCount());
+                }
+            }
+        } catch (RepositoryException | ParseException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
+
     @Test
-    public void noTextExtractionForSyncCommit() throws Exception{
+    public void noTextExtractionForSyncCommit() throws Exception {
         String idxName = "hybridtest";
         Tree idx = createFulltextIndex(root.getTree("/"), idxName);
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
@@ -241,7 +504,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void hybridIndexSync() throws Exception{
+    public void hybridIndexSync() throws Exception {
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
@@ -250,11 +513,13 @@ public class HybridIndexTest extends AbstractQueryTest {
         //Get initial indexing done as local indexing only work
         //for incremental indexing
         createPath("/a").setProperty("foo", "bar");
+        createSmallDataset();
         root.commit();
 
         runAsyncIndex();
 
         setTraversalEnabled(false);
+        executeQuery("select [jcr:path] from [nt:base] where [foo] = 'l2'", SQL2);
         assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a"));
 
         //Add new node. This should get immediately reelected as its a sync index
@@ -264,7 +529,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void usageBeforeFirstIndex() throws Exception{
+    public void usageBeforeFirstIndex() throws Exception {
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
@@ -289,7 +554,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void newNodeTypesFoundLater() throws Exception{
+    public void newNodeTypesFoundLater() throws Exception {
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, ImmutableSet.of("foo", "bar"));
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
@@ -313,7 +578,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void newNodeTypesFoundLater2() throws Exception{
+    public void newNodeTypesFoundLater2() throws Exception {
         String idxName = "hybridtest";
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
         idx.indexRule("oak:TestNode")
@@ -321,13 +586,13 @@ public class HybridIndexTest extends AbstractQueryTest {
         idx.indexRule("nt:base")
                 .property("foo").propertyIndex()
                 .property("bar").propertyIndex();
-        idx.async("async","sync");
+        idx.async("async", "sync");
         idx.build(root.getTree("/").getChild("oak:index").addChild(idxName));
 
         //By default nodetype index indexes every nodetype. Declare a specific list
         //such that it does not indexes test nodetype
         Tree nodeType = root.getTree("/oak:index/nodetype");
-        if (!nodeType.hasProperty(IndexConstants.DECLARING_NODE_TYPES)){
+        if (!nodeType.hasProperty(IndexConstants.DECLARING_NODE_TYPES)) {
             nodeType.setProperty(IndexConstants.DECLARING_NODE_TYPES, ImmutableList.of("nt:file"), Type.NAMES);
             nodeType.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         }
@@ -358,7 +623,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void noFileLeaks() throws Exception{
+    public void noFileLeaks() throws Exception {
         nrtIndexFactory.setDirectoryFactory(new NRTDirectoryFactory() {
             @Override
             public Directory createNRTDir(IndexDefinition definition, File indexDir) throws IOException {
@@ -389,7 +654,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     @Test
-    public void paging() throws Exception{
+    public void paging() throws Exception {
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
         TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
@@ -417,7 +682,7 @@ public class HybridIndexTest extends AbstractQueryTest {
 
         int size = Iterators.size(itr);
 
-        if (!lc.getLogs().isEmpty()){
+        if (!lc.getLogs().isEmpty()) {
             fail(lc.getLogs().toString());
         }
 
@@ -429,10 +694,10 @@ public class HybridIndexTest extends AbstractQueryTest {
 
     private long createTestDataAndRunAsync(String parentPath, int count) throws Exception {
         createTestData(parentPath, count);
-        System.out.printf("Open file count - Post creation of %d nodes at %s is %d%n",count, parentPath, getOpenFileCount());
+        System.out.printf("Open file count - Post creation of %d nodes at %s is %d%n", count, parentPath, getOpenFileCount());
         runAsyncIndex();
         long openCount = getOpenFileCount();
-        System.out.printf("Open file count - Post async run at %s is %d%n",parentPath, openCount);
+        System.out.printf("Open file count - Post async run at %s is %d%n", parentPath, openCount);
         return openCount;
     }
 
@@ -442,7 +707,7 @@ public class HybridIndexTest extends AbstractQueryTest {
 
         for (int i = 0; i < count; i++) {
             Tree parent = root.getTree(parentPath);
-            Tree t = parent.addChild("testNode"+i);
+            Tree t = parent.addChild("testNode" + i);
             t.setProperty("foo", "bar");
             root.commit();
         }
@@ -468,15 +733,15 @@ public class HybridIndexTest extends AbstractQueryTest {
         String pid = jvmName.split("@")[0];
 
         CommandLine cl = new CommandLine("/bin/sh");
-        cl.addArguments(new String[]{"-c", "lsof -p "+pid+" | grep '/nrt'"}, false);
+        cl.addArguments(new String[]{"-c", "lsof -p " + pid + " | grep '/nrt'"}, false);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DefaultExecutor executor = new DefaultExecutor();
         executor.setStreamHandler(new PumpStreamHandler(baos));
         executor.execute(cl);
-        System.out.println(new String(baos.toByteArray()));
+        System.out.println(System.currentTimeMillis() +new String(baos.toByteArray()));
     }
 
-    private String explain(String query){
+    private String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
     }
@@ -496,18 +761,91 @@ public class HybridIndexTest extends AbstractQueryTest {
         root.refresh();
     }
 
-    private Tree createPath(String path){
+    public void run() {
+
+        Thread.currentThread().setName("branch thread");
+        Query q = null;
+        try {
+            clock.waitUntil(clock.getTime() + refreshDelta + 1);
+            q = qm.createQuery("SELECT [rep:facet(foo)] FROM [nt:base] WHERE [cons] = 'val'", SQL2);
+
+
+System.out.println(System.currentTimeMillis() +"Quering start" + Thread.currentThread().getName() + "-----------");
+            QueryResult qr = q.execute();
+            System.out.println(System.currentTimeMillis() +"Quering stop " + Thread.currentThread().getName() + "-----------");
+
+
+//            FacetResult facetResult;
+//            try {
+//                facetResult = new FacetResult(qr); //--------second refresh
+//            } catch (RuntimeException e) {
+//                System.out.println(System.currentTimeMillis() +"Failing to close " + Thread.currentThread().getName() + "=====");
+//                throw e;
+//            }
+//
+//            Map<String, Integer> map = Maps.newHashMap();
+//
+//            Set<String> dims = facetResult.getDimensions();
+//            for (String dim : dims) {
+//                List<FacetResult.Facet> facets = facetResult.getFacets(dim);
+//                for (FacetResult.Facet facet : facets) {
+//                    map.put(facet.getLabel(), facet.getCount());
+//                }
+//            }
+            System.out.println(System.currentTimeMillis() +Thread.currentThread().getName() + ", ");
+        } catch (RepositoryException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void run1() {
+        while (true) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb, Runnable.class, new Predicate<Runnable>() {
+                @Override
+                public boolean test(@Nullable Runnable input) {
+                    return input instanceof AsyncIndexUpdate;
+                }
+            });
+            assertNotNull(async);
+            async.run();
+            if (async.isFailing()) {
+                fail("AsyncIndexUpdate failed");
+            }
+            root.refresh();
+        }
+
+    }
+
+    private Tree createPath(String path) {
         Tree base = root.getTree("/");
-        for (String e : PathUtils.elements(path)){
+        for (String e : PathUtils.elements(path)) {
             base = base.addChild(e);
         }
         return base;
     }
 
-    private static Tree createIndex(Tree index, String name, Set<String> propNames){
+//    private static Tree createIndex(Tree index, String name, Set<String> propNames){
+//        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+//        IndexRule rule = idx.indexRule("nt:base");
+//        for (String propName : propNames){
+//            rule.property(propName).propertyIndex();
+//        }
+//        Tree idxTree = index.getChild("oak:index").addChild(name);
+//        idx.build(idxTree);
+//        return idxTree;
+//    }
+
+
+    private static Tree createIndex(Tree index, String name, Set<String> propNames) {
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
         IndexRule rule = idx.indexRule("nt:base");
-        for (String propName : propNames){
+        for (String propName : propNames) {
             rule.property(propName).propertyIndex();
         }
         Tree idxTree = index.getChild("oak:index").addChild(name);
@@ -515,7 +853,42 @@ public class HybridIndexTest extends AbstractQueryTest {
         return idxTree;
     }
 
-    private static Tree createFulltextIndex(Tree index, String name){
+    private static final String FACET_PROP = "facets";
+
+    //private Session mysession;
+    private Tree createIndex(Tree index, String name) throws RepositoryException {
+        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
+//        idxBuilder.noAsync().evaluatePathRestrictions()
+//                .indexRule("nt:base")
+//               .property("cons")
+//               .propertyIndex()
+//                .property("foo").propertyIndex()
+//                .getBuilderTree().setProperty(PROP_FACETS, true);
+
+        idxBuilder.noAsync()
+                .indexRule("nt:base")
+                .property("cons").propertyIndex()
+                .property("foo").propertyIndex()
+                .getBuilderTree().setProperty(PROP_FACETS, true);
+
+
+        Tree facetConfig = idxBuilder.getBuilderTree().addChild(FACET_PROP);
+        facetConfig.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        facetConfig.setProperty("secure", "statistical");
+        facetConfig.setProperty("topChildren", "100");
+
+//        Node indexNode = getOrCreateByPath("/oak:index", "nt:unstructured", session)
+//                .addNode("index", INDEX_DEFINITIONS_NODE_TYPE);
+//        idxBuilder.build(indexNode);
+//        session.save();
+
+        Tree idxTree = index.getChild("oak:index").addChild(name);
+        idxBuilder.build(idxTree);
+        return idxTree;
+
+    }
+
+    private static Tree createFulltextIndex(Tree index, String name) {
         IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
         idx.evaluatePathRestrictions();
         idx.indexRule("nt:base")
@@ -530,6 +903,7 @@ public class HybridIndexTest extends AbstractQueryTest {
 
     private static class AccessRecordingBlob extends ArrayBasedBlob {
         int accessCount = 0;
+
         public AccessRecordingBlob(byte[] value) {
             super(value);
         }
