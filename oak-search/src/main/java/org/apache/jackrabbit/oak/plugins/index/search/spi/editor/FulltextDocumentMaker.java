@@ -129,7 +129,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
         D document = initDoc();
         boolean dirty = false;
-        Pattern propertyRegex = definition.getPropertyRegex();
 
         //We 'intentionally' are indexing node names only on root state as we don't support indexing relative or
         //regex for node name indexing
@@ -189,6 +188,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         }
 
         if (indexingRule.isFulltextEnabled()) {
+            Pattern propertyRegex = definition.getPropertyRegex();
             boolean shouldAdd = propertyRegex == null || propertyRegex.matcher(name).find();
             if (shouldAdd) {
                 indexFulltextValue(document, name);
