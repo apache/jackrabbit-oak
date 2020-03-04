@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static com.google.common.collect.Iterables.filter;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -53,6 +57,37 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     private RDBDocumentStore store;
 
+    // 1: seek using historical, paging mode
+    // 2: use custom single query directly using RDBDocumentStore API
+    private static final int MODE;
+
+    private static final int DEFAULTMODE = 2;
+
+    static {
+        String propName = RDBVersionGCSupport.class.getName() + ".MODE";
+        String value = System.getProperty(propName, "");
+        switch (value) {
+            case "":
+                MODE = DEFAULTMODE;
+                break;
+            case "1":
+                MODE = 1;
+                break;
+            case "2":
+                MODE = 2;
+                break;
+            default:
+                LOG.error("Ignoring unexpected value '" + value + "' for system property " + propName);
+                MODE = DEFAULTMODE;
+                break;
+        }
+
+        if (DEFAULTMODE != MODE) {
+            LOG.info("Strategy for " + RDBVersionGCSupport.class.getName() + " set to " + MODE + " (via system property "
+                    + propName + ")");
+        }
+    }
+
     public RDBVersionGCSupport(RDBDocumentStore store) {
         super(store);
         this.store = store;
@@ -64,13 +99,49 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         conditions.add(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1));
         conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, "<", NodeDocument.getModifiedInSecs(toModified)));
         conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=", NodeDocument.getModifiedInSecs(fromModified)));
-        return store.queryAsIterable(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions, Integer.MAX_VALUE, null);
+        if (MODE == 1) {
+            return getIterator(RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
+        } else {
+            return store.queryAsIterable(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions, Integer.MAX_VALUE, null);
+        }
     }
 
     @Override
-    protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
-                                                     final RevisionVector sweepRevs,
-                                                     final long oldestRevTimeStamp) {
+    protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
+            final long oldestRevTimeStamp) {
+        if (MODE == 1) {
+            return identifyGarbageMode1(gcTypes, sweepRevs, oldestRevTimeStamp);
+        } else {
+            return identifyGarbageMode2(gcTypes, sweepRevs, oldestRevTimeStamp);
+        }
+    }
+
+    private Iterable<NodeDocument> getSplitDocuments() {
+        List<QueryCondition> conditions = Collections.emptyList();
+        // absent support for SDTYPE as indexed property: exclude those
+        // documents from the query which definitively aren't split documents
+        List<String> excludeKeyPatterns = Arrays.asList("_:/%", "__:/%", "___:/%");
+        return getIterator(excludeKeyPatterns, conditions);
+    }
+
+    private Iterable<NodeDocument> identifyGarbageMode1(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
+            final long oldestRevTimeStamp) {
+        return filter(getSplitDocuments(), getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp));
+    }
+
+    private Predicate<NodeDocument> getGarbageCheckPredicate(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
+            final long oldestRevTimeStamp) {
+        return new Predicate<NodeDocument>() {
+            @Override
+            public boolean apply(NodeDocument doc) {
+                return gcTypes.contains(doc.getSplitDocType()) && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
+                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
+            }
+        };
+    }
+
+    private Iterable<NodeDocument> identifyGarbageMode2(final Set<SplitDocType> gcTypes, final RevisionVector sweepRevs,
+            final long oldestRevTimeStamp) {
         Iterable<NodeDocument> it1;
         Iterable<NodeDocument> it2;
         String name1, name2;
@@ -111,13 +182,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         final Iterable<NodeDocument> fit1 = it1;
         final Iterable<NodeDocument> fit2 = it2;
 
-        Predicate<NodeDocument> pred =  new Predicate<NodeDocument>() {
-            @Override
-            public boolean apply(NodeDocument doc) {
-                return gcTypes.contains(doc.getSplitDocType()) && doc.hasAllRevisionLessThan(oldestRevTimeStamp)
-                        && !isDefaultNoBranchSplitNewerThan(doc, sweepRevs);
-            }
-        };
+        Predicate<NodeDocument> pred = getGarbageCheckPredicate(gcTypes, sweepRevs, oldestRevTimeStamp);
 
         final CountingPredicate<NodeDocument> cp1 = new CountingPredicate<NodeDocument>(name1, pred);
         final CountingPredicate<NodeDocument> cp2 = new CountingPredicate<NodeDocument>(name2, pred);
@@ -200,4 +265,42 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         return store.queryCount(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN,
                 Collections.singletonList(new QueryCondition(NodeDocument.DELETED_ONCE, "=", 1)));
     }
-}
+
+    private Iterable<NodeDocument> getIterator(final List<String> excludeKeyPatterns, final List<QueryCondition> conditions) {
+        return new Iterable<NodeDocument>() {
+            @Override
+            public Iterator<NodeDocument> iterator() {
+                return new AbstractIterator<NodeDocument>() {
+
+                    private static final int BATCH_SIZE = 100;
+                    private String startId = NodeDocument.MIN_ID_VALUE;
+                    private Iterator<NodeDocument> batch = nextBatch();
+
+                    @Override
+                    protected NodeDocument computeNext() {
+                        // read next batch if necessary
+                        if (!batch.hasNext()) {
+                            batch = nextBatch();
+                        }
+
+                        NodeDocument doc;
+                        if (batch.hasNext()) {
+                            doc = batch.next();
+                            // remember current id
+                            startId = doc.getId();
+                        } else {
+                            doc = endOfData();
+                        }
+                        return doc;
+                    }
+
+                    private Iterator<NodeDocument> nextBatch() {
+                        List<NodeDocument> result = store.query(Collection.NODES, startId, NodeDocument.MAX_ID_VALUE,
+                                excludeKeyPatterns, conditions, BATCH_SIZE);
+                        return result.iterator();
+                    }
+                };
+            }
+        };
+    }
+ }
