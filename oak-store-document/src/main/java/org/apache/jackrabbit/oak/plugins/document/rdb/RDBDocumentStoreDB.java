@@ -170,11 +170,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
             try {
                 con = ch.getROConnection();
                 String cat = con.getCatalog();
@@ -193,7 +193,7 @@ public enum RDBDocumentStoreDB {
                 closeStatement(stmt);
                 ch.closeConnection(con);
             }
-            return result.toString();
+            return result;
         }
 
         @Override
@@ -288,11 +288,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
             try {
                 con = ch.getROConnection();
 
@@ -328,7 +328,7 @@ public enum RDBDocumentStoreDB {
                 closeStatement(stmt);
                 ch.closeConnection(con);
             }
-            return result.toString();
+            return result;
         }
 
         @Override
@@ -423,11 +423,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             Statement stmt = null;
             ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
             try {
                 con = ch.getROConnection();
                 stmt = con.createStatement();
@@ -445,7 +445,7 @@ public enum RDBDocumentStoreDB {
                 closeStatement(stmt);
                 ch.closeConnection(con);
             }
-            return result.toString();
+            return result;
         }
 
         @Override
@@ -558,11 +558,11 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
             try {
                 con = ch.getROConnection();
                 stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
@@ -589,7 +589,7 @@ public enum RDBDocumentStoreDB {
                 closeStatement(stmt);
                 ch.closeConnection(con);
             }
-            return result.toString();
+            return result;
         }
 
         @Override
@@ -695,7 +695,7 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
@@ -720,7 +720,7 @@ public enum RDBDocumentStoreDB {
                 closeStatement(stmt);
                 ch.closeConnection(con);
             }
-            return result.toString();
+            return result;
         }
 
         private long parseSize(String readable) {
@@ -896,6 +896,11 @@ public enum RDBDocumentStoreDB {
         return result;
     }
 
+    @NotNull
+    public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        return Collections.emptyMap();
+    }
+
     /**
      * Returns additional DB-specific statistics, augmenting the return value of
      * {@link RDBDocumentStore#getStats()}.
@@ -964,10 +969,6 @@ public enum RDBDocumentStoreDB {
      * "http://db.apache.org/derby/docs/10.14/ref/rrefsyscsdiagspacetable.html">SYSCS_DIAG.SPACE_TABLE diagnostic table function</a>
      * </ul>
      */
-    public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-        return "";
-    }
-
     public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
         return Collections.emptyMap();
     }
