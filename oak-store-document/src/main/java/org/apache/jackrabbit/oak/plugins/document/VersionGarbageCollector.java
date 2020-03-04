@@ -565,6 +565,8 @@ public class VersionGarbageCollector {
                             if (rec.maxCollect > 0 && gc.docIdsToDelete.getSize() > rec.maxCollect) {
                                 throw new LimitExceededException();
                             }
+                            /* Commenting out this code block to avoid select with delete query which effects in some DB like MySQL
+							 * The removal of documents is already handled in succeeding code where its done in batches
                             if (gc.hasLeafBatch()) {
                                 if (phases.start(GCPhase.DELETING)) {
                                     gc.removeLeafDocuments(phases.stats);
@@ -576,7 +578,7 @@ public class VersionGarbageCollector {
                                     gc.updateResurrectedDocuments(phases.stats);
                                     phases.stop(GCPhase.UPDATING);
                                 }
-                            }
+                            }*/
                         }
                     } finally {
                         Utils.closeIfCloseable(itr);
