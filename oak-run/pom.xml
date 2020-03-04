@@ -184,6 +184,16 @@
           <redirectTestOutputToFile>true</redirectTestOutputToFile>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/merge.txt</exclude>
+            <exclude>**/mergeIndexes.txt</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 

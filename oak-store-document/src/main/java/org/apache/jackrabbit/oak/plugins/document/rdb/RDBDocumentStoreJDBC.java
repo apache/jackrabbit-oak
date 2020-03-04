@@ -283,10 +283,10 @@ public class RDBDocumentStoreJDBC {
                     stmt.setObject(si++, document.get(NodeDocument.SD_MAX_REV_TIME_IN_SECS));
                 }
                 if (data.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
-                    stmt.setString(si++, data);
+                    setDataInStatement(tmd, stmt, si++, data);
                     stmt.setBinaryStream(si++, null, 0);
                 } else {
-                    stmt.setString(si++, "\"blob\"");
+                    setDataInStatement(tmd, stmt, si++, "\"blob\"");
                     byte[] bytes = asBytes(data);
                     stmt.setBytes(si++, bytes);
                 }
@@ -364,10 +364,10 @@ public class RDBDocumentStoreJDBC {
                 stmt.setObject(si++, data.length(), Types.BIGINT);
 
                 if (data.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
-                    stmt.setString(si++, data);
+                    setDataInStatement(tmd, stmt, si++, data);
                     stmt.setBinaryStream(si++, null, 0);
                 } else {
-                    stmt.setString(si++, "\"blob\"");
+                    setDataInStatement(tmd, stmt, si++, "\"blob\"");
                     byte[] bytes = asBytes(data);
                     stmt.setBytes(si++, bytes);
                 }
@@ -933,10 +933,10 @@ public class RDBDocumentStoreJDBC {
             stmt.setObject(si++, data.length(), Types.BIGINT);
 
             if (data.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
-                stmt.setString(si++, data);
+                setDataInStatement(tmd, stmt, si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
-                stmt.setString(si++, "\"blob\"");
+                setDataInStatement(tmd, stmt, si++, "\"blob\"");
                 byte[] bytes = asBytes(data);
                 stmt.setBytes(si++, bytes);
             }
@@ -1076,6 +1076,14 @@ public class RDBDocumentStoreJDBC {
         } catch (IOException ex) {
             LOG.warn("Invalid ID: " + id, ex);
             throw asDocumentStoreException(ex, "Invalid ID: " + id);
+        }
+    }
+
+    private static void setDataInStatement(RDBTableMetaData tmd, PreparedStatement stmt, int idx, String id) throws SQLException {
+        if (tmd.isDataNChar()) {
+            stmt.setNString(idx, id);
+        } else {
+            stmt.setString(idx, id);
         }
     }
 

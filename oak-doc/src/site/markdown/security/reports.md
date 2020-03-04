@@ -30,7 +30,7 @@ announcement and a short description.
 
 | CVE Number    | Type                                             | Fix Versions                                                    |
 |---------------|--------------------------------------------------|-----------------------------------------------------------------|
-|[CVE-2020-1940]| Sensitive information disclosure vulnerability   | 1.24.0, 1.10.8, 1.8.20, 1.6.20, patches for 1.4 and 1.2 see [OAK-8870] |
+|[CVE-2020-1940]| Sensitive information disclosure vulnerability   | 1.24.0, 1.10.8, 1.8.20, 1.6.20, 1.4.26, patch for 1.2 see [OAK-8870] |
 | | |
 
 ### Reporting Vulnerabilities with Apache Jackrabbit Oak

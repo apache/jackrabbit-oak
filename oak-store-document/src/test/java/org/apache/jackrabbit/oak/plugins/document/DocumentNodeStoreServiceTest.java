@@ -259,6 +259,25 @@ public class DocumentNodeStoreServiceTest {
         assertEquals(LeaseCheckMode.LENIENT, dns.getClusterInfo().getLeaseCheckMode());
     }
 
+    @Test
+    public void revisionGcDelayFactorCheckMode() {
+        Map<String, Object> config = newConfig(repoHome);
+        double delayFactor = 0.25;
+        config.put("versionGCDelayFactor", delayFactor);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+        Runnable rgcJob = null;
+        for (Runnable r : context.getServices(Runnable.class, null)) {
+            if (r.getClass().equals(DocumentNodeStoreService.RevisionGCJob.class)) {
+                rgcJob = r;
+            }
+        }
+        assertNotNull(rgcJob);
+        rgcJob.run(); //Need to trigger run method explicitly as delay-factor is set in this method
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertEquals(delayFactor, dns.getVersionGarbageCollector().getOptions().delayFactor, 0.001);
+    }
+
     @NotNull
     private static MongoDocumentStore getMongoDocumentStore(DocumentNodeStore s) {
         try {

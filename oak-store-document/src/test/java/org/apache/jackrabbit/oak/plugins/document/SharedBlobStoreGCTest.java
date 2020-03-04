@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
@@ -41,7 +40,6 @@ import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -96,8 +94,7 @@ public class SharedBlobStoreGCTest {
                 .getNodeStore();
         String repoId1 = ClusterRepositoryInfo.getOrCreateId(ds1);
         // Register the unique repository id in the data store
-        ((SharedDataStore) blobeStore1).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId1));
+        ((SharedDataStore) blobeStore1).setRepositoryId(repoId1);
 
         BlobStore blobeStore2 = getBlobStore(rootFolder);
         DocumentNodeStore ds2 = new DocumentMK.Builder()
@@ -108,8 +105,7 @@ public class SharedBlobStoreGCTest {
                 .getNodeStore();
         String repoId2 = ClusterRepositoryInfo.getOrCreateId(ds2);
         // Register the unique repository id in the data store
-        ((SharedDataStore) blobeStore2).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
+        ((SharedDataStore) blobeStore2).setRepositoryId(repoId2);
 
         cluster1 = new Cluster(ds1, repoId1, 20);
         cluster1.init();

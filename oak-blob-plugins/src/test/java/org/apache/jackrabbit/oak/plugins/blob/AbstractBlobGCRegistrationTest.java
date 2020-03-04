@@ -68,6 +68,10 @@ public abstract class AbstractBlobGCRegistrationTest {
         BlobGCMBean mbean = context.getService(BlobGCMBean.class);
         assertNotNull(mbean);
 
+        // Check repository id present
+        BlobStore store = context.getService(BlobStore.class);
+        assertNotNull(((DataStoreBlobStore) store).getRepositoryId());
+
         unregisterNodeStoreService();
         unregisterBlobStore();
     }

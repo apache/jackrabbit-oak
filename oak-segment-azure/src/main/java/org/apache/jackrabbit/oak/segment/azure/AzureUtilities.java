@@ -22,13 +22,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.ResultContinuation;
+import com.microsoft.azure.storage.ResultSegment;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.StorageUri;
@@ -37,6 +38,7 @@ import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 
+import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
@@ -69,14 +71,44 @@ public final class AzureUtilities {
     }
 
     public static List<CloudBlob> getBlobs(CloudBlobDirectory directory) throws IOException {
-        try {
-            return StreamSupport.stream(directory.listBlobs(null, false, EnumSet.of(BlobListingDetails.METADATA), null, null).spliterator(), false)
-                    .filter(i -> i instanceof CloudBlob)
-                    .map(i -> (CloudBlob) i)
-                    .collect(Collectors.toList());
-        } catch (StorageException | URISyntaxException e) {
-            throw new IOException(e);
-        }
+        List<CloudBlob> blobList = new ArrayList<>();
+        ResultContinuation token = null;
+        do {
+            ResultSegment<ListBlobItem> result = null;
+            IOException lastException = null;
+            for (int i = 0; i < 10; i++) {
+                try {
+                    result = directory.listBlobsSegmented(
+                            null,
+                            false,
+                            EnumSet.of(BlobListingDetails.METADATA),
+                            2500,
+                            token,
+                            null,
+                            null);
+                } catch (StorageException | URISyntaxException e) {
+                    lastException = new IOException(e);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        log.warn("Interrupted", e);
+                    }
+                    continue;
+                }
+            }
+            if (result == null) {
+                throw lastException;
+            }
+            for (ListBlobItem b : result.getResults()) {
+                if (b instanceof CloudBlob) {
+                    CloudBlob cloudBlob = (CloudBlob) b;
+                    blobList.add(cloudBlob);
+                }
+            }
+            token = result.getContinuationToken();
+        } while (token != null);
+
+        return blobList;
     }
 
     public static void readBufferFully(CloudBlob blob, Buffer buffer) throws IOException {

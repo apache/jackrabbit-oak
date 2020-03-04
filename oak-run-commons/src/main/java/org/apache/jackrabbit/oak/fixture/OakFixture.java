@@ -225,7 +225,7 @@ public abstract class OakFixture {
                     builder.setBlobStore(blobStore);
                 }
                 Oak oak = newOak(builder.build());
-                if (blobStore != null) {
+                if (blobStore instanceof BlobAccessProvider) {
                     oak.getWhiteboard()
                         .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
                 }
@@ -250,7 +250,7 @@ public abstract class OakFixture {
                     }
                     nodeStores[i] = builder.build();
                     cluster[i] = newOak(nodeStores[i]);
-                    if (blobStore != null) {
+                    if (blobStore instanceof BlobAccessProvider) {
                         cluster[i].getWhiteboard()
                             .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
                     }
@@ -448,7 +448,7 @@ public abstract class OakFixture {
         @Override
         public Oak getOak(int clusterId) throws Exception {
             Oak oak = newOak(getBuilder(clusterId).build());
-            if (this.blobStore != null) {
+            if (this.blobStore instanceof BlobAccessProvider) {
                 oak.getWhiteboard()
                     .register(BlobAccessProvider.class, (BlobAccessProvider) this.blobStore, Collections.EMPTY_MAP);
             }
@@ -459,7 +459,7 @@ public abstract class OakFixture {
             Oak[] cluster = new Oak[builders.length];
             for (int i = 0; i < cluster.length; i++) {
                 cluster[i] = newOak(builders[i].build());
-                if (this.blobStore != null) {
+                if (this.blobStore instanceof BlobAccessProvider) {
                     cluster[i].getWhiteboard()
                         .register(BlobAccessProvider.class, (BlobAccessProvider) this.blobStore, Collections.EMPTY_MAP);
                 }

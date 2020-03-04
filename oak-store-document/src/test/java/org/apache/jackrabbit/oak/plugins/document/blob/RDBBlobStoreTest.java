@@ -303,4 +303,30 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
             logCustomizerRead.finished();
         }
     }
+
+    @Test
+    public void testInsertSmallBlobs() throws Exception {
+        int size = 1500;
+        long duration = 2000;
+        long end = System.currentTimeMillis() + duration;
+        int cnt = 0;
+        int errors = 0;
+        Random r = new Random(0);
+
+        while (System.currentTimeMillis() < end) {
+            byte[] data = new byte[size];
+            r.nextBytes(data);
+            byte[] digest = getDigest(data);
+            try {
+                RDBBlobStoreFriend.storeBlock(blobStore, digest, 0, data);
+                cnt += 1;
+            } catch (Exception ex) {
+                LOG.debug("insert failed", ex);
+                errors += 1;
+            }
+        }
+
+        LOG.info("inserted " + cnt + " blocks of size " + size + " into " + blobStoreName + " (" + errors + " errors) in "
+                + duration + "ms (" + (cnt * 1000) / duration + " blocks/s)");
+    }
 }

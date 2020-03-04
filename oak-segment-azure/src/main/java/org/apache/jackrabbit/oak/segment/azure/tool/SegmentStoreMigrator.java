@@ -193,17 +193,25 @@ public class SegmentStoreMigrator implements Closeable  {
         }
     }
 
-    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
-        Buffer binaryReferences = reader.getBinaryReferences();
+    private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
+        Future<Buffer> future = executor.submit(() -> runWithRetry(() -> reader.getBinaryReferences(), 16, 5));
+        Buffer binaryReferences = future.get();
         if (binaryReferences != null) {
             byte[] array = fetchByteArray(binaryReferences);
             writer.writeBinaryReferences(array);
         }
     }
 
-    private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException {
-        if (reader.hasGraph()) {
-            Buffer graph = reader.getGraph();
+    private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
+        Future<Buffer> future = executor.submit(() -> runWithRetry(() -> {
+            if (reader.hasGraph()) {
+                return reader.getGraph();
+            } else {
+                return null;
+            }
+        }, 16, 5));
+        Buffer graph = future.get();
+        if (graph != null) {
             byte[] array = fetchByteArray(graph);
             writer.writeGraph(array);
         }

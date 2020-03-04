@@ -156,15 +156,16 @@ This is supported for both XPath and SQL-2, as follows:
 `@since Oak 1.7.4 (OAK-937)`
 
 By default, queries will use the index with the lowest expected cost (as in relational databases).
-But in rare cases, it is needed to specify which index(es) should be considered for a query:
+But some cases, it is needed to specify which index(es) should be considered for a query:
 
+* If you want to ensure a specific type of index is used for specific type of queries,
+  for example custom indexes are used for custom queries.
 * If there are multiple Lucene fulltext indexes with different aggregation rules,
   and the index data overlaps.
   In the query, you want to specify which aggregation rule to use.
 * To temporarily work around limitations of the index implementation,
   for example incorrect cost estimation.
 
-Using index tags should be the exception, and should only be used temporarily.
 To use index tags,
 add `tags` (a multi-valued String property) to the index(es) of choice, for example:
 
@@ -664,7 +665,7 @@ XPath functions "fn:string-length" and "fn:local-name".
 ### Temporarily Blocking Queries
 
     @since 1.14.0
-    
+
 Application code can run bad queries that read a lot of data or consume a lot of memory.
 The best solution is to fix the application, however this can take some time.
 Queries can be blocked at runtime using validator patterns, without having to immediately change the application.
@@ -688,7 +689,7 @@ In this case, no escaping is needed. Example patterns are:
 
 * `[ "SELECT * FROM", "ORDER BY [name]" ]`: All queries that start and end with the given texts.
 * `"/jcr:root/var/acme/.*"`: All queries that match this regular expression.
- 
+
 Patterns are evaluated in alphabetical order.
 They are only read once, at startup.
 

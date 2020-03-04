@@ -30,7 +30,6 @@ import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.ParseException;
@@ -139,6 +138,7 @@ public class DocumentNodeStoreService {
     public static final String CONTINUOUS_RGC_EXPR = "*/5 * * * * ?";
     public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
     public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
+    public static final double DEFAULT_RGC_DELAY_FACTOR = 0;
     private static final String DESCRIPTION = "oak.nodestore.description";
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
@@ -340,8 +340,7 @@ public class DocumentNodeStoreService {
             String repoId = null;
             try {
                 repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
-                ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-                    SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+                ((SharedDataStore) blobStore).setRepositoryId(repoId);
             } catch (Exception e) {
                 throw new IOException("Could not register a unique repositoryId", e);
             }
@@ -758,7 +757,7 @@ public class DocumentNodeStoreService {
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0);
+        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0, DEFAULT_RGC_DELAY_FACTOR);
         Runnable cancelGC = () -> store.getVersionGarbageCollector().cancel();
         Supplier<String> status = () -> store.getVersionGarbageCollector().getStatus();
         RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, status, executor);
@@ -818,9 +817,10 @@ public class DocumentNodeStoreService {
         props.put("scheduler.expression", expr);
         long versionGcMaxAgeInSecs = config.versionGcMaxAgeInSecs();
         long versionGCTimeLimitInSecs = config.versionGCTimeLimitInSecs();
+        double versionGCDelayFactor = config.versionGCDelayFactor();
         addRegistration(scheduleWithFixedDelay(whiteboard,
                 new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs,
-                        versionGCTimeLimitInSecs),
+                        versionGCTimeLimitInSecs, versionGCDelayFactor),
                 props, MODIFIED_IN_SECS_RESOLUTION, true, true));
     }
 
@@ -900,23 +900,26 @@ public class DocumentNodeStoreService {
         private final DocumentNodeStore nodeStore;
         private final long versionGCMaxAgeInSecs;
         private final long versionGCTimeLimitInSecs;
+        private final double versionGCDelayFactor;
         private volatile Object lastResult = "";
         private long lastLogTime;
         private VersionGCStats stats;
 
         RevisionGCJob(DocumentNodeStore ns,
                       long versionGcMaxAgeInSecs,
-                      long versionGCTimeLimitInSecs) {
+                      long versionGCTimeLimitInSecs,
+                      double versionGCDelayFactor) {
             this.nodeStore = ns;
             this.versionGCMaxAgeInSecs = versionGcMaxAgeInSecs;
             this.versionGCTimeLimitInSecs = versionGCTimeLimitInSecs;
+            this.versionGCDelayFactor = versionGCDelayFactor;
             resetStats();
         }
 
         @Override
         public void run() {
             VersionGarbageCollector gc = nodeStore.getVersionGarbageCollector();
-            gc.setOptions(gc.getOptions().withMaxDuration(TimeUnit.SECONDS, versionGCTimeLimitInSecs));
+            gc.setOptions(gc.getOptions().withMaxDuration(TimeUnit.SECONDS, versionGCTimeLimitInSecs).withDelayFactor(versionGCDelayFactor));
             try {
                 VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);
