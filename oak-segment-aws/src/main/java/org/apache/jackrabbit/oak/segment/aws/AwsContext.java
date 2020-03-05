@@ -32,7 +32,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.util.TimingInfo;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 
 public final class AwsContext {
@@ -53,8 +52,8 @@ public final class AwsContext {
         AmazonS3ClientBuilder s3ClientBuilder = AmazonS3ClientBuilder.standard();
         AmazonDynamoDBClientBuilder dynamoDBClientBuilder = AmazonDynamoDBClientBuilder.standard();
 
-        if (StringUtils.isNotBlank(configuration.accessKey())) {
-            AWSCredentials credentials = StringUtils.isBlank(configuration.sessionToken())
+        if (!isEmpty(configuration.accessKey())) {
+            AWSCredentials credentials = isEmpty(configuration.sessionToken())
                     ? new BasicAWSCredentials(configuration.accessKey(), configuration.secretKey())
                     : new BasicSessionCredentials(configuration.accessKey(), configuration.secretKey(),
                             configuration.sessionToken());
@@ -65,7 +64,7 @@ public final class AwsContext {
         }
 
         String region = configuration.region();
-        if (StringUtils.isNotBlank(region)) {
+        if (!isEmpty(region)) {
             s3ClientBuilder = s3ClientBuilder.withRegion(region);
             dynamoDBClientBuilder = dynamoDBClientBuilder.withRegion(region);
         }
@@ -163,5 +162,9 @@ public final class AwsContext {
         uri.append(directory.getConfig()).append(';');
         uri.append(dynamoDBClient.getConfig());
         return uri.toString();
+    }
+
+    private static boolean isEmpty(String input) {
+        return input == null || input.isEmpty();
     }
 }

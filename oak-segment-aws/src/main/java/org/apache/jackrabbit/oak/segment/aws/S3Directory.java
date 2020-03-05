@@ -40,7 +40,6 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.IOUtils;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,7 @@ public final class S3Directory {
         this.s3 = s3;
         this.bucketName = bucketName;
         rootDirectory = rootDirectory.startsWith("/") ? rootDirectory.substring(1) : rootDirectory;
-        this.rootDirectory = StringUtils.appendIfMissing(rootDirectory, "/");
+        this.rootDirectory = rootDirectory.endsWith("/") ? rootDirectory : rootDirectory + "/";
     }
 
     public S3Directory withDirectory(String childDirectory) {

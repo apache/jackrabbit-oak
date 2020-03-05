@@ -24,7 +24,6 @@ import java.util.Date;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.jackrabbit.oak.segment.file.GcJournalTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -112,7 +111,7 @@ public class AwsGCJournalFileTest extends GcJournalTest {
 
         @Override
         public boolean segmentFilesExist() {
-            throw new NotImplementedException("");
+            return true;
         }
 
     }
