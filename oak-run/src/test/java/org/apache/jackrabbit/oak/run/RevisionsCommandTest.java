@@ -90,9 +90,7 @@ public class RevisionsCommandTest {
         assertTrue(output.contains("resetting recommendations and statistics"));
 
         MongoConnection c = connectionFactory.getConnection();
-        assertNotNull(c);
-        ns = builderProvider.newBuilder()
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+        ns = builderProvider.newBuilder().setMongoDB(c.getDB()).getNodeStore();
         doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
         assertNull(doc);
     }
@@ -123,9 +121,7 @@ public class RevisionsCommandTest {
 
         // remove the sweep revision to force a sweep run
         MongoConnection c = connectionFactory.getConnection();
-        assertNotNull(c);
-        DocumentNodeStoreBuilder<?> builder = builderProvider.newBuilder()
-                .setMongoDB(c.getMongoClient(), c.getDBName());
+        DocumentNodeStoreBuilder<?> builder = builderProvider.newBuilder().setMongoDB(c.getDB());
         DocumentStore store = builder.getDocumentStore();
         UpdateOp op = new UpdateOp(getIdFromPath("/"), false);
         op.removeMapEntry("_sweepRev", new Revision(0, 0, clusterId));
@@ -137,10 +133,8 @@ public class RevisionsCommandTest {
 
     private DocumentNodeStore createDocumentNodeStore() {
         MongoConnection c = connectionFactory.getConnection();
-        assertNotNull(c);
-        MongoUtils.dropCollections(c.getDatabase());
-        return builderProvider.newBuilder()
-                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+        MongoUtils.dropCollections(c.getDB().getName());
+        return builderProvider.newBuilder().setMongoDB(c.getDB()).getNodeStore();
     }
 
     private String captureSystemOut(Runnable r) {
