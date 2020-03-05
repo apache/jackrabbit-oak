@@ -92,6 +92,7 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
         ioMonitor.beforeSegmentWrite(new File(fullName), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
         directory.writeObject(segmentName, data, AwsBlobMetadata.toSegmentMetadata(indexEntry));
+        writeIndex();
         ioMonitor.afterSegmentWrite(new File(fullName), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
     }
 
@@ -152,7 +153,22 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
             q.flush();
             q.close();
         }
+        writeIndex();
         directory.writeObject("closed", new byte[0]);
+    }
+
+    private void writeIndex() throws IOException {
+        Buffer buffer = Buffer.allocate(index.size() * 33);
+        for (AwsSegmentArchiveEntry entry : index.values()) {
+            buffer.putLong(entry.getMsb());
+            buffer.putLong(entry.getLsb());
+            buffer.putInt(entry.getPosition());
+            buffer.putInt(entry.getLength());
+            buffer.putInt(entry.getGeneration());
+            buffer.putInt(entry.getFullGeneration());
+            buffer.put(entry.isCompacted() ? (byte) 1 : 0);
+        }
+        directory.writeObject(archiveName + ".idx", buffer.array());
     }
 
     @Override

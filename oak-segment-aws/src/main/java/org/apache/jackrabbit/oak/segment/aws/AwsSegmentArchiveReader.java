@@ -27,8 +27,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -55,18 +53,28 @@ public class AwsSegmentArchiveReader implements SegmentArchiveReader {
         this.directory = directory;
         this.archiveName = archiveName;
         this.ioMonitor = ioMonitor;
+        this.length = readIndex();
+    }
+
+    private long readIndex() throws IOException {
         long length = 0;
-        for (S3ObjectSummary blob : directory.listObjects("")) {
-            ObjectMetadata allMetadata = directory.getObjectMetadata(blob.getKey());
-            Map<String, String> metadata = allMetadata.getUserMetadata();
-            if (AwsBlobMetadata.isSegment(metadata)) {
-                AwsSegmentArchiveEntry indexEntry = AwsBlobMetadata.toIndexEntry(metadata,
-                        (int) allMetadata.getContentLength());
-                index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
-            }
-            length += allMetadata.getContentLength();
+        Buffer buffer = directory.readObjectToBuffer(archiveName + ".idx", OFF_HEAP);
+        while (buffer.hasRemaining()) {
+            long msb = buffer.getLong();
+            long lsb = buffer.getLong();
+            int position = buffer.getInt();
+            int contentLength = buffer.getInt();
+            int generation = buffer.getInt();
+            int fullGeneration = buffer.getInt();
+            boolean compacted = buffer.get() != 0;
+
+            AwsSegmentArchiveEntry indexEntry = new AwsSegmentArchiveEntry(msb, lsb, position, contentLength,
+                    generation, fullGeneration, compacted);
+            index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
+            length += contentLength;
         }
-        this.length = length;
+
+        return length;
     }
 
     @Override
