@@ -41,6 +41,8 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<File> outputDirOpt;
     private final OptionSpec<Boolean> collectGarbage;
     private final OptionSpec<Void> consistencyCheck;
+    private final OptionSpec<Void> refOp;
+    private final OptionSpec<Void> idOp;
     private final OptionSpec<Boolean> checkConsistencyAfterGC;
     private final OptionSpec<Integer> batchCount;
     private OptionSet options;
@@ -49,6 +51,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<Long> blobGcMaxAgeInSecs;
     private final OptionSpec<Void> verbose;
     private final OptionSpec<String> verboseRootPath;
+    private final OptionSpec<String> verbosePathInclusionRegex;
     private final OptionSpec<Boolean> resetLoggingConfig;
     private OptionSpec<String> exportMetrics;
     private static final String DELIM = ",";
@@ -66,6 +69,10 @@ public class DataStoreOptions implements OptionsBean {
         consistencyCheck =
             parser.accepts("check-consistency", "Performs a consistency check on the repository/datastore defined");
 
+        refOp = parser.accepts("dump-ref", "Gets a dump of Blob References");
+
+        idOp = parser.accepts("dump-id", "Gets a dump of Blob Ids");
+
         blobGcMaxAgeInSecs = parser.accepts("max-age", "")
             .withRequiredArg().ofType(Long.class).defaultsTo(86400L);
         batchCount = parser.accepts("batch", "Batch count")
@@ -79,10 +86,16 @@ public class DataStoreOptions implements OptionsBean {
         verbose =
             parser.accepts("verbose", "Option to get all the paths and implementation specific blob ids");
 
-        // Option NOT available for garbage collection operation - we throw an exception if both --collect-garbage and
+        // Option NOT available for garbage collection operation - we throw an
+        // exception if both --collect-garbage and
         // --verboseRootPath are provided in the command.
         verboseRootPath = parser.accepts("verboseRootPath",
-                "Root path to output backend formatted ids/paths").availableUnless(collectGarbage).availableIf(verbose).withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
+                "Root path to output backend formatted ids/paths").availableUnless(collectGarbage).availableIf(verbose)
+                .withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
+
+        verbosePathInclusionRegex = parser.accepts("verbosePathInclusionRegex", "Regex to provide an inclusion list for " +
+                "nodes that will be scanned under the path provided with the option --verboseRootPath").availableIf(verboseRootPath).
+                withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
 
         resetLoggingConfig =
             parser.accepts("reset-log-config", "Reset logging config for testing purposes only").withOptionalArg()
@@ -91,7 +104,7 @@ public class DataStoreOptions implements OptionsBean {
             "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck);
+        actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck, idOp, refOp);
         operationNames = collectionOperationNames(actionOpts);
     }
 
@@ -147,6 +160,14 @@ public class DataStoreOptions implements OptionsBean {
         return options.has(consistencyCheck);
     }
 
+    public boolean dumpRefs() {
+        return options.has(refOp);
+    }
+
+    public boolean dumpIds() {
+        return options.has(idOp);
+    }
+
     public boolean checkConsistencyAfterGC() {
         return options.has(checkConsistencyAfterGC) && checkConsistencyAfterGC.value(options) ;
     }
@@ -171,6 +192,10 @@ public class DataStoreOptions implements OptionsBean {
         return options.has(verboseRootPath);
     }
 
+    public boolean hasVerboseInclusionRegex() {
+        return options.has(verbosePathInclusionRegex);
+    }
+
     public boolean isResetLoggingConfig() {
         return resetLoggingConfig.value(options);
     }
@@ -193,6 +218,10 @@ public class DataStoreOptions implements OptionsBean {
 
     public List<String> getVerboseRootPaths() {
         return options.valuesOf(verboseRootPath);
+    }
+
+    public List<String> getVerboseInclusionRegex() {
+        return options.valuesOf(verbosePathInclusionRegex);
     }
 
 }

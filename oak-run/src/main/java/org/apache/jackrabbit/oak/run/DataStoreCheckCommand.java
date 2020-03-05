@@ -518,9 +518,10 @@ public class DataStoreCheckCommand implements Command {
                         Iterator<Blob> iterator = p.getValue(Type.BINARIES).iterator();
                         while (iterator.hasNext()) {
 
-                            id = iterator.next().getContentIdentity();
+                            Blob blob = iterator.next();
+                            id = blob.getContentIdentity();
                             // Ignore inline encoded binaries in document mk
-                            if (id == null || p.getValue(Type.BINARY).isInlined()) {
+                            if (id == null || blob.isInlined()) {
                                 continue;
                             }
                             writeAsLine(writer,

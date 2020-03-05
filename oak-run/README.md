@@ -561,8 +561,10 @@ Maintenance commands for the DataStore:
 
 The following operations are available:
     
-    --collect-garbage       - Execute garbage collection on the data store. If only mark phase to be run specify a true parameter.
-    --check-consistency     - List all the missing blobs by doing a consistency check.
+    --collect-garbage          - Execute garbage collection on the data store. If only mark phase to be run specify a true parameter.
+    --check-consistency        - List all the missing blobs by doing a consistency check.
+    --dump-ref                 - List all the blob references in the node store
+    --dump-id                  - List all the ids in the data store
 
 The following options are available:
 
@@ -579,12 +581,16 @@ The following options are available:
                                Adds the sub-directories created in FDS to the id path and the changes done to the id for S3/Azure when stored in the respective container.
     --verboseRootPath       - Paths under which backend friendly blobids are required (Optional). If not specified, then --verbose uses "/" as the default path. For example,
                               to list all blobids under /oak:index and /content/oak:index, use --verboseRootPath /oak:index,/content/oak:index (If providing more than one arguments to this option, 
-                              use comma as a delimiter).
-                              This option is NOT available for the collect-garbage operation. If specified with collect-garbage, the command execution will throw
-                              an exception.
-    <store_path|mongo_uri>  - Path to the tar segment store or the segment azure uri as specified in 
-                               http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
-                               or if Mongo NodeStore then the mongo uri.
+                                 use comma as a delimiter).
+                                 This option is NOT available for the collect-garbage operation. If specified with collect-garbage, the command execution will throw
+                                 an exception.
+    --verbosePathInclusionRegex- A Regex that can be used to limit the scan during traversal to a specific inclusion list of nodes identified by the regex.
+                                 For example , to look for blob refrences under specific paths such as /b1/b2/foo, /c1/c2/foo under the rootPath /a
+                                 use --verboseRootPath /a --verbosePathInclusionRegex /*/*/foo
+                                 This option is only available when --verboseRootPath is used.
+    <store_path|mongo_uri>     - Path to the tar segment store or the segment azure uri as specified in 
+                                 http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
+                                 or if Mongo NodeStore then the mongo uri.
     --metrics                - If metrics are to be captured.
     --export-metrics         - Option to export the captured metrics. The format of the command is type;URL;key1=value1,key2=value2
                               Currently only [Prometheus Pushgateway](https://github.com/prometheus/pushgateway) is supported
