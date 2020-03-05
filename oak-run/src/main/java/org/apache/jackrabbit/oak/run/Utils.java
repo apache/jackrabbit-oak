@@ -204,7 +204,7 @@ class Utils {
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
             closer.register(asCloseable(mongo));
-            builder = newMongoDocumentNodeStoreBuilder().setMongoDB(mongo.getDB());
+            builder = newMongoDocumentNodeStoreBuilder().setMongoDB(src, mongo.getDB().getName(), 16);
         } else if (src.startsWith("jdbc")) {
             RDBOptions opts = new RDBOptions();
             if (options.getRDBTablePrefix() != null) {
