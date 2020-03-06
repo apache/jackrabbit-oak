@@ -23,6 +23,7 @@ import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Closer;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -34,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilderHelper;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -42,6 +45,7 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -101,6 +105,21 @@ public class RevisionsCommandTest {
 
         String output = captureSystemOut(new RevisionsCmd("collect"));
         assertTrue(output.contains("starting gc collect"));
+    }
+    
+    @Test
+    public void validateMongoUri() throws Exception {
+    	ImmutableList<String> args = ImmutableList.<String>builder().add(MongoUtils.URL)
+                .build().asList();
+    	Closer closer = Closer.create();
+        DocumentNodeStoreBuilder<?> builder = Utils.createDocumentMKBuilder(args.toArray(new String[args.size()]), closer, "");
+        if(builder instanceof MongoDocumentNodeStoreBuilder) {
+        	MongoDocumentNodeStoreBuilder mb = (MongoDocumentNodeStoreBuilder)builder;
+        	String mongoUri = MongoDocumentNodeStoreBuilderHelper.getMongoUri(mb);
+        	assertNotNull(mongoUri);
+        	assertEquals(MongoUtils.URL, mongoUri);
+        }
+        closer.close();
     }
 
     @Test
