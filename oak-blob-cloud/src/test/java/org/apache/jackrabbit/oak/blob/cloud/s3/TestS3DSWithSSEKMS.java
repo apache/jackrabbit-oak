@@ -14,28 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
+
 /**
- * Test S3DataStore operation with SSE_S3 encryption.
+ * Test S3DataStore operation with SSE_KMS encryption.
  * It requires to pass aws config file via system property  or system properties by prefixing with 'ds.'.
  * See details @ {@link S3DataStoreUtils}.
  * For e.g. -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
+ *
  */
-public class TestS3DSWithSSES3 extends TestS3Ds {
+public class TestS3DSWithSSEKMS extends TestS3Ds {
 
-    protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSSES3.class);
+        protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSWithSSES3.class);
 
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_S3);
-    }
+        @Override
+        @Before
+        public void setUp() throws Exception {
+            super.setUp();
+            props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_SSE_KMS);
+            String kmsKey = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
+            if (kmsKey != null) {
+                props.remove(S3Constants.S3_SSE_KMS_KEYID);
+            }
+        }
 }
