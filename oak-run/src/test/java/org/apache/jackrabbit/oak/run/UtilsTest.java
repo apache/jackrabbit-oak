@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilderHelper;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -31,7 +30,6 @@ import static org.junit.Assert.assertNotNull;
 
 public class UtilsTest {
 
-    @Ignore
     @Test
     public void validateMongoUri() throws Exception {
         ImmutableList<String> args = ImmutableList.<String>builder().add(MongoUtils.URL)
