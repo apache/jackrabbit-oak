@@ -113,10 +113,19 @@ public class LuceneIndexNodeManager {
     private final Runnable refreshCallback = new Runnable() {
         @Override
         public void run() {
+
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            FacetTestHelper.log("LuceneIndexNodeManager.refreshCallback.run");
             if (refreshLock.tryAcquire()) {
                 try {
+                    FacetTestHelper.log("LuceneIndexNodeManager.refreshCallback refreshReaders");
                     refreshReaders();
-                }finally {
+                    FacetTestHelper.log("LuceneIndexNodeManager.refreshCallback refreshReaders done");
+                } finally {
                     refreshLock.release();
                 }
             }
@@ -166,6 +175,9 @@ public class LuceneIndexNodeManager {
                 refreshPolicy.refreshOnReadIfRequired(refreshCallback);
                 SearcherHolder local = searcherHolder;
                 int tryCount = 0;
+                FacetTestHelper.log("LuceneIndexNodeManager.acquire inc from " + 
+                        local.searcher.getIndexReader().getRefCount() + " of searcher id " + 
+                        System.identityHashCode(local.searcher.getIndexReader()));
                 while (!local.searcher.getIndexReader().tryIncRef()) {
                     checkState(++tryCount < 10, "Not able to " +
                             "get open searcher in %s attempts", tryCount);
@@ -220,7 +232,9 @@ public class LuceneIndexNodeManager {
         if (newNRTReaders != searcherHolder.nrtReaders) {
             SearcherHolder old = searcherHolder;
             searcherHolder = createHolder(newNRTReaders);
+            FacetTestHelper.log("LuceneIndexNodeManager.refreshReaders new search holder set");
             releaseHolder(old);
+            FacetTestHelper.log("LuceneIndexNodeManager.refreshReaders old released");
             PERF_LOGGER.end(start, 0, "Refreshed reader for index [{}]", definition);
         }
     }
@@ -237,14 +251,20 @@ public class LuceneIndexNodeManager {
         if (readers.size() == 1 && nrtReaders.isEmpty()){
             IndexReader reader = readers.get(0).getReader();
             reader.incRef();
+            FacetTestHelper.log("LuceneIndexNodeManager.createReader1 inc to " + 
+                    reader.getRefCount() + " of reader " + 
+                    System.identityHashCode(reader));
             return reader;
         }
         if (nrtReaders.size() == 1 && readers.isEmpty()){
             IndexReader reader = nrtReaders.get(0).getReader();
             reader.incRef();
+            FacetTestHelper.log("LuceneIndexNodeManager.createReader2 inc to " + 
+                    reader.getRefCount() + " of reader " + 
+                    System.identityHashCode(reader));
             return reader;
         }
-
+        FacetTestHelper.log("LuceneIndexNodeManager.createReader3 MultiReader");
         IndexReader[] readerArr = new IndexReader[readers.size() + nrtReaders.size()];
         int i = 0;
         for (LuceneIndexReader r : Iterables.concat(readers, nrtReaders)){
@@ -272,6 +292,7 @@ public class LuceneIndexNodeManager {
     }
 
     private void releaseHolder(SearcherHolder holder) {
+        FacetTestHelper.log("LuceneIndexNodeManager.releaseHolder");
         decrementSearcherUsageCount(holder.searcher);
     }
 
@@ -280,6 +301,9 @@ public class LuceneIndexNodeManager {
             //Decrement the count by 1 as we increased it while creating the searcher
             //in createReader
             searcher.getIndexReader().decRef();
+            FacetTestHelper.log("LuceneIndexNodeManager.decrement to " + 
+                    searcher.getIndexReader().getRefCount() + " of reader id " + 
+                    System.identityHashCode(searcher.getIndexReader()));
         } catch (IOException e) {
             log.warn("Error occurred while releasing reader for index [{}]", definition.getIndexPath(), e);
         }
