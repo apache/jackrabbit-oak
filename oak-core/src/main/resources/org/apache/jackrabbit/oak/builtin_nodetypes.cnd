@@ -677,12 +677,12 @@
   + * (rep:ACE) = rep:GrantACE protected IGNORE
 
 [rep:ACE]
-  - rep:principalName (STRING) protected mandatory
-  - rep:privileges (NAME) protected mandatory multiple
-  - rep:nodePath (PATH) protected /* deprecated in favor of restrictions */
-  - rep:glob (STRING) protected   /* deprecated in favor of restrictions */
-  - * (UNDEFINED) protected       /* deprecated in favor of restrictions */
-  + rep:restrictions (rep:Restrictions) = rep:Restrictions protected
+  - rep:principalName (STRING) protected mandatory IGNORE
+  - rep:privileges (NAME) protected mandatory multiple IGNORE
+  - rep:nodePath (PATH) protected IGNORE /* deprecated in favor of restrictions */
+  - rep:glob (STRING) protected IGNORE /* deprecated in favor of restrictions */
+  - * (UNDEFINED) protected IGNORE /* deprecated in favor of restrictions */
+  + rep:restrictions (rep:Restrictions) = rep:Restrictions protected IGNORE
 
 [rep:GrantACE] > rep:ACE
 
@@ -692,8 +692,8 @@
  * @since oak 1.0
  */
 [rep:Restrictions]
-  - * (UNDEFINED) protected
-  - * (UNDEFINED) protected multiple
+  - * (UNDEFINED) protected IGNORE
+  - * (UNDEFINED) protected multiple IGNORE
 
 // -----------------------------------------------------------------------------
 // Principal based AC
