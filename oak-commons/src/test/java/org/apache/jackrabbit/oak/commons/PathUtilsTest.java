@@ -513,6 +513,14 @@ public class PathUtilsTest extends TestCase {
         assertEquals(newHashSet("/a"), includes);
     }
 
+    public void testNullForExcludes() throws Exception{
+        Set<String> includes = newHashSet("/a", "/b");
+        Set<String> excludes =  newHashSet("/c",null);
+        PathUtils.unifyInExcludes(includes, excludes);
+        assertEquals(newHashSet("/a","/b"),includes);
+        assertEquals(newHashSet(), excludes);
+    }
+
     public void testOptimizeForExcludes() throws Exception{
         Set<String> includes = newHashSet("/a", "/b");
         Set<String> excludes = newHashSet("/c");
