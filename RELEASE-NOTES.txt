@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.2
 
 Introduction
 ------------
@@ -7,33 +7,44 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.1 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.2 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.22.1
+Changes in Oak 1.22.2
 ---------------------
+
+Technical task
+
+    [OAK-8882] - RDBBlobStore: dump table structure on startup
+    [OAK-8906] - RDBDocumentStore on SQL Server (additional diags) log DB creation time
+    [OAK-8907] - RDBDocumentStore: change diagnostics from String to Map
+    [OAK-8909] - RDBBlobStore: when creating META table for SQL Server, assign readable name for PK
+    [OAK-8913] - RDB*Store: extract "additionalDiagnostics" code into separate class for re-use from RDBBlobStore
+    [OAK-8915] - RDBDocumentStore: use setNString() for columns known to be of type N*CHAR
+    [OAK-8916] - RDBBlobStore: log additional DB diagnostics (align with RDBDocumentStore)
+    [OAK-8918] - RDBBlobStore: warn when legacy (SQLServer) default collation is active
+    [OAK-8925] - RDBDocumentStore: for SQL Server stats, include type_desc and fill_factor
+    [OAK-8932] - RDBDocumentStore: allow RDBVersionGC support fallback to simpler algorithm
+
 
 Bug
 
-    [OAK-8780] - Remove the synchronized block on the FSBackend
-    [OAK-8845] - Function-based indexing don't support ordering
-    [OAK-8855] - Permission evaluation of nodes broken after :nestedCug removed from parent node
-    [OAK-8870] - UserAuthentication.authenticate should remove pw attribute
-    [OAK-8894] - Build error on travis-ci
+    [OAK-8936] - ValueImpl does not properly set domain override flag of BlobDownloadOptions
 
-Improvement
 
-    [OAK-6632] - [upgrade] oak-upgrade should support azure blobstorage
+New Feature
+
+    [OAK-8494] - Support AWS Key Managed Service (SSE-KMS)
 
 Task
 
-    [OAK-8856] - Update httpcore dependency to 4.4.13
-    [OAK-8867] - Update httpclient/mime dependencies to 4.5.11
-    [OAK-8888] - Disable lazy Lucene index file loading in 1.22 branch (flip default)
+    [OAK-8875] - Update aws-java-sdk-osgi version to 1.11.700 in Oak-blob-cloud
+    [OAK-8919] - examples: update Tomcat dependency to 7.0.100
+
 
 
 In addition to the above-mentioned changes, this release contains
