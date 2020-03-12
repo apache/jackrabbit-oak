@@ -43,6 +43,6 @@
  * @since oak 1.14
  */
 [rep:PrincipalEntry]
-  - rep:effectivePath (PATH) protected mandatory
-  - rep:privileges (NAME) multiple protected mandatory multiple
-  + rep:restrictions (rep:Restrictions) = rep:Restrictions protected
+  - rep:effectivePath (PATH) protected mandatory IGNORE
+  - rep:privileges (NAME) multiple protected mandatory multiple IGNORE
+  + rep:restrictions (rep:Restrictions) = rep:Restrictions protected IGNORE
