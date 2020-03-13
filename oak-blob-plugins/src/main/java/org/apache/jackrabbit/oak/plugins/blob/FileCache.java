@@ -61,6 +61,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      */
     private static final Logger LOG = LoggerFactory.getLogger(FileCache.class);
 
+    private static final int SEGMENT_COUNT = Integer.getInteger("oak.blob.fileCache.segmentCount", 1);
+
     protected static final String DOWNLOAD_DIR = "download";
 
     /**
@@ -86,7 +88,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      */
     private static final Weigher<String, File> weigher = new Weigher<String, File>() {
         @Override public int weigh(String key, File value) {
-            return Math.round(value.length() / (4 * 1024)); // convert to KB
+            // convert to number of 4 KB blocks
+            return Math.round(value.length() / (4 * 1024));
         }};
 
     //Rough estimate of the in-memory key, value pair
@@ -102,7 +105,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         this.parent = root;
         this.cacheRoot = new File(root, DOWNLOAD_DIR);
 
-        /* convert to 4 KB block */
+        // convert to number of 4 KB blocks
         long size = Math.round(maxSize / (1024L * 4));
 
         cacheLoader = new CacheLoader<String, File>() {
@@ -133,6 +136,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             .maximumWeight(size)
             .recordStats()
             .weigher(weigher)
+            .segmentCount(SEGMENT_COUNT)
             .evictionCallback(new EvictionCallback<String, File>() {
                 @Override
                 public void evicted(@NotNull String key, @Nullable File cachedFile,
