@@ -34,11 +34,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
@@ -867,6 +870,52 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void excludePathInvalid() {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        String invalidPath = TEST_PATH + "/[n]";
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath(TEST_PATH)
+                .setIsDeep(true)
+                .setExcludedPaths(TEST_PATH + "/c", invalidPath)
+                .setEventTypes(ALL_EVENTS);
+        try {
+            oManager.addEventListener(listener, filter);
+            fail("addEventListener() must fail with RepositoryException");
+        } catch (RepositoryException e) {
+            // expected
+            assertThat(e.getMessage(), containsString("exclude"));
+            assertThat(e.getMessage(), containsString(invalidPath));
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e);
+        }
+    }
+
+    @Test
+    public void includePathInvalid() {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        String invalidPath = TEST_PATH + "/[n]";
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath(TEST_PATH)
+                .setAdditionalPaths(invalidPath)
+                .setIsDeep(true)
+                .setEventTypes(ALL_EVENTS);
+        try {
+            oManager.addEventListener(listener, filter);
+            fail("addEventListener() must fail with RepositoryException");
+        } catch (RepositoryException e) {
+            // expected
+            assertThat(e.getMessage(), containsString("include"));
+            assertThat(e.getMessage(), containsString(invalidPath));
+        } catch (Exception e) {
+            fail("Unexpected exception: " + e);
+        }
     }
 
     @Test
