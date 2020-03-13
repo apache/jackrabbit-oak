@@ -388,7 +388,12 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     private static Set<String> getOakPaths(NamePathMapper mapper, String[] paths) {
         Set<String> oakPaths = newHashSet();
         for (String path : paths) {
-            oakPaths.add(mapper.getOakPath(path));
+            String oakPath = mapper.getOakPath(path);
+            if (oakPath != null) {
+                oakPaths.add(oakPath);
+            } else
+                LOG.warn("The Oak Path was found to be null for "
+                        + oakPath);
         }
         return oakPaths;
     }

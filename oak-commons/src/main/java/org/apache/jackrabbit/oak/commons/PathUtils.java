@@ -498,9 +498,6 @@ public final class PathUtils {
         Set<String> includesRemoved = newHashSet();
         for (String include : includePaths) {
             for (String exclude : excludedPaths) {
-                if (exclude == null) {
-                    continue;
-                }
                 if (exclude.equals(include) || isAncestor(exclude, include)) {
                     includesRemoved.add(include);
                 } else if (isAncestor(include, exclude)) {
