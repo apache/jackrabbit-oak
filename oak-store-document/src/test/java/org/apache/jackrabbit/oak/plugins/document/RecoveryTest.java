@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.disposeQuietly;
@@ -55,7 +54,6 @@ public class RecoveryTest extends AbstractTwoNodeTest {
         return fds;
     }
 
-    @Ignore
     @Test
     public void recoverOther() throws Exception {
         NodeBuilder builder = ds1.getRoot().builder();
