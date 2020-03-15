@@ -674,12 +674,14 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 
 * **Microsoft Azure** The `cloud-prefix` for MS Azure is `az`, therefore a valid connection argument would be `az:https://myaccount.blob.core.windows.net/container/repository`, where the part after `:` is the Azure URL identifier for the _repository_ directory inside the specified _container_ of the _myaccount_ Azure storage account. The last missing piece is the secret key which will be supplied as an environment variable, i.e. `AZURE_SECRET_KEY`.
 
+* **Amazon AWS** The `cloud-prefix` for Amazon AWS is `aws`, therefore a valid connection argument would be `aws:bucket;root_directory;journal_table;lock_table` where the part after `:` defines the _root_directory_ inside the specified _bucket_ in S3 and the _journal_table_ and _lock_table_ tables within DynamoDB services. The other portion to connect to AWS is the credentials which will be supplied by placing a credentials file with ~/.aws folder.
+
 ### <a name="segment-copy"/> Segment-Copy
 ```
 java -jar oak-run.jar segment-copy SOURCE DESTINATION [--last <REV_COUNT>]
 ```
 
-The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure Segment Store), saving the resulted Segment Store at `DESTINATION`. 
+The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure or AWS Segment Store), saving the resulted Segment Store at `DESTINATION`. 
 Unlike a sidegrade peformed with `oak-upgrade` (see [Repository Migration](#../../migration.md)) which includes only the current head state, this translation includes __all previous revisions persisted in the Segment Store__, therefore retaining the entire history.
 If `--last` option is present, the tool will start with the most recent revision and will copy at most <REV_COUNT> journal revisions.
 
@@ -803,7 +805,7 @@ java -jar oak-run.jar compact [--force] [--mmap] PATH | cloud-prefix:URI
 ```
 
 The `compact` command performs offline compaction of the local/remote Segment Store at `PATH`/`URI`. 
-`PATH`/`URI` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store is the only supported remote Segment Store. 
+`PATH`/`URI` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store and AWS Segment Store the supported remote Segment Stores. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
 If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non 
