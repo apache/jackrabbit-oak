@@ -25,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * An interface to store and read large binary objects.
  */
-public interface BlobStore {
+public interface BlobStore extends AutoCloseable {
 
     /**
      * Write a blob from an input stream.
