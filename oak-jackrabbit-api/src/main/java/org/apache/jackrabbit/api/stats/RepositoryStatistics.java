@@ -129,11 +129,12 @@ public interface RepositoryStatistics {
         }
 
         public static Type getType(String type) {
-            Type realType = null;
-            try {
-                realType = valueOf(type);
-            } catch (IllegalArgumentException ignore) {}
-            return realType;
+            for (Type realType : values()) {
+                if (realType.name().equals(type)) {
+                    return realType;
+                }
+            }
+            return null;
         }
 
         public boolean isResetValueEachSecond() {
