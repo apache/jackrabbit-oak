@@ -28,8 +28,8 @@ public class FacetTestHelper {
         try {
             if (timeInMillis > 0) {
                 LOG.info("Sleep time set to:" + timeInMillis + " ms");
+                Thread.sleep(timeInMillis);
             }
-            Thread.sleep(timeInMillis);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
