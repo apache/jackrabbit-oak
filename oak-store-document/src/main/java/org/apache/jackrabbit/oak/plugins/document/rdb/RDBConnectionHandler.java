@@ -18,8 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.sql.DataSource;
 
@@ -143,11 +146,13 @@ public class RDBConnectionHandler implements Closeable {
     @NotNull
     private Connection getConnection() throws IllegalStateException, SQLException {
         long ts = System.currentTimeMillis();
+        dumpConnectionMap(ts);
         Connection c = getDataSource().getConnection();
+        remember(c);
         if (LOG.isDebugEnabled()) {
             long elapsed = System.currentTimeMillis() - ts;
             if (elapsed >= 100) {
-                LOG.debug("Obtaining a new connection from " + this.ds + " took " + elapsed + "ms");
+                LOG.debug("Obtaining a new connection from " + this.ds + " took " + elapsed + "ms", new Exception("call stack"));
             }
         }
         return c;
@@ -190,5 +195,97 @@ public class RDBConnectionHandler implements Closeable {
                 c.setReadOnly(false);
             }
         }
+    }
+
+    private static class ConnectionHolder {
+        public String thread;
+        public String caller;
+        public long ts;
+
+        public ConnectionHolder() {
+            Thread t = Thread.currentThread();
+            this.thread = t.getName();
+            this.caller = getCaller(t.getStackTrace());
+            this.ts = System.currentTimeMillis();
+        }
+
+        public long getTimestamp() {
+            return ts;
+        }
+
+        public String dump(long now) {
+            return "(thread=" + thread + ", caller=" + caller + ", age=" + (now - ts) + ")";
+        }
+    }
+
+    private final int LOGTHRESHOLD = 20;
+
+    private ConcurrentMap<WeakReference<Connection>, ConnectionHolder> connectionMap = new ConcurrentHashMap<>();
+
+    private void dumpConnectionMap(long ts) {
+        if (LOG.isTraceEnabled()) {
+            connectionMap.forEach((k, v) -> {
+                try {
+                    Connection con = k.get();
+                    if (con == null || con.isClosed()) {
+                        connectionMap.remove(k);
+                    }
+                } catch (SQLException ex) {
+                }
+            });
+
+            int size = connectionMap.size();
+            if (size > 0) {
+                int cnt = 0;
+                StringBuilder sb = new StringBuilder();
+                for (ConnectionHolder ch : connectionMap.values()) {
+                    if (ts - ch.getTimestamp() >= LOGTHRESHOLD) {
+                        if (cnt != 0) {
+                            sb.append(", ");
+                        }
+                        cnt += 1;
+                        sb.append(ch.dump(ts));
+                    }
+                }
+                if (cnt > 0) {
+                    LOG.trace(cnt + " connections with age >= " + LOGTHRESHOLD + "ms active while obtaining new connection: "
+                            + sb.toString());
+                }
+            }
+        }
+    }
+
+    private void remember(Connection c) {
+        if (LOG.isTraceEnabled()) {
+            connectionMap.put(new WeakReference<Connection>(c), new ConnectionHolder());
+        }
+    }
+
+    private static String getCaller(StackTraceElement[] elements) {
+        StringBuilder sb = new StringBuilder();
+        String prevClass = null;
+        for (StackTraceElement e : elements) {
+            String cn = e.getClassName();
+            if (!cn.startsWith(RDBConnectionHandler.class.getName()) && !(cn.startsWith(Thread.class.getName()))) {
+                if (sb.length() != 0) {
+                    sb.append(" ");
+                }
+                if (e.getClassName().equals(prevClass)) {
+                    String loc;
+                    if (e.isNativeMethod()) {
+                        loc = "Native Method";
+                    } else if (e.getFileName() == null) {
+                        loc = "Unknown Source";
+                    } else {
+                        loc = e.getFileName() + ":" + e.getLineNumber();
+                    }
+                    sb.append('.').append(e.getMethodName()).append('(').append(loc).append(')');
+                } else {
+                    sb.append(e.toString());
+                }
+                prevClass = e.getClassName();
+            }
+        }
+        return sb.toString();
     }
 }
