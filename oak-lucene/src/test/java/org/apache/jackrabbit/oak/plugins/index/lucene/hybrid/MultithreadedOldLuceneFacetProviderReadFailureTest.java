@@ -19,32 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
-import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Properties;
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-
-import javax.jcr.GuestCredentials;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.RowIterator;
-
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -74,13 +48,35 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.jetbrains.annotations.Nullable;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
-public class DelayedFacetReadTest extends AbstractQueryTest {
+import javax.jcr.*;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.RowIterator;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+
+import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
+import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
+public class MultithreadedOldLuceneFacetProviderReadFailureTest extends AbstractQueryTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -177,10 +173,10 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         }
     }
 
-    @Test
+    @Test(expected = RuntimeException.class)
     public void facet() throws Exception {
-        // Explicitly setting following configs to run DelayedLuceneFacetProvider and a thread sleep of 50 ms in refresh readers. Refer: OAK-8898
-        System.setProperty(LucenePropertyIndex.OLD_FACET_PROVIDER_CONFIG_NAME, "false");
+        // Explicitly setting following configs to run LuceneFacetProvider (old) and a thread sleep of 50 ms in refresh readers. Refer: OAK-8898
+        System.setProperty(LucenePropertyIndex.OLD_FACET_PROVIDER_CONFIG_NAME, "true");
         System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "50");
         Thread.currentThread().setName("main");
         String idxName = "hybridtest";
@@ -216,15 +212,17 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
             }
         });
         thread.start();
+        RowIterator it;
         try {
-            RowIterator it = qr.getRows();
-            String firstColumnName = qr.getColumnNames()[0];
-            if (it.hasNext()) {
-                Value v = it.nextRow().getValue(firstColumnName);
-            }
+            it = qr.getRows();
         } catch (Exception e) {
-            e.printStackTrace();
+            Assert.assertTrue(e.getMessage().contains("org.apache.lucene.store.AlreadyClosedException: this IndexReader is closed"));
+            e.printStackTrace(System.out);
             throw e;
+        }
+        String firstColumnName = qr.getColumnNames()[0];
+        if (it.hasNext()) {
+            Value v = it.nextRow().getValue(firstColumnName);
         }
     }
 
@@ -266,4 +264,5 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         idxBuilder.build(idxTree);
         return idxTree;
     }
+
 }

@@ -194,7 +194,8 @@ public class LucenePropertyIndex extends FulltextIndex {
 
 
     private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
-    private static boolean OLD_FACET_PROVIDER = Boolean.getBoolean("oak.lucene.oldFacetProvider");
+    public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
+    private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
 
     private static double MIN_COST = 2.1;
 
@@ -365,18 +366,18 @@ public class LucenePropertyIndex extends FulltextIndex {
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
                             if (facetProvider == null) {
+                                long f = PERF_LOGGER.start();
                                 if (OLD_FACET_PROVIDER) {
                                     // here the current searcher gets referenced for later
                                     // but the searcher might get closed in the meantime
-                                    long f = PERF_LOGGER.start();
                                     facetProvider = new LuceneFacetProvider(
                                             FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
                                     );
-                                    PERF_LOGGER.end(f, -1, "facets retrieved");
                                 } else {
                                     // a new searcher is opened and closed when needed
                                     facetProvider = new DelayedLuceneFacetProvider(LucenePropertyIndex.this, query, plan, indexNode.getDefinition().getSecureFacetConfiguration());
                                 }
+                                PERF_LOGGER.end(f, -1, "facets retrieved");
                             }
 
                             Set<String> excerptFields = Sets.newHashSet();
@@ -1589,10 +1590,6 @@ public class LucenePropertyIndex extends FulltextIndex {
         @Override
         public List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
             LuceneIndexNode indexNode = index.acquireIndexNode(plan);
-            FacetTestHelper.log("getFacets " + System.identityHashCode(this));
-            if (Math.random() < 0.01) {
-                new Exception().printStackTrace(System.out);
-            }
             try {
                 IndexSearcher searcher = indexNode.getSearcher();
                 String facetFieldName = FulltextIndex.parseFacetField(columnName);

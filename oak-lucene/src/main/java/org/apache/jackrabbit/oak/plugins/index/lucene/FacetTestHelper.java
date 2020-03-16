@@ -18,13 +18,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class FacetTestHelper {
+    private static final Logger LOG = LoggerFactory.getLogger(FacetTestHelper.class);
 
-    private static long startTime = System.currentTimeMillis();
-
-    public static void log(String message) {
-        System.out.println((System.currentTimeMillis() - startTime) + " [" + Thread.currentThread().getName() + 
-                "] " + message);
+    public static void sleep(int timeInMillis) {
+        try {
+            LOG.info("Sleep time set to:" + timeInMillis + " ms");
+            Thread.sleep(timeInMillis);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 }
