@@ -26,7 +26,9 @@ public class FacetTestHelper {
 
     public static void sleep(int timeInMillis) {
         try {
-            LOG.info("Sleep time set to:" + timeInMillis + " ms");
+            if (timeInMillis > 0) {
+                LOG.info("Sleep time set to:" + timeInMillis + " ms");
+            }
             Thread.sleep(timeInMillis);
         } catch (InterruptedException e) {
             e.printStackTrace();
