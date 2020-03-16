@@ -677,6 +677,7 @@ public class RDBDocumentStore implements DocumentStore {
         private final String catalog;
         private final String name;
         private boolean idIsBinary = false;
+        private boolean dataIsNChar = false;
         private boolean hasVersion = false;
         private boolean hasSplitDocs = false;
         private int dataLimitInOctets = 16384;
@@ -718,6 +719,10 @@ public class RDBDocumentStore implements DocumentStore {
             return this.schemaInfo;
         }
 
+        public boolean isDataNChar() {
+            return this.dataIsNChar;
+        }
+
         public boolean isIdBinary() {
             return this.idIsBinary;
         }
@@ -728,6 +733,10 @@ public class RDBDocumentStore implements DocumentStore {
 
         public boolean hasVersion() {
             return this.hasVersion;
+        }
+
+        public void setDataIsNChar(boolean dataIsNChar) {
+            this.dataIsNChar = dataIsNChar;
         }
 
         public void setIdIsBinary(boolean idIsBinary) {
@@ -1084,6 +1093,10 @@ public class RDBDocumentStore implements DocumentStore {
         return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
     }
 
+    private static boolean isNChar(int sqlType) {
+        return sqlType == Types.NCHAR || sqlType == Types.NVARCHAR || sqlType == Types.LONGNVARCHAR;
+    }
+
     private static void obtainFlagsFromResultSetMeta(ResultSetMetaData met, RDBTableMetaData tmd) throws SQLException {
 
         for (int i = 1; i <= met.getColumnCount(); i++) {
@@ -1093,6 +1106,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
             if ("data".equals(lcName)) {
                 tmd.setDataLimitInOctets(met.getPrecision(i));
+                tmd.setDataIsNChar(isNChar(met.getColumnType(i)));
             }
             if ("version".equals(lcName)) {
                 tmd.setHasVersion(true);
