@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
@@ -193,6 +194,8 @@ public class LucenePropertyIndex extends FulltextIndex {
 
 
     private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+    public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
+    private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
 
     private static double MIN_COST = 2.1;
 
@@ -259,7 +262,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             private boolean noDocs = false;
             private IndexSearcher indexSearcher;
             private int indexNodeId = -1;
-            private LuceneFacetProvider facetProvider = null;
+            private FacetProvider facetProvider;
             private int rewoundCount = 0;
 
             @Override
@@ -277,7 +280,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             }
 
             private FulltextResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,
-                                                   LuceneFacetProvider facetProvider,
+                                                   FacetProvider facetProvider,
                                                    String explanation) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 //TODO Look into usage of field cache for retrieving the path
@@ -362,11 +365,18 @@ public class LucenePropertyIndex extends FulltextIndex {
                             PERF_LOGGER.end(start, -1, "{} ...", docs.scoreDocs.length);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
-                            long f = PERF_LOGGER.start();
                             if (facetProvider == null) {
-                                facetProvider = new LuceneFacetProvider(
-                                        FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
-                                );
+                                long f = PERF_LOGGER.start();
+                                if (OLD_FACET_PROVIDER) {
+                                    // here the current searcher gets referenced for later
+                                    // but the searcher might get closed in the meantime
+                                    facetProvider = new LuceneFacetProvider(
+                                            FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
+                                    );
+                                } else {
+                                    // a new searcher is opened and closed when needed
+                                    facetProvider = new DelayedLuceneFacetProvider(LucenePropertyIndex.this, query, plan, indexNode.getDefinition().getSecureFacetConfiguration());
+                                }
                                 PERF_LOGGER.end(f, -1, "facets retrieved");
                             }
 
@@ -1562,6 +1572,45 @@ public class LucenePropertyIndex extends FulltextIndex {
 
         //Property index itr should come first
         return Iterators.concat(propIndex.iterator(), itr);
+    }
+
+    static class DelayedLuceneFacetProvider implements FacetProvider {
+        private final LucenePropertyIndex index;
+        private final Query query;
+        private final IndexPlan plan;
+        private final SecureFacetConfiguration config;
+
+        DelayedLuceneFacetProvider(LucenePropertyIndex index, Query query, IndexPlan plan, SecureFacetConfiguration config) {
+            this.index = index;
+            this.query = query;
+            this.plan = plan;
+            this.config = config;
+        }
+
+        @Override
+        public List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
+            LuceneIndexNode indexNode = index.acquireIndexNode(plan);
+            try {
+                IndexSearcher searcher = indexNode.getSearcher();
+                String facetFieldName = FulltextIndex.parseFacetField(columnName);
+                Facets facets = FacetHelper.getFacets(searcher, query, plan, config);
+                if (facets != null) {
+                    ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                    FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
+                    if (topChildren != null) {
+                        for (LabelAndValue lav : topChildren.labelValues) {
+                            res.add(new Facet(
+                                lav.label, lav.value.intValue()
+                            ));
+                        }
+                        return res.build();
+                    }
+                }
+                return null;
+            } finally {
+                indexNode.release();
+            }
+        }
     }
 
     static class LuceneFacetProvider implements FacetProvider {
