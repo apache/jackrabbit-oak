@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -187,12 +188,18 @@ public class MultithreadedOldLuceneFacetProviderReadFailureTest extends Abstract
         The facet test delays threads intentionally so that index reader closes before reading facets. But sometimes it may fail
         because of load on a system. You can change the system property below between 30-50 and see if this test passes on
         your system.
+        The following test is ignored as it is not a consistent test and result may vary based on system load etc.
+        This test is a race condition and can be test for failure by using different values for  OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME
+        The probable value where this will fail is between 30ms to 60ms.
+        This test's counter part is DelayedFacetReadTest which test new implementation solving the race condition on index reader opening
+        and closing.
      */
+    @Ignore
     @Test(expected = RuntimeException.class)
     public void facet() throws Exception {
         // Explicitly setting following configs to run LuceneFacetProvider (old) and a thread sleep of 50 ms in refresh readers. Refer: OAK-8898
         System.setProperty(LucenePropertyIndex.OLD_FACET_PROVIDER_CONFIG_NAME, "true");
-        System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "50");
+        System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
         Thread.currentThread().setName("main");
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName);

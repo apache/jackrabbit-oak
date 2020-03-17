@@ -31,7 +31,8 @@ public class FacetTestHelper {
                 Thread.sleep(timeInMillis);
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            LOG.error("Exception while thread sleep", e);
+            throw new RuntimeException(e);
         }
     }
 

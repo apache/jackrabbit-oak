@@ -56,6 +56,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -182,11 +183,17 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         }
     }
 
+    /*
+        This test's counter part is MultithreadedOldLuceneFacetProviderReadFailureTest which test old implementation having race condition on index reader opening
+        and closing. The test in MultithreadedOldLuceneFacetProviderReadFailureTest is marked as ignored but can be tested on demand.
+     */
     @Test
     public void facet() throws Exception {
         // Explicitly setting following configs to run DelayedLuceneFacetProvider and a thread sleep of 50 ms in refresh readers. Refer: OAK-8898
         System.setProperty(LucenePropertyIndex.OLD_FACET_PROVIDER_CONFIG_NAME, "false");
-        System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "50");
+        // The variable is static final so once set it remains same for all tests and which will lead to slow execution
+        // of other tests as this add a sleep of specified milliseconds in refresh reader method in LuceneIndexNodeManager.
+       // System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
         Thread.currentThread().setName("main");
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName);
