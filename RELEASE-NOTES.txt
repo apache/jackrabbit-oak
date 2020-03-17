@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.20
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.21
 
 Introduction
 ------------
@@ -7,24 +7,32 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.20 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.21 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.20
+Changes in Oak 1.8.21
 ---------------------
+
+Technical task
+
+    [OAK-8915] - RDBDocumentStore: use setNString() for columns known to be of type N*CHAR
+    [OAK-8932] - RDBDocumentStore: allow RDBVersionGC support fallback to simpler algorithm
 
 Bug
 
-    [OAK-8807] - Update FileCache to use non-cache segment blocking method
-    [OAK-8870] - UserAuthentication.authenticate should remove pw attribute
+    [OAK-8855] - Permission evaluation of nodes broken after :nestedCug removed from parent node
+    [OAK-8894] - Build error on travis-ci
 
 Task
 
-    [OAK-8813] - oak-it-osgi: cover oak-solr-osgi bundle
+    [OAK-8774] - oak-benchmarks: update commons-compress dependency to 1.19
+    [OAK-8919] - examples: update Tomcat dependency to 7.0.100
+    [OAK-8938] - Oak run recovery fails when running on mongo replicaSet with auth enabled
+
 
 
 
