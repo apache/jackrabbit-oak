@@ -97,8 +97,9 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     @Override
     public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws RepositoryException {
-        Sets.newHashSet(restrictions).removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
-        base.writeRestrictions(oakPath, aceTree, restrictions);
+        Set<Restriction> rs = Sets.newHashSet(restrictions);
+        rs.removeIf(r -> REP_NODE_PATH.equals(r.getDefinition().getName()));
+        base.writeRestrictions(oakPath, aceTree, rs);
     }
 
     @Override
