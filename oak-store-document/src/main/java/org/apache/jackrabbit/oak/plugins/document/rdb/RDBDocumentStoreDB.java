@@ -699,15 +699,16 @@ public enum RDBDocumentStoreDB {
             Connection con = null;
             PreparedStatement stmt = null;
             ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
+            Map<String, String> result = new HashMap<>();
             try {
                 con = ch.getROConnection();
                 String cat = con.getCatalog();
-                stmt = con.prepareStatement("SELECT collation_name FROM sys.databases WHERE name=?");
+                stmt = con.prepareStatement("SELECT collation_name, create_date FROM sys.databases WHERE name=?");
                 stmt.setString(1, cat);
                 rs = stmt.executeQuery();
                 while (rs.next()) {
-                    result.put("collation_name", rs.getString(1));
+                    result.put("collation_name", rs.getString("collation_name"));
+                    result.put("create_date", rs.getString("create_date"));
                 }
                 rs.close();
                 stmt.close();
