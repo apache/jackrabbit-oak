@@ -1,0 +1,12 @@
+.settings
+.classpath
+.project
+target
+oak-run/*.csv
+.idea
+*.ipr
+*.iws
+*.iml
+atlassian-ide-plugin.xml
+.checkstyle
+derby.log

@@ -1,0 +1,54 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Syntax:
+# * lines that start with spaces belong to the previous line
+# * lines starting with "#" are remarks.
+# * lines starting with "select" are queries, followed by expected results and an empty line
+# * lines starting with "explain" are followed by expected query plan and an empty line
+# * lines starting with "sql1" are run using the sql1 language
+# * lines starting with "xpath2sql" are just converted from xpath to sql2
+# * all other lines are are committed into the microkernel (line by line)
+# * new tests are typically be added on top, after the syntax docs
+# * use ascii character only
+
+# sql-1 query (nt:unstructured needs to be escaped in sql-2)
+
+sql1 SELECT [rep:spellcheck()] FROM nt:base WHERE [jcr:path] = '/' AND SPELLCHECK('jackrabit')
+
+sql1 SELECT rep:spellcheck() FROM nt:base WHERE jcr:path = '/' AND SPELLCHECK('jackrabit') 
+
+sql1 select prop1 from nt:unstructured where prop1 is not null order by prop1 asc
+
+sql1 select excerpt(.) from nt:resource where contains(., 'jackrabbit')
+
+sql1 select * from nt:base 
+  where jcr:path like '/testroot/%' 
+  and birth > timestamp '1976-01-01T00:00:00.000+01:00'
+
+sql1 select * from nt:base 
+  where jcr:path like '/testroot/%' 
+  and value like 'foo\_bar' escape '\'
+
+sql1 select * from nt:unstructured 
+  where "jcr:path" = '/testroot/foo' and contains(., 'fox')
+
+sql1 select * from nt:unstructured 
+  where "jcr:path" like '/testroot/%' and contains(., 'fox test')
+
+# not supported currently
+# sql1 select [jcr:path], [jcr:score], * from [nt:base] 
+#   where (0 is not null) and isdescendantnode('/testroot')
+

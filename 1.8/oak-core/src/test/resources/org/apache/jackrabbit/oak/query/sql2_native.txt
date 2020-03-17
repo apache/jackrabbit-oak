@@ -1,0 +1,42 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Syntax:
+# * lines that start with spaces belong to the previous line
+# * lines starting with "#" are remarks.
+# * lines starting with "select" are queries, followed by expected results and an empty line
+# * lines starting with "explain" are followed by expected query plan and an empty line
+# * lines starting with "sql1" are run using the sql1 language
+# * lines starting with "xpath2sql" are just converted from xpath to sql2
+# * all other lines are are committed into the microkernel (line by line)
+# * new tests are typically be added on top, after the syntax docs
+# * use ascii character only
+
+commit / + "test": { "a": { "name": "Hello" }, "b": { "name" : "World" }}
+
+select [jcr:path] from [nt:base]
+  where native('solr', 'name:(Hello OR World)')
+
+select [jcr:path] from [nt:base] as a
+  where native(a, 'solr', 'path_child:\/test _val_:"recip(rord(name),1,2,3)"')
+
+select [jcr:path] from [nt:base]
+  where native('solr', 'path_child:\/test _val_:"recip(rord(name),1,2,3)"')
+
+xpath2sql //*[rep:native('solr', 'xyz')]
+select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where native(a, 'solr', 'xyz')
+  /* xpath ... */

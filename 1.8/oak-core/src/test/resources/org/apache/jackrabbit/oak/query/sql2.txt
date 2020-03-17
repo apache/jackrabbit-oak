@@ -1,0 +1,491 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Syntax:
+# * lines that start with spaces belong to the previous line
+# * lines starting with "#" are remarks.
+# * lines starting with "select" are queries, followed by expected results and an empty line
+# * lines starting with "explain" are followed by expected query plan and an empty line
+# * lines starting with "sql1" are run using the sql1 language
+# * lines starting with "xpath2sql" are just converted
+  from xpath to sql2
+# * all other lines are are committed into the microkernel (line by line)
+# * new tests are typically be added on top, after the syntax docs
+# * use ascii character only
+
+# union, distinct
+
+commit / + "test": { "a": { "name": "Hello" }, "b": { "name" : "World" }}
+
+# OAK-4658
+select a.[jcr:path] from [nt:base] as a
+  left outer join [nt:base] as b on ischildnode(b, a)
+  where name(b) = 'b'
+/test
+
+# OAK-4658
+select a.[jcr:path] from [nt:base] as a
+  left outer join [nt:base] as b on ischildnode(b, a)
+  where localname(b) = 'b'
+/test
+
+select * from [nt:base]
+  where [a] = 1 and [b] = 2 and [b] = 3 or [c] = 4
+
+select [jcr:path]
+  from [nt:base]
+  where [a/name] = 'Hello' or [b/name] = 'World'
+/test
+
+select distinct [jcr:path]
+  from [nt:base]
+  where [a/name] = 'Hello' or [b/name] = 'World'
+/test
+
+select [jcr:path]
+  from [nt:base]
+  where [name] = 'Hello' union select [jcr:path]
+  from [nt:base]
+  where [name] = 'World'
+/test/a
+/test/b
+
+select [jcr:path]
+  from [nt:base] as a
+  where a.[name] is not null and isdescendantnode(a, '/test') union select b.[jcr:path]
+  from [nt:base] as b
+  where b.[name] is not null
+  and isdescendantnode(b, '/test')
+/test/a
+/test/b
+
+select [jcr:path]
+  from [nt:base] as a
+  where a.[name] is not null and isdescendantnode(a, '/test') union all select b.[jcr:path]
+  from [nt:base] as b
+  where b.[name] is not null
+  and isdescendantnode(b, '/test')
+/test/a
+/test/a
+/test/b
+/test/b
+
+commit / - "test"
+
+# test parent join
+
+commit / + "test": { "a": { "x": "1", "yes": { } }, "b": { "yes" : { } }, "c": { "x": "1", "no" : { } }}
+
+xpath test//yes/..[@x]
+/test/a
+
+select b.[jcr:path] as [jcr:path]
+  from [nt:base] as a
+  inner join [nt:base] as b on ischildnode(a, b)
+  where name(a) = 'yes'
+  and isdescendantnode(a, '/test')
+  and b.[x] is not null
+/test/a
+
+commit / - "test"
+
+# test spaces in identifiers
+
+commit / + "test": { "space space": { "x": "1" }}
+
+select [jcr:path]
+  from [nt:base]
+  where issamenode([/test/space space])
+/test/space space
+
+commit / - "test"
+
+# test multi-valued properties
+
+commit / + "test": { "a": { "name": ["Hello", "World" ] }, "b": { "name" : "Hello" }}
+
+select [jcr:path]
+  from [nt:base]
+  where name = 'Hello'
+/test/a
+/test/b
+
+select [jcr:path]
+  from [nt:base]
+  where name = 'World'
+/test/a
+
+select [jcr:path]
+  from [nt:base]
+  where isdescendantnode('/test')
+  and name = 'World'
+/test/a
+
+commit / - "test"
+
+# expected error on two selectors with the same name
+
+select [jcr:path]
+  from [nt:base] as p
+  inner join [nt:base] as p on ischildnode(p, p)
+  where p.[jcr:path] = '/'
+java.text.ParseException: select [jcr:path]
+  from [nt:base] as p
+  inner join [nt:base] as p on ischildnode(p, p)
+  where p.[jcr:path] = '/': Two selectors with the same name: p
+
+# combining 'not' and 'and'
+
+commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
+
+select [jcr:path]
+  from [nt:base]
+  where id is not null
+  and not id = '100'
+  and id <> '20'
+/test/a
+
+select [jcr:path]
+  from [nt:base]
+  where id < '1000'
+/test/a
+
+select [jcr:path]
+  from [nt:base]
+  where id is not null
+  and not (id = '100'
+  and id <> '20')
+/test/a
+/test/b
+
+select [jcr:path]
+  from [nt:base]
+  where id = '10'
+/test/a
+
+select [jcr:path], id
+  from [nt:base]
+  where id = '10'
+/test/a, 10
+
+select [jcr:path]
+  from [nt:base]
+  where id > '10'
+/test/b
+
+commit / - "test"
+
+# other tests
+
+select [jcr:path]
+  from [nt:base] as a
+  where issamenode(a, '/')
+/
+
+commit / + "test": { "My Documents": { "x" : {}}}
+
+select [jcr:path]
+  from [nt:base]
+  where name() = 'My_x0020_Documents'
+
+select [jcr:path]
+  from [nt:base]
+  where name() like '%My Documents%'
+/test/My Documents
+
+select [jcr:path]
+  from [nt:base]
+  where name() = 'My Documents'
+/test/My Documents
+
+commit / - "test"
+
+commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
+
+select [jcr:path]
+  from [nt:base]
+  where id = -1
+
+select [jcr:path]
+  from [nt:base] as b
+  where isdescendantnode(b, '/test')
+/test/jcr:resource
+/test/resource
+/test/resource/x
+
+select [jcr:path]
+  from [nt:base] as b
+  where ischildnode(b, '/test')
+/test/jcr:resource
+/test/resource
+
+select [jcr:path]
+  from [nt:base] as b
+  where issamenode(b, '/test')
+/test
+
+select [jcr:path]
+  from [nt:base]
+  where name() = 'resource'
+/test/resource
+
+select [jcr:path]
+  from [nt:base] as b
+  where localname(b) = 'resource'
+/jcr:system/jcr:nodeTypes/nt:resource
+/test/jcr:resource
+/test/resource
+
+select [jcr:path]
+  from [nt:base] as x
+  where isdescendantnode(x, '/test')
+/test/jcr:resource
+/test/resource
+/test/resource/x
+
+commit / - "test"
+
+commit / + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
+commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
+
+# relative property
+select [jcr:path]
+  from [nt:base]
+  where [c1/p] = '1'
+/children
+
+select [jcr:path]
+  from [nt:base] as p
+  where p.[jcr:path] = '/parents'
+/parents
+
+select [jcr:path]
+  from [nt:base] as [p]
+  where [p].[jcr:path] = '/parents'
+/parents
+
+select p.[jcr:path], p2.[jcr:path]
+  from [nt:base] as p
+  inner join [nt:base] as p2 on ischildnode(p2, p)
+  where p.[jcr:path] = '/'
+/, /children
+/, /jcr:system
+/, /oak:index
+/, /parents
+
+select p.[jcr:path], p2.[jcr:path]
+  from [nt:base] as p
+  inner join [nt:base] as p2 on isdescendantnode(p2, p)
+  where p.[jcr:path] = '/parents'
+/parents, /parents/p0
+/parents, /parents/p1
+/parents, /parents/p2
+
+select p.[jcr:path], p2.[jcr:path]
+  from [nt:base] as p
+  inner join [nt:base] as p2 on issamenode(p2, p)
+  where p.[jcr:path] = '/parents'
+/parents, /parents
+
+select id
+  from [nt:base]
+  where id is not null
+0
+1
+2
+
+select id
+  from [nt:base]
+  where id is not null order by id desc
+2
+1
+0
+
+select c.[jcr:path], p.[jcr:path]
+  from [nt:base] as c
+  right outer join [nt:base] as p on p.id = c.p
+  where p.id is not null
+  and not isdescendantnode(p, '/jcr:system')
+/children/c1, /parents/p1
+/children/c2, /parents/p1
+/children/c3, /parents/p2
+null, /parents/p0
+
+select p.[jcr:path], c.[jcr:path]
+  from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+/parents/p0, null
+/parents/p1, /children/c1
+/parents/p1, /children/c2
+/parents/p2, /children/c3
+
+select p.[jcr:path], c.[jcr:path]
+  from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and c.p is null
+/parents/p0, null
+
+select p.[jcr:path], c.[jcr:path]
+  from [nt:base] as p
+  left outer join [nt:base] as c on p.id = c.p
+  where p.id is not null
+  and c.p is not null
+/parents/p1, /children/c1
+/parents/p1, /children/c2
+/parents/p2, /children/c3
+
+select p.[jcr:path], c.[jcr:path]
+  from [nt:base] as p
+  inner join [nt:base] as c on p.id = c.p
+/parents/p1, /children/c1
+/parents/p1, /children/c2
+/parents/p2, /children/c3
+
+commit / - "parents"
+commit / - "children"
+
+commit / + "testRoot": {}
+commit /testRoot + "test": { "hello": { "x": "1" }, "world": { "x": "2" } }
+commit /testRoot + "test2": { "id":"1", "x": "2" }
+
+select [jcr:path]
+  from [nt:base]
+  where isdescendantnode('/testRoot')
+/testRoot/test
+/testRoot/test/hello
+/testRoot/test/world
+/testRoot/test2
+
+select [jcr:path]
+  from [nt:base]
+  where id = '1'
+/testRoot/test2
+
+select [jcr:path]
+  from [nt:base]
+  where id = '1'
+  and x = '2'
+/testRoot/test2
+
+select [jcr:path]
+  from [nt:base]
+  where id = '1' or x = '2'
+/testRoot/test/world
+/testRoot/test2
+
+select [jcr:path]
+  from [nt:base]
+  where not (id = '1' or x = '2')
+  and isdescendantnode('/testRoot')
+/testRoot/test
+/testRoot/test/hello
+
+select [jcr:path]
+  from [nt:base]
+  where x is null
+  and isdescendantnode('/testRoot')
+/testRoot/test
+
+commit /testRoot - "test"
+commit /testRoot - "test2"
+
+commit /testRoot + "test": { "name": "hello" }
+commit /testRoot + "test2": { "name": "World!" }
+commit /testRoot + "test3": { "name": "Hallo" }
+commit /testRoot + "test4": { "name": "10%" }
+commit /testRoot + "test5": { "name": "10 percent" }
+
+select a.name
+  from [nt:base] as a
+  where a.name is not null and isdescendantnode(a , '/testRoot') order by upper(a.name)
+10 percent
+10%
+Hallo
+hello
+World!
+
+select [jcr:path]
+  from [nt:base]
+  where length(name) = 5
+/testRoot/test
+/testRoot/test3
+
+select [jcr:path]
+  from [nt:base]
+  where upper(name) = 'HELLO'
+/testRoot/test
+
+select [jcr:path]
+  from [nt:base]
+  where lower(name) = 'world!'
+/testRoot/test2
+
+select [jcr:path]
+  from [nt:base]
+  where name like 'W%'
+/testRoot/test2
+
+select [jcr:path]
+  from [nt:base]
+  where name like '%o_%'
+/testRoot/test2
+
+select [jcr:path]
+  from [nt:base]
+  where name like '__llo'
+/testRoot/test
+/testRoot/test3
+
+select [jcr:path]
+  from [nt:base]
+  where upper(name) like 'H_LLO'
+/testRoot/test
+/testRoot/test3
+
+select [jcr:path]
+  from [nt:base]
+  where upper(name) like 'H\_LLO'
+
+select [jcr:path]
+  from [nt:base]
+  where upper(name) like '10%'
+/testRoot/test4
+/testRoot/test5
+
+select [jcr:path]
+  from [nt:base]
+  where upper(name) = '10%'
+/testRoot/test4
+
+select [jcr:path]
+  from [nt:base]
+  where upper(name) like '10\%'
+/testRoot/test4
+
+# errors
+
+select [jcr:path]
+  from [nt:base]
+  where name =+ 'Hello'
+java.text.ParseException: Query: select [jcr:path]
+  from [nt:base]
+  where name =+ 'Hello(*)'; expected: Illegal operation: + Hello
+
+select [jcr:path]
+  from [nt:base] where name => 'Hello'
+java.text.ParseException: Query: select [jcr:path]
+  from [nt:base] where name =>(*)'Hello'; expected: (, ., =, <>, <, >, <=, >=, LIKE, IN, IS, NOT
