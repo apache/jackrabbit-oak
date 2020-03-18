@@ -35,7 +35,7 @@ import static java.lang.System.getProperty;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.commons.lang.RandomStringUtils.randomAlphabetic;
+import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.FULL;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType.TAIL;
