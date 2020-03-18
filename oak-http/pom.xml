@@ -43,7 +43,7 @@
               *
             </Import-Package>
             <Export-Package>
-              !
+              !*
             </Export-Package>
           </instructions>
         </configuration>
