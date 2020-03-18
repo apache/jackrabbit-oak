@@ -66,6 +66,10 @@
                             org.apache.curator.framework.*;resolution:=optional,
                             org.apache.curator.*;resolution:=optional,
                             com.github.benmanes.caffeine.*;resolution:=optional,
+                            org.apache.solr.handler.extraction.*;resolution:=optional,
+                            com.ibm.security.krb5.internal.*;resolution:=optional,
+                            sun.misc.*;resolution:=optional,
+                            sun.security.krb5.*;resolution:=optional,
                             *
                         </Import-Package>
                         <Embed-Dependency>*;scope=runtime;inline=true</Embed-Dependency>
