@@ -628,6 +628,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         private final String name;
         private boolean idIsBinary = false;
+        private boolean dataIsNChar = false;
         private int dataLimitInOctets = 16384;
 
         public RDBTableMetaData(String name) {
@@ -642,8 +643,16 @@ public class RDBDocumentStore implements DocumentStore {
             return this.name;
         }
 
+        public boolean isDataNChar() {
+            return this.dataIsNChar;
+        }
+
         public boolean isIdBinary() {
             return this.idIsBinary;
+        }
+
+        public void setDataIsNChar(boolean dataIsNChar) {
+            this.dataIsNChar = dataIsNChar;
         }
 
         public void setIdIsBinary(boolean idIsBinary) {
@@ -896,7 +905,12 @@ public class RDBDocumentStore implements DocumentStore {
         return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
     }
 
+    private static boolean isNChar(int sqlType) {
+        return sqlType == Types.NCHAR || sqlType == Types.NVARCHAR || sqlType == Types.LONGNVARCHAR;
+    }
+
     private void obtainFlagsFromResultSetMeta(ResultSetMetaData met, RDBTableMetaData tmd) throws SQLException {
+
         for (int i = 1; i <= met.getColumnCount(); i++) {
             String lcName = met.getColumnName(i).toLowerCase(Locale.ENGLISH);
             if ("id".equals(lcName)) {
@@ -904,6 +918,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
             if ("data".equals(lcName)) {
                 tmd.setDataLimitInOctets(met.getPrecision(i));
+                tmd.setDataIsNChar(isNChar(met.getColumnType(i)));
             }
         }
     }
