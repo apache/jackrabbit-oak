@@ -27,11 +27,13 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
 
 public class UtilsTest {
 
     @Test
     public void validateMongoUri() throws Exception {
+        assumeTrue(MongoUtils.isAvailable());
         ImmutableList<String> args = ImmutableList.<String>builder().add(MongoUtils.URL)
                 .build().asList();
         try (Closer closer = Closer.create()) {
