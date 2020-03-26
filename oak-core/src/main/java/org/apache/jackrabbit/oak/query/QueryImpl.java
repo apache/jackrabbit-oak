@@ -1415,10 +1415,10 @@ public class QueryImpl implements Query {
                             right = left;
                         }
                     }
-                    
+
                     // cloning original query
                     left = (QueryImpl) this.copyOf();
-                    
+
                     // cloning the constraints and assigning to new query
                     left.constraint = (ConstraintImpl) copyElementAndCheckReference(c);
                     // re-composing the statement for better debug messages
@@ -1470,6 +1470,7 @@ public class QueryImpl implements Query {
         u.setMeasure(measure);
         u.setInternal(isInternal);
         u.setQueryOptions(queryOptions);
+        u.setOrderings(orderings);
         return u;
     }
     
@@ -1497,7 +1498,7 @@ public class QueryImpl implements Query {
         copy.isInternal = this.isInternal;
         copy.distinct = this.distinct;
         copy.queryOptions = this.queryOptions;
-        
+
         return copy;        
     }
 
