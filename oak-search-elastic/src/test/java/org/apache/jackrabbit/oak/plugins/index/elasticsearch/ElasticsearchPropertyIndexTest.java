@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 
+import com.github.dockerjava.api.DockerClient;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
@@ -35,8 +36,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.elasticsearch.Version;
 import org.junit.Assert;
-import org.junit.ClassRule;
+import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import java.util.Arrays;
@@ -46,19 +51,33 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeNotNull;
 
 public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
 
-    @ClassRule
-    public static final ElasticsearchContainer ELASTIC =
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchPropertyIndexTest.class);
+
+    @Rule
+    public final ElasticsearchContainer elastic =
             new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT);
+
+    @BeforeClass
+    public static void beforeMethod() {
+        DockerClient client = null;
+        try {
+            client = DockerClientFactory.instance().client();
+        } catch (Exception e) {
+            LOG.warn("Docker is not available, ElasticsearchPropertyIndexTest will be skipped");
+        }
+        assumeNotNull(client);
+    }
 
     @Override
     protected ContentRepository createRepository() {
         ElasticsearchConnection coordinate = new ElasticsearchConnection(
                 ElasticsearchConnection.DEFAULT_SCHEME,
-                ELASTIC.getContainerIpAddress(),
-                ELASTIC.getMappedPort(ElasticsearchConnection.DEFAULT_PORT)
+                elastic.getContainerIpAddress(),
+                elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT)
         );
         ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
