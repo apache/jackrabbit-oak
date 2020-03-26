@@ -16,24 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
-import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinateFactory;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.List;
 
 public class ElasticsearchIndexProvider implements QueryIndexProvider {
-    private final ElasticsearchIndexCoordinateFactory esIndexCoordFactory;
+    private final ElasticsearchConnection elasticsearchConnection;
 
-    public ElasticsearchIndexProvider(@NotNull ElasticsearchIndexCoordinateFactory esIndexCoordFactory) {
-        this.esIndexCoordFactory = esIndexCoordFactory;
+    public ElasticsearchIndexProvider(ElasticsearchConnection elasticsearchConnection) {
+        this.elasticsearchConnection = elasticsearchConnection;
     }
 
     @Override
     public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.of(new ElasticsearchIndex(esIndexCoordFactory, nodeState));
+        return Collections.singletonList(new ElasticsearchIndex(elasticsearchConnection, nodeState));
     }
 }

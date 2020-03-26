@@ -17,16 +17,20 @@
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.util;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.ExistsQueryBuilder;
+import org.elasticsearch.index.query.PrefixQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
+import org.elasticsearch.index.query.TermQueryBuilder;
+import org.elasticsearch.index.query.WildcardQueryBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.PropertyType;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,9 +39,11 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.search.FieldNames.PATH_DEPTH;
-import static org.elasticsearch.index.query.QueryBuilders.*;
+import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
+import static org.elasticsearch.index.query.QueryBuilders.prefixQuery;
+import static org.elasticsearch.index.query.QueryBuilders.termQuery;
+import static org.elasticsearch.index.query.QueryBuilders.wildcardQuery;
 
-@SuppressWarnings("SpellCheckingInspection")
 public class TermQueryBuilderFactory {
     /**
      * Private constructor.
@@ -80,7 +86,7 @@ public class TermQueryBuilderFactory {
         return wildcardQuery(PATH, value);
     }
 
-    public static TermQueryBuilder newAncestorQuery(String path){
+    public static TermQueryBuilder newAncestorQuery(String path) {
         return termQuery(FieldNames.ANCESTORS, preparePath(path));
     }
 
@@ -144,7 +150,7 @@ public class TermQueryBuilderFactory {
             return newRangeQuery(propertyName, null, last, true, pr.lastIncluding);
         } else if (pr.list != null) {
             return newInQuery(propertyName, pr.list.stream()
-                    .map(propToObj::apply)
+                    .map(propToObj)
                     .collect(Collectors.toList()));
         } else if (pr.isNotNullRestriction()) {
             // not null. For date lower bound of zero can be used

@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.felix.scr.annotations.*;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -31,22 +35,24 @@ import org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.Elasticsearch
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-import org.apache.jackrabbit.oak.plugins.index.search.TextExtractionStatsMBean;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
@@ -83,26 +89,23 @@ public class ElasticsearchIndexProviderService {
     )
     private static final String PROP_PRE_EXTRACTED_TEXT_ALWAYS_USE = "alwaysUsePreExtractedCache";
 
-    private static final String PROP_ELASTICSEARCH_SCHEME_DEFAULT = "http";
-//    @Property(
-//            value = PROP_ELASTICSEARCH_SCHEME_DEFAULT,
-//            label = "Elasticsearch connection scheme"
-//    )
-    private static final String PROP_ELASTICSEARCH_SCHEME = "elasticsearch.scheme";
+    @Property(
+            value = ElasticsearchConnection.DEFAULT_SCHEME,
+            label = "Elasticsearch connection scheme"
+    )
+    private static final String PROP_ELASTICSEARCH_SCHEME = ElasticsearchConnection.SCHEME_PROP;
 
-    private static final String PROP_ELASTICSEARCH_HOST_DEFAULT = "localhost";
-//    @Property(
-//            value = PROP_ELASTICSEARCH_HOST_DEFAULT,
-//            label = "Elasticsearch connection host"
-//    )
-    private static final String PROP_ELASTICSEARCH_HOST = "elasticsearch.host";
+    @Property(
+            value = ElasticsearchConnection.DEFAULT_HOST,
+            label = "Elasticsearch connection host"
+    )
+    private static final String PROP_ELASTICSEARCH_HOST = ElasticsearchConnection.HOST_PROP;
 
-    private static final int PROP_ELASTICSEARCH_PORT_DEFAULT = 9200;
-//    @Property(
-//            intValue = PROP_ELASTICSEARCH_PORT_DEFAULT,
-//            label = "Elasticsearch connection port"
-//    )
-    private static final String PROP_ELASTICSEARCH_PORT = "elasticsearch.port";
+    @Property(
+            intValue = ElasticsearchConnection.DEFAULT_PORT,
+            label = "Elasticsearch connection port"
+    )
+    private static final String PROP_ELASTICSEARCH_PORT = ElasticsearchConnection.PORT_PROP;
 
     @Property(
             label = "Local text extraction cache path",
@@ -121,26 +124,25 @@ public class ElasticsearchIndexProviderService {
 
     private ExtractedTextCache extractedTextCache;
 
-    private ElasticsearchConnectionFactory connectionFactory = null;
-
-    private final List<ServiceRegistration> regs = Lists.newArrayList();
-    private final List<Registration> oakRegs = Lists.newArrayList();
+    private final List<ServiceRegistration> regs = new ArrayList<>();
+    private final List<Registration> oakRegs = new ArrayList<>();
 
     private Whiteboard whiteboard;
     private File textExtractionDir;
+
+    private ElasticsearchConnection elasticsearchConnection;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config) {
         whiteboard = new OsgiWhiteboard(bundleContext);
 
-        initializeTextExtractionDir(bundleContext, config);
-        initializeExtractedTextCache(config, statisticsProvider);
+        //initializeTextExtractionDir(bundleContext, config);
+        //initializeExtractedTextCache(config, statisticsProvider);
 
-        connectionFactory = new ElasticsearchConnectionFactory();
-        ElasticsearchIndexCoordinateFactory esIndexCoordFactory = getElasticsearchIndexCoordinateFactory(config);
+        elasticsearchConnection = getElasticsearchCoordinate(config);
 
-        registerIndexProvider(bundleContext, esIndexCoordFactory);
-        registerIndexEditor(bundleContext, esIndexCoordFactory);
+        registerIndexProvider(bundleContext);
+        registerIndexEditor(bundleContext);
     }
 
     @Deactivate
@@ -153,33 +155,32 @@ public class ElasticsearchIndexProviderService {
             reg.unregister();
         }
 
-        IOUtils.closeQuietly(connectionFactory);
-        connectionFactory = null;
+        IOUtils.closeQuietly(elasticsearchConnection);
 
         if (extractedTextCache != null) {
             extractedTextCache.close();
         }
     }
 
-    private void registerIndexProvider(BundleContext bundleContext, ElasticsearchIndexCoordinateFactory esIndexCoordFactory) {
-        ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(esIndexCoordFactory);
+    private void registerIndexProvider(BundleContext bundleContext) {
+        ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(elasticsearchConnection);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticsearchIndexConstants.TYPE_ELASTICSEARCH);
-        regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), indexProvider, props));
+        regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, props));
     }
 
-    private void registerIndexEditor(BundleContext bundleContext, ElasticsearchIndexCoordinateFactory esIndexCoordFactory) {
-        ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(esIndexCoordFactory, extractedTextCache);
+    private void registerIndexEditor(BundleContext bundleContext) {
+        ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(elasticsearchConnection, extractedTextCache);
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticsearchIndexConstants.TYPE_ELASTICSEARCH);
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
-        oakRegs.add(registerMBean(whiteboard,
-                TextExtractionStatsMBean.class,
-                editorProvider.getExtractedTextCache().getStatsMBean(),
-                TextExtractionStatsMBean.TYPE,
-                "TextExtraction statistics"));
+//        oakRegs.add(registerMBean(whiteboard,
+//                TextExtractionStatsMBean.class,
+//                editorProvider.getExtractedTextCache().getStatsMBean(),
+//                TextExtractionStatsMBean.TYPE,
+//                "TextExtraction statistics"));
     }
 
     private void initializeExtractedTextCache(Map<String, ?> config, StatisticsProvider statisticsProvider) {
@@ -196,11 +197,11 @@ public class ElasticsearchIndexProviderService {
                 alwaysUsePreExtractedCache,
                 textExtractionDir,
                 statisticsProvider);
-        if (extractedTextProvider != null){
+        if (extractedTextProvider != null) {
             registerExtractedTextProvider(extractedTextProvider);
         }
         CacheStats stats = extractedTextCache.getCacheStats();
-        if (stats != null){
+        if (stats != null) {
             oakRegs.add(registerMBean(whiteboard,
                     CacheStatsMBean.class, stats,
                     CacheStatsMBean.TYPE, stats.getName()));
@@ -209,28 +210,30 @@ public class ElasticsearchIndexProviderService {
         }
     }
 
-    void initializeTextExtractionDir(BundleContext bundleContext, Map<String, ?> config) {
+    private void initializeTextExtractionDir(BundleContext bundleContext, Map<String, ?> config) {
         String textExtractionDir = PropertiesUtil.toString(config.get(PROP_LOCAL_TEXT_EXTRACTION_DIR), null);
-        if (Strings.isNullOrEmpty(textExtractionDir)) {
+        if (textExtractionDir == null || textExtractionDir.trim().isEmpty()) {
             String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
-            if (repoHome != null){
+            if (repoHome != null) {
                 textExtractionDir = FilenameUtils.concat(repoHome, "index");
             }
         }
 
-        checkNotNull(textExtractionDir, "Text extraction directory cannot be determined as neither " +
-                "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_TEXT_EXTRACTION_DIR, REPOSITORY_HOME);
+        if (textExtractionDir == null) {
+            throw new IllegalStateException(String.format("Text extraction directory cannot be determined as neither " +
+                    "directory path [%s] nor repository home [%s] defined", PROP_LOCAL_TEXT_EXTRACTION_DIR, REPOSITORY_HOME));
+        }
 
         this.textExtractionDir = new File(textExtractionDir);
     }
 
-    private void registerExtractedTextProvider(PreExtractedTextProvider provider){
-        if (extractedTextCache != null){
-            if (provider != null){
+    private void registerExtractedTextProvider(PreExtractedTextProvider provider) {
+        if (extractedTextCache != null) {
+            if (provider != null) {
                 String usage = extractedTextCache.isAlwaysUsePreExtractedCache() ?
                         "always" : "only during reindexing phase";
                 LOG.info("Registering PreExtractedTextProvider {} with extracted text cache. " +
-                        "It would be used {}",  provider, usage);
+                        "It would be used {}", provider, usage);
             } else {
                 LOG.info("Unregistering PreExtractedTextProvider with extracted text cache");
             }
@@ -238,16 +241,35 @@ public class ElasticsearchIndexProviderService {
         }
     }
 
-    private ElasticsearchIndexCoordinateFactory getElasticsearchIndexCoordinateFactory(Map<String, ?> config) {
-        ElasticsearchIndexCoordinateFactory esIndexCoordFactory;
-        Map<String, String> esCfg = Maps.newHashMap();
-        esCfg.put(ElasticsearchCoordinate.SCHEME_PROP,
-                PropertiesUtil.toString(config.get(PROP_ELASTICSEARCH_SCHEME), PROP_ELASTICSEARCH_SCHEME_DEFAULT));
-        esCfg.put(ElasticsearchCoordinate.HOST_PROP,
-                PropertiesUtil.toString(config.get(PROP_ELASTICSEARCH_HOST), PROP_ELASTICSEARCH_HOST_DEFAULT));
-        esCfg.put(ElasticsearchCoordinate.PORT_PROP, String.valueOf(
-                PropertiesUtil.toInteger(config.get(PROP_ELASTICSEARCH_PORT), PROP_ELASTICSEARCH_PORT_DEFAULT)));
-        esIndexCoordFactory = new DefaultElasticsearchIndexCoordinateFactory(connectionFactory, esCfg);
-        return esIndexCoordFactory;
+    private ElasticsearchConnection getElasticsearchCoordinate(Map<String, ?> contextConfig) {
+        // system properties have priority
+        ElasticsearchConnection connection = build(System.getProperties().entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        e -> String.valueOf(e.getKey()),
+                        e -> String.valueOf(e.getValue()))
+                )
+        );
+
+        if (connection == null) {
+            connection = build(contextConfig);
+        }
+
+        return connection != null ? connection : ElasticsearchConnection.defaultConnection.get();
+    }
+
+    private ElasticsearchConnection build(@NotNull Map<String, ?> config) {
+        ElasticsearchConnection coordinate = null;
+        Object p = config.get(PROP_ELASTICSEARCH_PORT);
+        if (p != null) {
+            try {
+                Integer port = Integer.parseInt(p.toString());
+                coordinate = new ElasticsearchConnection((String) config.get(PROP_ELASTICSEARCH_SCHEME),
+                        (String) config.get(PROP_ELASTICSEARCH_HOST), port);
+            } catch (NumberFormatException nfe) {
+                LOG.warn("{} value ({}) cannot be parsed to a valid number", PROP_ELASTICSEARCH_PORT, p);
+            }
+        }
+        return coordinate;
     }
 }

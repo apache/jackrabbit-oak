@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.elasticsearch.common.Strings;
@@ -28,10 +27,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.google.common.collect.Lists.newArrayList;
 
 public class ElasticsearchDocument {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchDocument.class);
@@ -55,11 +54,11 @@ public class ElasticsearchDocument {
             LOG.warn("Couldn't encode {} as ES id", path);
         }
         this.id = id;
-        this.fulltext = newArrayList();
-        this.suggest = newArrayList();
-        this.notNullProps = newArrayList();
-        this.nullProps = newArrayList();
-        this.properties = Maps.newHashMap();
+        this.fulltext = new ArrayList<>();
+        this.suggest = new ArrayList<>();
+        this.notNullProps = new ArrayList<>();
+        this.nullProps = new ArrayList<>();
+        this.properties = new HashMap<>();
     }
 
     void addFulltext(String value) {
