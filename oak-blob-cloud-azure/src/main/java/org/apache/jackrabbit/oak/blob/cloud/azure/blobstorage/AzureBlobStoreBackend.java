@@ -116,10 +116,12 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private Integer requestTimeout;
     private int httpDownloadURIExpirySeconds = 0; // disabled by default
     private int httpUploadURIExpirySeconds = 0; // disabled by default
+    private String uploadDomainOverride = null;
+    private String downloadDomainOverride = null;
     private boolean createBlobContainer = true;
     private boolean presignedDownloadURIVerifyExists = true;
 
-    private Cache<DataIdentifier, URI> httpDownloadURICache;
+    private Cache<String, URI> httpDownloadURICache;
 
     private byte[] secret;
 
@@ -196,6 +198,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                         this.setHttpDownloadURICacheSize(0); // default
                     }
                 }
+                uploadDomainOverride = properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
+                downloadDomainOverride = properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
             }
             catch (StorageException e) {
                 throw new DataStoreException(e);
@@ -786,8 +790,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         
         if (httpDownloadURIExpirySeconds > 0) {
 
+            String domain = getDirectDownloadBlobStorageDomain(downloadOptions.isDomainOverrideIgnored());
+            if (null == domain) {
+                throw new NullPointerException("Could not determine domain for direct download");
+            }
+
             if (null != httpDownloadURICache) {
-                uri = httpDownloadURICache.getIfPresent(identifier);
+                uri = httpDownloadURICache.getIfPresent(identifier.toString() + domain);
             }
             if (null == uri) {
                 if (presignedDownloadURIVerifyExists) {
@@ -819,18 +828,14 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     headers.setContentDisposition(contentDisposition);
                 }
 
-                String domain = getDirectDownloadBlobStorageDomain(downloadOptions.isDomainOverrideIgnored());
-                if (null == domain) {
-                    throw new NullPointerException("Could not determine domain for direct download");
-                }
-
                 uri = createPresignedURI(key,
                         EnumSet.of(SharedAccessBlobPermissions.READ),
                         httpDownloadURIExpirySeconds,
                         headers,
                         domain);
                 if (uri != null && httpDownloadURICache != null) {
-                    httpDownloadURICache.put(identifier, uri);
+                    httpDownloadURICache.put(identifier.toString() + domain,
+                            uri);
                 }
             }
         }
@@ -1051,7 +1056,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private String getDirectDownloadBlobStorageDomain(boolean ignoreDomainOverride) {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
-                : properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE, null);
+                : downloadDomainOverride;
         if (Strings.isNullOrEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
@@ -1061,7 +1066,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private String getDirectUploadBlobStorageDomain(boolean ignoreDomainOverride) {
         String domain = ignoreDomainOverride
                 ? getDefaultBlobStorageDomain()
-                : properties.getProperty(AzureConstants.PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE, null);
+                : uploadDomainOverride;
         if (Strings.isNullOrEmpty(domain)) {
             domain = getDefaultBlobStorageDomain();
         }
