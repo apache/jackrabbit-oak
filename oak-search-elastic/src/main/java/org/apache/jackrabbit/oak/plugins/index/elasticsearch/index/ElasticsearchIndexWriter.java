@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchDocument.pathToId;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
 import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.NONE;
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
@@ -50,17 +49,10 @@ public class ElasticsearchIndexWriter implements FulltextIndexWriter<Elasticsear
 
     private final ElasticsearchIndexDescriptor indexDescriptor;
 
-    private final boolean isAsync;
-
     // TODO: use bulk API - https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/java-docs-bulk-processor.html
     ElasticsearchIndexWriter(@NotNull IndexDefinition indexDefinition,
                              @NotNull ElasticsearchConnection elasticsearchConnection) {
         indexDescriptor = new ElasticsearchIndexDescriptor(elasticsearchConnection, indexDefinition);
-
-        // TODO: ES indexing put another bit delay before docs appear in search.
-        // For test without "async" indexing, we can use following hack BUT those where we
-        // would setup async, we'd need to find another way.
-        isAsync = indexDefinition.getDefinitionNodeState().getProperty("async") != null;
     }
 
     @Override
@@ -70,7 +62,7 @@ public class ElasticsearchIndexWriter implements FulltextIndexWriter<Elasticsear
                 // immediate refresh would slow indexing response such that next
                 // search would see the effect of this indexed doc. Must only get
                 // enabled in tests (hopefully there are no non-async indexes in real life)
-                .setRefreshPolicy(isAsync ? NONE : IMMEDIATE)
+                .setRefreshPolicy(NONE)
                 .source(doc.build(), XContentType.JSON);
         IndexResponse response = indexDescriptor.getClient().index(request, RequestOptions.DEFAULT);
         LOG.trace("update {} - {}. Response: {}", path, doc, response);
@@ -83,7 +75,7 @@ public class ElasticsearchIndexWriter implements FulltextIndexWriter<Elasticsear
                 // immediate refresh would slow indexing response such that next
                 // search would see the effect of this indexed doc. Must only get
                 // enabled in tests (hopefully there are no non-async indexes in real life)
-                .setRefreshPolicy(isAsync ? NONE : IMMEDIATE);
+                .setRefreshPolicy(NONE);
         DeleteResponse response = indexDescriptor.getClient().delete(request, RequestOptions.DEFAULT);
         LOG.trace("delete {}. Response: {}", path, response);
 
