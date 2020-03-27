@@ -31,7 +31,6 @@ import javax.jcr.query.QueryManager;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityAbstractSuite.ExecutionContext;
 

@@ -39,7 +39,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
+import org.apache.jackrabbit.oak.benchmark.util.OakLuceneIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -198,10 +198,10 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                 persistencePath =
                     "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
                         .valueOf(System.currentTimeMillis());
-                OakIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
-                    new String[] {SOURCE_ID, CREATED},
-                    new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
-                    orderedMap, persistencePath);
+                OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
+                        new String[]{SOURCE_ID, CREATED},
+                        new String[]{PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                        orderedMap, persistencePath);
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
@@ -212,7 +212,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                 propMap.put(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
                 orderedMap.put(CREATED, propMap);
             case LUCENE:
-                OakIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
+                OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
                     new String[] {SOURCE_ID, CREATED},
                     new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
                     orderedMap, persistencePath);

@@ -33,7 +33,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.jcr.Node;
-import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -41,18 +40,7 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
-import org.apache.jackrabbit.oak.fixture.JcrCreator;
-import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
-import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
-import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
 public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestContext> {
 
@@ -64,8 +52,6 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
             Pattern.compile("\\p{LD}{3,}");
 
     private int maxSampleSize = 100;
-
-    private final boolean disableCopyOnRead = Boolean.getBoolean("disableCopyOnRead");
 
     private final WikipediaImport importer;
 
@@ -84,9 +70,9 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
      */
     protected Boolean storageEnabled;
 
-    private ExecutorService executorService = Executors.newFixedThreadPool(2);
+    protected ExecutorService executorService = Executors.newFixedThreadPool(2);
 
-    private File indexCopierDir;
+    protected File indexCopierDir;
 
     public FullTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
         this.importer = new WikipediaImport(dump, flat, doReport) {
@@ -173,36 +159,6 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
             words[i] = samples.get(random.nextInt(samples.size()));
         }
         return words;
-    }
-
-    @Override
-    protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
-        if (fixture instanceof OakRepositoryFixture) {
-            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
-                @Override
-                public Jcr customize(Oak oak) {
-                    LuceneIndexProvider provider = createLuceneIndexProvider();
-                    oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
-                    return new Jcr(oak);
-                }
-            });
-        }
-        return super.createRepository(fixture);
-    }
-
-    private LuceneIndexProvider createLuceneIndexProvider() {
-        if (!disableCopyOnRead) {
-            try {
-                IndexCopier copier = new IndexCopier(executorService, indexCopierDir, true);
-                return new LuceneIndexProvider(copier);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return new LuceneIndexProvider();
     }
 
     private File createTemporaryFolder(File parentFolder){

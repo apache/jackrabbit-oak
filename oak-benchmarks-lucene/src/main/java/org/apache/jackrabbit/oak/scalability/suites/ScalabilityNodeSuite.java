@@ -45,19 +45,19 @@ import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
+import org.apache.jackrabbit.oak.benchmark.util.OakLuceneIndexUtils;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.ScalabilitySuite;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -265,10 +265,10 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 persistencePath =
                     "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
                         .valueOf(System.currentTimeMillis());
-                OakIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
-                    new String[] {FILTER_PROP, DATE_PROP},
-                    new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
-                    null, persistencePath);
+                OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
+                        new String[]{FILTER_PROP, DATE_PROP},
+                        new String[]{PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                        null, persistencePath);
                 break;
             case LUCENE_FILE_DOC:
                 persistencePath =
@@ -279,7 +279,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 propMap.put(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
                 orderedMap.put(DATE_PROP, propMap);
             case LUCENE:
-                OakIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
+                OakLuceneIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
                     new String[] {FILTER_PROP, DATE_PROP},
                     new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
                     orderedMap, persistencePath);

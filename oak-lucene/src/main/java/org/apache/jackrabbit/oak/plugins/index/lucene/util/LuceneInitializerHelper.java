@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -98,11 +99,11 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
                 && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
             // do nothing
         } else if (filePath == null) {
-            newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+            newLuceneIndexDefinition(IndexUtils.getOrCreateOakIndex(builder),
                     name, propertyTypes, excludes, async, storageEnabled);
         } else {
             newLuceneFileIndexDefinition(
-                    builder.child(INDEX_DEFINITIONS_NAME),
+                    IndexUtils.getOrCreateOakIndex(builder),
                     name, propertyTypes, excludes, filePath, async);
         }
     }

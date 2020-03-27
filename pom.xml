@@ -76,6 +76,8 @@
     <module>oak-segment-azure</module>
     <module>oak-benchmarks</module>
     <module>oak-search-elastic</module>
+    <module>oak-benchmarks-lucene</module>
+    <module>oak-benchmarks-solr</module>
   </modules>
 
   <scm>

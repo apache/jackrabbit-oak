@@ -34,7 +34,7 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 
 import com.google.common.base.Joiner;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.commons.Profiler;
