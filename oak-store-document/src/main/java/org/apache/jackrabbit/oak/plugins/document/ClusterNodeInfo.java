@@ -1226,8 +1226,9 @@ public class ClusterNodeInfo {
                             if (hwa.length == 6) {
                                 // likely a MAC address
                                 String displayName = ni.getDisplayName().toLowerCase(Locale.ENGLISH);
-                                // de-prioritize addresses that are likely to be virtual (see OAK-3885)
-                                boolean looksVirtual = displayName.indexOf("virtual") >= 0 || displayName.indexOf("vpn") >= 0;
+                                // de-prioritize addresses that are likely to be virtual (see OAK-3885 and OAK-8935)
+                                boolean looksVirtual = displayName.indexOf("virtual") >= 0 || displayName.indexOf("vpn") >= 0
+                                        || displayName.indexOf("docker") >= 0;
                                 if (!looksVirtual) {
                                     macAddresses.add(str);
                                 } else {
