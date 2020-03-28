@@ -236,8 +236,36 @@ implementation on various levels:
 2. Within the default authentication setup you replace or extend the set of
    login modules and their individual settings. In an OSGi-base setup is achieved
    by making the modules accessible to the framework and setting their execution
-   order accordingly. In a Non-OSGi setup this is specified in the [JAAS config].
+   order accordingly. In a non-OSGi setup this is specified in the [JAAS config].
 
+##### Examples
+
+###### Custom LoginModule in non-OSGi setup
+
+    import javax.security.auth.login.AppConfigurationEntry
+    import javax.security.auth.login.Configuration;
+    
+    AppConfigurationEntry[] entries = new AppConfigurationEntry[]{new DefaultEntry(options)};
+    Configuration c = new Configuration() {
+         @Override
+         public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
+             Map<String, ?> options = [....];
+             
+             // choose control flag for custom login module (example here: REQUIRED)
+             AppConfigurationEntry.LoginModuleControlFlag flag = LoginModuleControlFlag.SUFFICIENT;
+             
+             // create an entry for your custom login module
+             AppConfigurationEntry customEntry = new AppConfigurationEntry("your.org.LoginModuleClassName", flag, options)
+             
+             // additionally use the oak default login module
+             AppConfigurationEntry defaultEntry = new AppConfigurationEntry(("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl", LoginModuleControlFlag.REQUIRED, options)
+             
+             // define array of all entries in the correct order according to your needs
+             return new AppConfigurationEntry[]{customEntry, defaultEntry};
+         }
+    };
+    Configuration.setConfiguration(c);
+    
 <a name="further_reading"></a>
 ### Further Reading
 
