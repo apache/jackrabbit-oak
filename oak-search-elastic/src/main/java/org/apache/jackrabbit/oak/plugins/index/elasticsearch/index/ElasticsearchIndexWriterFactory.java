@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -31,6 +32,11 @@ public class ElasticsearchIndexWriterFactory implements FulltextIndexWriterFacto
 
     @Override
     public ElasticsearchIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex) {
-        return new ElasticsearchIndexWriter(definition, elasticsearchConnection);
+        if (!(definition instanceof ElasticsearchIndexDefinition)) {
+            new Exception().printStackTrace();
+            throw new IllegalArgumentException("IndexDefinition must be of type ElasticsearchIndexDefinition " +
+                    "instead of " + definition.getClass().getName());
+        }
+        return new ElasticsearchIndexWriter(elasticsearchConnection, (ElasticsearchIndexDefinition) definition);
     }
 }

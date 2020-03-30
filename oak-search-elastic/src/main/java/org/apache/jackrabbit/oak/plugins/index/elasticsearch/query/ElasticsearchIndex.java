@@ -48,7 +48,7 @@ public class ElasticsearchIndex extends FulltextIndex {
     private final ElasticsearchConnection elasticsearchConnection;
     private final NodeState root;
 
-    ElasticsearchIndex(@NotNull ElasticsearchConnection elasticsearchConnection, @NotNull NodeState root) {
+    protected ElasticsearchIndex(@NotNull ElasticsearchConnection elasticsearchConnection, @NotNull NodeState root) {
         this.elasticsearchConnection = elasticsearchConnection;
         this.root = root;
     }

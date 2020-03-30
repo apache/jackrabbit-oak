@@ -16,6 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 
-public class ElasticsearchIndexConstants {
-    public static final String TYPE_ELASTICSEARCH = "elasticsearch";
+public interface ElasticsearchIndexConstants {
+    String TYPE_ELASTICSEARCH = "elasticsearch";
+
+    String BULK_ACTIONS = "bulkActions";
+    int BULK_ACTIONS_DEFAULT = 250;
+
+    String BULK_SIZE_BYTES = "bulkSizeBytes";
+    long BULK_SIZE_BYTES_DEFAULT = 2_097_152; // 2MB
+
+    String BULK_FLUSH_INTERVAL_MS = "bulkFlushIntervalMs";
+    long BULK_FLUSH_INTERVAL_MS_DEFAULT = 3000;
+
+    String BULK_RETRIES = "bulkRetries";
+    int BULK_RETRIES_DEFAULT = 3;
+
+    String BULK_RETRIES_BACKOFF = "bulkRetriesBackoff";
+    long BULK_RETRIES_BACKOFF_DEFAULT = 200;
 }
