@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
-
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 
@@ -47,7 +45,7 @@ public final class SimpleCredentialsSupport implements CredentialsSupport {
 
     @Override
     @NotNull
-    public Set<Class> getCredentialClasses() {
+    public ImmutableSet<Class> getCredentialClasses() {
         return ImmutableSet.<Class>of(SimpleCredentials.class);
     }
 
