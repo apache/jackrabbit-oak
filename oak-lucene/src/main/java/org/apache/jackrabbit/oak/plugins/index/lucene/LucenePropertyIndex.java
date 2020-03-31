@@ -1605,15 +1605,15 @@ public class LucenePropertyIndex extends FulltextIndex {
         @Override
         public List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
             if (!CACHE_FACET_RESULTS) {
-                LOG.trace(CACHE_FACET_RESULTS_NAME + " = " + CACHE_FACET_RESULTS + " getting uncached results for columnName = " + columnName);
+                LOG.trace("{} = {} getting uncached results for columnName = {}", CACHE_FACET_RESULTS_NAME, CACHE_FACET_RESULTS, columnName );
                 return getFacetsUncached(numberOfFacets, columnName);
             }
             String cacheKey = columnName + "/" + numberOfFacets;
             if (cachedResults.containsKey(cacheKey)) {
-                LOG.trace("columnName = " + columnName + " returning Facet Data from cache.");
+                LOG.trace("columnName = {} returning Facet Data from cache.", columnName);
                 return cachedResults.get(cacheKey);
             }
-            LOG.trace("columnName = " + columnName + " facet Data not present in cache...");
+            LOG.trace("columnName = {} facet Data not present in cache...", columnName);
             List<Facet> result = getFacetsUncached(numberOfFacets, columnName);
             cachedResults.put(cacheKey, result);
             return result;
