@@ -31,6 +31,10 @@
   <name>Oak DocumentNodeStore</name>
   <packaging>bundle</packaging>
 
+  <properties>
+    <test.opts.memory>-Xmx512m -Xss256k</test.opts.memory>
+  </properties>
+
   <build>
     <plugins>
       <plugin>

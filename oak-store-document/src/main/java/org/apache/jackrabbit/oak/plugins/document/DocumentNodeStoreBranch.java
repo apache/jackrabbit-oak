@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -496,9 +497,13 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 branchState = new Unmodified(base);
             } else {
                 int numChanges = countChanges(base, root);
-                head = newModifiedDocumentNodeState(root);
                 if (numChanges > updateLimit) {
+                    head = newModifiedDocumentNodeState(root);
                     persist();
+                } else {
+                    NodeBuilder builder = new MemoryNodeBuilder(base);
+                    root.compareAgainstBaseState(base, new ApplyDiff(builder));
+                    head = newModifiedDocumentNodeState(builder.getNodeState());
                 }
             }
         }
