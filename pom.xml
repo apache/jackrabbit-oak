@@ -78,6 +78,7 @@
     <module>oak-search-elastic</module>
     <module>oak-benchmarks-lucene</module>
     <module>oak-benchmarks-solr</module>
+    <module>oak-benchmarks-elastic</module>
   </modules>
 
   <scm>

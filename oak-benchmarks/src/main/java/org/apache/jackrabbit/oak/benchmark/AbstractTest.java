@@ -73,6 +73,8 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     private static final long WARMUP = TimeUnit.SECONDS.toMillis(Long.getLong("warmup", 5));
 
     private static final long RUNTIME = TimeUnit.SECONDS.toMillis(Long.getLong("runtime", 60));
+
+    private static final boolean SKIP_WARMPUP = Boolean.getBoolean("skipWarmup");
     
     private static final boolean PROFILE = Boolean.getBoolean("profile");
     
@@ -188,11 +190,11 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     @Override
     public void run(Iterable<RepositoryFixture> fixtures, List<Integer> concurrencyLevels) {
         System.out.format(
-                "# %-26.26s       C     min     10%%     50%%     90%%     max       N%s%n",
+                "# %-26.26s       C     min     10%%     50%%     90%%     mean     max       N%s%n",
                 toString(), statsNamesJoined(false));
         if (out != null) {
             out.format(
-                    "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    max,      N%s%n",
+                    "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    mean,    max,      N%s%n",
                     toString(), statsNamesJoined(true));
         }
         for (RepositoryFixture fixture : fixtures) {
@@ -215,16 +217,16 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         setUp(repository, CREDENTIALS);
         try {
             
-            // Run a few iterations to warm up the system
-            long warmupEnd = System.currentTimeMillis() + WARMUP;
-            boolean stop = false;
-            while (System.currentTimeMillis() < warmupEnd && !stop) {
-                if (!stop) {
+            if (!SKIP_WARMPUP) {
+                // Run a few iterations to warm up the system
+                long warmupEnd = System.currentTimeMillis() + WARMUP;
+                boolean stop = false;
+                while (System.currentTimeMillis() < warmupEnd && !stop) {
                     // we want to execute this at lease once. after that we consider the
                     // `haltRequested` flag.
                     stop = haltRequested;
+                    execute();
                 }
-                execute();
             }
 
             if (concurrencyLevels == null || concurrencyLevels.isEmpty()) {
@@ -241,6 +243,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
                     statistics.getPercentile(10.0),
                     statistics.getPercentile(50.0),
                     statistics.getPercentile(90.0),
+                    statistics.getMean(),
                     statistics.getMax(),
                     statistics.getN()
                 };
@@ -252,11 +255,11 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
                 }
                 if (statistics.getN() > 0) {
                     System.out.format(
-                            "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d"+statsFormatsJoined(false)+"%n",
+                            "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f %6.0f  %6.0f  %6d"+statsFormatsJoined(false)+"%n",
                             statsArg);
                     if (out != null) {
                         out.format(
-                                "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d"+statsFormatsJoined(false)+"%n",
+                                "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d"+statsFormatsJoined(false)+"%n",
                                 statsArg);
                     }
                 }
@@ -323,11 +326,9 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
             long runtimeEnd = System.currentTimeMillis() + RUNTIME;
             boolean stop = false;
             while (System.currentTimeMillis() < runtimeEnd && !stop) {
-                if (!stop) {
-                    // we want to execute this at lease once. after that we consider the
-                    // `haltRequested` flag.
-                    stop = haltRequested;
-                }
+                // we want to execute this at lease once. after that we consider the
+                // `haltRequested` flag.
+                stop = haltRequested;
                 statistics.addValue(execute());
             }
 
@@ -374,9 +375,10 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
         beforeTest();
         try {
             long start = System.currentTimeMillis();
-            // System.out.println("execute " + this);
             runTest();
-            return System.currentTimeMillis() - start;
+            long timeTaken = System.currentTimeMillis() - start;
+            LOG.trace("Time taken for test iteration run - " + timeTaken);
+            return timeTaken;
         } finally {
             afterTest();
         }
@@ -618,6 +620,7 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
      */
     protected Session loginWriter() {
         try {
+            LOG.trace("Creating new session");
             Session session = repository.login(credentials);
             synchronized (sessions) {
                 sessions.add(session);

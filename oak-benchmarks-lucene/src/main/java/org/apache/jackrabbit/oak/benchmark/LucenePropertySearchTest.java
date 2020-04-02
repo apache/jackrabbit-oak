@@ -25,24 +25,41 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
 import javax.jcr.Repository;
+import javax.jcr.query.Query;
 import java.io.File;
 import java.io.IOException;
 
-public class LuceneFullTextSearchTest extends SearchTest {
+import static com.google.common.collect.ImmutableSet.of;
+
+public class LucenePropertySearchTest extends SearchTest {
 
     private final boolean disableCopyOnRead = Boolean.getBoolean("disableCopyOnRead");
 
-    public LuceneFullTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
+    public LucenePropertySearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
         super(dump, flat, doReport, storageEnabled);
     }
 
+    @Override
+    protected String getQuery(String word) {
+        return "SELECT * FROM [nt:base] WHERE [text] = '" + word + "'";
+    }
+
+    @Override
+    protected String queryType() {
+        return Query.JCR_SQL2;
+    }
+
+    @Override
+    protected boolean isFullTextSearch() {
+        return false;
+    }
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
@@ -54,7 +71,8 @@ public class LuceneFullTextSearchTest extends SearchTest {
                     oak.with((QueryIndexProvider) provider)
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider())
-                            .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneText", of("text"),
+                                    LuceneIndexConstants.TYPE_LUCENE));
                     return new Jcr(oak);
                 }
             });

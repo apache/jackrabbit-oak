@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
@@ -37,10 +38,22 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
  * same as {@link LucenePropertyFullTextTest} but will initialise a repository where the global
  * full-text runs on a separate thread from lucene property.
  */
-public class LucenePropertyFTSeparated extends LucenePropertyFullTextTest {
+public class LucenePropertyFTSeparated extends PropertyFullTextTest {
 
-    public LucenePropertyFTSeparated(final File dump, 
-                                     final boolean flat, 
+    String currentFixtureName;
+
+    @Override
+    public String getCurrentFixtureName() {
+        return currentFixtureName;
+    }
+
+    @Override
+    public String getCurrentTest() {
+        return this.getClass().getSimpleName();
+    }
+
+    public LucenePropertyFTSeparated(final File dump,
+                                     final boolean flat,
                                      final boolean doReport,
                                      final Boolean storageEnabled) {
         super(dump, flat, doReport, storageEnabled);
@@ -50,21 +63,20 @@ public class LucenePropertyFTSeparated extends LucenePropertyFullTextTest {
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
         if (fixture instanceof OakRepositoryFixture) {
-            currentFixture = fixture.toString();
+            currentFixtureName = fixture.toString();
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = new LuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
-                       .with((Observer) provider)
-                       .with(new LuceneIndexEditorProvider())
-                        .with(
-                            (new LuceneInitializerHelper("luceneGlobal", storageEnabled))
-                                .async("async-slow"))
-                       // the WikipediaImporter set a property `title`
-                       .with(new LucenePropertyInitialiser("luceneTitle", of("title")))
-                       .withAsyncIndexing("async", 5)
-                       .withAsyncIndexing("async-slow", 5);
+                            .with((Observer) provider)
+                            .with(new LuceneIndexEditorProvider())
+                            .with((new LuceneInitializerHelper("luceneGlobal", storageEnabled))
+                                            .async("fulltext-async"))
+                                    // the WikipediaImporter set a property `title`
+                            .with(new FullTextPropertyInitialiser("luceneTitle", of("title"), LuceneIndexConstants.TYPE_LUCENE).async())
+                            .withAsyncIndexing("async", 5)
+                            .withAsyncIndexing("fulltext-async", 5);
                     return new Jcr(oak);
                 }
             });

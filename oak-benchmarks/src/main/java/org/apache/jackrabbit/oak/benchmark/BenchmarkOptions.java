@@ -94,6 +94,21 @@ public class BenchmarkOptions {
     private final OptionSpec<String> nonOption;
     private final OptionSpec<?> help;
     private final OptionSpec<Boolean> useAggregationFilter;
+    private final OptionSpec<String> elasticHost;
+    private final OptionSpec<String> elasticScheme;
+    private final OptionSpec<Integer> elasticPort;
+
+    public OptionSpec<String> getElasticHost() {
+        return elasticHost;
+    }
+
+    public OptionSpec<String> getElasticScheme() {
+        return elasticScheme;
+    }
+
+    public OptionSpec<Integer> getElasticPort() {
+        return elasticPort;
+    }
 
     public OptionSpec<File> getBase() {
         return base;
@@ -481,6 +496,12 @@ public class BenchmarkOptions {
         verbose = parser.accepts("verbose", "Enable verbose output");
         nonOption = parser.nonOptions();
         help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        elasticHost = parser.accepts("elasticHost", "Elastic server host").withOptionalArg()
+                .ofType(String.class);
+        elasticScheme = parser.accepts("elasticScheme", "Elastic scheme").withOptionalArg()
+                .ofType(String.class);
+        elasticPort = parser.accepts("elasticPort", "Elastic scheme").withOptionalArg()
+                .ofType(Integer.class);
     }
 
 }

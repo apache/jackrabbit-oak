@@ -48,7 +48,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FullTextSolrSearchTest extends FullTextSearchTest {
+public class FullTextSolrSearchTest extends SearchTest {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 

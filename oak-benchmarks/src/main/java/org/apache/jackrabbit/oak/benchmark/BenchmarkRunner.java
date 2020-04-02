@@ -373,13 +373,6 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getNumberOfGroups().value(options),
                                 benchmarkOptions.getNestedGroups().value(options),
                                 benchmarkOptions.getNumberOfUsers().value(options)),
-                        // TODO - remove this from here and implement runner in oak-benchmarks-solr
-                        // (Not high priority now - do it after elastic implementation)
-                        /*new FullTextSolrSearchTest(
-                                benchmarkOptions.getWikipedia().value(options),
-                                benchmarkOptions.getFlatStructure().value(options),
-                                benchmarkOptions.getReport().value(options), benchmarkOptions.getWithStorage().value(options),
-                                benchmarkOptions.getWithServer().value(options)),*/
                         new FindAuthorizableWithScopeTest(benchmarkOptions.getNumberOfUsers().value(options),
                                 benchmarkOptions.getNumberOfGroups().value(options),
                                 benchmarkOptions.getQueryMaxCount().value(options), benchmarkOptions.getSetScope().value(options),

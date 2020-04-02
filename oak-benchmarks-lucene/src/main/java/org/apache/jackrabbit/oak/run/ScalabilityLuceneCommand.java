@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.run;
 
 import org.apache.jackrabbit.oak.scalability.LuceneScalabilityRunner;
 
-public class LuceneScalabilityCommand extends ScalabilityCommand {
+public class ScalabilityLuceneCommand extends ScalabilityCommand {
 
     @Override
     public void execute(String... args) throws Exception {

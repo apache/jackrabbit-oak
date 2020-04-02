@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
@@ -24,14 +23,13 @@ import org.apache.jackrabbit.oak.run.commons.Utils;
 
 import static java.util.Arrays.copyOfRange;
 
-public class LuceneMain {
+public class SolrMain {
 
     private static final Modes MODES = new Modes(ImmutableMap.<String, Command>of(
-            "benchmark", new BenchmarkLuceneCommand(),
-            "scalability", new ScalabilityLuceneCommand()
+            "benchmark", new BenchmarkSolrCommand()
     ));
 
-    private LuceneMain() {
+    private SolrMain() {
         // Prevent instantiation.
     }
 
@@ -39,7 +37,7 @@ public class LuceneMain {
 
         Utils.printProductInfo(
                 args,
-                Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-benchmarks-lucene/pom.properties")
+                Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-benchmarks-solr/pom.properties")
         );
 
         Command c = MODES.getCommand("benchmark");

@@ -19,30 +19,33 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 
 import javax.jcr.Repository;
 import java.io.File;
-import java.io.IOException;
 
-public class LuceneFullTextSearchTest extends SearchTest {
+public class ElasticFullTextSearchTest extends SearchTest {
 
-    private final boolean disableCopyOnRead = Boolean.getBoolean("disableCopyOnRead");
+    private ElasticsearchConnection coordinate;
+    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal";
 
-    public LuceneFullTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
+    public ElasticFullTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
+        this.coordinate = coordinate;
     }
-
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
@@ -50,11 +53,14 @@ public class LuceneFullTextSearchTest extends SearchTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    LuceneIndexProvider provider = createLuceneIndexProvider();
-                    oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
+                    ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
+                            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                    ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(coordinate);
+                    oak.with(editorProvider)
+                            .with(indexProvider)
+                            .with(new PropertyIndexEditorProvider())
+                            .with(new NodeTypeIndexProvider())
+                            .with(new ElasticGlobalInitializer(ELASTIC_GLOBAL_INDEX, storageEnabled));
                     return new Jcr(oak);
                 }
             });
@@ -62,15 +68,4 @@ public class LuceneFullTextSearchTest extends SearchTest {
         return super.createRepository(fixture);
     }
 
-    private LuceneIndexProvider createLuceneIndexProvider() {
-        if (!disableCopyOnRead) {
-            try {
-                IndexCopier copier = new IndexCopier(executorService, indexCopierDir, true);
-                return new LuceneIndexProvider(copier);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return new LuceneIndexProvider();
-    }
 }

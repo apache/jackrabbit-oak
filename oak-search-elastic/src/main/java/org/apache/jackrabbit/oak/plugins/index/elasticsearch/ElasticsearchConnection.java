@@ -55,7 +55,7 @@ public class ElasticsearchConnection implements Closeable {
 
     private AtomicBoolean isClosed = new AtomicBoolean(false);
 
-    protected ElasticsearchConnection(String scheme, String host, Integer port) {
+    public ElasticsearchConnection(String scheme, String host, Integer port) {
         if (scheme == null || host == null || port == null) {
             throw new IllegalArgumentException();
         }
