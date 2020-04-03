@@ -55,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
  *     the same checkpoint or root state occur again in a later compaction retry cycle.</li>
  * </ul>
  */
-public class CheckpointCompactor {
+public class CheckpointCompactor implements Compactor {
     @NotNull
     private final GCMonitor gcListener;
 
@@ -63,7 +63,7 @@ public class CheckpointCompactor {
     private final Map<NodeState, NodeState> cpCache = newHashMap();
 
     @NotNull
-    private final Compactor compactor;
+    private final ClassicCompactor compactor;
 
     @NotNull
     private final NodeWriter nodeWriter;
@@ -75,6 +75,7 @@ public class CheckpointCompactor {
 
     /**
      * Create a new instance based on the passed arguments.
+     * @param gcListener listener receiving notifications about the garbage collection process
      * @param reader     segment reader used to read from the segments
      * @param writer     segment writer used to serialise to segments
      * @param blobStore  the blob store or {@code null} if none
@@ -88,7 +89,7 @@ public class CheckpointCompactor {
             @Nullable BlobStore blobStore,
             @NotNull GCNodeWriteMonitor compactionMonitor) {
         this.gcListener = gcListener;
-        this.compactor = new Compactor(reader, writer, blobStore, compactionMonitor);
+        this.compactor = new ClassicCompactor(reader, writer, blobStore, compactionMonitor);
         this.nodeWriter = (node, stableId) -> {
             RecordId nodeId = writer.writeNode(node, stableId);
             return new SegmentNodeState(reader, writer, blobStore, nodeId);
@@ -104,6 +105,7 @@ public class CheckpointCompactor {
      * @return  compacted clone of {@code uncompacted} or {@code null} if cancelled.
      * @throws IOException
      */
+    @Override
     @Nullable
     public SegmentNodeState compact(
         @NotNull NodeState base,

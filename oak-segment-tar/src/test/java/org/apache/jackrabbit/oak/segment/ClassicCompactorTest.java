@@ -55,7 +55,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class CompactorTest {
+public class ClassicCompactorTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
@@ -76,7 +76,7 @@ public class CompactorTest {
 
     @Test
     public void testCompact() throws Exception {
-        Compactor compactor = createCompactor(fileStore, null);
+        ClassicCompactor compactor = createCompactor(fileStore, null);
         addTestContent(nodeStore);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
@@ -97,8 +97,8 @@ public class CompactorTest {
 
     @Test
     public void testExceedUpdateLimit() throws Exception {
-        Compactor compactor = createCompactor(fileStore, null);
-        addNodes(nodeStore, Compactor.UPDATE_LIMIT * 2 + 1);
+        ClassicCompactor compactor = createCompactor(fileStore, null);
+        addNodes(nodeStore, ClassicCompactor.UPDATE_LIMIT * 2 + 1);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
         SegmentNodeState compacted = compactor.compact(uncompacted, Canceller.newCanceller());
@@ -110,7 +110,7 @@ public class CompactorTest {
 
     @Test
     public void testCancel() throws IOException, CommitFailedException {
-        Compactor compactor = createCompactor(fileStore, null);
+        ClassicCompactor compactor = createCompactor(fileStore, null);
         addTestContent(nodeStore);
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setChildNode("cancel").setProperty("cancel", "cancel");
@@ -121,20 +121,20 @@ public class CompactorTest {
 
     @Test(expected = IOException.class)
     public void testIOException() throws IOException, CommitFailedException {
-        Compactor compactor = createCompactor(fileStore, "IOException");
+        ClassicCompactor compactor = createCompactor(fileStore, "IOException");
         addTestContent(nodeStore);
         compactor.compact(nodeStore.getRoot(), Canceller.newCanceller());
     }
 
     @NotNull
-    private static Compactor createCompactor(FileStore fileStore, String failOnName) {
+    private static ClassicCompactor createCompactor(FileStore fileStore, String failOnName) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(newGCGeneration(1, 1, true))
                 .build(fileStore);
         if (failOnName != null) {
             writer = new FailingSegmentWriter(writer, failOnName);
         }
-        return new Compactor(fileStore.getReader(), writer, fileStore.getBlobStore(), GCNodeWriteMonitor.EMPTY);
+        return new ClassicCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), GCNodeWriteMonitor.EMPTY);
     }
 
     private static void addNodes(SegmentNodeStore nodeStore, int count)

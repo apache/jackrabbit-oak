@@ -98,7 +98,6 @@ class GarbageCollector {
 
     private final GCNodeWriteMonitor compactionMonitor;
 
-
     /**
      * Timestamp of the last time full or tail compaction was successfully
      * invoked. 0 if never.

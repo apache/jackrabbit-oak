@@ -27,18 +27,22 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPA
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
-import java.io.IOException;
-
 import com.google.common.base.Function;
+
 import org.apache.jackrabbit.oak.segment.CheckpointCompactor;
+import org.apache.jackrabbit.oak.segment.ClassicCompactor;
+import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.cancel.Cancellation;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import java.io.IOException;
 
 abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
@@ -76,7 +80,7 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
         Context context,
         NodeState base,
         NodeState onto,
-        CheckpointCompactor compactor,
+        Compactor compactor,
         Canceller canceller
     ) throws InterruptedException {
         RecordId compactedId = setHead(context, headId -> {
@@ -138,13 +142,7 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
             Canceller compactionCanceller = context.getCanceller().withShortCircuit();
 
-            CheckpointCompactor compactor = new CheckpointCompactor(
-                context.getGCListener(),
-                context.getSegmentReader(),
-                writer,
-                context.getBlobStore(),
-                context.getCompactionMonitor()
-            );
+            Compactor compactor = newCompactor(context, writer);
 
             SegmentNodeState head = getHead(context);
             SegmentNodeState compacted = compactor.compact(base, head, base, compactionCanceller);
@@ -235,6 +233,20 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
         } catch (IOException e) {
             context.getGCListener().error("compaction encountered an error", e);
             return compactionAborted(context, nextGeneration);
+        }
+    }
+
+    private Compactor newCompactor(Context context, SegmentWriter writer) {
+        CompactorType compactorType = context.getGCOptions().getCompactorType();
+        switch (compactorType) {
+        case CHECKPOINT_COMPACTOR:
+            return new CheckpointCompactor(context.getGCListener(), context.getSegmentReader(), writer,
+                    context.getBlobStore(), context.getCompactionMonitor());
+        case CLASSIC_COMPACTOR:
+            return new ClassicCompactor(context.getSegmentReader(), writer, context.getBlobStore(),
+                    context.getCompactionMonitor());
+        default:
+            throw new IllegalArgumentException("Unknown compactor type: " + compactorType);
         }
     }
 

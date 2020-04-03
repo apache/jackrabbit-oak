@@ -85,7 +85,6 @@ interface GarbageCollectionStrategy {
         FileStoreStats getFileStoreStats();
 
         SegmentReader getSegmentReader();
-
     }
 
     void collectGarbage(Context context) throws IOException;
