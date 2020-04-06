@@ -31,7 +31,6 @@ Maintenance branches
 We currently support the following maintenance branches:
 
 * [Oak 1.22](https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.22/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.22)) - from Java 8 up to Java 13
-* [Oak 1.10](https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.10/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.10)) - from Java 8 up to Java 13
 * [Oak 1.8](https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.8/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.8)) - from Java 8 up to Java 13
 * [Oak 1.6](https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.6/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.6)) - recommended version for Java 7 - "end of life" planned for Spring 2022
 * [Oak 1.4](https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.4/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.4)) - "end of life" planned for Spring 2021
@@ -43,4 +42,5 @@ End of life
 -----------
 The following branches have reached "end of life":
 
+* [Oak 1.10](https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.10/)
 * [Oak 1.0](https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.0/)
