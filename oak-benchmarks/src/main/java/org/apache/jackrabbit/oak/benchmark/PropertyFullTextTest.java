@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -177,6 +179,12 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
             if (!isAlreadyThere(builder)) {
                 Tree t = TreeFactory.createTree(builder.child(INDEX_DEFINITIONS_NAME));
                 t.setProperty("jcr:primaryType", "nt:unstructured", NAME);
+
+                NodeBuilder uuid = IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
+                        ImmutableList.<String>of("jcr:uuid"), null);
+                uuid.setProperty("info",
+                        "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
+
                 t = t.addChild(name);
                 t.setProperty("jcr:primaryType", INDEX_DEFINITIONS_NODE_TYPE, NAME);
                 t.setProperty(COMPAT_MODE, 2L, LONG);
@@ -308,7 +316,7 @@ public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.Test
         // persisted state.
         ec.session.refresh(true);
         QueryManager qm = ec.session.getWorkspace().getQueryManager();
-        Query q = qm.createQuery("SELECT * FROM [nt:base] WHERE [title] = '" + ec.title + "'", Query.JCR_SQL2);
+        Query q = qm.createQuery("SELECT * FROM [nt:base] WHERE [title] = \"" + ec.title + "\"", Query.JCR_SQL2);
         LOG.trace("statement: {} - title: {}", q.getStatement(), ec.title);
         RowIterator rows = q.execute().getRows();
         if (rows.hasNext()) {
