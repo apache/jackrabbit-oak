@@ -168,6 +168,7 @@ public class SegmentWriteQueue implements Closeable {
                 throw new IOException("Can't add segment to the queue");
             }
         } catch (InterruptedException e) {
+            segmentsByUUID.remove(action.getUuid());
             throw new IOException(e);
         } finally {
             flushLock.readLock().unlock();

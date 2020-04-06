@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.segment.azure.queue;
 import org.apache.jackrabbit.oak.segment.azure.AzureSegmentArchiveEntry;
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.internal.util.reflection.FieldSetter;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -28,13 +30,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 
 public class SegmentWriteQueueTest {
 
@@ -42,11 +49,63 @@ public class SegmentWriteQueueTest {
 
     private SegmentWriteQueue queue;
 
+    private SegmentWriteQueue queueBlocked;
+
     @After
     public void shutdown() throws IOException {
         if (queue != null) {
             queue.close();
         }
+
+        if (queueBlocked != null) {
+            queueBlocked.close();
+        }
+    }
+
+    @Test
+    public void testThreadInterruptedWhileAddigToQueue() throws InterruptedException, NoSuchFieldException {
+
+        Set<UUID> added = Collections.synchronizedSet(new HashSet<>());
+        Semaphore semaphore = new Semaphore(0);
+
+
+        BlockingDeque<SegmentWriteAction> queue = Mockito.mock(BlockingDeque.class);
+
+        queueBlocked = new SegmentWriteQueue((tarEntry, data, offset, size) -> {
+            try {
+                semaphore.acquire();
+            } catch (InterruptedException e) {
+            }
+            added.add(new UUID(tarEntry.getMsb(), tarEntry.getLsb()));
+        });
+
+        FieldSetter.setField(queueBlocked, queueBlocked.getClass().getDeclaredField("queue"), queue);
+        Mockito.when(queue.offer(any(SegmentWriteAction.class), anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException());
+
+        try {
+            queueBlocked.addToQueue(tarEntry(0), EMPTY_DATA, 0, 0);
+            fail("IOException should have been thrown");
+        } catch (IOException e) {
+            assertEquals(e.getCause().getClass(), InterruptedException.class);
+        }
+
+        semaphore.release(Integer.MAX_VALUE);
+
+        AtomicBoolean flushFinished = new AtomicBoolean(false);
+        Thread flusher = new Thread(() -> {
+            try {
+                queueBlocked.flush();
+                flushFinished.set(true);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+        flusher.start();
+
+        Thread.sleep(1000);
+
+        assertEquals("Flush thread should have been completed till now", Thread.State.TERMINATED, flusher.getState());
+        assertTrue("Segment queue is empty", flushFinished.get());
     }
 
     @Test
