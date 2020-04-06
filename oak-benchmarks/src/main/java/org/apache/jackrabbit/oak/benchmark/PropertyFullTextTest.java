@@ -65,24 +65,19 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
  * <p>
  * Extend this class in lucene and elastic benchmarks and override the createRepository method to include respective
  * Index Editor providers.
- * </p>
  * <p>
  * Suggested dump:
  * <a href="https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2">https://dumps.wikimedia.org/enwiki/20150403/enwiki-20150403-pages-articles.xml.bz2</a>
- * </p>
  * <p>
  * Usage example:
- * </p>
- * <p>
  * <pre>
  * java -Druntime=900 -Dlogback.configurationFile=logback-benchmark.xml \
  *      -jar ~/.m2/repository/org/apache/jackrabbit/oak-run/1.4-SNAPSHOT/oak-run-1.4-SNAPSHOT.jar \
  *      benchmark --wikipedia enwiki-20150403-pages-articles.xml.bz2 \
- *      --base ~/tmp/oak/ <Test Extending this class></> Oak-Tar Oak-Mongo
+ *      --base ~/tmp/oak/ &lt;Test Extending this class&gt;&lt;/&gt; Oak-Tar Oak-Mongo
  * </pre>
  * <p>
  * it will run the benchmark for 15 minutes against TarNS and MongoNS.
- * </p>
  */
 public class PropertyFullTextTest extends AbstractTest<PropertyFullTextTest.TestContext> {
 
