@@ -166,7 +166,7 @@ public class ElasticsearchIndexProviderService {
         ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(elasticsearchConnection);
 
         Dictionary<String, Object> props = new Hashtable<>();
-        props.put("type", ElasticsearchIndexConstants.TYPE_ELASTICSEARCH);
+        props.put("type", ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH);
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, props));
     }
 
@@ -174,7 +174,7 @@ public class ElasticsearchIndexProviderService {
         ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(elasticsearchConnection, extractedTextCache);
 
         Dictionary<String, Object> props = new Hashtable<>();
-        props.put("type", ElasticsearchIndexConstants.TYPE_ELASTICSEARCH);
+        props.put("type", ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH);
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
 //        oakRegs.add(registerMBean(whiteboard,
 //                TextExtractionStatsMBean.class,

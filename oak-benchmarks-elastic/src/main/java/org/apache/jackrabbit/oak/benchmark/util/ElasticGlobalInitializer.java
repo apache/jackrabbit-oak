@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.benchmark.util;
 
 
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -105,7 +105,7 @@ public class ElasticGlobalInitializer implements RepositoryInitializer {
             // do nothing
         } else {
             IndexHelper.newFTIndexDefinition(IndexUtils.getOrCreateOakIndex(builder),
-                    this.name, ElasticsearchIndexConstants.TYPE_ELASTICSEARCH,
+                    this.name, ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH,
                     propertyTypes, excludes, async, storageEnabled);
         }
     }

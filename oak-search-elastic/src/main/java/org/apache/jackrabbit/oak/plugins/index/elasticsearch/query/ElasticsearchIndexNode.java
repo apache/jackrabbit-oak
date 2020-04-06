@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDescriptor;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -26,16 +25,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ElasticsearchIndexNode implements IndexNode {
+class ElasticsearchIndexNode implements IndexNode {
 
+    private final ElasticsearchConnection elasticsearchConnection;
     private final ElasticsearchIndexDefinition indexDefinition;
-    private final ElasticsearchIndexDescriptor indexDescriptor;
 
-    protected ElasticsearchIndexNode(@NotNull NodeState root, @NotNull String indexPath,
+    ElasticsearchIndexNode(@NotNull NodeState root, @NotNull String indexPath,
                                      @NotNull ElasticsearchConnection elasticsearchConnection) {
         final NodeState indexNS = NodeStateUtils.getNode(root, indexPath);
         this.indexDefinition = new ElasticsearchIndexDefinition(root, indexNS, indexPath);
-        this.indexDescriptor = new ElasticsearchIndexDescriptor(elasticsearchConnection, indexDefinition);
+        this.elasticsearchConnection = elasticsearchConnection;
     }
 
     @Override
@@ -48,8 +47,8 @@ public class ElasticsearchIndexNode implements IndexNode {
         return indexDefinition;
     }
 
-    public ElasticsearchIndexDescriptor getIndexDescriptor() {
-        return indexDescriptor;
+    public ElasticsearchConnection getConnection() {
+        return elasticsearchConnection;
     }
 
     @Override
@@ -61,6 +60,6 @@ public class ElasticsearchIndexNode implements IndexNode {
 
     @Override
     public @Nullable IndexStatistics getIndexStatistics() {
-        return new ElasticsearchIndexStatistics(indexDescriptor);
+        return new ElasticsearchIndexStatistics(elasticsearchConnection);
     }
 }

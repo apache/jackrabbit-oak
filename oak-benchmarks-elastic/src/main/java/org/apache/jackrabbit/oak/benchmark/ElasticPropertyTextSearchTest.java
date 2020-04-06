@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
@@ -77,7 +77,7 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
                             .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticText", of("text"),
-                                    ElasticsearchIndexConstants.TYPE_ELASTICSEARCH));
+                                    ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH));
                     return new Jcr(oak);
                 }
             });

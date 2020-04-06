@@ -17,76 +17,89 @@
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDescriptor;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
+import org.elasticsearch.action.DocWriteRequest;
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.bulk.BulkItemResponse;
+import org.elasticsearch.action.bulk.BulkProcessor;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchDocument.pathToId;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.IMMEDIATE;
-import static org.elasticsearch.action.support.WriteRequest.RefreshPolicy.NONE;
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
-public class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocument> {
+class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocument> {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchIndexWriter.class);
 
-    private final ElasticsearchIndexDescriptor indexDescriptor;
+    private final ElasticsearchConnection elasticsearchConnection;
+    private final ElasticsearchIndexDefinition indexDefinition;
 
-    private final boolean isAsync;
+    private final BulkProcessor bulkProcessor;
 
-    // TODO: use bulk API - https://www.elastic.co/guide/en/elasticsearch/client/java-api/current/java-docs-bulk-processor.html
-    ElasticsearchIndexWriter(@NotNull IndexDefinition indexDefinition,
-                             @NotNull ElasticsearchConnection elasticsearchConnection) {
-        indexDescriptor = new ElasticsearchIndexDescriptor(elasticsearchConnection, indexDefinition);
+    ElasticsearchIndexWriter(@NotNull ElasticsearchConnection elasticsearchConnection,
+                                       @NotNull ElasticsearchIndexDefinition indexDefinition) {
+        this.elasticsearchConnection = elasticsearchConnection;
+        this.indexDefinition = indexDefinition;
+        bulkProcessor = initBulkProcessor();
+    }
 
-        // TODO: ES indexing put another bit delay before docs appear in search.
-        // For test without "async" indexing, we can use following hack BUT those where we
-        // would setup async, we'd need to find another way.
-        isAsync = indexDefinition.getDefinitionNodeState().getProperty("async") != null;
+    @TestOnly
+    ElasticsearchIndexWriter(@NotNull ElasticsearchConnection elasticsearchConnection,
+                                       @NotNull ElasticsearchIndexDefinition indexDefinition,
+                                       @NotNull BulkProcessor bulkProcessor) {
+        this.elasticsearchConnection = elasticsearchConnection;
+        this.indexDefinition = indexDefinition;
+        this.bulkProcessor = bulkProcessor;
+    }
+
+    private BulkProcessor initBulkProcessor() {
+        return BulkProcessor.builder((request, bulkListener) ->
+                        elasticsearchConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener),
+                new OakBulkProcessorLister())
+                .setBulkActions(indexDefinition.bulkActions)
+                .setBulkSize(new ByteSizeValue(indexDefinition.bulkSizeBytes))
+                .setFlushInterval(TimeValue.timeValueMillis(indexDefinition.bulkFlushIntervalMs))
+                .setBackoffPolicy(BackoffPolicy.exponentialBackoff(
+                        TimeValue.timeValueMillis(indexDefinition.bulkRetriesBackoff), indexDefinition.bulkRetries)
+                )
+                .build();
     }
 
     @Override
     public void updateDocument(String path, ElasticsearchDocument doc) throws IOException {
-        IndexRequest request = new IndexRequest(indexDescriptor.getIndexName())
+        IndexRequest request = new IndexRequest(indexDefinition.getRemoteIndexName())
                 .id(pathToId(path))
-                // immediate refresh would slow indexing response such that next
-                // search would see the effect of this indexed doc. Must only get
-                // enabled in tests (hopefully there are no non-async indexes in real life)
-                .setRefreshPolicy(isAsync ? NONE : IMMEDIATE)
                 .source(doc.build(), XContentType.JSON);
-        IndexResponse response = indexDescriptor.getClient().index(request, RequestOptions.DEFAULT);
-        LOG.trace("update {} - {}. Response: {}", path, doc, response);
+        bulkProcessor.add(request);
     }
 
     @Override
     public void deleteDocuments(String path) throws IOException {
-        DeleteRequest request = new DeleteRequest(indexDescriptor.getIndexName())
-                .id(pathToId(path))
-                // immediate refresh would slow indexing response such that next
-                // search would see the effect of this indexed doc. Must only get
-                // enabled in tests (hopefully there are no non-async indexes in real life)
-                .setRefreshPolicy(isAsync ? NONE : IMMEDIATE);
-        DeleteResponse response = indexDescriptor.getClient().delete(request, RequestOptions.DEFAULT);
-        LOG.trace("delete {}. Response: {}", path, response);
-
+        DeleteRequest request = new DeleteRequest(indexDefinition.getRemoteIndexName())
+                .id(pathToId(path));
+        bulkProcessor.add(request);
     }
 
     @Override
@@ -99,7 +112,7 @@ public class ElasticsearchIndexWriter implements FulltextIndexWriter<Elasticsear
     // TODO: we need to check if the index already exists and in that case we have to figure out if there are
     // "breaking changes" in the index definition
     protected void provisionIndex() throws IOException {
-        CreateIndexRequest request = new CreateIndexRequest(indexDescriptor.getIndexName());
+        CreateIndexRequest request = new CreateIndexRequest(indexDefinition.getRemoteIndexName());
 
         // provision settings
         request.settings(Settings.builder()
@@ -137,8 +150,49 @@ public class ElasticsearchIndexWriter implements FulltextIndexWriter<Elasticsear
         request.mapping(mappingBuilder);
 
         String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
-        CreateIndexResponse response = indexDescriptor.getClient().indices().create(request, RequestOptions.DEFAULT);
+        CreateIndexResponse response = elasticsearchConnection.getClient().indices().create(request, RequestOptions.DEFAULT);
 
-        LOG.info("Updated settings {}. Response acknowledged: {}", requestMsg, response.isAcknowledged());
+        LOG.info("Updated settings for index {} = {}. Response acknowledged: {}",
+                indexDefinition.getRemoteIndexName(), requestMsg, response.isAcknowledged());
+    }
+
+    private static class OakBulkProcessorLister implements BulkProcessor.Listener {
+
+        @Override
+        public void beforeBulk(long executionId, BulkRequest bulkRequest) {
+            LOG.info("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Bulk Requests: \n{}", bulkRequest.requests()
+                        .stream()
+                        .map(DocWriteRequest::toString)
+                        .collect(Collectors.joining("\n"))
+                );
+            }
+        }
+
+        @Override
+        public void afterBulk(long executionId, BulkRequest bulkRequest, BulkResponse bulkResponse) {
+            LOG.info("Bulk with id {} processed with status {} in {}", executionId, bulkResponse.status(), bulkResponse.getTook());
+            if (LOG.isTraceEnabled()) {
+                try {
+                    LOG.trace(Strings.toString(bulkResponse.toXContent(jsonBuilder(), EMPTY_PARAMS)));
+                } catch (IOException e) {
+                    LOG.error("Error decoding bulk response", e);
+                }
+            }
+            if (bulkResponse.hasFailures()) { // check if some operations failed to execute
+                for (BulkItemResponse bulkItemResponse : bulkResponse) {
+                    if (bulkItemResponse.isFailed()) {
+                        BulkItemResponse.Failure failure = bulkItemResponse.getFailure();
+                        LOG.error("Bulk item with id {} failed", failure.getId(), failure.getCause());
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void afterBulk(long executionId, BulkRequest bulkRequest, Throwable throwable) {
+            LOG.error("Bulk with id {} thrown an error", executionId, throwable);
+        }
     }
 }

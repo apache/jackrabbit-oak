@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.elasticsearch.Version;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,6 +47,7 @@ import java.util.Arrays;
 
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -118,12 +118,15 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
-        assertThat(explain(propaQuery), containsString("elasticsearch:test1"));
-        assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"), containsString("elasticsearch:test2"));
 
-        assertQuery(propaQuery, Arrays.asList("/test/a", "/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", singletonList("/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", singletonList("/test/d"));
+        assertEventually(() -> {
+            assertThat(explain(propaQuery), containsString("elasticsearch:test1"));
+            assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"), containsString("elasticsearch:test2"));
+
+            assertQuery(propaQuery, Arrays.asList("/test/a", "/test/b"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", singletonList("/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", singletonList("/test/d"));
+        });
     }
 
     //OAK-3825
@@ -148,17 +151,21 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
         String queryPrefix = "select [jcr:path] from [nt:base] where ISDESCENDANTNODE('/test') AND ";
         //test
         String propabQuery = queryPrefix + "LOCALNAME() = 'foo'";
-        String explanation = explain(propabQuery);
-        Assert.assertThat(explanation, containsString("elasticsearch:test1(/oak:index/test1) "));
-        Assert.assertThat(explanation, containsString("{\"term\":{\":nodeName\":{\"value\":\"foo\","));
-        assertQuery(propabQuery, singletonList("/test/foo"));
-        assertQuery(queryPrefix + "LOCALNAME() = 'bar'", singletonList("/test/sc/bar"));
-        assertQuery(queryPrefix + "LOCALNAME() LIKE 'foo'", singletonList("/test/foo"));
-        assertQuery(queryPrefix + "LOCALNAME() LIKE 'camel%'", singletonList("/test/camelCase"));
 
-        assertQuery(queryPrefix + "NAME() = 'bar'", singletonList("/test/sc/bar"));
-        assertQuery(queryPrefix + "NAME() LIKE 'foo'", singletonList("/test/foo"));
-        assertQuery(queryPrefix + "NAME() LIKE 'camel%'", singletonList("/test/camelCase"));
+        assertEventually(() -> {
+            String explanation = explain(propabQuery);
+            assertThat(explanation, containsString("elasticsearch:test1(/oak:index/test1) "));
+            assertThat(explanation, containsString("{\"term\":{\":nodeName\":{\"value\":\"foo\","));
+            assertQuery(propabQuery, singletonList("/test/foo"));
+
+            assertQuery(queryPrefix + "LOCALNAME() = 'bar'", singletonList("/test/sc/bar"));
+            assertQuery(queryPrefix + "LOCALNAME() LIKE 'foo'", singletonList("/test/foo"));
+            assertQuery(queryPrefix + "LOCALNAME() LIKE 'camel%'", singletonList("/test/camelCase"));
+
+            assertQuery(queryPrefix + "NAME() = 'bar'", singletonList("/test/sc/bar"));
+            assertQuery(queryPrefix + "NAME() LIKE 'foo'", singletonList("/test/foo"));
+            assertQuery(queryPrefix + "NAME() LIKE 'camel%'", singletonList("/test/camelCase"));
+        });
     }
 
     @Test
@@ -171,7 +178,8 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
         test.addChild("b");
         root.commit();
 
-        Assert.assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"), containsString("elasticsearch:test1"));
+        assertEventually(() -> assertThat(explain("select [jcr:path] from [nt:base] where [propa] = 'foo'"),
+                containsString("elasticsearch:test1")));
     }
 
     @Test
@@ -184,7 +192,8 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
         test.addChild("c").setProperty("propb", "e");
         root.commit();
 
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", Arrays.asList("/test/a", "/test/b"));
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where propa is not null",
+                Arrays.asList("/test/a", "/test/b")));
     }
 
     private static IndexDefinitionBuilder createIndex(String... propNames) {
@@ -203,5 +212,37 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
     private String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
+    }
+
+    private static void assertEventually(Runnable r) {
+        assertEventually(r, BULK_FLUSH_INTERVAL_MS_DEFAULT * 3);
+    }
+
+    private static void assertEventually(Runnable r, long timeoutMillis) {
+        final long start = System.currentTimeMillis();
+        long lastAttempt = 0;
+        int attempts = 0;
+
+        while (true) {
+            try {
+                attempts++;
+                lastAttempt = System.currentTimeMillis();
+                r.run();
+                return;
+            } catch (Throwable e) {
+                long elapsedTime = lastAttempt - start;
+                if (elapsedTime >= timeoutMillis) {
+                    String msg = String.format("Condition not satisfied after %1.2f seconds and %d attempts",
+                            elapsedTime / 1000d, attempts);
+                    throw new AssertionError(msg, e);
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+
+            }
+        }
     }
 }

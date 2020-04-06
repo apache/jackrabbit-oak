@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ElasticsearchDocument {
+class ElasticsearchDocument {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchDocument.class);
 
     // id should only be useful for logging (at least as of now)

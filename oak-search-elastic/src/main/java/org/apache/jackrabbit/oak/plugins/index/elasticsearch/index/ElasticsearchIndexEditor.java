@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEd
  * {@link IndexEditor} implementation that is responsible for keeping the
  * corresponding Elasticsearch index up to date
  */
-public class ElasticsearchIndexEditor extends FulltextIndexEditor<ElasticsearchDocument> {
+class ElasticsearchIndexEditor extends FulltextIndexEditor<ElasticsearchDocument> {
     ElasticsearchIndexEditor(FulltextIndexEditorContext<ElasticsearchDocument> context) throws CommitFailedException {
         super(context);
     }

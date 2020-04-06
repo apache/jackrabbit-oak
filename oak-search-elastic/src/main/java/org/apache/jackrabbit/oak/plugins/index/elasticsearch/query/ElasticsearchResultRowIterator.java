@@ -83,7 +83,7 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 
-public class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextResultRow> {
+class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextResultRow> {
     private static final Logger LOG = LoggerFactory
             .getLogger(ElasticsearchResultRowIterator.class);
     private static final PerfLogger PERF_LOGGER =

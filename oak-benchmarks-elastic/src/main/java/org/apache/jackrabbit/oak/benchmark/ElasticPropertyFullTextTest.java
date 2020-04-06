@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -106,7 +106,7 @@ public class ElasticPropertyFullTextTest extends PropertyFullTextTest {
                             .with((new ElasticGlobalInitializer(ELASTIC_GLOBAL_INDEX, storageEnabled)).async())
                                     // the WikipediaImporter set a property `title`
                             .with(new FullTextPropertyInitialiser("elasticTitle", of("title"),
-                                    ElasticsearchIndexConstants.TYPE_ELASTICSEARCH).async())
+                                    ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH).async())
                             .withAsyncIndexing("async", 5);
                     return new Jcr(oak);
                 }

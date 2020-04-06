@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.DocumentMaker;
@@ -28,7 +29,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
-public class ElasticsearchIndexEditorContext extends FulltextIndexEditorContext<ElasticsearchDocument> {
+class ElasticsearchIndexEditorContext extends FulltextIndexEditorContext<ElasticsearchDocument> {
+
     ElasticsearchIndexEditorContext(NodeState root,
                                     NodeBuilder definition, @Nullable IndexDefinition indexDefinition,
                                     IndexUpdateCallback updateCallback,
@@ -41,7 +43,7 @@ public class ElasticsearchIndexEditorContext extends FulltextIndexEditorContext<
 
     @Override
     public IndexDefinition.Builder newDefinitionBuilder() {
-        return new IndexDefinition.Builder();
+        return new ElasticsearchIndexDefinition.Builder();
     }
 
     @Override

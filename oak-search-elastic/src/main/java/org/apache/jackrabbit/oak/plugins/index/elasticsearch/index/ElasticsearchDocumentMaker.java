@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class ElasticsearchDocumentMaker extends FulltextDocumentMaker<ElasticsearchDocument> {
+class ElasticsearchDocumentMaker extends FulltextDocumentMaker<ElasticsearchDocument> {
 
     ElasticsearchDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                @NotNull IndexDefinition definition,
