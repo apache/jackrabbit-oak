@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.spi.monitor.*;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
@@ -103,7 +104,7 @@ public abstract class SegmentCopyTestBase {
         // Repeatedly add content and close FileStore to obtain a new tar file each time
         for (int i = 0; i < 10; i++) {
             try (FileStore fileStore = newFileStore(srcPersistence, folder.getRoot(), true,
-                    SegmentCache.DEFAULT_SEGMENT_CACHE_MB, 150_000L)) {
+                    SegmentCache.DEFAULT_SEGMENT_CACHE_MB, 150_000L, CompactorType.CHECKPOINT_COMPACTOR)) {
                 SegmentNodeStore sns = SegmentNodeStoreBuilders.builder(fileStore).build();
                 addContent(sns, i);
 

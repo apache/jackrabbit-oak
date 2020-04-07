@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -76,6 +77,8 @@ public class Compact {
         private long gcLogInterval = 150000;
 
         private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+
+        private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
 
         private Builder() {
             // Prevent external instantiation.
@@ -156,6 +159,17 @@ public class Compact {
          */
         public Builder withGCLogInterval(long gcLogInterval) {
             this.gcLogInterval = gcLogInterval;
+            return this;
+        }
+
+        /**
+         * The compactor type to be used by compaction. If not specified it defaults to
+         * "diff" compactor
+         * @param compactorType the compactor type
+         * @return this builder
+         */
+        public Builder withCompactorType(CompactorType compactorType) {
+            this.compactorType = compactorType;
             return this;
         }
 
@@ -251,6 +265,8 @@ public class Compact {
 
     private final long gcLogInterval;
 
+    private final CompactorType compactorType;
+
     private Compact(Builder builder) {
         this.path = builder.path;
         this.journal = new File(builder.path, "journal.log");
@@ -258,10 +274,11 @@ public class Compact {
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
+        this.compactorType = builder.compactorType;
     }
 
     public int run() {
-        System.out.printf("Compacting %s with %s\n", path, fileAccessMode.description);
+        System.out.printf("Compacting %s with %s and %s compactor type\n", path, fileAccessMode.description, compactorType.description());
         System.out.printf("    before\n");
         Set<File> beforeFiles = listFiles(path);
         printFiles(System.out, beforeFiles);
@@ -312,7 +329,8 @@ public class Compact {
             .withSegmentCacheSize(segmentCacheSize)
             .withGCOptions(defaultGCOptions()
                 .setOffline()
-                .setGCLogInterval(gcLogInterval));
+                .setGCLogInterval(gcLogInterval)
+                .setCompactorType(compactorType));
         if (fileAccessMode.memoryMapped != null) {
             builder.withMemoryMapping(fileAccessMode.memoryMapped);
         }

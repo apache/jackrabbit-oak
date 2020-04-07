@@ -50,12 +50,33 @@ public class SegmentGCOptions {
         /**
          * Simple compactor implementation
          */
-        CLASSIC_COMPACTOR,
+        CLASSIC_COMPACTOR("classic"),
 
         /**
          * Checkpoints aware compaction implementation
          */
-        CHECKPOINT_COMPACTOR
+        CHECKPOINT_COMPACTOR("diff");
+
+        private final String description;
+
+        CompactorType(String description) {
+            this.description = description;
+        }
+
+        public static CompactorType fromDescription(String description) {
+            switch (description) {
+            case "classic":
+                return CLASSIC_COMPACTOR;
+            case "diff":
+                return CHECKPOINT_COMPACTOR;
+            default:
+                throw new IllegalArgumentException("Unrecongnized compactor type " + description);
+            }
+        }
+
+        public String description() {
+            return description;
+        }
     }
 
     /**

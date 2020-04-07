@@ -799,7 +799,7 @@ This option is optional and is disabled by default.
 ### <a name="compact"/> Compact
 
 ```
-java -jar oak-run.jar compact [--force] [--mmap] PATH | cloud-prefix:URI
+java -jar oak-run.jar compact [--force] [--mmap] [--compactor] PATH | cloud-prefix:URI
 ```
 
 The `compact` command performs offline compaction of the local/remote Segment Store at `PATH`/`URI`. 
@@ -815,6 +815,8 @@ The optional `--mmap [Boolean]` argument can be used to control the file access 
 to `true` for memory mapped access and `false` for file access. If not specified, memory 
 mapped access is used on 64 bit systems and file access is used on 32 bit systems. On
 Windows, regular file access is always enforced and this option is ignored.
+
+The optional `--compactor [String]` argument can be used to pick the compactor type to be used. Valid choices are *classic* and *diff*. While the former is slower, it might be more stable, due to lack of optimisations employed by the *diff* compactor which compacts the checkpoints on top of each other. If not specified, *diff* compactor is used.
 
 To enable logging during offline compaction a Logback configuration file has to be injected 
 via the `logback.configurationFile` property. In addition the `compaction-progress-log`

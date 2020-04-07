@@ -25,6 +25,8 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact;
+import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact.Builder;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 
 class CompactCommand implements Command {
@@ -52,6 +54,12 @@ class CompactCommand implements Command {
                         "which is incompatible with older versions of Oak.")
                 .withOptionalArg()
                 .ofType(Boolean.class);
+        OptionSpec<String> compactor = parser.accepts("compactor",
+                "Allow the user to control compactor type to be used. Valid choices are \"classic\" and \"diff\". " +
+                        "While the former is slower, it might be more stable, due to lack of optimisations employed " +
+                        "by the \"diff\" compactor which compacts the checkpoints on top of each other. If not " +
+                        "specified, \"diff\" compactor is used.")
+                .withRequiredArg().ofType(String.class);
         OptionSet options = parser.parse(args);
 
         String path = directoryArg.value(options);
@@ -65,21 +73,34 @@ class CompactCommand implements Command {
         int code = 0;
 
         if (path.startsWith("az:")) {
-            code = AzureCompact.builder()
+            Builder azureBuilder = AzureCompact.builder()
                     .withPath(path)
                     .withForce(isTrue(forceArg.value(options)))
                     .withSegmentCacheSize(Integer.getInteger("cache", 256))
-                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
+                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000));
+
+            if (options.has(compactor)) {
+                azureBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
+            }
+
+            code = azureBuilder
                     .build()
                     .run();
+
         } else {
-            code = Compact.builder()
+            org.apache.jackrabbit.oak.segment.tool.Compact.Builder tarBuilder = Compact.builder()
                     .withPath(new File(path))
                     .withForce(isTrue(forceArg.value(options)))
                     .withMmap(mmapArg.value(options))
                     .withOs(StandardSystemProperty.OS_NAME.value())
                     .withSegmentCacheSize(Integer.getInteger("cache", 256))
-                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
+                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000));
+
+            if (options.has(compactor)) {
+                tarBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
+            }
+
+            code = tarBuilder
                     .build()
                     .run();
         }
