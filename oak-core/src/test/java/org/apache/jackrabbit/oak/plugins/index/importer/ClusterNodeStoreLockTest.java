@@ -19,10 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
-import com.google.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.LockToken;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -33,10 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
-import static org.junit.Assert.*;
+import com.google.common.collect.ImmutableSet;
 
 public class ClusterNodeStoreLockTest {
     private NodeStore store = new MemoryNodeStore();
@@ -52,6 +57,36 @@ public class ClusterNodeStoreLockTest {
                 .setProperty(ASYNC_PROPERTY_NAME, name);
         builder.child("testRoot").setProperty("foo", "abc");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+    
+    @Test
+    public void lockConcurrently() throws Exception {
+        final List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());
+        ArrayList<Thread> threads = new ArrayList<>();
+        for (int j = 0; j < 100; j++) {
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int i = 0; i < 100; i++) {
+                        try {
+                            ClusterNodeStoreLock lock = new ClusterNodeStoreLock(store);
+                            ClusteredLockToken token = lock.lock("async");
+                            lock.unlock(token);
+                        } catch (Throwable e) {
+                            exceptions.add(e);
+                        }
+                    }
+                }
+            });
+            t.start();
+            threads.add(t);
+        }
+        for(Thread t : threads) {
+            t.join();
+        }
+        if (!exceptions.isEmpty()) {
+            throw new RuntimeException(exceptions.get(0));
+        }
     }
 
     @Test
