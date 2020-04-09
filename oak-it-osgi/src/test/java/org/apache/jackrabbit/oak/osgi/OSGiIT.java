@@ -60,6 +60,7 @@ public class OSGiIT {
         return CoreOptions.options(
                 junitBundles(),
                 mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.0.12"),
+                mavenBundle("org.apache.felix", "org.apache.felix.jaas", "1.0.2"),
                 mavenBundle("org.osgi", "org.osgi.dto", "1.0.0"),
                 mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.8.16" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),

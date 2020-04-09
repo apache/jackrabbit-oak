@@ -58,6 +58,8 @@
         <include>org.apache.jackrabbit:oak-security-spi</include>
         <include>org.apache.jackrabbit:oak-blob-plugins</include>
         <include>org.apache.jackrabbit:oak-solr-osgi</include>
+        <include>org.apache.jackrabbit:oak-auth-external</include>
+        <include>org.apache.jackrabbit:oak-auth-ldap</include>
         <include>io.dropwizard.metrics:metrics-core</include>
       </includes>
     </dependencySet>
