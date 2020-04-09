@@ -190,11 +190,11 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
     @Override
     public void run(Iterable<RepositoryFixture> fixtures, List<Integer> concurrencyLevels) {
         System.out.format(
-                "# %-26.26s       C     min     10%%     50%%     90%%     mean     max       N%s%n",
+                "# %-26.26s       C     min     10%%     50%%     90%%     max     N       mean%s%n",
                 toString(), statsNamesJoined(false));
         if (out != null) {
             out.format(
-                    "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    mean,    max,      N%s%n",
+                    "# %-26.26s,      C,    min,    10%%,    50%%,    90%%,    max,    N      mean%s%n",
                     toString(), statsNamesJoined(true));
         }
         for (RepositoryFixture fixture : fixtures) {
@@ -243,9 +243,9 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
                     statistics.getPercentile(10.0),
                     statistics.getPercentile(50.0),
                     statistics.getPercentile(90.0),
-                    statistics.getMean(),
                     statistics.getMax(),
-                    statistics.getN()
+                    statistics.getN(),
+                    statistics.getMean()
                 };
 
                 Object[] statsArg =  ArrayUtils.addAll(defaultStats, statsValues());
@@ -255,11 +255,11 @@ public abstract class AbstractTest<T> extends Benchmark implements CSVResultGene
                 }
                 if (statistics.getN() > 0) {
                     System.out.format(
-                            "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f %6.0f  %6.0f  %6d"+statsFormatsJoined(false)+"%n",
+                            "%-28.28s  %6d  %6.0f  %6.0f  %6.0f  %6.0f %6.0f  %6d  %6.0f"+statsFormatsJoined(false)+"%n",
                             statsArg);
                     if (out != null) {
                         out.format(
-                                "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d"+statsFormatsJoined(false)+"%n",
+                                "%-28.28s, %6d, %6.0f, %6.0f, %6.0f, %6.0f, %6.0f, %6d, %6.0f"+statsFormatsJoined(false)+"%n",
                                 statsArg);
                     }
                 }
