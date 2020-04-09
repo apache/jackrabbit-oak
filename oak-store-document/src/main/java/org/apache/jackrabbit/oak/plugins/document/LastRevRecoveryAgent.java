@@ -284,6 +284,14 @@ public class LastRevRecoveryAgent {
                     log.info("Sweeper updated {}", updates.keySet());
                 }
             });
+
+            if (sweepRev.get() != null) {
+                // One or more journal entries were created by the sweeper.
+                // Make sure the sweep revision is different / newer than the
+                // last journal entry written so far. UnsavedModification
+                // further down needs a new revision for its journal entry.
+                sweepRev.set(Utils.max(sweepRev.get(), context.newRevision()));
+            }
         }
 
         // now deal with missing _lastRev updates
@@ -452,11 +460,16 @@ public class LastRevRecoveryAgent {
                         // journal entry, then died.
                         // in this case, don't write it again.
                         // hence: nothing to be done here. return.
+                        log.warn("Journal entry {} already exists", id);
                         return;
                     }
 
                     // otherwise store a new journal entry now
-                    store.create(JOURNAL, singletonList(changes.asUpdateOp(lastRootRev)));
+                    if (store.create(JOURNAL, singletonList(changes.asUpdateOp(lastRootRev)))) {
+                        log.info("Recovery created journal entry {}", id);
+                    } else {
+                        log.warn("Unable to create journal entry {} (already exists).", id);
+                    }
                 }
             }, new ReentrantLock());
 
