@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.2
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.3
 
 Introduction
 ------------
@@ -14,38 +14,37 @@ considered stable and targeted for production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.22.2
+Changes in Oak 1.22.3
 ---------------------
 
 Technical task
 
-    [OAK-8882] - RDBBlobStore: dump table structure on startup
-    [OAK-8906] - RDBDocumentStore on SQL Server (additional diags) log DB creation time
-    [OAK-8907] - RDBDocumentStore: change diagnostics from String to Map
-    [OAK-8909] - RDBBlobStore: when creating META table for SQL Server, assign readable name for PK
-    [OAK-8913] - RDB*Store: extract "additionalDiagnostics" code into separate class for re-use from RDBBlobStore
-    [OAK-8915] - RDBDocumentStore: use setNString() for columns known to be of type N*CHAR
-    [OAK-8916] - RDBBlobStore: log additional DB diagnostics (align with RDBDocumentStore)
-    [OAK-8918] - RDBBlobStore: warn when legacy (SQLServer) default collation is active
-    [OAK-8925] - RDBDocumentStore: for SQL Server stats, include type_desc and fill_factor
-    [OAK-8932] - RDBDocumentStore: allow RDBVersionGC support fallback to simpler algorithm
-
+    [OAK-8920] - update Tomcat JDBC dependency to 8.5.51
+    [OAK-8937] - RDB*Store: update mysql jdbc driver reference to 8.0.19
+    [OAK-8939] - RDB*Store: update postgresql jdbc driver reference to 42.2.10
+    [OAK-8940] - RDB*Store: update mssql-jdbc driver reference to 8.2.1.jre8
 
 Bug
 
-    [OAK-8936] - ValueImpl does not properly set domain override flag of BlobDownloadOptions
+    [OAK-8898] - On querying, IndexReader failed with AlreadyClosedException
+    [OAK-8922] - oak-run-commons: OakFixture broken for BlobStores that do not implement BlobAccessProvider
+    [OAK-8935] - Improve ClusterNodeInfo MAC address detection
+    [OAK-8944] - Missing journal entry on recovery
+    [OAK-8967] - OR query with ORDER BY don't work as expected
+    [OAK-8969] - Ignore domain overwrite doesn't work well when presignedHttpDownloadURICacheMaxSize is set
 
+Improvement
 
-New Feature
-
-    [OAK-8494] - Support AWS Key Managed Service (SSE-KMS)
+    [OAK-8978] - Cache facet results
 
 Task
 
-    [OAK-8875] - Update aws-java-sdk-osgi version to 1.11.700 in Oak-blob-cloud
-    [OAK-8919] - examples: update Tomcat dependency to 7.0.100
-
-
+    [OAK-8905] - AsyncIndexUpdate: improve logging when checkpoint cleanup gets skipped
+    [OAK-8953] - Update httpclient/mime dependencies to 4.5.12
+    [OAK-8954] - update jackson dependency to 2.10.3
+    [OAK-8955] - Update slf4j dependency to 1.7.30
+    [OAK-8959] - Update Tika dependency to 1.24
+    [OAK-8960] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.20
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the previous Apache Jackrabbit Oak 1.22.x release.
@@ -74,7 +73,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-The Oak effort is a part of the Apache Jackrabbit project. 
+The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 For more information, visit http://jackrabbit.apache.org/oak
