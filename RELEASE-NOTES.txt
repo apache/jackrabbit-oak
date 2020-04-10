@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.2 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.3 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
