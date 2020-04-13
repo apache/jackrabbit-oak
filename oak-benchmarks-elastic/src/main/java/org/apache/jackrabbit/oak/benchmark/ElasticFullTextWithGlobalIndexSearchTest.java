@@ -19,14 +19,15 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
@@ -36,13 +37,12 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import javax.jcr.Repository;
 import java.io.File;
 
-import static com.google.common.collect.ImmutableSet.of;
-
-public class ElasticFullTextNotGlobalSearchTest extends SearchTest {
+public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
 
     private ElasticsearchConnection coordinate;
+    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal";
 
-    public ElasticFullTextNotGlobalSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
+    public ElasticFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
         this.coordinate = coordinate;
     }
@@ -60,12 +60,13 @@ public class ElasticFullTextNotGlobalSearchTest extends SearchTest {
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticText", of("text"),
-                                    ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
+                            .with(new ElasticGlobalInitializer(ELASTIC_GLOBAL_INDEX, storageEnabled))
+                            .with(new UUIDInitializer());
                     return new Jcr(oak);
                 }
             });
         }
         return super.createRepository(fixture);
     }
+
 }

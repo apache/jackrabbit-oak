@@ -28,21 +28,21 @@ public class LuceneBenchmarkRunner extends BenchmarkRunner {
         statsProvider = options.has(benchmarkOptions.getMetrics()) ? getStatsProvider() : StatisticsProvider.NOOP;
         BenchmarkRunner.addToBenchMarkList(
                 Arrays.asList(
-                        new LuceneFullTextSearchTest(
+                        new LuceneFullTextWithGlobalIndexSearchTest(
                                 benchmarkOptions.getWikipedia().value(options),
                                 benchmarkOptions.getFlatStructure().value(options),
                                 benchmarkOptions.getReport().value(options),
                                 benchmarkOptions.getWithStorage().value(options)),
-                        new LucenePropertyFullTextTest(
+                        new LucenePropertyFTIndexedContentAvailability(
                                 benchmarkOptions.getWikipedia().value(options),
                                 benchmarkOptions.getFlatStructure().value(options),
                                 benchmarkOptions.getReport().value(options), benchmarkOptions.getWithStorage().value(options)),
-                        new LucenePropertyFTSeparated(
+                        new LucenePropertyFTSeparatedIndexedContentAvailability(
                                 benchmarkOptions.getWikipedia().value(options),
                                 benchmarkOptions.getFlatStructure().value(options),
                                 benchmarkOptions.getReport().value(options), benchmarkOptions.getWithStorage().value(options)),
                         new HybridIndexTest(benchmarkOptions.getBase().value(options), statsProvider),
-                        new LuceneFullTextNotGlobalSearchTest(benchmarkOptions.getWikipedia().value(options),
+                        new LuceneFullTextWithoutGlobalIndexSearchTest(benchmarkOptions.getWikipedia().value(options),
                                 benchmarkOptions.getFlatStructure().value(options),
                                 benchmarkOptions.getReport().value(options),
                                 benchmarkOptions.getWithStorage().value(options)),

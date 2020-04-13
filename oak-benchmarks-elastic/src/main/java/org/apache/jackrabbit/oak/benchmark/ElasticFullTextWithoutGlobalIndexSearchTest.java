@@ -19,33 +19,32 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 
 import javax.jcr.Repository;
 import java.io.File;
-import java.io.IOException;
 
 import static com.google.common.collect.ImmutableSet.of;
 
-/*
-Similar to {@Link LuceneFullTextSearchTest}. The only diff being this doesn't configure a global full text index
- */
-public class LuceneFullTextNotGlobalSearchTest extends SearchTest {
+public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
 
-    private final boolean disableCopyOnRead = Boolean.getBoolean("disableCopyOnRead");
+    private ElasticsearchConnection coordinate;
 
-    public LuceneFullTextNotGlobalSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
+    public ElasticFullTextWithoutGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
+        this.coordinate = coordinate;
     }
 
     @Override
@@ -54,28 +53,19 @@ public class LuceneFullTextNotGlobalSearchTest extends SearchTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    LuceneIndexProvider provider = createLuceneIndexProvider();
-                    oak.with((QueryIndexProvider) provider)
-                            .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneText", of("text"),
-                                    LuceneIndexConstants.TYPE_LUCENE).nodeScope().analyzed());
+                    ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
+                            new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
+                    ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(coordinate);
+                    oak.with(editorProvider)
+                            .with(indexProvider)
+                            .with(new PropertyIndexEditorProvider())
+                            .with(new NodeTypeIndexProvider())
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticText", of("text"),
+                                    ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
                     return new Jcr(oak);
                 }
             });
         }
         return super.createRepository(fixture);
-    }
-
-    private LuceneIndexProvider createLuceneIndexProvider() {
-        if (!disableCopyOnRead) {
-            try {
-                IndexCopier copier = new IndexCopier(executorService, indexCopierDir, true);
-                return new LuceneIndexProvider(copier);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return new LuceneIndexProvider();
     }
 }

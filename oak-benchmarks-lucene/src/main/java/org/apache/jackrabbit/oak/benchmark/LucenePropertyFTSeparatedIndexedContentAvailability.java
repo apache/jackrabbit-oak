@@ -35,10 +35,10 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
 /**
- * same as {@link LucenePropertyFullTextTest} but will initialise a repository where the global
+ * same as {@link LucenePropertyFTIndexedContentAvailability} but will initialise a repository where the global
  * full-text runs on a separate thread from lucene property.
  */
-public class LucenePropertyFTSeparated extends PropertyFullTextTest {
+public class LucenePropertyFTSeparatedIndexedContentAvailability extends PropertyFullTextTest {
 
     String currentFixtureName;
 
@@ -52,10 +52,10 @@ public class LucenePropertyFTSeparated extends PropertyFullTextTest {
         return this.getClass().getSimpleName();
     }
 
-    public LucenePropertyFTSeparated(final File dump,
-                                     final boolean flat,
-                                     final boolean doReport,
-                                     final Boolean storageEnabled) {
+    public LucenePropertyFTSeparatedIndexedContentAvailability(final File dump,
+                                                               final boolean flat,
+                                                               final boolean doReport,
+                                                               final Boolean storageEnabled) {
         super(dump, flat, doReport, storageEnabled);
         currentTest = this.getClass().getSimpleName();
     }

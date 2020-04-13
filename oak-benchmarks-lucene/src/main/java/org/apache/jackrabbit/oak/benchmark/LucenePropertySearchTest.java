@@ -48,7 +48,7 @@ public class LucenePropertySearchTest extends SearchTest {
 
     @Override
     protected String getQuery(String word) {
-        return "SELECT * FROM [nt:base] WHERE [text] = '" + word + "'";
+        return "SELECT * FROM [nt:base] WHERE [title] = \"" + word + "\"";
     }
 
     @Override
@@ -71,7 +71,7 @@ public class LucenePropertySearchTest extends SearchTest {
                     oak.with((QueryIndexProvider) provider)
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneText", of("text"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("luceneTitle", of("title"),
                                     LuceneIndexConstants.TYPE_LUCENE));
                     return new Jcr(oak);
                 }

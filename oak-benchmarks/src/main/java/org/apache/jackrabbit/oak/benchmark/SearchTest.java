@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,8 +40,13 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,7 +103,10 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
                             sampleSet.add(words.get(words.size() / 2));
                         }
                     } else {
-                        sampleSet.add(text);
+                        // If it's a property search and
+                        // not a fullText Search then, search on title
+                        // Since text could consist of lengthy articles
+                        sampleSet.add(title);
                     }
 
                 }
@@ -202,5 +211,18 @@ public class SearchTest extends AbstractTest<SearchTest.TestContext> {
         createdFolder.delete();
         createdFolder.mkdir();
         return createdFolder;
+    }
+
+
+    protected class UUIDInitializer implements RepositoryInitializer {
+        @Override
+        public void initialize(@NotNull NodeBuilder builder) {
+
+            NodeBuilder uuid = IndexUtils.createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "uuid", true, true,
+                    ImmutableList.<String>of("jcr:uuid"), null);
+            uuid.setProperty("info",
+                    "Oak index for UUID lookup (direct lookup of nodes with the mixin 'mix:referenceable').");
+
+        }
     }
 }

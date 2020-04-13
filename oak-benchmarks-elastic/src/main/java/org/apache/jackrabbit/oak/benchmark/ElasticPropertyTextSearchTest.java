@@ -50,7 +50,7 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
 
     @Override
     protected String getQuery(String word) {
-        return "SELECT * FROM [nt:base] WHERE [text] = '" + word + "'";
+        return "SELECT * FROM [nt:base] WHERE [title] = \"" + word + "\"";
     }
 
     @Override
@@ -76,7 +76,7 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticText", of("text"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticTitle", of("title"),
                                     ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH));
                     return new Jcr(oak);
                 }
