@@ -69,7 +69,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneJournalProper
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.TextExtractionStatsMBean;
@@ -303,9 +302,6 @@ public class LuceneIndexProviderService {
     private BackgroundObserver externalIndexObserver;
 
     @Reference
-    ScorerProviderFactory scorerFactory;
-
-    @Reference
     private IndexAugmentorFactory augmentorFactory;
 
     @Reference
@@ -395,7 +391,7 @@ public class LuceneIndexProviderService {
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
-        indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
+        indexProvider = new LuceneIndexProvider(tracker, augmentorFactory);
         initializeActiveBlobCollector(whiteboard, config);
         initializeLogging(config);
         initialize();

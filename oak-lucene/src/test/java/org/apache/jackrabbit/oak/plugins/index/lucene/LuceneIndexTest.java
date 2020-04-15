@@ -61,7 +61,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -78,8 +77,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
@@ -112,15 +109,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.queries.CustomScoreProvider;
-import org.apache.lucene.queries.CustomScoreQuery;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.store.Directory;
 import org.hamcrest.core.IsCollectionContaining;
 import org.jetbrains.annotations.NotNull;
@@ -132,7 +123,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 @SuppressWarnings("ConstantConditions")
@@ -623,71 +613,6 @@ public class LuceneIndexTest {
     }
 
     @Test
-    public void customScoreQuery() throws Exception{
-        NodeBuilder nb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene",
-            of(TYPENAME_STRING));
-        TestUtil.useV2(nb);
-        nb.setProperty(FulltextIndexConstants.PROP_SCORER_PROVIDER, "testScorer");
-
-        NodeState before = builder.getNodeState();
-        builder.child("a").setProperty("jcr:createdBy", "bar bar");
-        builder.child("b").setProperty("jcr:createdBy", "foo bar");
-        NodeState after = builder.getNodeState();
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
-        tracker = new IndexTracker();
-        tracker.update(indexed);
-
-        SimpleScorerFactory factory = new SimpleScorerFactory();
-        ScorerProvider provider = new ScorerProvider() {
-
-            String scorerName = "testScorer";
-            @Override
-            public String getName() {
-                return scorerName;
-            }
-            @Override
-            public CustomScoreQuery createCustomScoreQuery(Query query) {
-                return new ModifiedCustomScoreQuery(query);
-            }
-
-            class ModifiedCustomScoreQuery extends CustomScoreQuery {
-                private Query query;
-                public ModifiedCustomScoreQuery(Query query) {
-                    super(query);
-                    this.query = query;
-                }
-
-                @Override
-                public CustomScoreProvider getCustomScoreProvider(AtomicReaderContext context) {
-                    return new CustomScoreProvider(context) {
-                        public float customScore(int doc, float subQueryScore, float valSrcScore) {
-                            AtomicReader atomicReader = context.reader();
-                            try {
-                                Document document = atomicReader.document(doc);
-                                // boosting docs created by foo
-                                String fieldValue = document.get("full:jcr:createdBy");
-                                if (fieldValue != null && fieldValue.contains("foo")) {
-                                    valSrcScore *= 2.0;
-                                }
-                            } catch (IOException e) {
-                                return subQueryScore * valSrcScore;
-                            }
-                            return subQueryScore * valSrcScore;
-                        }
-                    };
-                }
-            }
-        };
-
-        factory.providers.put(provider.getName(), provider);
-        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, factory);
-
-        FilterImpl filter = createFilter(NT_BASE);
-        filter.setFullTextConstraint(new FullTextTerm(null, "bar", false, false, null));
-        assertFilter(filter, queryIndex, indexed, asList("/b", "/a"), true);
-    }
-
-    @Test
     public void testTokens() {
         Analyzer analyzer = LuceneIndexConstants.ANALYZER;
         assertEquals(ImmutableList.of("parent", "child"),
@@ -1079,14 +1004,6 @@ public class LuceneIndexTest {
         File dir = new File("target", "indexdir"+System.nanoTime());
         dirs.add(dir);
         return dir.getAbsolutePath();
-    }
-
-    private static class SimpleScorerFactory implements ScorerProviderFactory {
-        final Map<String,ScorerProvider> providers = Maps.newHashMap();
-        @Override
-        public ScorerProvider getScorerProvider(String name) {
-            return providers.get(name);
-        }
     }
 
     private static class FailingBlob extends ArrayBasedBlob {

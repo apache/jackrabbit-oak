@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -78,9 +77,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
             new ExtractedTextCache(0, 0),
             factory, Mounts.defaultMountInfoProvider());
-        LuceneIndexProvider provider = new LuceneIndexProvider(tracker,
-            ScorerProviderFactory.DEFAULT,
-            factory);
+        LuceneIndexProvider provider = new LuceneIndexProvider(tracker, factory);
         return new Oak()
             .with(new OpenSecurityProvider())
             .with((QueryIndexProvider) provider)

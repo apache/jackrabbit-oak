@@ -56,7 +56,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRu
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
@@ -94,7 +93,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
@@ -216,8 +214,6 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     protected final IndexTracker tracker;
 
-    private final ScorerProviderFactory scorerProviderFactory;
-
     private final Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter("<strong>", "</strong>"),
         new SimpleHTMLEncoder(), null);
 
@@ -226,16 +222,11 @@ public class LucenePropertyIndex extends FulltextIndex {
     private final IndexAugmentorFactory augmentorFactory;
 
     public LucenePropertyIndex(IndexTracker tracker) {
-        this(tracker, ScorerProviderFactory.DEFAULT);
+        this(tracker,null);
     }
 
-    public LucenePropertyIndex(IndexTracker tracker, ScorerProviderFactory factory) {
-        this(tracker, factory, null);
-    }
-
-    public LucenePropertyIndex(IndexTracker tracker, ScorerProviderFactory factory, IndexAugmentorFactory augmentorFactory) {
+    public LucenePropertyIndex(IndexTracker tracker, IndexAugmentorFactory augmentorFactory) {
         this.tracker = tracker;
-        this.scorerProviderFactory = factory;
         this.augmentorFactory = augmentorFactory;
         logConfigsOnce();
     }
@@ -351,12 +342,6 @@ public class LucenePropertyIndex extends FulltextIndex {
                     LuceneRequestFacade luceneRequestFacade = getLuceneRequest(plan, augmentorFactory, searcher.getIndexReader());
                     if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
                         Query query = (Query) luceneRequestFacade.getLuceneRequest();
-
-                        CustomScoreQuery customScoreQuery = getCustomScoreQuery(plan, query);
-
-                        if (customScoreQuery != null) {
-                            query = customScoreQuery;
-                        }
 
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
@@ -1040,16 +1025,6 @@ public class LucenePropertyIndex extends FulltextIndex {
         return unwrapped;
     }
 
-    private CustomScoreQuery getCustomScoreQuery(IndexPlan plan, Query subQuery) {
-        PlanResult planResult = getPlanResult(plan);
-        IndexDefinition idxDef = planResult.indexDefinition;
-        String providerName = idxDef.getScorerProviderName();
-        if (scorerProviderFactory != null && providerName != null) {
-            return scorerProviderFactory.getScorerProvider(providerName)
-                    .createCustomScoreQuery(subQuery);
-        }
-        return null;
-    }
     private static FulltextQueryTermsProvider getIndexAgumentor(IndexPlan plan, IndexAugmentorFactory augmentorFactory) {
         PlanResult planResult = getPlanResult(plan);
 
