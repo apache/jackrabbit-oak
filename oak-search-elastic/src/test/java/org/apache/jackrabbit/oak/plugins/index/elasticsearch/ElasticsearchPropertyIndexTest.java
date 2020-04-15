@@ -215,34 +215,6 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
     }
 
     private static void assertEventually(Runnable r) {
-        assertEventually(r, BULK_FLUSH_INTERVAL_MS_DEFAULT * 3);
-    }
-
-    private static void assertEventually(Runnable r, long timeoutMillis) {
-        final long start = System.currentTimeMillis();
-        long lastAttempt = 0;
-        int attempts = 0;
-
-        while (true) {
-            try {
-                attempts++;
-                lastAttempt = System.currentTimeMillis();
-                r.run();
-                return;
-            } catch (Throwable e) {
-                long elapsedTime = lastAttempt - start;
-                if (elapsedTime >= timeoutMillis) {
-                    String msg = String.format("Condition not satisfied after %1.2f seconds and %d attempts",
-                            elapsedTime / 1000d, attempts);
-                    throw new AssertionError(msg, e);
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
-
-            }
-        }
+        ElasticsearchTestUtils.assertEventually(r, BULK_FLUSH_INTERVAL_MS_DEFAULT * 3);
     }
 }

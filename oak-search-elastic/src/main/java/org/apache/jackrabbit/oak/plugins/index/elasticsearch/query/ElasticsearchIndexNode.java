@@ -60,6 +60,6 @@ class ElasticsearchIndexNode implements IndexNode {
 
     @Override
     public @Nullable IndexStatistics getIndexStatistics() {
-        return new ElasticsearchIndexStatistics(elasticsearchConnection);
+        return new ElasticsearchIndexStatistics(elasticsearchConnection, indexDefinition);
     }
 }
