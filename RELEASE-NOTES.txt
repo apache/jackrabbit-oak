@@ -19,6 +19,7 @@ Changes in Oak 1.22.3
 
 Technical task
 
+
     [OAK-8920] - update Tomcat JDBC dependency to 8.5.51
     [OAK-8937] - RDB*Store: update mysql jdbc driver reference to 8.0.19
     [OAK-8939] - RDB*Store: update postgresql jdbc driver reference to 42.2.10
