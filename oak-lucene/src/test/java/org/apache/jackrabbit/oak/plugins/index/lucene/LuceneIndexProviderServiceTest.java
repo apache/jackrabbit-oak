@@ -157,14 +157,14 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void typeProperty() throws Exception{
+    public void typeProperty() {
         MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
         ServiceReference sr = context.bundleContext().getServiceReference(IndexEditorProvider.class.getName());
         assertEquals(TYPE_LUCENE, sr.getProperty("type"));
     }
 
     @Test
-    public void disableOpenIndexAsync() throws Exception{
+    public void disableOpenIndexAsync() {
         Map<String,Object> config = getDefaultConfig();
         config.put("enableOpenIndexAsync", false);
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -175,7 +175,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void enableCopyOnWrite() throws Exception{
+    public void enableCopyOnWrite() {
         Map<String,Object> config = getDefaultConfig();
         config.put("enableCopyOnWriteSupport", true);
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -236,7 +236,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void enablePrefetchIndexFiles() throws Exception{
+    public void enablePrefetchIndexFiles() {
         Map<String,Object> config = getDefaultConfig();
         config.put("prefetchIndexFiles", true);
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -248,7 +248,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void debugLogging() throws Exception{
+    public void debugLogging() {
         Map<String,Object> config = getDefaultConfig();
         config.put("debug", true);
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -258,7 +258,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void enableExtractedTextCaching() throws Exception{
+    public void enableExtractedTextCaching() {
         Map<String,Object> config = getDefaultConfig();
         config.put("extractedTextCacheSizeInMB", 11);
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -275,7 +275,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void preExtractedTextProvider() throws Exception{
+    public void preExtractedTextProvider() {
         MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
         LuceneIndexEditorProvider editorProvider =
                 (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
@@ -290,7 +290,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void preExtractedProviderBindBeforeActivate() throws Exception{
+    public void preExtractedProviderBindBeforeActivate() {
         service.bindExtractedTextProvider(mock(PreExtractedTextProvider.class));
         MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
         LuceneIndexEditorProvider editorProvider =
@@ -299,7 +299,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void alwaysUsePreExtractedCache() throws Exception{
+    public void alwaysUsePreExtractedCache() {
         Map<String,Object> config = getDefaultConfig();
         config.put("alwaysUsePreExtractedCache", "true");
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -309,7 +309,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void booleanQuerySize() throws Exception{
+    public void booleanQuerySize() {
         Map<String,Object> config = getDefaultConfig();
         config.put("booleanClauseLimit", 4000);
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -318,7 +318,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     @Test
-    public void indexDefnStorafe() throws Exception{
+    public void indexDefnStorafe() {
         Map<String,Object> config = getDefaultConfig();
         config.put("disableStoredIndexDefinition", true);
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -355,20 +355,14 @@ public class LuceneIndexProviderServiceTest {
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
 
-        Callable cb1 = new Callable() {
-            @Override
-            public Object call() throws Exception {
-                latch1.await();
-                return null;
-            }
+        Callable<Object> cb1 = () -> {
+            latch1.await();
+            return null;
         };
 
-        Callable cb2 = new Callable() {
-            @Override
-            public Object call() throws Exception {
-                latch2.countDown();
-                return null;
-            }
+        Callable<Object> cb2 = () -> {
+            latch2.countDown();
+            return null;
         };
 
         executor.submit(cb1);
@@ -383,7 +377,7 @@ public class LuceneIndexProviderServiceTest {
 
 
     @Test
-    public void singleBlobPerIndexFileConfig() throws Exception {
+    public void singleBlobPerIndexFileConfig() {
         Map<String, Object> config = getDefaultConfig();
         config.put("enableSingleBlobIndexFiles", "true");
         MockOsgi.activate(service, context.bundleContext(), config);
@@ -432,7 +426,7 @@ public class LuceneIndexProviderServiceTest {
     }
 
     private Map<String,Object> getDefaultConfig(){
-        Map<String,Object> config = new HashMap<String, Object>();
+        Map<String,Object> config = new HashMap<>();
         config.put("localIndexDir", folder.getRoot().getAbsolutePath());
         return config;
     }

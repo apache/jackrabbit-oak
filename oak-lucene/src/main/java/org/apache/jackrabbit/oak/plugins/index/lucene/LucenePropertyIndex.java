@@ -627,7 +627,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         final boolean requireNodeLevelExcerpt = nodeExcerptColumns.size() > 0;
 
         int docID = doc.doc;
-        List<String> names = new LinkedList<String>();
+        List<String> names = new LinkedList<>();
 
         for (IndexableField field : searcher.getIndexReader().document(docID).getFields()) {
             String name = field.name();
@@ -643,9 +643,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
         if (names.size() > 0) {
             int[] maxPassages = new int[names.size()];
-            for (int i = 0; i < maxPassages.length; i++) {
-                maxPassages[i] = 1;
-            }
+            Arrays.fill(maxPassages, 1);
             try {
                 Map<String, String[]> stringMap = postingsHighlighter.highlightFields(names.toArray(new String[names.size()]),
                         query, searcher, new int[]{docID}, maxPassages);
@@ -693,7 +691,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                             }
                         }
                     } catch (InvalidTokenOffsetsException e) {
-                        LOG.error("higlighting failed", e);
+                        LOG.error("highlighting failed", e);
                     }
                 }
             }
@@ -702,9 +700,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (requireNodeLevelExcerpt) {
             String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
 
-            nodeExcerptColumns.forEach( nodeExcerptColumnName -> {
-                columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt);
-            });
+            nodeExcerptColumns.forEach( nodeExcerptColumnName -> columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt));
         }
 
         columnNameToExcerpts.keySet().retainAll(excerptFields);
@@ -806,7 +802,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (original == null || original.isEmpty()) {
             return original;
         }
-        ArrayList<OrderEntry> result = new ArrayList<OrderEntry>();
+        ArrayList<OrderEntry> result = new ArrayList<>();
         for(OrderEntry oe : original) {
             if (!isNativeSort(oe)) {
                 result.add(oe);
@@ -852,7 +848,7 @@ public class LucenePropertyIndex extends FulltextIndex {
      */
     private static LuceneRequestFacade getLuceneRequest(IndexPlan plan, IndexAugmentorFactory augmentorFactory, IndexReader reader) {
         FulltextQueryTermsProvider augmentor = getIndexAgumentor(plan, augmentorFactory);
-        List<Query> qs = new ArrayList<Query>();
+        List<Query> qs = new ArrayList<>();
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         PlanResult planResult = getPlanResult(plan);
@@ -898,12 +894,12 @@ public class LucenePropertyIndex extends FulltextIndex {
             } else if (query.startsWith("spellcheck?")) {
                 String spellcheckQueryString = query.replace("spellcheck?", "");
                 if (reader != null) {
-                    return new LuceneRequestFacade<SpellcheckHelper.SpellcheckQuery>(SpellcheckHelper.getSpellcheckQuery(spellcheckQueryString, reader));
+                    return new LuceneRequestFacade<>(SpellcheckHelper.getSpellcheckQuery(spellcheckQueryString, reader));
                 }
             } else if (query.startsWith("suggest?")) {
                 String suggestQueryString = query.replace("suggest?", "");
                 if (reader != null) {
-                    return new LuceneRequestFacade<SuggestHelper.SuggestQuery>(SuggestHelper.getSuggestQuery(suggestQueryString));
+                    return new LuceneRequestFacade<>(SuggestHelper.getSuggestQuery(suggestQueryString));
                 }
             } else {
                 try {
@@ -979,7 +975,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
                 }
             }
-            return new LuceneRequestFacade<Query>(qs.get(0));
+            return new LuceneRequestFacade<>(qs.get(0));
         }
         BooleanQuery bq = new BooleanQuery();
         for (Query q : qs) {
@@ -992,7 +988,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 bq.add(q, MUST);
             }
         }
-        return new LuceneRequestFacade<Query>(bq);
+        return new LuceneRequestFacade<>(bq);
     }
 
     /**
@@ -1375,7 +1371,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         final PlanResult pr = getPlanResult(plan);
         // a reference to the query, so it can be set in the visitor
         // (a "non-local return")
-        final AtomicReference<Query> result = new AtomicReference<Query>();
+        final AtomicReference<Query> result = new AtomicReference<>();
         ft.accept(new FullTextVisitor() {
 
             @Override
@@ -1540,7 +1536,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 NodeStateUtils.getNode(rootState, pr.indexPath), plan.getPathPrefix(), false);
         PropertyIndexResult pir = pr.getPropertyIndexResult();
 
-        FluentIterable<String> paths = null;
+        FluentIterable<String> paths;
         if (pir != null) {
             Iterable<String> queryResult = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
             paths = FluentIterable.from(queryResult)
@@ -1632,7 +1628,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             String facetFieldName = FulltextIndex.parseFacetField(columnName);
 
             if (facets != null) {
-                ImmutableList.Builder res = new ImmutableList.Builder<Facet>();
+                ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
                 FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
 
                 if (topChildren != null) {

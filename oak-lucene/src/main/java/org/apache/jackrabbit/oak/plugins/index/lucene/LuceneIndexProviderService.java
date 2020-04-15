@@ -32,8 +32,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.management.NotCompliantMBeanException;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -362,8 +360,7 @@ public class LuceneIndexProviderService {
     private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
 
     @Activate
-    private void activate(BundleContext bundleContext, Map<String, ?> config)
-            throws NotCompliantMBeanException, IOException {
+    private void activate(BundleContext bundleContext, Map<String, ?> config) throws IOException {
         asyncIndexesSizeStatsUpdate = new AsyncIndexesSizeStatsUpdateImpl(
                 PropertiesUtil.toLong(config.get(LUCENE_INDEX_STATS_UPDATE_INTERVAL),
                         LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT) * 1000); // convert seconds to millis
@@ -532,7 +529,7 @@ public class LuceneIndexProviderService {
             editorProvider.setIndexingQueue(checkNotNull(documentQueue));
         }
 
-        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", TYPE_LUCENE);
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
         oakRegs.add(registerMBean(whiteboard,
@@ -590,14 +587,9 @@ public class LuceneIndexProviderService {
 
     private ExecutorService createExecutor() {
         ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
+                new LinkedBlockingQueue<>(), new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger();
-            private final Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
-                @Override
-                public void uncaughtException(Thread t, Throwable e) {
-                    log.warn("Error occurred in asynchronous processing ", e);
-                }
-            };
+            private final Thread.UncaughtExceptionHandler handler = (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
             @Override
             public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
@@ -824,7 +816,7 @@ public class LuceneIndexProviderService {
     }
 
     private void registerLuceneFileSystemStats(LuceneIndexFileSystemStatistics luceneIndexFSStats, long delayInSeconds) {
-        Map<String, Object> config = ImmutableMap.<String, Object>of(
+        Map<String, Object> config = ImmutableMap.of(
                 "scheduler.name", LuceneIndexFileSystemStatistics.class.getName()
         );
         oakRegs.add(scheduleWithFixedDelay(whiteboard, luceneIndexFSStats, config, delayInSeconds, false, true));

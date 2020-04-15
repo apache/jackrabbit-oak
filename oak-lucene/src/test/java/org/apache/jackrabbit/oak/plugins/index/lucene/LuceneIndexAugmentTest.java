@@ -68,7 +68,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
     private LuceneIndexNode indexNode;
 
     @Override
-    protected void createTestIndexNode() throws Exception {
+    protected void createTestIndexNode() {
         setTraversalEnabled(false);
     }
 
@@ -190,7 +190,7 @@ public class LuceneIndexAugmentTest extends AbstractQueryTest {
                 assertEquals(TestUtil.NT_TEST, document.getName(JcrConstants.JCR_PRIMARYTYPE));
                 assertEquals(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE,
                     indexDefinition.getName(JcrConstants.JCR_PRIMARYTYPE));
-                return Lists.<Field>newArrayList(new StringField("barbar", "1", Field.Store.NO));
+                return Lists.newArrayList(new StringField("barbar", "1", Field.Store.NO));
             }
 
             @NotNull

@@ -73,7 +73,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     @Override @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex> of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
+        return ImmutableList.of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
     }
 
     protected LuceneIndex newLuceneIndex() {
