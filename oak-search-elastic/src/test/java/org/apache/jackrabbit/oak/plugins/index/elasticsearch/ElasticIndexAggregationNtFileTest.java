@@ -96,7 +96,8 @@ public class ElasticIndexAggregationNtFileTest extends AbstractQueryTest {
         ElasticsearchConnection coordinate = new ElasticsearchConnection(
                 ElasticsearchConnection.DEFAULT_SCHEME,
                 elastic.getContainerIpAddress(),
-                elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT));
+                elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT),
+                "" + System.nanoTime());
 
         ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
