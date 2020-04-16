@@ -37,14 +37,14 @@ import java.util.function.Supplier;
  */
 public class ElasticsearchConnection implements Closeable {
 
-    protected static final String SCHEME_PROP = "elasticsearch.scheme";
-    protected static final String DEFAULT_SCHEME = "http";
-    protected static final String HOST_PROP = "elasticsearch.host";
-    protected static final String DEFAULT_HOST = "127.0.0.1";
-    protected static final String PORT_PROP = "elasticsearch.port";
-    protected static final int DEFAULT_PORT = 9200;
+    static final String SCHEME_PROP = "elasticsearch.scheme";
+    static final String DEFAULT_SCHEME = "http";
+    static final String HOST_PROP = "elasticsearch.host";
+    static final String DEFAULT_HOST = "127.0.0.1";
+    static final String PORT_PROP = "elasticsearch.port";
+    static final int DEFAULT_PORT = 9200;
 
-    protected static final Supplier<ElasticsearchConnection> defaultConnection = () ->
+    static final Supplier<ElasticsearchConnection> defaultConnection = () ->
             new ElasticsearchConnection(DEFAULT_SCHEME, DEFAULT_HOST, DEFAULT_PORT, "elastic");
 
     private String scheme;
@@ -57,9 +57,10 @@ public class ElasticsearchConnection implements Closeable {
     private AtomicBoolean isClosed = new AtomicBoolean(false);
 
     public ElasticsearchConnection(String scheme, String host, Integer port, String indexPrefix) {
-        if (scheme == null || host == null || port == null || indexPrefix == null) {
-            throw new IllegalArgumentException();
-        }
+        Objects.requireNonNull(scheme, "Scheme is null");
+        Objects.requireNonNull(host, "Host is null");
+        Objects.requireNonNull(port, "Port is null");
+        Objects.requireNonNull(indexPrefix, "Index prefix is null");
         this.scheme = scheme;
         this.host = host;
         this.port = port;

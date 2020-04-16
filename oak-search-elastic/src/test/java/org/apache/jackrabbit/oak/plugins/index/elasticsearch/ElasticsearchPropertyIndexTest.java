@@ -78,7 +78,7 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
                 ElasticsearchConnection.DEFAULT_SCHEME,
                 elastic.getContainerIpAddress(),
                 elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT),
-                "" + System.nanoTime()
+                "" + System.currentTimeMillis()
         );
         ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));

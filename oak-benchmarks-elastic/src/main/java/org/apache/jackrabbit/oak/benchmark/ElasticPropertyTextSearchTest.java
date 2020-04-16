@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -43,7 +44,7 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
 
     private ElasticsearchConnection coordinate;
 
-    public ElasticPropertyTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
+    ElasticPropertyTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
         this.coordinate = coordinate;
     }
@@ -76,7 +77,7 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticTitle" + System.nanoTime(), of("title"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser(TestHelper.getUniqueIndexName("elasticTitle"), of("title"),
                                     ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH));
                     return new Jcr(oak);
                 }

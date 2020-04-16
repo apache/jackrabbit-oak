@@ -23,6 +23,7 @@ package org.apache.jackrabbit.oak.benchmark;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
+import org.apache.jackrabbit.oak.benchmark.util.TestHelper;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -40,15 +41,16 @@ import java.io.File;
 public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
 
     private ElasticsearchConnection coordinate;
-    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal" + System.nanoTime();
+    private String ELASTIC_GLOBAL_INDEX;
 
-    public ElasticFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
+    ElasticFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
         this.coordinate = coordinate;
     }
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
+        ELASTIC_GLOBAL_INDEX = TestHelper.getUniqueIndexName("elasticGlobal");
         if (fixture instanceof OakRepositoryFixture) {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override

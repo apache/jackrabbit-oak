@@ -86,7 +86,7 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
 
     private String setupIndexName() {
         // TODO: implement advanced remote index name strategy that takes into account multiple tenants and re-index process
-        return getESSafeIndexName(indexPrefix + getIndexPath() + "-" + getReindexCount());
+        return getESSafeIndexName(indexPrefix + "." + getIndexPath() + "-" + getReindexCount());
     }
 
     /**
