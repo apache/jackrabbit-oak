@@ -35,8 +35,8 @@
         <apacheds.test.version>2.0.0-M24</apacheds.test.version>
         <!-- enable execution of jacoco and set minimal line coverage -->
         <skip.coverage>false</skip.coverage>
-        <minimum.line.coverage>0.85</minimum.line.coverage>
-        <minimum.branch.coverage>0.72</minimum.branch.coverage>
+        <minimum.line.coverage>0.81</minimum.line.coverage>
+        <minimum.branch.coverage>0.67</minimum.branch.coverage>
     </properties>
 
     <build>
@@ -44,18 +44,22 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
                 <configuration>
                     <instructions>
                         <Import-Package>
                             !org.dom4j.*,
                             !org.xmlpull.v1,
                             !sun.net.util,
+                            !net.sf.cglib.proxy,
+                            !antlr,
+                            !antlr.collections.impl,
+                            !org.apache.mina.*,
                             *
                         </Import-Package>
                         <Embed-Dependency>
-                            api-all,commons-pool,commons-lang,mina-core,antlr
+                            api-all,commons-pool2,mina-core,org.apache.servicemix.bundles.antlr
                         </Embed-Dependency>
-                        <Embed-Transitive>true</Embed-Transitive>
                     </instructions>
                 </configuration>
             </plugin>
@@ -71,67 +75,37 @@
         </plugins>
     </build>
 
-    <profiles>
-        <profile>
-            <!-- Disable LDAP Server Integrations Tests for jdk 1.6 -->
-            <id>disable-ldap-integration</id>
-            <activation>
-                <!-- for JDK 1.6 (OAK-2903) -->
-                <jdk>1.6</jdk>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <excludes>
-                                <exclude>**/LdapProviderTest.class</exclude>
-                                <exclude>**/DefaultLdapLoginModuleTest.class</exclude>
-                                <exclude>**/GuestTokenDefaultLdapLoginModuleTest.class</exclude>
-                                <exclude>**/LdapDefaultLoginModuleTest.class</exclude>
-                                <exclude>**/LdapLoginStandaloneTest.class</exclude>
-                                <exclude>**/TokenDefaultLdapLoginModuleTest.class</exclude>
-                                <exclude>**/LargeLdapProviderTest.class</exclude>
-                            </excludes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
-
     <dependencies>
         <!-- embedded apache directory client and dependencies-->
         <dependency>
             <groupId>org.apache.directory.api</groupId>
             <artifactId>api-all</artifactId>
-            <version>1.0.0</version>
-            <scope>provided</scope>
+            <version>2.0.1</version>
         </dependency>
         <dependency>
-            <groupId>commons-pool</groupId>
-            <artifactId>commons-pool</artifactId>
-            <version>1.6</version>
-            <scope>provided</scope>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+            <version>2.8.0</version>
         </dependency>
         <dependency>
-            <groupId>commons-lang</groupId>
-            <artifactId>commons-lang</artifactId>
-            <version>2.6</version>
-            <scope>provided</scope>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.4</version>
         </dependency>
         <dependency>
             <groupId>org.apache.mina</groupId>
             <artifactId>mina-core</artifactId>
-            <version>2.0.16</version>
-            <scope>provided</scope>
+            <version>2.1.3</version>
         </dependency>
         <dependency>
-            <groupId>antlr</groupId>
-            <artifactId>antlr</artifactId>
-            <version>2.7.7</version>
+            <groupId>org.apache.servicemix.bundles</groupId>
+            <artifactId>org.apache.servicemix.bundles.antlr</artifactId>
+            <version>2.7.7_5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.9</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -241,170 +215,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- test dependencies for apache DS server. -->
-        <!-- note: we don't include apacheds-all since we then have a duplicate schema ldiff in the classpath -->
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-core</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.api</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-core-annotations</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.api</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-core-api</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.api</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-core-avl</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-core-constants</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-core-jndi</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-interceptor-kerberos</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-kerberos-codec</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-ldif-partition</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.api</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-protocol-dhcp</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-protocol-dns</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-protocol-kerberos</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-protocol-ldap</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.api</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-protocol-ntp</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-protocol-shared</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-server-annotations</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-server-config</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.api</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-server-jndi</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.api</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.directory.server</groupId>
-            <artifactId>apacheds-xdbm-partition</artifactId>
-            <version>${apacheds.test.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.directory.api</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
@@ -413,6 +223,14 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- test dependencies for apache DS server. -->
+        <dependency>
+            <groupId>org.apache.directory.server</groupId>
+            <artifactId>apacheds-all</artifactId>
+            <version>${apacheds.test.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
