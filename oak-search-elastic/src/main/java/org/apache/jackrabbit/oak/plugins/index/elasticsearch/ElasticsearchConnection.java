@@ -45,23 +45,25 @@ public class ElasticsearchConnection implements Closeable {
     protected static final int DEFAULT_PORT = 9200;
 
     protected static final Supplier<ElasticsearchConnection> defaultConnection = () ->
-            new ElasticsearchConnection(DEFAULT_SCHEME, DEFAULT_HOST, DEFAULT_PORT);
+            new ElasticsearchConnection(DEFAULT_SCHEME, DEFAULT_HOST, DEFAULT_PORT, "elastic");
 
     private String scheme;
     private String host;
     private int port;
+    private final String indexPrefix;
 
     private volatile RestHighLevelClient client;
 
     private AtomicBoolean isClosed = new AtomicBoolean(false);
 
-    public ElasticsearchConnection(String scheme, String host, Integer port) {
-        if (scheme == null || host == null || port == null) {
+    public ElasticsearchConnection(String scheme, String host, Integer port, String indexPrefix) {
+        if (scheme == null || host == null || port == null || indexPrefix == null) {
             throw new IllegalArgumentException();
         }
         this.scheme = scheme;
         this.host = host;
         this.port = port;
+        this.indexPrefix = indexPrefix;
     }
 
     public RestHighLevelClient getClient() {
@@ -90,6 +92,10 @@ public class ElasticsearchConnection implements Closeable {
 
     public int getPort() {
         return port;
+    }
+
+    public String getIndexPrefix() {
+        return indexPrefix;
     }
 
     @Override

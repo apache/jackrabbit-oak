@@ -37,7 +37,7 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
 
         try {
             coordinate = new ElasticsearchConnection(benchmarkOptions.getElasticScheme().value(options),
-                    benchmarkOptions.getElasticHost().value(options), benchmarkOptions.getElasticPort().value(options));
+                    benchmarkOptions.getElasticHost().value(options), benchmarkOptions.getElasticPort().value(options), "Benchmark");
 
             BenchmarkRunner.addToBenchMarkList(
                     Arrays.asList(

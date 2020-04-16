@@ -40,7 +40,7 @@ import java.io.File;
 public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
 
     private ElasticsearchConnection coordinate;
-    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal";
+    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal" + System.nanoTime();
 
     public ElasticFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);

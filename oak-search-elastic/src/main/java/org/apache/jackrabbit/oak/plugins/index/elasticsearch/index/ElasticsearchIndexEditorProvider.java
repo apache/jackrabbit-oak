@@ -55,7 +55,7 @@ public class ElasticsearchIndexEditorProvider implements IndexEditorProvider {
 
             String indexPath = indexingContext.getIndexPath();
             ElasticsearchIndexDefinition indexDefinition =
-                    new ElasticsearchIndexDefinition(root, definition.getNodeState(), indexPath);
+                    new ElasticsearchIndexDefinition(root, definition.getNodeState(), indexPath, elasticsearchConnection.getIndexPrefix());
 
             ElasticsearchIndexWriterFactory writerFactory = new ElasticsearchIndexWriterFactory(elasticsearchConnection);
 
@@ -65,7 +65,7 @@ public class ElasticsearchIndexEditorProvider implements IndexEditorProvider {
                     writerFactory,
                     extractedTextCache,
                     indexingContext,
-                    true);
+                    true, elasticsearchConnection.getIndexPrefix());
 
             return new ElasticsearchIndexEditor(context);
         }

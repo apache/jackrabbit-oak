@@ -45,7 +45,7 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
 
     private String currentFixtureName;
     private ElasticsearchConnection coordinate;
-    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal";
+    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal" + System.nanoTime();
 
     public ElasticPropertyFTSeparatedIndexedContentAvailability(final File dump,
                                                                 final boolean flat,
@@ -79,7 +79,7 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
                             .with(indexProvider)
                             .with((new ElasticGlobalInitializer(ELASTIC_GLOBAL_INDEX, storageEnabled)).async("fulltext-async"))
                                     // the WikipediaImporter set a property `title`
-                            .with(new FullTextPropertyInitialiser("elasticTitle", of("title"),
+                            .with(new FullTextPropertyInitialiser("elasticTitle" + System.nanoTime(), of("title"),
                                     ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH).async())
                             .withAsyncIndexing("async", 5)
                             .withAsyncIndexing("fulltext-async", 5);

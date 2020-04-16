@@ -60,7 +60,7 @@ public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticText", of("text"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticText" + System.nanoTime(), of("text"),
                                     ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
                     return new Jcr(oak);
                 }

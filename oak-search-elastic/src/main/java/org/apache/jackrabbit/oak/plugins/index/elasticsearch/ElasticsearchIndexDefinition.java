@@ -62,11 +62,12 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
     public final long bulkFlushIntervalMs;
     public final int bulkRetries;
     public final long bulkRetriesBackoff;
+    private final String indexPrefix;
 
-    public ElasticsearchIndexDefinition(NodeState root, NodeState defn, String indexPath) {
+    public ElasticsearchIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
+        this.indexPrefix = indexPrefix != null ? indexPrefix : "";
         this.remoteIndexName = setupIndexName();
-
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
@@ -85,7 +86,7 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
 
     private String setupIndexName() {
         // TODO: implement advanced remote index name strategy that takes into account multiple tenants and re-index process
-        return getESSafeIndexName(getIndexPath() + "-" + getReindexCount());
+        return getESSafeIndexName(indexPrefix + getIndexPath() + "-" + getReindexCount());
     }
 
     /**
@@ -124,6 +125,13 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
      * The built object represents the index definition only without the node structure.
      */
     public static class Builder extends IndexDefinition.Builder {
+
+        private final String indexPrefix;
+
+        public Builder(String indexPrefix) {
+            this.indexPrefix = indexPrefix;
+        }
+
         @Override
         public ElasticsearchIndexDefinition build() {
             return (ElasticsearchIndexDefinition) super.build();
@@ -137,7 +145,7 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
 
         @Override
         protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
-            return new ElasticsearchIndexDefinition(root, indexDefnStateToUse, indexPath);
+            return new ElasticsearchIndexDefinition(root, indexDefnStateToUse, indexPath, indexPrefix);
         }
     }
 }

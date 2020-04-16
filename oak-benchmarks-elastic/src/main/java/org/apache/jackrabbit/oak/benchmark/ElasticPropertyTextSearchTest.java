@@ -76,7 +76,7 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticTitle", of("title"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser("elasticTitle" + System.nanoTime(), of("title"),
                                     ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH));
                     return new Jcr(oak);
                 }

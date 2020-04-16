@@ -35,7 +35,10 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
+import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexProviderService.PROP_INDEX_PREFIX;
 import static org.junit.Assert.assertNotNull;
 
 public class ElasticsearchIndexProviderServiceTest {
@@ -63,9 +66,10 @@ public class ElasticsearchIndexProviderServiceTest {
 
     @Test
     public void defaultSetup() throws Exception {
-        MockOsgi.activate(service, context.bundleContext(),
-                Collections.singletonMap("localTextExtractionDir", folder.newFolder("localTextExtractionDir").getAbsolutePath())
-        );
+        Map<String, Object> props = new HashMap<>();
+        props.put("localTextExtractionDir", folder.newFolder("localTextExtractionDir").getAbsolutePath());
+        props.put(PROP_INDEX_PREFIX, "elastic");
+        MockOsgi.activate(service, context.bundleContext(), props);
 
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(IndexEditorProvider.class));

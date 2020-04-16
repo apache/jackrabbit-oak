@@ -66,7 +66,7 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
     private static final Logger LOG = LoggerFactory.getLogger(ElasticPropertyFTIndexedContentAvailability.class);
     private String currentFixtureName;
     private ElasticsearchConnection coordinate;
-    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal";
+    private final String ELASTIC_GLOBAL_INDEX = "elasticGlobal" + System.nanoTime();
 
     @Override
     public String getCurrentFixtureName() {
@@ -101,7 +101,7 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
                             .with(indexProvider)
                             .with((new ElasticGlobalInitializer(ELASTIC_GLOBAL_INDEX, storageEnabled)).async())
                                     // the WikipediaImporter set a property `title`
-                            .with(new FullTextPropertyInitialiser("elasticTitle", of("title"),
+                            .with(new FullTextPropertyInitialiser("elasticTitle" + System.nanoTime(), of("title"),
                                     ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH).async())
                             .withAsyncIndexing("async", 5);
                     return new Jcr(oak);

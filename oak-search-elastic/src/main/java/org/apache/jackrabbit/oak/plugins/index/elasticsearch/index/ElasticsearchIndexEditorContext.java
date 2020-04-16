@@ -31,19 +31,22 @@ import java.io.IOException;
 
 class ElasticsearchIndexEditorContext extends FulltextIndexEditorContext<ElasticsearchDocument> {
 
+    private String indexPrefix;
+
     ElasticsearchIndexEditorContext(NodeState root,
                                     NodeBuilder definition, @Nullable IndexDefinition indexDefinition,
                                     IndexUpdateCallback updateCallback,
                                     ElasticsearchIndexWriterFactory indexWriterFactory,
                                     ExtractedTextCache extractedTextCache,
                                     IndexingContext indexingContext,
-                                    boolean asyncIndexing) {
+                                    boolean asyncIndexing, String indexPrefix) {
         super(root, definition, indexDefinition, updateCallback, indexWriterFactory, extractedTextCache, indexingContext, asyncIndexing);
+        this.indexPrefix = indexPrefix;
     }
 
     @Override
     public IndexDefinition.Builder newDefinitionBuilder() {
-        return new ElasticsearchIndexDefinition.Builder();
+        return new ElasticsearchIndexDefinition.Builder(indexPrefix);
     }
 
     @Override
