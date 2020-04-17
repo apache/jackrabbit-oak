@@ -20,6 +20,8 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -40,7 +42,6 @@ import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +54,10 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPro
 
 public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentMaker.class);
+
+    private static final String DYNAMIC_BOOST_TAG_NAME = "name";
+    private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
+    private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
 
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
@@ -331,4 +336,69 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             }
         }
     }
+    
+    @Override
+    protected boolean indexDynamicBoost(Document doc, PropertyDefinition pd, NodeState nodeState, String propertyName) {
+        NodeState propertNode = nodeState;
+        String parentName = PathUtils.getParentPath(propertyName);
+        for (String c : PathUtils.elements(parentName)) {
+            propertNode = propertNode.getChildNode(c); 
+        }
+        boolean added = false;
+        for (String nodeName : propertNode.getChildNodeNames()) {
+            NodeState dynaTag = propertNode.getChildNode(nodeName);
+            String dynaTagName = dynaTag.getProperty(DYNAMIC_BOOST_TAG_NAME).getValue(Type.STRING);
+            Double dynaTagConfidence = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE).getValue(Type.DOUBLE);
+
+            List<String> tokens = new ArrayList<>(splitForIndexing(dynaTagName));
+            if (tokens.size() > 1) { 
+                // Actual name not in tokens
+                tokens.add(dynaTagName);
+            }
+            boolean addedForThisChild = false;
+            for (String token : tokens) {
+                if (token.length() > 0) {
+                    AugmentedField f = new AugmentedField(parentName + "/" + token.toLowerCase(), dynaTagConfidence);
+                    if (doc.getField(f.name()) == null) {
+                        addedForThisChild = true;
+                        added = true;
+                        doc.add(f);
+                    }
+                }
+            }
+            if (addedForThisChild) {
+                log.trace(
+                        "Added augmented fields: {}[{}], {}",
+                        parentName + "/", String.join(", ", tokens), dynaTagConfidence
+                );
+            }
+        }
+        return added;
+    }
+
+    private static class AugmentedField extends Field {
+        private static final FieldType ft = new FieldType();
+        static {
+            ft.setIndexed(true);
+            ft.setStored(false);
+            ft.setTokenized(false);
+            ft.setOmitNorms(false);
+            ft.setIndexOptions(org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_ONLY);
+            ft.freeze();
+        }
+    
+        AugmentedField(String name, double weight) {
+            super(name, "1", ft);
+            setBoost((float) weight);
+        }
+    }
+
+    private static List<String> splitForIndexing(String tagName) {
+        return Arrays.asList(removeBackSlashes(tagName).split(DYNAMIC_BOOST_SPLIT_REGEX));
+    }
+    
+    private static String removeBackSlashes(String text) {
+        return text.replaceAll("\\\\", "");
+    }
+    
 }
