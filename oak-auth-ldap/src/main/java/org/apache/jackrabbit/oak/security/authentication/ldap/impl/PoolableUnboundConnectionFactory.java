@@ -18,9 +18,7 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import java.io.IOException;
 
-import org.apache.commons.pool2.BasePooledObjectFactory;
-import org.apache.commons.pool2.PooledObject;
-import org.apache.commons.pool2.impl.DefaultPooledObject;
+import org.apache.commons.pool.PoolableObjectFactory;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
@@ -34,7 +32,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A factory for creating unbound LdapConnection objects managed by LdapConnectionPool.
  */
-public class PoolableUnboundConnectionFactory extends BasePooledObjectFactory<LdapConnection> {
+public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<LdapConnection> {
 
     /**
      * default logger
@@ -92,10 +90,11 @@ public class PoolableUnboundConnectionFactory extends BasePooledObjectFactory<Ld
         connection.close();
     }
 
+
     /**
      * {@inheritDoc}
      */
-    public LdapConnection create() throws LdapException {
+    public LdapConnection makeObject() throws LdapException {
         LdapNetworkConnection connection = config.isUseTls()
                 ? new TlsGuardingConnection(config)
                 : new LdapNetworkConnection(config);
@@ -104,9 +103,6 @@ public class PoolableUnboundConnectionFactory extends BasePooledObjectFactory<Ld
         return connection;
     }
 
-    public PooledObject<LdapConnection> wrap(LdapConnection foo) {
-        return new DefaultPooledObject<>(foo);
-    }
 
     /**
      * {@inheritDoc}

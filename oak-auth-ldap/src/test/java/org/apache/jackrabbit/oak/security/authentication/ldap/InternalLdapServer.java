@@ -22,16 +22,12 @@ import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.ldap.LdapContext;
 
-public class InternalLdapServer extends AbstractServer {
+class InternalLdapServer extends AbstractServer {
 
     public static final String GROUP_MEMBER_ATTR = "member";
     public static final String GROUP_CLASS_ATTR = "groupOfNames";
 
     public static final String ADMIN_PW = "secret";
-
-    public InternalLdapServer() {
-        super();
-    }
 
     public void setUp() throws Exception {
         super.setUp();

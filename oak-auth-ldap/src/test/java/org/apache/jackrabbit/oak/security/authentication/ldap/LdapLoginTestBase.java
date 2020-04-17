@@ -58,8 +58,7 @@ import static org.junit.Assert.fail;
 
 public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
 
-    //loaded by a separate ClassLoader unavailable to the client (needed because the server is using old libraries)
-    protected static LdapServerClassLoader.Proxy proxy;
+    protected static final InternalLdapServer LDAP_SERVER = new InternalLdapServer();
 
     protected static final String USER_ID = "foobar";
     protected static final String USER_PWD = "foobar";
@@ -75,40 +74,46 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
     private static String[] CONCURRENT_TEST_USERS = new String[NUM_CONCURRENT_LOGINS];
     private static String[] CONCURRENT_GROUP_TEST_USERS = new String[NUM_CONCURRENT_LOGINS];
 
+    //initialize LDAP server only once (fast, but might turn out to be not sufficiently flexible in the future)
+    protected static final boolean USE_COMMON_LDAP_FIXTURE = true;
+
     protected UserManager userManager;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        LdapServerClassLoader serverClassLoader = LdapServerClassLoader.createServerClassLoader();
-        proxy = serverClassLoader.createAndSetupServer();
-        String userDN = proxy.addUser(USER_FIRSTNAME, USER_LASTNAME, USER_ID, USER_PWD);
-        GROUP_DN = proxy.addGroup(GROUP_NAME, userDN);
-        for (int i = 0; i < NUM_CONCURRENT_LOGINS * 2; i++) {
-            final String userId = "user-" + i;
-            userDN = proxy.addUser(userId, "test", userId, USER_PWD);
-            if (i%2 == 0) {
-                CONCURRENT_GROUP_TEST_USERS[i/2] = userId;
-                proxy.addMember(GROUP_DN, userDN);
-            } else {
-                CONCURRENT_TEST_USERS[i/2] = userId;
-            }
+        if (USE_COMMON_LDAP_FIXTURE) {
+            LDAP_SERVER.setUp();
+            createLdapFixture();
         }
-   }
+    }
 
     @AfterClass
     public static void afterClass() throws Exception {
-        proxy.tearDown();
+        if (USE_COMMON_LDAP_FIXTURE) {
+            LDAP_SERVER.tearDown();
+        }
     }
 
     @Before
     public void before() throws Exception {
         super.before();
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            LDAP_SERVER.setUp();
+            createLdapFixture();
+        }
+
         UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
         userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
     }
 
     @After
     public void after() throws Exception {
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            LDAP_SERVER.tearDown();
+        }
+
         try {
             Authorizable a = userManager.getAuthorizable(USER_ID);
             if (a != null) {
@@ -141,7 +146,7 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
         LdapProviderConfig cfg = new LdapProviderConfig()
                 .setName("ldap")
                 .setHostname("127.0.0.1")
-                .setPort(proxy.port)
+                .setPort(LDAP_SERVER.getPort())
                 .setBindDN(ServerDNConstants.ADMIN_SYSTEM_DN)
                 .setBindPassword(InternalLdapServer.ADMIN_PW)
                 .setGroupMemberAttribute(InternalLdapServer.GROUP_MEMBER_ATTR);
@@ -385,6 +390,21 @@ public abstract class LdapLoginTestBase extends ExternalLoginTestBase {
         }
         if (!exceptions.isEmpty()) {
             throw exceptions.get(0);
+        }
+    }
+
+    protected static void createLdapFixture() throws Exception {
+        String userDN = LDAP_SERVER.addUser(USER_FIRSTNAME, USER_LASTNAME, USER_ID, USER_PWD);
+        GROUP_DN = LDAP_SERVER.addGroup(GROUP_NAME, userDN);
+        for (int i = 0; i < NUM_CONCURRENT_LOGINS * 2; i++) {
+            final String userId = "user-" + i;
+            userDN = LDAP_SERVER.addUser(userId, "test", userId, USER_PWD);
+            if (i%2 == 0) {
+                CONCURRENT_GROUP_TEST_USERS[i/2] = userId;
+                LDAP_SERVER.addMember(GROUP_DN, userDN);
+            } else {
+                CONCURRENT_TEST_USERS[i/2] = userId;
+            }
         }
     }
 }

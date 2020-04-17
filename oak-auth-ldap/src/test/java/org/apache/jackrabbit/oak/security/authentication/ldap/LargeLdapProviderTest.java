@@ -43,64 +43,69 @@ import static org.junit.Assert.assertTrue;
 
 public class LargeLdapProviderTest {
 
-    //loaded by a separate ClassLoader unavailable to the client (needed because the server is using old libraries)
-    protected static LdapServerClassLoader.Proxy proxy;
+    protected static final InternalLdapServer LDAP_SERVER = new InternalLdapServer();
+
+    //initialize LDAP server only once (fast, but might turn out to be not sufficiently flexible in the future)
+    protected static final boolean USE_COMMON_LDAP_FIXTURE = false;
 
     public static final String IDP_NAME = "ldap";
+
     protected static final String GROUP_NAME = "foobargroup";
 
     protected static String GROUP_DN;
+
     protected static String[] TEST_MEMBERS;
+
     protected static int NUM_USERS = 2222;
+
     protected static int SIZE_LIMIT = 50;
 
-    protected static LdapIdentityProvider idp;
-    protected static LdapProviderConfig providerConfig;
+    protected LdapIdentityProvider idp;
+
+    protected LdapProviderConfig providerConfig;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        LdapServerClassLoader serverClassLoader = LdapServerClassLoader.createServerClassLoader();
-        proxy = serverClassLoader.createAndSetupServer();
-        idp = createIDP();
-        proxy.setMaxSizeLimit(SIZE_LIMIT);
-        USER_DN = proxy.addUser(USER_FIRSTNAME, USER_LASTNAME, USER_ID, USER_PWD);
-        GROUP_DN = proxy.addGroup(GROUP_NAME, USER_DN);
-        ArrayList<String> members = new ArrayList<>();
-        members.add(USER_DN);
-        List<String> userDNs = new ArrayList<String>();
-        for (int i = 0; i < NUM_USERS; i++) {
-            final String userId = "user-" + i;
-            String userDN = proxy.addUser(userId, "test", userId, "test");
-            userDNs.add(userDN);
-            members.add(userDN);
+        if (USE_COMMON_LDAP_FIXTURE) {
+            LDAP_SERVER.setUp();
+            LDAP_SERVER.setMaxSizeLimit(SIZE_LIMIT);
+            initLdapFixture(LDAP_SERVER);
         }
-        proxy.addMembers(GROUP_DN, userDNs);
-        TEST_MEMBERS = members.toArray(new String[members.size()]);
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
-        proxy.tearDown();
+        if (USE_COMMON_LDAP_FIXTURE) {
+            LDAP_SERVER.tearDown();
+        }
     }
 
     @Before
     public void before() throws Exception {
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            LDAP_SERVER.setUp();
+            LDAP_SERVER.setMaxSizeLimit(SIZE_LIMIT);
+            initLdapFixture(LDAP_SERVER);
+        }
         idp = createIDP();
     }
 
     @After
     public void after() throws Exception {
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            LDAP_SERVER.tearDown();
+        }
         if (idp != null) {
             idp.close();
             idp = null;
         }
     }
 
-    protected static LdapIdentityProvider createIDP() {
+    protected LdapIdentityProvider createIDP() {
         providerConfig = new LdapProviderConfig()
                 .setName(IDP_NAME)
                 .setHostname("127.0.0.1")
-                .setPort(proxy.port)
+                .setPort(LDAP_SERVER.getPort())
                 .setBindDN(USER_DN)
                 .setBindPassword(USER_PWD)
                 .setGroupMemberAttribute("member");
@@ -124,6 +129,25 @@ public class LargeLdapProviderTest {
     protected static final String USER_LASTNAME = "Bar";
 
     protected static String USER_DN;
+
+    protected static void initLdapFixture(InternalLdapServer server) throws Exception {
+        ArrayList<String> members = new ArrayList<String>();
+
+        USER_DN = LDAP_SERVER.addUser(USER_FIRSTNAME, USER_LASTNAME, USER_ID, USER_PWD);
+        GROUP_DN = server.addGroup(GROUP_NAME, USER_DN);
+        members.add(USER_DN);
+
+        List<String> userDNs = new ArrayList<String>();
+        for (int i = 0; i < NUM_USERS; i++) {
+            final String userId = "user-" + i;
+            String userDN = server.addUser(userId, "test", userId, "test");
+            userDNs.add(userDN);
+            members.add(userDN);
+        }
+        LDAP_SERVER.addMembers(GROUP_DN, userDNs);
+        TEST_MEMBERS = members.toArray(new String[members.size()]);
+    }
+
 
     @Test
     public void testGetMembers() throws Exception {

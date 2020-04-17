@@ -32,7 +32,8 @@ import javax.jcr.SimpleCredentials;
 import javax.net.ssl.SSLContext;
 import javax.security.auth.login.LoginException;
 
-import org.apache.commons.pool2.impl.DefaultPooledObject;
+import org.apache.commons.pool.impl.GenericObjectPool;
+import org.apache.directory.api.ldap.codec.controls.search.pagedSearch.PagedResultsDecorator;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.CursorException;
 import org.apache.directory.api.ldap.model.cursor.SearchCursor;
@@ -50,7 +51,6 @@ import org.apache.directory.api.ldap.model.message.SearchResultDone;
 import org.apache.directory.api.ldap.model.message.SearchResultEntry;
 import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.api.ldap.model.message.controls.PagedResults;
-import org.apache.directory.api.ldap.model.message.controls.PagedResultsImpl;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.ldap.client.api.AbstractPoolableLdapConnectionFactory;
@@ -366,7 +366,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             try {
                 DebugTimer timer = new DebugTimer();
                 if (userPool == null) {
-                    connection = userConnectionFactory.create();
+                    connection = userConnectionFactory.makeObject();
                 } else {
                     connection = userPool.getConnection();
                 }
@@ -538,8 +538,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         if (config.getAdminPoolConfig().getMaxActive() != 0) {
             adminPool = new LdapConnectionPool(adminConnectionFactory);
             adminPool.setTestOnBorrow(true);
-            adminPool.setMaxTotal(config.getAdminPoolConfig().getMaxActive());
-            adminPool.setBlockWhenExhausted(true);
+            adminPool.setMaxActive(config.getAdminPoolConfig().getMaxActive());
+            adminPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_BLOCK);
         }
 
         // setup unbound connection pool. let's create a new version of the config
@@ -554,8 +554,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         if (config.getUserPoolConfig().getMaxActive() != 0) {
             userPool = new UnboundLdapConnectionPool(userConnectionFactory);
             userPool.setTestOnBorrow(true);
-            userPool.setMaxTotal(config.getUserPoolConfig().getMaxActive());
-            userPool.setBlockWhenExhausted(true);
+            userPool.setMaxActive(config.getUserPoolConfig().getMaxActive());
+            userPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_BLOCK);
         }
 
         log.info("LdapIdentityProvider initialized: {}", config);
@@ -722,11 +722,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             req.setBase(new Dn(idConfig.getBaseDN()));
             req.setFilter(searchFilter);
 
+            PagedResults pagedSearchControl = new PagedResultsDecorator(connection.getCodecService());
             // do paged searches (OAK-2874)
-            PagedResultsImpl pagedResults = new PagedResultsImpl();
-            pagedResults.setSize(1000);
-            pagedResults.setCookie(cookie);
-            req.addControl(pagedResults);
+            pagedSearchControl.setSize(1000);
+            pagedSearchControl.setCookie(cookie);
+            req.addControl(pagedSearchControl);
 
             return req;
         }
@@ -758,18 +758,16 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                     }
                 }
 
-                boolean done = searchCursor.isDone();
+                SearchResultDone done = searchCursor.getSearchResultDone();
                 cookie = null;
-                if (done) {
-                    SearchResultDone searchResultDone = searchCursor.getSearchResultDone();
-                    if (searchResultDone != null && searchResultDone.getLdapResult().getResultCode() != ResultCodeEnum.UNWILLING_TO_PERFORM) {
-                        PagedResults ctrl = (PagedResults) searchResultDone.getControl(PagedResults.OID);
-                        if (ctrl != null) {
-                            cookie = ctrl.getCookie();
-                        }
+                if (done.getLdapResult().getResultCode() != ResultCodeEnum.UNWILLING_TO_PERFORM) {
+
+                    PagedResults ctrl = (PagedResults) done.getControl(PagedResults.OID);
+                    if (ctrl != null) {
+                        cookie = ctrl.getCookie();
                     }
                 }
-                searchComplete = cookie == null || cookie.length == 0;
+                searchComplete = cookie == null;
                 timer.mark("lookup");
 
                 return !page.isEmpty();
@@ -845,7 +843,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                 // for multivalue properties, store as collection
                 if (attr.size() > 1) {
                     List<String> values = new ArrayList();
-                    for (Value value : attr) {
+                    for (Value<?> value : attr) {
                         values.add(value.getString());
                     }
                     propValue = values;
@@ -861,7 +859,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
     private LdapConnection connect() throws ExternalIdentityException {
         try {
             if (adminPool == null) {
-                return adminConnectionFactory.makeObject().getObject();
+                return adminConnectionFactory.makeObject();
             } else {
                 return adminPool.getConnection();
             }
@@ -876,7 +874,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
         try {
             if (connection != null) {
                 if (adminPool == null) {
-                    adminConnectionFactory.destroyObject(new DefaultPooledObject<>(connection));
+                    adminConnectionFactory.destroyObject(connection);
                 } else {
                     adminPool.releaseConnection(connection);
                 }
