@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import org.apache.commons.pool.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.directory.ldap.client.api.LdapConnection;
 
 /**
