@@ -82,6 +82,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -2203,23 +2204,34 @@ public class RDBDocumentStore implements DocumentStore {
     // configuration
 
     // Whether to use GZIP compression
-    private static final boolean NOGZIP = Boolean
-            .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
+    private static final boolean NOGZIP = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP", Boolean.FALSE).loggingTo(LOG).get();
+
     // Whether to use append operations (string concatenation) in the DATA column
-    private static final boolean NOAPPEND = Boolean
-            .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOAPPEND");
+    private static final boolean NOAPPEND = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOAPPEND", Boolean.FALSE).loggingTo(LOG).get();
+
     // Number of documents to insert at once for batch create
-    private static final int CHUNKSIZE = Integer.getInteger(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64);
+    private static final int CHUNKSIZE = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64).loggingTo(LOG)
+            .validateWith(value -> value > 0).get();
+
     // Number of query hits above which a diagnostic warning is generated
-    private static final int QUERYHITSLIMIT = Integer.getInteger(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYHITSLIMIT", 4096);
+    private static final int QUERYHITSLIMIT = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYHITSLIMIT", 4096).loggingTo(LOG)
+            .validateWith(value -> value > 0).get();
+
     // Number of elapsed ms in a query above which a diagnostic warning is generated
-    private static final int QUERYTIMELIMIT = Integer.getInteger(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000);
-    // Whether to use JDBC batch commands for the createOrUpdate (default: true).
-    private static final boolean BATCHUPDATES = Boolean.parseBoolean(System
-            .getProperty("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.BATCHUPDATES", "true"));
+    private static final int QUERYTIMELIMIT = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000).loggingTo(LOG)
+            .validateWith(value -> value > 0).get();
+
+    // Whether to use JDBC batch commands for the createOrUpdate (default: true)
+    private static final boolean BATCHUPDATES = SystemPropertySupplier
+            .create(RDBDocumentStore.class.getName() + ".BATCHUPDATES", Boolean.TRUE).loggingTo(LOG)
+            .formatSetMessage((name, value) -> {
+                return String.format("Batch updates disabled (system property %s set to '%s')", name, value);
+            }).get();
 
     public static byte[] asBytes(@NotNull String data) {
         byte[] bytes;
