@@ -1109,7 +1109,7 @@ public class RDBDocumentStoreJDBC {
 
     @Nullable
     private static Integer deletedOnceAsNullOrInteger(Boolean b) {
-        return b == null ? null : (b.booleanValue() ? INT_TRUE : INT_FALSE);
+        return b == null ? null : (b ? INT_TRUE : INT_FALSE);
     }
 
     @Nullable

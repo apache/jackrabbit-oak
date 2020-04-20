@@ -89,7 +89,7 @@ public class RMIConfig extends AbstractConfig {
     }
 
     public void setRmiEnabled(String rmiEnabled) {
-        this.rmiEnabled = Boolean.valueOf(rmiEnabled).booleanValue();
+        this.rmiEnabled = Boolean.valueOf(rmiEnabled);
     }
 
     public int rmiPort() {
@@ -101,7 +101,7 @@ public class RMIConfig extends AbstractConfig {
     }
 
     public void setRmiPort(String rmiPort) {
-        this.rmiPort = Integer.decode(rmiPort).intValue();
+        this.rmiPort = Integer.decode(rmiPort);
     }
 
     public String getRmiHost() {

@@ -627,7 +627,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         Boolean dovalue = (Boolean)nd.get(NodeDocument.DELETED_ONCE);
         if (dovalue != null) {
             // RDB persistence does not distinguish null and false
-            assertEquals(dovalue.booleanValue(), Boolean.FALSE);
+            assertEquals(dovalue, Boolean.FALSE);
         }
     }
 

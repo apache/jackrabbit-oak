@@ -139,7 +139,7 @@ public class L4_CustomPrivilegeTest extends AbstractSecurityTest {
         assertEqualPrivileges(expected, customAggrPriv.getAggregatePrivileges());
 
         Boolean expectedIsAbstract = null; // EXERCISE
-        assertEquals(expectedIsAbstract.booleanValue(), customAggrPriv.isAbstract());
+        assertEquals(expectedIsAbstract, customAggrPriv.isAbstract());
     }
 
     @Test

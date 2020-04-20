@@ -420,10 +420,10 @@ public class ConfigurationParametersTest {
     @Test
     public void testConversionToFloat() {
         ConfigurationParameters params = ConfigurationParameters.of("f1", 1.1, "f2", 2.2f);
-        assertEquals(1.1, params.getConfigValue("f1", null, Float.class).floatValue(), 0.01);
-        assertEquals(1.1, params.getConfigValue("f1", null, float.class).floatValue(), 0.01);
-        assertEquals(2.2, params.getConfigValue("f2", null, Float.class).floatValue(), 0.01);
-        assertEquals(2.2, params.getConfigValue("f2", null, float.class).floatValue(), 0.01);
+        assertEquals(1.1, params.getConfigValue("f1", null, Float.class), 0.01);
+        assertEquals(1.1, params.getConfigValue("f1", null, float.class), 0.01);
+        assertEquals(2.2, params.getConfigValue("f2", null, Float.class), 0.01);
+        assertEquals(2.2, params.getConfigValue("f2", null, float.class), 0.01);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -435,10 +435,10 @@ public class ConfigurationParametersTest {
     @Test
     public void testConversionToDouble() {
         ConfigurationParameters params = ConfigurationParameters.of("d1", 1.1, "d2", 2.2);
-        assertEquals(1.1, params.getConfigValue("d1", null, Double.class).doubleValue(), 0.01);
-        assertEquals(1.1, params.getConfigValue("d1", null, double.class).doubleValue(), 0.01);
-        assertEquals(2.2, params.getConfigValue("d2", null, Double.class).doubleValue(), 0.01);
-        assertEquals(2.2, params.getConfigValue("d2", null, double.class).doubleValue(), 0.01);
+        assertEquals(1.1, params.getConfigValue("d1", null, Double.class), 0.01);
+        assertEquals(1.1, params.getConfigValue("d1", null, double.class), 0.01);
+        assertEquals(2.2, params.getConfigValue("d2", null, Double.class), 0.01);
+        assertEquals(2.2, params.getConfigValue("d2", null, double.class), 0.01);
     }
 
     @Test(expected = IllegalArgumentException.class)

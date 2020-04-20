@@ -269,12 +269,12 @@ public class AtomicCounterEditor extends DefaultEditor {
         
         long currentValue = 0;
         if (counter != null) {
-            currentValue = counter.getValue(LONG).longValue();
+            currentValue = counter.getValue(LONG);
         }
         
         long currentRevision = 0;
         if (revision != null) {
-            currentRevision = revision.getValue(LONG).longValue();
+            currentRevision = revision.getValue(LONG);
         }
         
         currentValue += value;
@@ -494,8 +494,8 @@ public class AtomicCounterEditor extends DefaultEditor {
             return false;
         }
         
-        long brValue = builderRev.getValue(Type.LONG).longValue();
-        long rValue = revision.getValue(Type.LONG).longValue();
+        long brValue = builderRev.getValue(Type.LONG);
+        long rValue = revision.getValue(Type.LONG);
         
         if (brValue >= rValue) {
             return true;
@@ -529,11 +529,11 @@ public class AtomicCounterEditor extends DefaultEditor {
         long hiddensum = 0;
         for (PropertyState p : b.getProperties()) {
             if (p.getName().startsWith(PREFIX_PROP_COUNTER)) {
-                hiddensum += p.getValue(LONG).longValue();
+                hiddensum += p.getValue(LONG);
             }
         }
         
-        return counter.getValue(LONG).longValue() != hiddensum;
+        return counter.getValue(LONG) != hiddensum;
     }
 
     private static CommitInfo createCommitInfo() {

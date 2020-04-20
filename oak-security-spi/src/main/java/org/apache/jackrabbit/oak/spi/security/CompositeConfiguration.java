@@ -273,7 +273,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
             if (ranking == null) {
                 return NO_RANKING;
             } else {
-                return ranking.intValue();
+                return ranking;
             }
         }
 
