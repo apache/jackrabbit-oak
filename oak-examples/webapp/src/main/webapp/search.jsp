@@ -110,7 +110,7 @@
             maxPage = Math.min(maxPage, currentPageIndex + 10);
             minPage = Math.max(0, currentPageIndex - 10);
             for (long i = minPage; i < maxPage; i++) {
-                indexes.add(new Long(i));
+                indexes.add(i);
             }
 
             if (total < 10 && !q.startsWith("related:")) {

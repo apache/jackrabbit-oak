@@ -54,7 +54,7 @@ public class ValidatorNoProtectionTest extends ExternalIdentityValidatorTest {
 
         Map<Type, Object> valMap = ImmutableMap.<Type, Object>of(
                 Type.BOOLEAN, Boolean.TRUE,
-                Type.LONG, new Long(1234),
+                Type.LONG, 1234L,
                 Type.NAME, "id"
         );
         for (Type t : valMap.keySet()) {

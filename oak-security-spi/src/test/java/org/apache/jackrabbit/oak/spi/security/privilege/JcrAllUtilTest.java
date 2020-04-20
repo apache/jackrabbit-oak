@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 
 public class JcrAllUtilTest implements PrivilegeConstants {
 
-    private static final Long ALL = Long.valueOf(Long.MAX_VALUE);
+    private static final Long ALL = Long.MAX_VALUE;
 
     private static final PropertyState ALL_PROPERTY = PropertyStates.createProperty(REP_BITS, Longs.asList(Long.MAX_VALUE), Type.LONGS);
     private final PrivilegeBits ALL_BITS = PrivilegeBits.getInstance(ALL_PROPERTY);

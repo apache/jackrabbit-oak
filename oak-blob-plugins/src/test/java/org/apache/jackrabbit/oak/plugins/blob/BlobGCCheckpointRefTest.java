@@ -127,8 +127,8 @@ public class BlobGCCheckpointRefTest extends BlobGCTest {
                 Map<String, String> chkInfo = nodeStore.checkpointInfo(checkpoint);
 
                 if (chkInfo.containsKey(CREATION_DATE) &&
-                    Long.valueOf(chkInfo.get(CREATION_DATE)) < minCreationDate) {
-                    minCreationDate = Long.valueOf(chkInfo.get(CREATION_DATE));
+                    Long.parseLong(chkInfo.get(CREATION_DATE)) < minCreationDate) {
+                    minCreationDate = Long.parseLong(chkInfo.get(CREATION_DATE));
                 }
             }
 

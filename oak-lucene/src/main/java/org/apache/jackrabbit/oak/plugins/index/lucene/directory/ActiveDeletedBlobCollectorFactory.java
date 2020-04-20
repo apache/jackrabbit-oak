@@ -261,7 +261,7 @@ public class ActiveDeletedBlobCollectorFactory {
                             } else {
                                 String deletedBlobId = parsedDeletedBlobIdLine[0];
                                 try {
-                                    long blobDeletionTimestamp = Long.valueOf(parsedDeletedBlobIdLine[1]);
+                                    long blobDeletionTimestamp = Long.parseLong(parsedDeletedBlobIdLine[1]);
 
                                     if (blobDeletionTimestamp < lastCheckedBlobTimestamp) {
                                         continue;
@@ -390,7 +390,7 @@ public class ActiveDeletedBlobCollectorFactory {
             }
 
             try {
-                return Long.valueOf(resString);
+                return Long.parseLong(resString);
             } catch (NumberFormatException nfe) {
                 LOG.warn("Couldn't read last checked blob timestamp '" + resString + "' as long", nfe);
                 return -1;

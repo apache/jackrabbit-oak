@@ -100,6 +100,6 @@ public class NodeTypeDefinitionTest extends AbstractJCRTest {
     private static int getIndex(@NotNull Node node) throws RepositoryException {
         String name = node.getName();
         int i = name.lastIndexOf('[');
-        return (i == -1) ? 1 : Integer.valueOf(name.substring(i+1, name.lastIndexOf(']')));
+        return (i == -1) ? 1 : Integer.parseInt(name.substring(i+1, name.lastIndexOf(']')));
     }
 }

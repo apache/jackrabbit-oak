@@ -483,7 +483,7 @@ public final class ConfigurationParameters implements Map<String, Object> {
                     number += decimal;
                 }
                 String unit = m.group(3);
-                double value = Double.valueOf(number);
+                double value = Double.parseDouble(number);
                 if ("s".equals(unit)) {
                     value *= 1000.0;
                 } else if ("m".equals(unit)) {

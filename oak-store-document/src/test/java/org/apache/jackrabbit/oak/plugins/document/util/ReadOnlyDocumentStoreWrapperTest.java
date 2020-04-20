@@ -60,7 +60,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
                 }
 
                 if ("determineServerTimeDifferenceMillis".equals(methodName)) {
-                    return new Long(0);
+                    return 0L;
                 } else {
                     return null;
                 }

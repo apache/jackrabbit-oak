@@ -2369,7 +2369,7 @@ public class RDBDocumentStore implements DocumentStore {
         if (collection == Collection.CLUSTER_NODES) {
             synchronized (this) {
                 Long old = cnUpdates.get(key);
-                old = old == null ? Long.valueOf(1) : old + 1;
+                old = old == null ? 1L : old + 1;
                 cnUpdates.put(key, old);
             }
         }

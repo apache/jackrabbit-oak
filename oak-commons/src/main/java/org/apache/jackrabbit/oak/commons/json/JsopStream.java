@@ -150,7 +150,7 @@ public class JsopStream implements JsopReader, JsopWriter {
     @Override
     public JsopStream value(long x) {
         optionalComma();
-        addToken(NUMBER + addValue(Long.valueOf(x)));
+        addToken(NUMBER + addValue(x));
         needComma = true;
         return this;
     }

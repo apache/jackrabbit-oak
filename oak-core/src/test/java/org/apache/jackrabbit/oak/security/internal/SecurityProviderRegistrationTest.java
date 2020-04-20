@@ -558,7 +558,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         registration.bindAuthorizationConfiguration(ac, PROPS);
 
         AuthorizationConfiguration testAc2 = mockConfiguration(AuthorizationConfiguration.class);
-        Map<String, Object> props = ImmutableMap.<String, Object>of(Constants.SERVICE_RANKING, new Integer(100));
+        Map<String, Object> props = ImmutableMap.<String, Object>of(Constants.SERVICE_RANKING, 100);
         registration.bindAuthorizationConfiguration(testAc2, props);
 
         CompositeAuthorizationConfiguration cac = (CompositeAuthorizationConfiguration) f.get(registration);

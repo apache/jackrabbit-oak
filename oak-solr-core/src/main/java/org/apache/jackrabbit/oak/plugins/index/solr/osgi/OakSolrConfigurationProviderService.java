@@ -145,15 +145,15 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         depthField = String.valueOf(componentContext.getProperties().get(PATH_DEPTH_FIELD));
         rows = Integer.parseInt(String.valueOf(componentContext.getProperties().get(ROWS)));
         commitPolicy = OakSolrConfiguration.CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
-        useForPathRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PATH_RESTRICTIONS)));
-        useForPropertyRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PROPERTY_RESTRICTIONS)));
-        useForPrimaryTypes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PRIMARY_TYPES_RESTRICTIONS)));
+        useForPathRestrictions = Boolean.parseBoolean(String.valueOf(componentContext.getProperties().get(PATH_RESTRICTIONS)));
+        useForPropertyRestrictions = Boolean.parseBoolean(String.valueOf(componentContext.getProperties().get(PROPERTY_RESTRICTIONS)));
+        useForPrimaryTypes = Boolean.parseBoolean(String.valueOf(componentContext.getProperties().get(PRIMARY_TYPES_RESTRICTIONS)));
         typeMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(TYPE_MAPPINGS));
         ignoredProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(IGNORED_PROPERTIES));
         usedProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(USED_PROPERTIES));
         propertyMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(PROPERTY_MAPPINGS));
-        collapseJcrContentNodes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_NODES)));
-        collapseJcrContentParents = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_PARENTS)));
+        collapseJcrContentNodes = Boolean.parseBoolean(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_NODES)));
+        collapseJcrContentParents = Boolean.parseBoolean(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_PARENTS)));
     }
 
     @Deactivate

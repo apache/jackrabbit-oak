@@ -915,7 +915,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         for (int i = 0; i < 10; i++) {
             String id = base + i;
             UpdateOp up = new UpdateOp(id, true);
-            up.set(NodeDocument.DELETED_ONCE, Boolean.valueOf(i % 2 == 0));
+            up.set(NodeDocument.DELETED_ONCE, i % 2 == 0);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             assertTrue("document with " + id + " not created", success);
             removeMe.add(id);

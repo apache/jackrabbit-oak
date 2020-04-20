@@ -77,7 +77,7 @@ public class JournalEntryTest {
         List<String> parts = journalParts(line);
         assertEquals(3, parts.size());
 
-        long entryTime = Long.valueOf(parts.get(2));
+        long entryTime = Long.parseLong(parts.get(2));
         assertTrue(entryTime >= startTime);
 
         JournalReader jr = new JournalReader(new LocalJournalFile(journal));

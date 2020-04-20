@@ -136,7 +136,7 @@ public class DataStoreCheckTest {
             File cfgFile = temporaryFolder.newFile();
             Properties props = new Properties();
             props.put("path", dsPath);
-            props.put("minRecordLength", new Long(4096));
+            props.put("minRecordLength", 4096L);
             cfgFilePath = createTempConfig(cfgFile, props);
             dsOption = "fds";
         }

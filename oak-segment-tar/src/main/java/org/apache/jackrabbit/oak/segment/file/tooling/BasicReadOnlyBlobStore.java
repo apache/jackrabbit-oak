@@ -62,7 +62,7 @@ public class BasicReadOnlyBlobStore implements BlobStore {
         // best effort length extraction
         int indexOfSep = blobId.lastIndexOf("#");
         if (indexOfSep != -1) {
-            return Long.valueOf(blobId.substring(indexOfSep + 1));
+            return Long.parseLong(blobId.substring(indexOfSep + 1));
         }
         return -1;
     }

@@ -470,13 +470,13 @@ public class RepositoryImpl implements JackrabbitRepository {
         if (refreshInterval == null && !relaxedLocking) {
             return emptyMap();
         } else if (refreshInterval == null) {
-            return singletonMap(RELAXED_LOCKING, (Object) Boolean.valueOf(relaxedLocking));
+            return singletonMap(RELAXED_LOCKING, (Object) relaxedLocking);
         } else if (!relaxedLocking) {
             return singletonMap(REFRESH_INTERVAL, (Object) refreshInterval);
         } else {
             return ImmutableMap.of(
                     REFRESH_INTERVAL, (Object) refreshInterval,
-                    RELAXED_LOCKING,  (Object) Boolean.valueOf(relaxedLocking));
+                    RELAXED_LOCKING,  (Object) relaxedLocking);
         }
     }
 
