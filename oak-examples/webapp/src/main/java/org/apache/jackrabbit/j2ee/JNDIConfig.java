@@ -69,7 +69,7 @@ public class JNDIConfig extends AbstractConfig {
     }
 
     public void setJndiEnabled(String jndiEnabled) {
-        this.jndiEnabled = Boolean.valueOf(jndiEnabled);
+        this.jndiEnabled = Boolean.parseBoolean(jndiEnabled);
     }
 
     public Properties getJndiEnv() {
