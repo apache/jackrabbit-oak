@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
@@ -48,8 +49,11 @@ public class RDBConnectionHandler implements Closeable {
      * {@link #closeConnection(Connection)} so that problems can be detected early rather than late.
      * See also https://issues.apache.org/jira/browse/OAK-2337.
      */
-    private static final boolean CHECKCONNECTIONONCLOSE = Boolean
-            .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler.CHECKCONNECTIONONCLOSE");
+    private static final boolean CHECKCONNECTIONONCLOSE = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBConnectionHandler.CHECKCONNECTIONONCLOSE", Boolean.FALSE)
+            .loggingTo(LOG).formatSetMessage((name, value) -> String
+                    .format("Check connection on close enabled (system property %s set to '%s')", name, value))
+            .get();
 
     public RDBConnectionHandler(@NotNull DataSource ds) {
         this.ds = ds;
