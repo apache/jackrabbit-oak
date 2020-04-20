@@ -43,10 +43,12 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 /**
  * Information about a cluster node.
@@ -193,17 +195,11 @@ public class ClusterNodeInfo {
      */
     private static Clock clock = Clock.SIMPLE;
 
-    public static final int DEFAULT_LEASE_DURATION_MILLIS;
-
-    static {
-        String leaseDurationProp = "oak.documentMK.leaseDurationSeconds";
-        Integer leaseProp = Integer.getInteger(leaseDurationProp);
-        if (leaseProp != null) {
-            LOG.info("Lease duration set to: " + leaseProp + "s (using system property " + leaseDurationProp + ")");
-        }
-        /** OAK-3398 : default lease duration 120sec **/
-        DEFAULT_LEASE_DURATION_MILLIS = 1000 * (leaseProp != null ? leaseProp : 120);
-    }
+    /** OAK-3398 : default lease duration 120sec **/
+    private static final int DEFAULT_LEASE_DURATION_SEC = SystemPropertySupplier.create("oak.documentMK.leaseDurationSeconds", 120)
+            .loggingTo(LOG).validateWith(value -> value >= 0)
+            .formatSetMessage((name, value) -> String.format("Lease duration set to: %ss (using system property %s)", name, value)).get();
+    public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * DEFAULT_LEASE_DURATION_SEC;
 
     /** OAK-3398 : default update interval 10sec **/
     public static final int DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS = 1000 * 10;
@@ -215,8 +211,8 @@ public class ClusterNodeInfo {
      */
     public static final int DEFAULT_LEASE_FAILURE_MARGIN_MILLIS = 1000 * 20;
 
-    public static final boolean DEFAULT_LEASE_CHECK_DISABLED =
-            Boolean.valueOf(System.getProperty("oak.documentMK.disableLeaseCheck", "false"));
+    public static final boolean DEFAULT_LEASE_CHECK_DISABLED = SystemPropertySupplier
+            .create("oak.documentMK.disableLeaseCheck", Boolean.FALSE).loggingTo(LOG).get();
 
     /**
      * Default lease check mode is strict, unless disabled via system property.
@@ -1192,12 +1188,11 @@ public class ClusterNodeInfo {
      * be simulated.
      */
     private static String getHWAFromSystemProperty() {
-        String pname = ClusterNodeInfo.class.getName() + ".HWADDRESS";
-        String hwa = System.getProperty(pname, "");
-        if (!"".equals(hwa)) {
-            LOG.debug("obtaining hardware address from system variable " + pname + ": " + hwa);
-        }
-        return hwa;
+        return SystemPropertySupplier.create(ClusterNodeInfo.class.getName() + ".HWADDRESS", "").loggingTo(LOG)
+                .logSuccessAs(Level.DEBUG)
+                .formatSetMessage(
+                        (name, value) -> String.format("obtaining hardware address from system variable %s: %s", name, value))
+                .get();
     }
 
     /**
