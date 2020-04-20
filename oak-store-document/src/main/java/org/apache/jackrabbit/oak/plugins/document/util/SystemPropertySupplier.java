@@ -39,7 +39,7 @@ import org.slf4j.event.Level;
  * and message format can be overridden)
  * </ul>
  * <p>
- * The supported types are: {@link Boolean}, {@link Integer}, {@link String}
+ * The supported types are: {@link Boolean}, {@link Integer},  {@link Long}, {@link String}
  */
 public class SystemPropertySupplier<T> implements Supplier<T> {
 
@@ -172,11 +172,13 @@ public class SystemPropertySupplier<T> implements Supplier<T> {
             return v -> (T) Boolean.valueOf(v);
         } else if (defaultValue instanceof Integer) {
             return v -> (T) Integer.valueOf(v);
+        } else if (defaultValue instanceof Long) {
+            return v -> (T) Long.valueOf(v);
         } else if (defaultValue instanceof String) {
             return v -> (T) v;
         } else {
             throw new IllegalArgumentException(
-                    String.format("expects a defaultValue of Boolean, Integer, or String, but got: %s", defaultValue.getClass()));
+                    String.format("expects a defaultValue of Boolean, Integer, Long, or String, but got: %s", defaultValue.getClass()));
         }
     }
 }

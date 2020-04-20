@@ -48,6 +48,15 @@ public class SystemPropertySupplierTest {
     }
 
     @Test
+    public void testLong() {
+        long big = Long.MAX_VALUE;
+        assertEquals(Long.valueOf(big),
+                SystemPropertySupplier.create("foo", Long.valueOf(big)).usingSystemPropertyReader((n) -> null).get());
+        assertEquals(Long.valueOf(1742),
+                SystemPropertySupplier.create("foo", Long.valueOf(big)).usingSystemPropertyReader((n) -> "1742").get());
+    }
+
+    @Test
     public void testString() {
         assertEquals("bar", SystemPropertySupplier.create("foo", "bar").usingSystemPropertyReader((n) -> null).get());
         assertEquals("", SystemPropertySupplier.create("foo", "bar").usingSystemPropertyReader((n) -> "").get());
