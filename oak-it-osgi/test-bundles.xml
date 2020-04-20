@@ -39,6 +39,8 @@
         <include>commons-collections:commons-collections</include>
         <include>commons-fileupload:commons-fileupload</include>
         <include>commons-logging:commons-logging</include>
+        <include>org.apache.commons:commons-lang3</include>
+        <include>org.apache.commons:commons-collections4</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
         <include>org.apache.jackrabbit:jackrabbit-data</include>
         <include>org.apache.jackrabbit:oak-api</include>
