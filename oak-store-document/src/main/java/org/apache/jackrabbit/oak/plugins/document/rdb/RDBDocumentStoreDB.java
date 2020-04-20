@@ -32,6 +32,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -264,8 +265,9 @@ public enum RDBDocumentStoreDB {
             Connection con = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".DB2.TABLE_STATS",
-                    "card npages mpages fpages overflow pctfree avgrowsize stats_time");
+            String tableStats = SystemPropertySupplier
+                    .create(SYSPROP_PREFIX + ".DB2.TABLE_STATS", "card npages mpages fpages overflow pctfree avgrowsize stats_time")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -287,8 +289,9 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".DB2.INDEX_STATS",
-                    "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time");
+            String indexStats = SystemPropertySupplier.create(SYSPROP_PREFIX + ".DB2.INDEX_STATS",
+                    "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -355,8 +358,9 @@ public enum RDBDocumentStoreDB {
             Connection con = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS",
-                    "num_rows blocks avg_row_len sample_size last_analyzed");
+            String tableStats = SystemPropertySupplier
+                    .create(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS", "num_rows blocks avg_row_len sample_size last_analyzed")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -377,8 +381,9 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.INDEX_STATS",
-                    "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed");
+            String indexStats = SystemPropertySupplier.create(SYSPROP_PREFIX + ".ORACLE.INDEX_STATS",
+                    "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -464,8 +469,10 @@ public enum RDBDocumentStoreDB {
             Connection con = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
-                    "engine version row_format rows avg_row_length data_length index_length data_free collation");
+            String tableStats = SystemPropertySupplier
+                    .create(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
+                            "engine version row_format rows avg_row_length data_length index_length data_free collation")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -486,8 +493,9 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.INDEX_STATS",
-                    "column_name cardinality index_type sub_part");
+            String indexStats = SystemPropertySupplier
+                    .create(SYSPROP_PREFIX + ".MYSQL.INDEX_STATS", "column_name cardinality index_type sub_part").loggingTo(LOG)
+                    .get();
 
             try {
                 con = ch.getROConnection();
