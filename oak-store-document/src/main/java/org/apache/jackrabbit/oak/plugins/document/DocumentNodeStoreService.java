@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
@@ -374,7 +375,7 @@ public class DocumentNodeStoreService {
 
         // OAK-2682: time difference detection applied at startup with a default
         // max time diff of 2000 millis (2sec)
-        final long maxDiff = Long.parseLong(System.getProperty("oak.documentMK.maxServerTimeDiffMillis", "2000"));
+        final long maxDiff = SystemPropertySupplier.create("oak.documentMK.maxServerTimeDiffMillis", 2000L).loggingTo(log).get();
         try {
             if (maxDiff>=0) {
                 final long timeDiff = ds.determineServerTimeDifferenceMillis();
