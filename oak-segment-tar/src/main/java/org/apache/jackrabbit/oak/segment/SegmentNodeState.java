@@ -535,8 +535,7 @@ public class SegmentNodeState extends Record implements NodeState {
                 afterTemplate.getPropertyTemplates();
         while (beforeIndex < beforeProperties.length
                 && afterIndex < afterProperties.length) {
-            int d = Integer.valueOf(afterProperties[afterIndex].hashCode())
-                    .compareTo(beforeProperties[beforeIndex].hashCode());
+            int d = Integer.compare(afterProperties[afterIndex].hashCode(), beforeProperties[beforeIndex].hashCode());
             if (d == 0) {
                 d = afterProperties[afterIndex].getName().compareTo(
                         beforeProperties[beforeIndex].getName());
