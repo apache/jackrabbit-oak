@@ -133,6 +133,7 @@
               <link>https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
               <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
+              <link>http://www.slf4j.org/apidocs/</link>
             </links>
             <!-- workaround for https://issues.apache.org/jira/browse/OAK-8517 -->
       	    <excludePackageNames>org.apache.jackrabbit.oak.plugins.index.*</excludePackageNames>
