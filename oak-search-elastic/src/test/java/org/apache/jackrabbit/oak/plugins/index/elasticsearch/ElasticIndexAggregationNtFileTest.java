@@ -93,15 +93,17 @@ public class ElasticIndexAggregationNtFileTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        ElasticsearchConnection coordinate = new ElasticsearchConnection(
-                ElasticsearchConnection.DEFAULT_SCHEME,
-                elastic.getContainerIpAddress(),
-                elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT),
-                "" + System.nanoTime());
+        ElasticsearchConnection connection = ElasticsearchConnection.newBuilder()
+                .withIndexPrefix("" + System.nanoTime())
+                .withConnectionParameters(
+                        ElasticsearchConnection.DEFAULT_SCHEME,
+                        elastic.getContainerIpAddress(),
+                        elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT)
+                ).build();
 
-        ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
+        ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        ElasticsearchIndexProvider provider = new ElasticsearchIndexProvider(coordinate);
+        ElasticsearchIndexProvider provider = new ElasticsearchIndexProvider(connection);
 
         return new Oak()
                 .with(new InitialContent() {

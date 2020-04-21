@@ -97,6 +97,16 @@ public class BenchmarkOptions {
     private final OptionSpec<String> elasticHost;
     private final OptionSpec<String> elasticScheme;
     private final OptionSpec<Integer> elasticPort;
+    private final OptionSpec<String> elasticApiKeyId;
+    private final OptionSpec<String> elasticApiKeySecret;
+
+    public OptionSpec<String> getElasticApiKeyId() {
+        return elasticApiKeyId;
+    }
+
+    public OptionSpec<String> getElasticApiKeySecret() {
+        return elasticApiKeySecret;
+    }
 
     public OptionSpec<String> getElasticHost() {
         return elasticHost;
@@ -502,6 +512,10 @@ public class BenchmarkOptions {
                 .ofType(String.class);
         elasticPort = parser.accepts("elasticPort", "Elastic scheme").withOptionalArg()
                 .ofType(Integer.class);
+        elasticApiKeyId = parser.accepts("elasticApiKeyId", "Elastic unique id of the API key").withOptionalArg()
+                .ofType(String.class);
+        elasticApiKeySecret = parser.accepts("elasticApiKeySecret", "Elastic generated API secret").withOptionalArg()
+                .ofType(String.class);
     }
 
 }

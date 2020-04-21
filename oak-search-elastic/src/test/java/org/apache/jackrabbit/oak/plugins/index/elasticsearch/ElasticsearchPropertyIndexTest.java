@@ -74,15 +74,16 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        ElasticsearchConnection coordinate = new ElasticsearchConnection(
-                ElasticsearchConnection.DEFAULT_SCHEME,
-                elastic.getContainerIpAddress(),
-                elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT),
-                "" + System.currentTimeMillis()
-        );
-        ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
+        ElasticsearchConnection connection = ElasticsearchConnection.newBuilder()
+                .withIndexPrefix("" + System.nanoTime())
+                .withConnectionParameters(
+                        ElasticsearchConnection.DEFAULT_SCHEME,
+                        elastic.getContainerIpAddress(),
+                        elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT)
+                ).build();
+        ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(coordinate);
+        ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(connection);
 
         // remove all indexes to avoid cost competition (essentially a TODO for fixing cost ES cost estimation)
         NodeBuilder builder = InitialContentHelper.INITIAL_CONTENT.builder();

@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
@@ -51,7 +50,6 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
@@ -116,6 +114,18 @@ public class ElasticsearchIndexProviderService {
     private static final String PROP_ELASTICSEARCH_PORT = ElasticsearchConnection.PORT_PROP;
 
     @Property(
+            label = "Elasticsearch API key ID",
+            value = ElasticsearchConnection.DEFAULT_API_KEY_ID
+    )
+    private static final String PROP_ELASTICSEARCH_API_KEY_ID = ElasticsearchConnection.API_KEY_ID_PROP;
+
+    @Property(
+            label = "Elasticsearch API key secret",
+            passwordValue = ElasticsearchConnection.DEFAULT_API_KEY_SECRET
+    )
+    private static final String PROP_ELASTICSEARCH_API_KEY_SECRET = ElasticsearchConnection.API_KEY_SECRET_PROP;
+
+    @Property(
             label = "Local text extraction cache path",
             description = "Local file system path where text extraction cache stores/load entries to recover from timed out operation"
     )
@@ -141,13 +151,15 @@ public class ElasticsearchIndexProviderService {
     private ElasticsearchConnection elasticsearchConnection;
 
     @Activate
-    private void activate(BundleContext bundleContext, Map<String, ?> config) {
+    private void activate(BundleContext bundleContext, Map<String, Object> config) {
         whiteboard = new OsgiWhiteboard(bundleContext);
 
         //initializeTextExtractionDir(bundleContext, config);
         //initializeExtractedTextCache(config, statisticsProvider);
 
-        elasticsearchConnection = getElasticsearchCoordinate(config);
+        elasticsearchConnection = getElasticsearchConnection(config);
+
+        LOG.info("Registering Index and Editor providers with connection {}", elasticsearchConnection);
 
         registerIndexProvider(bundleContext);
         registerIndexEditor(bundleContext);
@@ -249,35 +261,27 @@ public class ElasticsearchIndexProviderService {
         }
     }
 
-    private ElasticsearchConnection getElasticsearchCoordinate(Map<String, ?> contextConfig) {
-        // system properties have priority
-        ElasticsearchConnection connection = build(System.getProperties().entrySet()
-                .stream()
-                .collect(Collectors.toMap(
-                        e -> String.valueOf(e.getKey()),
-                        e -> String.valueOf(e.getValue()))
-                )
-        );
+    private ElasticsearchConnection getElasticsearchConnection(Map<String, Object> contextConfig) {
+        // system properties have priority, get mandatory params first
+        final String indexPrefix = System.getProperty(PROP_INDEX_PREFIX,
+                (String) contextConfig.getOrDefault(PROP_INDEX_PREFIX, "oak-elastic"));
+        final String scheme = System.getProperty(PROP_ELASTICSEARCH_SCHEME,
+                (String) contextConfig.getOrDefault(PROP_ELASTICSEARCH_SCHEME, ElasticsearchConnection.DEFAULT_SCHEME));
+        final String host = System.getProperty(PROP_ELASTICSEARCH_HOST,
+                (String) contextConfig.getOrDefault(PROP_ELASTICSEARCH_HOST, ElasticsearchConnection.DEFAULT_HOST));
+        final int port = Integer.getInteger(PROP_ELASTICSEARCH_PORT,
+                (int) contextConfig.getOrDefault(PROP_ELASTICSEARCH_PORT, ElasticsearchConnection.DEFAULT_PORT));
 
-        if (connection == null) {
-            connection = build(contextConfig);
-        }
+        // optional params
+        final String apiKeyId = System.getProperty(PROP_ELASTICSEARCH_API_KEY_ID,
+                (String) contextConfig.get(PROP_ELASTICSEARCH_API_KEY_ID));
+        final String apiSecretId = System.getProperty(PROP_ELASTICSEARCH_API_KEY_SECRET,
+                (String) contextConfig.get(PROP_ELASTICSEARCH_API_KEY_SECRET));
 
-        return connection != null ? connection : ElasticsearchConnection.defaultConnection.get();
-    }
-
-    private ElasticsearchConnection build(@NotNull Map<String, ?> config) {
-        ElasticsearchConnection coordinate = null;
-        Object p = config.get(PROP_ELASTICSEARCH_PORT);
-        if (p != null) {
-            try {
-                Integer port = Integer.parseInt(p.toString());
-                coordinate = new ElasticsearchConnection((String) config.get(PROP_ELASTICSEARCH_SCHEME),
-                        (String) config.get(PROP_ELASTICSEARCH_HOST), port, (String) config.get(PROP_INDEX_PREFIX));
-            } catch (NumberFormatException nfe) {
-                LOG.warn("{} value ({}) cannot be parsed to a valid number", PROP_ELASTICSEARCH_PORT, p);
-            }
-        }
-        return coordinate;
+        return ElasticsearchConnection.newBuilder()
+                .withIndexPrefix(indexPrefix)
+                .withConnectionParameters(scheme, host, port)
+                .withApiKeys(apiKeyId, apiSecretId)
+                .build();
     }
 }

@@ -24,7 +24,7 @@ import java.util.Arrays;
 
 public class ElasticBenchmarkRunner extends BenchmarkRunner {
 
-    private static ElasticsearchConnection coordinate;
+    private static ElasticsearchConnection connection;
 
     public static void main(String[] args) throws Exception {
         initOptionSet(args);
@@ -36,8 +36,17 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
         // we have orphaned HttpClient's I/O disp threads that don't let the process exit.
 
         try {
-            coordinate = new ElasticsearchConnection(benchmarkOptions.getElasticScheme().value(options),
-                    benchmarkOptions.getElasticHost().value(options), benchmarkOptions.getElasticPort().value(options), "Benchmark");
+            connection =  ElasticsearchConnection.newBuilder()
+                    .withIndexPrefix("benchmark")
+                    .withConnectionParameters(
+                            benchmarkOptions.getElasticScheme().value(options),
+                            benchmarkOptions.getElasticHost().value(options),
+                            benchmarkOptions.getElasticPort().value(options)
+                    )
+                    .withApiKeys(
+                            benchmarkOptions.getElasticApiKeyId().value(options),
+                            benchmarkOptions.getElasticApiKeySecret().value(options)
+                    ).build();
 
             BenchmarkRunner.addToBenchMarkList(
                     Arrays.asList(
@@ -45,32 +54,32 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
                                     benchmarkOptions.getFlatStructure().value(options),
                                     benchmarkOptions.getReport().value(options),
                                     benchmarkOptions.getWithStorage().value(options),
-                                    coordinate),
+                                    connection),
                             new ElasticPropertyFTIndexedContentAvailability(benchmarkOptions.getWikipedia().value(options),
                                     benchmarkOptions.getFlatStructure().value(options),
                                     benchmarkOptions.getReport().value(options),
                                     benchmarkOptions.getWithStorage().value(options),
-                                    coordinate),
+                                    connection),
                             new ElasticPropertyFTSeparatedIndexedContentAvailability(benchmarkOptions.getWikipedia().value(options),
                                     benchmarkOptions.getFlatStructure().value(options),
                                     benchmarkOptions.getReport().value(options),
                                     benchmarkOptions.getWithStorage().value(options),
-                                    coordinate),
+                                    connection),
                             new ElasticFullTextWithoutGlobalIndexSearchTest(benchmarkOptions.getWikipedia().value(options),
                                     benchmarkOptions.getFlatStructure().value(options),
                                     benchmarkOptions.getReport().value(options),
                                     benchmarkOptions.getWithStorage().value(options),
-                                    coordinate),
+                                    connection),
                             new ElasticPropertyTextSearchTest(benchmarkOptions.getWikipedia().value(options),
                                     benchmarkOptions.getFlatStructure().value(options),
                                     benchmarkOptions.getReport().value(options),
                                     benchmarkOptions.getWithStorage().value(options),
-                                    coordinate)
+                                    connection)
                     )
             );
             BenchmarkRunner.main(args);
         } finally {
-            coordinate.close();
+            connection.close();
         }
 
     }

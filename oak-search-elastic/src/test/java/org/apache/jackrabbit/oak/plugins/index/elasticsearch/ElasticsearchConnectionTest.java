@@ -27,7 +27,10 @@ public class ElasticsearchConnectionTest {
 
     @Test
     public void uniqueClient() throws IOException {
-        ElasticsearchConnection connection = ElasticsearchConnection.defaultConnection.get();
+        ElasticsearchConnection connection = ElasticsearchConnection.newBuilder()
+                .withIndexPrefix("test")
+                .withDefaultConnectionParameters()
+                .build();
 
         RestHighLevelClient client1 = connection.getClient();
         RestHighLevelClient client2 = connection.getClient();
@@ -39,7 +42,11 @@ public class ElasticsearchConnectionTest {
 
     @Test(expected = IllegalStateException.class)
     public void alreadyClosedConnection() throws IOException {
-        ElasticsearchConnection connection = ElasticsearchConnection.defaultConnection.get();
+        ElasticsearchConnection connection = ElasticsearchConnection.newBuilder()
+                .withIndexPrefix("test")
+                .withDefaultConnectionParameters()
+                .build();
+
         connection.close();
 
         connection.getClient();
