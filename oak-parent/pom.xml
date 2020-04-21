@@ -567,7 +567,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>2.28.2</version>
+        <version>3.3.3</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
