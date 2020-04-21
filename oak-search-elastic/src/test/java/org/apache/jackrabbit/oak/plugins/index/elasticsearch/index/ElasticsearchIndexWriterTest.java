@@ -92,4 +92,10 @@ public class ElasticsearchIndexWriterTest {
         verify(bulkProcessorMock, times(2)).add(acDeleteRequest.capture());
     }
 
+    @Test
+    public void closeBulkProcessor() throws IOException {
+        indexWriter.close(System.currentTimeMillis());
+        verify(bulkProcessorMock).close();
+    }
+
 }

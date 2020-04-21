@@ -44,6 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchDocument.pathToId;
@@ -57,6 +59,7 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     private final ElasticsearchIndexDefinition indexDefinition;
 
     private final BulkProcessor bulkProcessor;
+    private Optional<Boolean> indexUpdated = Optional.empty();
 
     ElasticsearchIndexWriter(@NotNull ElasticsearchConnection elasticsearchConnection,
                                        @NotNull ElasticsearchIndexDefinition indexDefinition) {
@@ -77,7 +80,7 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     private BulkProcessor initBulkProcessor() {
         return BulkProcessor.builder((request, bulkListener) ->
                         elasticsearchConnection.getClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener),
-                new OakBulkProcessorLister())
+                new OakBulkProcessorListener())
                 .setBulkActions(indexDefinition.bulkActions)
                 .setBulkSize(new ByteSizeValue(indexDefinition.bulkSizeBytes))
                 .setFlushInterval(TimeValue.timeValueMillis(indexDefinition.bulkFlushIntervalMs))
@@ -104,9 +107,36 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
 
     @Override
     public boolean close(long timestamp) throws IOException {
-        // TODO : track index updates and return accordingly
-        // TODO : if/when we do async push, this is where to wait for those ops to complete
-        return false;
+        LOG.trace("Calling close on bulk processor {}", bulkProcessor);
+        bulkProcessor.close();
+        LOG.trace("Bulk Processor {} closed", bulkProcessor);
+
+        // bulkProcessor.close() calls the OakBulkProcessorListener.beforeBulk in a blocking manner
+        // indexUpdated would be unset there if it was false till now (not even a single update succeeded)
+        // in this case wait for sometime for the last OakBulkProcessorListener.afterBulk to be called
+        // where indexUpdated can possibly be set to true, return false in case of timeout.
+        // We don't wait in case indexUpdated is already set (This would be if any of the previous flushes for this processor
+        // were successful i.e index was updated at least once)
+        final long start = System.currentTimeMillis();
+        long timeoutMillis = indexDefinition.bulkFlushIntervalMs * 5 ;
+        while (!indexUpdated.isPresent()) {
+            long lastAttempt = System.currentTimeMillis();
+            long elapsedTime = lastAttempt - start;
+            if (elapsedTime > timeoutMillis) {
+                // indexUpdate was not set till now, return false
+                LOG.trace("Timed out waiting for the bulk processor response. Returning indexUpdated = false");
+                return false;
+            } else {
+                try {
+                    LOG.trace("Waiting for afterBulk response...");
+                    Thread.sleep(100);
+                } catch (InterruptedException ex) {
+                    //
+                }
+            }
+        }
+        LOG.trace("Returning indexUpdated = {}", indexUpdated.get());
+        return indexUpdated.get();
     }
 
     // TODO: we need to check if the index already exists and in that case we have to figure out if there are
@@ -156,10 +186,16 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
                 indexDefinition.getRemoteIndexName(), requestMsg, response.isAcknowledged());
     }
 
-    private static class OakBulkProcessorLister implements BulkProcessor.Listener {
+    private class OakBulkProcessorListener implements BulkProcessor.Listener {
 
         @Override
         public void beforeBulk(long executionId, BulkRequest bulkRequest) {
+            if (indexUpdated.isPresent() && !indexUpdated.get()) {
+                // Reset the state only if it's false
+                // If it's true that means index was updated at least once by this processor
+                // and we can return true for indexUpdate.
+                indexUpdated = Optional.empty();
+            }
             LOG.info("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Bulk Requests: \n{}", bulkRequest.requests()
@@ -185,14 +221,31 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
                     if (bulkItemResponse.isFailed()) {
                         BulkItemResponse.Failure failure = bulkItemResponse.getFailure();
                         LOG.error("Bulk item with id {} failed", failure.getId(), failure.getCause());
+                    } else {
+                        // Set indexUpdated to true even if 1 item was updated successfully
+                        indexUpdated = Optional.of(true);
                     }
                 }
+                // Only set indexUpdated to false if it's unset
+                // If set and true, that means index was updated at least once by this processor.
+                // If set and false, no need to do anything
+                if (!indexUpdated.isPresent()) {
+                    indexUpdated = Optional.of(false);
+                }
+            } else {
+                indexUpdated = Optional.of(true);
             }
         }
 
         @Override
         public void afterBulk(long executionId, BulkRequest bulkRequest, Throwable throwable) {
-            LOG.error("Bulk with id {} thrown an error", executionId, throwable);
+            // Only set indexUpdated to false if it's unset
+            // If set and true, that means index was updated at least once by this processor.
+            // If set and false, no need to do anything
+            if (!indexUpdated.isPresent()) {
+                indexUpdated = Optional.of(false);
+            }
+            LOG.error("Bulk with id {} threw an error", executionId, throwable);
         }
     }
 }

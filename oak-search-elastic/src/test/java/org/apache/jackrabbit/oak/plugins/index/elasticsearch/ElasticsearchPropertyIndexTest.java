@@ -107,6 +107,40 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testBulkProcessorFlushLimit() throws Exception {
+        setIndex("test1", createIndex("propa"));
+
+        Tree test = root.getTree("/").addChild("test");
+        for (int i = 1; i < 249; i++) {
+            test.addChild("a" + i).setProperty("propa", "foo" + i);
+        }
+        root.commit();
+
+        // 250 is the default flush limit for bulk processor, and we added just less than 250 nodes
+        // So once the index writer is closed , bulk Processor would be closed and all the 248 entries should be flushed.
+        // Make sure that the last entry is indexed correctly.
+        String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo248'";
+        assertEventually(() -> {
+            assertThat(explain(propaQuery), containsString("elasticsearch:test1"));
+
+            assertQuery(propaQuery, singletonList("/test/a248"));
+        });
+
+        // Now we test for 250 < nodes < 500
+
+        for (int i = 250 ; i < 300 ; i ++) {
+            test.addChild("a" + i).setProperty("propa", "foo" + i);
+        }
+        root.commit();
+        String propaQuery2 = "select [jcr:path] from [nt:base] where [propa] = 'foo299'";
+        assertEventually(() -> {
+            assertThat(explain(propaQuery2), containsString("elasticsearch:test1"));
+
+            assertQuery(propaQuery2, singletonList("/test/a299"));
+        });
+    }
+
+    @Test
     public void indexSelection() throws Exception {
         setIndex("test1", createIndex("propa", "propb"));
         setIndex("test2", createIndex("propc"));
@@ -219,4 +253,5 @@ public class ElasticsearchPropertyIndexTest extends AbstractQueryTest {
     private static void assertEventually(Runnable r) {
         ElasticsearchTestUtils.assertEventually(r, BULK_FLUSH_INTERVAL_MS_DEFAULT * 3);
     }
+
 }
