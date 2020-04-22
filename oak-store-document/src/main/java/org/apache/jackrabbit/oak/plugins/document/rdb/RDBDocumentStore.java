@@ -40,7 +40,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2329,13 +2328,8 @@ public class RDBDocumentStore implements DocumentStore {
         if (cnUpdates.isEmpty()) {
             return "";
         } else {
-            List<Map.Entry<String, Long>> tmp = new ArrayList<Map.Entry<String, Long>>();
-            tmp.addAll(cnUpdates.entrySet());
-            Collections.sort(tmp, new Comparator<Map.Entry<String, Long>>() {
-                @Override
-                public int compare(Entry<String, Long> o1, Entry<String, Long> o2) {
-                    return o1.getKey().compareTo(o2.getKey());
-                }});
+            List<Map.Entry<String, Long>> tmp = new ArrayList<>(cnUpdates.entrySet());
+            Collections.sort(tmp, (Entry<String, Long> o1, Entry<String, Long> o2) -> o1.getKey().compareTo(o2.getKey()));
             return " (Cluster Node updates: " + tmp.toString() + ")";
         }
     }
