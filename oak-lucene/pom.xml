@@ -110,7 +110,6 @@
             <Export-Package>
                 org.apache.jackrabbit.oak.plugins.index.lucene,
                 org.apache.jackrabbit.oak.plugins.index.lucene.util,
-                org.apache.jackrabbit.oak.plugins.index.lucene.score,
                 org.apache.jackrabbit.oak.plugins.index.lucene.spi,
             </Export-Package>
             <Import-Package>
