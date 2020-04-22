@@ -33,9 +33,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
-import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -201,8 +198,7 @@ public class LuceneIndexEditor2Test {
             @Nullable
             @Override
             public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-                    throws CommitFailedException {
+                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
                 if (TYPE_LUCENE.equals(type)) {
                     return new LuceneIndexEditor(context);
                 }
