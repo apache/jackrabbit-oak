@@ -39,7 +39,7 @@
         <configuration>
           <instructions>
             <Export-Package>
-              !
+              !*
             </Export-Package>
           </instructions>
         </configuration>
