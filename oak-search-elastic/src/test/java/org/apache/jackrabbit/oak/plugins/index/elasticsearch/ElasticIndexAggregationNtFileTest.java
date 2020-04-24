@@ -67,49 +67,21 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNotNull;
 
-public class ElasticIndexAggregationNtFileTest extends AbstractQueryTest {
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexAggregationNtFileTest.class);
+public class ElasticIndexAggregationNtFileTest extends ElasticsearchAbstractQueryTest {
     private static final String NT_TEST_ASSET = "test:Asset";
 
-    @Rule
-    public final ElasticsearchContainer elastic =
-            new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT);
-
-    @BeforeClass
-    public static void beforeMethod() {
-        DockerClient client = null;
-        try {
-            client = DockerClientFactory.instance().client();
-        } catch (Exception e) {
-            LOG.warn("Docker is not available, ElasticsearchPropertyIndexTest will be skipped");
-        }
-        assumeNotNull(client);
-    }
-
     @Override
-    protected ContentRepository createRepository() {
-        ElasticsearchConnection connection = ElasticsearchConnection.newBuilder()
-                .withIndexPrefix("" + System.nanoTime())
-                .withConnectionParameters(
-                        ElasticsearchConnection.DEFAULT_SCHEME,
-                        elastic.getContainerIpAddress(),
-                        elastic.getMappedPort(ElasticsearchConnection.DEFAULT_PORT)
-                ).build();
+    protected InitialContent getInitialContent() {
+        return new InitialContent() {
 
-        ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(connection,
-                new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        ElasticsearchIndexProvider provider = new ElasticsearchIndexProvider(connection);
-
-        return new Oak()
-                .with(new InitialContent() {
-
-                    @Override
-                    public void initialize(@NotNull NodeBuilder builder) {
+            @Override
+            public void initialize(@NotNull NodeBuilder builder) {
                         super.initialize(builder);
                         // registering additional node types for wider testing
                         InputStream stream = null;
@@ -137,14 +109,10 @@ public class ElasticIndexAggregationNtFileTest extends AbstractQueryTest {
                                     LOG.debug("Ignoring exception on stream closing.", e);
                                 }
                             }
-                        }
-                    }
+                }
+            }
 
-                })
-                .with(new OpenSecurityProvider())
-                .with(editorProvider)
-                .with(provider)
-                .createContentRepository();
+        };
     }
 
     /**
@@ -195,7 +163,11 @@ public class ElasticIndexAggregationNtFileTest extends AbstractQueryTest {
                 "the quick brown fox jumps over the lazy dog."));
         root.commit();
         expected.add("/content/asset");
-        Thread.sleep(5000);
-        assertQuery(statement, "xpath", expected);
+
+        assertEventually(()-> {
+            assertQuery(statement, "xpath", expected);
+        });
+
+
     }
 }

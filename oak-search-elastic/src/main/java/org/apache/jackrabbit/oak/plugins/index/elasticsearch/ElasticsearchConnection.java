@@ -230,7 +230,7 @@ public class ElasticsearchConnection implements Closeable {
             }
 
             @Override
-            public BuildStep withApiKeys(@NotNull String id, @NotNull String secret) {
+            public BuildStep withApiKeys(String id, String secret) {
                 this.apiKeyId = id;
                 this.apiKeySecret = secret;
                 return this;
