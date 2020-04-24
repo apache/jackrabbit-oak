@@ -92,6 +92,7 @@ import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -160,46 +161,47 @@ public final class DocumentNodeStore
     /**
      * Enable fast diff operations.
      */
-    private static final boolean FAST_DIFF = Boolean.parseBoolean(
-            System.getProperty("oak.documentMK.fastDiff", "true"));
+    private static final boolean FAST_DIFF = SystemPropertySupplier.create("oak.documentMK.fastDiff", Boolean.TRUE).loggingTo(LOG)
+            .get();
 
     /**
      * Feature flag to enable concurrent add/remove operations of hidden empty
      * nodes. See OAK-2673.
      */
-    private boolean enableConcurrentAddRemove =
-            Boolean.getBoolean("oak.enableConcurrentAddRemove");
+    private boolean enableConcurrentAddRemove = SystemPropertySupplier.create("oak.enableConcurrentAddRemove", Boolean.FALSE)
+            .loggingTo(LOG).get();
 
     /**
      * Use fair mode for background operation lock.
      */
-    private boolean fairBackgroundOperationLock =
-            Boolean.parseBoolean(System.getProperty("oak.fairBackgroundOperationLock", "true"));
+    private boolean fairBackgroundOperationLock = SystemPropertySupplier.create("oak.fairBackgroundOperationLock", Boolean.TRUE)
+            .loggingTo(LOG).get();
 
     public static final String SYS_PROP_DISABLE_JOURNAL = "oak.disableJournalDiff";
     /**
      * Feature flag to disable the journal diff mechanism. See OAK-4528.
      */
-    private boolean disableJournalDiff =
-            Boolean.getBoolean(SYS_PROP_DISABLE_JOURNAL);
+    private boolean disableJournalDiff = SystemPropertySupplier.create(SYS_PROP_DISABLE_JOURNAL, Boolean.FALSE).loggingTo(LOG)
+            .get();
 
     /**
      * Threshold for number of paths in journal entry to require a force push during commit
      * (instead of at background write)
      */
-    private int journalPushThreshold = Integer.getInteger("oak.journalPushThreshold", 100000);
+    private int journalPushThreshold = SystemPropertySupplier.create("oak.journalPushThreshold", 100000).loggingTo(LOG).get();
 
     /**
      * How many collision entries to collect in a single call.
      */
-    private int collisionGarbageBatchSize = Integer.getInteger("oak.documentMK.collisionGarbageBatchSize", 1000);
+    private int collisionGarbageBatchSize = SystemPropertySupplier.create("oak.documentMK.collisionGarbageBatchSize", 1000)
+            .loggingTo(LOG).get();
 
     /**
      * The number of updates to batch with a single call to
      * {@link DocumentStore#createOrUpdate(Collection, List)}.
      */
-    private final int createOrUpdateBatchSize =
-            Integer.getInteger("oak.documentMK.createOrUpdateBatchSize", 1000);
+    private final int createOrUpdateBatchSize = SystemPropertySupplier.create("oak.documentMK.createOrUpdateBatchSize", 1000)
+            .loggingTo(LOG).get();
 
     /**
      * The document store without potentially lease checking wrapper.
@@ -241,12 +243,11 @@ public final class DocumentNodeStore
      * The maximum back off time in milliseconds when merges are retried. The
      * default value is twice the {@link #asyncDelay}.
      */
-    private int maxBackOffMillis =
-            Integer.getInteger("oak.maxBackOffMS", asyncDelay * 2);
+    private int maxBackOffMillis = SystemPropertySupplier.create("oak.maxBackOffMS", asyncDelay * 2).loggingTo(LOG).get();
 
-    private int changeSetMaxItems =  Integer.getInteger("oak.document.changeSet.maxItems", 50);
+    private int changeSetMaxItems = SystemPropertySupplier.create("oak.document.changeSet.maxItems", 50).loggingTo(LOG).get();
 
-    private int changeSetMaxDepth =  Integer.getInteger("oak.document.changeSet.maxDepth", 9);
+    private int changeSetMaxDepth = SystemPropertySupplier.create("oak.document.changeSet.maxDepth", 9).loggingTo(LOG).get();
 
     /**
      * Whether this instance is disposed.
@@ -555,7 +556,7 @@ public final class DocumentNodeStore
         this.clock = builder.getClock();
 
         int cid = builder.getClusterId();
-        cid = Integer.getInteger("oak.documentMK.clusterId", cid);
+        cid = SystemPropertySupplier.create("oak.documentMK.clusterId", cid).loggingTo(LOG).get();
         if (readOnlyMode) {
             clusterNodeInfo = ClusterNodeInfo.getReadOnlyInstance(nonLeaseCheckingStore);
         } else {
