@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Test;
