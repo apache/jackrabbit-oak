@@ -101,6 +101,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexTypedProperty(D doc, PropertyState property, String pname, PropertyDefinition pd, int index);
 
+    protected abstract boolean indexDynamicBoost(D doc, PropertyDefinition pd, NodeState nodeState, String propertyName);
+
     protected abstract void indexAncestors(D doc, String path);
 
     protected abstract void indexNotNullProperty(D doc, PropertyDefinition pd);
@@ -243,6 +245,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         } else {
             if (pd.propertyIndex && pd.includePropertyType(property.getType().tag())) {
                 dirty |= addTypedFields(doc, property, pname, pd);
+            }
+            if (pd.dynamicBoost) {
+                dirty |= indexDynamicBoost(doc, pd, state, pname);
             }
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {

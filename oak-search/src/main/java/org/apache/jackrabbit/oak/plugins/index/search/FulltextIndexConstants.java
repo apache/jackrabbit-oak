@@ -138,6 +138,8 @@ public interface FulltextIndexConstants {
 
     String PROP_WEIGHT = "weight";
 
+    String PROP_DYNAMIC_BOOST = "dynamicBoost";
+
     /**
      * Boolean property in property definition to mark sync properties
      */
