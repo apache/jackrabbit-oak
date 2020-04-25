@@ -21,7 +21,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

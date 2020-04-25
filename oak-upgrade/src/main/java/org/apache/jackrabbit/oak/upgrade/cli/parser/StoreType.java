@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.parser;
 
-import static org.apache.commons.lang.StringUtils.removeStart;
+import static org.apache.commons.lang3.StringUtils.removeStart;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_OLD_PREFIX;

@@ -28,7 +28,7 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
