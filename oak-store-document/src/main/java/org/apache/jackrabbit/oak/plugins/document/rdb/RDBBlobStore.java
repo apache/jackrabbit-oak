@@ -32,10 +32,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -180,6 +182,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         List<String> tablesCreated = new ArrayList<String>();
         List<String> tablesPresent = new ArrayList<String>();
+        Map<String, String> tableInfo = new HashMap<>();
 
         Statement createStatement = null;
 
@@ -189,13 +192,18 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 try {
                     // avoid PreparedStatement due to weird DB2 behavior (OAK-6237)
                     checkStatement = con.createStatement();
-                    checkStatement.executeQuery("select ID from " + tableName + " where ID = '0'").close();
-                    checkStatement.close();
-                    checkStatement = null;
+                    ResultSet checkResultSet = checkStatement.executeQuery("select * from " + tableName + " where ID = '0'");
+
+                    // try to discover metadata
+                    tableInfo.put(tableName, RDBJDBCTools.dumpResultSetMeta(checkResultSet.getMetaData()));
+
+                    closeResultSet(checkResultSet);
+                    checkStatement = closeStatement(checkStatement);
                     con.commit();
+
                     tablesPresent.add(tableName);
                 } catch (SQLException ex) {
-                    closeStatement(checkStatement);
+                    checkStatement = closeStatement(checkStatement);
  
                     // table does not appear to exist
                     con.rollback();
@@ -215,6 +223,17 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
                     con.commit();
 
+                    ResultSet checkResultSet = null;
+                    try {
+                        checkStatement = con.createStatement();
+                        checkResultSet = checkStatement.executeQuery("select * from " + tableName + " where ID = '0'");
+                        tableInfo.put(tableName, RDBJDBCTools.dumpResultSetMeta(checkResultSet.getMetaData()));
+                        con.commit();
+                    } finally {
+                        closeResultSet(checkResultSet);
+                        closeStatement(checkStatement);
+                    }
+
                     tablesCreated.add(tableName);
                 }
             }
@@ -224,7 +243,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
 
             LOG.info("RDBBlobStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
-                    + driverDesc + ", connecting to: " + dbUrl + ", transaction isolation level: " + isolationDiags);
+                    + driverDesc + ", connecting to: " + dbUrl + ", transaction isolation level: " + isolationDiags + ", "
+                    + tableInfo);
             if (!tablesPresent.isEmpty()) {
                 LOG.info("Tables present upon startup: " + tablesPresent);
             }
