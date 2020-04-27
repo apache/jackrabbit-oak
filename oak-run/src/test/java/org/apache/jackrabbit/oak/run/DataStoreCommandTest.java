@@ -895,7 +895,7 @@ public class DataStoreCommandTest {
         return id;
     }
 
-    private static String getOption(Type dsOption) {
+    protected static String getOption(Type dsOption) {
         if (dsOption == Type.FDS) {
             return "fds";
         } else if (dsOption == Type.S3) {

@@ -20,6 +20,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,13 +29,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.google.common.io.Closer;
 import com.google.common.io.Files;
@@ -42,9 +47,11 @@ import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.commons.io.filefilter.FileFilterUtils;
+import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
@@ -52,6 +59,8 @@ import org.apache.jackrabbit.oak.commons.sort.EscapeUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.run.cli.BlobStoreOptions;
@@ -103,15 +112,13 @@ public class DataStoreCommand implements Command {
     private DataStoreOptions dataStoreOpts;
 
     private static final Comparator<String> idComparator = new Comparator<String>() {
-        @Override
-        public int compare(String s1, String s2) {
+        @Override public int compare(String s1, String s2) {
             return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
         }
     };
 
 
-    @Override
-    public void execute(String... args) throws Exception {
+    @Override public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
 
         opts = new Options();
@@ -172,7 +179,7 @@ public class DataStoreCommand implements Command {
         return true;
     }
 
-    private void execute(NodeStoreFixture fixture,  DataStoreOptions dataStoreOpts, Options opts, Closer closer)
+    private void execute(NodeStoreFixture fixture, DataStoreOptions dataStoreOpts, Options opts, Closer closer)
         throws Exception {
 
         final BlobStoreOptions optionBean = opts.getOptionBean(BlobStoreOptions.class);
@@ -190,10 +197,10 @@ public class DataStoreCommand implements Command {
                     BlobReferenceRetriever retriever = getRetriever(fixture, dataStoreOpts, opts);
 
                     retriever.collectReferences(new ReferenceCollector() {
-                        @Override
-                        public void addReference(String blobId, String nodeId) {
+                        @Override public void addReference(String blobId, String nodeId) {
                             try {
-                                Iterator<String> idIter = ((GarbageCollectableBlobStore) fixture.getBlobStore()).resolveChunks(blobId);
+                                Iterator<String> idIter =
+                                    ((GarbageCollectableBlobStore) fixture.getBlobStore()).resolveChunks(blobId);
 
                                 while (idIter.hasNext()) {
                                     String id = idIter.next();
@@ -201,9 +208,10 @@ public class DataStoreCommand implements Command {
                                     // If --verbose is present, convert blob ID to a backend friendly format and
                                     // concat the path that has the ref. Otherwise simply add the ID to the o/p file
                                     // as it is.
-                                    String line = dataStoreOpts.isVerbose() ? VerboseIdLogger.encodeId(delimJoiner.join(id,
-                                                    escapeLineBreak(nodeId)),
-                                            optionBean.getBlobStoreType()) : id;
+                                    String line = dataStoreOpts.isVerbose() ?
+                                        VerboseIdLogger.encodeId(delimJoiner.join(id, escapeLineBreak(nodeId)),
+                                            optionBean.getBlobStoreType()) :
+                                        id;
                                     writeAsLine(writer, line, true);
                                 }
                             } catch (Exception e) {
@@ -226,7 +234,6 @@ public class DataStoreCommand implements Command {
                 } finally {
                     Closeables.close(writer, threw);
                 }
-
             } else if (dataStoreOpts.dumpIds()) {
                 final File blobidsTemp = File.createTempFile("blobidstemp", null, new File(opts.getTempDirectory()));
 
@@ -237,24 +244,28 @@ public class DataStoreCommand implements Command {
                 final File ids = new File(parent, "dump-id-" + startTime);
                 FileUtils.forceMkdir(parent);
 
-
                 if (dataStoreOpts.isVerbose()) {
                     verboseIds(optionBean, blobidsTemp, ids);
                 } else {
                     FileUtils.copyFile(blobidsTemp, ids);
                 }
+            } else if (dataStoreOpts.getMetadata()) {
 
+                List<String> data = getMetadata(fixture);
+                File outDir = opts.getOptionBean(DataStoreOptions.class).getOutDir();
+                outDir.mkdirs();
+                FileIOUtils.writeStrings(data.iterator(), new File(outDir, "metadata"), false);
             } else {
                 MarkSweepGarbageCollector collector = getCollector(fixture, dataStoreOpts, opts, closer);
                 if (dataStoreOpts.checkConsistency()) {
                     long missing = collector.checkConsistency();
-                log.warn("Found {} missing blobs", missing);
+                    log.warn("Found {} missing blobs", missing);
 
-                if (dataStoreOpts.isVerbose()) {
-                    new VerboseIdLogger(opts).log();
-                }
-            } else if (dataStoreOpts.collectGarbage()) {
-                collector.collectGarbage(dataStoreOpts.markOnly());
+                    if (dataStoreOpts.isVerbose()) {
+                        new VerboseIdLogger(opts).log();
+                    }
+                } else if (dataStoreOpts.collectGarbage()) {
+                    collector.collectGarbage(dataStoreOpts.markOnly());
                 }
             }
         }
@@ -265,6 +276,65 @@ public class DataStoreCommand implements Command {
             FileUtils.cleanDirectory(opts.getOutDir());
         }
         FileUtils.cleanDirectory(opts.getWorkDir());
+    }
+
+    private static List<String> getMetadata(NodeStoreFixture fixture) {
+        String repositoryId = ClusterRepositoryInfo.getId(fixture.getStore());
+        checkNotNull(repositoryId);
+
+        SharedDataStore dataStore = (SharedDataStore) fixture.getBlobStore();
+        // Get all the start markers available
+        List<DataRecord>  markerFiles =
+            dataStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.MARKED_START_MARKER.getType());
+        Map<String, List<DataRecord>> markers = markerFiles.stream().collect(Collectors.groupingBy(
+            input -> SharedDataStoreUtils.SharedStoreRecordType.MARKED_START_MARKER
+                .getIdFromName(input.getIdentifier().toString()),
+            Collectors.mapping(Function.identity(), Collectors.toList())));
+        log.info("Mapped markers {}", markers);
+
+        // Get all the markers available
+        List<DataRecord> refFiles =
+            dataStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REFERENCES.getType());
+
+        Map<String, DataRecord> references = refFiles.stream().collect(Collectors.toMap(
+            dataRecord -> dataRecord.getIdentifier().toString()
+                .substring(SharedDataStoreUtils.SharedStoreRecordType.REFERENCES.getType().length() + 1),
+            Function.identity()));
+        log.info("Mapped references {}", references);
+
+        // Get all the repositories registered
+        List<DataRecord> repoFiles =
+            dataStore.getAllMetadataRecords(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getType());
+        log.info("Repository files {}", repoFiles);
+
+        List<String> records = Lists.newArrayList();
+        for (DataRecord repoRec : repoFiles) {
+            String id =
+                SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getIdFromName(repoRec.getIdentifier().toString());
+
+            long markerTime = 0;
+            long refTime = 0;
+            if (markers.containsKey(id)) {
+                List<DataRecord> refStartMarkers = markers.get(id);
+                DataRecord earliestRefRecord = SharedDataStoreUtils.getEarliestRecord(refStartMarkers);
+                log.info("Earliest record {}", earliestRefRecord);
+
+                markerTime = TimeUnit.MILLISECONDS.toSeconds(earliestRefRecord.getLastModified());
+
+                String uniqueSessionId = earliestRefRecord.getIdentifier().toString()
+                    .substring(SharedDataStoreUtils.SharedStoreRecordType.MARKED_START_MARKER.getType().length() + 1);
+                if (references.containsKey(uniqueSessionId)) {
+                    refTime = TimeUnit.MILLISECONDS.toSeconds(references.get(uniqueSessionId).getLastModified());
+                }
+            }
+            String isLocal = "-";
+            if (id != null && id.equals(repositoryId)) {
+                isLocal = "*";
+            }
+            records.add(Joiner.on("|").join(id, markerTime, refTime, isLocal));
+        }
+        log.info("Metadata retrieved {}", records);
+        return records;
     }
 
     private static MarkSweepGarbageCollector getCollector(NodeStoreFixture fixture, DataStoreOptions dataStoreOpts,
@@ -288,7 +358,8 @@ public class DataStoreCommand implements Command {
         return collector;
     }
 
-    private static BlobReferenceRetriever getRetriever(NodeStoreFixture fixture, DataStoreOptions dataStoreOpts, Options opts) {
+    private static BlobReferenceRetriever getRetriever(NodeStoreFixture fixture, DataStoreOptions dataStoreOpts,
+        Options opts) {
         BlobReferenceRetriever retriever;
         if (opts.getCommonOpts().isDocument() && !dataStoreOpts.hasVerboseRootPaths()) {
             retriever = new DocumentBlobReferenceRetriever((DocumentNodeStore) fixture.getStore());
@@ -297,8 +368,8 @@ public class DataStoreCommand implements Command {
                 List<String> rootPathList = dataStoreOpts.getVerboseRootPaths();
                 List<String> roothPathInclusionRegex = dataStoreOpts.getVerboseInclusionRegex();
                 retriever = new NodeTraverserReferenceRetriever(fixture.getStore(),
-                        rootPathList.toArray(new String[rootPathList.size()]),
-                        roothPathInclusionRegex.toArray(new String[roothPathInclusionRegex.size()]));
+                    rootPathList.toArray(new String[rootPathList.size()]),
+                    roothPathInclusionRegex.toArray(new String[roothPathInclusionRegex.size()]));
             } else {
                 ReadOnlyFileStore fileStore = getService(fixture.getWhiteboard(), ReadOnlyFileStore.class);
                 retriever = new SegmentBlobReferenceRetriever(fileStore);
@@ -307,8 +378,7 @@ public class DataStoreCommand implements Command {
         return retriever;
     }
 
-    private static void retrieveBlobIds(GarbageCollectableBlobStore blobStore, File blob)
-            throws Exception {
+    private static void retrieveBlobIds(GarbageCollectableBlobStore blobStore, File blob) throws Exception {
 
         System.out.println("Starting dump of blob ids");
         Stopwatch watch = createStarted();
@@ -324,9 +394,8 @@ public class DataStoreCommand implements Command {
     private static void verboseIds(BlobStoreOptions blobOpts, File readFile, File writeFile) throws IOException {
         LineIterator idIterator = FileUtils.lineIterator(readFile, UTF_8.name());
 
-        try (BurnOnCloseFileIterator<String> iterator =
-                     new BurnOnCloseFileIterator<String>(idIterator, readFile,
-                             (Function<String, String>) input -> VerboseIdLogger.encodeId(input, blobOpts.getBlobStoreType()))) {
+        try (BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(idIterator, readFile,
+            (Function<String, String>) input -> VerboseIdLogger.encodeId(input, blobOpts.getBlobStoreType()))) {
             writeStrings(iterator, writeFile, true, log, "Transformed to verbose ids - ");
         }
     }
@@ -340,8 +409,8 @@ public class DataStoreCommand implements Command {
     }
 
     private static void logCliArgs(String[] args) {
-        String [] filteredArgs = Arrays.stream(args).filter(
-            str -> !str.startsWith("az:") && !str.startsWith("mongodb:")).toArray(String[]::new);
+        String[] filteredArgs = Arrays.stream(args).filter(str -> !str.startsWith("az:") && !str.startsWith("mongodb:"))
+            .toArray(String[]::new);
         log.info("Command line arguments used for datastore command [{}]", Joiner.on(' ').join(filteredArgs));
         List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
         if (!inputArgs.isEmpty()) {
@@ -402,10 +471,10 @@ public class DataStoreCommand implements Command {
             if (paths == null || paths.length == 0) {
                 traverseChildren(nodeStore.getRoot(), "/", collector);
             } else {
-                for (String path: paths) {
+                for (String path : paths) {
                     Iterable<String> nodeList = PathUtils.elements(path);
                     NodeState state = nodeStore.getRoot();
-                    for (String node: nodeList) {
+                    for (String node : nodeList) {
                         state = state.getChildNode(node);
                     }
 
@@ -415,12 +484,13 @@ public class DataStoreCommand implements Command {
                         for (String regex : inclusionRegex) {
                             Map<NodeState, String> inclusionMap = new HashMap<NodeState, String>();
                             getInclusionListFromRegex(state, path, regex, inclusionMap);
-                            if (inclusionMap.size() == 0 ) {
-                                System.out.println("No valid paths found for traversal, " +
-                                        "for the inclusion Regex " + regex + " under the path " + path);
+                            if (inclusionMap.size() == 0) {
+                                System.out.println(
+                                    "No valid paths found for traversal, " + "for the inclusion Regex " + regex
+                                        + " under the path " + path);
                                 continue;
                             }
-                            for(NodeState s : inclusionMap.keySet()) {
+                            for (NodeState s : inclusionMap.keySet()) {
                                 traverseChildren(s, inclusionMap.get(s), collector);
                             }
                         }
@@ -432,7 +502,8 @@ public class DataStoreCommand implements Command {
 
         }
 
-        private void getInclusionListFromRegex(NodeState rootState, String rootPath, String inclusionRegex, Map<NodeState, String> inclusionNodeStates) {
+        private void getInclusionListFromRegex(NodeState rootState, String rootPath, String inclusionRegex,
+            Map<NodeState, String> inclusionNodeStates) {
             Splitter delimSplitter = Splitter.on("/").trimResults().omitEmptyStrings();
             List<String> pathElementList = delimSplitter.splitToList(inclusionRegex);
 
@@ -446,7 +517,7 @@ public class DataStoreCommand implements Command {
                     String rootPathTemp = PathUtils.concat(rootPath, nodeName);
                     // Remove the current Path Element from the regexPath
                     // and recurse on getInclusionListFromRegex with this childNodeState and the regexPath
-                    // under the current pahtElement
+                    // under the current pathElement
                     String sub = delimJoiner.join(pathElementList.subList(1, pathElementList.size()));
                     getInclusionListFromRegex(rootState.getChildNode(nodeName), rootPathTemp, sub, inclusionNodeStates);
                 }
@@ -461,13 +532,13 @@ public class DataStoreCommand implements Command {
         }
     }
 
+
     static class VerboseIdLogger {
         static final String DELIM = ",";
         static final String DASH = "-";
         static final String HASH = "#";
         static final Comparator<String> idComparator = new Comparator<String>() {
-            @Override
-            public int compare(String s1, String s2) {
+            @Override public int compare(String s1, String s2) {
                 return s1.split(DELIM)[0].compareTo(s2.split(DELIM)[0]);
             }
         };
@@ -498,15 +569,15 @@ public class DataStoreCommand implements Command {
             return filterFiles(outDir, "gcworkdir-", filePrefix);
         }
 
-        @Nullable
-        static File filterFiles(File outDir, String dirPrefix, String filePrefix) {
-            List<File> subDirs = FileFilterUtils.filterList(FileFilterUtils
-                    .and(FileFilterUtils.prefixFileFilter(dirPrefix), FileFilterUtils.directoryFileFilter()),
+        @Nullable static File filterFiles(File outDir, String dirPrefix, String filePrefix) {
+            List<File> subDirs = FileFilterUtils.filterList(
+                FileFilterUtils.and(FileFilterUtils.prefixFileFilter(dirPrefix), FileFilterUtils.directoryFileFilter()),
                 outDir.listFiles());
 
             if (subDirs != null && !subDirs.isEmpty()) {
                 File workDir = subDirs.get(0);
-                List<File> outFiles = FileFilterUtils.filterList(FileFilterUtils.prefixFileFilter(filePrefix), workDir.listFiles());
+                List<File> outFiles =
+                    FileFilterUtils.filterList(FileFilterUtils.prefixFileFilter(filePrefix), workDir.listFiles());
 
                 if (outFiles != null && !outFiles.isEmpty()) {
                     return outFiles.get(0);
@@ -518,7 +589,7 @@ public class DataStoreCommand implements Command {
 
         /**
          * Encode the blob id/blob ref in a format understood by the backing datastore
-         *
+         * <p>
          * Example:
          * b47b58169f121822cd4a...#123311,/a/b/c => b47b-58169f121822cd4a...,/a/b/c (dsType = S3 or Azure)
          * b47b58169f121822cd4a...#123311 => b47b-58169f121822cd4a... (dsType = S3 or Azure)
@@ -545,15 +616,17 @@ public class DataStoreCommand implements Command {
 
             if (dsType == FAKE || dsType == FDS) {
                 // 0102030405... => 01/02/03/0102030405...
-                blobId = (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value() + blobId
-                    .substring(4, 6) + FILE_SEPARATOR.value() + blobId);
+                blobId =
+                    (blobId.substring(0, 2) + FILE_SEPARATOR.value() + blobId.substring(2, 4) + FILE_SEPARATOR.value()
+                        + blobId.substring(4, 6) + FILE_SEPARATOR.value() + blobId);
             } else if (dsType == S3 || dsType == AZURE) {
                 //b47b58169f121822cd4a0... => b47b-58169f121822cd4a0...
                 blobId = (blobId.substring(0, 4) + DASH + blobId.substring(4));
             }
 
             // Check if the line provided as input was a line dumped from blob refs or blob ids
-            // In case of blob refs dump, the list size would be 2 (Consisting of blob ref and the path on which ref is present)
+            // In case of blob refs dump, the list size would be 2 (Consisting of blob ref and the path on which ref
+            //is present)
             // In case of blob ids dump, the list size would be 1 (Consisting of just the id)
             if (list.size() > 1) {
                 // Join back the encoded blob ref and the path on which the ref is present
@@ -567,17 +640,25 @@ public class DataStoreCommand implements Command {
         }
 
         public void log() throws IOException {
-
             for (File outFile : outFileList) {
                 File tempFile = new File(outDir, outFile.getName() + "-temp");
                 FileUtils.moveFile(outFile, tempFile);
-                try (BurnOnCloseFileIterator<String> iterator =
-                    new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(tempFile, UTF_8.toString()), tempFile,
-                        (Function<String, String>) input -> encodeId(input, blobStoreType))) {
-                writeStrings(iterator, outFile, true, log, "Transformed to verbose ids - ");
-            }
+                try (BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(
+                    FileUtils.lineIterator(tempFile, UTF_8.toString()), tempFile,
+                    (Function<String, String>) input -> encodeId(input, blobStoreType))) {
+                    writeStrings(iterator, outFile, true, log, "Transformed to verbose ids - ");
+                }
             }
         }
+    }
+
+    public static void main(String[] args) {
+        long timestamp = System.currentTimeMillis();
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        String dt = formatter.format(timestamp);
+        System.out.println(dt);
     }
 }
 

@@ -45,6 +45,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<Void> idOp;
     private final OptionSpec<Boolean> checkConsistencyAfterGC;
     private final OptionSpec<Integer> batchCount;
+    private final OptionSpec<Void> metadataOp;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
     private final Set<String> operationNames;
@@ -72,6 +73,10 @@ public class DataStoreOptions implements OptionsBean {
         refOp = parser.accepts("dump-ref", "Gets a dump of Blob References");
 
         idOp = parser.accepts("dump-id", "Gets a dump of Blob Ids");
+
+        metadataOp = parser.accepts("get-metadata",
+            "Gets the metadata available in the DataStore in the format `repositoryId|referencesTime|* (if local) "
+                + "(earliest time of references file if available)` in the DataStore repository/datastore defined");
 
         blobGcMaxAgeInSecs = parser.accepts("max-age", "")
             .withRequiredArg().ofType(Long.class).defaultsTo(86400L);
@@ -104,7 +109,7 @@ public class DataStoreOptions implements OptionsBean {
             "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck, idOp, refOp);
+        actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck, idOp, refOp, metadataOp);
         operationNames = collectionOperationNames(actionOpts);
     }
 
@@ -166,6 +171,10 @@ public class DataStoreOptions implements OptionsBean {
 
     public boolean dumpIds() {
         return options.has(idOp);
+    }
+
+    public boolean getMetadata(){
+        return options.has(metadataOp);
     }
 
     public boolean checkConsistencyAfterGC() {
