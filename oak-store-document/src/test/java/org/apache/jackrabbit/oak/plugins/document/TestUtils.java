@@ -100,4 +100,12 @@ public class TestUtils {
     public static void resetRevisionClockToDefault() {
         Revision.resetClockToDefault();
     }
+
+    public static void disposeQuietly(DocumentNodeStore ns) {
+        try {
+            ns.dispose();
+        } catch (Exception e) {
+            // ignore
+        }
+    }
 }
