@@ -565,6 +565,8 @@ The following operations are available:
     --check-consistency        - List all the missing blobs by doing a consistency check.
     --dump-ref                 - List all the blob references in the node store
     --dump-id                  - List all the ids in the data store
+    --get-metadata             - Retrieves a machine readable format GC datastore metadata
+                                 e.g. <repoId>|<earliestRef_start_timestamp_secs>|<earliestRef_mark_timestamp_secs>|[*-] * for local repo id
 
 The following options are available:
 
