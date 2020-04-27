@@ -595,7 +595,10 @@ The following options are available:
     --export-metrics         - Option to export the captured metrics. The format of the command is type;URL;key1=value1,key2=value2
                               Currently only [Prometheus Pushgateway](https://github.com/prometheus/pushgateway) is supported
                               e.g. --export-metrics "pushgateway;localhost:9091;key1=value1,key2=value2" 
-
+    --sweep-only-refs-past-retention - Sweep only if the earliest references from all repositories are past the retention period which is govered by the max-age parameter.
+                                       Boolean (Optional). Defaults to False. Only applicable for --collect-garbage
+    --check-consistency-gc    - Performs a consistency check immediately after the GC.        
+                                Boolean (Optional). Defaults to False. Only applicable for --collect-garbage                           
 Note:
 
 Note: When using --export-metrics the following additional jars have to be downloaded to support Prometheus Pushgatway

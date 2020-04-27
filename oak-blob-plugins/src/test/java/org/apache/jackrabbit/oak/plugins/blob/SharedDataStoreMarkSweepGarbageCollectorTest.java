@@ -91,6 +91,7 @@ public class SharedDataStoreMarkSweepGarbageCollectorTest {
       1,
       0L,
       false,
+      false,
       "repo",
       whiteboard,
       new DefaultStatisticsProvider(executor)

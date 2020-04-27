@@ -352,7 +352,8 @@ public class DataStoreCommand implements Command {
             new MarkSweepGarbageCollector(retriever, (GarbageCollectableBlobStore) fixture.getBlobStore(), service,
                 dataStoreOpts.getOutDir().getAbsolutePath(), dataStoreOpts.getBatchCount(),
                 SECONDS.toMillis(dataStoreOpts.getBlobGcMaxAgeInSecs()), dataStoreOpts.checkConsistencyAfterGC(),
-                repositoryId, fixture.getWhiteboard(), getService(fixture.getWhiteboard(), StatisticsProvider.class));
+                dataStoreOpts.sweepIfRefsPastRetention(), repositoryId, fixture.getWhiteboard(),
+                getService(fixture.getWhiteboard(), StatisticsProvider.class));
         collector.setTraceOutput(true);
 
         return collector;

@@ -58,7 +58,7 @@ import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.plugins.blob.BlobGCTest.MemoryBlobStoreNodeStore;
+import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
@@ -527,7 +527,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
         additionalParams += " --check-consistency-gc true";
-        testGc(dump, data, 0, false);
+        testGc(dump, data, 0, false, false);
 
         assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
 
@@ -536,12 +536,30 @@ public class DataStoreCommandTest {
     }
 
     @Test
+    public void gcSweepRefsOld() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
+        storeFixture.close();
+        additionalParams += " --check-consistency-gc true --sweep-only-refs-past-retention true";
+        testGc(dump, data, 0, false, false);
+    }
+
+    @Test
+    public void gcSweepRefsNotOld() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
+        storeFixture.close();
+        additionalParams += " --check-consistency-gc true --sweep-only-refs-past-retention true";
+        testGc(dump, data, 1000, false, true);
+    }
+
+    @Test
     public void gc() throws Exception {
         File dump = temporaryFolder.newFolder();
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testGc(dump, data, 0, false);
+        testGc(dump, data, 0, false, false);
     }
     /*
     Command should throw and exception if --verboseRootPath specified
@@ -555,7 +573,7 @@ public class DataStoreCommandTest {
 
         additionalParams += " --verboseRootPath /a";
         try {
-            testGc(dump, data, 0, false);
+            testGc(dump, data, 0, false, false);
         } catch (OptionException e) {
             assertTrue(e.getMessage().equals("Option(s) [verboseRootPath] are unavailable " +
                     "given other options on the command line"));
@@ -570,7 +588,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 0, 1);
         storeFixture.close();
 
-        testGc(dump, data, 0, false);
+        testGc(dump, data, 0, false, false);
     }
 
     @Test
@@ -579,7 +597,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testGc(dump, data, 10000, false);
+        testGc(dump, data, 10000, false, false);
     }
 
     @Test
@@ -588,7 +606,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testGc(dump, data, 10000, true);
+        testGc(dump, data, 10000, true, false);
     }
 
     @Test
@@ -607,7 +625,7 @@ public class DataStoreCommandTest {
 
         storeFixture.close();
 
-        testGc(dump, data, 0, false);
+        testGc(dump, data, 0, false, false);
     }
 
     @Test
@@ -744,7 +762,7 @@ public class DataStoreCommandTest {
 
     }
 
-    private void testGc(File dump, Data data, long maxAge, boolean markOnly) throws Exception {
+    private void testGc(File dump, Data data, long maxAge, boolean markOnly, boolean refsOld) throws Exception {
         List<String> argsList = Lists
             .newArrayList("--collect-garbage", String.valueOf(markOnly), "--max-age", String.valueOf(maxAge),
                 "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
@@ -757,14 +775,14 @@ public class DataStoreCommandTest {
         DataStoreCommand cmd = new DataStoreCommand();
         cmd.execute(argsList.toArray(new String[0]));
 
-        if (!markOnly) {
+        if (!markOnly && !refsOld) {
             assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
         } else {
             assertFileNull(dump, "avail-");
         }
 
         assertFileEquals(dump, "marked-", Sets.difference(data.added, data.deleted));
-        if (!markOnly) {
+        if (!markOnly && !refsOld) {
             assertFileEquals(dump, "gccand-", data.deleted);
         } else {
             assertFileNull(dump, "gccand-");

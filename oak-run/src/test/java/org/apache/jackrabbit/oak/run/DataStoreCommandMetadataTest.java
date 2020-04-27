@@ -32,7 +32,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.plugins.blob.BlobGCTest.MemoryBlobStoreNodeStore;
+import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.run.DataStoreCommandTest.DataStoreFixture;
 import org.apache.jackrabbit.oak.run.DataStoreCommandTest.StoreFixture;

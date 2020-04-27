@@ -56,6 +56,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<Boolean> resetLoggingConfig;
     private OptionSpec<String> exportMetrics;
     private static final String DELIM = ",";
+    private OptionSpec<Boolean> sweepIfRefsPastRetention;
 
     public DataStoreOptions(OptionParser parser) {
         collectGarbage = parser.accepts("collect-garbage",
@@ -65,6 +66,10 @@ public class DataStoreOptions implements OptionsBean {
 
         checkConsistencyAfterGC = parser.accepts("check-consistency-gc",
             "Performs a consistency check immediately after DSGC")
+            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+
+        sweepIfRefsPastRetention = parser.accepts("sweep-only-refs-past-retention",
+            "Only allows sweep if all references available older than retention time (Default false)")
             .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
 
         consistencyCheck =
@@ -233,4 +238,7 @@ public class DataStoreOptions implements OptionsBean {
         return options.valuesOf(verbosePathInclusionRegex);
     }
 
+    public boolean sweepIfRefsPastRetention() {
+        return options.has(sweepIfRefsPastRetention) && sweepIfRefsPastRetention.value(options) ;
+    }
 }
