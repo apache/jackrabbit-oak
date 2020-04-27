@@ -182,6 +182,16 @@ public class SegmentBlob extends Record implements Blob {
 
         if (object instanceof SegmentBlob) {
             SegmentBlob that = (SegmentBlob) object;
+            if (blobStore == null) {
+                if  (this.getContentIdentity() != null && that.getContentIdentity() != null) {
+                    return this.getContentIdentity().equals(that.getContentIdentity());
+                }
+
+                if (this.isExternal() && !that.isExternal() || !this.isExternal() && that.isExternal()) {
+                    return false;
+                }
+            }
+
             if (this.length() != that.length()) {
                 return false;
             }

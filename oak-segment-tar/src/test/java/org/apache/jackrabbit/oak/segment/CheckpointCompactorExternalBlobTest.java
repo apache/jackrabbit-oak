@@ -24,31 +24,41 @@ import static org.apache.jackrabbit.oak.segment.CheckpointCompactorTestUtils.add
 import static org.apache.jackrabbit.oak.segment.CheckpointCompactorTestUtils.assertSameRecord;
 import static org.apache.jackrabbit.oak.segment.CheckpointCompactorTestUtils.assertSameStableId;
 import static org.apache.jackrabbit.oak.segment.CheckpointCompactorTestUtils.checkGeneration;
+import static org.apache.jackrabbit.oak.segment.CheckpointCompactorTestUtils.createBlob;
 import static org.apache.jackrabbit.oak.segment.CheckpointCompactorTestUtils.createCompactor;
 import static org.apache.jackrabbit.oak.segment.CheckpointCompactorTestUtils.getCheckpoint;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.segment.file.FileStore;
+import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
+import org.apache.jackrabbit.oak.segment.test.TemporaryBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.NotNull;
+import org.junit.After;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
-import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
-import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+public class CheckpointCompactorExternalBlobTest {
 
-public class CheckpointCompactorTest {
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder(new File("target"));
+    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
+
+    private TemporaryBlobStore tempoararyBlobStore = new TemporaryBlobStore(folder);
 
     private FileStore fileStore;
 
@@ -58,9 +68,19 @@ public class CheckpointCompactorTest {
 
     private GCGeneration compactedGeneration;
 
-    @Before
-    public void setup() throws IOException, InvalidFileStoreVersionException {
-        fileStore = fileStoreBuilder(folder.getRoot()).build();
+    @Rule
+    public RuleChain rules = RuleChain.outerRule(folder)
+        .around(tempoararyBlobStore);
+
+    public void setup(boolean withBlobStore) throws IOException, InvalidFileStoreVersionException {
+        BlobStore blobStore = tempoararyBlobStore.blobStore();
+        FileStoreBuilder fileStoreBuilder = fileStoreBuilder(folder.getRoot());
+
+        if (withBlobStore) {
+            fileStoreBuilder = fileStoreBuilder.withBlobStore(blobStore);
+        }
+
+        fileStore = fileStoreBuilder.build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         compactedGeneration = newGCGeneration(1,1, true);
         compactor = createCompactor(fileStore, compactedGeneration);
@@ -73,13 +93,31 @@ public class CheckpointCompactorTest {
 
     @Test
     public void testCompact() throws Exception {
-        addTestContent("cp1", nodeStore, 42);
+        setup(true);
+
+        // add two blobs which will be persisted in the blob store
+        addTestContent("cp1", nodeStore, SegmentTestConstants.MEDIUM_LIMIT);
         String cp1 = nodeStore.checkpoint(DAYS.toMillis(1));
-        addTestContent("cp2", nodeStore, 42);
+        addTestContent("cp2", nodeStore, SegmentTestConstants.MEDIUM_LIMIT);
         String cp2 = nodeStore.checkpoint(DAYS.toMillis(1));
+
+        // update the two blobs from the blob store
+        updateTestContent("cp1", nodeStore);
+        String cp3 = nodeStore.checkpoint(DAYS.toMillis(1));
+        updateTestContent("cp2", nodeStore);
+        String cp4 = nodeStore.checkpoint(DAYS.toMillis(1));
+        fileStore.close();
+
+        // no blob store configured
+        setup(false);
+
+        // this time the updated blob will be stored in the file store
+        updateTestContent("cp2", nodeStore);
+        String cp5 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted1 = fileStore.getHead();
         SegmentNodeState compacted1 = compactor.compact(EMPTY_NODE, uncompacted1, EMPTY_NODE, Canceller.newCanceller());
+
         assertNotNull(compacted1);
         assertFalse(uncompacted1 == compacted1);
         checkGeneration(compacted1, compactedGeneration);
@@ -87,30 +125,18 @@ public class CheckpointCompactorTest {
         assertSameStableId(uncompacted1, compacted1);
         assertSameStableId(getCheckpoint(uncompacted1, cp1), getCheckpoint(compacted1, cp1));
         assertSameStableId(getCheckpoint(uncompacted1, cp2), getCheckpoint(compacted1, cp2));
-        assertSameRecord(getCheckpoint(compacted1, cp2), compacted1.getChildNode("root"));
-
-        // Simulate a 2nd compaction cycle
-        addTestContent("cp3", nodeStore, 42);
-        String cp3 = nodeStore.checkpoint(DAYS.toMillis(1));
-        addTestContent("cp4", nodeStore, 42);
-        String cp4 = nodeStore.checkpoint(DAYS.toMillis(1));
-
-        SegmentNodeState uncompacted2 = fileStore.getHead();
-        SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1, Canceller.newCanceller());
-        assertNotNull(compacted2);
-        assertFalse(uncompacted2 == compacted2);
-        checkGeneration(compacted2, compactedGeneration);
-
-        assertTrue(fileStore.getRevisions().setHead(uncompacted2.getRecordId(), compacted2.getRecordId()));
-
-        assertEquals(uncompacted2, compacted2);
-        assertSameStableId(uncompacted2, compacted2);
-        assertSameStableId(getCheckpoint(uncompacted2, cp1), getCheckpoint(compacted2, cp1));
-        assertSameStableId(getCheckpoint(uncompacted2, cp2), getCheckpoint(compacted2, cp2));
-        assertSameStableId(getCheckpoint(uncompacted2, cp3), getCheckpoint(compacted2, cp3));
-        assertSameStableId(getCheckpoint(uncompacted2, cp4), getCheckpoint(compacted2, cp4));
-        assertSameRecord(getCheckpoint(compacted1, cp1), getCheckpoint(compacted2, cp1));
-        assertSameRecord(getCheckpoint(compacted1, cp2), getCheckpoint(compacted2, cp2));
-        assertSameRecord(getCheckpoint(compacted2, cp4), compacted2.getChildNode("root"));
+        assertSameStableId(getCheckpoint(uncompacted1, cp3), getCheckpoint(compacted1, cp3));
+        assertSameStableId(getCheckpoint(uncompacted1, cp4), getCheckpoint(compacted1, cp4));
+        assertSameStableId(getCheckpoint(uncompacted1, cp5), getCheckpoint(compacted1, cp5));
+        assertSameRecord(getCheckpoint(compacted1, cp5), compacted1.getChildNode("root"));
     }
+
+    private static void updateTestContent(@NotNull String parent, @NotNull NodeStore nodeStore)
+            throws CommitFailedException, IOException {
+        NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+        NodeBuilder parentBuilder = rootBuilder.child(parent);
+        parentBuilder.child("b").setProperty("bin", createBlob(nodeStore, SegmentTestConstants.MEDIUM_LIMIT));
+        nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
 }
