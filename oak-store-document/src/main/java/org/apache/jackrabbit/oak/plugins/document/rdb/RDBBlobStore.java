@@ -242,9 +242,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 tablesToBeDropped.addAll(tablesCreated);
             }
 
+            Map<String, String> diag = db.getAdditionalDiagnostics(this.ch, this.tnData);
+
             LOG.info("RDBBlobStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
-                    + driverDesc + ", connecting to: " + dbUrl + ", transaction isolation level: " + isolationDiags + ", "
-                    + tableInfo);
+                    + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag.toString()))
+                    + ", transaction isolation level: " + isolationDiags + ", " + tableInfo);
             if (!tablesPresent.isEmpty()) {
                 LOG.info("Tables present upon startup: " + tablesPresent);
             }

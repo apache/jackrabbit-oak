@@ -1074,10 +1074,10 @@ public class RDBDocumentStore implements DocumentStore {
             tableDiags.insert(0, ", ");
         }
 
-        String diag = dbInfo.getAdditionalDiagnostics(this.ch, this.tableMeta.get(Collection.NODES).getName()).toString();
+        Map<String, String> diag = dbInfo.getAdditionalDiagnostics(this.ch, this.tableMeta.get(Collection.NODES).getName());
 
         LOG.info("RDBDocumentStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
-                + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag))
+                + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag.toString()))
                 + ", transaction isolation level: " + isolationDiags + tableDiags);
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
