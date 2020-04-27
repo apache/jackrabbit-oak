@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,6 +75,18 @@ public enum RDBBlobStoreDB {
             return "create table " + tableName + " (ID varchar(" + RDBBlobStore.IDSIZE
                     + ") not null, LVL int, LASTMOD bigint "
                     + "constraint "  + tableName + "_PK primary key clustered (ID ASC))";
+        }
+
+        @Override
+        @Nullable
+        public String evaluateDiagnostics(Map<String, String> diags) {
+            String collation = diags.get("collation_name");
+            if (collation != null && collation.toLowerCase(Locale.ENGLISH).startsWith("sql")) {
+                return "Default server collation is: '" + collation
+                        + "'. There's a risk of performance degradation; see https://issues.apache.org/jira/browse/OAK-8908 for more information.";
+            } else {
+                return null;
+            }
         }
     },
 
@@ -151,6 +165,11 @@ public enum RDBBlobStoreDB {
     @NotNull
     public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
         return vendorCode.getAdditionalDiagnostics(ch, tableName);
+    }
+
+    @Nullable
+    public String evaluateDiagnostics(Map<String, String> diags) {
+        return null;
     }
 
     @Override
