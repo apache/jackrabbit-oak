@@ -43,7 +43,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>51000000</max.jar.size>
+    <max.jar.size>60000000</max.jar.size><!-- TODO: set correct size -->
   </properties>
 
   <build>
@@ -476,6 +476,37 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <dependencies>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-codec-http</artifactId>
+          <version>4.1.41.Final</version>
+          <scope>compile</scope>
+        </dependency>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-common</artifactId>
+          <version>4.1.41.Final</version>
+        </dependency>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-buffer</artifactId>
+          <version>4.1.41.Final</version>
+        </dependency>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-transport</artifactId>
+          <version>4.1.41.Final</version>
+        </dependency>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-codec</artifactId>
+          <version>4.1.41.Final</version>
+        </dependency>
+        <dependency>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-handler</artifactId>
+          <version>4.1.41.Final</version>
+        </dependency>
         <dependency>
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-core</artifactId>
