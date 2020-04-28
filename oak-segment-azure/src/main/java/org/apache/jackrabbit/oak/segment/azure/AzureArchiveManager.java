@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -230,18 +231,15 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         try {
             String blobName = AzureUtilities.getFilename(blob);
             BlockBlobClient newBlob = newParent.getBlobClient(blobName).getBlockBlobClient();
-            newBlob.copyFromUrl(blob.getBlobUrl());
 
-            // TODO OAK-8413: verify: is the previous call async or sync? Maybe this while is not required
-            while (newBlob.getProperties().getCopyStatus() == CopyStatusType.PENDING) {
-                Thread.sleep(100);
-            }
+            newBlob.beginCopy(blob.getBlobUrl(), Duration.ofSeconds(20))
+                    .waitForCompletion(Duration.ofSeconds(90));
 
             CopyStatusType finalStatus = newBlob.getProperties().getCopyStatus();
             if (finalStatus != CopyStatusType.SUCCESS) {
                 throw new IOException("Invalid copy status for " + blob.getBlobUrl() + ": " + finalStatus);
             }
-        } catch (BlobStorageException | InterruptedException e) {
+        } catch (BlobStorageException e) {
             throw new IOException(e);
         }
     }
