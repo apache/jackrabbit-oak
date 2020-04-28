@@ -66,7 +66,7 @@ public class AzureManifestFile implements ManifestFile {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         properties.store(bos, null);
 
-        try (BlobOutputStream blobOutputStream = manifestBlob.getBlobOutputStream()) {
+        try (BlobOutputStream blobOutputStream = manifestBlob.getBlobOutputStream(true)) {
             blobOutputStream.write(bos.toByteArray());
         } catch (BlobStorageException e) {
             throw new IOException(e);
