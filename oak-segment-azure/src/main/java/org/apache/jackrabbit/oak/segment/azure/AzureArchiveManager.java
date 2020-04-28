@@ -49,6 +49,9 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     private static final Logger log = LoggerFactory.getLogger(AzureSegmentArchiveReader.class);
 
+    private static int TIMEOUT_EXECUTION_SECONDS = Integer.getInteger("segment.timeout.execution", 30);
+
+
     protected final CloudBlobDirectory cloudBlobDirectory;
 
     protected final IOMonitor ioMonitor;
@@ -232,8 +235,8 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             String blobName = AzureUtilities.getFilename(blob);
             BlockBlobClient newBlob = newParent.getBlobClient(blobName).getBlockBlobClient();
 
-            newBlob.beginCopy(blob.getBlobUrl(), Duration.ofSeconds(20))
-                    .waitForCompletion(Duration.ofSeconds(90));
+            newBlob.beginCopy(blob.getBlobUrl(), null)
+                    .waitForCompletion(Duration.ofSeconds(TIMEOUT_EXECUTION_SECONDS));
 
             CopyStatusType finalStatus = newBlob.getProperties().getCopyStatus();
             if (finalStatus != CopyStatusType.SUCCESS) {
