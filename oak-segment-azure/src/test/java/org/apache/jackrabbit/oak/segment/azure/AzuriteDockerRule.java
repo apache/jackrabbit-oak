@@ -29,7 +29,7 @@ import org.junit.runners.model.Statement;
 
 public class AzuriteDockerRule implements TestRule {
 
-    private static final String IMAGE = "trekawek/azurite";
+    private static final String IMAGE = "mcr.microsoft.com/azure-storage/azurite:3.7.0";
     private static final boolean USE_REAL_AZURE_CONNECTION = false;
 
     private final DockerRule wrappedRule;
@@ -41,7 +41,7 @@ public class AzuriteDockerRule implements TestRule {
                 .ports("10000")
                 .addStartedListener(container -> {
                     container.waitForPort("10000/tcp");
-                    container.waitForLog("Azure Blob Storage Emulator listening on port 10000");
+                    container.waitForLog("Azurite Queue service is successfully listening");
                 })
                 .addContainerConfigurer(builder -> builder.env("executable=blob"))
                 .alwaysRemoveContainer(true)
