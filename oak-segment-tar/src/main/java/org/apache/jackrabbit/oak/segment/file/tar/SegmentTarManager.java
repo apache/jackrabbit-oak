@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -174,6 +176,19 @@ public class SegmentTarManager implements SegmentArchiveManager {
             recoverEntries(file, access, entries);
         } finally {
             access.close();
+        }
+    }
+
+    @Override
+    public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
+
+        if (!renameTo(archiveName, backupArchiveName)) {
+            log.warn("Renaming failed, so using copy to backup {}", archiveName);
+            copyFile(archiveName, backupArchiveName);
+            if (!delete(archiveName)) {
+                throw new IOException(
+                        "Could not remove broken tar file " + archiveName);
+            }
         }
     }
 

@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.ResultContinuation;
@@ -49,6 +51,8 @@ public final class AzureUtilities {
 
     public static String SEGMENT_FILE_NAME_PATTERN = "^([0-9a-f]{4})\\.([0-9a-f-]+)$";
 
+    private static Pattern pattern = Pattern.compile(SEGMENT_FILE_NAME_PATTERN);
+
     private static final Logger log = LoggerFactory.getLogger(AzureUtilities.class);
 
     private AzureUtilities() {
@@ -60,6 +64,14 @@ public final class AzureUtilities {
 
     public static String getSegmentFileName(long offset, long msb, long lsb) {
         return String.format("%04x.%s", offset, new UUID(msb, lsb).toString());
+    }
+
+    public static UUID getSegmentUUID(@NotNull String segmentFileName) {
+        Matcher m = pattern.matcher(segmentFileName);
+        if (!m.matches()) {
+            return null;
+        }
+        return UUID.fromString(m.group(2));
     }
 
     public static String getName(CloudBlob blob) {
