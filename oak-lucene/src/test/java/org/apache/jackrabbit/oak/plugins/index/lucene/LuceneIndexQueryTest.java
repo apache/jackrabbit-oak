@@ -22,7 +22,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_VALUE_REGEX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -55,10 +57,12 @@ import com.google.common.collect.ImmutableList;
  */
 public class LuceneIndexQueryTest extends AbstractQueryTest {
 
+    private Tree indexDefn;
+
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
         useV2(indexDefn);
         indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
         indexDefn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
@@ -103,6 +107,36 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     @Test
     public void sql2FullText() throws Exception {
         test("sql2-fulltext.txt");
+    }
+
+    @Test
+    public void testValueRegex() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        Tree b = test.addChild("b");
+        a.setProperty("name", "hello");
+        b.setProperty("name", "hello pattern");
+        root.commit();
+
+        final String query = "select [jcr:path] from [nt:base] where isdescendantnode('/test') and contains(*, 'hello')";
+
+        Iterator<String> result = executeQuery(query,"JCR-SQL2").iterator();
+        List<String> paths = new ArrayList<>();
+        result.forEachRemaining(paths::add);
+        assertEquals(2, paths.size());
+        assertEquals(paths.get(0), a.getPath());
+        assertEquals(paths.get(1), b.getPath());
+
+        indexDefn.setProperty(PROP_VALUE_REGEX, "pat*");
+        indexDefn.setProperty(REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        result = executeQuery(query,"JCR-SQL2").iterator();
+        paths.clear();
+        result.forEachRemaining(paths::add);
+        assertEquals(1, paths.size());
+        assertEquals(paths.get(0), b.getPath());
+
     }
 
     @Test

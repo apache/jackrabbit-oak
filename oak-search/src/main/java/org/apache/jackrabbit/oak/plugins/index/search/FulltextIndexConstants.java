@@ -51,7 +51,7 @@ public interface FulltextIndexConstants {
 
     String PERSISTENCE_OAK = "repository";
 
-  String TEST_MODE = "testMode";
+    String TEST_MODE = "testMode";
 
     String PERSISTENCE_FILE = "file";
 
@@ -152,6 +152,13 @@ public interface FulltextIndexConstants {
     String EVALUATE_PATH_RESTRICTION = "evaluatePathRestrictions";
 
     /**
+     * The property name to specify a regular expression for property value in index definition. If this property is present
+     * in index definition, then only those properties would be added to index whose value matches the regex defined by
+     * this property.
+     */
+    String PROP_VALUE_REGEX = "valueRegex";
+
+    /**
      * Experimental config to restrict which property type gets indexed at
      * property definition level. Mostly index rule level #INCLUDE_PROPERTY_TYPES
      * should be sufficient
@@ -206,7 +213,7 @@ public interface FulltextIndexConstants {
     String TIKA_MAX_EXTRACT_LENGTH = "maxExtractLength";
 
     /**
-     *  Config node under tika which defines mime type mappings
+     * Config node under tika which defines mime type mappings
      */
     String TIKA_MIME_TYPES = "mimeTypes";
 
@@ -368,5 +375,5 @@ public interface FulltextIndexConstants {
      * index is used for queries; otherwise, it is not used (returns infinite
      * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
      */
-     String USE_IF_EXISTS = "useIfExists";
+    String USE_IF_EXISTS = "useIfExists";
 }

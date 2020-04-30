@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 
 import javax.jcr.PropertyType;
 
@@ -187,7 +188,11 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         }
 
         if (indexingRule.isFulltextEnabled()) {
-            indexFulltextValue(document, name);
+            Pattern propertyRegex = definition.getPropertyRegex();
+            boolean shouldAdd = propertyRegex == null || propertyRegex.matcher(name).find();
+            if (shouldAdd) {
+                indexFulltextValue(document, name);
+            }
         }
 
         if (definition.evaluatePathRestrictions()){
@@ -242,8 +247,10 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {
                 for (String value : property.getValue(Type.STRINGS)) {
-
                     logLargeStringProperties(property.getName(), value);
+                    if (definition.getPropertyRegex() != null && !definition.getPropertyRegex().matcher(value).find()) {
+                        continue;
+                    }
                     if (!includePropertyValue(value, pd)){
                         continue;
                     }
