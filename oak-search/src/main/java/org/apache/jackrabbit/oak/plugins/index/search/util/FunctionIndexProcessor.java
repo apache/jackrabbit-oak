@@ -126,19 +126,20 @@ public class FunctionIndexProcessor {
         Type<?> type = null;
         ArrayList<Object> values = new ArrayList<>(ps.count());
         for (int i = 0; i < ps.count(); i++) {
-            String s = ps.getValue(Type.STRING, i);
             Object x;
             if ("lower".equals(functionName)) {
+                String s = ps.getValue(Type.STRING, i);
                 x = s.toLowerCase();
                 type = Type.STRING;
-            } else if ("coalesce".equals(functionName)) {
-                x = s;
-                type = Type.STRING;
             } else if ("upper".equals(functionName)) {
+                String s = ps.getValue(Type.STRING, i);
                 x = s.toUpperCase();
                 type = Type.STRING;
+            } else if ("coalesce".equals(functionName)) {
+                x = ps.getValue(Type.STRING, i);
+                type = Type.STRING;
             } else if ("length".equals(functionName)) {
-                x = (long) s.length();
+                x = (long) ps.size(i);
                 type = Type.LONG;
             } else {
                 LOG.debug("Unknown function {}", functionName);
