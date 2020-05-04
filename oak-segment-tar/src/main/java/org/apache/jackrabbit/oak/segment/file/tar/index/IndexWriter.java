@@ -117,13 +117,7 @@ public class IndexWriter {
             if (a.msb > b.msb) {
                 return 1;
             }
-            if (a.lsb < b.lsb) {
-                return -1;
-            }
-            if (a.lsb > b.lsb) {
-                return 1;
-            }
-            return 0;
+            return Long.compare(a.lsb, b.lsb);
         });
 
         for (Entry entry : entries) {

@@ -75,16 +75,5 @@ public interface IndexEntry extends SegmentArchiveEntry {
      */
     boolean isCompacted();
 
-    Comparator<IndexEntry> POSITION_ORDER = new Comparator<IndexEntry>() {
-        @Override
-        public int compare(IndexEntry a, IndexEntry b) {
-            if (a.getPosition() > b.getPosition()) {
-                return 1;
-            } else if (a.getPosition() < b.getPosition()) {
-                return -1;
-            } else {
-                return 0;
-            }
-        }
-    };
+    Comparator<IndexEntry> POSITION_ORDER = Comparator.comparingInt(IndexEntry::getPosition);
 }
