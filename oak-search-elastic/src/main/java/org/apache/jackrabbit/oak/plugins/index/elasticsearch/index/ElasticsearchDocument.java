@@ -25,8 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,10 +33,7 @@ import java.util.Map;
 class ElasticsearchDocument {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchDocument.class);
 
-    // id should only be useful for logging (at least as of now)
     private final String path;
-
-    private final String id;
     private final List<String> fulltext;
     private final List<String> suggest;
     private final List<String> notNullProps;
@@ -47,13 +42,6 @@ class ElasticsearchDocument {
 
     ElasticsearchDocument(String path) {
         this.path = path;
-        String id = null;
-        try {
-            id = pathToId(path);
-        } catch (UnsupportedEncodingException e) {
-            LOG.warn("Couldn't encode {} as ES id", path);
-        }
-        this.id = id;
         this.fulltext = new ArrayList<>();
         this.suggest = new ArrayList<>();
         this.notNullProps = new ArrayList<>();
@@ -99,10 +87,6 @@ class ElasticsearchDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
-    String getId() {
-        return id;
-    }
-
     public String build() {
         String ret = null;
         try {
@@ -127,10 +111,9 @@ class ElasticsearchDocument {
 
             ret = Strings.toString(builder);
         } catch (IOException e) {
-            LOG.error("Error serializing document - id: {}, properties: {}, fulltext: {}, suggest: {}, " +
+            LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}, " +
                             "notNullProps: {}, nullProps: {}",
-                    path, properties, fulltext, suggest, notNullProps, nullProps,
-                    e);
+                    path, properties, fulltext, suggest, notNullProps, nullProps, e);
         }
 
         return ret;
@@ -139,9 +122,5 @@ class ElasticsearchDocument {
     @Override
     public String toString() {
         return build();
-    }
-
-    public static String pathToId(String path) throws UnsupportedEncodingException {
-        return URLEncoder.encode(path, "UTF-8");
     }
 }

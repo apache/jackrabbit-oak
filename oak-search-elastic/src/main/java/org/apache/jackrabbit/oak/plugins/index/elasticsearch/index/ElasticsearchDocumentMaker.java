@@ -48,10 +48,7 @@ class ElasticsearchDocumentMaker extends FulltextDocumentMaker<ElasticsearchDocu
     }
 
     @Override
-    protected ElasticsearchDocument finalizeDoc(ElasticsearchDocument doc, boolean dirty, boolean facet) throws IOException {
-        if (doc.getId() == null) {
-            throw new IOException("Couldn't generate id for doc - (More details during initDoc)" + doc);
-        }
+    protected ElasticsearchDocument finalizeDoc(ElasticsearchDocument doc, boolean dirty, boolean facet) {
         return doc;
     }
 

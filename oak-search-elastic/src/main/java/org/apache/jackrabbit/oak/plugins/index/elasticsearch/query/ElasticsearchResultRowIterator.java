@@ -46,9 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -222,9 +219,8 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         return new ElasticsearchSearcher(indexNode);
     }
 
-    private FulltextIndex.FulltextResultRow convertToRow(SearchHit hit) throws IOException {
-        String id = hit.getId();
-        String path = idToPath(id);
+    private FulltextIndex.FulltextResultRow convertToRow(SearchHit hit) {
+        String path = hit.getId();
         if (path != null) {
             if ("".equals(path)) {
                 path = "/";
@@ -717,9 +713,5 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         }
 
         throw new IllegalStateException("PropertyRestriction not handled " + pr + " for index " + defn);
-    }
-
-    private static String idToPath(String id) throws UnsupportedEncodingException {
-        return URLDecoder.decode(id, "UTF-8");
     }
 }

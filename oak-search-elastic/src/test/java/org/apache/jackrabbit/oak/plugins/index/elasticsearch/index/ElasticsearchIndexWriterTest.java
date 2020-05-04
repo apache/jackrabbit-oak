@@ -27,9 +27,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.io.IOException;
-import java.net.URLEncoder;
+import java.util.Random;
 
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -56,31 +58,31 @@ public class ElasticsearchIndexWriterTest {
     }
 
     @Test
-    public void singleUpdateDocument() throws IOException {
+    public void singleUpdateDocument() {
         indexWriter.updateDocument("/foo", new ElasticsearchDocument("/foo"));
 
         ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
         verify(bulkProcessorMock).add(acIndexRequest.capture());
 
         IndexRequest request = acIndexRequest.getValue();
-        assertEquals(request.index(), "test-index");
-        assertEquals(request.id(), URLEncoder.encode("/foo", "UTF-8"));
+        assertEquals("test-index", request.index());
+        assertEquals("/foo", request.id());
     }
 
     @Test
-    public void singleDeleteDocument() throws IOException {
+    public void singleDeleteDocument() {
         indexWriter.deleteDocuments("/bar");
 
         ArgumentCaptor<DeleteRequest> acDeleteRequest = ArgumentCaptor.forClass(DeleteRequest.class);
         verify(bulkProcessorMock).add(acDeleteRequest.capture());
 
         DeleteRequest request = acDeleteRequest.getValue();
-        assertEquals(request.index(), "test-index");
-        assertEquals(request.id(), URLEncoder.encode("/bar", "UTF-8"));
+        assertEquals("test-index", request.index());
+        assertEquals("/bar", request.id());
     }
 
     @Test
-    public void multiRequests() throws IOException {
+    public void multiRequests() {
         indexWriter.updateDocument("/foo", new ElasticsearchDocument("/foo"));
         indexWriter.updateDocument("/bar", new ElasticsearchDocument("/bar"));
         indexWriter.deleteDocuments("/foo");
@@ -93,7 +95,29 @@ public class ElasticsearchIndexWriterTest {
     }
 
     @Test
-    public void closeBulkProcessor() throws IOException {
+    public void longDocumentPath() {
+        int leftLimit = 48; // '0'
+        int rightLimit = 122; // char '~'
+        int targetStringLength = 1024;
+        final Random random = new Random(42);
+
+        String generatedPath = random.ints(leftLimit, rightLimit + 1)
+                .limit(targetStringLength)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+
+        indexWriter.updateDocument(generatedPath, new ElasticsearchDocument(generatedPath));
+
+        ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(bulkProcessorMock).add(acIndexRequest.capture());
+
+        IndexRequest request = acIndexRequest.getValue();
+        assertThat(request.id(), not(generatedPath));
+        assertThat(request.id().length(), lessThan(513));
+    }
+
+    @Test
+    public void closeBulkProcessor() {
         indexWriter.close(System.currentTimeMillis());
         verify(bulkProcessorMock).close();
     }

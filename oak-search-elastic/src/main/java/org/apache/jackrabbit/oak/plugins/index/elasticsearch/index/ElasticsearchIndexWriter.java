@@ -44,11 +44,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchDocument.pathToId;
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
@@ -91,22 +92,22 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     }
 
     @Override
-    public void updateDocument(String path, ElasticsearchDocument doc) throws IOException {
+    public void updateDocument(String path, ElasticsearchDocument doc) {
         IndexRequest request = new IndexRequest(indexDefinition.getRemoteIndexName())
-                .id(pathToId(path))
+                .id(idFromPath(path))
                 .source(doc.build(), XContentType.JSON);
         bulkProcessor.add(request);
     }
 
     @Override
-    public void deleteDocuments(String path) throws IOException {
+    public void deleteDocuments(String path) {
         DeleteRequest request = new DeleteRequest(indexDefinition.getRemoteIndexName())
-                .id(pathToId(path));
+                .id(idFromPath(path));
         bulkProcessor.add(request);
     }
 
     @Override
-    public boolean close(long timestamp) throws IOException {
+    public boolean close(long timestamp) {
         LOG.trace("Calling close on bulk processor {}", bulkProcessor);
         bulkProcessor.close();
         LOG.trace("Bulk Processor {} closed", bulkProcessor);
@@ -247,5 +248,17 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
             }
             LOG.error("Bulk with id {} threw an error", executionId, throwable);
         }
+    }
+
+    private static String idFromPath(@NotNull String path) {
+        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+        if (pathBytes.length > 512) {
+            try {
+                return new String(MessageDigest.getInstance("SHA-256").digest(pathBytes));
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return path;
     }
 }
