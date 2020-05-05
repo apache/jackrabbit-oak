@@ -49,6 +49,8 @@ class ElasticsearchDocumentMaker extends FulltextDocumentMaker<ElasticsearchDocu
 
     @Override
     protected ElasticsearchDocument finalizeDoc(ElasticsearchDocument doc, boolean dirty, boolean facet) {
+        // evaluate path restrictions is enabled by default in elastic. Always index ancestors
+        doc.indexAncestors(path);
         return doc;
     }
 
@@ -131,10 +133,13 @@ class ElasticsearchDocumentMaker extends FulltextDocumentMaker<ElasticsearchDocu
         doc.addProperty(pname, f);
     }
 
+    /**
+     * Empty method implementation. Ancestors are always indexed
+     *
+     * @see ElasticsearchDocumentMaker#finalizeDoc
+     */
     @Override
-    protected void indexAncestors(ElasticsearchDocument doc, String path) {
-        doc.indexAncestors(path);
-    }
+    protected void indexAncestors(ElasticsearchDocument doc, String path) { /* empty */ }
 
     @Override
     protected void indexNotNullProperty(ElasticsearchDocument doc, PropertyDefinition pd) {

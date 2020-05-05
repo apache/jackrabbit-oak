@@ -494,7 +494,6 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
                 StreamSupport.stream(iterable.spliterator(), false).anyMatch(value::equals);
 
         Filter filter = plan.getFilter();
-        IndexDefinition defn = planResult.indexDefinition;
         if (!filter.matchesAllTypes()) {
             addNodeTypeConstraints(planResult.indexingRule, qs, filter);
         }
@@ -502,20 +501,15 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         String path = FulltextIndex.getPathRestriction(plan);
         switch (filter.getPathRestriction()) {
             case ALL_CHILDREN:
-                if (defn.evaluatePathRestrictions()) {
-                    if ("/".equals(path)) {
-                        break;
-                    }
+                if (!"/".equals(path)) {
                     qs.add(newAncestorQuery(path));
                 }
                 break;
             case DIRECT_CHILDREN:
-                if (defn.evaluatePathRestrictions()) {
-                    BoolQueryBuilder bq = boolQuery();
-                    bq.must(newAncestorQuery(path));
-                    bq.must(newDepthQuery(path, planResult));
-                    qs.add(bq);
-                }
+                BoolQueryBuilder bq = boolQuery();
+                bq.must(newAncestorQuery(path));
+                bq.must(newDepthQuery(path, planResult));
+                qs.add(bq);
                 break;
             case EXACT:
                 // For transformed paths, we can only add path restriction if absolute path to property can be
