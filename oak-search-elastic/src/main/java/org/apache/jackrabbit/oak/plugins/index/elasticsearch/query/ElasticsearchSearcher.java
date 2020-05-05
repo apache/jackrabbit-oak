@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchFieldNames;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -36,8 +36,7 @@ class ElasticsearchSearcher {
     public SearchResponse search(QueryBuilder query, int batchSize) throws IOException {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(query)
-                .fetchSource(false)
-                .storedField(FieldNames.PATH)
+                .fetchSource(ElasticsearchFieldNames.PATH, null)
                 .size(batchSize);
 
         SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexName())

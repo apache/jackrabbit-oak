@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -32,11 +31,8 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
@@ -143,42 +139,7 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     // TODO: we need to check if the index already exists and in that case we have to figure out if there are
     // "breaking changes" in the index definition
     protected void provisionIndex() throws IOException {
-        CreateIndexRequest request = new CreateIndexRequest(indexDefinition.getRemoteIndexName());
-
-        // provision settings
-        request.settings(Settings.builder()
-                .put("analysis.analyzer.ancestor_analyzer.type", "custom")
-                .put("analysis.analyzer.ancestor_analyzer.tokenizer", "path_hierarchy"));
-
-        // provision mappings
-        XContentBuilder mappingBuilder = XContentFactory.jsonBuilder();
-        mappingBuilder.startObject();
-        {
-            mappingBuilder.startObject("properties");
-            {
-                mappingBuilder.startObject(FieldNames.ANCESTORS)
-                        .field("type", "text")
-                        .field("analyzer", "ancestor_analyzer")
-                        .field("search_analyzer", "keyword")
-                        .field("search_quote_analyzer", "keyword")
-                        .endObject();
-                mappingBuilder.startObject(FieldNames.PATH_DEPTH)
-                        .field("type", "integer")
-                        .endObject();
-                mappingBuilder.startObject(FieldNames.SUGGEST)
-                        .field("type", "completion")
-                        .endObject();
-                mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
-                        .field("type", "keyword")
-                        .endObject();
-                mappingBuilder.startObject(FieldNames.NULL_PROPS)
-                        .field("type", "keyword")
-                        .endObject();
-            }
-            mappingBuilder.endObject();
-        }
-        mappingBuilder.endObject();
-        request.mapping(mappingBuilder);
+        CreateIndexRequest request = ElasticsearchIndexUtils.createIndexRequest(indexDefinition);
 
         String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
         CreateIndexResponse response = elasticsearchConnection.getClient().indices().create(request, RequestOptions.DEFAULT);

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchFieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -88,24 +89,27 @@ class ElasticsearchDocument {
     }
 
     public String build() {
-        String ret = null;
+        String ret;
         try {
             XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.startObject();
-            if (fulltext.size() > 0) {
-                builder.field(FieldNames.FULLTEXT, fulltext);
-            }
-            if (suggest.size() > 0) {
-                builder.startObject(FieldNames.SUGGEST).field("input", suggest).endObject();
-            }
-            if (notNullProps.size() > 0) {
-                builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
-            }
-            if (nullProps.size() > 0) {
-                builder.field(FieldNames.NULL_PROPS, nullProps);
-            }
-            for (Map.Entry<String, Object> prop : properties.entrySet()) {
-                builder.field(prop.getKey(), prop.getValue());
+            {
+                builder.field(ElasticsearchFieldNames.PATH, path);
+                if (fulltext.size() > 0) {
+                    builder.field(FieldNames.FULLTEXT, fulltext);
+                }
+                if (suggest.size() > 0) {
+                    builder.startObject(FieldNames.SUGGEST).field("input", suggest).endObject();
+                }
+                if (notNullProps.size() > 0) {
+                    builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
+                }
+                if (nullProps.size() > 0) {
+                    builder.field(FieldNames.NULL_PROPS, nullProps);
+                }
+                for (Map.Entry<String, Object> prop : properties.entrySet()) {
+                    builder.field(prop.getKey(), prop.getValue());
+                }
             }
             builder.endObject();
 
@@ -114,6 +118,7 @@ class ElasticsearchDocument {
             LOG.error("Error serializing document - path: {}, properties: {}, fulltext: {}, suggest: {}, " +
                             "notNullProps: {}, nullProps: {}",
                     path, properties, fulltext, suggest, notNullProps, nullProps, e);
+            ret = null;
         }
 
         return ret;
