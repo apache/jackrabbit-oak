@@ -66,9 +66,19 @@ public class LdapProviderConfigTest {
 
         boolean testAdminPoolLookupOnValidate = !LdapProviderConfig.PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT;
         int testAdminPoolMaxActive = LdapProviderConfig.PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT + 1;
+        String testAdminPoolMinEvictableIdleTime = "2d 2h 2m 2s 2ms";
+        long testAdminPoolMinEvictableIdleTimeMs = 2 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
+        String testAdminPoolTimeBetweenEvictionRuns = "3d 3h 3m 3s 3ms";
+        long testAdminPoolTimeBetweenEvictionRunsMs = 3 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
+        int testAdminPoolNumTestsPerEvictionRun = LdapProviderConfig.PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT + 1;
 
         boolean testUserPoolLookupOnValidate = !LdapProviderConfig.PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT;
         int testUserPoolMaxActive = LdapProviderConfig.PARAM_USER_POOL_MAX_ACTIVE_DEFAULT + 2;
+        String testUserPoolMinEvictableIdleTime = "4d 4h 4m 4s 4ms";
+        long testUserPoolMinEvictableIdleTimeMs = 4 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
+        String testUserPoolTimeBetweenEvictionRuns = "5d 5h 5m 5s 5ms";
+        long testUserPoolTimeBetweenEvictionRunsMs = 5 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
+        int testUserPoolNumTestsPerEvictionRun = LdapProviderConfig.PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT + 2;
 
         String testUserBaseDn = "ou=people,dc=org";
         String[] testUserObjectClass = new String[] {"inetOrgPerson"};
@@ -97,9 +107,15 @@ public class LdapProviderConfigTest {
 
         params.put(LdapProviderConfig.PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE, testAdminPoolLookupOnValidate);
         params.put(LdapProviderConfig.PARAM_ADMIN_POOL_MAX_ACTIVE, testAdminPoolMaxActive);
+        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME, testAdminPoolMinEvictableIdleTime);
+        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS, testAdminPoolTimeBetweenEvictionRuns);
+        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN, testAdminPoolNumTestsPerEvictionRun);
 
         params.put(LdapProviderConfig.PARAM_USER_POOL_LOOKUP_ON_VALIDATE, testUserPoolLookupOnValidate);
         params.put(LdapProviderConfig.PARAM_USER_POOL_MAX_ACTIVE, testUserPoolMaxActive);
+        params.put(LdapProviderConfig.PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME, testUserPoolMinEvictableIdleTime);
+        params.put(LdapProviderConfig.PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS, testUserPoolTimeBetweenEvictionRuns);
+        params.put(LdapProviderConfig.PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN, testUserPoolNumTestsPerEvictionRun);
 
         params.put(LdapProviderConfig.PARAM_USER_BASE_DN, testUserBaseDn);
         params.put(LdapProviderConfig.PARAM_USER_OBJECTCLASS, testUserObjectClass);
@@ -130,10 +146,16 @@ public class LdapProviderConfigTest {
         LdapProviderConfig.PoolConfig adminPoolConfig = config.getAdminPoolConfig();
         assertEquals(testAdminPoolLookupOnValidate, adminPoolConfig.lookupOnValidate());
         assertEquals(testAdminPoolMaxActive, adminPoolConfig.getMaxActive());
+        assertEquals(testAdminPoolMinEvictableIdleTimeMs, adminPoolConfig.getMinEvictableIdleTimeMillis());
+        assertEquals(testAdminPoolTimeBetweenEvictionRunsMs, adminPoolConfig.getTimeBetweenEvictionRunsMillis());
+        assertEquals(testAdminPoolNumTestsPerEvictionRun, adminPoolConfig.getNumTestsPerEvictionRun());
 
         LdapProviderConfig.PoolConfig userPoolConfig = config.getUserPoolConfig();
         assertEquals(testUserPoolLookupOnValidate, userPoolConfig.lookupOnValidate());
         assertEquals(testUserPoolMaxActive, userPoolConfig.getMaxActive());
+        assertEquals(testUserPoolMinEvictableIdleTimeMs, userPoolConfig.getMinEvictableIdleTimeMillis());
+        assertEquals(testUserPoolTimeBetweenEvictionRunsMs, userPoolConfig.getTimeBetweenEvictionRunsMillis());
+        assertEquals(testUserPoolNumTestsPerEvictionRun, userPoolConfig.getNumTestsPerEvictionRun());
 
         LdapProviderConfig.Identity userConfig = config.getUserConfig();
         assertEquals(testUserBaseDn, userConfig.getBaseDN());

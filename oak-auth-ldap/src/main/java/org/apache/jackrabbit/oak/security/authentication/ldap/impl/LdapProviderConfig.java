@@ -205,6 +205,51 @@ public class LdapProviderConfig {
     public static final String PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE = "adminPool.lookupOnValidate";
 
     /**
+     * @see PoolConfig#getMinEvictableIdleTimeMillis()
+     */
+    public static final String PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT = "-1";
+
+    /**
+     * @see PoolConfig#getMinEvictableIdleTimeMillis()
+     */
+    @Property(
+            label = "Admin pool min evictable idle time",
+            description = "The minimum amount of time a connection from the admin pool must be idle before becoming eligible for eviction by the idle object evictor, if running (eg: '1m 30s'). When non-positive, no connections will be evicted from the pool due to idle time alone.",
+            value = PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT
+    )
+    public static final String PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME = "adminPool.minEvictableIdleTime";
+
+    /**
+     * @see PoolConfig#getTimeBetweenEvictionRunsMillis()
+     */
+    public static final String PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT = "-1";
+
+    /**
+     * @see PoolConfig#getTimeBetweenEvictionRunsMillis()
+     */
+    @Property(
+            label = "Time interval to sleep between evictor runs for the admin pool",
+            description = "Time interval to sleep between runs of the idle object evictor thread for the admin pool (eg: '1m 30s'). When non-positive, no idle object evictor thread will be run.",
+            value = PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT
+    )
+    public static final String PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS = "adminPool.timeBetweenEvictionRuns";
+
+    /**
+     * @see PoolConfig#getNumTestsPerEvictionRun()
+     */
+    public static final int PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT = 3;
+
+    /**
+     * @see PoolConfig#getNumTestsPerEvictionRun()
+     */
+    @Property(
+            label = "Max number of objects to be tested per run of the idle object evictor for the admin pool",
+            description = "The max number of objects to examine during each run of the idle object evictor thread for the admin pool (if any)",
+            intValue = PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT
+    )
+    public static final String PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN = "adminPool.numTestsPerEvictionRun";
+
+    /**
      * @see PoolConfig#getMaxActive()
      */
     public static final int PARAM_USER_POOL_MAX_ACTIVE_DEFAULT = 8;
@@ -233,6 +278,51 @@ public class LdapProviderConfig {
             boolValue = PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT
     )
     public static final String PARAM_USER_POOL_LOOKUP_ON_VALIDATE = "userPool.lookupOnValidate";
+
+    /**
+     * @see PoolConfig#getMinEvictableIdleTimeMillis()
+     */
+    public static final String PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT = "-1";
+
+    /**
+     * @see PoolConfig#getMinEvictableIdleTimeMillis()
+     */
+    @Property(
+            label = "User pool min evictable idle time",
+            description = "The minimum amount of time a connection from the user pool must be idle before becoming eligible for eviction by the idle object evictor, if running (eg: '1m 30s'). When non-positive, no connections will be evicted from the pool due to idle time alone.",
+            value = PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT
+    )
+    public static final String PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME = "userPool.minEvictableIdleTime";
+
+    /**
+     * @see PoolConfig#getTimeBetweenEvictionRunsMillis()
+     */
+    public static final String PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT = "-1";
+
+    /**
+     * @see PoolConfig#getTimeBetweenEvictionRunsMillis()
+     */
+    @Property(
+            label = "Time interval to sleep between evictor runs for the user pool",
+            description = "Time interval to sleep between runs of the idle object evictor thread for the user pool (eg: '1m 30s'). When non-positive, no idle object evictor thread will be run.",
+            value = PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT
+    )
+    public static final String PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS = "userPool.timeBetweenEvictionRuns";
+
+    /**
+     * @see PoolConfig#getNumTestsPerEvictionRun()
+     */
+    public static final int PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT = 3;
+
+    /**
+     * @see PoolConfig#getNumTestsPerEvictionRun()
+     */
+    @Property(
+            label = "Max number of objects to be tested per run of the idle object evictor for the user pool",
+            description = "The max number of objects to examine during each run of the idle object evictor thread for the user pool (if any)",
+            intValue = PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT
+    )
+    public static final String PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN = "userPool.numTestsPerEvictionRun";
 
     /**
      * @see Identity#getBaseDN()
@@ -619,14 +709,17 @@ public class LdapProviderConfig {
     }
 
     /**
-     * Defines the configuration of a connection pool. Currently we only define the max size.
+     * Defines the configuration of a connection pool. Currently we do not support all
+     * available configuration options of the pool implementation.
      * (documentation copied from {@link org.apache.commons.pool2.impl.GenericObjectPool})
      */
     public static class PoolConfig {
 
         private int maxActiveSize;
-
         private boolean lookupOnValidate;
+        private long minEvictableIdleTimeMillis;
+        private long timeBetweenEvictionRunsMillis;
+        private int numTestsPerEvictionRun;
 
         /**
          * Returns the maximum number of objects that can be allocated by the pool
@@ -678,11 +771,93 @@ public class LdapProviderConfig {
             return this;
         }
 
+        /**
+         * Returns the minimum amount of time a connection may sit idle in the pool
+         * before it is eligible for eviction by the idle object evictor
+         * (if running). When non-positive, no connections will be evicted from the pool due to idle time alone.
+         *
+         * @return minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.
+         */
+        public long getMinEvictableIdleTimeMillis() { return minEvictableIdleTimeMillis; }
+
+        /**
+         * Sets the minimum amount of time a connection may sit idle in the pool
+         * before it is eligible for eviction by the idle object evictor
+         * (if any).
+         * When non-positive, no connections will be evicted from the pool
+         * due to idle time alone.
+         *
+         * @param minEvictableIdleTimeMillis minimum amount of time a connection may sit idle in the pool before
+         * it is eligible for eviction.
+         * @return this
+         */
+        public PoolConfig setMinEvictableIdleTimeMillis(long minEvictableIdleTimeMillis) {
+            this.minEvictableIdleTimeMillis = minEvictableIdleTimeMillis;
+            return this;
+        }
+
+        /**
+         * Returns the number of milliseconds to sleep between runs of the
+         * idle object evictor thread.
+         * When non-positive, no idle object evictor thread will be
+         * run.
+         *
+         * @return number of milliseconds to sleep between evictor runs.
+         */
+        public long getTimeBetweenEvictionRunsMillis() { return timeBetweenEvictionRunsMillis; }
+
+        /**
+         * Sets the number of milliseconds to sleep between runs of the
+         * idle object evictor thread.
+         * When non-positive, no idle object evictor thread will be
+         * run.
+         *
+         * @param timeBetweenEvictionRunsMillis number of milliseconds to sleep between evictor runs.
+         * @return this
+         */
+        public PoolConfig setTimeBetweenEvictionRunsMillis(long timeBetweenEvictionRunsMillis) {
+            this.timeBetweenEvictionRunsMillis = timeBetweenEvictionRunsMillis;
+            return this;
+        }
+
+        /**
+         * Returns the max number of objects to examine during each run of the
+         * idle object evictor thread (if any).
+         *
+         * @return max number of objects to examine during each evictor run.
+         * @see #setNumTestsPerEvictionRun
+         * @see #setTimeBetweenEvictionRunsMillis
+         */
+        public int getNumTestsPerEvictionRun() { return numTestsPerEvictionRun; }
+
+        /**
+         * Sets the max number of objects to examine during each run of the
+         * idle object evictor thread (if any).
+         * <p>
+         * When a negative value is supplied, <tt>ceil(number of idle objects)/abs({@link #getNumTestsPerEvictionRun})</tt>
+         * tests will be run.  That is, when the value is <i>-n</i>, roughly one <i>n</i>th of the
+         * idle objects will be tested per run. When the value is positive, the number of tests
+         * actually performed in each run will be the minimum of this value and the number of instances
+         * idle in the pool.
+         *
+         * @param numTestsPerEvictionRun max number of objects to examine during each evictor run.
+         * @see #getNumTestsPerEvictionRun
+         * @see #setTimeBetweenEvictionRunsMillis
+         * @return this
+         */
+        public PoolConfig setNumTestsPerEvictionRun(int numTestsPerEvictionRun) {
+            this.numTestsPerEvictionRun = numTestsPerEvictionRun;
+            return this;
+        }
+
         @Override
         public String toString() {
             final StringBuilder sb = new StringBuilder("PoolConfig{");
             sb.append("maxActiveSize=").append(maxActiveSize);
             sb.append(", lookupOnValidate=").append(lookupOnValidate);
+            sb.append(", minEvictableIdleTimeMillis=").append(minEvictableIdleTimeMillis);
+            sb.append(", timeBetweenEvictionRunsMillis=").append(timeBetweenEvictionRunsMillis);
+            sb.append(", numTestsPerEvictionRun=").append(numTestsPerEvictionRun);
             sb.append('}');
             return sb.toString();
         }
@@ -726,13 +901,31 @@ public class LdapProviderConfig {
                 .setObjectClasses(params.getConfigValue(PARAM_GROUP_OBJECTCLASS, PARAM_GROUP_OBJECTCLASS_DEFAULT))
                 .setMakeDnPath(params.getConfigValue(PARAM_GROUP_MAKE_DN_PATH, PARAM_GROUP_MAKE_DN_PATH_DEFAULT));
 
+        ConfigurationParameters.Milliseconds msMeitAdmin = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME, PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT));
+        ConfigurationParameters.Milliseconds msTberAdmin = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS, PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT));
         cfg.getAdminPoolConfig()
                 .setLookupOnValidate(params.getConfigValue(PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE, PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT))
-                .setMaxActive(params.getConfigValue(PARAM_ADMIN_POOL_MAX_ACTIVE, PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT));
+                .setMaxActive(params.getConfigValue(PARAM_ADMIN_POOL_MAX_ACTIVE, PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT))
+                .setNumTestsPerEvictionRun(params.getConfigValue(PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN, PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT));
+        if (msMeitAdmin != null) {
+            cfg.getAdminPoolConfig().setMinEvictableIdleTimeMillis(msMeitAdmin.value);
+        }
+        if (msTberAdmin != null) {
+            cfg.getAdminPoolConfig().setTimeBetweenEvictionRunsMillis(msTberAdmin.value);
+        }
 
+        ConfigurationParameters.Milliseconds msMeitUser = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME, PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME_DEFAULT));
+        ConfigurationParameters.Milliseconds msTberUser = ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS, PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS_DEFAULT));
         cfg.getUserPoolConfig()
                 .setLookupOnValidate(params.getConfigValue(PARAM_USER_POOL_LOOKUP_ON_VALIDATE, PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT))
-                .setMaxActive(params.getConfigValue(PARAM_USER_POOL_MAX_ACTIVE, PARAM_USER_POOL_MAX_ACTIVE_DEFAULT));
+                .setMaxActive(params.getConfigValue(PARAM_USER_POOL_MAX_ACTIVE, PARAM_USER_POOL_MAX_ACTIVE_DEFAULT))
+                .setNumTestsPerEvictionRun(params.getConfigValue(PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN, PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT));
+        if (msMeitUser != null) {
+            cfg.getUserPoolConfig().setMinEvictableIdleTimeMillis(msMeitUser.value);
+        }
+        if (msTberUser != null) {
+            cfg.getUserPoolConfig().setTimeBetweenEvictionRunsMillis(msTberUser.value);
+        }
 
         return cfg;
     }
