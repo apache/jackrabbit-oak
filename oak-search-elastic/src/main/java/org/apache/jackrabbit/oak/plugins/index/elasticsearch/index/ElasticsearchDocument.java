@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchFieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -82,8 +81,6 @@ class ElasticsearchDocument {
         String parPath = PathUtils.getParentPath(path);
         int depth = PathUtils.getDepth(path);
 
-        // TODO: remember that mapping must be configured with
-        // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pathhierarchy-tokenizer.html
         addProperty(FieldNames.ANCESTORS, parPath);
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
@@ -94,7 +91,7 @@ class ElasticsearchDocument {
             XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.startObject();
             {
-                builder.field(ElasticsearchFieldNames.PATH, path);
+                builder.field(FieldNames.PATH, path);
                 if (fulltext.size() > 0) {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchFieldNames;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.elasticsearch.client.indices.CreateIndexRequest;
@@ -35,6 +34,7 @@ class ElasticsearchIndexUtils {
         CreateIndexRequest request = new CreateIndexRequest(indexDefinition.getRemoteIndexName());
 
         // provision settings
+        // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pathhierarchy-tokenizer.html
         request.settings(Settings.builder()
                 .put("analysis.analyzer.ancestor_analyzer.type", "custom")
                 .put("analysis.analyzer.ancestor_analyzer.tokenizer", "path_hierarchy"));
@@ -45,7 +45,7 @@ class ElasticsearchIndexUtils {
         {
             mappingBuilder.startObject("properties");
             {
-                mappingBuilder.startObject(ElasticsearchFieldNames.PATH)
+                mappingBuilder.startObject(FieldNames.PATH)
                         .field("type", "keyword")
                         .endObject();
                 mappingBuilder.startObject(FieldNames.ANCESTORS)

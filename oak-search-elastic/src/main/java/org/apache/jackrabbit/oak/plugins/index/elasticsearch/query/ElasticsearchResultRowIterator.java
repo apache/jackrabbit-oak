@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchFieldNames;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -223,7 +222,7 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
 
     private FulltextIndex.FulltextResultRow convertToRow(SearchHit hit) {
         final Map<String, Object> sourceMap = hit.getSourceAsMap();
-        String path = (String) sourceMap.getOrDefault(ElasticsearchFieldNames.PATH, hit.getId());
+        String path = (String) sourceMap.getOrDefault(FieldNames.PATH, hit.getId());
         if (path != null) {
             if ("".equals(path)) {
                 path = "/";
