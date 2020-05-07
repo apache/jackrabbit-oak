@@ -90,4 +90,18 @@ public class ElasticsearchContentTest extends ElasticsearchAbstractQueryTest {
 
         assertEventually(() -> assertThat(countDocuments(index), equalTo(1L)));
     }
+
+    @Test
+    public void defineIndexTwice() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        String testId = UUID.randomUUID().toString();
+        Tree index = setIndex(testId, builder);
+        root.commit();
+
+        assertTrue(exists(index));
+
+        builder = createIndex("a").noAsync();
+        index = setIndex(testId, builder);
+        root.commit();
+    }
 }

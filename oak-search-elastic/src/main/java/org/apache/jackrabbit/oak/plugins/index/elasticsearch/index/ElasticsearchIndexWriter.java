@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
+import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -30,6 +31,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -136,16 +138,33 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
         return indexUpdated.get();
     }
 
-    // TODO: we need to check if the index already exists and in that case we have to figure out if there are
-    // "breaking changes" in the index definition
     protected void provisionIndex() throws IOException {
-        CreateIndexRequest request = ElasticsearchIndexHelper.createIndexRequest(indexDefinition);
+        boolean exists = elasticsearchConnection.getClient().indices().exists(
+                new GetIndexRequest(indexDefinition.getRemoteIndexName()), RequestOptions.DEFAULT
+        );
+        if (exists) {
+            LOG.info("Index {} already exists. Skip index provision", indexDefinition.getRemoteIndexName());
+            return;
+        }
 
-        String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
-        CreateIndexResponse response = elasticsearchConnection.getClient().indices().create(request, RequestOptions.DEFAULT);
-
-        LOG.info("Updated settings for index {} = {}. Response acknowledged: {}",
-                indexDefinition.getRemoteIndexName(), requestMsg, response.isAcknowledged());
+        final CreateIndexRequest request = ElasticsearchIndexHelper.createIndexRequest(indexDefinition);
+        try {
+            if (LOG.isDebugEnabled()) {
+                final String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
+                LOG.debug("Creating Index with request {}", requestMsg);
+            }
+            CreateIndexResponse response = elasticsearchConnection.getClient().indices().create(request, RequestOptions.DEFAULT);
+            LOG.info("Updated settings for index {}. Response acknowledged: {}",
+                    indexDefinition.getRemoteIndexName(), response.isAcknowledged());
+        } catch (ElasticsearchStatusException ese) {
+            // We already check index existence as first thing in this method, if we get here it means we have got into
+            // a conflict (eg: multiple cluster nodes provision concurrently).
+            // Elasticsearch does not have a CREATE IF NOT EXIST, need to inspect exception
+            // https://github.com/elastic/elasticsearch/issues/19862
+            if (ese.status().getStatus() == 400 && ese.getDetailedMessage().contains("resource_already_exists_exception")) {
+                LOG.warn("Index {} already exists. Ignoring error", indexDefinition.getRemoteIndexName());
+            } else throw ese;
+        }
     }
 
     private class OakBulkProcessorListener implements BulkProcessor.Listener {
