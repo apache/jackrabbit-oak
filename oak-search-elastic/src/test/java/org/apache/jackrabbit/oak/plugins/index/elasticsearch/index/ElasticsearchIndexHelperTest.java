@@ -20,14 +20,32 @@ import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexD
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.util.ElasticsearchIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
 
 public class ElasticsearchIndexHelperTest {
 
+    @Test
+    public void multiRulesWithSamePropertyNames() throws IOException {
+        IndexDefinitionBuilder builder = new ElasticsearchIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule indexRuleA = builder.indexRule("typeA");
+        indexRuleA.property("foo").type("String");
+        IndexDefinitionBuilder.IndexRule indexRuleB = builder.indexRule("typeB");
+        indexRuleB.property("foo").type("String").analyzed();
+        NodeState nodeState = builder.build();
+
+        ElasticsearchIndexDefinition definition =
+                new ElasticsearchIndexDefinition(nodeState, nodeState, "path", "prefix");
+
+        CreateIndexRequest request = ElasticsearchIndexHelper.createIndexRequest(definition);
+        Assert.assertNotNull(request);
+    }
+
     @Test(expected = IllegalStateException.class)
-    public void createInvalidDefinition() throws IOException {
+    public void multiRulesWithSamePropertyNamesDifferentTypes() throws IOException {
         IndexDefinitionBuilder builder = new ElasticsearchIndexDefinitionBuilder();
         IndexDefinitionBuilder.IndexRule indexRuleA = builder.indexRule("typeA");
         indexRuleA.property("foo").type("String");
