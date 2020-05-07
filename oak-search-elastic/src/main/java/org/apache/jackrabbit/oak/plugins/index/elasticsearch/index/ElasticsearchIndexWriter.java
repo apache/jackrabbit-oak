@@ -139,7 +139,7 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     // TODO: we need to check if the index already exists and in that case we have to figure out if there are
     // "breaking changes" in the index definition
     protected void provisionIndex() throws IOException {
-        CreateIndexRequest request = ElasticsearchIndexUtils.createIndexRequest(indexDefinition);
+        CreateIndexRequest request = ElasticsearchIndexHelper.createIndexRequest(indexDefinition);
 
         String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
         CreateIndexResponse response = elasticsearchConnection.getClient().indices().create(request, RequestOptions.DEFAULT);

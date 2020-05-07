@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch.util;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -126,11 +127,16 @@ public class TermQueryBuilderFactory {
         return bq;
     }
 
-    public static <R> QueryBuilder newPropertyRestrictionQuery(String propertyName, boolean isString,
+    public static <R> QueryBuilder newPropertyRestrictionQuery(String propertyName,
+                                                               PropertyDefinition defn,
+                                                               boolean isString,
                                                                Filter.PropertyRestriction pr,
                                                                Function<PropertyValue, R> propToObj) {
         if (isString) {
-            propertyName = keywordFieldName(propertyName);
+            // TODO: centralize fields name convention and use it in mapping, indexing, querying
+            if (defn.analyzed || defn.fulltextEnabled()) {
+                propertyName = keywordFieldName(propertyName);
+            }
         }
 
         R first = pr.first != null ? propToObj.apply(pr.first) : null;

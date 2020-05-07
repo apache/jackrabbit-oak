@@ -679,17 +679,17 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         QueryBuilder in;
         switch (propType) {
             case PropertyType.DATE: {
-                in = newPropertyRestrictionQuery(propertyName, false, pr,
+                in = newPropertyRestrictionQuery(propertyName, defn, false, pr,
                         value -> parse(value.getValue(Type.DATE)).getTime());
                 break;
             }
             case PropertyType.DOUBLE: {
-                in = newPropertyRestrictionQuery(propertyName, false, pr,
+                in = newPropertyRestrictionQuery(propertyName, defn, false, pr,
                         value -> value.getValue(Type.DOUBLE));
                 break;
             }
             case PropertyType.LONG: {
-                in = newPropertyRestrictionQuery(propertyName, false, pr,
+                in = newPropertyRestrictionQuery(propertyName, defn, false, pr,
                         value -> value.getValue(Type.LONG));
                 break;
             }
@@ -699,7 +699,7 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
                 }
 
                 //TODO Confirm that all other types can be treated as string
-                in = newPropertyRestrictionQuery(propertyName, true, pr,
+                in = newPropertyRestrictionQuery(propertyName, defn, true, pr,
                         value -> value.getValue(Type.STRING));
             }
         }
