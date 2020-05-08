@@ -32,7 +32,7 @@ class LazyChildrenNodeState implements NodeState{
     private final NodeState delegate;
     private final ChildNodeStateProvider childProvider;
 
-    LazyChildrenNodeState(NodeState delegate, ChildNodeStateProvider childProvider) {
+    public LazyChildrenNodeState(NodeState delegate, ChildNodeStateProvider childProvider) {
         this.delegate = delegate;
         this.childProvider = childProvider;
     }

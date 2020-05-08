@@ -29,18 +29,21 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.io.Closer;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 
 public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     private final Closer closer = Closer.create();
+    private final BlobStore blobStore;
     private final File storeFile;
     private final NodeStateEntryReader entryReader;
     private final Set<String> preferredPathElements;
     private final boolean compressionEnabled;
     private long entryCount = -1;
 
-    public FlatFileStore(File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, boolean compressionEnabled) {
+    public FlatFileStore(BlobStore blobStore, File storeFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, boolean compressionEnabled) {
+        this.blobStore = blobStore;
         this.storeFile = storeFile;
         this.entryReader = entryReader;
         this.preferredPathElements = preferredPathElements;
@@ -57,7 +60,8 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
 
     @Override
     public Iterator<NodeStateEntry> iterator() {
-        return new FlatFileStoreIterator(createBaseIterator(), preferredPathElements);
+        String fileName = new File(storeFile.getParent(), "linkedList").getAbsolutePath();
+        return new FlatFileStoreIterator(blobStore, fileName, createBaseIterator(), preferredPathElements);
     }
 
     private Iterator<NodeStateEntry> createBaseIterator() {
