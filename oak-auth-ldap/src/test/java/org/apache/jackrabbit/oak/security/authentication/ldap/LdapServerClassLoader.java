@@ -30,6 +30,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.security.ProtectionDomain;
 
+/**
+ * The LDAP server we use for testing relies on an old, incompatible version of the library
+ * <code>org.apache.directory.api.api-all</code>. Therefore we have to run it in it's own classloader, because the two
+ * incompatible versions of the library must not live on the same classpath.
+ */
 public class LdapServerClassLoader extends URLClassLoader {
 
     private final byte[] serverClassResource;
