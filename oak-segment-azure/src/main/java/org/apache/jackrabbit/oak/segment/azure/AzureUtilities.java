@@ -156,7 +156,6 @@ public final class AzureUtilities {
                 } catch (InterruptedException ex) {
                     log.warn("Interrupted", e);
                 }
-                continue;
             }
         }
         if (result == null) {
