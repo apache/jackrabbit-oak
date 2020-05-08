@@ -70,7 +70,7 @@ public class FlatFileNodeStoreBuilder {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
-        FlatFileStore store = new FlatFileStore(createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
+        FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
                 unmodifiableSet(preferredPathElements), useZip);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);

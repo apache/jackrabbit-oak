@@ -834,7 +834,7 @@ public class LdapProviderConfig {
          * Sets the max number of objects to examine during each run of the
          * idle object evictor thread (if any).
          * <p>
-         * When a negative value is supplied, <tt>ceil(number of idle objects)/abs({@link #getNumTestsPerEvictionRun})</tt>
+         * When a negative value is supplied, <code>ceil(number of idle objects)/abs({@link #getNumTestsPerEvictionRun})</code>
          * tests will be run.  That is, when the value is <i>-n</i>, roughly one <i>n</i>th of the
          * idle objects will be tested per run. When the value is positive, the number of tests
          * actually performed in each run will be the minimum of this value and the number of instances
