@@ -86,32 +86,8 @@ public final class AzureUtilities {
         List<CloudBlob> blobList = new ArrayList<>();
         ResultContinuation token = null;
         do {
-            ResultSegment<ListBlobItem> result = null;
-            IOException lastException = null;
-            for (int i = 0; i < 10; i++) {
-                try {
-                    result = directory.listBlobsSegmented(
-                            null,
-                            false,
-                            EnumSet.of(BlobListingDetails.METADATA),
-                            2500,
-                            token,
-                            null,
-                            null);
-                } catch (StorageException | URISyntaxException e) {
-                    lastException = new IOException(e);
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException ex) {
-                        log.warn("Interrupted", e);
-                    }
-                    continue;
-                }
-            }
-            if (result == null) {
-                throw lastException;
-            }
-            for (ListBlobItem b : result.getResults()) {
+            ResultSegment<ListBlobItem> result = listBlobsInSegments(directory, token); //get the blobs in pages of 5000
+            for (ListBlobItem b : result.getResults()) {                                //add resultant blobs to list
                 if (b instanceof CloudBlob) {
                     CloudBlob cloudBlob = (CloudBlob) b;
                     blobList.add(cloudBlob);
@@ -119,7 +95,6 @@ public final class AzureUtilities {
             }
             token = result.getContinuationToken();
         } while (token != null);
-
         return blobList;
     }
 
@@ -159,6 +134,38 @@ public final class AzureUtilities {
         return container.getDirectoryReference(dir);
     }
 
+    private static ResultSegment<ListBlobItem> listBlobsInSegments(CloudBlobDirectory directory,
+           ResultContinuation token) throws IOException {
+        ResultSegment<ListBlobItem> result = null;
+        IOException lastException = null;
+        for (int sleep = 10; sleep <= 10000; sleep *= 10) {  //increment the sleep time in steps.
+            try {
+                result = directory.listBlobsSegmented(
+                        null,
+                        false,
+                        EnumSet.of(BlobListingDetails.METADATA),
+                        5000,
+                        token,
+                        null,
+                        null);
+                break;  //we have the results, no need to retry
+            } catch (StorageException | URISyntaxException e) {
+                lastException = new IOException(e);
+                try {
+                    Thread.sleep(sleep); //Sleep and retry
+                } catch (InterruptedException ex) {
+                    log.warn("Interrupted", e);
+                }
+            }
+        }
+
+        if (result == null) {
+            throw lastException;
+        } else {
+            return result;
+        }
+    }
+
     private static class ByteBufferOutputStream extends OutputStream {
 
         @NotNull
@@ -178,6 +185,7 @@ public final class AzureUtilities {
             buffer.put(bytes, offset, length);
         }
     }
+
 }
 
 
