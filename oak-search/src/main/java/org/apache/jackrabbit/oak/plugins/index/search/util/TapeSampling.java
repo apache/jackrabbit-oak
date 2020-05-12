@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.lucene.util;
+package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
@@ -25,9 +25,20 @@ import java.util.Iterator;
 import java.util.Random;
 
 /**
- * @deprecated Class moved to package org.apache.jackrabbit.oak.plugins.index.search.util in oak-search
+ * Sampling algorithm that picks 'k' random samples from streaming input.
+ * The algorithm would maintain 'k/N' probability to pick any of the item
+ * where 'N' is the number of items seen currently.
+ *
+ * While the input could be streaming, the algorithm requires {@code N} to be known
+ * before hand.
+ *
+ * The algorithm produces random saamples without replacement and hence has O(1) extra
+ * memory complexity
+ *
+ * Implementation inspired from "JONES,T.G. A note on sampling a tape file"
+ * (https://dl.acm.org/citation.cfm?id=368159)
  */
-@Deprecated
+
 public class TapeSampling<T> {
     private final Random rGen;
     private final Iterator<T> input;

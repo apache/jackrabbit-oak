@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-class ElasticsearchIndexNode implements IndexNode {
+public class ElasticsearchIndexNode implements IndexNode {
 
     private final ElasticsearchConnection elasticsearchConnection;
     private final ElasticsearchIndexDefinition indexDefinition;

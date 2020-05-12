@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.util.SearchSourceBuilderUtil;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -26,13 +27,23 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
-class ElasticsearchSearcher {
+public class ElasticsearchSearcher {
     private final ElasticsearchIndexNode indexNode;
 
     ElasticsearchSearcher(@NotNull ElasticsearchIndexNode indexNode) {
         this.indexNode = indexNode;
     }
 
+    public SearchResponse search(ElasticsearchSearcherModel elasticsearchSearcherModel) throws IOException {
+        SearchSourceBuilder searchSourceBuilder = SearchSourceBuilderUtil.createSearchSourceBuilder(elasticsearchSearcherModel);
+
+        SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexName())
+                .source(searchSourceBuilder);
+
+        return indexNode.getConnection().getClient().search(request, RequestOptions.DEFAULT);
+    }
+
+    @Deprecated
     public SearchResponse search(QueryBuilder query, int batchSize) throws IOException {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(query)
@@ -44,5 +55,9 @@ class ElasticsearchSearcher {
                 .source(searchSourceBuilder);
 
         return indexNode.getConnection().getClient().search(request, RequestOptions.DEFAULT);
+    }
+
+    public ElasticsearchSearcher getElasticsearchSearcher(){
+        return this;
     }
 }
