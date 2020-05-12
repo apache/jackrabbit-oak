@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
@@ -26,7 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEd
  * corresponding Elasticsearch index up to date
  */
 class ElasticsearchIndexEditor extends FulltextIndexEditor<ElasticsearchDocument> {
-    ElasticsearchIndexEditor(FulltextIndexEditorContext<ElasticsearchDocument> context) throws CommitFailedException {
+    ElasticsearchIndexEditor(FulltextIndexEditorContext<ElasticsearchDocument> context) {
         super(context);
     }
 }

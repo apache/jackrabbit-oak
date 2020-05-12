@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -46,7 +45,7 @@ public class ElasticsearchIndexEditorProvider implements IndexEditorProvider {
     @Override
     public @Nullable Editor getIndexEditor(@NotNull String type,
                                            @NotNull NodeBuilder definition, @NotNull NodeState root,
-                                           @NotNull IndexUpdateCallback callback) throws CommitFailedException {
+                                           @NotNull IndexUpdateCallback callback) {
         if (TYPE_ELASTICSEARCH.equals(type)) {
             if (!(callback instanceof ContextAwareCallback)) {
                 throw new IllegalStateException("callback instance not of type ContextAwareCallback [" + callback + "]");

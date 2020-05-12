@@ -59,7 +59,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
   private final String name;
 
   /* Parent editor or {@code null} if this is the root editor. */
-  private final FulltextIndexEditor parent;
+  private final FulltextIndexEditor<D> parent;
 
   /* Path of this editor, built lazily in {@link #getPath()}. */
   private String path;
@@ -81,7 +81,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
 
   private final PathFilter.Result pathFilterResult;
 
-  public FulltextIndexEditor(FulltextIndexEditorContext<D> context) throws CommitFailedException {
+  public FulltextIndexEditor(FulltextIndexEditorContext<D> context) {
     this.parent = null;
     this.name = null;
     this.path = "/";
@@ -222,7 +222,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
       // tree deletion is handled on the parent node
       String path = concat(getPath(), name);
       try {
-        FulltextIndexWriter writer = context.getWriter();
+        FulltextIndexWriter<D> writer = context.getWriter();
         // Remove all index entries in the removed subtree
         writer.deleteDocuments(path);
         this.context.indexUpdate();
@@ -241,7 +241,7 @@ public class FulltextIndexEditor<D> implements IndexEditor, Aggregate.AggregateR
     return null; // no need to recurse down the removed subtree
   }
 
-  FulltextIndexEditorContext<D> getContext() {
+  public FulltextIndexEditorContext<D> getContext() {
     return context;
   }
 

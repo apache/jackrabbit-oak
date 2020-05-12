@@ -17,21 +17,20 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import com.google.common.base.Preconditions;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileBufferLinkedList.NodeIterator.iteratorFor;
 
 /**
  * Linked list implementation which supports multiple iterators. The iterator's state
  * is backed by an actual node in the list. So, modification in the list show up in
  * iterator (assuming thread safely/volatility) getting handled outside of the class.
  */
-public class FlatFileBufferLinkedList {
+public class FlatFileBufferLinkedList implements NodeStateEntryList {
 
     private ListNode head = new ListNode();
     private ListNode tail = head;
@@ -40,17 +39,14 @@ public class FlatFileBufferLinkedList {
     private long memUsage = 0;
     private final long memLimit;
 
-    FlatFileBufferLinkedList() {
+    public FlatFileBufferLinkedList() {
         this(Long.MAX_VALUE);
     }
 
-    FlatFileBufferLinkedList(long memLimit) {
+    public FlatFileBufferLinkedList(long memLimit) {
         this.memLimit = memLimit;
     }
 
-    /**
-     * Add {@code item} at the tail of the list
-     */
     public void add(@NotNull NodeStateEntry item) {
         Preconditions.checkArgument(item != null, "Can't add null to the list");
         long incomingSize = item.estimatedMemUsage();
@@ -65,10 +61,6 @@ public class FlatFileBufferLinkedList {
         this.memUsage += incomingSize;
     }
 
-    /**
-     * Remove the first item from the list
-     * @return {@code NodeStateEntry} data in the removed item
-     */
     public NodeStateEntry remove() {
         Preconditions.checkState(!isEmpty(), "Cannot remove item from empty list");
         NodeStateEntry ret = head.next.data;
@@ -82,23 +74,29 @@ public class FlatFileBufferLinkedList {
         return ret;
     }
 
-    /**
-     * @return {@link NodeIterator} object which would iterate the whole list
-     */
-    public NodeIterator iterator() {
-        return iteratorFor(head);
+    @Override
+    public Iterator<NodeStateEntry> iterator() {
+        return NodeIterator.iteratorFor(head);
     }
 
+    @Override
     public int size() {
         return size;
     }
 
+    @Override
     public boolean isEmpty() {
         return size == 0;
     }
 
+    @Override
     public long estimatedMemoryUsage() {
         return memUsage;
+    }
+
+    @Override
+    public void close() {
+        // ignore
     }
 
     /**
@@ -141,9 +139,11 @@ public class FlatFileBufferLinkedList {
 
         @Override
         public NodeStateEntry next() {
-            Preconditions.checkState(current.isValid, "Can't call next from a removed node");
+            Preconditions.checkState(hasNext(), "No next");
             current = current.next;
+            Preconditions.checkState(current.isValid, "Can't call next from a removed node");
             return current.data;
         }
     }
+
 }

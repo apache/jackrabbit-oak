@@ -17,11 +17,11 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileBufferLinkedList.NodeIterator;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.FlatFileBufferLinkedList;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -31,12 +31,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.util.Iterator;
+
 public class FlatFileBufferLinkedListTest {
-    private FlatFileBufferLinkedList list = null;
-    private static final NodeStateEntry TEST_NODE_STATE_ENTRY = new NodeStateEntry(EMPTY_NODE, "/");
+
+    protected NodeStateEntryList list;
 
     @Before
-    public void setup() {
+    public void setup() throws IOException {
         list = new FlatFileBufferLinkedList();
     }
 
@@ -49,7 +52,7 @@ public class FlatFileBufferLinkedListTest {
             //ignore
         }
 
-        list.add(TEST_NODE_STATE_ENTRY);
+        list.add(testNode("/"));
     }
 
     @Test
@@ -61,61 +64,66 @@ public class FlatFileBufferLinkedListTest {
             //ignore
         }
 
-        list.add(TEST_NODE_STATE_ENTRY);
-        assertEquals("Should get item on removal", TEST_NODE_STATE_ENTRY, list.remove());
+        list.add(testNode("/"));
+        assertEquals("Should get item on removal", testNode("/"), list.remove());
     }
 
     @Test
     public void iterator() {
         assertEquals("empty list must be 0-sized", 0, Iterators.size(list.iterator()));
 
-        list.add(TEST_NODE_STATE_ENTRY);
+        list.add(testNode("/"));
         assertEquals("single entry list must be 1-sized", 1, Iterators.size(list.iterator()));
         assertEquals("single entry list must be 1-sized on separate iterators",
                 1, Iterators.size(list.iterator()));
 
-        list.add(TEST_NODE_STATE_ENTRY);
+        list.add(testNode("/a"));
         assertEquals("2 entries in list must be 2-sized", 2, Iterators.size(list.iterator()));
 
         assertEquals("2 entries in list must be 2-sized on separate iterators",
                 2, Iterators.size(list.iterator()));
 
-        NodeIterator iter2 = list.iterator();
-        NodeIterator iter1 = list.iterator();
-        iter2.next();
+        Iterator<NodeStateEntry> iter2 = list.iterator();
+        Iterator<NodeStateEntry> iter1 = list.iterator();
+        assertEquals("/", iter2.next().toString());
         assertEquals("2 entries in list must be 1-sized after consuming an item",
                 1, Iterators.size(iter2));
         assertEquals("2 entries in list must be 2-sized even if some other iterator consumed an item",
                 2, Iterators.size(iter1));
 
-        list.add(TEST_NODE_STATE_ENTRY);
+        list.add(testNode("/b"));
         iter1 = list.iterator();
         iter2 = list.iterator();
 
-        iter1.next();//move iter to point at node being removed below
-        iter2.next();iter2.next();// move iter beyond node being removed - this should remain valid
+        //move iter to point at node being removed below
+        assertEquals("/", iter1.next().toString());
+        // move iter beyond node being removed - this should remain valid
+        assertEquals("/", iter2.next().toString());
+        assertEquals("/a", iter2.next().toString());
 
-        list.remove();
+        assertEquals("/", list.remove().toString());
+        assertEquals("/a", list.remove().toString());
         try {
             iter1.next();
             fail("Iterator state once removed from list can't be traversed");
         } catch (IllegalStateException ise) {
             //ignore
         }
-        assertEquals(TEST_NODE_STATE_ENTRY, iter2.next());//this should work
+        //this should work
+        assertEquals(testNode("/b"), iter2.next());
         assertEquals("2 entries in list must be 1-sized after removal of an iterm",
-                2, Iterators.size(list.iterator()));
+                1, Iterators.size(list.iterator()));
     }
 
     @Test
     public void size() {
         assertEquals("empty list must be 0-sized", 0, list.size());
 
-        list.add(TEST_NODE_STATE_ENTRY);
+        list.add(testNode("/"));
         assertEquals("single entry list must be 1-sized", 1, list.size());
         assertEquals("single entry list must be 1-sized on separate iterators", 1, list.size());
 
-        list.add(TEST_NODE_STATE_ENTRY);
+        list.add(testNode("/"));
         assertEquals("2 entries in list must be 2-sized", 2, list.size());
 
         assertEquals("2 entries in list must be 2-sized on separate iterators", 2, list.size());
@@ -128,7 +136,7 @@ public class FlatFileBufferLinkedListTest {
     public void isEmpty() {
         assertTrue("Empty list should be empty", list.isEmpty());
 
-        list.add(TEST_NODE_STATE_ENTRY);
+        list.add(testNode("/"));
         assertFalse("Non-empty list should be non-empty", list.isEmpty());
 
         list.remove();
@@ -171,8 +179,12 @@ public class FlatFileBufferLinkedListTest {
 
     @Test
     public void basics() {
-        list.add(TEST_NODE_STATE_ENTRY);
+        list.add(testNode("/"));
         assertEquals("Adding an item should change size", 1, list.size());
         assertTrue("Adding an item should be available", list.iterator().hasNext());
+    }
+
+    private NodeStateEntry testNode(String n) {
+        return new NodeStateEntry(EMPTY_NODE, n);
     }
 }

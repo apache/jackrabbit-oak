@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public final class ElasticsearchTestUtils {
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchTestUtils.class);
 
     public static void assertEventually(Runnable r, long timeoutMillis) {
         final long start = System.currentTimeMillis();
@@ -26,6 +30,7 @@ public final class ElasticsearchTestUtils {
         while (true) {
             try {
                 attempts++;
+                LOG.info("EventualAssertion attempt count:{}", attempts);
                 lastAttempt = System.currentTimeMillis();
                 r.run();
                 return;

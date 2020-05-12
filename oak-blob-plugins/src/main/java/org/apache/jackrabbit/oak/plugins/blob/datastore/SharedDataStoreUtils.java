@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -88,6 +89,34 @@ public class SharedDataStoreUtils {
                                 return SharedStoreRecordType.REFERENCES.getIdFromName(input.getIdentifier().toString());
                             }
                         }).keySet());
+    }
+
+    /**
+     * Repositories from which marked references older than retention time are not available.
+     *
+     * @param repos the repos
+     * @param refs the refs
+     * @param referenceTime the retention time
+     * @return the sets the sets whose references not available
+     */
+    public static Set<String> refsNotOld(List<DataRecord> repos,
+        List<DataRecord> refs, long referenceTime) {
+
+        // Filter records older than the retention time and group by the repository id
+        Set<String> qualifyingRefs = refs.stream()
+            .filter(dataRecord -> dataRecord.getLastModified() < referenceTime)
+            .collect(Collectors
+                .groupingBy(input -> SharedStoreRecordType.MARKED_START_MARKER.getIdFromName(input.getIdentifier().toString()),
+                            Collectors.mapping(java.util.function.Function.identity(), Collectors.toList())))
+            .keySet();
+
+        Set<String> repoIds =
+            repos.stream()
+                .map(dataRecord -> SharedStoreRecordType.REPOSITORY.getIdFromName(dataRecord.getIdentifier().toString()))
+                .collect(Collectors.toSet());
+
+        repoIds.removeAll(qualifyingRefs);
+        return repoIds;
     }
 
     /**

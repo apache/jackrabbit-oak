@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -114,4 +115,16 @@ public interface SegmentArchiveManager {
      */
     void recoverEntries(@NotNull String archiveName, @NotNull LinkedHashMap<UUID, byte[]> entries) throws IOException;
 
+    /**
+     * Method that is doing a backup of the archive given with {@code archiveName} into {@code backupArchiveName}.
+     * In addition, set of UUIDs of recovered segments is provided which can be inspected during backup.
+     * Method is invoked during archive recovery procedure and concrete implementation can decide whether original archive
+     * should be deleted or modified.
+     *
+     * @param archiveName
+     * @param backupArchiveName
+     * @param recoveredEntries
+     * @throws IOException
+     */
+    void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException;
 }

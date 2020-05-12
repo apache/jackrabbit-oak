@@ -90,7 +90,7 @@ class ElasticsearchIndex extends FulltextIndex {
 
     @Override
     protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode) {
-        return Strings.toString(ElasticsearchResultRowIterator.getESRequest(plan, getPlanResult(plan)));
+        return Strings.toString(ElasticsearchResultRowIterator.getESQuery(plan, getPlanResult(plan)));
     }
 
     @Override

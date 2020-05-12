@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
@@ -136,4 +137,13 @@ public class SplitSegmentArchiveManager implements SegmentArchiveManager {
         }
     }
 
+    @Override
+    public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
+        if (roArchiveList.contains(archiveName)) {
+            // archive is in read only part
+            return;
+        } else {
+            rwArchiveManager.backup(archiveName, backupArchiveName, recoveredEntries);
+        }
+    }
 }

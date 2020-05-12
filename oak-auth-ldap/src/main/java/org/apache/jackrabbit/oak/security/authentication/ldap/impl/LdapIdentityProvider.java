@@ -540,6 +540,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             adminPool.setTestOnBorrow(true);
             adminPool.setMaxTotal(config.getAdminPoolConfig().getMaxActive());
             adminPool.setBlockWhenExhausted(true);
+            adminPool.setMinEvictableIdleTimeMillis(config.getAdminPoolConfig().getMinEvictableIdleTimeMillis());
+            adminPool.setTimeBetweenEvictionRunsMillis(config.getAdminPoolConfig().getTimeBetweenEvictionRunsMillis());
+            adminPool.setNumTestsPerEvictionRun(config.getAdminPoolConfig().getNumTestsPerEvictionRun());
         }
 
         // setup unbound connection pool. let's create a new version of the config
@@ -556,6 +559,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
             userPool.setTestOnBorrow(true);
             userPool.setMaxTotal(config.getUserPoolConfig().getMaxActive());
             userPool.setBlockWhenExhausted(true);
+            userPool.setMinEvictableIdleTimeMillis(config.getUserPoolConfig().getMinEvictableIdleTimeMillis());
+            userPool.setTimeBetweenEvictionRunsMillis(config.getUserPoolConfig().getTimeBetweenEvictionRunsMillis());
+            userPool.setNumTestsPerEvictionRun(config.getUserPoolConfig().getNumTestsPerEvictionRun());
         }
 
         log.info("LdapIdentityProvider initialized: {}", config);

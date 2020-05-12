@@ -18,14 +18,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
-import java.util.Arrays;
-
-import org.junit.Test;
-
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
+
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
+import org.junit.Test;
+
 public class FunctionIndexProcessorTest {
-    
+
     @Test
     public void getProperties() {
         assertEquals(
@@ -34,29 +37,54 @@ public class FunctionIndexProcessorTest {
                 FunctionIndexProcessor.getProperties(new String[] { "function",
                         "multiply", "@a", "add", "@test/b", "@test/:name" })));
     }
-    
+
+    @Test
+    public void tryCalculateValue() {
+        // length of a string
+        assertEquals("value = 11",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data", "Hello World").getNodeState(),
+                new String[]{"function", "length", "@data"}).toString());
+        // length of a binary property
+        assertEquals("value = 100",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data",
+                        new ArrayBasedBlob(new byte[100]), Type.BINARY).getNodeState(),
+                new String[]{"function", "length", "@data"}).toString());
+        // uppercase
+        assertEquals("value = HELLO WORLD",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data", "Hello World").getNodeState(),
+                new String[]{"function", "upper", "@data"}).toString());
+        // lowercase
+        assertEquals("value = hello world",
+                FunctionIndexProcessor.tryCalculateValue("x",
+                EMPTY_NODE.builder().setProperty("data", "Hello World").getNodeState(),
+                new String[]{"function", "lower", "@data"}).toString());
+    }
+
     @Test
     public void xpath() {
         checkConvert(
-                "fn:upper-case(@data)", 
+                "fn:upper-case(@data)",
                 "function*upper*@data");
         checkConvert(
-                "fn:lower-case(test/@data)", 
+                "fn:lower-case(test/@data)",
                 "function*lower*@test/data");
         checkConvert(
-                "fn:lower-case(fn:name())", 
-                "function*lower*@:name");        
+                "fn:lower-case(fn:name())",
+                "function*lower*@:name");
         checkConvert(
-                "fn:lower-case(fn:local-name())", 
+                "fn:lower-case(fn:local-name())",
                 "function*lower*@:localname");
         checkConvert(
-                "fn:string-length(test/@data)", 
+                "fn:string-length(test/@data)",
                 "function*length*@test/data");
         checkConvert(
-                "fn:string-length(fn:name())", 
+                "fn:string-length(fn:name())",
                 "function*length*@:name");
         checkConvert(
-                "fn:lower-case(fn:upper-case(test/@data))", 
+                "fn:lower-case(fn:upper-case(test/@data))",
                 "function*lower*upper*@test/data");
         checkConvert("fn:coalesce(jcr:content/@foo2, jcr:content/@foo)",
                 "function*coalesce*@jcr:content/foo2*@jcr:content/foo");
@@ -71,29 +99,29 @@ public class FunctionIndexProcessorTest {
     @Test
     public void sql2() {
         checkConvert(
-                "upper([data])", 
+                "upper([data])",
                 "function*upper*@data");
         checkConvert(
-                "lower([test/data])", 
+                "lower([test/data])",
                 "function*lower*@test/data");
         checkConvert(
-                "lower(name())", 
+                "lower(name())",
                 "function*lower*@:name");
         checkConvert(
-                "lower(localname())", 
+                "lower(localname())",
                 "function*lower*@:localname");
         checkConvert(
-                "length([test/data])", 
+                "length([test/data])",
                 "function*length*@test/data");
         checkConvert(
-                "length(name())", 
+                "length(name())",
                 "function*length*@:name");
         checkConvert(
-                "lower(upper([test/data]))", 
+                "lower(upper([test/data]))",
                 "function*lower*upper*@test/data");
         // the ']' character is escaped as ']]'
         checkConvert(
-                "[strange[0]]]", 
+                "[strange[0]]]",
                 "function*@strange[0]");
         checkConvert("coalesce([jcr:content/foo2],[jcr:content/foo])",
                 "function*coalesce*@jcr:content/foo2*@jcr:content/foo");

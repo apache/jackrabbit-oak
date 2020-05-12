@@ -152,7 +152,7 @@ public class TarReader implements Closeable {
         }
 
         if (backup) {
-            backupSafely(archiveManager, file);
+            backupSafely(archiveManager, file, entries.keySet());
         }
     }
 
@@ -202,18 +202,13 @@ public class TarReader implements Closeable {
      * overwritten.
      *
      * @param file File to backup.
+     * @param recoveredEntries
      */
-    private static void backupSafely(SegmentArchiveManager archiveManager, String file) throws IOException {
+    private static void backupSafely(SegmentArchiveManager archiveManager, String file, Set<UUID> recoveredEntries) throws IOException {
         String backup = findAvailGen(file, ".bak", archiveManager);
         log.info("Backing up {} to {}", file, backup);
-        if (!archiveManager.renameTo(file, backup)) {
-            log.warn("Renaming failed, so using copy to backup {}", file);
-            archiveManager.copyFile(file, backup);
-            if (!archiveManager.delete(file)) {
-                throw new IOException(
-                        "Could not remove broken tar file " + file);
-            }
-        }
+
+        archiveManager.backup(file, backup, recoveredEntries);
     }
 
     /**

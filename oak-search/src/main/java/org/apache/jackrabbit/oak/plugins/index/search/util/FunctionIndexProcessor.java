@@ -37,10 +37,10 @@ import org.slf4j.LoggerFactory;
  * definition (XPath) to the internal Polish notation.
  */
 public class FunctionIndexProcessor {
-    
+
     private static final Logger LOG =
             LoggerFactory.getLogger(FunctionIndexProcessor.class);
-    
+
     private String remaining;
 
     private static final PropertyState EMPTY_PROPERTY_STATE = EmptyPropertyState.emptyProperty("empty", Type.STRINGS);
@@ -48,10 +48,10 @@ public class FunctionIndexProcessor {
     protected FunctionIndexProcessor(String function) {
         this.remaining = function;
     }
-    
+
     /**
      * Get the list of properties used in the given function code.
-     * 
+     *
      * @param functionCode the tokens, for example ["function", "lower", "@name"]
      * @return the list of properties, for example ["name"]
      */
@@ -68,7 +68,7 @@ public class FunctionIndexProcessor {
 
     /**
      * Try to calculate the value for the given function code.
-     * 
+     *
      * @param path the path of the node
      * @param state the node state
      * @param functionCode the tokens, for example ["function", "lower", "@name"]
@@ -94,10 +94,10 @@ public class FunctionIndexProcessor {
         PropertyState ret = stack.pop();
         return ret==EMPTY_PROPERTY_STATE ? null : ret;
     }
-    
+
     /**
      * Split the polish notation into a tokens that can more easily be processed.
-     *  
+     *
      *  @param functionDescription in polish notation, for example "function*lower*{@literal @}name"
      *  @return tokens, for example ["function", "lower", "{@literal @}name"]
      */
@@ -107,7 +107,7 @@ public class FunctionIndexProcessor {
         }
         return functionDescription.split("\\*");
     }
-    
+
     private static PropertyState calculateFunction(String functionName,
                                                    Deque<PropertyState> stack) {
         PropertyState ps = stack.pop();
@@ -126,19 +126,20 @@ public class FunctionIndexProcessor {
         Type<?> type = null;
         ArrayList<Object> values = new ArrayList<>(ps.count());
         for (int i = 0; i < ps.count(); i++) {
-            String s = ps.getValue(Type.STRING, i);
             Object x;
             if ("lower".equals(functionName)) {
+                String s = ps.getValue(Type.STRING, i);
                 x = s.toLowerCase();
                 type = Type.STRING;
-            } else if ("coalesce".equals(functionName)) {
-                x = s;
-                type = Type.STRING;
             } else if ("upper".equals(functionName)) {
+                String s = ps.getValue(Type.STRING, i);
                 x = s.toUpperCase();
                 type = Type.STRING;
+            } else if ("coalesce".equals(functionName)) {
+                x = ps.getValue(Type.STRING, i);
+                type = Type.STRING;
             } else if ("length".equals(functionName)) {
-                x = (long) s.length();
+                x = ps.size(i);
                 type = Type.LONG;
             } else {
                 LOG.debug("Unknown function {}", functionName);
@@ -155,7 +156,7 @@ public class FunctionIndexProcessor {
         }
         return result;
     }
-    
+
     private static PropertyState getProperty(String path, NodeState state,
                                              String propertyName) {
         if (PathUtils.getDepth(propertyName) != 1) {
@@ -182,16 +183,16 @@ public class FunctionIndexProcessor {
         }
         return ps;
     }
-    
+
     private static String getLocalName(String name) {
         int colon = name.indexOf(':');
         // TODO LOCALNAME: evaluation of local name might not be correct
         return colon < 0 ? name : name.substring(colon + 1);
     }
-    
+
     /**
      * Convert a function (in human-readable form) to the polish notation.
-     * 
+     *
      * @param function the function, for example "lower([name])"
      * @return the polish notation, for example "function*lower*{@literal @}name"
      */
@@ -202,7 +203,7 @@ public class FunctionIndexProcessor {
         FunctionIndexProcessor p = new FunctionIndexProcessor(function);
         return QueryConstants.FUNCTION_RESTRICTION_PREFIX + p.parse();
     }
-    
+
     String parse() {
         if (match("fn:local-name()") || match("localname()")) {
             return "@:localname";
@@ -248,11 +249,11 @@ public class FunctionIndexProcessor {
             return property(prop.replaceAll("@", ""));
         }
     }
-    
+
     String property(String p) {
         return "@" + p;
     }
-    
+
     private String read(String string) {
         match(string);
         return "";
@@ -267,7 +268,7 @@ public class FunctionIndexProcessor {
         }
         return "*";
     }
-    
+
     private boolean match(String string) {
         if (remaining.startsWith(string)) {
             remaining = remaining.substring(string.length());

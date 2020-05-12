@@ -45,6 +45,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<Void> idOp;
     private final OptionSpec<Boolean> checkConsistencyAfterGC;
     private final OptionSpec<Integer> batchCount;
+    private final OptionSpec<Void> metadataOp;
     private OptionSet options;
     private final Set<OptionSpec> actionOpts;
     private final Set<String> operationNames;
@@ -55,6 +56,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<Boolean> resetLoggingConfig;
     private OptionSpec<String> exportMetrics;
     private static final String DELIM = ",";
+    private OptionSpec<Boolean> sweepIfRefsPastRetention;
 
     public DataStoreOptions(OptionParser parser) {
         collectGarbage = parser.accepts("collect-garbage",
@@ -66,12 +68,20 @@ public class DataStoreOptions implements OptionsBean {
             "Performs a consistency check immediately after DSGC")
             .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
 
+        sweepIfRefsPastRetention = parser.accepts("sweep-only-refs-past-retention",
+            "Only allows sweep if all references available older than retention time (Default false)")
+            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+
         consistencyCheck =
             parser.accepts("check-consistency", "Performs a consistency check on the repository/datastore defined");
 
         refOp = parser.accepts("dump-ref", "Gets a dump of Blob References");
 
         idOp = parser.accepts("dump-id", "Gets a dump of Blob Ids");
+
+        metadataOp = parser.accepts("get-metadata",
+            "Gets the metadata available in the DataStore in the format `repositoryId|referencesTime|* (if local) "
+                + "(earliest time of references file if available)` in the DataStore repository/datastore defined");
 
         blobGcMaxAgeInSecs = parser.accepts("max-age", "")
             .withRequiredArg().ofType(Long.class).defaultsTo(86400L);
@@ -104,7 +114,7 @@ public class DataStoreOptions implements OptionsBean {
             "type, URI to export the metrics and optional metadata all delimeted by semi-colon(;)").withRequiredArg();
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck, idOp, refOp);
+        actionOpts = ImmutableSet.of(collectGarbage, consistencyCheck, idOp, refOp, metadataOp);
         operationNames = collectionOperationNames(actionOpts);
     }
 
@@ -168,6 +178,10 @@ public class DataStoreOptions implements OptionsBean {
         return options.has(idOp);
     }
 
+    public boolean getMetadata(){
+        return options.has(metadataOp);
+    }
+
     public boolean checkConsistencyAfterGC() {
         return options.has(checkConsistencyAfterGC) && checkConsistencyAfterGC.value(options) ;
     }
@@ -224,4 +238,7 @@ public class DataStoreOptions implements OptionsBean {
         return options.valuesOf(verbosePathInclusionRegex);
     }
 
+    public boolean sweepIfRefsPastRetention() {
+        return options.has(sweepIfRefsPastRetention) && sweepIfRefsPastRetention.value(options) ;
+    }
 }

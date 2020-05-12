@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +42,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -225,6 +227,29 @@ public class AzureArchiveManager implements SegmentArchiveManager {
         }
     }
 
+    private void delete(String archiveName, Set<UUID> recoveredEntries) throws IOException {
+        getBlobs(archiveName)
+                .forEach(cloudBlob -> {
+                    if (!recoveredEntries.contains(AzureUtilities.getSegmentUUID(getName(cloudBlob)))) {
+                        try {
+                            cloudBlob.delete();
+                        } catch (StorageException e) {
+                            log.error("Can't delete segment {}", cloudBlob.getUri().getPath(), e);
+                        }
+                    }
+                });
+    }
+
+    /**
+     * Method is not deleting  segments from the directory given with {@code archiveName}, if they are in the set of recovered segments.
+     * Reason for that is because during execution of this method, remote repository can be accessed by another application, and deleting a valid segment can
+     * cause consistency issues there.
+     */
+    @Override
+    public void backup(@NotNull String archiveName, @NotNull String backupArchiveName, @NotNull Set<UUID> recoveredEntries) throws IOException {
+        copyFile(archiveName, backupArchiveName);
+        delete(archiveName, recoveredEntries);
+    }
 
     protected CloudBlobDirectory getDirectory(String archiveName) throws IOException {
         try {
