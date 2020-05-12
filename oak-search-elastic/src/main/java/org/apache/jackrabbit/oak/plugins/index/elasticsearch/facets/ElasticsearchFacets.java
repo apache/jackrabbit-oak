@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.facets;
 
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchSearcher;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -49,7 +50,8 @@ public interface ElasticsearchFacets {
      * @return A map with facetName as key and List of facets in descending order of facetCount.
      * @throws IOException
      */
-    Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(int numberOfFacets) throws IOException;
+    Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(ElasticsearchIndexDefinition indexDefinition,
+                                                                  int numberOfFacets) throws IOException;
 
     /**
      * We can retrieve Aggregation in a single call to elastic search while querying. Which can then be passed

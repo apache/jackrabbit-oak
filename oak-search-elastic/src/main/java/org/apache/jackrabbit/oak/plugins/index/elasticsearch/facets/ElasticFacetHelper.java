@@ -20,17 +20,17 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch.facets;
 
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchSearcher;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class ElasticFacetHelper {
 
@@ -58,32 +58,28 @@ public class ElasticFacetHelper {
         return elasticsearchFacets;
     }
 
-    public static List<String> getAccessibleDocIds(SearchHit[] searchHits, Filter filter) throws UnsupportedEncodingException {
+    public static List<String> getAccessibleDocIds(SearchHit[] searchHits, Filter filter) {
         List<String> accessibleDocs = new LinkedList<>();
         for (SearchHit searchHit : searchHits) {
-            String id = searchHit.getId();
-            String path = idToPath(id);
+            final Map<String, Object> sourceMap = searchHit.getSourceAsMap();
+            String path = (String) sourceMap.getOrDefault(FieldNames.PATH, searchHit.getId());
             if (filter.isAccessible(path)) {
-                accessibleDocs.add(id);
+                accessibleDocs.add(searchHit.getId());
             }
         }
         return accessibleDocs;
     }
 
-    public static int getAccessibleDocCount(Iterator<SearchHit> searchHitIterator, Filter filter) throws UnsupportedEncodingException {
+    public static int getAccessibleDocCount(Iterator<SearchHit> searchHitIterator, Filter filter) {
         int count = 0;
         while (searchHitIterator.hasNext()) {
             SearchHit searchHit = searchHitIterator.next();
-            String id = searchHit.getId();
-            String path = idToPath(id);
+            final Map<String, Object> sourceMap = searchHit.getSourceAsMap();
+            String path = (String) sourceMap.getOrDefault(FieldNames.PATH, searchHit.getId());
             if (filter.isAccessible(path)) {
                 count++;
             }
         }
         return count;
-    }
-
-    public static String idToPath(String id) throws UnsupportedEncodingException {
-        return URLDecoder.decode(id, "UTF-8");
     }
 }

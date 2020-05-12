@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 /**
  * Provides utility functions around Elasticsearch indexing
@@ -87,17 +86,9 @@ class ElasticsearchIndexHelper {
     }
 
     private static void mapIndexRules(ElasticsearchIndexDefinition indexDefinition, XContentBuilder mappingBuilder) throws IOException {
-        final Map<String, List<PropertyDefinition>> propertiesByName = indexDefinition.getDefinedRules()
-                .stream()
-                .flatMap(rule -> StreamSupport.stream(rule.getProperties().spliterator(), false))
-                .filter(pd -> pd.index)
-                // TODO:we are skipping not visible property but we could actual map some of them. We need to review
-                // how property names are composed at query time though
-                .filter(pd -> pd.name.charAt(0) != ':')
-                .collect(Collectors.groupingBy(pd -> pd.name));
-
         // we need to check if in the defined rules there are properties with the same name and different types
-        final List<Map.Entry<String, List<PropertyDefinition>>> multiTypesFields = propertiesByName.entrySet()
+        final List<Map.Entry<String, List<PropertyDefinition>>> multiTypesFields = indexDefinition.getPropertiesByName()
+                .entrySet()
                 .stream()
                 .filter(e -> e.getValue().size() > 1)
                 .filter(e -> e.getValue().stream().map(PropertyDefinition::getType).distinct().count() > 1)
@@ -109,7 +100,7 @@ class ElasticsearchIndexHelper {
                     "different types " + fields);
         }
 
-        for (Map.Entry<String, List<PropertyDefinition>> entry : propertiesByName.entrySet()) {
+        for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
 
@@ -128,8 +119,7 @@ class ElasticsearchIndexHelper {
                 } else if (Type.BOOLEAN.equals(type)) {
                     mappingBuilder.field("type", "boolean");
                 } else {
-                    boolean analyzed = propertyDefinitions.stream().anyMatch(pd -> pd.analyzed || pd.fulltextEnabled());
-                    if (analyzed) {
+                    if (indexDefinition.isAnalyzed(propertyDefinitions)) {
                         mappingBuilder.field("type", "text");
                         // always add keyword for sorting / faceting as sub-field
                         mappingBuilder.startObject("fields");

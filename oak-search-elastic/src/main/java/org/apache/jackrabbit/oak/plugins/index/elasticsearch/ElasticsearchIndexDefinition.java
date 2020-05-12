@@ -18,10 +18,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -55,6 +61,16 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
             .map(Object::toString)
             .collect(Collectors.joining("")));
 
+    private static final Function<Integer, Boolean> isAnalyzable;
+
+    static {
+        int[] NOT_ANALYZED_TYPES = new int[] {
+                Type.BINARY.tag(), Type.LONG.tag(), Type.DOUBLE.tag(), Type.DECIMAL.tag(), Type.DATE.tag(), Type.BOOLEAN.tag()
+        };
+        Arrays.sort(NOT_ANALYZED_TYPES); // need for binary search
+        isAnalyzable = type -> Arrays.binarySearch(NOT_ANALYZED_TYPES, type) < 0;
+    }
+
     private final String remoteIndexName;
 
     public final int bulkActions;
@@ -63,6 +79,8 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
     public final int bulkRetries;
     public final long bulkRetriesBackoff;
     private final String indexPrefix;
+
+    private final Map<String, List<PropertyDefinition>> propertiesByName;
 
     public ElasticsearchIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
@@ -73,6 +91,12 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
         this.bulkRetries = getOptionalValue(defn, BULK_RETRIES, BULK_RETRIES_DEFAULT);
         this.bulkRetriesBackoff = getOptionalValue(defn, BULK_RETRIES_BACKOFF, BULK_RETRIES_BACKOFF_DEFAULT);
+
+        this.propertiesByName = getDefinedRules()
+                .stream()
+                .flatMap(rule -> StreamSupport.stream(rule.getProperties().spliterator(), false))
+                .filter(pd -> pd.index) // keep only properties that can be indexed
+                .collect(Collectors.groupingBy(pd -> pd.name));
     }
 
     /**
@@ -82,6 +106,35 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
      */
     public String getRemoteIndexName() {
         return remoteIndexName;
+    }
+
+    public Map<String, List<PropertyDefinition>> getPropertiesByName() {
+        return propertiesByName;
+    }
+
+    /**
+     * Returns the keyword field name mapped in Elasticsearch for the specified property name.
+     * @param propertyName the property name in the index rules
+     * @return the field name identifier in Elasticsearch
+     * @throws IllegalArgumentException if the specified name is not part of this {@code ElasticsearchIndexDefinition}
+     */
+    public String getElasticKeyword(String propertyName) {
+        List<PropertyDefinition> propertyDefinitions = propertiesByName.get(propertyName);
+        if (propertyDefinitions == null) {
+            throw new IllegalArgumentException(propertyName + " is not part of this ElasticsearchIndexDefinition");
+        }
+
+        String field = propertyName;
+        // it's ok to look at the first property since we are sure they all have the same type
+        int type = propertyDefinitions.get(0).getType();
+        if (isAnalyzable.apply(type) && isAnalyzed(propertyDefinitions)) {
+            field += ".keyword";
+        }
+        return field;
+    }
+
+    public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {
+        return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed || pd.fulltextEnabled());
     }
 
     private String setupIndexName() {

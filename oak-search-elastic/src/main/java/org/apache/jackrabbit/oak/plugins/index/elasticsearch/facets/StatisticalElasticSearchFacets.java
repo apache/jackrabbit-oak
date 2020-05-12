@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.facets;
 
 import com.google.common.collect.AbstractIterator;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchSearcher;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchSearcherModel;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.util.ElasticsearchConstants;
@@ -52,7 +53,9 @@ public class StatisticalElasticSearchFacets extends InsecureElasticSearchFacets 
         this.secureFacetConfiguration = secureFacetConfiguration;
     }
 
-    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(int numberOfFacets) throws IOException {
+    @Override
+    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(ElasticsearchIndexDefinition indexDefinition,
+                                                                         int numberOfFacets) throws IOException {
         Map<String, List<FulltextIndex.Facet>> result = new HashMap<>();
         Map<String, List<FulltextIndex.Facet>> topChildren;
         Filter filter = getPlan().getFilter();
@@ -61,7 +64,7 @@ public class StatisticalElasticSearchFacets extends InsecureElasticSearchFacets 
         ElasticsearchAggregationData aggregationData = getElasticsearchAggregationData();
         if (aggregationData == null || aggregationData.getNumberOfFacets() < numberOfFacets) {
             LOG.warn("Facets and Totalhit count are being retrieved by calling Elasticsearch");
-            topChildren = super.getElasticSearchFacets(numberOfFacets);
+            topChildren = super.getElasticSearchFacets(indexDefinition, numberOfFacets);
             ElasticsearchSearcherModel elasticsearchSearcherModel = new ElasticsearchSearcherModel.ElasticsearchSearcherModelBuilder()
                     .withQuery(getQuery())
                     .withBatchSize(ElasticsearchConstants.ELASTICSEARCH_QUERY_BATCH_SIZE)
@@ -79,7 +82,8 @@ public class StatisticalElasticSearchFacets extends InsecureElasticSearchFacets 
         // instead of statistical count. <OAK-8138>
         if (hitCount < sampleSize) {
             LOG.debug("SampleSize: {} is greater than hitcount: {}, Getting secure facet count", sampleSize, hitCount);
-            return new SecureElasticSearchFacets(getSearcher(), getQuery(), getPlan()).getElasticSearchFacets(numberOfFacets);
+            return new SecureElasticSearchFacets(getSearcher(), getQuery(), getPlan()).getElasticSearchFacets(indexDefinition,
+                    numberOfFacets);
         }
         long randomSeed = secureFacetConfiguration.getRandomSeed();
         Iterator<SearchHit> docIterator = getMatchingDocIterator(getSearcher(), getQuery());
