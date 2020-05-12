@@ -45,7 +45,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
@@ -57,8 +60,19 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     private final ElasticsearchConnection elasticsearchConnection;
     private final ElasticsearchIndexDefinition indexDefinition;
 
+    /**
+     * Coordinates communication between bulk processes. It has a main controller registered at creation time and
+     * de-registered on {@link ElasticsearchIndexWriter#close(long)}. Each bulk request register a new party in
+     * this Phaser in {@link OakBulkProcessorListener#beforeBulk(long, BulkRequest)} and de-register itself when
+     * the request returns.
+     */
+    private final Phaser phaser = new Phaser(1); // register main controller
+    /**
+     * Key-value structure to keep the history of bulk requests. Keys are the bulk execution ids, the boolean
+     * value is {@code true} when at least an update is performed, otherwise {@code false}.
+     */
+    private final ConcurrentHashMap<Long, Boolean> updatesMap = new ConcurrentHashMap<>();
     private final BulkProcessor bulkProcessor;
-    private Optional<Boolean> indexUpdated = Optional.empty();
 
     ElasticsearchIndexWriter(@NotNull ElasticsearchConnection elasticsearchConnection,
                                        @NotNull ElasticsearchIndexDefinition indexDefinition) {
@@ -110,32 +124,19 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
         bulkProcessor.close();
         LOG.trace("Bulk Processor {} closed", bulkProcessor);
 
-        // bulkProcessor.close() calls the OakBulkProcessorListener.beforeBulk in a blocking manner
-        // indexUpdated would be unset there if it was false till now (not even a single update succeeded)
-        // in this case wait for sometime for the last OakBulkProcessorListener.afterBulk to be called
-        // where indexUpdated can possibly be set to true, return false in case of timeout.
-        // We don't wait in case indexUpdated is already set (This would be if any of the previous flushes for this processor
-        // were successful i.e index was updated at least once)
-        final long start = System.currentTimeMillis();
-        long timeoutMillis = indexDefinition.bulkFlushIntervalMs * 5 ;
-        while (!indexUpdated.isPresent()) {
-            long lastAttempt = System.currentTimeMillis();
-            long elapsedTime = lastAttempt - start;
-            if (elapsedTime > timeoutMillis) {
-                // indexUpdate was not set till now, return false
-                LOG.trace("Timed out waiting for the bulk processor response. Returning indexUpdated = false");
-                return false;
-            } else {
-                try {
-                    LOG.trace("Waiting for afterBulk response...");
-                    Thread.sleep(100);
-                } catch (InterruptedException ex) {
-                    //
-                }
-            }
+        // de-register main controller
+        final int phase = phaser.arriveAndDeregister();
+
+        try {
+            phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException e) {
+            LOG.error("Error waiting for bulk requests to return", e);
         }
-        LOG.trace("Returning indexUpdated = {}", indexUpdated.get());
-        return indexUpdated.get();
+
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Bulk identifier -> update status = {}", updatesMap);
+        }
+        return updatesMap.containsValue(Boolean.TRUE);
     }
 
     protected void provisionIndex() throws IOException {
@@ -171,12 +172,11 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
 
         @Override
         public void beforeBulk(long executionId, BulkRequest bulkRequest) {
-            if (indexUpdated.isPresent() && !indexUpdated.get()) {
-                // Reset the state only if it's false
-                // If it's true that means index was updated at least once by this processor
-                // and we can return true for indexUpdate.
-                indexUpdated = Optional.empty();
-            }
+            // init update status
+            updatesMap.put(executionId, Boolean.FALSE);
+            // register new bulk party
+            phaser.register();
+
             LOG.info("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Bulk Requests: \n{}", bulkRequest.requests()
@@ -204,32 +204,32 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
                         LOG.error("Bulk item with id {} failed", failure.getId(), failure.getCause());
                     } else {
                         // Set indexUpdated to true even if 1 item was updated successfully
-                        indexUpdated = Optional.of(true);
+                        updatesMap.put(executionId, Boolean.TRUE);
                     }
                 }
-                // Only set indexUpdated to false if it's unset
-                // If set and true, that means index was updated at least once by this processor.
-                // If set and false, no need to do anything
-                if (!indexUpdated.isPresent()) {
-                    indexUpdated = Optional.of(false);
-                }
             } else {
-                indexUpdated = Optional.of(true);
+                updatesMap.put(executionId, Boolean.TRUE);
             }
+            phaser.arriveAndDeregister();
         }
 
         @Override
         public void afterBulk(long executionId, BulkRequest bulkRequest, Throwable throwable) {
-            // Only set indexUpdated to false if it's unset
-            // If set and true, that means index was updated at least once by this processor.
-            // If set and false, no need to do anything
-            if (!indexUpdated.isPresent()) {
-                indexUpdated = Optional.of(false);
-            }
             LOG.error("Bulk with id {} threw an error", executionId, throwable);
+            phaser.arriveAndDeregister();
         }
     }
 
+    /**
+     * Transforms a path into an _id compatible with Elasticsearch specification. The path cannot be larger than 512
+     * bytes. For performance reasons paths that are already compatible are returned untouched. Otherwise, SHA-256
+     * algorithm is used to return a transformed path (32 bytes max).
+     *
+     * @param path the document path
+     * @return the Elasticsearch compatible path
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">
+     *     Mapping _id field</a>
+     */
     private static String idFromPath(@NotNull String path) {
         byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
         if (pathBytes.length > 512) {
