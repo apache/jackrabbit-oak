@@ -172,10 +172,10 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
 
         @Override
         public void beforeBulk(long executionId, BulkRequest bulkRequest) {
-            // init update status
-            updatesMap.put(executionId, Boolean.FALSE);
             // register new bulk party
             phaser.register();
+            // init update status
+            updatesMap.put(executionId, Boolean.FALSE);
 
             LOG.info("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
             if (LOG.isTraceEnabled()) {
