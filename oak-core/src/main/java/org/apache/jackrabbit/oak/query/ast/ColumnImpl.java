@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
  */
 public class ColumnImpl extends AstElement {
 
-    private final String selectorName, propertyName, columnName;
+    protected final String selectorName, propertyName, columnName;
     private SelectorImpl selector;
 
     public ColumnImpl(String selectorName, String propertyName, String columnName) {
