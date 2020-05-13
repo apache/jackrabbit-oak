@@ -92,7 +92,6 @@ public class ElasticsearchFacetTest {
     private Map<String, Integer> actualAclLabelCount = Maps.newHashMap();
     private Map<String, Integer> actualAclPar1LabelCount = Maps.newHashMap();
 
-
     @Rule
     public final ElasticsearchContainer elastic =
             new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT);
@@ -160,7 +159,6 @@ public class ElasticsearchFacetTest {
         }
     }
 
-
     private class IndexSkeleton {
         IndexDefinitionBuilder indexDefinitionBuilder;
         IndexDefinitionBuilder.IndexRule indexRule;
@@ -185,7 +183,7 @@ public class ElasticsearchFacetTest {
     private void createIndex() throws RepositoryException {
         IndexSkeleton indexSkeleton = new IndexSkeleton();
         indexSkeleton.initialize();
-        indexSkeleton.indexDefinitionBuilder.noAsync().evaluatePathRestrictions();
+        indexSkeleton.indexDefinitionBuilder.noAsync();
         indexSkeleton.indexRule.property("cons").propertyIndex();
         indexSkeleton.indexRule.property("foo").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
         indexSkeleton.indexRule.property("bar").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
@@ -322,10 +320,6 @@ public class ElasticsearchFacetTest {
         });
     }
 
-    /*
-    Currently we are not adding path restrictions in elastic query and filtering paths later from results.
-    We will need path restrictions in elastic query itself to get right facet results.
-     */
     @Test
     public void statisticalFacets_withHitCountSameAsSampleSize() throws Exception {
         Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
