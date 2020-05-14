@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.segment.azure;
+package org.apache.jackrabbit.oak.segment.remote;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 
-public class AzureSegmentArchiveEntry implements SegmentArchiveEntry {
+public class RemoteSegmentArchiveEntry implements SegmentArchiveEntry {
 
     private final long msb;
 
@@ -34,7 +34,7 @@ public class AzureSegmentArchiveEntry implements SegmentArchiveEntry {
 
     private final boolean compacted;
 
-    public AzureSegmentArchiveEntry(long msb, long lsb, int position, int length, int generation, int fullGeneration, boolean compacted) {
+    public RemoteSegmentArchiveEntry(long msb, long lsb, int position, int length, int generation, int fullGeneration, boolean compacted) {
         this.msb = msb;
         this.lsb = lsb;
         this.position = position;

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.segment.azure.queue;
+package org.apache.jackrabbit.oak.segment.remote.queue;
 
-import org.apache.jackrabbit.oak.segment.azure.AzureSegmentArchiveEntry;
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -279,8 +279,8 @@ public class SegmentWriteQueueTest {
         }
     }
 
-    private static AzureSegmentArchiveEntry tarEntry(long i) {
-        return new AzureSegmentArchiveEntry(0, i, 0, 0, 0, 0, false);
+    private static RemoteSegmentArchiveEntry tarEntry(long i) {
+        return new RemoteSegmentArchiveEntry(0, i, 0, 0, 0, 0, false);
     }
 
     private static UUID uuid(long i) {

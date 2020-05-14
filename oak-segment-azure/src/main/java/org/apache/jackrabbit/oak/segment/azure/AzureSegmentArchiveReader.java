@@ -16,110 +16,34 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import static java.lang.Boolean.getBoolean;
-import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.getSegmentFileName;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.readBufferFully;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveReader;
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 
-public class AzureSegmentArchiveReader implements SegmentArchiveReader {
-    static final boolean OFF_HEAP = getBoolean("access.off.heap");
+public class AzureSegmentArchiveReader extends AbstractRemoteSegmentArchiveReader {
 
     private final CloudBlobDirectory archiveDirectory;
 
-    private final IOMonitor ioMonitor;
-
     private final long length;
 
-    private final Map<UUID, AzureSegmentArchiveEntry> index = new LinkedHashMap<>();
-
-    private Boolean hasGraph;
-
     AzureSegmentArchiveReader(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor) throws IOException {
+        super(ioMonitor);
         this.archiveDirectory = archiveDirectory;
-        this.ioMonitor = ioMonitor;
-        long length = 0;
-        for (CloudBlob blob : AzureUtilities.getBlobs(archiveDirectory)) {
-            Map<String, String> metadata = blob.getMetadata();
-            if (AzureBlobMetadata.isSegment(metadata)) {
-                AzureSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, (int) blob.getProperties().getLength());
-                index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
-            }
-            length += blob.getProperties().getLength();
-        }
-        this.length = length;
-    }
-
-    @Override
-    public Buffer readSegment(long msb, long lsb) throws IOException {
-        AzureSegmentArchiveEntry indexEntry = index.get(new UUID(msb, lsb));
-        if (indexEntry == null) {
-            return null;
-        }
-
-        Buffer buffer;
-        if (OFF_HEAP) {
-            buffer = Buffer.allocateDirect(indexEntry.getLength());
-        } else {
-            buffer = Buffer.allocate(indexEntry.getLength());
-        }
-        ioMonitor.beforeSegmentRead(pathAsFile(), msb, lsb, indexEntry.getLength());
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        readBufferFully(getBlob(getSegmentFileName(indexEntry)), buffer);
-        long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
-        ioMonitor.afterSegmentRead(pathAsFile(), msb, lsb, indexEntry.getLength(), elapsed);
-        return buffer;
-    }
-
-    @Override
-    public boolean containsSegment(long msb, long lsb) {
-        return index.containsKey(new UUID(msb, lsb));
-    }
-
-    @Override
-    public List<SegmentArchiveEntry> listSegments() {
-        return new ArrayList<>(index.values());
-    }
-
-    @Override
-    public Buffer getGraph() throws IOException {
-        Buffer graph = readBlob(getName() + ".gph");
-        hasGraph = graph != null;
-        return graph;
-    }
-
-    @Override
-    public boolean hasGraph() {
-        if (hasGraph == null) {
-            try {
-                getGraph();
-            } catch (IOException ignore) { }
-        }
-        return hasGraph;
-    }
-
-    @Override
-    public Buffer getBinaryReferences() throws IOException {
-        return readBlob(getName() + ".brf");
+        this.length = computeArchiveIndexAndLength();
     }
 
     @Override
@@ -133,16 +57,32 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
     }
 
     @Override
-    public void close() {
-        // do nothing
+    protected long computeArchiveIndexAndLength() throws IOException {
+        long length = 0;
+        for (CloudBlob blob : AzureUtilities.getBlobs(archiveDirectory)) {
+            Map<String, String> metadata = blob.getMetadata();
+            if (AzureBlobMetadata.isSegment(metadata)) {
+                RemoteSegmentArchiveEntry indexEntry = AzureBlobMetadata.toIndexEntry(metadata, (int) blob.getProperties().getLength());
+                index.put(new UUID(indexEntry.getMsb(), indexEntry.getLsb()), indexEntry);
+            }
+            length += blob.getProperties().getLength();
+        }
+
+        return length;
     }
 
     @Override
-    public int getEntrySize(int size) {
-        return size;
+    protected void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException {
+        readBufferFully(getBlob(segmentFileName), buffer);
     }
 
-    private File pathAsFile() {
+    @Override
+    protected Buffer doReadDataFile(String extension) throws IOException {
+        return readBlob(getName() + extension);
+    }
+
+    @Override
+    protected File archivePathAsFile() {
         return new File(archiveDirectory.getUri().getPath());
     }
 
@@ -168,5 +108,4 @@ public class AzureSegmentArchiveReader implements SegmentArchiveReader {
             throw new IOException(e);
         }
     }
-
 }

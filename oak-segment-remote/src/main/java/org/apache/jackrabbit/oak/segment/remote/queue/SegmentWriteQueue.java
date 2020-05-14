@@ -14,7 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.segment.aws.queue;
+package org.apache.jackrabbit.oak.segment.remote.queue;
+
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -29,15 +33,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.jackrabbit.oak.segment.aws.AwsSegmentArchiveEntry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class SegmentWriteQueue implements Closeable {
 
-    public static final int THREADS = Integer.getInteger("oak.segment.aws.threads", 5);
+    public static final int THREADS = Integer.getInteger("oak.segment.remote.threads", 5);
 
-    private static final int QUEUE_SIZE = Integer.getInteger("oak.segment.aws.queue", 20);
+    private static final int QUEUE_SIZE = Integer.getInteger("oak.segment.remote.queue.size", 20);
 
     private static final Logger log = LoggerFactory.getLogger(SegmentWriteQueue.class);
 
@@ -153,7 +153,7 @@ public class SegmentWriteQueue implements Closeable {
         }
     }
 
-    public void addToQueue(AwsSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException {
+    public void addToQueue(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException {
         waitWhileBroken();
         if (shutdown) {
             throw new IllegalStateException("Can't accept the new segment - shutdown in progress");
@@ -168,6 +168,7 @@ public class SegmentWriteQueue implements Closeable {
                 throw new IOException("Can't add segment to the queue");
             }
         } catch (InterruptedException e) {
+            segmentsByUUID.remove(action.getUuid());
             throw new IOException(e);
         } finally {
             flushLock.readLock().unlock();
@@ -182,8 +183,7 @@ public class SegmentWriteQueue implements Closeable {
                 while (!segmentsByUUID.isEmpty()) {
                     segmentsByUUID.wait(100);
                     if (System.currentTimeMillis() - start > TimeUnit.MINUTES.toMillis(1)) {
-                        log.error("Can't flush the queue in 1 minute. Queue: {}. Segment map: {}", queue,
-                                segmentsByUUID);
+                        log.error("Can't flush the queue in 1 minute. Queue: {}. Segment map: {}", queue, segmentsByUUID);
                         start = System.currentTimeMillis();
                     }
                 }
@@ -199,6 +199,7 @@ public class SegmentWriteQueue implements Closeable {
         return segmentsByUUID.get(id);
     }
 
+    @Override
     public void close() throws IOException {
         shutdown = true;
         try {
@@ -261,11 +262,12 @@ public class SegmentWriteQueue implements Closeable {
     }
 
     public interface SegmentConsumer {
-        void consume(AwsSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException;
+
+        void consume(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException;
+
     }
 
     public static class SegmentConsumeException extends Exception {
-        private static final long serialVersionUID = 5778182681577974722L;
 
         private final SegmentWriteAction segment;
 

@@ -111,6 +111,12 @@ public final class S3Directory {
         return buffer;
     }
 
+    public void readObjectToBuffer(String name, Buffer buffer) throws IOException {
+        byte[] data = readObject(rootDirectory + name);
+        buffer.put(data);
+        buffer.flip();
+    }
+
     public byte[] readObject(String key) throws IOException {
         try (S3Object object = s3.getObject(bucketName, key)) {
             int length = (int) object.getObjectMetadata().getContentLength();
@@ -167,14 +173,24 @@ public final class S3Directory {
         }
     }
 
+    public boolean deleteObjects(List<KeyVersion> keys) {
+        try {
+            DeleteObjectsRequest request = new DeleteObjectsRequest(bucketName).withKeys(keys);
+            s3.deleteObjects(request);
+            return true;
+        } catch (AmazonServiceException e) {
+            log.error("Can't delete objects from {}", rootDirectory, e);
+            return false;
+        }
+    }
+
+
     public boolean deleteAllObjects() {
         try {
             List<KeyVersion> keys = listObjects("").stream().map(i -> new KeyVersion(i.getKey()))
                     .collect(Collectors.toList());
-            DeleteObjectsRequest request = new DeleteObjectsRequest(bucketName).withKeys(keys);
-            s3.deleteObjects(request);
-            return true;
-        } catch (AmazonServiceException | IOException e) {
+            return deleteObjects(keys);
+        } catch (IOException e) {
             log.error("Can't delete objects from {}", rootDirectory, e);
             return false;
         }

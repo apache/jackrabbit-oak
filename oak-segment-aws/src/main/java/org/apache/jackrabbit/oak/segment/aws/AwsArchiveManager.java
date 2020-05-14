@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentUUID;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,12 +26,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
 
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -75,7 +79,7 @@ public class AwsArchiveManager implements SegmentArchiveManager {
 
     /**
      * Check if there's a valid 0000. segment in the archive
-     * 
+     *
      * @param archiveName The name of the archive
      * @return true if the archive is empty (no 0000.* segment)
      * @throws IOException
@@ -180,6 +184,32 @@ public class AwsArchiveManager implements SegmentArchiveManager {
             entries.put(e.uuid, e.data);
             i++;
         }
+    }
+
+    /**
+     * Avoids deleting segments from the directory given with {@code archiveName},
+     * if they are in the set of recovered segments. Reason for that is because
+     * during execution of this method, remote repository can be accessed by another
+     * application, and deleting a valid segment can cause consistency issues there.
+     */
+    @Override
+    public void backup(String archiveName, String backupArchiveName, Set<UUID> recoveredEntries) throws IOException {
+        copyFile(archiveName, backupArchiveName);
+        delete(archiveName, recoveredEntries);
+    }
+
+    private void delete(String archiveName, Set<UUID> recoveredEntries) throws IOException {
+        List<KeyVersion> keys = new ArrayList<>();
+
+        for (S3ObjectSummary b : directory.withDirectory(archiveName).listObjects("")) {
+            String name = Paths.get(b.getKey()).getFileName().toString();
+            UUID uuid = getSegmentUUID(name);
+            if (!recoveredEntries.contains(uuid)) {
+                keys.add(new KeyVersion(b.getKey()));
+            }
+        }
+
+        directory.withDirectory(archiveName).deleteObjects(keys);
     }
 
     private static class RecoveredEntry implements Comparable<RecoveredEntry> {

@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.segment.aws;
+package org.apache.jackrabbit.oak.segment.remote;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public final class AwsBlobMetadata {
+public class RemoteBlobMetadata {
 
-    private static final String METADATA_TYPE = "type";
+    public static final String METADATA_TYPE = "type";
 
-    private static final String METADATA_SEGMENT_UUID = "uuid";
+    public static final String METADATA_SEGMENT_UUID = "uuid";
 
-    private static final String METADATA_SEGMENT_POSITION = "position";
+    public static final String METADATA_SEGMENT_POSITION = "position";
 
-    private static final String METADATA_SEGMENT_GENERATION = "generation";
+    public static final String METADATA_SEGMENT_GENERATION = "generation";
 
-    private static final String METADATA_SEGMENT_FULL_GENERATION = "fullgeneration";
+    public static final String METADATA_SEGMENT_FULL_GENERATION = "fullGeneration";
 
-    private static final String METADATA_SEGMENT_COMPACTED = "compacted";
+    public static final String METADATA_SEGMENT_COMPACTED = "compacted";
 
-    private static final String TYPE_SEGMENT = "segment";
+    public static final String TYPE_SEGMENT = "segment";
 
-    public static HashMap<String, String> toSegmentMetadata(AwsSegmentArchiveEntry indexEntry) {
+    public static HashMap<String, String> toSegmentMetadata(RemoteSegmentArchiveEntry indexEntry) {
         HashMap<String, String> map = new HashMap<>();
         map.put(METADATA_TYPE, TYPE_SEGMENT);
         map.put(METADATA_SEGMENT_UUID, new UUID(indexEntry.getMsb(), indexEntry.getLsb()).toString());
@@ -47,7 +47,7 @@ public final class AwsBlobMetadata {
         return map;
     }
 
-    public static AwsSegmentArchiveEntry toIndexEntry(Map<String, String> metadata, int length) {
+    public static RemoteSegmentArchiveEntry toIndexEntry(Map<String, String> metadata, int length) {
         UUID uuid = UUID.fromString(metadata.get(METADATA_SEGMENT_UUID));
         long msb = uuid.getMostSignificantBits();
         long lsb = uuid.getLeastSignificantBits();
@@ -55,10 +55,12 @@ public final class AwsBlobMetadata {
         int generation = Integer.parseInt(metadata.get(METADATA_SEGMENT_GENERATION));
         int fullGeneration = Integer.parseInt(metadata.get(METADATA_SEGMENT_FULL_GENERATION));
         boolean compacted = Boolean.parseBoolean(metadata.get(METADATA_SEGMENT_COMPACTED));
-        return new AwsSegmentArchiveEntry(msb, lsb, position, length, generation, fullGeneration, compacted);
+        return new RemoteSegmentArchiveEntry(msb, lsb, position, length, generation, fullGeneration, compacted);
     }
 
     public static boolean isSegment(Map<String, String> metadata) {
         return metadata != null && TYPE_SEGMENT.equals(metadata.get(METADATA_TYPE));
     }
+
 }
+

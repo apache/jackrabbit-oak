@@ -23,6 +23,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.CopyStatus;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
@@ -191,7 +192,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public void recoverEntries(String archiveName, LinkedHashMap<UUID, byte[]> entries) throws IOException {
-        Pattern pattern = Pattern.compile(AzureUtilities.SEGMENT_FILE_NAME_PATTERN);
+        Pattern pattern = Pattern.compile(RemoteUtilities.SEGMENT_FILE_NAME_PATTERN);
         List<RecoveredEntry> entryList = new ArrayList<>();
 
         for (CloudBlob b : getBlobs(archiveName)) {
@@ -230,7 +231,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     private void delete(String archiveName, Set<UUID> recoveredEntries) throws IOException {
         getBlobs(archiveName)
                 .forEach(cloudBlob -> {
-                    if (!recoveredEntries.contains(AzureUtilities.getSegmentUUID(getName(cloudBlob)))) {
+                    if (!recoveredEntries.contains(RemoteUtilities.getSegmentUUID(getName(cloudBlob)))) {
                         try {
                             cloudBlob.delete();
                         } catch (StorageException e) {

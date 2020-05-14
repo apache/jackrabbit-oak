@@ -42,6 +42,7 @@
                         <Import-Package>
                           <!-- OAK-7182 -->${guava.osgi.import},
                             org.apache.jackrabbit.oak.segment.spi*,
+                            org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,
                             *
                         </Import-Package>
@@ -129,6 +130,12 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-segment-tar</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-segment-remote</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>

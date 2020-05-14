@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.segment.aws.queue;
+package org.apache.jackrabbit.oak.segment.remote.queue;
+
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.commons.Buffer;
-import org.apache.jackrabbit.oak.segment.aws.AwsSegmentArchiveEntry;
-
 public class SegmentWriteAction {
 
-    private final AwsSegmentArchiveEntry indexEntry;
+    private final RemoteSegmentArchiveEntry indexEntry;
 
     private final byte[] buffer;
 
@@ -32,7 +32,7 @@ public class SegmentWriteAction {
 
     private final int length;
 
-    public SegmentWriteAction(AwsSegmentArchiveEntry indexEntry, byte[] buffer, int offset, int length) {
+    public SegmentWriteAction(RemoteSegmentArchiveEntry indexEntry, byte[] buffer, int offset, int length) {
         this.indexEntry = indexEntry;
 
         this.buffer = new byte[length];
@@ -51,7 +51,7 @@ public class SegmentWriteAction {
         return Buffer.wrap(buffer, offset, length);
     }
 
-    void passTo(SegmentWriteQueue.SegmentConsumer consumer) throws IOException {
+    public void passTo(SegmentWriteQueue.SegmentConsumer consumer) throws IOException {
         consumer.consume(indexEntry, buffer, offset, length);
     }
 

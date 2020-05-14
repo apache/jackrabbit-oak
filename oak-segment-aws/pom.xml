@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.25-SNAPSHOT</version>
+        <version>1.27-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -48,6 +48,7 @@
                           <!-- OAK-7182 -->${guava.osgi.import},
                             org.apache.jackrabbit.oak.segment.spi*,
                             !org.apache.jackrabbit.oak.segment*,
+                            org.apache.jackrabbit.oak.segment.remote*,
                             *
                         </Import-Package>
                         <Export-Package>
@@ -173,6 +174,12 @@
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-segment-tar</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+         <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-segment-remote</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
