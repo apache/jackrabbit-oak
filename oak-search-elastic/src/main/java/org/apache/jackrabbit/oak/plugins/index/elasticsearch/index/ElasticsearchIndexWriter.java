@@ -21,6 +21,9 @@ import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexD
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.DocWriteRequest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
@@ -28,10 +31,14 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.client.GetAliasesResponse;
+import org.elasticsearch.client.IndicesClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -49,6 +56,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
@@ -105,7 +114,7 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
 
     @Override
     public void updateDocument(String path, ElasticsearchDocument doc) {
-        IndexRequest request = new IndexRequest(indexDefinition.getRemoteIndexName())
+        IndexRequest request = new IndexRequest(indexDefinition.getRemoteIndexAlias())
                 .id(idFromPath(path))
                 .source(doc.build(), XContentType.JSON);
         bulkProcessor.add(request);
@@ -113,7 +122,7 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
 
     @Override
     public void deleteDocuments(String path) {
-        DeleteRequest request = new DeleteRequest(indexDefinition.getRemoteIndexName())
+        DeleteRequest request = new DeleteRequest(indexDefinition.getRemoteIndexAlias())
                 .id(idFromPath(path));
         bulkProcessor.add(request);
     }
@@ -140,6 +149,7 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     }
 
     protected void provisionIndex() throws IOException {
+        // check if index already exists
         boolean exists = elasticsearchConnection.getClient().indices().exists(
                 new GetIndexRequest(indexDefinition.getRemoteIndexName()), RequestOptions.DEFAULT
         );
@@ -148,24 +158,69 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
             return;
         }
 
+        final IndicesClient indicesClient = elasticsearchConnection.getClient().indices();
+        final String indexName = indexDefinition.getRemoteIndexName();
+
+        // create the new index
         final CreateIndexRequest request = ElasticsearchIndexHelper.createIndexRequest(indexDefinition);
         try {
             if (LOG.isDebugEnabled()) {
                 final String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
                 LOG.debug("Creating Index with request {}", requestMsg);
             }
-            CreateIndexResponse response = elasticsearchConnection.getClient().indices().create(request, RequestOptions.DEFAULT);
+            CreateIndexResponse response = indicesClient.create(request, RequestOptions.DEFAULT);
             LOG.info("Updated settings for index {}. Response acknowledged: {}",
                     indexDefinition.getRemoteIndexName(), response.isAcknowledged());
+            checkResponseAcknowledgement(response, "Create index call not acknowledged for index " + indexName);
         } catch (ElasticsearchStatusException ese) {
             // We already check index existence as first thing in this method, if we get here it means we have got into
             // a conflict (eg: multiple cluster nodes provision concurrently).
             // Elasticsearch does not have a CREATE IF NOT EXIST, need to inspect exception
             // https://github.com/elastic/elasticsearch/issues/19862
             if (ese.status().getStatus() == 400 && ese.getDetailedMessage().contains("resource_already_exists_exception")) {
-                LOG.warn("Index {} already exists. Ignoring error", indexDefinition.getRemoteIndexName());
+                LOG.warn("Index {} already exists. Ignoring error", indexName);
             } else throw ese;
         }
+
+        // update the mapping
+        GetAliasesRequest getAliasesRequest = new GetAliasesRequest(indexDefinition.getRemoteIndexAlias());
+        GetAliasesResponse aliasesResponse = indicesClient.getAlias(getAliasesRequest, RequestOptions.DEFAULT);
+        Map<String, Set<AliasMetaData>> aliases = aliasesResponse.getAliases();
+        IndicesAliasesRequest indicesAliasesRequest = new IndicesAliasesRequest();
+        for (String oldIndexName : aliases.keySet()) {
+            IndicesAliasesRequest.AliasActions removeAction = new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE);
+            removeAction.index(oldIndexName).alias(indexDefinition.getRemoteIndexAlias());
+            indicesAliasesRequest.addAliasAction(removeAction);
+        }
+        IndicesAliasesRequest.AliasActions addAction = new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.ADD);
+        addAction.index(indexName).alias(indexDefinition.getRemoteIndexAlias());
+        indicesAliasesRequest.addAliasAction(addAction);
+        AcknowledgedResponse updateAliasResponse = indicesClient.updateAliases(indicesAliasesRequest, RequestOptions.DEFAULT);
+        checkResponseAcknowledgement(updateAliasResponse, "Update alias call not acknowledged for alias "
+                + indexDefinition.getRemoteIndexAlias());
+        LOG.info("Updated alias {} to index {}. Response acknowledged: {}", indexDefinition.getRemoteIndexAlias(),
+                indexName, updateAliasResponse.isAcknowledged());
+
+        // once the alias has been updated, we can safely remove the old index
+        deleteOldIndices(indicesClient, aliases.keySet());
+    }
+
+    private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {
+        if (!response.isAcknowledged()) {
+            throw new IllegalStateException(exceptionMessage);
+        }
+    }
+
+    private void deleteOldIndices(IndicesClient indicesClient, Set<String> indices) throws IOException {
+        if (indices.size() == 0)
+            return;
+        DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest();
+        for (String oldIndexName : indices) {
+            deleteIndexRequest.indices(oldIndexName);
+        }
+        AcknowledgedResponse deleteIndexResponse = indicesClient.delete(deleteIndexRequest, RequestOptions.DEFAULT);
+        checkResponseAcknowledgement(deleteIndexResponse, "Delete index call not acknowledged for indices " + indices);
+        LOG.info("Deleted indices {}. Response acknowledged: {}", indices.toString(), deleteIndexResponse.isAcknowledged());
     }
 
     private class OakBulkProcessorListener implements BulkProcessor.Listener {

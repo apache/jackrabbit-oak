@@ -84,7 +84,7 @@ class ElasticsearchIndexStatistics implements IndexStatistics {
     @Override
     public int numDocs() {
         return statsCache.getUnchecked(
-                new CountRequestDescriptor(elasticsearchConnection, indexDefinition.getRemoteIndexName(), null)
+                new CountRequestDescriptor(elasticsearchConnection, indexDefinition.getRemoteIndexAlias(), null)
         );
     }
 
@@ -95,7 +95,7 @@ class ElasticsearchIndexStatistics implements IndexStatistics {
     @Override
     public int getDocCountFor(String field) {
         return statsCache.getUnchecked(
-                new CountRequestDescriptor(elasticsearchConnection, indexDefinition.getRemoteIndexName(), field)
+                new CountRequestDescriptor(elasticsearchConnection, indexDefinition.getRemoteIndexAlias(), field)
         );
     }
 

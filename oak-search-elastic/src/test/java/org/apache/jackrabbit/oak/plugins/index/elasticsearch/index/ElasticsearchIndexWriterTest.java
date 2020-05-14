@@ -53,7 +53,7 @@ public class ElasticsearchIndexWriterTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        when(indexDefinitionMock.getRemoteIndexName()).thenReturn("test-index");
+        when(indexDefinitionMock.getRemoteIndexAlias()).thenReturn("test-index");
         indexWriter = new ElasticsearchIndexWriter(elasticsearchConnectionMock, indexDefinitionMock, bulkProcessorMock);
     }
 
