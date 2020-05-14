@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import javax.jcr.AccessDeniedException;
@@ -28,6 +29,7 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -40,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -54,6 +57,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -155,7 +160,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         }
     }
 
-    void setupCugsAndAcls() throws Exception {
+    void setupCugsAndAcls(@NotNull String... paths) throws Exception {
         UserManager uMgr = getUserManager(root);
         Principal testGroupPrincipal = getTestGroupPrincipal();
 
@@ -175,10 +180,15 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         // - /content/aa/bb : allow testGroup, deny everyone
         // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
         // - /content2      : allow everyone,  deny testGroup (isolated)
-        createCug("/content/a", testGroupPrincipal);
-        createCug("/content/aa/bb", testGroupPrincipal);
-        createCug("/content/a/b/c", EveryonePrincipal.getInstance());
-        createCug("/content2", EveryonePrincipal.getInstance());
+        Map<String, Principal> m = ImmutableMap.of(
+                "/content/a", testGroupPrincipal,
+                "/content/aa/bb", testGroupPrincipal,
+                "/content/a/b/c", EveryonePrincipal.getInstance(),
+                "/content2", EveryonePrincipal.getInstance());
+        String[] cugPaths = (paths.length == 0) ? m.keySet().toArray(new String[0]) : paths;
+        for (String cugPath : cugPaths) {
+            createCug(cugPath, m.get(cugPath));
+        }
 
         // setup regular acl at /content:
         // - testUser  ; allow ; jcr:read
@@ -188,7 +198,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         acl.addAccessControlEntry(testUser.getPrincipal(), privilegesFromNames(
                 PrivilegeConstants.JCR_READ));
         acl.addAccessControlEntry(testGroupPrincipal, privilegesFromNames(
-                        PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)
+                PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE, PrivilegeConstants.JCR_READ_ACCESS_CONTROL)
         );
         acMgr.setPolicy("/content", acl);
         root.commit();
@@ -239,6 +249,41 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
             assertTrue(tp instanceof CugTreePermission);
         } else {
             assertTrue(tp instanceof EmptyCugTreePermission);
+        }
+    }
+
+    static void assertNestedCugs(@NotNull Root root, @NotNull RootProvider rootProvider,
+                                 @NotNull String cugHoldingPath, boolean hasCugPolicy, @NotNull String... expectedNestedPaths) {
+        Root immutableRoot = rootProvider.createReadOnlyRoot(root);
+
+        Tree tree = immutableRoot.getTree(cugHoldingPath);
+        if (hasCugPolicy) {
+            assertFalse(tree.hasProperty(HIDDEN_NESTED_CUGS));
+            tree = tree.getChild(REP_CUG_POLICY);
+        }
+
+        assertTrue(tree.exists());
+
+        if (tree.isRoot()) {
+            if (expectedNestedPaths.length == 0) {
+                assertFalse(tree.hasProperty(HIDDEN_TOP_CUG_CNT));
+                assertFalse(tree.hasProperty(HIDDEN_NESTED_CUGS));
+            } else {
+                assertTrue(tree.hasProperty(HIDDEN_NESTED_CUGS));
+                assertEquals(ImmutableSet.copyOf(expectedNestedPaths), ImmutableSet.copyOf(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
+
+                assertTrue(tree.hasProperty(HIDDEN_TOP_CUG_CNT));
+                assertEquals(Long.valueOf(expectedNestedPaths.length), tree.getProperty(HIDDEN_TOP_CUG_CNT).getValue(Type.LONG));
+            }
+        } else {
+            assertFalse(tree.hasProperty(HIDDEN_TOP_CUG_CNT));
+        }
+
+        if (expectedNestedPaths.length == 0) {
+            assertFalse(tree.hasProperty(HIDDEN_NESTED_CUGS));
+        } else {
+            assertTrue(tree.hasProperty(HIDDEN_NESTED_CUGS));
+            assertEquals(ImmutableSet.copyOf(expectedNestedPaths), ImmutableSet.copyOf(tree.getProperty(HIDDEN_NESTED_CUGS).getValue(Type.PATHS)));
         }
     }
 
