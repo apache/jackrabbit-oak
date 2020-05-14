@@ -37,7 +37,7 @@ public class ElasticsearchSearcher {
     public SearchResponse search(ElasticsearchSearcherModel elasticsearchSearcherModel) throws IOException {
         SearchSourceBuilder searchSourceBuilder = SearchSourceBuilderUtil.createSearchSourceBuilder(elasticsearchSearcherModel);
 
-        SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexName())
+        SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
                 .source(searchSourceBuilder);
 
         return indexNode.getConnection().getClient().search(request, RequestOptions.DEFAULT);
@@ -51,7 +51,7 @@ public class ElasticsearchSearcher {
                 .storedField(FieldNames.PATH)
                 .size(batchSize);
 
-        SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexName())
+        SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
                 .source(searchSourceBuilder);
 
         return indexNode.getConnection().getClient().search(request, RequestOptions.DEFAULT);

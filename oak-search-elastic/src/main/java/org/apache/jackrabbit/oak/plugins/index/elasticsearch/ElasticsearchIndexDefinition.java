@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -63,11 +64,15 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
     public final int bulkRetries;
     public final long bulkRetriesBackoff;
     private final String indexPrefix;
+    private final String remoteAlias;
 
     public ElasticsearchIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
+        boolean isReindex = defn.getBoolean(IndexConstants.REINDEX_PROPERTY_NAME);
+        String indexSuffix = "-" + (getReindexCount() + (isReindex ? 1 : 0));
         this.indexPrefix = indexPrefix != null ? indexPrefix : "";
-        this.remoteIndexName = setupIndexName();
+        this.remoteAlias = setupAlias();
+        this.remoteIndexName = getESSafeIndexName(this.remoteAlias + indexSuffix);
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
@@ -76,17 +81,27 @@ public class ElasticsearchIndexDefinition extends IndexDefinition {
     }
 
     /**
+     * Returns the index alias on the Elasticsearch cluster. This alias should be used for any index related operations
+     * instead of accessing the index directly.
+     * @return the Elasticsearch index alias
+     */
+    public String getRemoteIndexAlias() {
+        return remoteAlias;
+    }
+
+    /**
      * Returns the index identifier on the Elasticsearch cluster. Notice this can be different from the value returned
-     * from {@code getIndexName}.
+     * from {@code getIndexName}. The index name shouldn't be used for index read or updates. Alias obtained from {@link #getRemoteIndexAlias()}
+     * should be used for such purposes.
      * @return the Elasticsearch index identifier
      */
     public String getRemoteIndexName() {
         return remoteIndexName;
     }
 
-    private String setupIndexName() {
+    private String setupAlias() {
         // TODO: implement advanced remote index name strategy that takes into account multiple tenants and re-index process
-        return getESSafeIndexName(indexPrefix + "." + getIndexPath() + "-" + getReindexCount());
+        return getESSafeIndexName(indexPrefix + "." + getIndexPath());
     }
 
     /**
