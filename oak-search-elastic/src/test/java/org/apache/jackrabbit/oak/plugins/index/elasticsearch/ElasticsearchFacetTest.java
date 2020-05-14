@@ -135,35 +135,22 @@ public class ElasticsearchFacetTest {
         Jcr jcr = new Jcr(oak);
         repository = jcr.createRepository();
 
-        try {
-            session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
-        } catch (RepositoryException e) {
-            throw e;
-        }
+        session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
         closer.register(session::logout);
 
         // we'd always query anonymously
-        Session anonSession = null;
-        try {
-            anonSession = repository.login(new GuestCredentials(), null);
-            anonSession.refresh(true);
-            anonSession.save();
-        } catch (RepositoryException e) {
-            throw e;
-        }
+        Session anonSession = repository.login(new GuestCredentials(), null);
+        anonSession.refresh(true);
+        anonSession.save();
         closer.register(anonSession::logout);
-        try {
-            qe = anonSession.getWorkspace().getQueryManager();
-        } catch (RepositoryException e) {
-            throw e;
-        }
+        qe = anonSession.getWorkspace().getQueryManager();
     }
 
     private class IndexSkeleton {
         IndexDefinitionBuilder indexDefinitionBuilder;
         IndexDefinitionBuilder.IndexRule indexRule;
 
-        private IndexSkeleton() throws RepositoryException {
+        private IndexSkeleton() {
         }
 
         void initialize() {
@@ -246,9 +233,7 @@ public class ElasticsearchFacetTest {
     @Test
     public void secureFacets() throws Exception {
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        assertEventually(() -> {
-            assertEquals(actualAclLabelCount, getFacets());
-        });
+        assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
     }
 
     @Test
@@ -258,9 +243,7 @@ public class ElasticsearchFacetTest {
         inaccessibleChild.setProperty("cons", "val");
         inaccessibleChild.setProperty("foo", "l4");
         session.save();
-        assertEventually(() -> {
-            assertEquals(actualAclLabelCount, getFacets());
-        });
+        assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
     }
 
     @Test
@@ -270,9 +253,7 @@ public class ElasticsearchFacetTest {
         session.save();
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        assertEventually(() -> {
-            assertEquals(actualLabelCount, getFacets());
-        });
+        assertEventually(() -> assertEquals(actualLabelCount, getFacets()));
     }
 
     @Test
@@ -284,14 +265,12 @@ public class ElasticsearchFacetTest {
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
 
-        assertEventually(() -> {
-            assertEquals("Unexpected number of facets", actualAclLabelCount.size(), getFacets().size());
-        });
+        assertEventually(() -> assertEquals("Unexpected number of facets", actualAclLabelCount.size(), getFacets().size()));
 
         for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
             String facetLabel = facet.getKey();
             assertEventually(() -> {
-                int facetCount = facetCount = getFacets().get(facetLabel);
+                int facetCount = getFacets().get(facetLabel);
                 float ratio = ((float) facetCount) / facet.getValue();
                 assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
                                 "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
@@ -309,15 +288,11 @@ public class ElasticsearchFacetTest {
 
         createDataset(NUM_LEAF_NODES_FOR_SMALL_DATASET);
 
-        assertEventually(() -> {
-            assertEquals("Unexpected number of facets", actualAclLabelCount.size(), getFacets().size());
-        });
+        assertEventually(() -> assertEquals("Unexpected number of facets", actualAclLabelCount.size(), getFacets().size()));
 
         // Since the hit count is less than sample size -> flow should have switched to secure facet count instead of statistical
         // and thus the count should be exactly equal
-        assertEventually(() -> {
-            assertEquals(actualAclLabelCount, getFacets());
-        });
+        assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
     }
 
     @Test
@@ -329,17 +304,19 @@ public class ElasticsearchFacetTest {
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
 
-        Map<String, Integer> facets = getFacets("/parent/par1");
-        assertEquals("Unexpected number of facets", actualAclPar1LabelCount.size(), facets.size());
+        assertEventually(() -> {
+            Map<String, Integer> facets = getFacets("/parent/par1");
+            assertEquals("Unexpected number of facets", actualAclPar1LabelCount.size(), facets.size());
 
-        for (Map.Entry<String, Integer> facet : actualAclPar1LabelCount.entrySet()) {
-            String facetLabel = facet.getKey();
-            int facetCount = facets.get(facetLabel);
-            float ratio = ((float) facetCount) / facet.getValue();
-            assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
-                            "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
-                    Math.abs(ratio - 1) < 0.1);
-        }
+            for (Map.Entry<String, Integer> facet : actualAclPar1LabelCount.entrySet()) {
+                String facetLabel = facet.getKey();
+                int facetCount = facets.get(facetLabel);
+                float ratio = ((float) facetCount) / facet.getValue();
+                assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " +
+                                "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio,
+                        Math.abs(ratio - 1) < 0.1);
+            }
+        });
     }
 
     @Test
@@ -380,9 +357,7 @@ public class ElasticsearchFacetTest {
         session.save();
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
         qe = session.getWorkspace().getQueryManager();
-        assertEventually(() -> {
-            assertEquals(actualLabelCount, getFacets());
-        });
+        assertEventually(() -> assertEquals(actualLabelCount, getFacets()));
     }
 
     @Test
@@ -432,7 +407,7 @@ public class ElasticsearchFacetTest {
             pathCons = " AND ISDESCENDANTNODE('" + path + "')";
         }
         String query = "SELECT [rep:facet(foo)], [rep:facet(bar)] FROM [nt:base] WHERE [cons] = 'val'" + pathCons;
-        Query q = null;
+        Query q;
         QueryResult queryResult;
         try {
             q = qe.createQuery(query, Query.JCR_SQL2);
