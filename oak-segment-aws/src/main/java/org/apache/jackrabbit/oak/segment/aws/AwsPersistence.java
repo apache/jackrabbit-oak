@@ -51,7 +51,7 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
     public boolean segmentFilesExist() {
         try {
             for (String prefix : awsContext.directory.listPrefixes()) {
-                if (prefix.indexOf(".tar/") >= 0) {
+                if (prefix.contains(".tar/")) {
                     return true;
                 }
             }

@@ -156,7 +156,6 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
      * @param data, the actual bytes in the entry
      * @param offset,  the start offset in the data.
      * @param size, the number of bytes to write.
-     * @throws IOException, if the segment could not be written
      */
     protected abstract void doWriteArchiveEntry(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException;
 
@@ -164,7 +163,6 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
      * Reads a segment from remote storage into a buffer.
      * @param indexEntry, the archive index entry to read
      * @return th buffer containing the segment bytes
-     * @throws IOException, if the segment could not be read
      */
     protected abstract Buffer doReadArchiveEntry(RemoteSegmentArchiveEntry indexEntry) throws IOException;
 
@@ -172,19 +170,16 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
      * Writes a data file inside the archive. This entry is not a segment. Its full name is given by archive name + extension.
      * @param data, bytes to write
      * @param extension, the extension of the data file
-     * @throws IOException, if the data file could not be written
      */
     protected abstract void doWriteDataFile(byte[] data, String extension) throws IOException;
 
     /**
      * Hook for executing additional actions after the segment write queue is closed.
-     * @throws IOException, for whatever exception occurs in the calling code.
      */
     protected abstract void afterQueueClosed() throws IOException;
 
     /**
      * Hook for executing additional actions after the segment write queue is flushed.
-     * @throws IOException, for whatever exception occurs in the calling code.
      */
     protected abstract void afterQueueFlushed() throws IOException;
 }

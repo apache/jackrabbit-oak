@@ -34,7 +34,7 @@ public class AwsRepositoryLock implements RepositoryLock {
 
     private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.aws.lock.timeout", 0);
 
-    private static long INTERVAL = 60;
+    private static final long INTERVAL = 60;
 
     private final AmazonDynamoDBLockClient lockClient;
     private final String lockName;

@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.segment.tool.Check;
  */
 public class AwsSegmentCopy {
     /**
-     * Create a builder for the {@link SegmentCopy} command.
+     * Create a builder for the {@link AwsSegmentCopy} command.
      *
      * @return an instance of {@link Builder}.
      */
@@ -51,7 +51,7 @@ public class AwsSegmentCopy {
     }
 
     /**
-     * Collect options for the {@link SegmentCopy} command.
+     * Collect options for the {@link AwsSegmentCopy} command.
      */
     public static class Builder {
 

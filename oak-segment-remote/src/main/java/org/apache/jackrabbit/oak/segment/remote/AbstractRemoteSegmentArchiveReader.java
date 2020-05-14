@@ -92,7 +92,7 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
                 getGraph();
             } catch (IOException ignore) { }
         }
-        return hasGraph;
+        return hasGraph != null ? hasGraph : false;
     }
 
     @Override
@@ -113,7 +113,6 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
     /**
      * Populates the archive index, summing up each entry's length.
      * @return length, the total length of the archive
-     * @throws IOException, if the archive entries are not accessible.
      */
     protected abstract long computeArchiveIndexAndLength() throws IOException;
 
@@ -121,7 +120,6 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
      * Reads the segment from the remote storage.
      * @param segmentFileName, the name of the segment (msb + lsb) prefixed by its position in the archive
      * @param buffer, the buffer to which to read
-     * @throws IOException, if the segment could not be read
      */
     protected abstract void doReadSegmentToBuffer(String segmentFileName, Buffer buffer) throws IOException;
 
@@ -129,7 +127,6 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
      * Reads a data file inside the archive. This entry is not a segment. Its full name is given by archive name + extension.
      * @param extension, extension of the file
      * @return the buffer containing the data file bytes
-     * @throws IOException if the data file could not be read
      */
     protected abstract Buffer doReadDataFile(String extension) throws IOException;
 

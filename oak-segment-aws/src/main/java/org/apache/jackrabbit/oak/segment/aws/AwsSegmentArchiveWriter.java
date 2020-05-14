@@ -79,6 +79,7 @@ public class AwsSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWriter 
     }
 
     private void writeIndex() throws IOException {
+        // 33 bytes = 2 x 8 bytes (long) +  4 x 4 bytes (int) + 1 x 1 byte (boolean)
         Buffer buffer = Buffer.allocate(index.size() * 33);
         for (RemoteSegmentArchiveEntry entry : index.values()) {
             buffer.putLong(entry.getMsb());

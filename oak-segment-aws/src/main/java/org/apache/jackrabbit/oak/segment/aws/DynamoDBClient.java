@@ -128,7 +128,7 @@ public final class DynamoDBClient {
         //update the table if billing mode is different or provisioned capacity has changed
         if (currentBillingMode != provisioningData.getBillingMode() ||
                 (provisioningData.getBillingMode() == BillingMode.PROVISIONED &&
-                        (throughputDescription.getReadCapacityUnits() != tableRcu || throughputDescription.getReadCapacityUnits() != tableWcu))) {
+                        (!throughputDescription.getReadCapacityUnits().equals(tableRcu) || !throughputDescription.getReadCapacityUnits().equals(tableWcu)))) {
 
             UpdateTableRequest tableUpdateRequest = new UpdateTableRequest()
                     .withTableName(table.getTableName())
@@ -194,6 +194,7 @@ public final class DynamoDBClient {
                 .with(TABLE_ATTR_CONTENT, line);
         try {
             try {
+                // TO DO: why is this needed here
                 Thread.sleep(1L);
             } catch (InterruptedException e) {
             }

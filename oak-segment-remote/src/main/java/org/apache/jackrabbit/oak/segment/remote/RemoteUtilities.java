@@ -29,7 +29,7 @@ public final class RemoteUtilities {
     public static final boolean OFF_HEAP = getBoolean("access.off.heap");
     public static final String SEGMENT_FILE_NAME_PATTERN = "^([0-9a-f]{4})\\.([0-9a-f-]+)$";
 
-    private static Pattern pattern = Pattern.compile(SEGMENT_FILE_NAME_PATTERN);
+    private static final Pattern PATTERN = Pattern.compile(SEGMENT_FILE_NAME_PATTERN);
 
 
     private RemoteUtilities() {
@@ -44,7 +44,7 @@ public final class RemoteUtilities {
     }
 
     public static UUID getSegmentUUID(@NotNull String segmentFileName) {
-        Matcher m = pattern.matcher(segmentFileName);
+        Matcher m = PATTERN.matcher(segmentFileName);
         if (!m.matches()) {
             return null;
         }

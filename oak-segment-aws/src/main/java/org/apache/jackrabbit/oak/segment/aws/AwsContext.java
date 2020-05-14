@@ -114,7 +114,7 @@ public final class AwsContext {
 
     /**
      * Creates the context used to interact with AWS services.
-     * 
+     *
      * @param configuration The configuration used to initialize the context.
      * @return The context.
      * @throws IOException
@@ -128,7 +128,7 @@ public final class AwsContext {
 
     /**
      * Creates the context used to interact with AWS services.
-     * 
+     *
      * @param s3               Client for accessing Amazon S3.
      * @param bucketName       Name for the bucket that will store segments.
      * @param rootDirectory    The root directory under which the segment store is
@@ -137,12 +137,12 @@ public final class AwsContext {
      * @param journalTableName Name of table used for storing log entries for
      *                         journal and gc. The table will be created if it
      *                         doesn't already exist. It should have a partition key
-     *                         on "{@link #TABLE_ATTR_FILENAME}" and sort key on
-     *                         "{@link #TABLE_ATTR_TIMESTAMP}".
+     *                         on "{@link DynamoDBClient#TABLE_ATTR_FILENAME}" and sort key on
+     *                         "{@link DynamoDBClient#TABLE_ATTR_TIMESTAMP}".
      * @param lockTableName    Name of table used for managing the distributed lock.
      *                         The table will be created if it doesn't already
      *                         exist. It should have a partition key on
-     *                         "{@link #LOCKTABLE_KEY}".
+     *                         "{@link DynamoDBClient#LOCKTABLE_KEY}".
      * @return The context.
      * @throws IOException
      */
@@ -165,12 +165,12 @@ public final class AwsContext {
      * @param journalTableName Name of table used for storing log entries for
      *                         journal and gc. The table will be created if it
      *                         doesn't already exist. It should have a partition key
-     *                         on "{@link #TABLE_ATTR_FILENAME}" and sort key on
-     *                         "{@link #TABLE_ATTR_TIMESTAMP}".
+     *                         on "{@link DynamoDBClient#TABLE_ATTR_FILENAME}" and sort key on
+     *                         "{@link DynamoDBClient#TABLE_ATTR_TIMESTAMP}".
      * @param lockTableName    Name of table used for managing the distributed lock.
      *                         The table will be created if it doesn't already
      *                         exist. It should have a partition key on
-     *                         "{@link #LOCKTABLE_KEY}".
+     *                         "{@link DynamoDBClient#LOCKTABLE_KEY}".
      * @param provisioningData DynamoDB provisioning data
      * @return The context.
      * @throws IOException
@@ -192,10 +192,7 @@ public final class AwsContext {
     }
 
     public String getConfig() {
-        StringBuilder uri = new StringBuilder("aws:");
-        uri.append(directory.getConfig()).append(';');
-        uri.append(dynamoDBClient.getConfig());
-        return uri.toString();
+        return "aws:" + directory.getConfig() + ';' + dynamoDBClient.getConfig();
     }
 
     private static boolean isEmpty(String input) {
