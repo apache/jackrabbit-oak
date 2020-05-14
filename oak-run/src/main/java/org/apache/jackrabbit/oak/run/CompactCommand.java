@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact;
 import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact.Builder;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
+import org.apache.jackrabbit.oak.segment.aws.tool.AwsCompact;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 
 class CompactCommand implements Command {
@@ -86,7 +87,14 @@ class CompactCommand implements Command {
             code = azureBuilder
                     .build()
                     .run();
-
+        } else if (path.startsWith("aws:")) {
+            code = AwsCompact.builder()
+                    .withPath(path)
+                    .withForce(isTrue(forceArg.value(options)))
+                    .withSegmentCacheSize(Integer.getInteger("cache", 256))
+                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
+                    .build()
+                    .run();
         } else {
             org.apache.jackrabbit.oak.segment.tool.Compact.Builder tarBuilder = Compact.builder()
                     .withPath(new File(path))
