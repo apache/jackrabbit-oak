@@ -75,14 +75,14 @@ public final class DynamoDBClient {
                             new KeySchemaElement(TABLE_ATTR_TIMESTAMP, KeyType.RANGE))
                     .withAttributeDefinitions(new AttributeDefinition(TABLE_ATTR_FILENAME, ScalarAttributeType.S),
                             new AttributeDefinition(TABLE_ATTR_TIMESTAMP, ScalarAttributeType.N))
-                    .withProvisionedThroughput(new ProvisionedThroughput(1000L, 1500L));
+                    .withProvisionedThroughput(new ProvisionedThroughput(10L, 15L));
             TableUtils.createTableIfNotExists(ddb, createJournalTableRequest);
             TableUtils.waitUntilActive(ddb, journalTableName);
 
             CreateTableRequest createLockTableRequest = new CreateTableRequest().withTableName(lockTableName)
                     .withKeySchema(new KeySchemaElement(LOCKTABLE_KEY, KeyType.HASH))
                     .withAttributeDefinitions(new AttributeDefinition(LOCKTABLE_KEY, ScalarAttributeType.S))
-                    .withProvisionedThroughput(new ProvisionedThroughput(1000L, 1500L));
+                    .withProvisionedThroughput(new ProvisionedThroughput(10L, 15L));
             TableUtils.createTableIfNotExists(ddb, createLockTableRequest);
             TableUtils.waitUntilActive(ddb, lockTableName);
         } catch (SdkClientException | InterruptedException e) {
