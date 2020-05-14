@@ -91,8 +91,7 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
         String fullName = directory.getPath() + segmentName;
         ioMonitor.beforeSegmentWrite(new File(fullName), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
-        directory.writeObject(segmentName, data, AwsBlobMetadata.toSegmentMetadata(indexEntry));
-        writeIndex();
+        directory.writeObject(segmentName, data);
         ioMonitor.afterSegmentWrite(new File(fullName), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
     }
 
@@ -180,6 +179,7 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
     public void flush() throws IOException {
         if (queue.isPresent()) { // required to handle IOException
             queue.get().flush();
+            writeIndex();
         }
     }
 

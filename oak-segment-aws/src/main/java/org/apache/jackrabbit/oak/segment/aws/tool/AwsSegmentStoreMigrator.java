@@ -125,8 +125,9 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         if (appendMode) {
             targetGCJournal.truncate();
         }
-        for (String line : source.getGCJournalFile().readLines()) {
-            targetGCJournal.writeLine(line);
+        List<String> lines = source.getGCJournalFile().readLines();
+        if (lines.size() > 0) {
+            targetGCJournal.writeLine(lines.get(lines.size() - 1));
         }
         return null;
     }

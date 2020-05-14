@@ -133,13 +133,8 @@ public final class S3Directory {
     }
 
     public void writeObject(String name, byte[] data) throws IOException {
-        writeObject(name, data, new HashMap<>());
-    }
-
-    public void writeObject(String name, byte[] data, Map<String, String> userMetadata) throws IOException {
         InputStream input = new ByteArrayInputStream(data);
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setUserMetadata(userMetadata);
         metadata.setContentLength(data.length);
         PutObjectRequest request = new PutObjectRequest(bucketName, rootDirectory + name, input, metadata);
         try {
