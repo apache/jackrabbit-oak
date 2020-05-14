@@ -43,8 +43,13 @@ public final class AwsContext {
 
     private AwsContext(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
             String journalTableName, String lockTableName) {
+        this(s3, bucketName, rootDirectory, ddb, journalTableName, lockTableName, DynamoDBProvisioningData.DEFAULT);
+    }
+
+    private AwsContext(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
+                       String journalTableName, String lockTableName, DynamoDBProvisioningData provisioningData) {
         this.directory = new S3Directory(s3, bucketName, rootDirectory);
-        this.dynamoDBClient = new DynamoDBClient(ddb, journalTableName, lockTableName);
+        this.dynamoDBClient = new DynamoDBClient(ddb, journalTableName, lockTableName, provisioningData);
         this.path = bucketName + "/" + rootDirectory + "/";
     }
 
@@ -103,7 +108,7 @@ public final class AwsContext {
         this.directory = new S3Directory(s3ClientBuilder.build(), configuration.bucketName(),
                 configuration.rootDirectory());
         this.dynamoDBClient = new DynamoDBClient(dynamoDBClientBuilder.build(), configuration.journalTableName(),
-                configuration.lockTableName());
+                configuration.lockTableName(), DynamoDBProvisioningData.DEFAULT);
         this.path = configuration.bucketName() + "/" + configuration.rootDirectory() + "/";
     }
 
@@ -144,6 +149,35 @@ public final class AwsContext {
     public static AwsContext create(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
             String journalTableName, String lockTableName) throws IOException {
         AwsContext awsContext = new AwsContext(s3, bucketName, rootDirectory, ddb, journalTableName, lockTableName);
+        awsContext.directory.ensureBucket();
+        awsContext.dynamoDBClient.ensureTables();
+        return awsContext;
+    }
+
+    /**
+     * Creates the context used to interact with AWS services.
+     *
+     * @param s3               Client for accessing Amazon S3.
+     * @param bucketName       Name for the bucket that will store segments.
+     * @param rootDirectory    The root directory under which the segment store is
+     *                         setup.
+     * @param ddb              Client for accessing Amazon DynamoDB.
+     * @param journalTableName Name of table used for storing log entries for
+     *                         journal and gc. The table will be created if it
+     *                         doesn't already exist. It should have a partition key
+     *                         on "{@link #TABLE_ATTR_FILENAME}" and sort key on
+     *                         "{@link #TABLE_ATTR_TIMESTAMP}".
+     * @param lockTableName    Name of table used for managing the distributed lock.
+     *                         The table will be created if it doesn't already
+     *                         exist. It should have a partition key on
+     *                         "{@link #LOCKTABLE_KEY}".
+     * @param provisioningData DynamoDB provisioning data
+     * @return The context.
+     * @throws IOException
+     */
+    public static AwsContext create(AmazonS3 s3, String bucketName, String rootDirectory, AmazonDynamoDB ddb,
+                                    String journalTableName, String lockTableName, DynamoDBProvisioningData provisioningData) throws IOException {
+        AwsContext awsContext = new AwsContext(s3, bucketName, rootDirectory, ddb, journalTableName, lockTableName, provisioningData);
         awsContext.directory.ensureBucket();
         awsContext.dynamoDBClient.ensureTables();
         return awsContext;

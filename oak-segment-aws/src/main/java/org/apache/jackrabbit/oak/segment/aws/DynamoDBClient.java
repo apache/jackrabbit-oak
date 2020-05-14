@@ -38,11 +38,14 @@ import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
 import com.amazonaws.services.dynamodbv2.document.spec.QuerySpec;
 import com.amazonaws.services.dynamodbv2.document.utils.ValueMap;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
+import com.amazonaws.services.dynamodbv2.model.BillingMode;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputDescription;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
+import com.amazonaws.services.dynamodbv2.model.UpdateTableRequest;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
 
 public final class DynamoDBClient {
@@ -58,40 +61,93 @@ public final class DynamoDBClient {
     private static final String LOCKTABLE_KEY = "key";
 
     private final AmazonDynamoDB ddb;
+    private final String journalTableName;
     private final Table journalTable;
     private final String lockTableName;
+    private DynamoDBProvisioningData provisioningData;
 
     public DynamoDBClient(AmazonDynamoDB ddb, String journalTableName, String lockTableName) {
+        this(ddb, journalTableName, lockTableName, DynamoDBProvisioningData.DEFAULT);
+    }
+
+    public DynamoDBClient(AmazonDynamoDB ddb, String journalTableName, String lockTableName, DynamoDBProvisioningData provisioningData) {
         this.ddb = ddb;
+        this.journalTableName = journalTableName;
         this.journalTable = new DynamoDB(ddb).getTable(journalTableName);
         this.lockTableName = lockTableName;
+        if (provisioningData == null) {
+            this.provisioningData = DynamoDBProvisioningData.DEFAULT;
+        } else {
+            this.provisioningData = provisioningData;
+        }
     }
 
     public void ensureTables() throws IOException {
         try {
-            String journalTableName = journalTable.getTableName();
             CreateTableRequest createJournalTableRequest = new CreateTableRequest().withTableName(journalTableName)
                     .withKeySchema(new KeySchemaElement(TABLE_ATTR_FILENAME, KeyType.HASH),
                             new KeySchemaElement(TABLE_ATTR_TIMESTAMP, KeyType.RANGE))
                     .withAttributeDefinitions(new AttributeDefinition(TABLE_ATTR_FILENAME, ScalarAttributeType.S),
                             new AttributeDefinition(TABLE_ATTR_TIMESTAMP, ScalarAttributeType.N))
-                    .withProvisionedThroughput(new ProvisionedThroughput(10L, 15L));
-            TableUtils.createTableIfNotExists(ddb, createJournalTableRequest);
-            TableUtils.waitUntilActive(ddb, journalTableName);
+                    .withBillingMode(provisioningData.getBillingMode());
+
+            ensureTable(createJournalTableRequest, provisioningData.getJournalTableProvisionedRcu(), provisioningData.getJournalTableProvisionedWcu());
 
             CreateTableRequest createLockTableRequest = new CreateTableRequest().withTableName(lockTableName)
                     .withKeySchema(new KeySchemaElement(LOCKTABLE_KEY, KeyType.HASH))
                     .withAttributeDefinitions(new AttributeDefinition(LOCKTABLE_KEY, ScalarAttributeType.S))
-                    .withProvisionedThroughput(new ProvisionedThroughput(10L, 15L));
-            TableUtils.createTableIfNotExists(ddb, createLockTableRequest);
-            TableUtils.waitUntilActive(ddb, lockTableName);
+                    .withBillingMode(provisioningData.getBillingMode());
+
+            ensureTable(createLockTableRequest, provisioningData.getLockTableProvisionedRcu(), provisioningData.getLockTableProvisionedWcu());
         } catch (SdkClientException | InterruptedException e) {
             throw new IOException(e);
         }
     }
 
+    private void ensureTable(CreateTableRequest createTableRequest, Long tableRcu, Long tableWcu) throws InterruptedException {
+        if (provisioningData.getBillingMode().equals(BillingMode.PROVISIONED)) {
+            createTableRequest.withProvisionedThroughput(new ProvisionedThroughput(tableRcu, tableWcu));
+        }
+
+        TableUtils.createTableIfNotExists(ddb, createTableRequest);
+
+        TableUtils.waitUntilActive(ddb, createTableRequest.getTableName());
+    }
+
+    /**
+     * Updates table billing mode.
+     *
+     * @param table
+     * @return true if billing mode has changed
+     */
+    private boolean updateBillingMode(Table table, Long tableRcu, Long tableWcu) {
+        final BillingMode currentBillingMode = BillingMode.valueOf(table.describe().getBillingModeSummary().getBillingMode());
+
+        ProvisionedThroughputDescription throughputDescription = table.getDescription().getProvisionedThroughput();
+
+        //update the table if billing mode is different or provisioned capacity has changed
+        if (currentBillingMode != provisioningData.getBillingMode() ||
+                (provisioningData.getBillingMode() == BillingMode.PROVISIONED &&
+                        (throughputDescription.getReadCapacityUnits() != tableRcu || throughputDescription.getReadCapacityUnits() != tableWcu))) {
+
+            UpdateTableRequest tableUpdateRequest = new UpdateTableRequest()
+                    .withTableName(table.getTableName())
+                    .withBillingMode(provisioningData.getBillingMode());
+
+            if (provisioningData.getBillingMode().equals(BillingMode.PROVISIONED)) {
+                tableUpdateRequest.withProvisionedThroughput(new ProvisionedThroughput(tableRcu, tableWcu));
+            }
+
+            ddb.updateTable(tableUpdateRequest);
+
+            return true;
+        }
+
+        return false;
+    }
+
     public String getConfig() {
-        return journalTable.getTableName() + ";" + lockTableName;
+        return journalTableName + ";" + lockTableName;
     }
 
     public AmazonDynamoDBLockClientOptionsBuilder getLockClientOptionsBuilder() {
@@ -111,7 +167,7 @@ public final class DynamoDBClient {
             }
 
             new DynamoDB(ddb).batchWriteItem(
-                    new TableWriteItems(journalTable.getTableName()).withPrimaryKeysToDelete(currentKeys));
+                    new TableWriteItems(journalTableName).withPrimaryKeysToDelete(currentKeys));
         }
     }
 
@@ -146,4 +202,5 @@ public final class DynamoDBClient {
             throw new IOException(e);
         }
     }
+
 }
