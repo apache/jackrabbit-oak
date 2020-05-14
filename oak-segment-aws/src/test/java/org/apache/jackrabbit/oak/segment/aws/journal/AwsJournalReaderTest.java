@@ -21,38 +21,32 @@ import java.util.Date;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-import com.amazonaws.services.s3.AmazonS3;
 
-import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsJournalFile;
-import org.apache.jackrabbit.oak.segment.aws.S3MockRule;
+import org.apache.jackrabbit.oak.segment.aws.DynamoDBClient;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.file.JournalReaderTest;
 import org.junit.Before;
-import org.junit.ClassRule;
 
 public class AwsJournalReaderTest extends JournalReaderTest {
 
-    @ClassRule
-    public static final S3MockRule s3Mock = new S3MockRule();
-
-    private AwsContext awsContext;
+    private DynamoDBClient dynamoDBClient;
 
     @Before
     public void setup() throws IOException {
-        AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient = new DynamoDBClient(ddb,  "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient.ensureTables();
     }
 
     protected JournalReader createJournalReader(String s) throws IOException {
         String fileName = "journal.log";
         for (String line : s.split("\n")) {
             if (line != null && !line.isEmpty()) {
-                awsContext.putDocument(fileName, line);
+                dynamoDBClient.putDocument(fileName, line);
             }
         }
-        return new JournalReader(new AwsJournalFile(awsContext, fileName));
+        return new JournalReader(new AwsJournalFile(dynamoDBClient, fileName));
     }
 }

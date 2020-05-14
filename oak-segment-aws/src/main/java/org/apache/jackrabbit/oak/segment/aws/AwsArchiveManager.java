@@ -45,21 +45,21 @@ public class AwsArchiveManager implements SegmentArchiveManager {
 
     private static final String SEGMENT_FILE_NAME_PATTERN = "^([0-9a-f]{4})\\.([0-9a-f-]+)$";
 
-    private final AwsContext awsContext;
+    private final S3Directory directory;
 
     private final IOMonitor ioMonitor;
 
     private final FileStoreMonitor monitor;
 
-    public AwsArchiveManager(AwsContext awsContext, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
-        this.awsContext = awsContext;
+    public AwsArchiveManager(S3Directory directory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
+        this.directory = directory;
         this.ioMonitor = ioMonitor;
         this.monitor = fileStoreMonitor;
     }
 
     @Override
     public List<String> listArchives() throws IOException {
-        List<String> archiveNames = awsContext.listPrefixes().stream().filter(i -> i.endsWith(".tar/")).map(Paths::get)
+        List<String> archiveNames = directory.listPrefixes().stream().filter(i -> i.endsWith(".tar/")).map(Paths::get)
                 .map(Path::getFileName).map(Path::toString).collect(Collectors.toList());
 
         Iterator<String> it = archiveNames.iterator();
@@ -81,45 +81,45 @@ public class AwsArchiveManager implements SegmentArchiveManager {
      * @throws IOException
      */
     private boolean isArchiveEmpty(String archiveName) throws IOException {
-        return awsContext.withDirectory(archiveName).listObjects("0000.").isEmpty();
+        return directory.withDirectory(archiveName).listObjects("0000.").isEmpty();
     }
 
     @Override
     public SegmentArchiveReader open(String archiveName) throws IOException {
-        AwsContext directoryContext = awsContext.withDirectory(archiveName);
-        if (!directoryContext.doesObjectExist("closed")) {
+        S3Directory archiveDirectory = directory.withDirectory(archiveName);
+        if (!archiveDirectory.doesObjectExist("closed")) {
             throw new IOException("The archive " + archiveName + " hasn't been closed correctly.");
         }
-        return new AwsSegmentArchiveReader(directoryContext, archiveName, ioMonitor);
+        return new AwsSegmentArchiveReader(archiveDirectory, archiveName, ioMonitor);
     }
 
     @Override
     public SegmentArchiveReader forceOpen(String archiveName) throws IOException {
-        AwsContext directoryContext = awsContext.withDirectory(archiveName);
-        return new AwsSegmentArchiveReader(directoryContext, archiveName, ioMonitor);
+        S3Directory archiveDirectory = directory.withDirectory(archiveName);
+        return new AwsSegmentArchiveReader(archiveDirectory, archiveName, ioMonitor);
     }
 
     @Override
     public SegmentArchiveWriter create(String archiveName) throws IOException {
-        return new AwsSegmentArchiveWriter(awsContext.withDirectory(archiveName), archiveName, ioMonitor, monitor);
+        return new AwsSegmentArchiveWriter(directory.withDirectory(archiveName), archiveName, ioMonitor, monitor);
     }
 
     @Override
     public boolean delete(String archiveName) {
-        return awsContext.withDirectory(archiveName).deleteAllObjects();
+        return directory.withDirectory(archiveName).deleteAllObjects();
     }
 
     @Override
     public boolean renameTo(String from, String to) {
         try {
-            AwsContext fromContext = awsContext.withDirectory(from);
-            AwsContext toContext = awsContext.withDirectory(to);
+            S3Directory fromDirectory = directory.withDirectory(from);
+            S3Directory toDirectory = directory.withDirectory(to);
 
-            for (S3ObjectSummary obj : fromContext.listObjects("")) {
-                toContext.copyObject(fromContext, obj.getKey());
+            for (S3ObjectSummary obj : fromDirectory.listObjects("")) {
+                toDirectory.copyObject(fromDirectory, obj.getKey());
             }
 
-            fromContext.deleteAllObjects();
+            fromDirectory.deleteAllObjects();
             return true;
         } catch (IOException e) {
             log.error("Can't rename archive {} to {}", from, to, e);
@@ -129,10 +129,10 @@ public class AwsArchiveManager implements SegmentArchiveManager {
 
     @Override
     public void copyFile(String from, String to) throws IOException {
-        AwsContext fromContext = awsContext.withDirectory(from);
-        fromContext.listObjects("").forEach(obj -> {
+        S3Directory fromDirectory = directory.withDirectory(from);
+        fromDirectory.listObjects("").forEach(obj -> {
             try {
-                awsContext.withDirectory(to).copyObject(fromContext, obj.getKey());
+                directory.withDirectory(to).copyObject(fromDirectory, obj.getKey());
             } catch (IOException e) {
                 log.error("Can't copy segment {}", obj.getKey(), e);
             }
@@ -142,7 +142,7 @@ public class AwsArchiveManager implements SegmentArchiveManager {
     @Override
     public boolean exists(String archiveName) {
         try {
-            return awsContext.withDirectory(archiveName).listObjects("").size() > 0;
+            return directory.withDirectory(archiveName).listObjects("").size() > 0;
         } catch (IOException e) {
             log.error("Can't check the existence of {}", archiveName, e);
             return false;
@@ -154,7 +154,7 @@ public class AwsArchiveManager implements SegmentArchiveManager {
         Pattern pattern = Pattern.compile(SEGMENT_FILE_NAME_PATTERN);
         List<RecoveredEntry> entryList = new ArrayList<>();
 
-        for (S3ObjectSummary b : awsContext.withDirectory(archiveName).listObjects("")) {
+        for (S3ObjectSummary b : directory.withDirectory(archiveName).listObjects("")) {
             String name = Paths.get(b.getKey()).getFileName().toString();
             Matcher m = pattern.matcher(name);
             if (!m.matches()) {
@@ -163,7 +163,7 @@ public class AwsArchiveManager implements SegmentArchiveManager {
             int position = Integer.parseInt(m.group(1), 16);
             UUID uuid = UUID.fromString(m.group(2));
 
-            byte[] data = awsContext.readObject(b.getKey());
+            byte[] data = directory.readObject(b.getKey());
             entryList.add(new RecoveredEntry(position, uuid, data, name));
         }
 

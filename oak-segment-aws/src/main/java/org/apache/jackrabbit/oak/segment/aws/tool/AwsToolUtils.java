@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defa
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
 import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,7 @@ import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.aws.AwsContext;
 import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
+import org.apache.jackrabbit.oak.segment.aws.Configuration;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -86,7 +88,53 @@ public class AwsToolUtils {
         switch (storeType) {
         case AWS:
             String[] parts = pathOrUri.substring(4).split(";");
-            AwsContext awsContext = AwsContext.create(parts[0], parts[1], parts[2], parts[3]);
+            Configuration configuration = new Configuration() {
+                @Override
+                public Class<? extends Annotation> annotationType() {
+                    return null;
+                }
+            
+                @Override
+                public String sessionToken() {
+                    return null;
+                }
+            
+                @Override
+                public String secretKey() {
+                    return null;
+                }
+            
+                @Override
+                public String rootDirectory() {
+                    return parts[1];
+                }
+            
+                @Override
+                public String region() {
+                    return null;
+                }
+            
+                @Override
+                public String lockTableName() {
+                    return parts[3];
+                }
+            
+                @Override
+                public String journalTableName() {
+                    return parts[2];
+                }
+            
+                @Override
+                public String bucketName() {
+                    return parts[0];
+                }
+            
+                @Override
+                public String accessKey() {
+                    return null;
+                }
+            };
+            AwsContext awsContext = AwsContext.create(configuration);
             persistence = new AwsPersistence(awsContext);
             break;
         default:

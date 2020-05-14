@@ -26,11 +26,9 @@ import java.util.concurrent.Semaphore;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-import com.amazonaws.services.s3.AmazonS3;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,26 +37,23 @@ public class AwsRepositoryLockTest {
 
     private static final Logger log = LoggerFactory.getLogger(AwsRepositoryLockTest.class);
 
-    @ClassRule
-    public static final S3MockRule s3Mock = new S3MockRule();
-
     private static final String lockName = "repo.lock";
 
-    private AwsContext awsContext;
+    private DynamoDBClient dynamoDBClient;
 
     @Before
     public void setup() throws IOException {
-        AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient = new DynamoDBClient(ddb, "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient.ensureTables();
     }
 
     @Test
     public void testFailingLock() throws IOException {
-        new AwsRepositoryLock(awsContext, lockName, 0).lock();
+        new AwsRepositoryLock(dynamoDBClient, lockName, 0).lock();
         try {
-            new AwsRepositoryLock(awsContext, lockName, 0).lock();
+            new AwsRepositoryLock(dynamoDBClient, lockName, 0).lock();
             fail("The second lock should fail.");
         } catch (IOException e) {
             // it's fine
@@ -70,7 +65,7 @@ public class AwsRepositoryLockTest {
         Semaphore s = new Semaphore(0);
         new Thread(() -> {
             try {
-                RepositoryLock lock = new AwsRepositoryLock(awsContext, lockName, 0).lock();
+                RepositoryLock lock = new AwsRepositoryLock(dynamoDBClient, lockName, 0).lock();
                 s.release();
                 Thread.sleep(1000);
                 lock.unlock();
@@ -80,6 +75,6 @@ public class AwsRepositoryLockTest {
         }).start();
 
         s.acquire();
-        new AwsRepositoryLock(awsContext, lockName, 10).lock();
+        new AwsRepositoryLock(dynamoDBClient, lockName, 10).lock();
     }
 }

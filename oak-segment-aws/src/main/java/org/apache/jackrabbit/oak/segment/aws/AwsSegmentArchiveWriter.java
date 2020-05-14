@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 
 public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
 
-    private final AwsContext directoryContext;
+    private final S3Directory directory;
 
     private final String archiveName;
 
@@ -56,9 +56,9 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
 
     private volatile boolean created = false;
 
-    public AwsSegmentArchiveWriter(AwsContext directoryContext, String archiveName, IOMonitor ioMonitor,
+    public AwsSegmentArchiveWriter(S3Directory directory, String archiveName, IOMonitor ioMonitor,
             FileStoreMonitor monitor) {
-        this.directoryContext = directoryContext;
+        this.directory = directory;
         this.archiveName = archiveName;
         this.ioMonitor = ioMonitor;
         this.monitor = monitor;
@@ -88,10 +88,11 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
         long msb = indexEntry.getMsb();
         long lsb = indexEntry.getLsb();
         String segmentName = indexEntry.getFileName();
-        String fullName = directoryContext.getPath() + segmentName;
+        String fullName = directory.getPath() + segmentName;
         ioMonitor.beforeSegmentWrite(new File(fullName), msb, lsb, size);
         Stopwatch stopwatch = Stopwatch.createStarted();
-        directoryContext.writeObject(segmentName, data, AwsBlobMetadata.toSegmentMetadata(indexEntry));
+        directory.writeObject(segmentName, data, AwsBlobMetadata.toSegmentMetadata(indexEntry));
+        writeIndex();
         ioMonitor.afterSegmentWrite(new File(fullName), msb, lsb, size, stopwatch.elapsed(TimeUnit.NANOSECONDS));
     }
 
@@ -106,7 +107,7 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
         if (indexEntry == null) {
             return null;
         }
-        return directoryContext.readObjectToBuffer(indexEntry.getFileName(), OFF_HEAP);
+        return directory.readObjectToBuffer(indexEntry.getFileName(), OFF_HEAP);
     }
 
     @Override
@@ -130,7 +131,7 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
     }
 
     private void writeDataFile(byte[] data, String extension) throws IOException {
-        directoryContext.writeObject(getName() + extension, data);
+        directory.writeObject(getName() + extension, data);
         totalLength += data.length;
         monitor.written(data.length);
     }
@@ -152,7 +153,22 @@ public class AwsSegmentArchiveWriter implements SegmentArchiveWriter {
             q.flush();
             q.close();
         }
-        directoryContext.writeObject("closed", new byte[0]);
+        writeIndex();
+        directory.writeObject("closed", new byte[0]);
+    }
+
+    private void writeIndex() throws IOException {
+        Buffer buffer = Buffer.allocate(index.size() * 33);
+        for (AwsSegmentArchiveEntry entry : index.values()) {
+            buffer.putLong(entry.getMsb());
+            buffer.putLong(entry.getLsb());
+            buffer.putInt(entry.getPosition());
+            buffer.putInt(entry.getLength());
+            buffer.putInt(entry.getGeneration());
+            buffer.putInt(entry.getFullGeneration());
+            buffer.put(entry.isCompacted() ? (byte) 1 : 0);
+        }
+        directory.writeObject(archiveName + ".idx", buffer.array());
     }
 
     @Override

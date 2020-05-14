@@ -25,28 +25,23 @@ import java.util.Date;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.local.embedded.DynamoDBEmbedded;
-import com.amazonaws.services.s3.AmazonS3;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 
 public class AwsJournalFileTest {
-
-    @ClassRule
-    public static final S3MockRule s3Mock = new S3MockRule();
 
     private AwsJournalFile journal;
 
     @Before
     public void setup() throws IOException {
-        AmazonS3 s3 = s3Mock.createClient();
         AmazonDynamoDB ddb = DynamoDBEmbedded.create().amazonDynamoDB();
         long time = new Date().getTime();
-        AwsContext awsContext = AwsContext.create(s3, "bucket-" + time, "oak", ddb, "journaltable-" + time, "locktable-" + time);
-        journal = new AwsJournalFile(awsContext, "journal.log");
+        DynamoDBClient dynamoDBClient = new DynamoDBClient(ddb, "journaltable-" + time, "locktable-" + time);
+        dynamoDBClient.ensureTables();
+        journal = new AwsJournalFile(dynamoDBClient, "journal.log");
     }
 
     @Test

@@ -28,24 +28,24 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 
 public class AwsManifestFile implements ManifestFile {
 
-    private final AwsContext awsContext;
+    private final S3Directory directory;
     private final String manifestFile;
 
-    public AwsManifestFile(AwsContext awsContext, String manifestFile) throws IOException {
-        this.awsContext = awsContext;
+    public AwsManifestFile(S3Directory directory, String manifestFile) throws IOException {
+        this.directory = directory;
         this.manifestFile = manifestFile;
     }
 
     @Override
     public boolean exists() {
-        return awsContext.doesObjectExist(manifestFile);
+        return directory.doesObjectExist(manifestFile);
     }
 
     @Override
     public Properties load() throws IOException {
         Properties properties = new Properties();
         if (this.exists()) {
-            try (S3Object object = awsContext.getObject(manifestFile)) {
+            try (S3Object object = directory.getObject(manifestFile)) {
                 properties.load(object.getObjectContent());
             } catch (AmazonServiceException e) {
                 throw new IOException(e);
@@ -60,7 +60,7 @@ public class AwsManifestFile implements ManifestFile {
             try (PipedOutputStream src = new PipedOutputStream(input)) {
                 properties.store(src, null);
             }
-            awsContext.putObject(manifestFile, input);
+            directory.putObject(manifestFile, input);
         }
     }
 }

@@ -67,6 +67,8 @@ public class AwsSegmentCopy {
 
         private PrintWriter errWriter;
 
+        private Integer revisionsCount = Integer.MAX_VALUE;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -139,6 +141,18 @@ public class AwsSegmentCopy {
         }
 
         /**
+         * The last {@code revisionsCount} revisions to be copied.
+         * This parameter is not required and defaults to {@code 1}.
+         *
+         * @param revisionsCount number of revisions to copied.
+         * @return this builder.
+         */
+        public Builder withRevisionsCount(Integer revisionsCount) {
+            this.revisionsCount = revisionsCount;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Check} command.
          *
          * @return an instance of {@link Runnable}.
@@ -160,6 +174,8 @@ public class AwsSegmentCopy {
 
     private final PrintWriter errWriter;
 
+    private final Integer revisionCount;
+
     private SegmentNodeStorePersistence srcPersistence;
 
     private SegmentNodeStorePersistence destPersistence;
@@ -169,6 +185,7 @@ public class AwsSegmentCopy {
         this.destination = builder.destination;
         this.srcPersistence = builder.srcPersistence;
         this.destPersistence = builder.destPersistence;
+        this.revisionCount = builder.revisionsCount;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
     }
@@ -194,7 +211,9 @@ public class AwsSegmentCopy {
 
             AwsSegmentStoreMigrator migrator = new AwsSegmentStoreMigrator.Builder()
                     .withSourcePersistence(srcPersistence, srcDescription)
-                    .withTargetPersistence(destPersistence, destDescription).build();
+                    .withTargetPersistence(destPersistence, destDescription)
+                    .withRevisionCount(revisionCount)
+                    .build();
 
             migrator.migrate();
         } catch (Exception e) {

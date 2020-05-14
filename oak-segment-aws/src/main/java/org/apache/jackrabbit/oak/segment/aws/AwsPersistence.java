@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.segment.aws;
 
 import java.io.IOException;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -37,32 +36,21 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     protected final AwsContext awsContext;
 
-    private final String fileNameSuffix;
-
     public AwsPersistence(AwsContext awsContext) {
-        this(awsContext, null);
-    }
-
-    public AwsPersistence(AwsContext awsContext, String id) {
-        if (StringUtils.isNotBlank(id)) {
-            this.awsContext = awsContext.withDirectory(id);
-            this.fileNameSuffix = "." + id;
-        } else {
-            this.awsContext = awsContext;
-            this.fileNameSuffix = "";
-        }
+        this.awsContext = awsContext;
     }
 
     @Override
     public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
             FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
-        return new AwsArchiveManager(awsContext, ioMonitor, fileStoreMonitor);
+        awsContext.setRemoteStoreMonitor(remoteStoreMonitor);
+        return new AwsArchiveManager(awsContext.directory, ioMonitor, fileStoreMonitor);
     }
 
     @Override
     public boolean segmentFilesExist() {
         try {
-            for (String prefix : awsContext.listPrefixes()) {
+            for (String prefix : awsContext.directory.listPrefixes()) {
                 if (prefix.indexOf(".tar/") >= 0) {
                     return true;
                 }
@@ -77,21 +65,21 @@ public class AwsPersistence implements SegmentNodeStorePersistence {
 
     @Override
     public JournalFile getJournalFile() {
-        return new AwsJournalFile(awsContext, "journal" + fileNameSuffix + ".log");
+        return new AwsJournalFile(awsContext.dynamoDBClient, awsContext.getPath("journal.log"));
     }
 
     @Override
     public GCJournalFile getGCJournalFile() throws IOException {
-        return new AwsGCJournalFile(awsContext, "gc" + fileNameSuffix + ".log");
+        return new AwsGCJournalFile(awsContext.dynamoDBClient, awsContext.getPath("gc.log"));
     }
 
     @Override
     public ManifestFile getManifestFile() throws IOException {
-        return new AwsManifestFile(awsContext, "manifest");
+        return new AwsManifestFile(awsContext.directory, "manifest");
     }
 
     @Override
     public RepositoryLock lockRepository() throws IOException {
-        return new AwsRepositoryLock(awsContext, "repo" + fileNameSuffix + ".lock").lock();
+        return new AwsRepositoryLock(awsContext.dynamoDBClient, awsContext.getPath("repo.lock")).lock();
     }
 }

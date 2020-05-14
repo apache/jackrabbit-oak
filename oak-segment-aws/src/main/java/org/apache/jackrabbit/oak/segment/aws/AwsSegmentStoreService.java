@@ -32,8 +32,6 @@ import org.osgi.service.component.annotations.Deactivate;
 @Component(configurationPolicy = ConfigurationPolicy.REQUIRE, configurationPid = { Configuration.PID })
 public class AwsSegmentStoreService {
 
-    public static final String DEFAULT_BUCKET_NAME = "oak";
-
     public static final String DEFAULT_ROOT_DIRECTORY = "oak/";
 
     public static final String DEFAULT_JOURNALTABLE_NAME = "oakjournaltable";

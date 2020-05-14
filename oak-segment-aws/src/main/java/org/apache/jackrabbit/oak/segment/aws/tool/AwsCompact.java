@@ -46,7 +46,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersist
 import org.apache.jackrabbit.oak.segment.tool.Compact;
 
 /**
- * Perform an offline compaction of an existing Azure Segment Store.
+ * Perform an offline compaction of an existing AWS Segment Store.
  */
 public class AwsCompact {
 

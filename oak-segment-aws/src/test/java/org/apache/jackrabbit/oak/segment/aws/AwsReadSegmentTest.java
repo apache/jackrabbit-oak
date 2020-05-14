@@ -95,11 +95,11 @@ public class AwsReadSegmentTest {
         @Override
         public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor,
                 FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
-            return new AwsArchiveManager(awsContext, ioMonitor, fileStoreMonitor) {
+            return new AwsArchiveManager(awsContext.directory, ioMonitor, fileStoreMonitor) {
                 @Override
                 public SegmentArchiveReader open(String archiveName) throws IOException {
-                    AwsContext directoryContext = awsContext.withDirectory(archiveName);
-                    return new AwsSegmentArchiveReader(directoryContext, archiveName, ioMonitor) {
+                    S3Directory archiveDirectory = awsContext.directory.withDirectory(archiveName);
+                    return new AwsSegmentArchiveReader(archiveDirectory, archiveName, ioMonitor) {
                         @Override
                         public Buffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(new RuntimeException("Cannot access AWS S3"));
@@ -109,8 +109,8 @@ public class AwsReadSegmentTest {
 
                 @Override
                 public SegmentArchiveWriter create(String archiveName) throws IOException {
-                    AwsContext directoryContext = awsContext.withDirectory(archiveName);
-                    return new AwsSegmentArchiveWriter(directoryContext, archiveName, ioMonitor, fileStoreMonitor) {
+                    S3Directory archiveDirectory = awsContext.directory.withDirectory(archiveName);
+                    return new AwsSegmentArchiveWriter(archiveDirectory, archiveName, ioMonitor, fileStoreMonitor) {
                         @Override
                         public Buffer readSegment(long msb, long lsb) throws IOException {
                             throw new RepositoryNotReachableException(new RuntimeException("Cannot access AWS S3"));

@@ -30,9 +30,9 @@ import org.slf4j.LoggerFactory;
 
 public class AwsRepositoryLock implements RepositoryLock {
 
-    private static final Logger log = LoggerFactory.getLogger(AwsContext.class);
+    private static final Logger log = LoggerFactory.getLogger(AwsRepositoryLock.class);
 
-    private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
+    private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.aws.lock.timeout", 0);
 
     private static long INTERVAL = 60;
 
@@ -42,13 +42,13 @@ public class AwsRepositoryLock implements RepositoryLock {
 
     private LockItem lockItem;
 
-    public AwsRepositoryLock(AwsContext awsContext, String lockName) {
-        this(awsContext, lockName, TIMEOUT_SEC);
+    public AwsRepositoryLock(DynamoDBClient dynamoDBClient, String lockName) {
+        this(dynamoDBClient, lockName, TIMEOUT_SEC);
     }
 
-    public AwsRepositoryLock(AwsContext awsContext, String lockName, int timeoutSec) {
+    public AwsRepositoryLock(DynamoDBClient dynamoDBClient, String lockName, int timeoutSec) {
         this.lockClient = new AmazonDynamoDBLockClient(
-                awsContext.getLockClientOptionsBuilder().withTimeUnit(TimeUnit.SECONDS).withLeaseDuration(INTERVAL)
+                dynamoDBClient.getLockClientOptionsBuilder().withTimeUnit(TimeUnit.SECONDS).withLeaseDuration(INTERVAL)
                         .withHeartbeatPeriod(INTERVAL / 3).withCreateHeartbeatBackgroundThread(true).build());
         this.lockName = lockName;
         this.timeoutSec = timeoutSec;
@@ -57,7 +57,7 @@ public class AwsRepositoryLock implements RepositoryLock {
     public AwsRepositoryLock lock() throws IOException {
         try {
             Optional<LockItem> lockItemOptional = lockClient.tryAcquireLock(AcquireLockOptions.builder(lockName)
-                    // .withTimeUnit(TimeUnit.SECONDS).withAdditionalTimeToWaitForLock(timeoutSec)
+                    .withTimeUnit(TimeUnit.SECONDS).withAdditionalTimeToWaitForLock(timeoutSec)
                     .build());
             if (lockItemOptional.isPresent()) {
                 lockItem = lockItemOptional.get();

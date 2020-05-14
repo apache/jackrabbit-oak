@@ -69,7 +69,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
 
     private final boolean appendMode;
 
-    private final boolean onlyLastJournalEntry;
+    private final Integer revisionCount;
 
     private ExecutorService executor = Executors.newFixedThreadPool(READ_THREADS + 1);
 
@@ -79,7 +79,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         this.sourceName = builder.sourceName;
         this.targetName = builder.targetName;
         this.appendMode = builder.appendMode;
-        this.onlyLastJournalEntry = builder.onlyLastJournalEntry;
+        this.revisionCount = builder.revisionCount;
     }
 
     public void migrate() throws IOException, ExecutionException, InterruptedException {
@@ -103,7 +103,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
                 if (line.length() > 0 && !line.trim().equals("")) {
                     journal.add(line);
                 }
-                if (!journal.isEmpty() && onlyLastJournalEntry) {
+                if (journal.size() == revisionCount) {
                     break;
                 }
             }
@@ -288,7 +288,7 @@ public class AwsSegmentStoreMigrator implements Closeable  {
 
         private boolean appendMode;
 
-        private boolean onlyLastJournalEntry;
+        private Integer revisionCount = Integer.MAX_VALUE;
 
         public Builder withSource(File dir) {
             this.source = new TarPersistence(dir);
@@ -331,8 +331,8 @@ public class AwsSegmentStoreMigrator implements Closeable  {
             return this;
         }
 
-        public Builder withOnlyLastJournalEntry() {
-            this.onlyLastJournalEntry = true;
+        public Builder withRevisionCount(Integer revisionCount) {
+            this.revisionCount = revisionCount;
             return this;
         }
 

@@ -16,37 +16,109 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
+import static org.apache.jackrabbit.oak.segment.aws.DynamoDBClient.TABLE_ATTR_CONTENT;
+
 import java.io.IOException;
+import java.util.Iterator;
+
+import com.amazonaws.services.dynamodbv2.document.Item;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AwsJournalFile implements JournalFile {
 
-    private final AwsAppendableFile file;
+    private static final Logger log = LoggerFactory.getLogger(AwsJournalFile.class);
 
-    public AwsJournalFile(AwsContext awsContext, String fileName) {
-        this.file = new AwsAppendableFile(awsContext, fileName);
+    private final DynamoDBClient dynamoDBClient;
+    private final String fileName;
+
+    public AwsJournalFile(DynamoDBClient dynamoDBClient, String fileName) {
+        this.dynamoDBClient = dynamoDBClient;
+        this.fileName = fileName;
     }
 
     @Override
     public JournalFileReader openJournalReader() throws IOException {
-        return file.openJournalReader();
+        return new AwsFileReader(dynamoDBClient, fileName);
     }
 
     @Override
     public JournalFileWriter openJournalWriter() throws IOException {
-        return file.openJournalWriter();
+        return new AwsFileWriter(dynamoDBClient, fileName);
     }
 
     @Override
     public String getName() {
-        return file.getName();
+        return fileName;
     }
 
     @Override
     public boolean exists() {
-        return file.exists();
+        try {
+            return openJournalReader().readLine() != null;
+        } catch (IOException e) {
+            log.error("Can't check if the file exists", e);
+            return false;
+        }
+    }
+
+    private static class AwsFileWriter implements JournalFileWriter {
+        private final DynamoDBClient dynamoDBClient;
+        private final String fileName;
+
+        public AwsFileWriter(DynamoDBClient dynamoDBClient, String fileName) {
+            this.dynamoDBClient = dynamoDBClient;
+            this.fileName = fileName;
+        }
+
+        @Override
+        public void close() {
+            // Do nothing
+        }
+
+        @Override
+        public void truncate() throws IOException {
+            dynamoDBClient.deleteAllDocuments(fileName);
+        }
+
+        @Override
+        public void writeLine(String line) throws IOException {
+            dynamoDBClient.putDocument(fileName, line);
+        }
+    }
+
+    private static class AwsFileReader implements JournalFileReader {
+
+        private final DynamoDBClient dynamoDBClient;
+        private final String fileName;
+
+        private Iterator<Item> iterator;
+
+        public AwsFileReader(DynamoDBClient dynamoDBClient, String fileName) {
+            this.dynamoDBClient = dynamoDBClient;
+            this.fileName = fileName;
+        }
+
+        @Override
+        public void close() {
+            // Do nothing
+        }
+
+        @Override
+        public String readLine() throws IOException {
+            if (iterator == null) {
+                iterator = dynamoDBClient.getDocumentsStream(fileName).iterator();
+            }
+
+            if (iterator.hasNext()) {
+                return iterator.next().getString(TABLE_ATTR_CONTENT);
+            }
+
+            return null;
+        }
     }
 }
