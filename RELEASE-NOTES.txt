@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.26.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.28.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.26.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.28.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,88 +15,86 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.26.0
+Changes in Oak 1.28.0
 ---------------------
 
 Bug
 
-    [OAK-7358] - Remove all usage of java.security.acl.Group for Java 14
-    [OAK-8855] - Permission evaluation of nodes broken after :nestedCug removed from parent node
-    [OAK-8885] - Test failure: NPE in MongoFixture.createDocumentStore()
-    [OAK-8889] - NPE in the oak-run console az:*
-    [OAK-8894] - Build error on travis-ci
-    [OAK-8902] - Add support in oak-run to list down blob ids for lucene indexes
-    [OAK-8922] - oak-run-commons: OakFixture broken for BlobStores that do not implement BlobAccessProvider
-    [OAK-8928] - Retry reading the graph and binary references in Segment Store migrator
-    [OAK-8936] - ValueImpl does not properly set domain override flag of BlobDownloadOptions
-    [OAK-8944] - Missing journal entry on recovery
-    [OAK-8945] - Cannot apply node restrictions without checking-out the node
-    [OAK-8946] - Cannot apply node restrictions without checking-out the node
-    [OAK-8948] - ObservationManager.addEventListener() throws NPE with invalid paths in filter
-    [OAK-8949] - PrincipalRestrictionProvider.writeRestrictions does not filter rep:nodePath restriction
-
-Epic
-
-    [OAK-8561] - Oak should compile & test on Java 14
+    [OAK-8832] - Offline Compaction fails while erroneously accessing external blob
+    [OAK-8890] - LDAP login may fail if a server or intermediate silently drops connections
+    [OAK-8956] - Implement query benchmark for lucene and elastic
+    [OAK-8962] - Move lucene and elastic benchmarks out of oak-benchmarks to avoid elastic and lucene dep conflicts
+    [OAK-8967] - OR query with ORDER BY don't work as expected
+    [OAK-8969] - Ignore domain overwrite doesn't work well when presignedHttpDownloadURICacheMaxSize is set
+    [OAK-8984] - A big number of NOOP changes can result in a StackOverflow
+    [OAK-8986] - Segment flush thread can remain in TIMED_WAITING state even when segment queue is empty
+    [OAK-8996] - Lucene indexing benchmarks fail in case of wiki imports of > 100000 nodes
+    [OAK-9000] - Classpath issues while executing oak-benchmarks-lucene and oak-benchmarks-elastic from commandline
+    [OAK-9003] - Fix the report logging in oak-benchmarks, move the mean value towards the end of the string
+    [OAK-9005] - Refactor indexing benchmarks tests to handle large wiki dumps
+    [OAK-9015] - ElasticserachIndexWriter#close method implementation doesn't do what the underlying contract expects | BulkProcessor resource is never closed and it always returns false
+    [OAK-9038] - oak-search-mt imports org.slf4j.impl
+    [OAK-9054] - Improved blob listing performance for the Azure Segment Store
+    [OAK-9059] - Moving nodes doesn't remove source path(s) from HIDDEN_NESTED_CUGS
 
 New Feature
 
-    [OAK-8494] - Support AWS Key Managed Service (SSE-KMS)
+    [OAK-8827] - AWS support for segment-tar
 
 Improvement
 
-    [OAK-8787] - Remove older index versions from repository
-    [OAK-8869] - Access azure segments metadata in a case-insensitive way
-    [OAK-8874] - deprecate use of Guava Predicate class in oak-core API
-    [OAK-8878] - Expose downloaded (and uploaded) blob bytes as metrics, not only as time series
-    [OAK-8901] - oak-run command checkpoints should support RDBDocumentStore
-    [OAK-8903] - Support for removing repository markers for transient repositories
-    [OAK-8914] - Throttle Revision GC
-    [OAK-8930] - More resilient blob listing for the Azure Segment Store
-    [OAK-8934] - Indexing: filter entries with a regular expression
-    [OAK-8950] - DataStore: FileCache should use one cache segment
+    [OAK-8935] - Improve ClusterNodeInfo MAC address detection
+    [OAK-8971] - Indexing: dynamic boost, as an alternative to IndexFieldProvider
+    [OAK-8978] - Cache facet results
+    [OAK-8997] - Index importer: ClusterNodeStoreLock needs a retry logic
+    [OAK-9006] - Elastic Search: Support text search of a text file via aggregation
+    [OAK-9010] - Standardize handling of system properties
+    [OAK-9016] - link slf4j javadocs
+    [OAK-9017] - use SystemPropertySupplier in RDBConnectionHandler
+    [OAK-9018] - use SystemPropertySupplier in RDBVersionGCSupport
+    [OAK-9019] - use SystemPropertySupplier in RDBMissingLastRevSeeker
+    [OAK-9020] - use SystemPropertySupplier in RDBDocumentStoreDB
+    [OAK-9021] - use SystemPropertySupplier in RDBDataSourceFactory
+    [OAK-9022] - use SystemPropertySupplier in ClusterNodeInfo
+    [OAK-9023] - use SystemPropertySupplier in RDBDocumentStore
+    [OAK-9025] - use SystemPropertySupplier in DocumentNodeStoreService
+    [OAK-9030] - Retrieve datastore metadata using the DataStore command
+    [OAK-9031] - use SystemPropertySupplier in DocumentNodeStore
+    [OAK-9040] - Option to only sweep in BlobGC when all references aged sufficiently
+    [OAK-9042] - Improve azure archive recovery during startup
+    [OAK-9045] - Add facet support for elastic search
+    [OAK-9046] - Index function string-length should index size for binary properties
+    [OAK-9052] - Reindexing using --doc-traversal-mode may need a lot of memory
 
 Task
 
-    [OAK-7671] - [oak-run] Deprecate the datastorecheck command in favor of datastore
-    [OAK-8875] - Update aws-java-sdk-osgi version to 1.11.700 in Oak-blob-cloud
-    [OAK-8883] - Update jar plugin to 3.2.0
-    [OAK-8892] - Add javadoc to package-info files
-    [OAK-8899] - Benchmarks: AddMembersTest with 'membershipSizeThreshold'
-    [OAK-8905] - AsyncIndexUpdate: improve logging when checkpoint cleanup gets skipped
-    [OAK-8910] - Improve OAK Lucene Index Documentation
-    [OAK-8919] - examples: update Tomcat dependency to 7.0.100
-    [OAK-8953] - Update httpclient/mime dependencies to 4.5.12
-    [OAK-8954] - update jackson dependency to 2.10.3
-    [OAK-8955] - Update slf4j dependency to 1.7.30
-    [OAK-8959] - Update Tika dependency to 1.24
-    [OAK-8960] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.20
+    [OAK-8769] - oak-auth-ldap pom needs maintenance
+    [OAK-8837] - Refactor FileStore to support pluggable Compactor
+    [OAK-8965] - oak-search-elastic: review and update current code
+    [OAK-8974] - VersionGarbageCollectorIT should use fixtures from AbstractDocumentStoreTest
+    [OAK-8985] - oak-search-elastic: use bulk API for indexing
+    [OAK-8993] - oak-auth-external and oak-auth-ldap are not covered by oak-it-osgi.
+    [OAK-8995] - Remove support for lucene custom scorer
+    [OAK-8998] - oak-search-elastic: implement fast cost estimation
+    [OAK-8999] - Update release schedule (after EOL of 1.10)
+    [OAK-9004] - Multitenant index name strategy with reindex support
+    [OAK-9008] - oak-search-elastic: API key based authentication
+    [OAK-9014] - Refactor Oak-Search-Elastic tests to make them more modularized
+    [OAK-9033] - Update Tika dependency to 1.24.1
+    [OAK-9034] - update commons-lang3 to 3.10
+    [OAK-9035] - LuceneIndexEditor should extend FulltextIndexEditor
+    [OAK-9044] - Improve unit test coverage of LdapProviderConfig
+    [OAK-9053] - Reindexing Strategy for ES indexes
 
 Documentation
 
-    [OAK-8881] - Add section 'security reports' to the oak docu
-    [OAK-8884] - Broken link to DynamicSyncContext in defaultusersync.md
+    [OAK-8929] - Missing configuration steps to define a custom LoginModule in a non-OSGi environment
 
 Technical task
 
-    [OAK-8788] - Add index creation and index completion time to indexes
-    [OAK-8861] - oak-core-spi: bump up logging for deprecated Guava based APIs to WARN
-    [OAK-8862] - oak-commons: bump up logging for deprecated Guava based APIs to WARN
-    [OAK-8882] - RDBBlobStore: dump table structure on startup
-    [OAK-8906] - RDBDocumentStore on SQL Server (additional diags) log DB creation time
-    [OAK-8907] - RDBDocumentStore: change diagnostics from String to Map
-    [OAK-8909] - RDBBlobStore: when creating META table for SQL Server, assign readable name for PK
-    [OAK-8913] - RDB*Store: extract "additionalDiagnostics" code into separate class for re-use from RDBBlobStore
-    [OAK-8915] - RDBDocumentStore: use setNString() for columns known to be of type N*CHAR
-    [OAK-8916] - RDBBlobStore: log additional DB diagnostics (align with RDBDocumentStore)
-    [OAK-8918] - RDBBlobStore: warn when legacy (SQLServer) default collation is active
-    [OAK-8920] - update Tomcat JDBC dependency to 8.5.51
-    [OAK-8925] - RDBDocumentStore: for SQL Server stats, include type_desc and fill_factor
-    [OAK-8926] - add RDBBlobStore performance test
-    [OAK-8932] - RDBDocumentStore: allow RDBVersionGC support fallback to simpler algorithm
-    [OAK-8937] - RDB*Store: update mysql jdbc driver reference to 8.0.19
-    [OAK-8939] - RDB*Store: update postgresql jdbc driver reference to 42.2.10
-    [OAK-8940] - RDB*Store: update mssql-jdbc driver reference to 8.2.1.jre8
+    [OAK-8657] - SimpleCredentialsSupport uses Guava API in exported API
+    [OAK-9007] - RDB*Store: update postgresql jdbc driver reference to 42.2.12
+    [OAK-9009] - RDB*Store: update mssql-jdbc driver reference to 8.2.2.jre8
 
 
 In addition to the above-mentioned changes, this release contains all
