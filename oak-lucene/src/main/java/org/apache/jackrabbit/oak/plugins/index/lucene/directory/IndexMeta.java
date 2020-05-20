@@ -63,7 +63,7 @@ final class IndexMeta implements Comparable<IndexMeta> {
     public IndexMeta(File file) throws IOException {
         Properties p = loadFromFile(file);
         this.indexPath = checkNotNull(p.getProperty("indexPath"));
-        this.creationTime = Long.valueOf(checkNotNull(p.getProperty("creationTime")));
+        this.creationTime = Long.parseLong(checkNotNull(p.getProperty("creationTime")));
         this.properties = new HashMap<>(Maps.fromProperties(p));
     }
 
