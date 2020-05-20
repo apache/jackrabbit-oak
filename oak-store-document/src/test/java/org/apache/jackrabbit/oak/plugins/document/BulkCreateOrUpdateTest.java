@@ -336,10 +336,10 @@ public class BulkCreateOrUpdateTest extends AbstractDocumentStoreTest {
             if (prevModCount != null) {
                 assertNotNull(modCount);
                 assertTrue("_modCount, when present, must be increasing, but changed from " + prevModCount + " to " + modCount,
-                        prevModCount.longValue() < modCount.longValue());
+                        prevModCount < modCount);
             }
             prevModCount = modCount;
-            assertEquals("The old value is not correct", Long.valueOf(i - 1), docs.get(i).get("update_id"));
+            assertEquals("The old value is not correct", (long) (i - 1), docs.get(i).get("update_id"));
         }
 
         NodeDocument newDoc = ds.find(Collection.NODES, id);

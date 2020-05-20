@@ -161,10 +161,10 @@ public class RDBDocumentSerializer {
             doc.put(CMODCOUNT, row.getCollisionsModcount());
         }
         if (row.hasBinaryProperties() != null) {
-            doc.put(HASBINARY, row.hasBinaryProperties().longValue());
+            doc.put(HASBINARY, row.hasBinaryProperties());
         }
         if (row.deletedOnce() != null) {
-            doc.put(DELETEDONCE, row.deletedOnce().booleanValue());
+            doc.put(DELETEDONCE, row.deletedOnce());
         }
         if (row.getSchemaVersion() >= 2) {
             if (row.getSdType() != RDBRow.LONG_UNSET) {
