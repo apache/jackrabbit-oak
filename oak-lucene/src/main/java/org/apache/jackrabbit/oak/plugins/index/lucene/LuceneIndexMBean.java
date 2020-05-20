@@ -125,6 +125,20 @@ public interface LuceneIndexMBean {
     @Description("Performs any possible cleanup of the hybrid property indexes")
     String performPropertyIndexCleanup() throws CommitFailedException;
 
+    @Description("Performs cleanup of property indexes")
+    String performPropertyIndexCleanup(
+            @Name("paths")
+            @Description("The list of paths (comma separated). Must be hidden nodes")
+            String paths,
+            @Name("batchSize")
+            @Description("The batch size, e.g. 1024")
+            int batchSize,
+            @Name("sleepPerBatch")
+            @Description("The number of milliseconds to sleep per batch")
+            int sleepPerBatch,
+            @Name("maxRemoveCount")
+            @Description("The maximum number of nodes to remove per path, e.g. 1000000")
+            int maxRemoveCount) throws CommitFailedException;
 
     @Description("Fetches hybrid property index info as json for index at given path")
     String getHybridIndexInfo(@Name("indexPath") String indexPath);
