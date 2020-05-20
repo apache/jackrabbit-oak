@@ -165,12 +165,12 @@ public class DataStoreCommandMetadataTest {
             REFERENCES.getNameFromIdPrefix(rep2Id, sessionId));
 
         List<String> expectations = Lists.newArrayList();
-        expectations.add(Joiner.on("|").join(rep2Id, MILLISECONDS.toSeconds(expectAuxMetadataRecord.getLastModified()),
-            MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified()), "-"));
-        expectations.add(Joiner.on("|").join(repoId, MILLISECONDS.toSeconds(expectMainMetadataRecord.getLastModified()),
-            MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified()), "*"));
-        expectations.add(Joiner.on("|").join(rep3Id, MILLISECONDS.toSeconds(expectAux2MetadataRecord.getLastModified()),
-            MILLISECONDS.toSeconds(expectAux2MarkerMetadataRecord.getLastModified()), "-"));
+        expectations.add(Joiner.on("|").join(rep2Id, MILLISECONDS.toSeconds(expectAuxMarkerMetadataRecord.getLastModified()),
+            MILLISECONDS.toSeconds(expectAuxMetadataRecord.getLastModified()), "-"));
+        expectations.add(Joiner.on("|").join(repoId, MILLISECONDS.toSeconds(expectMainMarkerMetadataRecord.getLastModified()),
+            MILLISECONDS.toSeconds(expectMainMetadataRecord.getLastModified()), "*"));
+        expectations.add(Joiner.on("|").join(rep3Id, MILLISECONDS.toSeconds(expectAux2MarkerMetadataRecord.getLastModified()),
+            MILLISECONDS.toSeconds(expectAux2MetadataRecord.getLastModified()), "-"));
 
         storeFixture.close();
         return expectations;

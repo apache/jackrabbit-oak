@@ -38,7 +38,7 @@ public class TestAzureDSWithSmallCache extends TestAzureDS {
     @Override
     @Before
     public void setUp() throws Exception {
-        super.setUp();
         props.setProperty("cacheSize", String.valueOf(dataLength * 10));
+        super.setUp();
     }
 }

@@ -99,6 +99,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private static final String META_KEY_PREFIX = META_DIR_NAME + "/";
 
     private static final String REF_KEY = "reference.key";
+    private static final String LAST_MODIFIED_KEY = "lastModified";
 
     private static final long BUFFERED_STREAM_THRESHHOLD = 1024 * 1024;
     static final long MIN_MULTIPART_UPLOAD_PART_SIZE = 1024 * 1024 * 10; // 10MB
@@ -266,6 +267,8 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             LOG.debug("Blob write started. identifier={} length={}", key, len);
             CloudBlockBlob blob = getAzureContainer().getBlockBlobReference(key);
             if (!blob.exists()) {
+                addLastModified(blob);
+
                 BlobRequestOptions options = new BlobRequestOptions();
                 options.setConcurrentRequestCount(concurrentRequestCount);
                 boolean useBufferedStream = len < BUFFERED_STREAM_THRESHHOLD;
@@ -289,16 +292,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                              " new length=" + len +
                                              " old length=" + blob.getProperties().getLength());
             }
-            LOG.trace("Blob already exists. identifier={} lastModified={}", key, blob.getProperties().getLastModified().getTime());
-            blob.startCopy(blob);
-            //TODO: better way of updating lastModified (use custom metadata?)
-            if (!waitForCopy(blob)) {
-                throw new DataStoreException(
-                    String.format("Cannot update lastModified for blob. identifier=%s status=%s",
-                                  key, blob.getCopyState().getStatusDescription()));
-            }
+
+            LOG.trace("Blob already exists. identifier={} lastModified={}", key, getLastModified(blob));
+            addLastModified(blob);
+            blob.uploadMetadata();
+
             LOG.debug("Blob updated. identifier={} lastModified={} duration={}", key,
-                      blob.getProperties().getLastModified().getTime(), (System.currentTimeMillis() - start));
+                      getLastModified(blob), (System.currentTimeMillis() - start));
         }
         catch (StorageException e) {
             LOG.info("Error writing blob. identifier={}", key, e);
@@ -307,9 +307,6 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         catch (URISyntaxException | IOException e) {
             LOG.debug("Error writing blob. identifier={}", key, e);
             throw new DataStoreException(String.format("Cannot write blob. identifier=%s", key), e);
-        } catch (InterruptedException e) {
-            LOG.debug("Error writing blob. identifier={}", key, e);
-            throw new DataStoreException(String.format("Cannot copy blob. identifier=%s", key), e);
         } finally {
             if (null != contextClassLoader) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
@@ -387,7 +384,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                     connectionString,
                     containerName,
                     new DataIdentifier(getIdentifierName(blob.getName())),
-                    blob.getProperties().getLastModified().getTime(),
+                    getLastModified(blob),
                     blob.getProperties().getLength());
             LOG.debug("Data record read for blob. identifier={} duration={} record={}",
                       key, (System.currentTimeMillis() - start), record);
@@ -553,6 +550,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         try {
             CloudBlobDirectory metaDir = getAzureContainer().getDirectoryReference(META_DIR_NAME);
             CloudBlockBlob blob = metaDir.getBlockBlobReference(name);
+            addLastModified(blob);
             blob.upload(input, recordLength);
         }
         catch (StorageException e) {
@@ -578,7 +576,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 return null;
             }
             blob.downloadAttributes();
-            long lastModified = blob.getProperties().getLastModified().getTime();
+            long lastModified = getLastModified(blob);
             long length = blob.getProperties().getLength();
             AzureBlobStoreDataRecord record =  new AzureBlobStoreDataRecord(this,
                                                 connectionString,
@@ -617,12 +615,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             for (ListBlobItem item : metaDir.listBlobs(prefix)) {
                 if (item instanceof CloudBlob) {
                     CloudBlob blob = (CloudBlob) item;
+                    blob.downloadAttributes();
                     records.add(new AzureBlobStoreDataRecord(
                         this,
                         connectionString,
                         containerName,
                         new DataIdentifier(stripMetaKeyPrefix(blob.getName())),
-                        blob.getProperties().getLastModified().getTime(),
+                        getLastModified(blob),
                         blob.getProperties().getLength(),
                         true));
                 }
@@ -762,6 +761,17 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         return name;
     }
 
+    private static void addLastModified(CloudBlockBlob blob) {
+        blob.getMetadata().put(LAST_MODIFIED_KEY, String.valueOf(System.currentTimeMillis()));
+    }
+
+    private static long getLastModified(CloudBlob blob) {
+        if (blob.getMetadata().containsKey(LAST_MODIFIED_KEY)) {
+            return Long.parseLong(blob.getMetadata().get(LAST_MODIFIED_KEY));
+        }
+        return blob.getProperties().getLastModified().getTime();
+    }
+
     void setHttpDownloadURIExpirySeconds(int seconds) {
         httpDownloadURIExpirySeconds = seconds;
     }
@@ -787,7 +797,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
         // When running unit test from Maven, it doesn't always honor the @NotNull decorators
         if (null == identifier) throw new NullPointerException("identifier");
         if (null == downloadOptions) throw new NullPointerException("downloadOptions");
-        
+
         if (httpDownloadURIExpirySeconds > 0) {
 
             String domain = getDirectDownloadBlobStorageDomain(downloadOptions.isDomainOverrideIgnored());
@@ -1012,6 +1022,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                             AccessCondition.generateEmptyCondition(),
                             null,
                             null);
+                    addLastModified(blob);
                     blob.commitBlockList(blocks);
                     long size = 0L;
                     for (BlockEntry block : blocks) {
@@ -1022,7 +1033,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                             connectionString,
                             containerName,
                             blobId,
-                            blob.getProperties().getLastModified().getTime(),
+                            getLastModified(blob),
                             size);
                 }
                 else {
@@ -1182,9 +1193,10 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             return length;
         }
 
-        public static AzureBlobInfo fromCloudBlob(CloudBlob cloudBlob) {
+        public static AzureBlobInfo fromCloudBlob(CloudBlob cloudBlob) throws StorageException {
+            cloudBlob.downloadAttributes();
             return new AzureBlobInfo(cloudBlob.getName(),
-                                     cloudBlob.getProperties().getLastModified().getTime(),
+                                     AzureBlobStoreBackend.getLastModified(cloudBlob),
                                      cloudBlob.getProperties().getLength());
         }
     }

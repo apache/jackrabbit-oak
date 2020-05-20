@@ -120,6 +120,25 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
+     * Testcase to validate {@link DataStore#addRecord(InputStream)} API.
+     */
+    @Test
+    public void testAddDuplicateRecord() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testAddDuplicateRecord, testDir=" + dataStoreDir);
+            doAddDuplicateRecordTest();
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testAddDuplicateRecord finished, time taken = ["
+                + (System.currentTimeMillis() - start) + "]ms");
+        } catch (Exception e) {
+            LOG.error("error:", e);
+            fail(e.getMessage());
+        }
+    }
+
+    /**
      * Testcase to validate {@link DataStore#getRecord(DataIdentifier)} API.
      */
     @Test
@@ -306,6 +325,24 @@ public abstract class AbstractDataStoreTest {
         DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
         Assert.assertEquals(data.length, rec.getLength());
         assertRecord(data, rec);
+    }
+
+    /**
+     * Test {@link DataStore#addRecord(InputStream)} and assert length & last modified of copied
+     * record.
+     */
+    protected void doAddDuplicateRecordTest() throws Exception {
+        byte[] data = new byte[dataLength];
+        randomGen.nextBytes(data);
+        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+        Assert.assertEquals(data.length, rec.getLength());
+        assertRecord(data, rec);
+
+        DataRecord rec2 = ds.addRecord(new ByteArrayInputStream(data));
+        Assert.assertEquals(data.length, rec2.getLength());
+        assertRecord(data, rec2);
+
+        assertTrue("Copied record last modified not greater", rec.getLastModified() <= rec2.getLastModified());
     }
 
     /**
