@@ -1148,7 +1148,7 @@ public class DataStoreBlobStore
             int indexOfSep = encodedBlobId.lastIndexOf(SEP);
             if (indexOfSep != -1) {
                 this.blobId = encodedBlobId.substring(0, indexOfSep);
-                this.length = Long.valueOf(encodedBlobId.substring(indexOfSep+SEP.length()));
+                this.length = Long.parseLong(encodedBlobId.substring(indexOfSep+SEP.length()));
             } else {
                 this.blobId = encodedBlobId;
                 this.length = -1;
