@@ -61,7 +61,7 @@ public class CompositeCheckpointMBean extends AbstractCheckpointMBean {
         return StreamSupport.stream(store.checkpoints().spliterator(), false)
                 .map(store::allCheckpointInfo)
                 .map(i -> i.get(CHECKPOINT_METADATA + "created"))
-                .mapToLong(l -> l == null ? 0 : Long.valueOf(l))
+                .mapToLong(l -> l == null ? 0 : Long.parseLong(l))
                 .sorted()
                 .findFirst()
                 .orElse(0);
@@ -73,7 +73,7 @@ public class CompositeCheckpointMBean extends AbstractCheckpointMBean {
             return "NA";
         }
         try {
-            return new Date(Long.valueOf(p)).toString();
+            return new Date(Long.parseLong(p)).toString();
         } catch (NumberFormatException e) {
             return "NA";
         }
