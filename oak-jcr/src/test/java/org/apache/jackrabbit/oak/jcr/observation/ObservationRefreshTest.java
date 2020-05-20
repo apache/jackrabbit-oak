@@ -293,7 +293,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                         } else {
                             numPropsModified++;
                             long v = observingSession.getProperty(event.getPath()).getLong();
-                            if (v != Long.valueOf(Text.getName(name).substring(4))) {
+                            if (v != Long.parseLong(Text.getName(name).substring(4))) {
                                 error = "property has wrong content: " + event.getPath();
                             }
                         }

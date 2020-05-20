@@ -684,7 +684,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void testGetItemReturnsNodeBeforeProperty() throws RepositoryException {
         String snnpSupported = getRepository().getDescriptor(OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED);
-        assumeTrue(Boolean.valueOf(snnpSupported));
+        assumeTrue(Boolean.parseBoolean(snnpSupported));
 
         String newNodeName = "getItemTest";
         String nodeAndPropertyName = "subnode";

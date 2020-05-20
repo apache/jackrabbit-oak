@@ -103,7 +103,7 @@ public class OperationLoggerTest extends AbstractJCRTest {
         for (ILoggingEvent e : logs.list){
             if (e.getLoggerName().startsWith(OPS_BINARY)){
                 if (e.getMessage().contains("Created binary property")) {
-                    assertEquals(Long.valueOf(data.length), e.getArgumentArray()[0]);
+                    assertEquals((long) data.length, e.getArgumentArray()[0]);
                     binaryLog = true;
                 }
             }
