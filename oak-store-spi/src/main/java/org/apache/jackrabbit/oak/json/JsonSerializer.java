@@ -268,9 +268,9 @@ public class JsonSerializer {
 
     public void serialize(PropertyState property, Type<?> type, int index) {
         if (type == BOOLEAN) {
-            json.value(property.getValue(BOOLEAN, index).booleanValue());
+            json.value(property.getValue(BOOLEAN, index));
         } else if (type == LONG) {
-            json.value(property.getValue(LONG, index).longValue());
+            json.value(property.getValue(LONG, index));
         } else if (type == DOUBLE) {
             Double value = property.getValue(DOUBLE, index);
             if (value.isNaN() || value.isInfinite()) {
