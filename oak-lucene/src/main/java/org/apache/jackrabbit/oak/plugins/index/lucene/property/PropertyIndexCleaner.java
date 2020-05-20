@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
@@ -50,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -98,35 +95,6 @@ public class PropertyIndexCleaner implements Runnable{
         } catch (Exception e) {
             log.warn("Cleanup run failed with error", e);
         }
-    }
-
-    /**
-     * Perform some cleanup.
-     *
-     * @param paths the list of paths (comma separated)
-     * @param batchSize the bach size
-     * @param sleepPerBatch the number of milliseconds to sleep per batch
-     * @param maxRemoveCount the maximum number of nodes to remove per path
-     * @return the number of nodes removed
-     */
-    public int performCleanup(String paths, int batchSize, int sleepPerBatch, int maxRemoveCount) throws CommitFailedException {
-        ArrayList<String> list = new ArrayList<>(Arrays.asList(paths.split(",")));
-        int numOfNodesDeleted = 0;
-        for(String s : list) {
-            log.info("Cleanup of {}", s);
-            if (!NodeStateUtils.isHidden(PathUtils.getName(s))) {
-                log.warn("Not a hidden node");
-                continue;
-            }
-            RecursiveDelete rd = new RecursiveDelete(nodeStore, createCommitHook(),
-                    PropertyIndexCleaner::createCommitInfo);
-            rd.setBatchSize(batchSize);
-            rd.setSleepPerBatch(sleepPerBatch);
-            rd.setMaxRemoveCount(maxRemoveCount);
-            rd.run(Arrays.asList(s));
-            numOfNodesDeleted += rd.getNumRemoved();
-        }
-        return numOfNodesDeleted;
     }
 
     /**
