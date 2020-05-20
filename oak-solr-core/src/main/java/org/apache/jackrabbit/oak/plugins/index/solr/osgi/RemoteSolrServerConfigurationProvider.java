@@ -77,8 +77,8 @@ public class RemoteSolrServerConfigurationProvider implements SolrServerConfigur
         solrShardsNo = Integer.valueOf(componentContext.getProperties().get(SOLR_SHARDS_NO).toString());
         solrReplicationFactor = Integer.valueOf(componentContext.getProperties().get(SOLR_REPLICATION_FACTOR).toString());
         solrConfDir = String.valueOf(componentContext.getProperties().get(SOLR_CONF_DIR));
-        int socketTimeout = Integer.valueOf(componentContext.getProperties().get(SOCKET_TIMEOUT).toString());
-        int connectionTimeout = Integer.valueOf(componentContext.getProperties().get(CONNECTION_TIMEOUT).toString());
+        int socketTimeout = Integer.parseInt(componentContext.getProperties().get(SOCKET_TIMEOUT).toString());
+        int connectionTimeout = Integer.parseInt(componentContext.getProperties().get(CONNECTION_TIMEOUT).toString());
         remoteSolrServerConfiguration = new RemoteSolrServerConfiguration(solrZkHost, solrCollection, solrShardsNo,
                 solrReplicationFactor, solrConfDir, socketTimeout, connectionTimeout, solrHttpUrl);
     }
