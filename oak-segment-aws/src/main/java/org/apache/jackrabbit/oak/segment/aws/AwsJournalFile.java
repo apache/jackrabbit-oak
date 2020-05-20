@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import static org.apache.jackrabbit.oak.segment.aws.DynamoDBClient.TABLE_ATTR_CONTENT;
-
-import java.io.IOException;
-import java.util.Iterator;
-
 import com.amazonaws.services.dynamodbv2.document.Item;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
