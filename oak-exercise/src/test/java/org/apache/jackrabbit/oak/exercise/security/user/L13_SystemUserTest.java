@@ -137,10 +137,10 @@ public class L13_SystemUserTest extends AbstractSecurityTest {
         Authorizable authorizable = userMgr.getAuthorizable(systemUser.getID());
 
         Boolean isGroup = null; // EXERCISE
-        assertEquals(isGroup.booleanValue(), authorizable.isGroup());
+        assertEquals(isGroup, authorizable.isGroup());
 
         Boolean isAdmin = null; // EXERCISE
-        assertEquals(isAdmin.booleanValue(), systemUser.isAdmin());
+        assertEquals(isAdmin, systemUser.isAdmin());
 
         // EXERCISE: retrieve the authorizable by class: what is the correct authorizble-class to use?
         Class cls = null;

@@ -194,7 +194,7 @@ public class L3_UserVsPrincipalTest extends AbstractSecurityTest {
             root.commit();
 
             Boolean expectedEquals = null; // EXERCISE
-            assertEquals(expectedEquals.booleanValue(), testUser.equals(user2));
+            assertEquals(expectedEquals, testUser.equals(user2));
 
         } finally {
             if (user2 != null) {

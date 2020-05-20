@@ -390,7 +390,7 @@ public class L4_PrivilegesAndPermissionsTest extends AbstractJCRTest {
 
         Session userSession = createTestSession();
         for (String nonExistingItemPath : pathHasPermission.keySet()) {
-            boolean hasPermission = pathHasPermission.get(nonExistingItemPath).booleanValue();
+            boolean hasPermission = pathHasPermission.get(nonExistingItemPath);
             assertEquals(hasPermission, userSession.hasPermission(nonExistingItemPath, Session.ACTION_REMOVE));
         }
 
