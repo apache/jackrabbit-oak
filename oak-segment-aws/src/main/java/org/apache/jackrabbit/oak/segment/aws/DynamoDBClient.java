@@ -28,6 +28,7 @@ import com.amazonaws.SdkClientException;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBLockClientOptions;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBLockClientOptions.AmazonDynamoDBLockClientOptionsBuilder;
+import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Item;
 import com.amazonaws.services.dynamodbv2.document.ItemCollection;
@@ -46,7 +47,17 @@ import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputDescription;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.UpdateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public final class DynamoDBClient {
 
@@ -189,19 +200,62 @@ public final class DynamoDBClient {
         }
     }
 
-    public void putDocument(String fileName, String line) throws IOException {
-        Item item = new Item().with(TABLE_ATTR_TIMESTAMP, new Date().getTime()).with(TABLE_ATTR_FILENAME, fileName)
-                .with(TABLE_ATTR_CONTENT, line);
-        try {
-            try {
-                // TO DO: why is this needed here
-                Thread.sleep(1L);
-            } catch (InterruptedException e) {
+    public void batchPutDocument(String fileName, List<String> lines) {
+        List<Item> items = lines.stream()
+                .map(content -> toItem(fileName, content))
+                .collect(Collectors.toList());
+        batchPutDocumentItems(fileName, items);
+    }
+
+    public void batchPutDocumentItems(String fileName, List<Item> items) {
+        items.forEach(item -> item.withString(TABLE_ATTR_FILENAME, fileName));
+        AtomicInteger counter = new AtomicInteger();
+        items.stream()
+                .collect(Collectors.groupingBy(x -> counter.getAndIncrement() / TABLE_MAX_BATCH_WRITE_SIZE))
+                .values()
+                .forEach(chunk -> putDocumentsChunked(chunk));
+    }
+
+    /**
+     * There is a limition on the request size, see https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
+     * Therefore the number of items needs to be provided as chunks by the caller.
+     *
+     * @param items chunk of items
+     */
+    private void putDocumentsChunked(List<Item> items) {
+        // See explanation at https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/batch-operation-document-api-java.html
+        DynamoDB dynamoDB = new DynamoDB(ddb);
+        TableWriteItems table = new TableWriteItems(journalTableName);
+        BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(table.withItemsToPut(items));
+        do {
+            // Check for unprocessed keys which could happen if you exceed
+            // provisioned throughput
+            Map<String, List<WriteRequest>> unprocessedItems = outcome.getUnprocessedItems();
+            if (outcome.getUnprocessedItems().size() > 0) {
+                outcome = dynamoDB.batchWriteItemUnprocessed(unprocessedItems);
             }
+        } while (outcome.getUnprocessedItems().size() > 0);
+    }
+
+    public void putDocument(String fileName, String line) throws IOException {
+        Item item = toItem(fileName, line);
+        try {
             journalTable.putItem(item);
         } catch (AmazonServiceException e) {
             throw new IOException(e);
         }
+    }
+
+    public Item toItem(String fileName, String line) {
+        // making sure that timestamps are unique by sleeping 1ms
+        try {
+            Thread.sleep(1L);
+        } catch (InterruptedException e) {
+        }
+        return new Item()
+                .with(TABLE_ATTR_TIMESTAMP, new Date().getTime())
+                .with(TABLE_ATTR_FILENAME, fileName)
+                .with(TABLE_ATTR_CONTENT, line);
     }
 
 }

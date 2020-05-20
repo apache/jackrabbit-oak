@@ -29,6 +29,12 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+
+import static org.apache.jackrabbit.oak.segment.aws.DynamoDBClient.TABLE_ATTR_CONTENT;
+
 public class AwsJournalFile implements JournalFile {
 
     private static final Logger log = LoggerFactory.getLogger(AwsJournalFile.class);
@@ -88,6 +94,11 @@ public class AwsJournalFile implements JournalFile {
         @Override
         public void writeLine(String line) throws IOException {
             dynamoDBClient.putDocument(fileName, line);
+        }
+
+        @Override
+        public void batchWriteLines(List<String> lines) throws IOException {
+            dynamoDBClient.batchPutDocument(fileName, lines);
         }
     }
 
