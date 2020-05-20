@@ -1280,7 +1280,7 @@ public class DataStoreCommandTest {
                 File cfgFile = folder.newFile();
                 Properties props = new Properties();
                 props.put("path", container);
-                props.put("minRecordLength", new Long(4096));
+                props.put("minRecordLength", 4096L);
                 cfgFilePath = createTempConfig(cfgFile, props);
 
                 return blobStore;
