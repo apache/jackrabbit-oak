@@ -114,7 +114,7 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
     @Test
     public void testChangeWithNonStringAttribute() throws Exception {
         try {
-            authenticate(userId, new Long(1));
+            authenticate(userId, 1L);
             fail("Authentication with non-string attribute should fail.");
         } catch (CredentialExpiredException e) {
             // success

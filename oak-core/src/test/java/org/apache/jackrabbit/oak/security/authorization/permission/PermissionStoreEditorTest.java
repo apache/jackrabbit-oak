@@ -234,7 +234,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
         when(principalRoot.isNew()).thenReturn(true);
-        when(principalRoot.getProperty(REP_NUM_PERMISSIONS)).thenReturn(PropertyStates.createProperty(REP_NUM_PERMISSIONS, Long.valueOf(0), Type.LONG));
+        when(principalRoot.getProperty(REP_NUM_PERMISSIONS)).thenReturn(PropertyStates.createProperty(REP_NUM_PERMISSIONS, 0L, Type.LONG));
 
         NodeBuilder permissionsRoot = mock(NodeBuilder.class);
         when(permissionsRoot.hasChildNode(PRINCIPAL_NAME)).thenReturn(true);

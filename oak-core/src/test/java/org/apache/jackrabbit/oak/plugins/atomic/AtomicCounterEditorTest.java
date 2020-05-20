@@ -236,7 +236,7 @@ public class AtomicCounterEditorTest {
                 assertTrue("Unexpected hidden property found: " + name, hp.remove(name));
             }
             if (name.startsWith(PREFIX_PROP_COUNTER)) {
-                totalHiddenValue += p.getValue(LONG).longValue();
+                totalHiddenValue += p.getValue(LONG);
             }
         }
         assertEquals("The sum of the hidden properties does not match the counter", counter

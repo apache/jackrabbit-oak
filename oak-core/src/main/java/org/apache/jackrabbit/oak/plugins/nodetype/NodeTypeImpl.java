@@ -691,7 +691,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private static int getIndex(@NotNull Tree tree) {
         String name = tree.getName();
         int i = name.lastIndexOf('[');
-        return (i == -1) ? 1 : Integer.valueOf(name.substring(i+1, name.lastIndexOf(']')));
+        return (i == -1) ? 1 : Integer.parseInt(name.substring(i+1, name.lastIndexOf(']')));
     }
 
     private boolean matches(String childNodeName, String name) {
