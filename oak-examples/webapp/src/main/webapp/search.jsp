@@ -110,7 +110,7 @@
             maxPage = Math.min(maxPage, currentPageIndex + 10);
             minPage = Math.max(0, currentPageIndex - 10);
             for (long i = minPage; i < maxPage; i++) {
-                indexes.add(new Long(i));
+                indexes.add(i);
             }
 
             if (total < 10 && !q.startsWith("related:")) {
@@ -203,13 +203,13 @@ request.setAttribute("title", "Search workspace " + wspName);
       <tr>
         <td><font size=-1>Result&nbsp;Page:&nbsp;
         <%
-        if (currentPageIndex != ((Long) indexes.get(0)).longValue()) {
+        if (currentPageIndex != (Long) indexes.get(0)) {
             %><td nowrap align=right><a href=search.jsp?q=<%= Text.encodeIllegalXMLCharacters(q) %>&start=<%= (currentPageIndex - 1) * 10 %>>Previous</a><%
         } else {
             %><td nowrap ><font size=-1><%
         }
         for (Iterator it = indexes.iterator(); it.hasNext(); ) {
-            long pageIdx = ((Long) it.next()).longValue();
+            long pageIdx = (Long) it.next();
             if (pageIdx == currentPageIndex) {
                 %><td nowrap><font size=-1><%= pageIdx + 1 %><%
             } else {
