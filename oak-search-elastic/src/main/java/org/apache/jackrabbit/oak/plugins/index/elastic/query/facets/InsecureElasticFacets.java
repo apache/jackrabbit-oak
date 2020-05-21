@@ -52,14 +52,14 @@ public class InsecureElasticFacets implements ElasticFacets {
     }
 
     @Override
-    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(ElasticIndexDefinition indexDefinition,
-                                                                         int numberOfFacets) throws IOException {
+    public Map<String, List<FulltextIndex.Facet>> getFacets(ElasticIndexDefinition indexDefinition,
+                                                            int numberOfFacets) throws IOException {
         if (elasticAggregationData != null && numberOfFacets <= elasticAggregationData.getNumberOfFacets()) {
             return changeToFacetList(elasticAggregationData.getAggregations().getAsMap(), numberOfFacets);
         }
         LOG.warn("Facet data is being retrieved by again calling Elasticsearch");
         List<TermsAggregationBuilder> aggregationBuilders = ElasticAggregationBuilderUtil.getAggregators(plan, indexDefinition, numberOfFacets);
-        ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticsearchSearcherModelBuilder()
+        ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticSearcherModelBuilder()
                 .withQuery(query)
                 .withAggregation(aggregationBuilders)
                 .build();

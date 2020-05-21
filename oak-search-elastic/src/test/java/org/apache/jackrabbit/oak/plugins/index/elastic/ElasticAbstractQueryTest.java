@@ -81,7 +81,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
      */
     @After
     public void cleanup() throws IOException {
-        elasticRule.closeElasticSearchConnection();
+        elasticRule.closeElasticConnection();
     }
 
     // Override this in extending test class to provide different ExtractedTextCache if needed
@@ -135,8 +135,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
 
-        esConnection = elasticRule.useDocker() ? elasticRule.getElasticSearchConnectionForDocker() :
-                elasticRule.getElasticsearchConnectionFromString();
+        esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
+                elasticRule.getElasticConnectionFromString();
         ElasticIndexEditorProvider editorProvider = getElasticIndexEditorProvider(esConnection);
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(esConnection);
 
@@ -202,7 +202,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     // Utility methods accessing directly Elasticsearch
 
     protected boolean exists(Tree index) {
-        ElasticIndexDefinition esIdxDef = getElasticsearchIndexDefinition(index);
+        ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
 
         try {
             return esConnection.getClient().indices()
@@ -213,7 +213,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     }
 
     protected long countDocuments(Tree index) {
-        ElasticIndexDefinition esIdxDef = getElasticsearchIndexDefinition(index);
+        ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
 
         CountRequest request = new CountRequest(esIdxDef.getRemoteIndexAlias());
         try {
@@ -223,7 +223,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         }
     }
 
-    private ElasticIndexDefinition getElasticsearchIndexDefinition(Tree index) {
+    private ElasticIndexDefinition getElasticIndexDefinition(Tree index) {
         return new ElasticIndexDefinition(
                 nodeStore.getRoot(),
                 nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(index.getName()),

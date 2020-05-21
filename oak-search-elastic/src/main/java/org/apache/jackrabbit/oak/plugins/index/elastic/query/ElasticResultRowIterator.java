@@ -102,7 +102,7 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
     // TODO : find if ES can return dup docs - if so how to avoid
 //    private final Set<String> seenPaths = Sets.newHashSet();
     private SearchHit lastDoc;
-    private int nextBatchSize = ElasticConstants.ELASTICSEARCH_QUERY_BATCH_SIZE;
+    private int nextBatchSize = ElasticConstants.ELASTIC_QUERY_BATCH_SIZE;
     private boolean noDocs = false;
 
     private final Filter filter;
@@ -160,7 +160,7 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
             List<TermsAggregationBuilder> aggregationBuilders = ElasticAggregationBuilderUtil
                     .getAggregators(plan, indexDefinition, numberOfFacets);
 
-            ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticsearchSearcherModelBuilder()
+            ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticSearcherModelBuilder()
                     .withQuery(query)
                     .withBatchSize(nextBatchSize)
                     .withAggregation(aggregationBuilders)
@@ -186,7 +186,7 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
                     noDocs = true;
                 }
 
-                nextBatchSize = (int) Math.min(nextBatchSize * 2L, ElasticConstants.ELASTICSEARCH_QUERY_MAX_BATCH_SIZE);
+                nextBatchSize = (int) Math.min(nextBatchSize * 2L, ElasticConstants.ELASTIC_QUERY_MAX_BATCH_SIZE);
 
                 ElasticsearchFacetProvider elasticsearchFacetProvider = new ElasticsearchFacetProvider(ElasticFacetHelper.getAggregates(searcher, query, indexNode, plan, elasticAggregationData));
 
@@ -735,7 +735,7 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
         public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
             String facetProp = FulltextIndex.parseFacetField(columnName);
             if (cachedResults.get(facetProp) == null) {
-                cachedResults = elasticFacets.getElasticSearchFacets(indexNode.getDefinition(), numberOfFacets);
+                cachedResults = elasticFacets.getFacets(indexNode.getDefinition(), numberOfFacets);
             }
             return cachedResults.get(facetProp);
         }

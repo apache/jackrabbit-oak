@@ -39,13 +39,13 @@ To be used as a @ClassRule
 public class ElasticConnectionRule extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticConnectionRule.class);
-    private ElasticConnection elasticSearchConnection;
-    private final String elasticSearchConnectionString;
+    private ElasticConnection elasticConnection;
+    private final String elasticConnectionString;
     private static final String INDEX_PREFIX = "ElasticTest_";
     private static boolean useDocker = false;
 
-    public ElasticConnectionRule(String elasticSearchConnectionString) {
-        this.elasticSearchConnectionString = elasticSearchConnectionString;
+    public ElasticConnectionRule(String elasticConnectionString) {
+        this.elasticConnectionString = elasticConnectionString;
     }
 
     public ElasticsearchContainer elastic;
@@ -56,7 +56,7 @@ public class ElasticConnectionRule extends ExternalResource {
     @Override
     protected void before() {
         if (useDocker()) {
-            elasticSearchConnection = getElasticSearchConnectionForDocker();
+            elasticConnection = getElasticConnectionForDocker();
         }
     }
 
@@ -68,7 +68,7 @@ public class ElasticConnectionRule extends ExternalResource {
         Statement s = super.apply(base, description);
         // see if docker is to be used or not... initialize docker rule only if that's the case.
 
-        if (elasticSearchConnectionString == null || getElasticsearchConnectionFromString() == null) {
+        if (elasticConnectionString == null || getElasticConnectionFromString() == null) {
             checkIfDockerClientAvailable();
             elastic = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT);
             s = elastic.apply(s, description);
@@ -82,10 +82,10 @@ public class ElasticConnectionRule extends ExternalResource {
         //TODO: See if something needs to be cleaned up at test class level ??
     }
 
-    public ElasticConnection getElasticsearchConnectionFromString() {
-        if (elasticSearchConnection == null) {
+    public ElasticConnection getElasticConnectionFromString() {
+        if (elasticConnection == null) {
             try {
-                URI uri = new URI(elasticSearchConnectionString);
+                URI uri = new URI(elasticConnectionString);
                 String host = uri.getHost();
                 String scheme = uri.getScheme();
                 int port = uri.getPort();
@@ -97,7 +97,7 @@ public class ElasticConnectionRule extends ExternalResource {
                     api_key = query.split(",")[0].split("=")[1];
                     api_secret = query.split(",")[1].split("=")[1];
                 }
-                elasticSearchConnection = ElasticConnection.newBuilder()
+                elasticConnection = ElasticConnection.newBuilder()
                         .withIndexPrefix(INDEX_PREFIX + System.currentTimeMillis())
                         .withConnectionParameters(scheme, host, port)
                         .withApiKeys(api_key, api_secret)
@@ -106,12 +106,12 @@ public class ElasticConnectionRule extends ExternalResource {
                 return null;
             }
         }
-        return elasticSearchConnection;
+        return elasticConnection;
     }
 
-    public ElasticConnection getElasticSearchConnectionForDocker() {
-        if (elasticSearchConnection == null) {
-            elasticSearchConnection = ElasticConnection.newBuilder()
+    public ElasticConnection getElasticConnectionForDocker() {
+        if (elasticConnection == null) {
+            elasticConnection = ElasticConnection.newBuilder()
                     .withIndexPrefix(INDEX_PREFIX + System.currentTimeMillis())
                     .withConnectionParameters(ElasticConnection.DEFAULT_SCHEME,
                             elastic.getContainerIpAddress(),
@@ -119,15 +119,15 @@ public class ElasticConnectionRule extends ExternalResource {
                     .withApiKeys(null, null)
                     .build();
         }
-        return elasticSearchConnection;
+        return elasticConnection;
     }
 
-    public void closeElasticSearchConnection() throws IOException {
-        if (elasticSearchConnection != null) {
-            elasticSearchConnection.close();
+    public void closeElasticConnection() throws IOException {
+        if (elasticConnection != null) {
+            elasticConnection.close();
             // Make this object null otherwise tests after the first test would
             // receive an client that is closed.
-            elasticSearchConnection = null;
+            elasticConnection = null;
         }
     }
 
@@ -144,7 +144,7 @@ public class ElasticConnectionRule extends ExternalResource {
     }
 
     private void setUseDocker(boolean useDocker) {
-        this.useDocker = useDocker;
+        ElasticConnectionRule.useDocker = useDocker;
     }
 
     public boolean useDocker() {

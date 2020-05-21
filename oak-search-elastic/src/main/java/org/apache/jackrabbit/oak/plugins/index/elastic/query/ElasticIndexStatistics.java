@@ -79,7 +79,7 @@ class ElasticIndexStatistics implements IndexStatistics {
     }
 
     /**
-     * Returns the approximate number of documents for the remote index bound to the {@code ElasticsearchIndexDefinition}.
+     * Returns the approximate number of documents for the remote index bound to the {@code ElasticIndexDefinition}.
      */
     @Override
     public int numDocs() {
@@ -90,7 +90,7 @@ class ElasticIndexStatistics implements IndexStatistics {
 
     /**
      * Returns the approximate number of documents for the {@code field} in the remote index bound to the
-     * {@code ElasticsearchIndexDefinition}.
+     * {@code ElasticIndexDefinition}.
      */
     @Override
     public int getDocCountFor(String field) {

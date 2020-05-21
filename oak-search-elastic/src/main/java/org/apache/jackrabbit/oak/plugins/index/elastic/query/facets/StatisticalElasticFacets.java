@@ -54,8 +54,8 @@ public class StatisticalElasticFacets extends InsecureElasticFacets {
     }
 
     @Override
-    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(ElasticIndexDefinition indexDefinition,
-                                                                         int numberOfFacets) throws IOException {
+    public Map<String, List<FulltextIndex.Facet>> getFacets(ElasticIndexDefinition indexDefinition,
+                                                            int numberOfFacets) throws IOException {
         Map<String, List<FulltextIndex.Facet>> result = new HashMap<>();
         Map<String, List<FulltextIndex.Facet>> topChildren;
         Filter filter = getPlan().getFilter();
@@ -64,10 +64,10 @@ public class StatisticalElasticFacets extends InsecureElasticFacets {
         ElasticAggregationData aggregationData = getElasticAggregationData();
         if (aggregationData == null || aggregationData.getNumberOfFacets() < numberOfFacets) {
             LOG.warn("Facets and Totalhit count are being retrieved by calling Elasticsearch");
-            topChildren = super.getElasticSearchFacets(indexDefinition, numberOfFacets);
-            ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticsearchSearcherModelBuilder()
+            topChildren = super.getFacets(indexDefinition, numberOfFacets);
+            ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticSearcherModelBuilder()
                     .withQuery(getQuery())
-                    .withBatchSize(ElasticConstants.ELASTICSEARCH_QUERY_BATCH_SIZE)
+                    .withBatchSize(ElasticConstants.ELASTIC_QUERY_BATCH_SIZE)
                     .build();
             SearchResponse docs = getSearcher().search(elasticSearcherModel);
             long totalResults = docs.getHits().getTotalHits().value;
@@ -82,7 +82,7 @@ public class StatisticalElasticFacets extends InsecureElasticFacets {
         // instead of statistical count. <OAK-8138>
         if (hitCount < sampleSize) {
             LOG.debug("SampleSize: {} is greater than hitcount: {}, Getting secure facet count", sampleSize, hitCount);
-            return new SecureElasticFacets(getSearcher(), getQuery(), getPlan()).getElasticSearchFacets(indexDefinition,
+            return new SecureElasticFacets(getSearcher(), getQuery(), getPlan()).getFacets(indexDefinition,
                     numberOfFacets);
         }
         long randomSeed = secureFacetConfiguration.getRandomSeed();
@@ -113,19 +113,19 @@ public class StatisticalElasticFacets extends InsecureElasticFacets {
                     if (matchingDocsListIterator.hasNext()) {
                         return matchingDocsListIterator.next();
                     } else {
-                        ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticsearchSearcherModelBuilder()
+                        ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticSearcherModelBuilder()
                                 .withQuery(query)
-                                .withBatchSize(ElasticConstants.ELASTICSEARCH_QUERY_BATCH_SIZE)
+                                .withBatchSize(ElasticConstants.ELASTIC_QUERY_BATCH_SIZE)
                                 .withFrom(from)
                                 .build();
                         SearchResponse searchResponse = searcher.search(elasticSearcherModel);
                         SearchHit[] searchHits = searchResponse.getHits().getHits();
-                        if (searchHits.length == 0 || searchHits.length < ElasticConstants.ELASTICSEARCH_QUERY_BATCH_SIZE) {
+                        if (searchHits.length == 0 || searchHits.length < ElasticConstants.ELASTIC_QUERY_BATCH_SIZE) {
                             return endOfData();
                         } else {
                             matchingDocuments = Arrays.asList(searchHits);
                             matchingDocsListIterator = matchingDocuments.iterator();
-                            from += ElasticConstants.ELASTICSEARCH_QUERY_BATCH_SIZE;
+                            from += ElasticConstants.ELASTIC_QUERY_BATCH_SIZE;
                             return matchingDocsListIterator.next();
                         }
                     }

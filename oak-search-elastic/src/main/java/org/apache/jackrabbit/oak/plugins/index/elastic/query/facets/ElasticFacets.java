@@ -31,7 +31,7 @@ import java.util.Map;
 public interface ElasticFacets {
 
     /**
-     * @return ElasticsearchSearcher
+     * @return ElasticSearcher
      */
     ElasticSearcher getSearcher();
 
@@ -50,15 +50,15 @@ public interface ElasticFacets {
      * @return A map with facetName as key and List of facets in descending order of facetCount.
      * @throws IOException
      */
-    Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(ElasticIndexDefinition indexDefinition,
-                                                                  int numberOfFacets) throws IOException;
+    Map<String, List<FulltextIndex.Facet>> getFacets(ElasticIndexDefinition indexDefinition,
+                                                     int numberOfFacets) throws IOException;
 
     /**
      * We can retrieve Aggregation in a single call to elastic search while querying. Which can then be passed
-     * to ElasticSearchfacets instead of calling ES again to fetch same info. If ElasticsearchAggregationData is null
+     * to ElasticFacets instead of calling ES again to fetch same info. If ElasticAggregationData is null
      * then we get data by again querying ES
      *
-     * @return ElasticsearchAggregationData
+     * @return ElasticAggregationData
      */
     @Nullable
     ElasticAggregationData getElasticAggregationData();

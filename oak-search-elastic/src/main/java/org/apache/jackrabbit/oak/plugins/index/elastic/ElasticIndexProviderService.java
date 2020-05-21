@@ -54,7 +54,7 @@ import java.util.Map;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
-@Component(metatype = true, label = "Apache Jackrabbit Oak ElasticsearchIndexProvider")
+@Component(metatype = true, label = "Apache Jackrabbit Oak ElasticIndexProvider")
 public class ElasticIndexProviderService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexProviderService.class);
@@ -99,31 +99,31 @@ public class ElasticIndexProviderService {
             value = ElasticConnection.DEFAULT_SCHEME,
             label = "Elasticsearch connection scheme"
     )
-    private static final String PROP_ELASTICSEARCH_SCHEME = ElasticConnection.SCHEME_PROP;
+    private static final String PROP_ELASTIC_SCHEME = ElasticConnection.SCHEME_PROP;
 
     @Property(
             value = ElasticConnection.DEFAULT_HOST,
             label = "Elasticsearch connection host"
     )
-    private static final String PROP_ELASTICSEARCH_HOST = ElasticConnection.HOST_PROP;
+    private static final String PROP_ELASTIC_HOST = ElasticConnection.HOST_PROP;
 
     @Property(
             intValue = ElasticConnection.DEFAULT_PORT,
             label = "Elasticsearch connection port"
     )
-    private static final String PROP_ELASTICSEARCH_PORT = ElasticConnection.PORT_PROP;
+    private static final String PROP_ELASTIC_PORT = ElasticConnection.PORT_PROP;
 
     @Property(
             label = "Elasticsearch API key ID",
             value = ElasticConnection.DEFAULT_API_KEY_ID
     )
-    private static final String PROP_ELASTICSEARCH_API_KEY_ID = ElasticConnection.API_KEY_ID_PROP;
+    private static final String PROP_ELASTIC_API_KEY_ID = ElasticConnection.API_KEY_ID_PROP;
 
     @Property(
             label = "Elasticsearch API key secret",
             passwordValue = ElasticConnection.DEFAULT_API_KEY_SECRET
     )
-    private static final String PROP_ELASTICSEARCH_API_KEY_SECRET = ElasticConnection.API_KEY_SECRET_PROP;
+    private static final String PROP_ELASTIC_API_KEY_SECRET = ElasticConnection.API_KEY_SECRET_PROP;
 
     @Property(
             label = "Local text extraction cache path",
@@ -265,18 +265,18 @@ public class ElasticIndexProviderService {
         // system properties have priority, get mandatory params first
         final String indexPrefix = System.getProperty(PROP_INDEX_PREFIX,
                 (String) contextConfig.getOrDefault(PROP_INDEX_PREFIX, "oak-elastic"));
-        final String scheme = System.getProperty(PROP_ELASTICSEARCH_SCHEME,
-                (String) contextConfig.getOrDefault(PROP_ELASTICSEARCH_SCHEME, ElasticConnection.DEFAULT_SCHEME));
-        final String host = System.getProperty(PROP_ELASTICSEARCH_HOST,
-                (String) contextConfig.getOrDefault(PROP_ELASTICSEARCH_HOST, ElasticConnection.DEFAULT_HOST));
-        final int port = Integer.getInteger(PROP_ELASTICSEARCH_PORT,
-                (int) contextConfig.getOrDefault(PROP_ELASTICSEARCH_PORT, ElasticConnection.DEFAULT_PORT));
+        final String scheme = System.getProperty(PROP_ELASTIC_SCHEME,
+                (String) contextConfig.getOrDefault(PROP_ELASTIC_SCHEME, ElasticConnection.DEFAULT_SCHEME));
+        final String host = System.getProperty(PROP_ELASTIC_HOST,
+                (String) contextConfig.getOrDefault(PROP_ELASTIC_HOST, ElasticConnection.DEFAULT_HOST));
+        final int port = Integer.getInteger(PROP_ELASTIC_PORT,
+                (int) contextConfig.getOrDefault(PROP_ELASTIC_PORT, ElasticConnection.DEFAULT_PORT));
 
         // optional params
-        final String apiKeyId = System.getProperty(PROP_ELASTICSEARCH_API_KEY_ID,
-                (String) contextConfig.get(PROP_ELASTICSEARCH_API_KEY_ID));
-        final String apiSecretId = System.getProperty(PROP_ELASTICSEARCH_API_KEY_SECRET,
-                (String) contextConfig.get(PROP_ELASTICSEARCH_API_KEY_SECRET));
+        final String apiKeyId = System.getProperty(PROP_ELASTIC_API_KEY_ID,
+                (String) contextConfig.get(PROP_ELASTIC_API_KEY_ID));
+        final String apiSecretId = System.getProperty(PROP_ELASTIC_API_KEY_SECRET,
+                (String) contextConfig.get(PROP_ELASTIC_API_KEY_SECRET));
 
         return ElasticConnection.newBuilder()
                 .withIndexPrefix(indexPrefix)

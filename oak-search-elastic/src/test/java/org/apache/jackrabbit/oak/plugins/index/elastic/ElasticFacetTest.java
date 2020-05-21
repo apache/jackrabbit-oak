@@ -102,7 +102,7 @@ public class ElasticFacetTest {
         try {
             client = DockerClientFactory.instance().client();
         } catch (Exception e) {
-            LOG.warn("Docker is not available, ElasticsearchPropertyIndexTest will be skipped");
+            LOG.warn("Docker is not available, ElasticFacetTest will be skipped");
         }
         assumeNotNull(client);
     }

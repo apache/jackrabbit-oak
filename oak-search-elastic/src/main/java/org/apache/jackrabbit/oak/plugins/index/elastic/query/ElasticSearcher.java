@@ -17,11 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.SearchSourceBuilderUtil;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -41,22 +39,5 @@ public class ElasticSearcher {
                 .source(searchSourceBuilder);
 
         return indexNode.getConnection().getClient().search(request, RequestOptions.DEFAULT);
-    }
-
-    @Deprecated
-    public SearchResponse search(QueryBuilder query, int batchSize) throws IOException {
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-                .query(query)
-                .fetchSource(FieldNames.PATH, null)
-                .size(batchSize);
-
-        SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
-                .source(searchSourceBuilder);
-
-        return indexNode.getConnection().getClient().search(request, RequestOptions.DEFAULT);
-    }
-
-    public ElasticSearcher getElasticsearchSearcher(){
-        return this;
     }
 }

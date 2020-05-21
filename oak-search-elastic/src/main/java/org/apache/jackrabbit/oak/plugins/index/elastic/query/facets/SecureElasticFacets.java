@@ -51,21 +51,21 @@ public class SecureElasticFacets extends InsecureElasticFacets {
     for docs.
      */
     @Override
-    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(ElasticIndexDefinition indexDefinition,
-                                                                         int numberOfFacets) throws IOException {
+    public Map<String, List<FulltextIndex.Facet>> getFacets(ElasticIndexDefinition indexDefinition,
+                                                            int numberOfFacets) throws IOException {
         Map<String, Map<String, Long>> secureFacetCount = new HashMap<>();
         Filter filter = getPlan().getFilter();
         boolean doFetch = true;
-        for (int from = 0; doFetch; from += ElasticConstants.ELASTICSEARCH_QUERY_BATCH_SIZE) {
-            ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticsearchSearcherModelBuilder()
+        for (int from = 0; doFetch; from += ElasticConstants.ELASTIC_QUERY_BATCH_SIZE) {
+            ElasticSearcherModel elasticSearcherModel = new ElasticSearcherModel.ElasticSearcherModelBuilder()
                     .withQuery(getQuery())
-                    .withBatchSize(ElasticConstants.ELASTICSEARCH_QUERY_BATCH_SIZE)
+                    .withBatchSize(ElasticConstants.ELASTIC_QUERY_BATCH_SIZE)
                     .withFrom(from)
                     .build();
             SearchResponse docs = getSearcher().search(elasticSearcherModel);
             SearchHit[] searchHits = docs.getHits().getHits();
             long totalResults = docs.getHits().getTotalHits().value;
-            if (totalResults <= from + ElasticConstants.ELASTICSEARCH_QUERY_BATCH_SIZE || searchHits.length == 0) {
+            if (totalResults <= from + ElasticConstants.ELASTIC_QUERY_BATCH_SIZE || searchHits.length == 0) {
                 doFetch = false;
             }
 
@@ -121,7 +121,7 @@ public class SecureElasticFacets extends InsecureElasticFacets {
     private Map<String, Aggregation> getAggregationForDocIds(QueryBuilder queryWithAccessibleDocIds, int facetCount,
                                                              ElasticIndexDefinition indexDefinition) throws IOException {
         List<TermsAggregationBuilder> aggregationBuilders = ElasticAggregationBuilderUtil.getAggregators(getPlan(), indexDefinition, facetCount);
-        ElasticSearcherModel idBasedelasticsearchSearcherModelWithAggregation = new ElasticSearcherModel.ElasticsearchSearcherModelBuilder()
+        ElasticSearcherModel idBasedelasticsearchSearcherModelWithAggregation = new ElasticSearcherModel.ElasticSearcherModelBuilder()
                 .withQuery(queryWithAccessibleDocIds)
                 .withAggregation(aggregationBuilders)
                 .build();

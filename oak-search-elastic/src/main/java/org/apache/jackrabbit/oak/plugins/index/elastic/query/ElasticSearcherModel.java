@@ -26,12 +26,12 @@ import java.util.List;
 
 public class ElasticSearcherModel {
 
-    private QueryBuilder queryBuilder;
-    private List<AggregationBuilder> aggregationBuilders = new LinkedList<>();
-    private int batchSize;
-    private boolean fetchSource;
-    private String storedField = FieldNames.PATH;
-    private int from;
+    private final QueryBuilder queryBuilder;
+    private final List<AggregationBuilder> aggregationBuilders;
+    private final int batchSize;
+    private final boolean fetchSource;
+    private final String storedField;
+    private final int from;
 
     private ElasticSearcherModel(QueryBuilder queryBuilder, List<AggregationBuilder> aggregationBuilders,
                                  int batchSize, boolean fetchSource, String storedField, int from) {
@@ -67,30 +67,30 @@ public class ElasticSearcherModel {
         return storedField;
     }
 
-    public static class ElasticsearchSearcherModelBuilder {
+    public static class ElasticSearcherModelBuilder {
         private QueryBuilder queryBuilder;
-        private List<AggregationBuilder> aggregationBuilders = new LinkedList<>();
+        private final List<AggregationBuilder> aggregationBuilders = new LinkedList<>();
         private int batchSize;
         private boolean fetchSource = false;
         private String storedField = FieldNames.PATH;
         private int from;
 
-        public ElasticsearchSearcherModelBuilder withQuery(QueryBuilder query) {
+        public ElasticSearcherModelBuilder withQuery(QueryBuilder query) {
             this.queryBuilder = query;
             return this;
         }
 
-        public ElasticsearchSearcherModelBuilder withAggregation(List<TermsAggregationBuilder> aggregationBuilders) {
+        public ElasticSearcherModelBuilder withAggregation(List<TermsAggregationBuilder> aggregationBuilders) {
             this.aggregationBuilders.addAll(aggregationBuilders);
             return this;
         }
 
-        public ElasticsearchSearcherModelBuilder withBatchSize(int batchSize) {
+        public ElasticSearcherModelBuilder withBatchSize(int batchSize) {
             this.batchSize = batchSize;
             return this;
         }
 
-        public ElasticsearchSearcherModelBuilder withFrom(int from) {
+        public ElasticSearcherModelBuilder withFrom(int from) {
             this.from = from;
             return this;
         }
