@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticsearchConnection;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import java.util.Arrays;

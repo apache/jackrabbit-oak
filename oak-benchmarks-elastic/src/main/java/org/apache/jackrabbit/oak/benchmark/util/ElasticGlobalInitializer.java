@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.benchmark.util;
 
 
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
