@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.facets;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticsearchIndexNode;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticsearchSearcher;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticSearcher;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -37,25 +37,25 @@ public class ElasticFacetHelper {
     private ElasticFacetHelper() {
     }
 
-    public static ElasticsearchFacets getAggregates(ElasticsearchSearcher searcher, QueryBuilder query,
-                                                    ElasticsearchIndexNode indexNode, QueryIndex.IndexPlan plan,
-                                                    ElasticsearchAggregationData elasticsearchAggregationData) {
-        ElasticsearchFacets elasticsearchFacets;
+    public static ElasticFacets getAggregates(ElasticSearcher searcher, QueryBuilder query,
+                                              ElasticIndexNode indexNode, QueryIndex.IndexPlan plan,
+                                              ElasticAggregationData elasticAggregationData) {
+        ElasticFacets elasticFacets;
         SecureFacetConfiguration secureFacetConfiguration = indexNode.getDefinition().getSecureFacetConfiguration();
         switch (secureFacetConfiguration.getMode()) {
             case INSECURE:
-                elasticsearchFacets = new InsecureElasticSearchFacets(searcher, query, plan, elasticsearchAggregationData);
+                elasticFacets = new InsecureElasticFacets(searcher, query, plan, elasticAggregationData);
                 break;
             case STATISTICAL:
-                elasticsearchFacets = new StatisticalElasticSearchFacets(searcher, query, plan,
-                        secureFacetConfiguration, elasticsearchAggregationData);
+                elasticFacets = new StatisticalElasticFacets(searcher, query, plan,
+                        secureFacetConfiguration, elasticAggregationData);
                 break;
             case SECURE:
             default:
-                elasticsearchFacets = new SecureElasticSearchFacets(searcher, query, plan);
+                elasticFacets = new SecureElasticFacets(searcher, query, plan);
                 break;
         }
-        return elasticsearchFacets;
+        return elasticFacets;
     }
 
     public static List<String> getAccessibleDocIds(SearchHit[] searchHits, Filter filter) {

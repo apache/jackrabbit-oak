@@ -55,7 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binar
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.fail;
 
-public class ElasticIndexAggregationNtFileTest extends ElasticsearchAbstractQueryTest {
+public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest {
     private static final String NT_TEST_ASSET = "test:Asset";
 
     @Override
@@ -116,7 +116,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticsearchAbstractQuer
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        Tree indexDefn = createTestIndexNode(index, ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH);
+        Tree indexDefn = createTestIndexNode(index, ElasticIndexDefinition.TYPE_ELASTICSEARCH);
         indexDefn.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         Tree includeNtFileContent = indexDefn.addChild(FulltextIndexConstants.AGGREGATES)
                 .addChild(NT_TEST_ASSET).addChild("include10");

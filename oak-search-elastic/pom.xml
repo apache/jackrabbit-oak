@@ -45,7 +45,7 @@
         <configuration>
           <instructions>
             <_exportcontents>
-                org.apache.jackrabbit.oak.plugins.index.elastic.ElasticsearchIndexProviderService
+                org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
               !com.carrotsearch.randomizedtesting.*,

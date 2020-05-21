@@ -16,20 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.util;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticsearchSearcherModel;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticSearcherModel;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 
 public class SearchSourceBuilderUtil {
 
-    public static SearchSourceBuilder createSearchSourceBuilder(ElasticsearchSearcherModel elasticsearchSearcherModel) {
+    public static SearchSourceBuilder createSearchSourceBuilder(ElasticSearcherModel elasticSearcherModel) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
-                .query(elasticsearchSearcherModel.getQueryBuilder())
-                .fetchSource(elasticsearchSearcherModel.getStoredField(), null)
-                .size(elasticsearchSearcherModel.getBatchSize())
-                .from(elasticsearchSearcherModel.getFrom());
+                .query(elasticSearcherModel.getQueryBuilder())
+                .fetchSource(elasticSearcherModel.getStoredField(), null)
+                .size(elasticSearcherModel.getBatchSize())
+                .from(elasticSearcherModel.getFrom());
 
-        for (AggregationBuilder aggregationBuilder : elasticsearchSearcherModel.getAggregationBuilders()) {
+        for (AggregationBuilder aggregationBuilder : elasticSearcherModel.getAggregationBuilders()) {
             searchSourceBuilder.aggregation(aggregationBuilder);
         }
         return searchSourceBuilder;
