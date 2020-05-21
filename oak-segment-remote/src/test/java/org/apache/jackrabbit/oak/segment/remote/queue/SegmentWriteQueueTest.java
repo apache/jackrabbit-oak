@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.segment.remote.queue;
 
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.FieldSetter;
@@ -63,6 +64,7 @@ public class SegmentWriteQueueTest {
     }
 
     @Test
+    @Ignore("OAK-9086")
     public void testThreadInterruptedWhileAddigToQueue() throws InterruptedException, NoSuchFieldException {
 
         Set<UUID> added = Collections.synchronizedSet(new HashSet<>());
