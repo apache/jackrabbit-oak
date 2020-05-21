@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.facets;
+package org.apache.jackrabbit.oak.plugins.index.elastic.query.facets;
 
 import org.elasticsearch.search.aggregations.Aggregations;
 
