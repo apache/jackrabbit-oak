@@ -26,10 +26,10 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticsearchConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticsearchIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticsearchIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticsearchIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -41,9 +41,9 @@ import static com.google.common.collect.ImmutableSet.of;
 
 public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
 
-    private ElasticsearchConnection coordinate;
+    private ElasticConnection coordinate;
 
-    ElasticFullTextWithoutGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticsearchConnection coordinate) {
+    ElasticFullTextWithoutGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
         this.coordinate = coordinate;
     }
@@ -54,15 +54,15 @@ public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
+                    ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
                             new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-                    ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(coordinate);
+                    ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate);
                     oak.with(editorProvider)
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
                             .with(new PropertyFullTextTest.FullTextPropertyInitialiser(TestHelper.getUniqueIndexName("elasticText"), of("text"),
-                                    ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
+                                    ElasticIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
                     return new Jcr(oak);
                 }
             });

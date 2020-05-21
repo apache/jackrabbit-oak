@@ -26,10 +26,10 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticsearchConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticsearchIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticsearchIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticsearchIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +66,7 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticPropertyFTIndexedContentAvailability.class);
     private String currentFixtureName;
-    private ElasticsearchConnection coordinate;
+    private ElasticConnection coordinate;
     private String ELASTIC_GLOBAL_INDEX;
 
     @Override
@@ -83,7 +83,7 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
     ElasticPropertyFTIndexedContentAvailability(final File dump,
                                                        final boolean flat,
                                                        final boolean doReport,
-                                                       final Boolean storageEnabled, ElasticsearchConnection coordinate) {
+                                                       final Boolean storageEnabled, ElasticConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
         this.coordinate = coordinate;
     }
@@ -96,15 +96,15 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    ElasticsearchIndexEditorProvider editorProvider = new ElasticsearchIndexEditorProvider(coordinate,
+                    ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
                             new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-                    ElasticsearchIndexProvider indexProvider = new ElasticsearchIndexProvider(coordinate);
+                    ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate);
                     oak.with(editorProvider)
                             .with(indexProvider)
                             .with((new ElasticGlobalInitializer(ELASTIC_GLOBAL_INDEX, storageEnabled)).async())
                                     // the WikipediaImporter set a property `title`
                             .with(new FullTextPropertyInitialiser(TestHelper.getUniqueIndexName("elasticTitle"), of("title"),
-                                    ElasticsearchIndexDefinition.TYPE_ELASTICSEARCH).async())
+                                    ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
                             .withAsyncIndexing("async", 5);
                     return new Jcr(oak);
                 }

@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticsearchConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import java.util.Arrays;
 
 public class ElasticBenchmarkRunner extends BenchmarkRunner {
 
-    private static ElasticsearchConnection connection;
+    private static ElasticConnection connection;
 
     public static void main(String[] args) throws Exception {
         initOptionSet(args);
@@ -36,7 +36,7 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
         // we have orphaned HttpClient's I/O disp threads that don't let the process exit.
 
         try {
-            connection =  ElasticsearchConnection.newBuilder()
+            connection =  ElasticConnection.newBuilder()
                     .withIndexPrefix("benchmark")
                     .withConnectionParameters(
                             benchmarkOptions.getElasticScheme().value(options),
