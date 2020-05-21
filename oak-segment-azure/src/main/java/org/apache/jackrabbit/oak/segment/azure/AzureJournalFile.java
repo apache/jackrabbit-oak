@@ -206,6 +206,13 @@ public class AzureJournalFile implements JournalFile {
             }
         }
 
+        @Override
+        public void batchWriteLines(List<String> lines) throws IOException {
+            for (String line : lines) {
+                this.writeLine(line);
+            }
+        }
+
         private void createNextFile(int suffix) throws IOException {
             try {
                 currentBlob = directory.getAppendBlobReference(getJournalFileName(suffix + 1));

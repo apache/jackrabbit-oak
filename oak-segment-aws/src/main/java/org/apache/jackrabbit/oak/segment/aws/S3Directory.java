@@ -16,16 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
@@ -43,6 +33,14 @@ import com.amazonaws.util.IOUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class S3Directory {
 
@@ -167,7 +165,7 @@ public final class S3Directory {
     public void copyObject(S3Directory from, String fromKey) throws IOException {
         String toKey = rootDirectory + fromKey.substring(from.rootDirectory.length());
         try {
-            s3.copyObject(new CopyObjectRequest(bucketName, fromKey, bucketName, toKey));
+            s3.copyObject(new CopyObjectRequest(from.bucketName, fromKey, bucketName, toKey));
         } catch (AmazonServiceException e) {
             throw new IOException(e);
         }

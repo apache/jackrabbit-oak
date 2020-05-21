@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import static org.apache.jackrabbit.oak.segment.aws.DynamoDBClient.TABLE_ATTR_CONTENT;
-
-import java.io.IOException;
-import java.util.Iterator;
-
 import com.amazonaws.services.dynamodbv2.document.Item;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -28,6 +23,12 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+
+import static org.apache.jackrabbit.oak.segment.aws.DynamoDBClient.TABLE_ATTR_CONTENT;
 
 public class AwsJournalFile implements JournalFile {
 
@@ -88,6 +89,11 @@ public class AwsJournalFile implements JournalFile {
         @Override
         public void writeLine(String line) throws IOException {
             dynamoDBClient.putDocument(fileName, line);
+        }
+
+        @Override
+        public void batchWriteLines(List<String> lines) throws IOException {
+            dynamoDBClient.batchPutDocument(fileName, lines);
         }
     }
 

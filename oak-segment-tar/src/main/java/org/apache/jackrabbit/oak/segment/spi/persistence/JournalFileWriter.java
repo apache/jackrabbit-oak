@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * The {@link JournalFile} writer. It allows to append a record to the journal file
@@ -58,5 +59,21 @@ public interface JournalFileWriter extends Closeable {
      * @throws IOException
      */
     void writeLine(String line) throws IOException;
+
+    /**
+     * Write new lines to the journal file as a batch. Methods allows for optimized
+     * batch implementations. This operation should be atomic,
+     * eg. it's should be possible to open a new reader using
+     * {@link JournalFile#openJournalReader()} in the way that it'll have access
+     * to an incomplete record line.
+     * <p>
+     * If this method returns successfully it means that the line was persisted
+     * on the non-volatile storage. For instance, on the local disk the
+     * {@code flush()} should be called by the implementation.
+     *
+     * @param lines List of journal records to be written
+     * @throws IOException
+     */
+    void batchWriteLines(List<String> lines) throws IOException;
 
 }
