@@ -25,8 +25,7 @@ public class SearchSourceBuilderUtil {
     public static SearchSourceBuilder createSearchSourceBuilder(ElasticsearchSearcherModel elasticsearchSearcherModel) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(elasticsearchSearcherModel.getQueryBuilder())
-                .fetchSource(elasticsearchSearcherModel.fetchSource())
-                .storedField(elasticsearchSearcherModel.getStoredField())
+                .fetchSource(elasticsearchSearcherModel.getStoredField(), null)
                 .size(elasticsearchSearcherModel.getBatchSize())
                 .from(elasticsearchSearcherModel.getFrom());
 

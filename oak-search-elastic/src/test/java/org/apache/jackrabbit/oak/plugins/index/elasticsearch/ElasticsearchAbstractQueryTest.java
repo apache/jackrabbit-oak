@@ -20,7 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
@@ -37,6 +37,9 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.core.CountRequest;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -44,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -55,10 +57,6 @@ import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.Elasticsearc
 public abstract class ElasticsearchAbstractQueryTest extends AbstractQueryTest {
 
     protected static final Logger LOG = LoggerFactory.getLogger(ElasticsearchAbstractQueryTest.class);
-
-    protected static final PerfLogger PERF_LOGGER =
-            new PerfLogger(LoggerFactory.getLogger(ElasticsearchAbstractQueryTest.class.getName() + ".perf"));
-
 
     // Set this connection string as
     // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
@@ -72,10 +70,8 @@ public abstract class ElasticsearchAbstractQueryTest extends AbstractQueryTest {
     // This can be used by the extending classes to trigger the async index update as per need (not having to wait for async indexing cycle)
     protected AsyncIndexUpdate asyncIndexUpdate;
     protected long INDEX_CORRUPT_INTERVAL_IN_MILLIS = 100;
-    protected ElasticsearchIndexEditorProvider editorProvider;
     protected NodeStore nodeStore;
     protected int DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS = 5;
-
 
     @ClassRule
     public static ElasticsearchConnectionRule elasticRule = new ElasticsearchConnectionRule(elasticConnectionString);
@@ -131,11 +127,10 @@ public abstract class ElasticsearchAbstractQueryTest extends AbstractQueryTest {
     }
 
     protected Oak addAsyncIndexingLanesToOak(Oak oak) {
-        // Override this in extending clases to configure different
+        // Override this in extending classes to configure different
         // indexing lanes with different time limits.
         return oak.withAsyncIndexing("async", DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS);
     }
-
 
     @Override
     protected ContentRepository createRepository() {
@@ -156,7 +151,6 @@ public abstract class ElasticsearchAbstractQueryTest extends AbstractQueryTest {
         trackingCorruptIndexHandler.setCorruptInterval(INDEX_CORRUPT_INTERVAL_IN_MILLIS, TimeUnit.MILLISECONDS);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
 
-
         Oak oak = new Oak(nodeStore)
                 .with(getInitialContent())
                 .with(new OpenSecurityProvider())
@@ -170,7 +164,6 @@ public abstract class ElasticsearchAbstractQueryTest extends AbstractQueryTest {
         }
         return oak.createContentRepository();
     }
-
 
     protected static void assertEventually(Runnable r) {
         ElasticsearchTestUtils.assertEventually(r, BULK_FLUSH_INTERVAL_MS_DEFAULT * 5);
@@ -188,8 +181,8 @@ public abstract class ElasticsearchAbstractQueryTest extends AbstractQueryTest {
         return builder;
     }
 
-    protected void setIndex(String idxName, IndexDefinitionBuilder builder) {
-        builder.build(root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild(idxName));
+    protected Tree setIndex(String idxName, IndexDefinitionBuilder builder) {
+        return builder.build(root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild(idxName));
     }
 
     protected String explain(String query) {
@@ -204,6 +197,38 @@ public abstract class ElasticsearchAbstractQueryTest extends AbstractQueryTest {
     @Override
     protected void createTestIndexNode() throws Exception {
         setTraversalEnabled(false);
+    }
+
+    // Utility methods accessing directly Elasticsearch
+
+    protected boolean exists(Tree index) {
+        ElasticsearchIndexDefinition esIdxDef = getElasticsearchIndexDefinition(index);
+
+        try {
+            return esConnection.getClient().indices()
+                    .exists(new GetIndexRequest(esIdxDef.getRemoteIndexAlias()), RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    protected long countDocuments(Tree index) {
+        ElasticsearchIndexDefinition esIdxDef = getElasticsearchIndexDefinition(index);
+
+        CountRequest request = new CountRequest(esIdxDef.getRemoteIndexAlias());
+        try {
+            return esConnection.getClient().count(request, RequestOptions.DEFAULT).getCount();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private ElasticsearchIndexDefinition getElasticsearchIndexDefinition(Tree index) {
+        return new ElasticsearchIndexDefinition(
+                nodeStore.getRoot(),
+                nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(index.getName()),
+                index.getPath(),
+                esConnection.getIndexPrefix());
     }
 
 }

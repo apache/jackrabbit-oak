@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 
@@ -96,9 +94,8 @@ public class ElasticsearchPropertyIndexTest extends ElasticsearchAbstractQueryTe
         //make index
         IndexDefinitionBuilder builder = createIndex();
         builder.includedPaths("/test")
-                .evaluatePathRestrictions()
                 .indexRule("nt:base")
-                .property("nodeName", PROPDEF_PROP_NODE_NAME).propertyIndex();
+                .property("nodeName", PROPDEF_PROP_NODE_NAME);
         setIndex("test1", builder);
         root.commit();
 

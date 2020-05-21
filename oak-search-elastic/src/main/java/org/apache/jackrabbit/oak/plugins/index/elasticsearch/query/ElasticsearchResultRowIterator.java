@@ -53,8 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -68,7 +66,6 @@ import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.util.TermQueryBuilderFactory.newAncestorQuery;
@@ -158,9 +155,10 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         try {
             ElasticsearchSearcher searcher = getCurrentSearcher(indexNode);
             QueryBuilder query = getESQuery(plan, planResult);
-            int numberOfFacets = indexNode.getDefinition().getNumberOfTopFacets();
+            ElasticsearchIndexDefinition indexDefinition = indexNode.getDefinition();
+            int numberOfFacets = indexDefinition.getNumberOfTopFacets();
             List<TermsAggregationBuilder> aggregationBuilders = ElasticsearchAggregationBuilderUtil
-                    .getAggregators(plan, numberOfFacets);
+                    .getAggregators(plan, indexDefinition, numberOfFacets);
 
             ElasticsearchSearcherModel elasticsearchSearcherModel = new ElasticsearchSearcherModel.ElasticsearchSearcherModelBuilder()
                     .withQuery(query)
@@ -236,10 +234,9 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         return new ElasticsearchSearcher(indexNode);
     }
 
-    private FulltextIndex.FulltextResultRow convertToRow(SearchHit hit,
-                                                         ElasticsearchFacetProvider elasticsearchFacetProvider) throws IOException {
-        String id = hit.getId();
-        String path = idToPath(id);
+    private FulltextIndex.FulltextResultRow convertToRow(SearchHit hit, ElasticsearchFacetProvider elasticsearchFacetProvider) {
+        final Map<String, Object> sourceMap = hit.getSourceAsMap();
+        String path = (String) sourceMap.get(FieldNames.PATH);
         if (path != null) {
             if ("".equals(path)) {
                 path = "/";
@@ -276,7 +273,7 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
      * @param planResult
      * @return the Lucene query
      */
-    static QueryBuilder getESQuery(IndexPlan plan, PlanResult planResult) {
+    public QueryBuilder getESQuery(IndexPlan plan, PlanResult planResult) {
         List<QueryBuilder> qs = new ArrayList<>();
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
@@ -504,13 +501,12 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         return unwrapped;
     }
 
-    private static void addNonFullTextConstraints(List<QueryBuilder> qs,
+    private void addNonFullTextConstraints(List<QueryBuilder> qs,
                                                   IndexPlan plan, PlanResult planResult) {
         final BiPredicate<Iterable<String>, String> any = (iterable, value) ->
                 StreamSupport.stream(iterable.spliterator(), false).anyMatch(value::equals);
 
         Filter filter = plan.getFilter();
-        IndexDefinition defn = planResult.indexDefinition;
         if (!filter.matchesAllTypes()) {
             addNodeTypeConstraints(planResult.indexingRule, qs, filter);
         }
@@ -518,20 +514,15 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         String path = FulltextIndex.getPathRestriction(plan);
         switch (filter.getPathRestriction()) {
             case ALL_CHILDREN:
-                if (defn.evaluatePathRestrictions()) {
-                    if ("/".equals(path)) {
-                        break;
-                    }
+                if (!"/".equals(path)) {
                     qs.add(newAncestorQuery(path));
                 }
                 break;
             case DIRECT_CHILDREN:
-                if (defn.evaluatePathRestrictions()) {
-                    BoolQueryBuilder bq = boolQuery();
-                    bq.must(newAncestorQuery(path));
-                    bq.must(newDepthQuery(path, planResult));
-                    qs.add(bq);
-                }
+                BoolQueryBuilder bq = boolQuery();
+                bq.must(newAncestorQuery(path));
+                bq.must(newDepthQuery(path, planResult));
+                qs.add(bq);
                 break;
             case EXACT:
                 // For transformed paths, we can only add path restriction if absolute path to property can be
@@ -588,7 +579,7 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
 
             if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                     && pr.lastIncluding) {
-                String first = pr.first.getValue(STRING);
+                String first = pr.first.getValue(Type.STRING);
                 first = first.replace("\\", "");
                 if (JCR_PATH.equals(name)) {
                     qs.add(newPathQuery(first));
@@ -637,7 +628,7 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
     }
 
     private static QueryBuilder createNodeNameQuery(Filter.PropertyRestriction pr) {
-        String first = pr.first != null ? pr.first.getValue(STRING) : null;
+        String first = pr.first != null ? pr.first.getValue(Type.STRING) : null;
         if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                 && pr.lastIncluding) {
             // [property]=[value]
@@ -685,7 +676,7 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
     }
 
     @Nullable
-    private static QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,
+    private QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,
                                             PropertyDefinition defn) {
         int propType = FulltextIndex.determinePropertyType(defn, pr);
 
@@ -699,31 +690,29 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
             return newNotNullPropQuery(defn.name);
         }
 
+        final String field = indexNode.getDefinition().getElasticKeyword(propertyName);
+
         QueryBuilder in;
         switch (propType) {
             case PropertyType.DATE: {
-                in = newPropertyRestrictionQuery(propertyName, false, pr,
-                        value -> parse(value.getValue(Type.DATE)).getTime());
+                in = newPropertyRestrictionQuery(field, pr, value -> parse(value.getValue(Type.DATE)).getTime());
                 break;
             }
             case PropertyType.DOUBLE: {
-                in = newPropertyRestrictionQuery(propertyName, false, pr,
-                        value -> value.getValue(Type.DOUBLE));
+                in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.DOUBLE));
                 break;
             }
             case PropertyType.LONG: {
-                in = newPropertyRestrictionQuery(propertyName, false, pr,
-                        value -> value.getValue(Type.LONG));
+                in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.LONG));
                 break;
             }
             default: {
                 if (pr.isLike) {
-                    return createLikeQuery(propertyName, pr.first.getValue(STRING));
+                    return createLikeQuery(propertyName, pr.first.getValue(Type.STRING));
                 }
 
                 //TODO Confirm that all other types can be treated as string
-                in = newPropertyRestrictionQuery(propertyName, true, pr,
-                        value -> value.getValue(Type.STRING));
+                in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.STRING));
             }
         }
 
@@ -732,10 +721,6 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         }
 
         throw new IllegalStateException("PropertyRestriction not handled " + pr + " for index " + defn);
-    }
-
-    private static String idToPath(String id) throws UnsupportedEncodingException {
-        return URLDecoder.decode(id, "UTF-8");
     }
 
     class ElasticsearchFacetProvider implements FulltextIndex.FacetProvider {
@@ -750,7 +735,7 @@ class ElasticsearchResultRowIterator implements Iterator<FulltextIndex.FulltextR
         public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
             String facetProp = FulltextIndex.parseFacetField(columnName);
             if (cachedResults.get(facetProp) == null) {
-                cachedResults = elasticsearchFacets.getElasticSearchFacets(numberOfFacets);
+                cachedResults = elasticsearchFacets.getElasticSearchFacets(indexNode.getDefinition(), numberOfFacets);
             }
             return cachedResults.get(facetProp);
         }

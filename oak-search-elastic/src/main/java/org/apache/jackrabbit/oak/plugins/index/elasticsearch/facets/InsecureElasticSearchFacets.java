@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.facets;
 
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchSearcher;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchSearcherModel;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.util.ElasticsearchAggregationBuilderUtil;
@@ -51,12 +52,13 @@ public class InsecureElasticSearchFacets implements ElasticsearchFacets {
     }
 
     @Override
-    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(int numberOfFacets) throws IOException {
+    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(ElasticsearchIndexDefinition indexDefinition,
+                                                                         int numberOfFacets) throws IOException {
         if (elasticsearchAggregationData != null && numberOfFacets <= elasticsearchAggregationData.getNumberOfFacets()) {
             return changeToFacetList(elasticsearchAggregationData.getAggregations().getAsMap(), numberOfFacets);
         }
         LOG.warn("Facet data is being retrieved by again calling Elasticsearch");
-        List<TermsAggregationBuilder> aggregationBuilders = ElasticsearchAggregationBuilderUtil.getAggregators(plan, numberOfFacets);
+        List<TermsAggregationBuilder> aggregationBuilders = ElasticsearchAggregationBuilderUtil.getAggregators(plan, indexDefinition, numberOfFacets);
         ElasticsearchSearcherModel elasticsearchSearcherModel = new ElasticsearchSearcherModel.ElasticsearchSearcherModelBuilder()
                 .withQuery(query)
                 .withAggregation(aggregationBuilders)

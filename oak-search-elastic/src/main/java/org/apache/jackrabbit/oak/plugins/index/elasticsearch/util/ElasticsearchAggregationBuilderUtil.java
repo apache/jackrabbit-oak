@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.util;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -33,7 +34,7 @@ public final class ElasticsearchAggregationBuilderUtil {
     private ElasticsearchAggregationBuilderUtil() {
     }
 
-    public static List<TermsAggregationBuilder> getAggregators(QueryIndex.IndexPlan plan, int numberOfFacets) {
+    public static List<TermsAggregationBuilder> getAggregators(QueryIndex.IndexPlan plan, ElasticsearchIndexDefinition indexDefinition, int numberOfFacets) {
         List<TermsAggregationBuilder> termsAggregationBuilders = new LinkedList<>();
         Collection<Filter.PropertyRestriction> propertyRestrictions = plan.getFilter().getPropertyRestrictions();
         for (Filter.PropertyRestriction propertyRestriction : propertyRestrictions) {
@@ -41,13 +42,14 @@ public final class ElasticsearchAggregationBuilderUtil {
             if (QueryConstants.REP_FACET.equals(name)) {
                 String value = propertyRestriction.first.getValue(Type.STRING);
                 String facetProp = FulltextIndex.parseFacetField(value);
-                termsAggregationBuilders.add(AggregationBuilders.terms(facetProp).field(keywordFieldName(facetProp)).size(numberOfFacets));
+                termsAggregationBuilders.add(
+                        AggregationBuilders
+                                .terms(facetProp)
+                                .field(indexDefinition.getElasticKeyword(facetProp))
+                                .size(numberOfFacets)
+                );
             }
         }
         return termsAggregationBuilders;
-    }
-
-    private static String keywordFieldName(String propName) {
-        return propName + "." + "keyword";
     }
 }

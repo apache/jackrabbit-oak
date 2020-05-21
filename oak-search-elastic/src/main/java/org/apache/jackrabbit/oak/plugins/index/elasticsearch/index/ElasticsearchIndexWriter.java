@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
+import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
@@ -37,13 +37,11 @@ import org.elasticsearch.client.IndicesClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
@@ -51,12 +49,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.index.ElasticsearchDocument.pathToId;
 import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
@@ -66,8 +69,19 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     private final ElasticsearchConnection elasticsearchConnection;
     private final ElasticsearchIndexDefinition indexDefinition;
 
+    /**
+     * Coordinates communication between bulk processes. It has a main controller registered at creation time and
+     * de-registered on {@link ElasticsearchIndexWriter#close(long)}. Each bulk request register a new party in
+     * this Phaser in {@link OakBulkProcessorListener#beforeBulk(long, BulkRequest)} and de-register itself when
+     * the request returns.
+     */
+    private final Phaser phaser = new Phaser(1); // register main controller
+    /**
+     * Key-value structure to keep the history of bulk requests. Keys are the bulk execution ids, the boolean
+     * value is {@code true} when at least an update is performed, otherwise {@code false}.
+     */
+    private final ConcurrentHashMap<Long, Boolean> updatesMap = new ConcurrentHashMap<>();
     private final BulkProcessor bulkProcessor;
-    private Optional<Boolean> indexUpdated = Optional.empty();
 
     ElasticsearchIndexWriter(@NotNull ElasticsearchConnection elasticsearchConnection,
                                        @NotNull ElasticsearchIndexDefinition indexDefinition) {
@@ -99,70 +113,76 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
     }
 
     @Override
-    public void updateDocument(String path, ElasticsearchDocument doc) throws IOException {
+    public void updateDocument(String path, ElasticsearchDocument doc) {
         IndexRequest request = new IndexRequest(indexDefinition.getRemoteIndexAlias())
-                .id(pathToId(path))
+                .id(idFromPath(path))
                 .source(doc.build(), XContentType.JSON);
         bulkProcessor.add(request);
     }
 
     @Override
-    public void deleteDocuments(String path) throws IOException {
+    public void deleteDocuments(String path) {
         DeleteRequest request = new DeleteRequest(indexDefinition.getRemoteIndexAlias())
-                .id(pathToId(path));
+                .id(idFromPath(path));
         bulkProcessor.add(request);
     }
 
     @Override
-    public boolean close(long timestamp) throws IOException {
+    public boolean close(long timestamp) {
         LOG.trace("Calling close on bulk processor {}", bulkProcessor);
         bulkProcessor.close();
         LOG.trace("Bulk Processor {} closed", bulkProcessor);
 
-        // bulkProcessor.close() calls the OakBulkProcessorListener.beforeBulk in a blocking manner
-        // indexUpdated would be unset there if it was false till now (not even a single update succeeded)
-        // in this case wait for sometime for the last OakBulkProcessorListener.afterBulk to be called
-        // where indexUpdated can possibly be set to true, return false in case of timeout.
-        // We don't wait in case indexUpdated is already set (This would be if any of the previous flushes for this processor
-        // were successful i.e index was updated at least once)
-        final long start = System.currentTimeMillis();
-        long timeoutMillis = indexDefinition.bulkFlushIntervalMs * 5 ;
-        while (!indexUpdated.isPresent()) {
-            long lastAttempt = System.currentTimeMillis();
-            long elapsedTime = lastAttempt - start;
-            if (elapsedTime > timeoutMillis) {
-                // indexUpdate was not set till now, return false
-                LOG.trace("Timed out waiting for the bulk processor response. Returning indexUpdated = false");
-                return false;
-            } else {
-                try {
-                    LOG.trace("Waiting for afterBulk response...");
-                    Thread.sleep(100);
-                } catch (InterruptedException ex) {
-                    //
-                }
-            }
+        // de-register main controller
+        final int phase = phaser.arriveAndDeregister();
+
+        try {
+            phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException e) {
+            LOG.error("Error waiting for bulk requests to return", e);
         }
-        LOG.trace("Returning indexUpdated = {}", indexUpdated.get());
-        return indexUpdated.get();
+
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Bulk identifier -> update status = {}", updatesMap);
+        }
+        return updatesMap.containsValue(Boolean.TRUE);
     }
 
-    // TODO: we need to check if the index already exists and in that case we have to figure out if there are
-    // "breaking changes" in the index definition
     protected void provisionIndex() throws IOException {
+        // check if index already exists
+        boolean exists = elasticsearchConnection.getClient().indices().exists(
+                new GetIndexRequest(indexDefinition.getRemoteIndexName()), RequestOptions.DEFAULT
+        );
+        if (exists) {
+            LOG.info("Index {} already exists. Skip index provision", indexDefinition.getRemoteIndexName());
+            return;
+        }
 
-        IndicesClient indicesClient = elasticsearchConnection.getClient().indices();
+        final IndicesClient indicesClient = elasticsearchConnection.getClient().indices();
         final String indexName = indexDefinition.getRemoteIndexName();
 
-        CreateIndexRequest createIndexRequest = constructCreateIndexRequest(indexName);
-        String requestMsg = Strings.toString(createIndexRequest.toXContent(jsonBuilder(), EMPTY_PARAMS));
-        CreateIndexResponse response = indicesClient.create(createIndexRequest, RequestOptions.DEFAULT);
-        checkResponseAcknowledgement(response, "Create index call not acknowledged for index " + indexName);
+        // create the new index
+        final CreateIndexRequest request = ElasticsearchIndexHelper.createIndexRequest(indexDefinition);
+        try {
+            if (LOG.isDebugEnabled()) {
+                final String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
+                LOG.debug("Creating Index with request {}", requestMsg);
+            }
+            CreateIndexResponse response = indicesClient.create(request, RequestOptions.DEFAULT);
+            LOG.info("Updated settings for index {}. Response acknowledged: {}",
+                    indexDefinition.getRemoteIndexName(), response.isAcknowledged());
+            checkResponseAcknowledgement(response, "Create index call not acknowledged for index " + indexName);
+        } catch (ElasticsearchStatusException ese) {
+            // We already check index existence as first thing in this method, if we get here it means we have got into
+            // a conflict (eg: multiple cluster nodes provision concurrently).
+            // Elasticsearch does not have a CREATE IF NOT EXIST, need to inspect exception
+            // https://github.com/elastic/elasticsearch/issues/19862
+            if (ese.status().getStatus() == 400 && ese.getDetailedMessage().contains("resource_already_exists_exception")) {
+                LOG.warn("Index {} already exists. Ignoring error", indexName);
+            } else throw ese;
+        }
 
-        LOG.info("Updated settings for index {} = {}. Response acknowledged: {}",
-                indexDefinition.getRemoteIndexAlias(), requestMsg, response.isAcknowledged());
-
-
+        // update the mapping
         GetAliasesRequest getAliasesRequest = new GetAliasesRequest(indexDefinition.getRemoteIndexAlias());
         GetAliasesResponse aliasesResponse = indicesClient.getAlias(getAliasesRequest, RequestOptions.DEFAULT);
         Map<String, Set<AliasMetaData>> aliases = aliasesResponse.getAliases();
@@ -180,6 +200,8 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
                 + indexDefinition.getRemoteIndexAlias());
         LOG.info("Updated alias {} to index {}. Response acknowledged: {}", indexDefinition.getRemoteIndexAlias(),
                 indexName, updateAliasResponse.isAcknowledged());
+
+        // once the alias has been updated, we can safely remove the old index
         deleteOldIndices(indicesClient, aliases.keySet());
     }
 
@@ -201,57 +223,15 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
         LOG.info("Deleted indices {}. Response acknowledged: {}", indices.toString(), deleteIndexResponse.isAcknowledged());
     }
 
-    private CreateIndexRequest constructCreateIndexRequest(String indexName) throws IOException {
-        CreateIndexRequest request = new CreateIndexRequest(indexName);
-
-        // provision settings
-        request.settings(Settings.builder()
-                .put("analysis.analyzer.ancestor_analyzer.type", "custom")
-                .put("analysis.analyzer.ancestor_analyzer.tokenizer", "path_hierarchy"));
-
-        // provision mappings
-        XContentBuilder mappingBuilder = XContentFactory.jsonBuilder();
-        mappingBuilder.startObject();
-        {
-            mappingBuilder.startObject("properties");
-            {
-                mappingBuilder.startObject(FieldNames.ANCESTORS)
-                        .field("type", "text")
-                        .field("analyzer", "ancestor_analyzer")
-                        .field("search_analyzer", "keyword")
-                        .field("search_quote_analyzer", "keyword")
-                        .endObject();
-                mappingBuilder.startObject(FieldNames.PATH_DEPTH)
-                        .field("type", "integer")
-                        .endObject();
-                mappingBuilder.startObject(FieldNames.SUGGEST)
-                        .field("type", "completion")
-                        .endObject();
-                mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
-                        .field("type", "keyword")
-                        .endObject();
-                mappingBuilder.startObject(FieldNames.NULL_PROPS)
-                        .field("type", "keyword")
-                        .endObject();
-            }
-            mappingBuilder.endObject();
-        }
-        mappingBuilder.endObject();
-        request.mapping(mappingBuilder);
-
-        return request;
-    }
-
     private class OakBulkProcessorListener implements BulkProcessor.Listener {
 
         @Override
         public void beforeBulk(long executionId, BulkRequest bulkRequest) {
-            if (indexUpdated.isPresent() && !indexUpdated.get()) {
-                // Reset the state only if it's false
-                // If it's true that means index was updated at least once by this processor
-                // and we can return true for indexUpdate.
-                indexUpdated = Optional.empty();
-            }
+            // register new bulk party
+            phaser.register();
+            // init update status
+            updatesMap.put(executionId, Boolean.FALSE);
+
             LOG.info("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Bulk Requests: \n{}", bulkRequest.requests()
@@ -279,29 +259,41 @@ class ElasticsearchIndexWriter implements FulltextIndexWriter<ElasticsearchDocum
                         LOG.error("Bulk item with id {} failed", failure.getId(), failure.getCause());
                     } else {
                         // Set indexUpdated to true even if 1 item was updated successfully
-                        indexUpdated = Optional.of(true);
+                        updatesMap.put(executionId, Boolean.TRUE);
                     }
                 }
-                // Only set indexUpdated to false if it's unset
-                // If set and true, that means index was updated at least once by this processor.
-                // If set and false, no need to do anything
-                if (!indexUpdated.isPresent()) {
-                    indexUpdated = Optional.of(false);
-                }
             } else {
-                indexUpdated = Optional.of(true);
+                updatesMap.put(executionId, Boolean.TRUE);
             }
+            phaser.arriveAndDeregister();
         }
 
         @Override
         public void afterBulk(long executionId, BulkRequest bulkRequest, Throwable throwable) {
-            // Only set indexUpdated to false if it's unset
-            // If set and true, that means index was updated at least once by this processor.
-            // If set and false, no need to do anything
-            if (!indexUpdated.isPresent()) {
-                indexUpdated = Optional.of(false);
-            }
             LOG.error("Bulk with id {} threw an error", executionId, throwable);
+            phaser.arriveAndDeregister();
         }
+    }
+
+    /**
+     * Transforms a path into an _id compatible with Elasticsearch specification. The path cannot be larger than 512
+     * bytes. For performance reasons paths that are already compatible are returned untouched. Otherwise, SHA-256
+     * algorithm is used to return a transformed path (32 bytes max).
+     *
+     * @param path the document path
+     * @return the Elasticsearch compatible path
+     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">
+     *     Mapping _id field</a>
+     */
+    private static String idFromPath(@NotNull String path) {
+        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+        if (pathBytes.length > 512) {
+            try {
+                return new String(MessageDigest.getInstance("SHA-256").digest(pathBytes));
+            } catch (NoSuchAlgorithmException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        return path;
     }
 }

@@ -67,11 +67,11 @@ public class TermQueryBuilderFactory {
     }
 
     public static PrefixQueryBuilder newPrefixQuery(String field, @NotNull String value) {
-        return prefixQuery(keywordFieldName(field), value);
+        return prefixQuery(field, value);
     }
 
     public static WildcardQueryBuilder newWildcardQuery(String field, @NotNull String value) {
-        return wildcardQuery(keywordFieldName(field), value);
+        return wildcardQuery(field, value);
     }
 
     public static TermQueryBuilder newPathQuery(String path) {
@@ -96,11 +96,11 @@ public class TermQueryBuilderFactory {
     }
 
     public static TermQueryBuilder newNodeTypeQuery(String type) {
-        return termQuery(keywordFieldName(JCR_PRIMARYTYPE), type);
+        return termQuery(JCR_PRIMARYTYPE, type);
     }
 
     public static TermQueryBuilder newMixinTypeQuery(String type) {
-        return termQuery(keywordFieldName(JCR_MIXINTYPES), type);
+        return termQuery(JCR_MIXINTYPES, type);
     }
 
     public static TermQueryBuilder newNotNullPropQuery(String propName) {
@@ -126,12 +126,9 @@ public class TermQueryBuilderFactory {
         return bq;
     }
 
-    public static <R> QueryBuilder newPropertyRestrictionQuery(String propertyName, boolean isString,
+    public static <R> QueryBuilder newPropertyRestrictionQuery(String propertyName,
                                                                Filter.PropertyRestriction pr,
                                                                Function<PropertyValue, R> propToObj) {
-        if (isString) {
-            propertyName = keywordFieldName(propertyName);
-        }
 
         R first = pr.first != null ? propToObj.apply(pr.first) : null;
         R last = pr.last != null ? propToObj.apply(pr.last) : null;
@@ -165,10 +162,5 @@ public class TermQueryBuilderFactory {
             path = "/" + path;
         }
         return path;
-    }
-
-    // As per https://www.elastic.co/blog/strings-are-dead-long-live-strings
-    private static String keywordFieldName(String propName) {
-        return propName + "." + "keyword";
     }
 }

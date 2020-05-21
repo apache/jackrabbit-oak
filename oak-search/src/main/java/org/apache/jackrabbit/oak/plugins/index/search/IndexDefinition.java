@@ -1029,6 +1029,18 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             return baseNodeType;
         }
 
+        /**
+         * Returns all the configured {@code PropertyDefinition}s for this {@code IndexRule}.
+         *
+         * In case of a pure nodetype index we just return primaryType and mixins.
+         *
+         * @return an {@code Iterable} of {@code PropertyDefinition}s.
+         * @see IndexDefinition#isPureNodeTypeIndex()
+         */
+        public Iterable<PropertyDefinition> getProperties() {
+            return propConfigs.values();
+        }
+
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
             return nullCheckEnabledProperties;
         }

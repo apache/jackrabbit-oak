@@ -47,8 +47,7 @@ public class ElasticsearchSearcher {
     public SearchResponse search(QueryBuilder query, int batchSize) throws IOException {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(query)
-                .fetchSource(false)
-                .storedField(FieldNames.PATH)
+                .fetchSource(FieldNames.PATH, null)
                 .size(batchSize);
 
         SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())

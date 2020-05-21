@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.facets;
 
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchSearcher;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.query.ElasticsearchSearcherModel;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.util.ElasticsearchAggregationBuilderUtil;
@@ -50,7 +51,8 @@ public class SecureElasticSearchFacets extends InsecureElasticSearchFacets {
     for docs.
      */
     @Override
-    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(int numberOfFacets) throws IOException {
+    public Map<String, List<FulltextIndex.Facet>> getElasticSearchFacets(ElasticsearchIndexDefinition indexDefinition,
+                                                                         int numberOfFacets) throws IOException {
         Map<String, Map<String, Long>> secureFacetCount = new HashMap<>();
         Filter filter = getPlan().getFilter();
         boolean doFetch = true;
@@ -70,7 +72,8 @@ public class SecureElasticSearchFacets extends InsecureElasticSearchFacets {
             List<String> accessibleDocs = ElasticFacetHelper.getAccessibleDocIds(searchHits, filter);
             if (accessibleDocs.isEmpty()) continue;
             QueryBuilder queryWithAccessibleDocIds = QueryBuilders.termsQuery("_id", accessibleDocs);
-            Map<String, Aggregation> accessibleDocsAggregation = getAggregationForDocIds(queryWithAccessibleDocIds, accessibleDocs.size());
+            Map<String, Aggregation> accessibleDocsAggregation = getAggregationForDocIds(queryWithAccessibleDocIds,
+                    accessibleDocs.size(), indexDefinition);
             collateAggregations(secureFacetCount, accessibleDocsAggregation);
         }
 
@@ -115,15 +118,15 @@ public class SecureElasticSearchFacets extends InsecureElasticSearchFacets {
         }
     }
 
-    private Map<String, Aggregation> getAggregationForDocIds(QueryBuilder queryWithAccessibleDocIds, int facetCount) throws IOException {
-        List<TermsAggregationBuilder> aggregationBuilders = ElasticsearchAggregationBuilderUtil.getAggregators(getPlan(), facetCount);
+    private Map<String, Aggregation> getAggregationForDocIds(QueryBuilder queryWithAccessibleDocIds, int facetCount,
+                                                             ElasticsearchIndexDefinition indexDefinition) throws IOException {
+        List<TermsAggregationBuilder> aggregationBuilders = ElasticsearchAggregationBuilderUtil.getAggregators(getPlan(), indexDefinition, facetCount);
         ElasticsearchSearcherModel idBasedelasticsearchSearcherModelWithAggregation = new ElasticsearchSearcherModel.ElasticsearchSearcherModelBuilder()
                 .withQuery(queryWithAccessibleDocIds)
                 .withAggregation(aggregationBuilders)
                 .build();
 
         SearchResponse facetDocs = getSearcher().search(idBasedelasticsearchSearcherModelWithAggregation);
-        Map<String, Aggregation> aggregationMap = facetDocs.getAggregations().asMap();
-        return aggregationMap;
+        return facetDocs.getAggregations().asMap();
     }
 }
