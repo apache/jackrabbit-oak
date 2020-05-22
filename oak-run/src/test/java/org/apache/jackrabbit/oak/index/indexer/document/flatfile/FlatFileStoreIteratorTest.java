@@ -19,11 +19,13 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -41,15 +43,17 @@ import static org.junit.Assert.fail;
 
 public class FlatFileStoreIteratorTest {
 
+    private static final File TEST_FOLDER = new File("target", "test");
+
     protected FlatFileStoreIterator newInMemoryFlatFileStore(
             Iterator<NodeStateEntry> it, Set<String> set, int memMB) {
         BlobStore blobStore = null;
-        return new FlatFileStoreIterator(blobStore, "target/test",  it, set, memMB);
+        return new FlatFileStoreIterator(blobStore, TEST_FOLDER.getPath(),  it, set, memMB);
     }
 
     protected FlatFileStoreIterator newFlatFileStore(Iterator<NodeStateEntry> it, Set<String> set) {
         BlobStore blobStore = null;
-        return new FlatFileStoreIterator(blobStore, "target/test",  it, set);
+        return new FlatFileStoreIterator(blobStore, TEST_FOLDER.getPath(),  it, set);
     }
 
     @Test
@@ -158,6 +162,9 @@ public class FlatFileStoreIteratorTest {
 
         // Don't read whole tree to conclude that "j:c" doesn't exist (reading /a/b should imply that it doesn't exist)
         assertEquals(1, fitr.getBufferSize());
+
+        // read remaining entries to trigger release of resources
+        Iterators.size(fitr);
     }
 
     @Test

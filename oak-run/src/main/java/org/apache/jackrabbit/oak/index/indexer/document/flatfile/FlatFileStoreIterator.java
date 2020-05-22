@@ -85,6 +85,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         current = computeNextEntry();
         if (current == null) {
             log.info("Max buffer size in complete traversal is [{}]", maxBufferSize);
+            buffer.close();
             return endOfData();
         } else {
             return current;
