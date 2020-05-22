@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.28.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.30.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.28.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.30.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,7 +15,7 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.28.0
+Changes in Oak 1.30.0
 ---------------------
 
 Bug
@@ -36,6 +36,8 @@ Bug
     [OAK-9038] - oak-search-mt imports org.slf4j.impl
     [OAK-9054] - Improved blob listing performance for the Azure Segment Store
     [OAK-9059] - Moving nodes doesn't remove source path(s) from HIDDEN_NESTED_CUGS
+    [OAK-9067] - Missing oak-segment-remote dependency in oak-run-commons
+    [OAK-9088] - FlatFileStoreIteratorTest fails on Windows
 
 New Feature
 
@@ -65,6 +67,9 @@ Improvement
     [OAK-9045] - Add facet support for elastic search
     [OAK-9046] - Index function string-length should index size for binary properties
     [OAK-9052] - Reindexing using --doc-traversal-mode may need a lot of memory
+    [OAK-9063] - Use a custom metadata property to manage lastModified in AzureDataStore
+    [OAK-9065] - JMX feature to remove large disabled indexes (recursive delete)
+    [OAK-9068] - Improve AWS Segment performance
 
 Task
 
@@ -85,6 +90,7 @@ Task
     [OAK-9035] - LuceneIndexEditor should extend FulltextIndexEditor
     [OAK-9044] - Improve unit test coverage of LdapProviderConfig
     [OAK-9053] - Reindexing Strategy for ES indexes
+    [OAK-9061] - oak-search-elastic: mapping consistent with index definition
 
 Documentation
 
