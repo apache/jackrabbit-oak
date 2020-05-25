@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import com.github.dockerjava.api.DockerClient;
-import com.google.common.collect.Maps;
-import com.google.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -33,15 +30,10 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.elasticsearch.Version;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.DockerClientFactory;
-import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
@@ -53,10 +45,13 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.security.Privilege;
-import java.util.List;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
-import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -72,57 +67,52 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNotNull;
 
 public class ElasticFacetTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticFacetTest.class);
     private static final String FACET_PROP = "facets";
-    private Closer closer;
-    private Session session;
+    private Session adminSession;
+    private Session anonymousSession;
     private QueryManager qe;
-    Repository repository;
     private Node indexNode;
-    private static final String TEST_INDEX = "testIndex";
     private static final int NUM_LEAF_NODES = STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
     private static final int NUM_LABELS = 4;
     private static final int NUM_LEAF_NODES_FOR_LARGE_DATASET = NUM_LEAF_NODES;
     private static final int NUM_LEAF_NODES_FOR_SMALL_DATASET = NUM_LEAF_NODES / (2 * NUM_LABELS);
-    private final Map<String, Integer> actualLabelCount = Maps.newHashMap();
-    private final Map<String, Integer> actualAclLabelCount = Maps.newHashMap();
-    private final Map<String, Integer> actualAclPar1LabelCount = Maps.newHashMap();
+    private final Map<String, Integer> actualLabelCount = new HashMap<>();
+    private final Map<String, Integer> actualAclLabelCount = new HashMap<>();
+    private final Map<String, Integer> actualAclPar1LabelCount = new HashMap<>();
 
-    @Rule
-    public final ElasticsearchContainer elastic =
-            new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT);
+    // Set this connection string as
+    // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
+    // key_id and key_secret are optional in case the ES server
+    // needs authentication
+    // Do not set this if docker is running and you want to run the tests on docker instead.
+    private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
 
-    @BeforeClass
-    public static void beforeMethod() {
-        DockerClient client = null;
-        try {
-            client = DockerClientFactory.instance().client();
-        } catch (Exception e) {
-            LOG.warn("Docker is not available, ElasticFacetTest will be skipped");
-        }
-        assumeNotNull(client);
+    @ClassRule
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+
+    /*
+    Close the ES connection after every test method execution
+     */
+    @After
+    public void cleanup() throws IOException {
+        anonymousSession.logout();
+        adminSession.logout();
+        elasticRule.closeElasticConnection();
     }
 
     @Before
     public void setup() throws Exception {
-        closer = Closer.create();
         createRepository();
-        createIndex();
-        indexNode = session.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode(TEST_INDEX);
+        final String indexName = createIndex();
+        indexNode = adminSession.getRootNode().getNode(INDEX_DEFINITIONS_NAME).getNode(indexName);
     }
 
     private void createRepository() throws RepositoryException {
-        ElasticConnection connection = ElasticConnection.newBuilder()
-                .withIndexPrefix("" + System.nanoTime())
-                .withConnectionParameters(
-                        ElasticConnection.DEFAULT_SCHEME,
-                        elastic.getContainerIpAddress(),
-                        elastic.getMappedPort(ElasticConnection.DEFAULT_PORT)
-                ).build();
+        ElasticConnection connection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
+                elasticRule.getElasticConnectionFromString();
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(connection);
@@ -133,17 +123,16 @@ public class ElasticFacetTest {
                 .with(indexProvider);
 
         Jcr jcr = new Jcr(oak);
-        repository = jcr.createRepository();
+        Repository repository = jcr.createRepository();
 
-        session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
-        closer.register(session::logout);
+        adminSession = repository.login(new SimpleCredentials("admin", "admin".toCharArray()), null);
 
         // we'd always query anonymously
-        Session anonSession = repository.login(new GuestCredentials(), null);
-        anonSession.refresh(true);
-        anonSession.save();
-        closer.register(anonSession::logout);
-        qe = anonSession.getWorkspace().getQueryManager();
+        anonymousSession = repository.login(new GuestCredentials(), null);
+        anonymousSession.refresh(true);
+        anonymousSession.save();
+
+        qe = anonymousSession.getWorkspace().getQueryManager();
     }
 
     private class IndexSkeleton {
@@ -159,19 +148,21 @@ public class ElasticFacetTest {
             indexRule = indexDefinitionBuilder.indexRule(nodeType);
         }
 
-        void build() throws RepositoryException {
-            indexDefinitionBuilder.build(session.getRootNode().getNode(INDEX_DEFINITIONS_NAME).addNode(TEST_INDEX));
+        String build() throws RepositoryException {
+            final String indexName = UUID.randomUUID().toString();
+            indexDefinitionBuilder.build(adminSession.getRootNode().getNode(INDEX_DEFINITIONS_NAME).addNode(indexName));
+            return indexName;
         }
     }
 
-    private void createIndex() throws RepositoryException {
+    private String createIndex() throws RepositoryException {
         IndexSkeleton indexSkeleton = new IndexSkeleton();
         indexSkeleton.initialize();
         indexSkeleton.indexDefinitionBuilder.noAsync();
         indexSkeleton.indexRule.property("cons").propertyIndex();
         indexSkeleton.indexRule.property("foo").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
         indexSkeleton.indexRule.property("bar").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
-        indexSkeleton.build();
+        return indexSkeleton.build();
     }
 
     private void createDataset(int numberOfLeafNodes) throws RepositoryException {
@@ -185,7 +176,7 @@ public class ElasticFacetTest {
         int[] baraclLabelCount = new int[NUM_LABELS];
         int[] baraclPar1LabelCount = new int[NUM_LABELS];
 
-        Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", session));
+        Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
 
         for (int i = 0; i < NUM_LABELS; i++) {
             Node subPar = par.addNode("par" + i);
@@ -215,7 +206,7 @@ public class ElasticFacetTest {
                 deny(subPar);
             }
         }
-        session.save();
+        adminSession.save();
         for (int i = 0; i < foolabelCount.length; i++) {
             actualLabelCount.put("l" + i, foolabelCount[i]);
             actualLabelCount.put("m" + i, barlabelCount[i]);
@@ -236,18 +227,18 @@ public class ElasticFacetTest {
     @Test
     public void secureFacets_withOneLabelInaccessible() throws Exception {
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        Node inaccessibleChild = deny(session.getNode("/parent").addNode("par4")).addNode("c0");
+        Node inaccessibleChild = deny(adminSession.getNode("/parent").addNode("par4")).addNode("c0");
         inaccessibleChild.setProperty("cons", "val");
         inaccessibleChild.setProperty("foo", "l4");
-        session.save();
+        adminSession.save();
         assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
     }
 
     @Test
     public void insecureFacets() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_INSECURE);
-        session.save();
+        adminSession.save();
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
         assertEventually(() -> assertEquals(actualLabelCount, getFacets()));
@@ -255,10 +246,10 @@ public class ElasticFacetTest {
 
     @Test
     public void statisticalFacets() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         facetConfig.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 3000);
-        session.save();
+        adminSession.save();
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
 
@@ -278,10 +269,10 @@ public class ElasticFacetTest {
 
     @Test
     public void statisticalFacetsWithHitCountLessThanSampleSize() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
-        session.save();
+        adminSession.save();
 
         createDataset(NUM_LEAF_NODES_FOR_SMALL_DATASET);
 
@@ -294,10 +285,10 @@ public class ElasticFacetTest {
 
     @Test
     public void statisticalFacets_withHitCountSameAsSampleSize() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
-        session.save();
+        adminSession.save();
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
 
@@ -318,16 +309,16 @@ public class ElasticFacetTest {
 
     @Test
     public void statisticalFacets_withOneLabelInaccessible() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
-        session.save();
+        adminSession.save();
 
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        Node inaccessibleChild = deny(session.getNode("/parent").addNode("par4")).addNode("c0");
+        Node inaccessibleChild = deny(adminSession.getNode("/parent").addNode("par4")).addNode("c0");
         inaccessibleChild.setProperty("cons", "val");
         inaccessibleChild.setProperty("foo", "l4");
-        session.save();
+        adminSession.save();
         assertEventually(() -> {
             Map<String, Integer> facets = getFacets();
             assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
@@ -348,23 +339,23 @@ public class ElasticFacetTest {
 
     @Test
     public void secureFacets_withAdminSession() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_INSECURE);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
-        session.save();
+        adminSession.save();
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        qe = session.getWorkspace().getQueryManager();
+        qe = adminSession.getWorkspace().getQueryManager();
         assertEventually(() -> assertEquals(actualLabelCount, getFacets()));
     }
 
     @Test
     public void statisticalFacets_withAdminSession() throws Exception {
-        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+        Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", adminSession);
         facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
         indexNode.setProperty(PROP_REFRESH_DEFN, true);
-        session.save();
+        adminSession.save();
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        qe = session.getWorkspace().getQueryManager();
+        qe = adminSession.getWorkspace().getQueryManager();
         assertEventually(() -> {
             Map<String, Integer> facets = getFacets();
             assertEquals("Unexpected number of facets", actualLabelCount.size(), facets.size());
@@ -397,8 +388,6 @@ public class ElasticFacetTest {
     }
 
     private Map<String, Integer> getFacets(String path) {
-        Map<String, Integer> map = Maps.newHashMap();
-
         String pathCons = "";
         if (path != null) {
             pathCons = " AND ISDESCENDANTNODE('" + path + "')";
@@ -414,15 +403,10 @@ public class ElasticFacetTest {
         }
         FacetResult facetResult = new FacetResult(queryResult);
 
-        Set<String> dims = facetResult.getDimensions();
-        for (String dim : dims) {
-            List<FacetResult.Facet> facets = facetResult.getFacets(dim);
-            for (FacetResult.Facet facet : facets) {
-                map.put(facet.getLabel(), facet.getCount());
-            }
-        }
-
-        return map;
+        return facetResult.getDimensions()
+                .stream()
+                .flatMap(dim -> Objects.requireNonNull(facetResult.getFacets(dim)).stream())
+                .collect(Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
     }
 
     private static void assertEventually(Runnable r) {
