@@ -35,7 +35,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import java.util.List;
-import java.util.UUID;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
@@ -582,7 +581,7 @@ public class TreeUtilTest extends AbstractTreeTest {
 
     @Test
     public void testAutoCreatePropertyFromDefaultValues() {
-        PropertyState defaultSingleValue = PropertyStates.createProperty(JCR_DEFAULTVALUES, ImmutableList.of(Long.valueOf(34)), Type.LONGS);
+        PropertyState defaultSingleValue = PropertyStates.createProperty(JCR_DEFAULTVALUES, ImmutableList.of(34L), Type.LONGS);
         when(propDef.getProperty(JCR_DEFAULTVALUES)).thenReturn(defaultSingleValue);
         when(propDef.getProperty(JCR_MULTIPLE)).thenReturn(PropertyStates.createProperty(JCR_MULTIPLE, false));
 
