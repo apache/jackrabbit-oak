@@ -229,7 +229,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             }
             cache.put(key, cached);
         } catch (IOException e) {
-            LOG.error("Exception adding id [{}] with file [{}] to cache", key, file);
+            LOG.error("Exception adding id [{}] with file [{}] to cache, root cause: {}", key, file, e.getMessage());
+            LOG.debug("Root cause", e);
         }
     }
 
