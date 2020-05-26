@@ -92,7 +92,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
     private static NodeState mockNodeState(@NotNull NodeState ace) {
         NodeState nodeState = mock(NodeState.class);
         when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(ImmutableSet.of("c1"));
-        when(nodeState.getChildNodeCount(anyLong())).thenReturn(Long.valueOf(1));
+        when(nodeState.getChildNodeCount(anyLong())).thenReturn(1L);
         when(nodeState.getChildNodeNames()).thenReturn(ImmutableSet.of("c1"));
         when(nodeState.getChildNode(anyString())).thenReturn(ace);
         return nodeState;
@@ -124,7 +124,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         NodeState nodeState = mock(NodeState.class);
         when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(ImmutableSet.of("c1", "c2"));
-        when(nodeState.getChildNodeCount(anyLong())).thenReturn(Long.valueOf(3));
+        when(nodeState.getChildNodeCount(anyLong())).thenReturn(3L);
         when(nodeState.getChildNodeNames()).thenReturn(ImmutableSet.of("c1", "c2", "c3"));
         when(nodeState.getChildNode(anyString())).thenReturn(ace);
 
@@ -234,7 +234,7 @@ public class PermissionStoreEditorTest extends AbstractSecurityTest {
 
         NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
         when(principalRoot.isNew()).thenReturn(true);
-        when(principalRoot.getProperty(REP_NUM_PERMISSIONS)).thenReturn(PropertyStates.createProperty(REP_NUM_PERMISSIONS, Long.valueOf(0), Type.LONG));
+        when(principalRoot.getProperty(REP_NUM_PERMISSIONS)).thenReturn(PropertyStates.createProperty(REP_NUM_PERMISSIONS, 0L, Type.LONG));
 
         NodeBuilder permissionsRoot = mock(NodeBuilder.class);
         when(permissionsRoot.hasChildNode(PRINCIPAL_NAME)).thenReturn(true);
