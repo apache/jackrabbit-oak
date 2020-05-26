@@ -88,14 +88,14 @@ public class PersistedLinkedList implements NodeStateEntryList {
         String s = writer.toString(item);
         map.put(tailIndex++, s);
         size++;
-        long now = System.currentTimeMillis();
-        boolean compactNow = now >= lastCompact + compactStoreMillis;
         long sizeBytes = store.getFileStore().size();
-        if (compactNow || now >= lastLog + 10000) {
+        long now = System.currentTimeMillis();
+        if (now >= lastLog + 10000) {
             LOG.info("Entries: " + size + " map size: " + map.sizeAsLong() + " file size: "
                     + sizeBytes + " bytes");
             lastLog = now;
         }
+        boolean compactNow = now >= lastCompact + compactStoreMillis;
         if (compactNow && sizeBytes > 10L * 1000 * 1000) {
             // compact once a minute, if larger than 10 MB
             LOG.info("Compacting...");
