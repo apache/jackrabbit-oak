@@ -80,7 +80,7 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
         RepositoryPermission rp = permissionProvider.getRepositoryPermission();
         Field f = rp.getClass().getDeclaredField("grantedPermissions");
         f.setAccessible(true);
-        assertEquals(Long.valueOf(-1), f.get(rp));
+        assertEquals((long) -1, f.get(rp));
 
         // force evaluation
         rp.isGranted(NAMESPACE_MANAGEMENT);
@@ -88,7 +88,7 @@ public class RepositoryPermissionTest extends AbstractPrincipalBasedTest {
 
         // reset permission provider
         permissionProvider.refresh();
-        assertEquals(Long.valueOf(-1), f.get(rp));
+        assertEquals((long) -1, f.get(rp));
     }
 
     @Test
