@@ -1232,7 +1232,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
         assertEquals(PropertyType.LONG, v.getType());
         assertEquals(Long.MAX_VALUE, v.getLong());
 
-        v = syncCtx.createValue(Integer.valueOf(23));
+        v = syncCtx.createValue(23);
         assertNotNull(v);
         assertEquals(PropertyType.LONG, v.getType());
         assertEquals(23, v.getLong());
@@ -1250,7 +1250,7 @@ public class DefaultSyncContextTest extends AbstractExternalAuthTest {
 
     @Test
     public void testCreateValueDouble() throws Exception {
-        Value v = syncCtx.createValue(Double.valueOf(1.1));
+        Value v = syncCtx.createValue(1.1);
         assertNotNull(v);
         assertEquals(PropertyType.DOUBLE, v.getType());
         assertEquals(1.1, v.getDouble(), 0);

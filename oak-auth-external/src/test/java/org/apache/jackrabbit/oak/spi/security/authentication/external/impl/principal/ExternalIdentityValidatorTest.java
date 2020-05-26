@@ -179,7 +179,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
 
         java.util.Map<Type, Object> valMap = ImmutableMap.<Type, Object>of(
                 Type.BOOLEANS, ImmutableSet.of(Boolean.TRUE),
-                Type.LONGS, ImmutableSet.of(new Long(1234)),
+                Type.LONGS, ImmutableSet.of(1234L),
                 Type.NAMES, ImmutableSet.of("id", "id2")
         );
         for (Type t : valMap.keySet()) {
@@ -252,7 +252,7 @@ public class ExternalIdentityValidatorTest extends ExternalLoginTestBase {
 
         java.util.Map<Type, Object> valMap = ImmutableMap.<Type, Object>of(
                 Type.BOOLEAN, Boolean.TRUE,
-                Type.LONG, new Long(1234),
+                Type.LONG, 1234L,
                 Type.NAME, "id"
         );
         for (Type t : valMap.keySet()) {
