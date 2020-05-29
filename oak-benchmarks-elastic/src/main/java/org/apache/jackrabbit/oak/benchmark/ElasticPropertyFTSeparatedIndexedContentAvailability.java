@@ -46,7 +46,8 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
 
     private String currentFixtureName;
     private ElasticConnection coordinate;
-    private String ELASTIC_GLOBAL_INDEX;
+    private String elasticGlobalIndexName;
+    private String elasticTitleIndexName;
 
     ElasticPropertyFTSeparatedIndexedContentAvailability(final File dump,
                                                                 final boolean flat,
@@ -68,7 +69,8 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
-        ELASTIC_GLOBAL_INDEX = TestHelper.getUniqueIndexName("elasticGlobal");
+        elasticGlobalIndexName = TestHelper.getUniqueIndexName("elasticGlobal");
+        elasticTitleIndexName = TestHelper.getUniqueIndexName("elasticTitle");
         if (fixture instanceof OakRepositoryFixture) {
             currentFixtureName = fixture.toString();
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
@@ -79,9 +81,9 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
                     ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate);
                     oak.with(editorProvider)
                             .with(indexProvider)
-                            .with((new ElasticGlobalInitializer(ELASTIC_GLOBAL_INDEX, storageEnabled)).async("fulltext-async"))
+                            .with((new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled)).async("fulltext-async"))
                                     // the WikipediaImporter set a property `title`
-                            .with(new FullTextPropertyInitialiser(TestHelper.getUniqueIndexName("elasticTitle"), of("title"),
+                            .with(new FullTextPropertyInitialiser(elasticTitleIndexName, of("title"),
                                     ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
                             .withAsyncIndexing("async", 5)
                             .withAsyncIndexing("fulltext-async", 5);
@@ -90,6 +92,13 @@ public class ElasticPropertyFTSeparatedIndexedContentAvailability extends Proper
             });
         }
         return super.createRepository(fixture);
+    }
+
+    @Override
+    protected void afterSuite() throws Exception {
+        super.afterSuite();
+        TestHelper.cleanupRemoteElastic(coordinate, elasticGlobalIndexName);
+        TestHelper.cleanupRemoteElastic(coordinate, elasticTitleIndexName);
     }
 
 }

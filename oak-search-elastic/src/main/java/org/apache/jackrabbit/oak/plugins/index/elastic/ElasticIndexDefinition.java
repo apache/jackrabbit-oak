@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -29,12 +28,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
-import static org.elasticsearch.common.Strings.INVALID_FILENAME_CHARS;
 
 public class ElasticIndexDefinition extends IndexDefinition {
 
@@ -54,13 +51,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public static final String BULK_RETRIES_BACKOFF = "bulkRetriesBackoff";
     public static final long BULK_RETRIES_BACKOFF_DEFAULT = 200;
-
-    private static final int MAX_NAME_LENGTH = 255;
-
-    private static final String INVALID_CHARS_REGEX = Pattern.quote(INVALID_FILENAME_CHARS
-            .stream()
-            .map(Object::toString)
-            .collect(Collectors.joining("")));
 
     private static final Function<Integer, Boolean> isAnalyzable;
 
@@ -89,8 +79,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
         boolean isReindex = defn.getBoolean(IndexConstants.REINDEX_PROPERTY_NAME);
         String indexSuffix = "-" + (getReindexCount() + (isReindex ? 1 : 0));
         this.indexPrefix = indexPrefix != null ? indexPrefix : "";
-        this.remoteAlias = setupAlias();
-        this.remoteIndexName = getElasticSafeIndexName(this.remoteAlias + indexSuffix);
+        this.remoteAlias = ElasticIndexNameHelper.getIndexAlias(indexPrefix, getIndexPath());
+        this.remoteIndexName = ElasticIndexNameHelper.getElasticSafeIndexName(this.remoteAlias + indexSuffix);
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
@@ -150,42 +140,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {
         return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed || pd.fulltextEnabled());
-    }
-
-    private String setupAlias() {
-        // TODO: implement advanced remote index name strategy that takes into account multiple tenants and re-index process
-        return getElasticSafeIndexName(indexPrefix + "." + getIndexPath());
-    }
-
-    /**
-     * <ul>
-     *     <li>abc -> abc</li>
-     *     <li>xy:abc -> xyabc</li>
-     *     <li>/oak:index/abc -> abc</li>
-     * </ul>
-     * <p>
-     * The resulting file name would be truncated to MAX_NAME_LENGTH
-     */
-    private static String getElasticSafeIndexName(String indexPath) {
-        String name = StreamSupport
-                .stream(PathUtils.elements(indexPath).spliterator(), false)
-                .limit(3) //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
-                .filter(p -> !"oak:index".equals(p))
-                .map(ElasticIndexDefinition::getElasticSafeName)
-                .collect(Collectors.joining("_"));
-
-        if (name.length() > MAX_NAME_LENGTH) {
-            name = name.substring(0, MAX_NAME_LENGTH);
-        }
-        return name;
-    }
-
-    /**
-     * Convert {@code e} to Elasticsearch safe index name.
-     * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
-     */
-    private static String getElasticSafeName(String suggestedIndexName) {
-        return suggestedIndexName.replaceAll(INVALID_CHARS_REGEX, "").toLowerCase();
     }
 
     /**

@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvide
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
-
 import javax.jcr.Repository;
 import java.io.File;
 
@@ -42,6 +41,7 @@ import static com.google.common.collect.ImmutableSet.of;
 public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
 
     private ElasticConnection coordinate;
+    private String indexName;
 
     ElasticFullTextWithoutGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
@@ -50,6 +50,7 @@ public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
+        indexName = TestHelper.getUniqueIndexName("elasticText");
         if (fixture instanceof OakRepositoryFixture) {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
@@ -61,12 +62,19 @@ public class ElasticFullTextWithoutGlobalIndexSearchTest extends SearchTest {
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser(TestHelper.getUniqueIndexName("elasticText"), of("text"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser(indexName, of("text"),
                                     ElasticIndexDefinition.TYPE_ELASTICSEARCH).nodeScope().analyzed());
                     return new Jcr(oak);
                 }
             });
         }
         return super.createRepository(fixture);
+
+    }
+
+    @Override
+    protected void afterSuite() throws Exception {
+        super.afterSuite();
+        TestHelper.cleanupRemoteElastic(coordinate, indexName);
     }
 }

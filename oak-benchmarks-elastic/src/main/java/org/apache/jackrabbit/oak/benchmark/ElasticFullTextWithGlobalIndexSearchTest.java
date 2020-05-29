@@ -41,7 +41,7 @@ import java.io.File;
 public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
 
     private ElasticConnection coordinate;
-    private String ELASTIC_GLOBAL_INDEX;
+    private String elasticGlobalIndexName;
 
     ElasticFullTextWithGlobalIndexSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
@@ -50,7 +50,7 @@ public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
-        ELASTIC_GLOBAL_INDEX = TestHelper.getUniqueIndexName("elasticGlobal");
+        elasticGlobalIndexName = TestHelper.getUniqueIndexName("elasticGlobal");
         if (fixture instanceof OakRepositoryFixture) {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
@@ -62,13 +62,19 @@ public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
-                            .with(new ElasticGlobalInitializer(ELASTIC_GLOBAL_INDEX, storageEnabled))
+                            .with(new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled))
                             .with(new UUIDInitializer());
                     return new Jcr(oak);
                 }
             });
         }
         return super.createRepository(fixture);
+    }
+
+    @Override
+    protected void afterSuite() throws Exception {
+        super.afterSuite();
+        TestHelper.cleanupRemoteElastic(coordinate, elasticGlobalIndexName);
     }
 
 }

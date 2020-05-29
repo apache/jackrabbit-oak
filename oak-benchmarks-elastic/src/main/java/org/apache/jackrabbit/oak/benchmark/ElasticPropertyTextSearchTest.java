@@ -43,6 +43,7 @@ import static com.google.common.collect.ImmutableSet.of;
 public class ElasticPropertyTextSearchTest extends SearchTest {
 
     private ElasticConnection coordinate;
+    private String indexName;
 
     ElasticPropertyTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled, ElasticConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
@@ -66,6 +67,7 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
 
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
+        indexName = TestHelper.getUniqueIndexName("elasticTitle");
         if (fixture instanceof OakRepositoryFixture) {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
@@ -77,12 +79,18 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
                             .with(indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
-                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser(TestHelper.getUniqueIndexName("elasticTitle"), of("title"),
+                            .with(new PropertyFullTextTest.FullTextPropertyInitialiser(indexName, of("title"),
                                     ElasticIndexDefinition.TYPE_ELASTICSEARCH));
                     return new Jcr(oak);
                 }
             });
         }
         return super.createRepository(fixture);
+    }
+
+    @Override
+    protected void afterSuite() throws Exception {
+        super.afterSuite();
+        TestHelper.cleanupRemoteElastic(coordinate, indexName);
     }
 }
