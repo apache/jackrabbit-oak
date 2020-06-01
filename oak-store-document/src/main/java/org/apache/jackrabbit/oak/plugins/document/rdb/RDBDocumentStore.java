@@ -2128,7 +2128,8 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static void continueIfStringOverflow(SQLException ex) throws SQLException {
         String state = ex.getSQLState();
-        if ("22001".equals(state) /* everybody */|| ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */) {
+        if ("22001".equals(state) /* everybody */|| ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */
+        		|| ("S0001".equals(state) && 2628 == ex.getErrorCode()) /* MSSQL update*/) {
             // ok
         } else {
             throw (ex);
