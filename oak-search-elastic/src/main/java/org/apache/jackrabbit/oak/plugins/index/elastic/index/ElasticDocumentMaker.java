@@ -93,7 +93,8 @@ class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
     @Override
     protected void indexAnalyzedProperty(ElasticDocument doc, String pname, String value, PropertyDefinition pd) {
-        doc.addProperty(FieldNames.createAnalyzedFieldName(pname), value);
+        // no need to do anything here. Analyzed properties are persisted in Elastic
+        // using multi fields. The analyzed properties are set calling #indexTypedProperty
     }
 
     @Override

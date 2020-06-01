@@ -80,7 +80,6 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPropertyRestrictionQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardPathQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardQuery;
-import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.isNodePath;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
@@ -426,19 +425,8 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
             return FieldNames.FULLTEXT;
         }
 
-        if (isNodePath(p)) {
-            if (pr.isPathTransformed()) {
-                p = PathUtils.getName(p);
-            } else {
-                //Get rid of /* as aggregated fulltext field name is the
-                //node relative path
-                p = FieldNames.createFulltextFieldName(PathUtils.getParentPath(p));
-            }
-        } else {
-            if (pr.isPathTransformed()) {
-                p = PathUtils.getName(p);
-            }
-            p = FieldNames.createAnalyzedFieldName(p);
+        if (pr.isPathTransformed()) {
+            p = PathUtils.getName(p);
         }
 
         if ("*".equals(p)) {

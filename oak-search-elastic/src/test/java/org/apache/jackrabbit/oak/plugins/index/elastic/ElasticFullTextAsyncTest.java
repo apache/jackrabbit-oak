@@ -45,8 +45,9 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
 
         test.addChild("a").setProperty("propa", "Hello World!");
-        test.addChild("c").setProperty("propa", "Hello everyone. This is an elastic test");
         test.addChild("b").setProperty("propa", "Simple test");
+        test.addChild("c").setProperty("propa", "Hello everyone. This is an elastic test");
+        test.addChild("d").setProperty("propa", "howdy! hello again");
         root.commit();
 		// Wait for DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS
 		// This is needed in addition to assertEventually to make the 
@@ -59,9 +60,8 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             assertThat(explain(query, XPATH), containsString("elasticsearch:test1"));
-            assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/c"));
+            assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/c", "/test/d"));
         });
-
     }
 
 }
