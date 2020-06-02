@@ -232,4 +232,23 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
             assertEquals(NUM_DOCS, ids.size());
         }
     }
+
+    @Test
+    public void testAppendStringColumnLimit() {
+        if (ds instanceof RDBDocumentStore) {
+            String id = this.getClass().getName() + ".testAppendStringColumnLimit";
+            UpdateOp up = new UpdateOp(id, true);
+            assertTrue(ds.create(Collection.NODES, Collections.singletonList(up)));
+            removeMe.add(id);
+            int count = 1;
+            long duration = 1000;
+            long end = System.currentTimeMillis() + duration;
+            while (System.currentTimeMillis() < end) {
+                UpdateOp op = new UpdateOp(id, false);
+                String value = generateString(512, true);
+                op.set("foo-" + count++, value);
+                assertNotNull(ds.findAndUpdate(NODES, op));
+            }
+        }
+    }
 }
