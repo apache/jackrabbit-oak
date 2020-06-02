@@ -2104,7 +2104,7 @@ public class RDBDocumentStore implements DocumentStore {
             if (!success && shouldRetry) {
                 data = ser.asString(document, tmd.getColumnOnlyProperties());
                 Object m = document.get(MODIFIED);
-                long modified = (m instanceof Long) ? ((Long)m).longValue() : 0;
+                long modified = (m instanceof Long) ? (Long) m : 0;
                 success = db.update(connection, tmd, document.getId(), modified, hasBinary, deletedOnce, modcount, cmodcount,
                         oldmodcount, data);
                 connection.commit();
@@ -2320,7 +2320,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static long modifiedOf(@NotNull Document doc) {
         Object l = doc.get(NodeDocument.MODIFIED_IN_SECS);
-        return (l instanceof Long) ? ((Long)l).longValue() : -1;
+        return (l instanceof Long) ? (Long) l : -1;
     }
 
     @NotNull
@@ -2370,7 +2370,7 @@ public class RDBDocumentStore implements DocumentStore {
         if (collection == Collection.CLUSTER_NODES) {
             synchronized (this) {
                 Long old = cnUpdates.get(key);
-                old = old == null ? Long.valueOf(1) : old + 1;
+                old = old == null ? 1L : old + 1;
                 cnUpdates.put(key, old);
             }
         }

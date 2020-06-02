@@ -360,13 +360,13 @@ public class RDBExport {
     @Nullable
     private static Boolean readBooleanOrNullFromResultSet(ResultSet res, String field) throws SQLException {
         long v = res.getLong(field);
-        return res.wasNull() ? null : Boolean.valueOf(v != 0);
+        return res.wasNull() ? null : v != 0;
     }
 
     @Nullable
     private static Long readLongOrNullFromResultSet(ResultSet res, String field) throws SQLException {
         long v = res.getLong(field);
-        return res.wasNull() ? null : Long.valueOf(v);
+        return res.wasNull() ? null : v;
     }
 
     @NotNull
