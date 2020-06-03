@@ -49,7 +49,10 @@ public class LuceneBenchmarkRunner extends BenchmarkRunner {
                         new LucenePropertySearchTest(benchmarkOptions.getWikipedia().value(options),
                                 benchmarkOptions.getFlatStructure().value(options),
                                 benchmarkOptions.getReport().value(options),
-                                benchmarkOptions.getWithStorage().value(options))
+                                benchmarkOptions.getWithStorage().value(options)),
+                        new LuceneFacetSearchTest(benchmarkOptions.getWithStorage().value(options)),
+                        new LuceneInsecureFacetSearchTest(benchmarkOptions.getWithStorage().value(options)),
+                        new LuceneStatisticalFacetSearchTest(benchmarkOptions.getWithStorage().value(options))
                 )
         );
 

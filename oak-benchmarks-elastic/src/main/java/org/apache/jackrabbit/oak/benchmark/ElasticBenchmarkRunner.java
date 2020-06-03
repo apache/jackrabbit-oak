@@ -74,7 +74,11 @@ public class ElasticBenchmarkRunner extends BenchmarkRunner {
                                     benchmarkOptions.getFlatStructure().value(options),
                                     benchmarkOptions.getReport().value(options),
                                     benchmarkOptions.getWithStorage().value(options),
-                                    connection)
+                                    connection),
+                            new ElasticFacetSearchTest(benchmarkOptions.getWithStorage().value(options), connection),
+                            new ElasticInsecureFacetSearchTest(benchmarkOptions.getWithStorage().value(options), connection),
+                            new ElasticStatisticalFacetSearchTest(benchmarkOptions.getWithStorage().value(options), connection)
+
                     )
             );
             BenchmarkRunner.main(args);
