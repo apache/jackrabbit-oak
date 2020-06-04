@@ -85,7 +85,7 @@ public class RDBDocumentStoreJDBC {
     private final RDBDocumentSerializer ser;
     private final int queryHitsLimit, queryTimeLimit;
 
-    private static final Long INITIALMODCOUNT = 1L;
+    private static final Long INITIALMODCOUNT = Long.valueOf(1);
     
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
@@ -1095,13 +1095,13 @@ public class RDBDocumentStoreJDBC {
     @Nullable
     private static Boolean readBooleanOrNullFromResultSet(ResultSet res, int index) throws SQLException {
         long v = res.getLong(index);
-        return res.wasNull() ? null : v != 0;
+        return res.wasNull() ? null : Boolean.valueOf(v != 0);
     }
 
     @Nullable
     private static Long readLongOrNullFromResultSet(ResultSet res, int index) throws SQLException {
         long v = res.getLong(index);
-        return res.wasNull() ? null : v;
+        return res.wasNull() ? null : Long.valueOf(v);
     }
 
     private static final Integer INT_FALSE = 0;
@@ -1109,7 +1109,7 @@ public class RDBDocumentStoreJDBC {
 
     @Nullable
     private static Integer deletedOnceAsNullOrInteger(Boolean b) {
-        return b == null ? null : (b ? INT_TRUE : INT_FALSE);
+        return b == null ? null : (b.booleanValue() ? INT_TRUE : INT_FALSE);
     }
 
     @Nullable

@@ -42,18 +42,18 @@ public class SystemPropertySupplierTest {
     @Test
     public void testInteger() {
         assertEquals(Integer.valueOf(123),
-                SystemPropertySupplier.create("foo", 123).usingSystemPropertyReader((n) -> null).get());
+                SystemPropertySupplier.create("foo", Integer.valueOf(123)).usingSystemPropertyReader((n) -> null).get());
         assertEquals(Integer.valueOf(1742),
-                SystemPropertySupplier.create("foo", 123).usingSystemPropertyReader((n) -> "1742").get());
+                SystemPropertySupplier.create("foo", Integer.valueOf(123)).usingSystemPropertyReader((n) -> "1742").get());
     }
 
     @Test
     public void testLong() {
         long big = Long.MAX_VALUE;
         assertEquals(Long.valueOf(big),
-                SystemPropertySupplier.create("foo", big).usingSystemPropertyReader((n) -> null).get());
+                SystemPropertySupplier.create("foo", Long.valueOf(big)).usingSystemPropertyReader((n) -> null).get());
         assertEquals(Long.valueOf(1742),
-                SystemPropertySupplier.create("foo", big).usingSystemPropertyReader((n) -> "1742").get());
+                SystemPropertySupplier.create("foo", Long.valueOf(big)).usingSystemPropertyReader((n) -> "1742").get());
     }
 
     @Test
@@ -69,7 +69,7 @@ public class SystemPropertySupplierTest {
         logCustomizer.starting();
 
         try {
-            int positive = SystemPropertySupplier.create("foo", 123).loggingTo(LOG)
+            int positive = SystemPropertySupplier.create("foo", Integer.valueOf(123)).loggingTo(LOG)
                     .usingSystemPropertyReader((n) -> "-1").validateWith(n -> n >= 0).get();
             assertEquals(123, positive);
             assertEquals(1, logCustomizer.getLogs().size());
@@ -85,7 +85,7 @@ public class SystemPropertySupplierTest {
         logCustomizer.starting();
 
         try {
-            int positive = SystemPropertySupplier.create("foo", 123).loggingTo(LOG)
+            int positive = SystemPropertySupplier.create("foo", Integer.valueOf(123)).loggingTo(LOG)
                     .usingSystemPropertyReader((n) -> "abc").validateWith(n -> n >= 0).get();
             assertEquals(123, positive);
             assertEquals(1, logCustomizer.getLogs().size());
@@ -102,7 +102,7 @@ public class SystemPropertySupplierTest {
         logCustomizer.starting();
 
         try {
-            int positive = SystemPropertySupplier.create("foo", 123).loggingTo(local)
+            int positive = SystemPropertySupplier.create("foo", Integer.valueOf(123)).loggingTo(local)
                     .usingSystemPropertyReader((n) -> "4217").get();
             assertEquals(4217, positive);
             assertEquals(2, logCustomizer.getLogs().size());

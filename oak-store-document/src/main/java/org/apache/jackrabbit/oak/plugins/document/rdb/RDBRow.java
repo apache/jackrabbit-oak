@@ -43,12 +43,12 @@ public class RDBRow {
         this.id = id;
         this.hasBinaryProperties = hasBinaryProperties;
         this.deletedOnce = deletedOnce;
-        this.modified = modified != null ? modified : LONG_UNSET;
-        this.modcount = modcount != null ? modcount : LONG_UNSET;
-        this.cmodcount = cmodcount != null ? cmodcount : LONG_UNSET;
-        this.schemaVersion = schemaVersion != null ? schemaVersion : LONG_UNSET;
-        this.sdType = sdType != null ? sdType : LONG_UNSET;
-        this.sdMaxRevTime = sdMaxRevTime != null ? sdMaxRevTime : LONG_UNSET;
+        this.modified = modified != null ? modified.longValue() : LONG_UNSET;
+        this.modcount = modcount != null ? modcount.longValue() : LONG_UNSET;
+        this.cmodcount = cmodcount != null ? cmodcount.longValue() : LONG_UNSET;
+        this.schemaVersion = schemaVersion != null ? schemaVersion.longValue() : LONG_UNSET;
+        this.sdType = sdType != null ? sdType.longValue() : LONG_UNSET;
+        this.sdMaxRevTime = sdMaxRevTime != null ? sdMaxRevTime.longValue() : LONG_UNSET;
         this.data = data;
         this.bdata = bdata;
     }
