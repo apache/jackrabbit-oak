@@ -97,6 +97,28 @@ public class MapRecord extends Record {
      */
     protected static final int MAX_SIZE = (1 << SIZE_BITS) - 1; // ~268e6
 
+    /**
+     * Going over this limit will generate a warning message in the log
+     */
+    protected static final int WARN_SIZE = 400_000_000;
+
+    /**
+     * Going over this limit will generate an error message in the log
+     */
+    protected static final int ERROR_SIZE = 450_000_000;
+
+    /**
+     * Going over this limit will generate an error message in the log and won't allow writes
+     * unless <code>oak.segmentNodeStore.allowWritesOnHugeMapRecord</code> system property is set.
+     */
+    protected static final int ERROR_SIZE_DISCARD_WRITES = 500_000_000;
+
+    /**
+     * Going over this limit will generate an error message in the log and won't allow any writes
+     * whatsoever. Moreover {@link UnsupportedOperationException} will be thrown.
+     */
+    protected static final int ERROR_SIZE_HARD_STOP = 536_000_000;
+
     MapRecord(@NotNull SegmentReader reader, @NotNull RecordId id) {
         super(id);
         this.reader = checkNotNull(reader);
@@ -180,7 +202,7 @@ public class MapRecord extends Record {
         int level = getLevel(head);
         if (isBranch(size, level)) {
             // this is an intermediate branch record
-            // check if a matching bucket exists, and recurse 
+            // check if a matching bucket exists, and recurse
             int bitmap = segment.readInt(getRecordNumber(), 4);
             int mask = (1 << BITS_PER_LEVEL) - 1;
             int shift = 32 - (level + 1) * BITS_PER_LEVEL;
