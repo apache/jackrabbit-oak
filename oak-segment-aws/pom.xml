@@ -106,7 +106,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <argLine>-Dsqlite4java.library.path=${project.build.directory}/dependencies</argLine>
+                    <argLine>-Dsqlite4java.library.path="${project.build.directory}/dependencies"</argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -114,7 +114,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M4</version>
                 <configuration>
-                    <argLine>-Dsqlite4java.library.path=${project.build.directory}/dependencies</argLine>
+                    <argLine>-Dsqlite4java.library.path="${project.build.directory}/dependencies"</argLine>
                 </configuration>
             </plugin>
             <plugin>
