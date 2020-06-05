@@ -64,7 +64,6 @@ public class SegmentWriteQueueTest {
     }
 
     @Test
-    @Ignore("OAK-9086")
     public void testThreadInterruptedWhileAddigToQueue() throws InterruptedException, NoSuchFieldException {
 
         Set<UUID> added = Collections.synchronizedSet(new HashSet<>());
@@ -81,8 +80,8 @@ public class SegmentWriteQueueTest {
             added.add(new UUID(tarEntry.getMsb(), tarEntry.getLsb()));
         });
 
-        FieldSetter.setField(queueBlocked, queueBlocked.getClass().getDeclaredField("queue"), queue);
         Mockito.when(queue.offer(any(SegmentWriteAction.class), anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException());
+        FieldSetter.setField(queueBlocked, queueBlocked.getClass().getDeclaredField("queue"), queue);
 
         try {
             queueBlocked.addToQueue(tarEntry(0), EMPTY_DATA, 0, 0);
