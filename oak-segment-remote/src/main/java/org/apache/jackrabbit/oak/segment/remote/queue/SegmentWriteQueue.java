@@ -89,6 +89,11 @@ public class SegmentWriteQueue implements Closeable {
                     queue.put(segment);
                 } catch (InterruptedException e1) {
                     log.error("Can't re-add the segment {} to the queue. It'll be dropped.", segment.getUuid(), e1);
+
+                    synchronized (segmentsByUUID) {
+                        segmentsByUUID.remove(segment.getUuid());
+                        segmentsByUUID.notifyAll();
+                    }
                 }
             }
         }
@@ -109,7 +114,7 @@ public class SegmentWriteQueue implements Closeable {
     private void consume(SegmentWriteAction segment) throws SegmentConsumeException {
         try {
             segment.passTo(writer);
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             setBroken(true);
             throw new SegmentConsumeException(segment, e);
         }
@@ -271,7 +276,7 @@ public class SegmentWriteQueue implements Closeable {
 
         private final SegmentWriteAction segment;
 
-        public SegmentConsumeException(SegmentWriteAction segment, IOException cause) {
+        public SegmentConsumeException(SegmentWriteAction segment, Exception cause) {
             super(cause);
             this.segment = segment;
         }
