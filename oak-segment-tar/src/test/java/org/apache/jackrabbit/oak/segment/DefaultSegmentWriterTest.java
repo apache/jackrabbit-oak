@@ -270,6 +270,7 @@ public class DefaultSegmentWriterTest {
     @Test(expected = UnsupportedOperationException.class)
     public void testHugeMapRecordErrorSizeHardStop() throws IOException {
         System.setProperty("oak.segmentNodeStore.allowWritesOnHugeMapRecord", "true");
+        System.setProperty(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, String.valueOf(0));
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
         MapRecord one = new MapRecord(store.fileStore().getReader(), writer.writeMap(null, ImmutableMap.of("one", blockId)));
@@ -277,10 +278,13 @@ public class DefaultSegmentWriterTest {
         Mockito.when(hugeMapRecord.size()).thenReturn(MapRecord.ERROR_SIZE_HARD_STOP);
 
         MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, ImmutableMap.of("one", blockId)));
+        assertEquals(MapRecord.ERROR_SIZE_HARD_STOP, (int) Integer.getInteger(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, 0));
     }
 
     @Test
     public void testHugeMapRecordErrorSize() throws IOException {
+        System.setProperty(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, String.valueOf(0));
+
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
         final ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
@@ -291,11 +295,14 @@ public class DefaultSegmentWriterTest {
         MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, ImmutableMap.of("one", blockId)));
         assertEquals(logAppender.list.get(0).getFormattedMessage(), "Map entry has more than 450000000 entries. Please remove entries.");
         assertEquals(logAppender.list.get(0).getLevel(), Level.ERROR);
+        assertEquals(MapRecord.ERROR_SIZE, (int) Integer.getInteger(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, 0));
         unsubscribe(logAppender);
     }
 
     @Test
     public void testHugeMapRecordWarnSize() throws IOException {
+        System.setProperty(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, String.valueOf(0));
+
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
         final ListAppender<ILoggingEvent> logAppender = subscribeAppender();
 
@@ -306,6 +313,7 @@ public class DefaultSegmentWriterTest {
         MapRecord many = new MapRecord(store.fileStore().getReader(), writer.writeMap(hugeMapRecord, ImmutableMap.of("one", blockId)));
         assertEquals(logAppender.list.get(0).getFormattedMessage(), "Map entry has more than 400000000 entries. Please remove entries.");
         assertEquals(logAppender.list.get(0).getLevel(), Level.WARN);
+        assertEquals(MapRecord.WARN_SIZE, (int) Integer.getInteger(DefaultSegmentWriter.MAX_MAP_RECORD_SIZE_KEY, 0));
         unsubscribe(logAppender);
     }
 

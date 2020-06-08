@@ -93,6 +93,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
     private static final int CHILD_NODE_UPDATE_LIMIT = Integer
             .getInteger("child.node.update.limit", 10000);
 
+    protected static final String MAX_MAP_RECORD_SIZE_KEY = "oak.segmentNodeStore.maxMapRecordSize";
+
     @NotNull
     private final WriterCacheManager cacheManager;
 
@@ -238,6 +240,11 @@ public class DefaultSegmentWriter implements SegmentWriter {
         private RecordId writeMap(@Nullable MapRecord base, @NotNull Map<String, RecordId> changes) throws IOException {
             if (base != null) {
                 if (base.size() >= MapRecord.WARN_SIZE) {
+                    int maxMapRecordSize = Integer.getInteger(MAX_MAP_RECORD_SIZE_KEY, 0);
+                    if (base.size() > maxMapRecordSize) {
+                        System.setProperty(MAX_MAP_RECORD_SIZE_KEY, String.valueOf(base.size()));
+                    }
+
                     if (base.size() >= MapRecord.ERROR_SIZE_HARD_STOP) {
                         throw new UnsupportedOperationException("Map record has more than " + MapRecord.ERROR_SIZE_HARD_STOP
                                         + " direct entries. Writing is not allowed. Please remove entries.");
