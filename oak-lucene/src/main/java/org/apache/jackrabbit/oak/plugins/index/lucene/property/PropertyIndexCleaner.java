@@ -19,6 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.singletonList;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.simplePropertyIndex;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.uniquePropertyIndex;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,8 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
@@ -48,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -56,14 +64,8 @@ import org.apache.jackrabbit.oak.stats.TimerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.simplePropertyIndex;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.uniquePropertyIndex;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
+import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableMap;
 
 public class PropertyIndexCleaner implements Runnable{
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -95,6 +97,35 @@ public class PropertyIndexCleaner implements Runnable{
         } catch (Exception e) {
             log.warn("Cleanup run failed with error", e);
         }
+    }
+
+    /**
+     * Perform some cleanup.
+     *
+     * @param paths the list of paths (comma separated)
+     * @param batchSize the bach size
+     * @param sleepPerBatch the number of milliseconds to sleep per batch
+     * @param maxRemoveCount the maximum number of nodes to remove per path
+     * @return the number of nodes removed
+     */
+    public int performCleanup(String paths, int batchSize, int sleepPerBatch, int maxRemoveCount) throws CommitFailedException {
+        String[] list = paths.split(",");
+        int numOfNodesDeleted = 0;
+        for(String s : list) {
+            log.info("Cleanup of {}", s);
+            if (!NodeStateUtils.isHidden(PathUtils.getName(s))) {
+                log.warn("Not a hidden node: {}", s);
+                continue;
+            }
+            RecursiveDelete rd = new RecursiveDelete(nodeStore, createCommitHook(),
+                    PropertyIndexCleaner::createCommitInfo);
+            rd.setBatchSize(batchSize);
+            rd.setSleepPerBatch(sleepPerBatch);
+            rd.setMaxRemoveCount(maxRemoveCount);
+            rd.run(singletonList(s));
+            numOfNodesDeleted += rd.getNumRemoved();
+        }
+        return numOfNodesDeleted;
     }
 
     /**

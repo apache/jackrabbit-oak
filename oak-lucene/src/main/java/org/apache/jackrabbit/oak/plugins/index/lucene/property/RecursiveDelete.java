@@ -41,7 +41,9 @@ public class RecursiveDelete {
     private final CommitHook commitHook;
     private final Supplier<CommitInfo> commitInfo;
     private int batchSize = 1024;
-    private int numRemoved = 0;
+    private int sleepPerBatch;
+    private int maxRemoveCount = Integer.MAX_VALUE;
+    private int numRemoved;
     private int mergeCount;
     private NodeBuilder builder;
 
@@ -96,6 +98,9 @@ public class RecursiveDelete {
 
     private int delete(NodeState node, String path) throws CommitFailedException {
         int currentSize = deleteChildNodes(node, path);
+        if (numRemoved >= maxRemoveCount) {
+            return currentSize;
+        }
         child(builder, path).remove();
         numRemoved++;
         return currentSize + 1;
@@ -111,6 +116,9 @@ public class RecursiveDelete {
             if (save(childPath, currentSize, false)) {
                 currentSize = 0;
             }
+            if (numRemoved >= maxRemoveCount) {
+                break;
+            }
         }
         return currentSize;
     }
@@ -121,6 +129,13 @@ public class RecursiveDelete {
             nodeStore.merge(builder, commitHook, commitInfo.get());
             builder = nodeStore.getRoot().builder();
             mergeCount++;
+            if (sleepPerBatch > 0) {
+                try {
+                    Thread.sleep(sleepPerBatch);
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
             return true;
         }
         return false;
@@ -132,4 +147,21 @@ public class RecursiveDelete {
         }
         return nb;
     }
+
+    public int getMaxRemoveCount() {
+        return maxRemoveCount;
+    }
+
+    public void setMaxRemoveCount(int maxRemoveCount) {
+        this.maxRemoveCount = maxRemoveCount;
+    }
+
+    public int getSleepPerBatch() {
+        return sleepPerBatch;
+    }
+
+    public void setSleepPerBatch(int sleepPerBatch) {
+        this.sleepPerBatch = sleepPerBatch;
+    }
+
 }
