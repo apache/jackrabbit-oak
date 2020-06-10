@@ -75,7 +75,7 @@ public class AsyncIndexerService {
                 description = "Async indexer configs in the form of <name>:<interval in secs> e.g. \"async:5\""
         )
         String[] asyncConfigs() default {"async:5"};
-        
+
         @AttributeDefinition(
                 name = "Lease time out",
                 description = "Lease timeout in minutes. AsyncIndexer would wait for this timeout period before breaking " +
@@ -86,9 +86,10 @@ public class AsyncIndexerService {
         @AttributeDefinition(
                 name = "Failing Index Timeout (s)",
                 description = "Time interval in seconds after which a failing index is considered as corrupted and " +
-                        "ignored from further indexing untill reindex. To disable this set it to 0"
+                        "ignored from further indexing until reindex. The default is 7 days (7 * 24 * 60 * 60 = 604800). " +
+                        "To disable this set it to 0."
         )
-        long failingIndexTimeoutSeconds() default 30 * 60;
+        long failingIndexTimeoutSeconds() default 7 * 24 * 60 * 60L;
 
         @AttributeDefinition(
                 name = "Error warn interval (s)",
