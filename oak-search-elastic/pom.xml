@@ -33,7 +33,7 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.version>7.7.0</elasticsearch.version>
+    <elasticsearch.version>7.7.1</elasticsearch.version>
     <lucene.version>8.5.1</lucene.version>
   </properties>
 
