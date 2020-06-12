@@ -18,15 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
-
-import javax.jcr.PropertyType;
-
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Chars;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -58,6 +49,15 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.PropertyType;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Predicate;
+
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
@@ -69,7 +69,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
  *
  */
 public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
-    AdvanceFulltextQueryIndex {
+        AdvanceFulltextQueryIndex {
 
     private final Logger LOG = LoggerFactory
             .getLogger(getClass());
@@ -165,7 +165,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     }
 
     protected static void addSyncIndexPlan(IndexPlan plan, StringBuilder sb) {
-        FulltextIndexPlanner.PlanResult pr = getPlanResult(plan);
+        PlanResult pr = getPlanResult(plan);
         if (pr.hasPropertyIndexResult()) {
             FulltextIndexPlanner.PropertyIndexResult pres = pr.getPropertyIndexResult();
             sb.append(" sync:(")
@@ -520,6 +520,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     public static class Facet {
 
         private final String label;
+
         private final int count;
 
         public Facet(String label, int count) {
@@ -542,6 +543,27 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
          */
         public int getCount() {
             return count;
+        }
+
+        @Override
+        public String toString() {
+            return "Facet{" +
+                    "label='" + label + '\'' +
+                    ", count=" + count +
+                    '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Facet facet = (Facet) o;
+            return Objects.equals(label, facet.label);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(label);
         }
     }
 

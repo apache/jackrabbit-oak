@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
@@ -24,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPla
 import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.elasticsearch.common.Strings;
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +41,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefini
 class ElasticIndex extends FulltextIndex {
     private static final Predicate<NodeState> ELASTICSEARCH_INDEX_DEFINITION_PREDICATE =
             state -> TYPE_ELASTICSEARCH.equals(state.getString(TYPE_PROPERTY_NAME));
-    private static final Map<String, LMSEstimator> estimators = new WeakHashMap<>();
+    private static final Map<String, LMSEstimator> ESTIMATORS = new WeakHashMap<>();
 
     // higher than some threshold below which the query should rather be answered by something else if possible
     private static final double MIN_COST = 100.1;
@@ -90,9 +91,7 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode) {
-        return Strings.toString(new ElasticResultRowIterator(plan.getFilter(), getPlanResult(plan), plan,
-                acquireIndexNode(plan), FulltextIndex::shouldInclude, getEstimator(plan.getPlanName()))
-                .getElasticQuery(plan, getPlanResult(plan)));
+        return Strings.toString(new ElasticRequestHandler(plan, getPlanResult(plan)).build());
     }
 
     @Override
@@ -102,11 +101,23 @@ class ElasticIndex extends FulltextIndex {
         // TODO: sorting
 
         final FulltextIndexPlanner.PlanResult pr = getPlanResult(plan);
-        QueryLimits settings = filter.getQueryLimits();
+
+        // this function is called for each extracted row. Passing FulltextIndex::shouldInclude means that for each
+        // row we evaluate getPathRestriction(plan) & plan.getFilter().getPathRestriction(). Providing a partial
+        // function (https://en.wikipedia.org/wiki/Partial_function) we can evaluate them once and still use a predicate as before
+//        BiFunction<String, Filter.PathRestriction, Predicate<String>> partialShouldInclude = (path, pathRestriction) -> docPath ->
+//                shouldInclude(path, pathRestriction, docPath);
+//
+//        Iterator<FulltextResultRow> itr = new ElasticResultRowAsyncIterator(
+//                acquireIndexNode(plan),
+//                plan,
+//                pr,
+//                partialShouldInclude.apply(getPathRestriction(plan), plan.getFilter().getPathRestriction()),
+//                getEstimator(plan.getPlanName())
+//        );
 
         Iterator<FulltextResultRow> itr = new ElasticResultRowIterator(filter, pr, plan,
                 acquireIndexNode(plan), FulltextIndex::shouldInclude, getEstimator(plan.getPlanName()));
-        SizeEstimator sizeEstimator = getSizeEstimator(plan);
 
         /*
         TODO: sync (nrt too??)
@@ -117,12 +128,29 @@ class ElasticIndex extends FulltextIndex {
 
         // no concept of rewound in ES (even if it might be doing it internally, we can't do much about it
         IteratorRewoundStateProvider rewoundStateProvider = () -> 0;
-        return new FulltextPathCursor(itr, rewoundStateProvider, plan, settings, sizeEstimator);
+        return new FulltextPathCursor(itr, rewoundStateProvider, plan, filter.getQueryLimits(), getSizeEstimator(plan));
     }
 
     private LMSEstimator getEstimator(String path) {
-        estimators.putIfAbsent(path, new LMSEstimator());
-        return estimators.get(path);
+        ESTIMATORS.putIfAbsent(path, new LMSEstimator());
+        return ESTIMATORS.get(path);
+    }
+
+    private static boolean shouldInclude(String path, Filter.PathRestriction pathRestriction, String docPath) {
+        boolean include = true;
+        switch (pathRestriction) {
+            case EXACT:
+                include = path.equals(docPath);
+                break;
+            case DIRECT_CHILDREN:
+                include = PathUtils.getParentPath(docPath).equals(path);
+                break;
+            case ALL_CHILDREN:
+                include = PathUtils.isAncestor(path, docPath);
+                break;
+        }
+
+        return include;
     }
 
     @Override

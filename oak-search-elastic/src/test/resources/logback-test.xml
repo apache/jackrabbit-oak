@@ -29,6 +29,10 @@
         </encoder>
     </appender>
 
+    <!--
+    <logger name="org.apache.jackrabbit.oak.plugins.index.elastic" level="TRACE" />
+    -->
+
     <root level="INFO">
         <!--
         <appender-ref ref="console"/>

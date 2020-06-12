@@ -30,12 +30,13 @@ public final class ElasticTestUtils {
         while (true) {
             try {
                 attempts++;
-                LOG.info("EventualAssertion attempt count:{}", attempts);
+                LOG.info("assertEventually attempt count:{}", attempts);
                 lastAttempt = System.currentTimeMillis();
                 r.run();
                 return;
             } catch (Throwable e) {
                 long elapsedTime = lastAttempt - start;
+                LOG.trace("assertEventually attempt {} failed because of {}", attempts, e.getMessage());
                 if (elapsedTime >= timeoutMillis) {
                     String msg = String.format("Condition not satisfied after %1.2f seconds and %d attempts",
                             elapsedTime / 1000d, attempts);

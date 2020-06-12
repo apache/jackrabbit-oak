@@ -20,8 +20,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.facets.ElasticFacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.facets.ElasticAggregationData;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.facets.ElasticFacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.facets.ElasticFacets;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticAggregationBuilderUtil;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticConstants;
@@ -29,10 +29,12 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
@@ -80,7 +82,6 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newPropertyRestrictionQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardPathQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardQuery;
-import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.isNodePath;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
@@ -113,8 +114,8 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
     private final LMSEstimator estimator;
 
     ElasticResultRowIterator(@NotNull Filter filter,
-                             @NotNull PlanResult planResult,
-                             @NotNull IndexPlan plan,
+                             @NotNull FulltextIndexPlanner.PlanResult planResult,
+                             @NotNull QueryIndex.IndexPlan plan,
                              ElasticIndexNode indexNode,
                              RowInclusionPredicate rowInclusionPredicate,
                              LMSEstimator estimator) {
@@ -261,9 +262,9 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
     }
 
     public interface RowInclusionPredicate {
-        boolean shouldInclude(@NotNull String path, @NotNull IndexPlan plan);
+        boolean shouldInclude(@NotNull String path, @NotNull QueryIndex.IndexPlan plan);
 
-        RowInclusionPredicate NOOP = (@NotNull String path, @NotNull IndexPlan plan) -> true;
+        RowInclusionPredicate NOOP = (@NotNull String path, @NotNull QueryIndex.IndexPlan plan) -> true;
     }
 
     /**
@@ -426,19 +427,8 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
             return FieldNames.FULLTEXT;
         }
 
-        if (isNodePath(p)) {
-            if (pr.isPathTransformed()) {
-                p = PathUtils.getName(p);
-            } else {
-                //Get rid of /* as aggregated fulltext field name is the
-                //node relative path
-                p = FieldNames.createFulltextFieldName(PathUtils.getParentPath(p));
-            }
-        } else {
-            if (pr.isPathTransformed()) {
-                p = PathUtils.getName(p);
-            }
-            p = FieldNames.createAnalyzedFieldName(p);
+        if (pr.isPathTransformed()) {
+            p = PathUtils.getName(p);
         }
 
         if ("*".equals(p)) {
@@ -502,7 +492,7 @@ class ElasticResultRowIterator implements Iterator<FulltextIndex.FulltextResultR
     }
 
     private void addNonFullTextConstraints(List<QueryBuilder> qs,
-                                                  IndexPlan plan, PlanResult planResult) {
+                                           IndexPlan plan, PlanResult planResult) {
         final BiPredicate<Iterable<String>, String> any = (iterable, value) ->
                 StreamSupport.stream(iterable.spliterator(), false).anyMatch(value::equals);
 
