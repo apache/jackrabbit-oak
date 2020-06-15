@@ -198,7 +198,7 @@ public class SegmentStoreMigrator implements Closeable  {
         Buffer binaryReferences = future.get();
         if (binaryReferences != null) {
             byte[] array = fetchByteArray(binaryReferences);
-            writer.writeBinaryReferences(array);
+            runWithRetry(() -> {writer.writeBinaryReferences(array); return null;}, 16, 5);
         }
     }
 
@@ -213,7 +213,7 @@ public class SegmentStoreMigrator implements Closeable  {
         Buffer graph = future.get();
         if (graph != null) {
             byte[] array = fetchByteArray(graph);
-            writer.writeGraph(array);
+            runWithRetry(() -> {writer.writeGraph(array); return null;}, 16, 5);
         }
     }
 
