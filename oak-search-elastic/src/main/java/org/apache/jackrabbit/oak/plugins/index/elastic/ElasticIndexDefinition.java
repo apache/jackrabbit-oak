@@ -52,6 +52,16 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String BULK_RETRIES_BACKOFF = "bulkRetriesBackoff";
     public static final long BULK_RETRIES_BACKOFF_DEFAULT = 200;
 
+    /**
+     * Node name under which various analyzers are configured
+     */
+    private static final String ANALYZERS = "analyzers";
+
+    /**
+     * Boolean property indicating if in-built analyzer should preserve original term
+     */
+    private static final String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
+
     private static final Function<Integer, Boolean> isAnalyzable;
 
     static {
@@ -140,6 +150,14 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {
         return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed || pd.fulltextEnabled());
+    }
+
+    /**
+     * Returns {@code true} if original terms need to be preserved at indexing analysis phase
+     */
+    public boolean indexOriginalTerms() {
+        NodeState analyzersTree = definition.getChildNode(ANALYZERS);
+        return getOptionalValue(analyzersTree, INDEX_ORIGINAL_TERM, false);
     }
 
     /**

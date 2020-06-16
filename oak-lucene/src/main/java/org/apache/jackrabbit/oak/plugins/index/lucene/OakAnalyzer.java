@@ -51,7 +51,7 @@ public class OakAnalyzer extends Analyzer {
      * @param matchVersion Lucene version to match See {@link #matchVersion above}
      * @param indexOriginalTerm flag to setup analyzer such that
      *                              {@link WordDelimiterFilter#PRESERVE_ORIGINAL}
-     *                              is set to oonfigure word delimeter
+     *                              is set to configure word delimiter
      */
     public OakAnalyzer(Version matchVersion, boolean indexOriginalTerm) {
         this.matchVersion = matchVersion;

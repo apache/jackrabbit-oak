@@ -21,7 +21,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -39,10 +38,7 @@ class ElasticIndexHelper {
         final CreateIndexRequest request = new CreateIndexRequest(indexDefinition.getRemoteIndexName());
 
         // provision settings
-        // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pathhierarchy-tokenizer.html
-        request.settings(Settings.builder()
-                .put("analysis.analyzer.ancestor_analyzer.type", "custom")
-                .put("analysis.analyzer.ancestor_analyzer.tokenizer", "path_hierarchy"));
+        request.settings(loadSettings(indexDefinition));
 
         // provision mappings
         final XContentBuilder mappingBuilder = XContentFactory.jsonBuilder();
@@ -59,6 +55,51 @@ class ElasticIndexHelper {
         request.mapping(mappingBuilder);
 
         return request;
+    }
+
+    private static XContentBuilder loadSettings(ElasticIndexDefinition indexDefinition) throws IOException {
+        final XContentBuilder settingsBuilder = XContentFactory.jsonBuilder();
+        settingsBuilder.startObject();
+        {
+            settingsBuilder.startObject("analysis");
+            {
+                settingsBuilder.startObject("filter");
+                {
+                    settingsBuilder.startObject("oak_word_delimiter_graph_filter");
+                    {
+                        settingsBuilder.field("type", "word_delimiter_graph");
+                        settingsBuilder.field("generate_word_parts", true);
+                        settingsBuilder.field("stem_english_possessive", true);
+                        settingsBuilder.field("generate_number_parts", true);
+                        settingsBuilder.field("preserve_original", indexDefinition.indexOriginalTerms());
+                    }
+                    settingsBuilder.endObject();
+                }
+                settingsBuilder.endObject();
+
+                settingsBuilder.startObject("analyzer");
+                {
+                    settingsBuilder.startObject("oak_analyzer");
+                    {
+                        settingsBuilder.field("type", "custom");
+                        settingsBuilder.field("tokenizer", "standard");
+                        settingsBuilder.field("filter", new String[]{"lowercase", "oak_word_delimiter_graph_filter"});
+                    }
+                    settingsBuilder.endObject();
+                    // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pathhierarchy-tokenizer.html
+                    settingsBuilder.startObject("ancestor_analyzer");
+                    {
+                        settingsBuilder.field("type", "custom");
+                        settingsBuilder.field("tokenizer", "path_hierarchy");
+                    }
+                    settingsBuilder.endObject();
+                }
+                settingsBuilder.endObject();
+            }
+            settingsBuilder.endObject();
+        }
+        settingsBuilder.endObject();
+        return settingsBuilder;
     }
 
     private static void mapInternalProperties(XContentBuilder mappingBuilder) throws IOException {
@@ -123,6 +164,7 @@ class ElasticIndexHelper {
                 } else {
                     if (indexDefinition.isAnalyzed(propertyDefinitions)) {
                         mappingBuilder.field("type", "text");
+                        mappingBuilder.field("analyzer", "oak_analyzer");
                         // always add keyword for sorting / faceting as sub-field
                         mappingBuilder.startObject("fields");
                         {

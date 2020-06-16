@@ -165,8 +165,9 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         return oak.createContentRepository();
     }
 
-    protected static void assertEventually(Runnable r) {
-        ElasticTestUtils.assertEventually(r, BULK_FLUSH_INTERVAL_MS_DEFAULT * 5);
+    protected void assertEventually(Runnable r) {
+        ElasticTestUtils.assertEventually(r,
+                ((useAsyncIndexing() ? DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS : 0) + BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 
     protected IndexDefinitionBuilder createIndex(String... propNames) {

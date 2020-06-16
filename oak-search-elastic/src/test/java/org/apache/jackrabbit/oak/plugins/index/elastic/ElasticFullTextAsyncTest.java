@@ -21,6 +21,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -49,18 +51,33 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         test.addChild("c").setProperty("propa", "Hello everyone. This is an elastic test");
         test.addChild("d").setProperty("propa", "howdy! hello again");
         root.commit();
-		// Wait for DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS
-		// This is needed in addition to assertEventually to make the 
-		// test reliable, otherwise they seem to fail sometimes even
-		// with assertEventually wait in place, due to minor delay in async 
-		// cycle exec.
-        Thread.sleep(DEFAULT_ASYNC_INDEXING_TIME_IN_SECONDS * 1000);
 		
         String query = "//*[jcr:contains(@propa, 'Hello')] ";
 
         assertEventually(() -> {
             assertThat(explain(query, XPATH), containsString("elasticsearch:test1"));
             assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/c", "/test/d"));
+        });
+    }
+
+    @Test
+    public void testDefaultAnalyzer() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("analyzed_field");
+        builder.async("async");
+        builder.indexRule("nt:base").property("analyzed_field").analyzed();
+
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("analyzed_field", "sun.jpg");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(@analyzed_field, 'Sun')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(@analyzed_field, 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
         });
     }
 

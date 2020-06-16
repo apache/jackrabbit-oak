@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
@@ -28,6 +29,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticIndexHelperTest {
@@ -68,6 +70,48 @@ public class ElasticIndexHelperTest {
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
         ElasticIndexHelper.createIndexRequest(definition);
+    }
+
+    @Test
+    public void oakAnalyzer() throws IOException {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("type");
+        indexRule.property("foo").type("String").analyzed();
+        indexRule.property("bar").type("String");
+
+        NodeState nodeState = builder.build();
+
+        ElasticIndexDefinition definition =
+                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(definition);
+
+        assertThat(request.settings().get("analysis.filter.oak_word_delimiter_graph_filter.preserve_original"), is("false"));
+
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> jsonMappings = mapper.readValue(request.mappings().streamInput(), Map.class);
+        Map fooMapping = (Map) ((Map) jsonMappings.get("properties")).get("foo");
+        assertThat(fooMapping.get("analyzer"), is("oak_analyzer"));
+        Map barMapping = (Map) ((Map) jsonMappings.get("properties")).get("bar");
+        assertThat(barMapping.get("analyzer"), nullValue());
+    }
+
+    @Test
+    public void oakAnalyzerWithOriginalTerm() throws IOException {
+        IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("type");
+        indexRule.property("foo").type("String").analyzed();
+        Tree analyzer = builder.getBuilderTree().addChild("analyzers");
+        analyzer.setProperty("indexOriginalTerm", "true");
+
+        NodeState nodeState = builder.build();
+
+        ElasticIndexDefinition definition =
+                new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
+
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(definition);
+
+        assertThat(request.settings().get("analysis.filter.oak_word_delimiter_graph_filter.preserve_original"), is("true"));
     }
 
 }
