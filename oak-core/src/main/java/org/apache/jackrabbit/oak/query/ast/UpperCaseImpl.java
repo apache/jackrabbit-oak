@@ -135,6 +135,6 @@ public class UpperCaseImpl extends DynamicOperandImpl {
                 OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
         }
         return null;
-    }    
+    }
 
 }
