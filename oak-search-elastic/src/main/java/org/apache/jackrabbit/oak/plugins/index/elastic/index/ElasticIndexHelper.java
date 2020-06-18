@@ -98,6 +98,9 @@ class ElasticIndexHelper {
             }
             settingsBuilder.endObject();
         }
+        if (indexDefinition.isSpellcheckEnabled()) {
+            createSpellcheckMapping(indexDefinition, settingsBuilder);
+        }
         settingsBuilder.endObject();
         return settingsBuilder;
     }
@@ -171,6 +174,11 @@ class ElasticIndexHelper {
                             mappingBuilder.startObject("keyword")
                                     .field("type", "keyword")
                                     .endObject();
+                            if (indexDefinition.isSpellcheckEnabled()) {
+                                mappingBuilder.startObject("trigram")
+                                        .field("type", "text").field("analyzer", "trigram")
+                                        .endObject();
+                            }
                         }
                         mappingBuilder.endObject();
                     } else {
@@ -181,5 +189,35 @@ class ElasticIndexHelper {
             }
             mappingBuilder.endObject();
         }
+    }
+
+    private static void createSpellcheckMapping(ElasticIndexDefinition indexDefinition, XContentBuilder settingsBuilder) throws IOException {
+        settingsBuilder.startObject("index");
+        {
+            settingsBuilder.startObject("analysis");
+            {
+                settingsBuilder.startObject("analyzer");
+                {
+                    settingsBuilder.startObject("trigram")
+                            .field("type", "custom")
+                            .field("tokenizer", "standard")
+                            .array("filter", "lowercase", "shingle")
+                            .endObject();
+                }
+                settingsBuilder.endObject();
+
+                settingsBuilder.startObject("filter");
+                {
+                    settingsBuilder.startObject("shingle")
+                            .field("type", "shingle")
+                            .field("min_shingle_size", 2)
+                            .field("max_shingle_size", 3)
+                            .endObject();
+                }
+                settingsBuilder.endObject();
+            }
+            settingsBuilder.endObject();
+        }
+        settingsBuilder.endObject();
     }
 }

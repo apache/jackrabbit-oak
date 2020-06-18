@@ -26,6 +26,7 @@ public class SearchSourceBuilderUtil {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder()
                 .query(elasticSearcherModel.getQueryBuilder())
                 .fetchSource(elasticSearcherModel.getStoredField(), null)
+                .suggest(elasticSearcherModel.getSuggestBuilder())
                 .size(elasticSearcherModel.getBatchSize())
                 .from(elasticSearcherModel.getFrom());
 

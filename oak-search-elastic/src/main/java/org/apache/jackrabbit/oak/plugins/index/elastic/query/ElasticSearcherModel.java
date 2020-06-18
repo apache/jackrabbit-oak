@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilder;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -32,15 +33,17 @@ public class ElasticSearcherModel {
     private final boolean fetchSource;
     private final String storedField;
     private final int from;
+    private SuggestBuilder searchSourceBuilder;
 
     private ElasticSearcherModel(QueryBuilder queryBuilder, List<AggregationBuilder> aggregationBuilders,
-                                 int batchSize, boolean fetchSource, String storedField, int from) {
+                                 int batchSize, boolean fetchSource, String storedField, int from, SuggestBuilder searchSourceBuilder) {
         this.queryBuilder = queryBuilder;
         this.aggregationBuilders = aggregationBuilders;
         this.batchSize = batchSize;
         this.fetchSource = fetchSource;
         this.storedField = storedField;
         this.from = from;
+        this.searchSourceBuilder = searchSourceBuilder;
     }
 
     public int getBatchSize() {
@@ -67,12 +70,17 @@ public class ElasticSearcherModel {
         return storedField;
     }
 
+    public SuggestBuilder getSuggestBuilder() {
+        return searchSourceBuilder;
+    }
+
     public static class ElasticSearcherModelBuilder {
         private QueryBuilder queryBuilder;
         private final List<AggregationBuilder> aggregationBuilders = new LinkedList<>();
         private int batchSize;
         private boolean fetchSource = false;
         private String storedField = FieldNames.PATH;
+        private SuggestBuilder searchSourceBuilder;
         private int from;
 
         public ElasticSearcherModelBuilder withQuery(QueryBuilder query) {
@@ -96,7 +104,12 @@ public class ElasticSearcherModel {
         }
 
         public ElasticSearcherModel build() {
-            return new ElasticSearcherModel(queryBuilder, aggregationBuilders, batchSize, fetchSource, storedField, from);
+            return new ElasticSearcherModel(queryBuilder, aggregationBuilders, batchSize, fetchSource, storedField, from, searchSourceBuilder);
+        }
+
+        public ElasticSearcherModelBuilder withSpellCheck(SuggestBuilder searchSourceBuilder) {
+            this.searchSourceBuilder = searchSourceBuilder;
+            return this;
         }
     }
 }

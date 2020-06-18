@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.SearchSourceBuilderUtil;
+import org.elasticsearch.action.search.MultiSearchRequest;
+import org.elasticsearch.action.search.MultiSearchResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -24,6 +26,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.List;
 
 public class ElasticSearcher {
     private final ElasticIndexNode indexNode;
@@ -40,4 +43,16 @@ public class ElasticSearcher {
 
         return indexNode.getConnection().getClient().search(request, RequestOptions.DEFAULT);
     }
+
+    public MultiSearchResponse search(List<ElasticSearcherModel> elasticSearcherModels) throws IOException {
+        MultiSearchRequest ms = new MultiSearchRequest();
+        for (ElasticSearcherModel elasticSearcherModel: elasticSearcherModels) {
+            SearchSourceBuilder searchSourceBuilder = SearchSourceBuilderUtil.createSearchSourceBuilder(elasticSearcherModel);
+            SearchRequest request = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
+                    .source(searchSourceBuilder);
+            ms.add(request);
+        }
+        return indexNode.getConnection().getClient().msearch(ms, RequestOptions.DEFAULT);
+    }
+
 }

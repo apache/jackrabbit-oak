@@ -14,18 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.util;
+package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-public final class ElasticConstants {
+import org.elasticsearch.search.SearchHit;
+
+import java.io.IOException;
+
+/**
+ * ElasticProcess extracts out elastic implementation which was part of ElasticResultRowIterator
+ * ElasticRowIteratorState is used to manage and return result from ElasticResultRowIterator
+ */
+interface ElasticProcess {
     /**
-     * Batch size for fetching results from queries.
+     * @return Last SearchDocument
+     * @throws IOException
      */
-    public static final int ELASTIC_QUERY_BATCH_SIZE = 1000;
-    public static final int ELASTIC_QUERY_MAX_BATCH_SIZE = 10000;
+    SearchHit process() throws IOException;
 
-    public static final String ES_PATH_FIELD = ":path";
-    public static final String ES_TRIGRAM_SUFFIX = ".trigram";
-
-    private ElasticConstants() {
-    }
+    /**
+     * @return query string
+     */
+    String getQuery();
 }

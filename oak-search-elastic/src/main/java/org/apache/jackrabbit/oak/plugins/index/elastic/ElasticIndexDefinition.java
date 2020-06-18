@@ -152,6 +152,15 @@ public class ElasticIndexDefinition extends IndexDefinition {
         return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed || pd.fulltextEnabled());
     }
 
+    @Override
+    protected String getDefaultFunctionName() {
+        /*
+        This has nothing to do with lucene index. While parsing queries, spellCheck queries are handled
+        via PropertyRestriction having native*lucene as key.
+         */
+        return "lucene";
+    }
+
     /**
      * Returns {@code true} if original terms need to be preserved at indexing analysis phase
      */

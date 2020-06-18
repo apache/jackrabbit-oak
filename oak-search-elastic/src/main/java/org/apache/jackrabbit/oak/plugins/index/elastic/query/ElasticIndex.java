@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
