@@ -189,7 +189,7 @@ public class SegmentStoreMigrator implements Closeable  {
 
         for (Future<Segment> future : futures) {
             Segment segment = future.get();
-            segment.write(writer);
+            runWithRetry(() -> {segment.write(writer); return null}, 16, 5);
         }
     }
 
