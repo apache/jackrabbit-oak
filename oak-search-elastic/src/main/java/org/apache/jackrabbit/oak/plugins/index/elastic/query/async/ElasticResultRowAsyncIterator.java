@@ -116,7 +116,12 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 return null;
             }
         }
-        return nextRow != null && POISON_PILL.path.equals(nextRow.path) ? null : nextRow;
+        FulltextResultRow row = null;
+        if (nextRow != null && !POISON_PILL.path.equals(nextRow.path)) {
+            row = nextRow;
+            nextRow = null;
+        }
+        return row;
     }
 
     @Override
