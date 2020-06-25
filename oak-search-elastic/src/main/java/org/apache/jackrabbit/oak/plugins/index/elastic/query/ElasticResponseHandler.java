@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
+package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.elasticsearch.search.SearchHit;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -34,9 +35,11 @@ public class ElasticResponseHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticResponseHandler.class);
 
     private final PlanResult planResult;
+    private final Filter filter;
 
-    ElasticResponseHandler(@NotNull FulltextIndexPlanner.PlanResult planResult) {
+    ElasticResponseHandler(@NotNull FulltextIndexPlanner.PlanResult planResult, @NotNull Filter filter) {
         this.planResult = planResult;
+        this.filter = filter;
     }
 
     public String getPath(SearchHit hit) {
@@ -57,5 +60,9 @@ public class ElasticResponseHandler {
         }
 
         return path;
+    }
+
+    public boolean isAccessible(String path) {
+        return filter.isAccessible(path);
     }
 }

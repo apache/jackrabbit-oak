@@ -74,6 +74,13 @@ class ElasticIndexHelper {
                         settingsBuilder.field("preserve_original", indexDefinition.indexOriginalTerms());
                     }
                     settingsBuilder.endObject();
+                    if (indexDefinition.isSpellcheckEnabled()) {
+                        settingsBuilder.startObject("shingle")
+                                .field("type", "shingle")
+                                .field("min_shingle_size", 2)
+                                .field("max_shingle_size", 3)
+                                .endObject();
+                    }
                 }
                 settingsBuilder.endObject();
 
@@ -93,13 +100,17 @@ class ElasticIndexHelper {
                         settingsBuilder.field("tokenizer", "path_hierarchy");
                     }
                     settingsBuilder.endObject();
+                    if (indexDefinition.isSpellcheckEnabled()) {
+                        settingsBuilder.startObject("trigram")
+                                .field("type", "custom")
+                                .field("tokenizer", "standard")
+                                .array("filter", "lowercase", "shingle")
+                                .endObject();
+                    }
                 }
                 settingsBuilder.endObject();
             }
             settingsBuilder.endObject();
-        }
-        if (indexDefinition.isSpellcheckEnabled()) {
-            createSpellcheckMapping(indexDefinition, settingsBuilder);
         }
         settingsBuilder.endObject();
         return settingsBuilder;
@@ -132,25 +143,23 @@ class ElasticIndexHelper {
     }
 
     private static void mapIndexRules(ElasticIndexDefinition indexDefinition, XContentBuilder mappingBuilder) throws IOException {
-        // we need to check if in the defined rules there are properties with the same name and different types
-        final List<Map.Entry<String, List<PropertyDefinition>>> multiTypesFields = indexDefinition.getPropertiesByName()
-                .entrySet()
-                .stream()
-                .filter(e -> e.getValue().size() > 1)
-                .filter(e -> e.getValue().stream().map(PropertyDefinition::getType).distinct().count() > 1)
-                .collect(Collectors.toList());
-
-        if (!multiTypesFields.isEmpty()) {
-            String fields = multiTypesFields.stream().map(Map.Entry::getKey).collect(Collectors.joining(", ", "[", "]"));
-            throw new IllegalStateException(indexDefinition.getIndexPath() + " has properties with the same name and " +
-                    "different types " + fields);
-        }
+        checkIndexRules(indexDefinition);
 
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
 
-            Type<?> type = Type.fromTag(propertyDefinitions.get(0).getType(), false);
+            Type<?> type = null;
+            boolean useInSpellCheck = false;
+            for (PropertyDefinition pd: propertyDefinitions) {
+                type = Type.fromTag(pd.getType(), false);
+                if (pd.useInSpellcheck) {
+                    useInSpellCheck = true;
+                    break;
+                }
+
+            }
+
             mappingBuilder.startObject(name);
             {
                 // https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-types.html
@@ -174,7 +183,7 @@ class ElasticIndexHelper {
                             mappingBuilder.startObject("keyword")
                                     .field("type", "keyword")
                                     .endObject();
-                            if (indexDefinition.isSpellcheckEnabled()) {
+                            if (useInSpellCheck) {
                                 mappingBuilder.startObject("trigram")
                                         .field("type", "text").field("analyzer", "trigram")
                                         .endObject();
@@ -191,33 +200,19 @@ class ElasticIndexHelper {
         }
     }
 
-    private static void createSpellcheckMapping(ElasticIndexDefinition indexDefinition, XContentBuilder settingsBuilder) throws IOException {
-        settingsBuilder.startObject("index");
-        {
-            settingsBuilder.startObject("analysis");
-            {
-                settingsBuilder.startObject("analyzer");
-                {
-                    settingsBuilder.startObject("trigram")
-                            .field("type", "custom")
-                            .field("tokenizer", "standard")
-                            .array("filter", "lowercase", "shingle")
-                            .endObject();
-                }
-                settingsBuilder.endObject();
+    // we need to check if in the defined rules there are properties with the same name and different types
+    private static void checkIndexRules(ElasticIndexDefinition indexDefinition) {
+        final List<Map.Entry<String, List<PropertyDefinition>>> multiTypesFields = indexDefinition.getPropertiesByName()
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue().size() > 1)
+                .filter(e -> e.getValue().stream().map(PropertyDefinition::getType).distinct().count() > 1)
+                .collect(Collectors.toList());
 
-                settingsBuilder.startObject("filter");
-                {
-                    settingsBuilder.startObject("shingle")
-                            .field("type", "shingle")
-                            .field("min_shingle_size", 2)
-                            .field("max_shingle_size", 3)
-                            .endObject();
-                }
-                settingsBuilder.endObject();
-            }
-            settingsBuilder.endObject();
+        if (!multiTypesFields.isEmpty()) {
+            String fields = multiTypesFields.stream().map(Map.Entry::getKey).collect(Collectors.joining(", ", "[", "]"));
+            throw new IllegalStateException(indexDefinition.getIndexPath() + " has properties with the same name and " +
+                    "different types " + fields);
         }
-        settingsBuilder.endObject();
     }
 }

@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
+package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
@@ -27,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPla
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
@@ -37,10 +37,17 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.lucene.search.WildcardQuery;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
+import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.phrase.DirectCandidateGeneratorBuilder;
+import org.elasticsearch.search.suggest.phrase.PhraseSuggestionBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -81,42 +88,41 @@ import static org.elasticsearch.index.query.QueryBuilders.termQuery;
  */
 public class ElasticRequestHandler {
 
+    private final static String SPELLCHECK_PREFIX = "spellcheck?term=";
+    private static final String ES_TRIGRAM_SUFFIX = ".trigram";
+
     private final IndexPlan indexPlan;
+    private final Filter filter;
     private final PlanResult planResult;
     private final ElasticIndexDefinition elasticIndexDefinition;
+    private final String propertyRestrictionQuery;
 
-    public ElasticRequestHandler(@NotNull QueryIndex.IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult) {
+    ElasticRequestHandler(@NotNull IndexPlan indexPlan, @NotNull FulltextIndexPlanner.PlanResult planResult) {
         this.indexPlan = indexPlan;
+        this.filter = indexPlan.getFilter();
         this.planResult = planResult;
         this.elasticIndexDefinition = (ElasticIndexDefinition) planResult.indexDefinition;
-    }
 
-    public QueryBuilder build() {
-        final BoolQueryBuilder boolQuery = boolQuery();
-
-        Filter filter = indexPlan.getFilter();
-        FullTextExpression ft = filter.getFullTextConstraint();
-
-        if (ft != null) {
-            boolQuery.must(fullTextQuery(ft, planResult));
-        }
-
-        // TODO: this code block should be removed? Or should we throw a NotSupported exception in this case?
         //Check if native function is supported
         Filter.PropertyRestriction pr = null;
         if (elasticIndexDefinition.hasFunctionDefined()) {
             pr = filter.getPropertyRestriction(elasticIndexDefinition.getFunctionName());
         }
 
-        if (pr != null) {
-            String query = String.valueOf(pr.first.getValue(pr.first.getType()));
-            // TODO: more like this
+        this.propertyRestrictionQuery = pr != null ? String.valueOf(pr.first.getValue(pr.first.getType())) : null;
+    }
 
-            // TODO: spellcheck
+    public BoolQueryBuilder baseQuery() {
+        final BoolQueryBuilder boolQuery = boolQuery();
 
-            // TODO: suggest
+        FullTextExpression ft = filter.getFullTextConstraint();
 
-            boolQuery.must(queryStringQuery(query));
+        if (ft != null) {
+            boolQuery.must(fullTextQuery(ft, planResult));
+        }
+
+        if (propertyRestrictionQuery != null) {
+            boolQuery.must(queryStringQuery(propertyRestrictionQuery));
         } else if (planResult.evaluateNonFullTextConstraints()) {
             for (QueryBuilder constraint: nonFullTextConstraints(indexPlan, planResult)) {
                 boolQuery.filter(constraint);
@@ -137,8 +143,25 @@ public class ElasticRequestHandler {
         return boolQuery;
     }
 
-    public boolean requiresFacets() {
-        return indexPlan.getFilter().getPropertyRestrictions()
+    public String getPropertyRestrictionQuery() {
+        return propertyRestrictionQuery;
+    }
+
+    public boolean requiresSpellCheck() {
+        return propertyRestrictionQuery != null && propertyRestrictionQuery.startsWith(SPELLCHECK_PREFIX);
+    }
+
+    public ElasticFacetProvider getAsyncFacetProvider(ElasticResponseHandler responseHandler) {
+        return requiresFacets() ?
+                ElasticFacetProvider.getProvider(
+                        planResult.indexDefinition.getSecureFacetConfiguration(),
+                        this, responseHandler,
+                        filter::isAccessible
+                ) : null;
+    }
+
+    private boolean requiresFacets() {
+        return filter.getPropertyRestrictions()
                 .stream()
                 .anyMatch(pr -> QueryConstants.REP_FACET.equals(pr.propertyName));
     }
@@ -153,10 +176,49 @@ public class ElasticRequestHandler {
     }
 
     public Stream<String> facetFields() {
-        return indexPlan.getFilter().getPropertyRestrictions()
+        return filter.getPropertyRestrictions()
                 .stream()
                 .filter(pr -> QueryConstants.REP_FACET.equals(pr.propertyName))
                 .map(pr -> FulltextIndex.parseFacetField(pr.first.getValue(Type.STRING)));
+    }
+
+    public Stream<String> spellCheckFields() {
+        return StreamSupport
+                .stream(planResult.indexingRule.getProperties().spliterator(), false)
+                .filter(pd -> pd.useInSpellcheck)
+                .map(pd -> pd.name);
+    }
+
+    public PhraseSuggestionBuilder suggestQuery(String field, String spellCheckQuery) {
+        BoolQueryBuilder query = boolQuery()
+                .must(new MatchPhraseQueryBuilder(field, "{{suggestion}}"));
+
+        nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
+
+        PhraseSuggestionBuilder.CandidateGenerator candidateGeneratorBuilder =
+                new DirectCandidateGeneratorBuilder(getTrigramField(field)).suggestMode("missing");
+        return SuggestBuilders
+                .phraseSuggestion(getTrigramField(field))
+                .size(10)
+                .addCandidateGenerator(candidateGeneratorBuilder)
+                .text(spellCheckQuery)
+                .collateQuery(query.toString());
+    }
+
+    public BoolQueryBuilder suggestMatchQuery(String suggestion, String[] fields) {
+        BoolQueryBuilder query = boolQuery()
+                .must(new MultiMatchQueryBuilder(suggestion, fields)
+                        .operator(Operator.AND).fuzzyTranspositions(false)
+                        .autoGenerateSynonymsPhraseQuery(false)
+                        .type(MatchQuery.Type.PHRASE));
+
+        nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
+
+        return query;
+    }
+
+    private String getTrigramField(String field) {
+        return field + ES_TRIGRAM_SUFFIX;
     }
 
     private QueryBuilder fullTextQuery(FullTextExpression ft, final PlanResult pr) {

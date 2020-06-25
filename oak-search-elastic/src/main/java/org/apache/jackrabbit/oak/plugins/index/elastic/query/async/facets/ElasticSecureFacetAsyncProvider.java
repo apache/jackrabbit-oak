@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticRequestHandler;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.elasticsearch.search.SearchHit;
@@ -123,7 +123,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
         } catch (InterruptedException e) {
             throw new IllegalStateException("Error while waiting for facets", e);
         }
-        LOG.trace("Reading facets for {} from {}", columnName, facetsMap);
-        return facets.get(FulltextIndex.parseFacetField(columnName));
+        LOG.trace("Reading facets for {} from {}", columnName, facets);
+        return facets != null ? facets.get(FulltextIndex.parseFacetField(columnName)) : null;
     }
 }

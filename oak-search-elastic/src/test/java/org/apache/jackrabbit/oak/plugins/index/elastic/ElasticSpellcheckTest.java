@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import com.github.dockerjava.api.DockerClient;
-import com.google.common.collect.Lists;
-import com.google.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -32,17 +29,10 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.elasticsearch.Version;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.DockerClientFactory;
-import org.testcontainers.elasticsearch.ElasticsearchContainer;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
@@ -57,6 +47,7 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 import javax.jcr.security.Privilege;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -67,16 +58,13 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefini
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_ANALYZED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_USE_IN_SPELLCHECK;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeNotNull;
 
 public class ElasticSpellcheckTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ElasticSpellcheckTest.class);
     private Session adminSession;
     private Session anonymousSession;
     private QueryManager qe;
     private Node indexNode;
-    private static final String TEST_INDEX = "testIndex";
 
     // Set this connection string as
     // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
@@ -164,7 +152,6 @@ public class ElasticSpellcheckTest {
 
     @Test
     public void testSpellcheckSingleWord() throws Exception {
-        //Session session = superuser;
         QueryManager qm = adminSession.getWorkspace().getQueryManager();
         Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
         Node n1 = par.addNode("node1");
@@ -177,7 +164,7 @@ public class ElasticSpellcheckTest {
         Query q = qm.createQuery(sql, Query.SQL);
         assertEventually(() -> {
             try {
-                assertEquals("[decent, descent]", getResult(q.execute(), "rep:spellcheck()").toString());
+                assertEquals("[decent, descent]", getResult(q.execute()).toString());
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -186,7 +173,6 @@ public class ElasticSpellcheckTest {
 
     @Test
     public void testSpellcheckSingleWordWithDescendantNode() throws Exception {
-        //Session session = superuser;
         QueryManager qm = adminSession.getWorkspace().getQueryManager();
         Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
         Node n1 = par.addNode("node1");
@@ -199,7 +185,7 @@ public class ElasticSpellcheckTest {
         Query q = qm.createQuery(sql, Query.SQL);
         assertEventually(() -> {
             try {
-                assertEquals("[decent]", getResult(q.execute(), "rep:spellcheck()").toString());
+                assertEquals("[decent]", getResult(q.execute()).toString());
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -226,16 +212,11 @@ public class ElasticSpellcheckTest {
 
         assertEventually(() -> {
             try {
-                assertEquals("[voting in ontario]", getResult(q.execute(), "rep:spellcheck()").toString());
+                assertEquals("[voting in ontario]", getResult(q.execute()).toString());
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
         });
-    }
-
-    private Node deny(Node node) throws RepositoryException {
-        AccessControlUtils.deny(node, "anonymous", Privilege.JCR_ALL);
-        return node;
     }
 
     private Node allow(Node node) throws RepositoryException {
@@ -243,14 +224,12 @@ public class ElasticSpellcheckTest {
         return node;
     }
 
-    static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
-        List<String> results = Lists.newArrayList();
-        RowIterator it = null;
-
-        it = result.getRows();
+    private static List<String> getResult(QueryResult result) throws RepositoryException {
+        List<String> results = new ArrayList<>();
+        RowIterator it = result.getRows();
         while (it.hasNext()) {
             Row row = it.nextRow();
-            results.add(row.getValue(propertyName).getString());
+            results.add(row.getValue("rep:spellcheck()").getString());
         }
         return results;
     }

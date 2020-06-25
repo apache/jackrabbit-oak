@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
@@ -68,7 +68,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
     private final ElasticIndexNode indexNode;
     private final IndexPlan indexPlan;
-    private final PlanResult planResult;
     private final Predicate<String> rowInclusionPredicate;
     private final LMSEstimator estimator;
 
@@ -80,19 +79,19 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     private FulltextResultRow nextRow;
 
     public ElasticResultRowAsyncIterator(@NotNull ElasticIndexNode indexNode,
+                                         @NotNull ElasticRequestHandler elasticRequestHandler,
+                                         @NotNull ElasticResponseHandler elasticResponseHandler,
                                          @NotNull QueryIndex.IndexPlan indexPlan,
-                                         @NotNull FulltextIndexPlanner.PlanResult planResult,
                                          Predicate<String> rowInclusionPredicate,
                                          LMSEstimator estimator) {
         this.indexNode = indexNode;
+        this.elasticRequestHandler = elasticRequestHandler;
+        this.elasticResponseHandler = elasticResponseHandler;
         this.indexPlan = indexPlan;
-        this.planResult = planResult;
         this.rowInclusionPredicate = rowInclusionPredicate;
         this.estimator = estimator;
 
-        this.elasticRequestHandler = new ElasticRequestHandler(indexPlan, planResult);
-        this.elasticResponseHandler = new ElasticResponseHandler(planResult);
-        this.elasticFacetProvider = initFacetProvider();
+        this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(elasticResponseHandler);
         this.elasticQueryScanner = initScanner();
     }
 
@@ -107,15 +106,17 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         } catch (InterruptedException e) {
             throw new IllegalStateException("Error reading next result from Elastic", e);
         }
-        if (POISON_PILL.path.equals(nextRow.path)) {
-            nextRow = null;
-        }
-        return nextRow != null;
+        return !POISON_PILL.path.equals(nextRow.path);
     }
 
     @Override
     public FulltextResultRow next() {
-        return nextRow;
+        if (nextRow == null) { // next is called without hasNext
+            if (!hasNext()) {
+                return null;
+            }
+        }
+        return nextRow != null && POISON_PILL.path.equals(nextRow.path) ? null : nextRow;
     }
 
     @Override
@@ -141,15 +142,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         } catch (InterruptedException e) {
             throw new IllegalStateException("Error inserting poison pill into the iterator queue", e);
         }
-    }
-
-    private ElasticFacetProvider initFacetProvider() {
-        return elasticRequestHandler.requiresFacets() ?
-                ElasticFacetProvider.getProvider(
-                        planResult.indexDefinition.getSecureFacetConfiguration(),
-                        elasticRequestHandler, elasticResponseHandler,
-                        indexPlan.getFilter()::isAccessible
-                ) : null;
     }
 
     private ElasticQueryScanner initScanner() {
@@ -194,7 +186,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
         ElasticQueryScanner(ElasticRequestHandler requestHandler,
                             List<ElasticResponseListener> listeners) {
-            this.query = requestHandler.build();
+            this.query = requestHandler.baseQuery();
 
             final Set<String> sourceFieldsSet = new HashSet<>();
             final AtomicBoolean needsAggregations = new AtomicBoolean(false);
@@ -242,6 +234,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         /**
          * Handle the response action notifying the registered listeners. Depending on the listeners' configuration
          * it could keep loading chunks or wait for a {@code #scan} call to resume scanning.
+         *
+         * Some code in this method relies on structure that are not thread safe. We need to make sure
+         * these data structures are modified before releasing the semaphore.
          */
         @Override
         public void onResponse(SearchResponse searchResponse) {
@@ -303,7 +298,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         /**
          * Triggers a scan of a new chunk of the result set, if needed.
          */
-        public void scan() {
+        private void scan() {
             if (semaphore.tryAcquire() && anyDataLeft.get()) {
                 final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
                         .query(query)

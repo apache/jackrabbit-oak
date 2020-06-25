@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticRequestHandler;
-import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;

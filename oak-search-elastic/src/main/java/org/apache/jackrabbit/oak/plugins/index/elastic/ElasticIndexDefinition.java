@@ -187,7 +187,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         }
 
         @Override
-        public ElasticIndexDefinition.Builder reindex() {
+        public Builder reindex() {
             super.reindex();
             return this;
         }
