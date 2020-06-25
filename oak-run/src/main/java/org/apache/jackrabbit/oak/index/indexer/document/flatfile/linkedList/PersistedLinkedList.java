@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -44,6 +46,8 @@ public class PersistedLinkedList implements NodeStateEntryList {
 
     private static final String COMPACT_STORE_MILLIS_NAME = "oak.indexer.linkedList.compactMillis";
 
+    private final LinkedHashMap<Long, NodeStateEntry> cache;
+
     private final NodeStateEntryWriter writer;
     private final NodeStateEntryReader reader;
     private final String storeFileName;
@@ -53,15 +57,25 @@ public class PersistedLinkedList implements NodeStateEntryList {
 
     private MVStore store;
     private MVMap<Long, String> map;
+
     private long headIndex;
     private long tailIndex;
     private long size;
     private long lastLog;
     private long lastCompact;
+    private long cacheHits, cacheMisses;
 
-    public PersistedLinkedList(String fileName, NodeStateEntryWriter writer, NodeStateEntryReader reader) {
+    public PersistedLinkedList(String fileName, NodeStateEntryWriter writer, NodeStateEntryReader reader, int cacheSize) {
         LOG.info("Opening store " + fileName);
         this.storeFileName = fileName;
+        this.cache =
+                new LinkedHashMap<Long, NodeStateEntry>(cacheSize + 1, .75F, true) {
+            private static final long serialVersionUID = 1L;
+            @Override
+            public boolean removeEldestEntry(Map.Entry<Long, NodeStateEntry> eldest) {
+                return size() > cacheSize;
+            }
+        };
         File oldFile = new File(fileName);
         if (oldFile.exists()) {
             LOG.info("Deleting " + fileName);
@@ -86,7 +100,9 @@ public class PersistedLinkedList implements NodeStateEntryList {
     public void add(@NotNull NodeStateEntry item) {
         Preconditions.checkArgument(item != null, "Can't add null to the list");
         String s = writer.toString(item);
-        map.put(tailIndex++, s);
+        long index = tailIndex++;
+        map.put(index, s);
+        cache.put(index, item);
         size++;
         long sizeBytes = store.getFileStore().size();
         long now = System.currentTimeMillis();
@@ -122,17 +138,27 @@ public class PersistedLinkedList implements NodeStateEntryList {
         Preconditions.checkState(!isEmpty(), "Cannot remove item from empty list");
         NodeStateEntry ret = get(headIndex);
         map.remove(headIndex);
+        cache.remove(headIndex);
         headIndex++;
         size--;
         if (size == 0) {
             map.clear();
+            cache.clear();
         }
         return ret;
     }
 
     private NodeStateEntry get(long index) {
-        String s = map.get(index);
-        return reader.read(s);
+        NodeStateEntry result = cache.get(index);
+        if (result == null) {
+            cacheMisses++;
+            String s = map.get(index);
+            result = reader.read(s);
+            cache.put(index, result);
+        } else {
+            cacheHits++;
+        }
+        return result;
     }
 
     @Override
@@ -143,6 +169,7 @@ public class PersistedLinkedList implements NodeStateEntryList {
     @Override
     public void close() {
         store.close();
+        LOG.info("Cache hits {} misses {}", cacheHits, cacheMisses);
     }
 
     @Override

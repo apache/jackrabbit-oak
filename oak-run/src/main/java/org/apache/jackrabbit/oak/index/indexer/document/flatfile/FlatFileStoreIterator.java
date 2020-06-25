@@ -61,7 +61,7 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
             log.info("Using a key-value store buffer: {}", fileName);
             NodeStateEntryReader reader = new NodeStateEntryReader(blobStore);
             NodeStateEntryWriter writer = new NodeStateEntryWriter(blobStore);
-            this.buffer = new PersistedLinkedList(fileName, writer, reader);
+            this.buffer = new PersistedLinkedList(fileName, writer, reader, 1000);
         } else if (memLimitConfig < 0) {
             log.info("Setting buffer memory limit unbounded");
             this.buffer = new FlatFileBufferLinkedList();

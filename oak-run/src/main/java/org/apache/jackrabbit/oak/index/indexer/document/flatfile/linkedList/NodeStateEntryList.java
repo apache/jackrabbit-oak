@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.linkedList.FlatFileBufferLinkedList.NodeIterator;
 import org.jetbrains.annotations.NotNull;
 
 public interface NodeStateEntryList {
