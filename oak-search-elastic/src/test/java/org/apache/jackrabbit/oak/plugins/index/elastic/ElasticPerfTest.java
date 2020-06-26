@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -30,12 +29,15 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Random;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
-
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 /*
-This can be used as a quick means to get some numbers around elastic query perf during dev cycles 
+This can be used as a quick means to get some numbers around elastic query perf during dev cycles
 to compare between old code and new
 Disabled by default as these tests don't assert anything and might be time consuming.
 To enable perf logs add <logger name="org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPerfTest" level="TRACE"/>
@@ -48,13 +50,15 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
     private static final PerfLogger LOG_PERF = new PerfLogger(LOG);
     // Change these to modify the amount of test data created/indexed
     // and the number of times the queries will be executed
-    private int NUM_SUB_CONTENT = 500;
-    private int NUM_NODES = 500;
-    private int NUM_ITERATIONS = 500;
-    private String PROP_1 = "foo";
-    private String PROP_2 = "title";
-    private String PROP_3 = "text";
-    private String SAMPLE_TEXT = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+    private static final int NUM_SUB_CONTENT = 500;
+    private static final int NUM_NODES = 500;
+    private static final int NUM_ITERATIONS = 500;
+    private static final String PROP_1 = "foo";
+    private static final String PROP_2 = "title";
+    private static final String PROP_3 = "text";
+    private static final String SAMPLE_TEXT = "Lorem ipsum dolor sit amet, consectetur adipiscing elit";
+
+    private Tree index;
 
     @Before
     public void createIndexes() throws Exception {
@@ -64,19 +68,15 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
         builder.indexRule("nt:base").property(PROP_3).analyzed();
         builder.indexRule("nt:base").property(PROP_1).analyzed();
 
-        setIndex("testIndex", builder);
+        this.index = setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
-
-        createTestData();
-        // Allow indexing to catch up .
-        Thread.sleep(2500);
-
     }
 
     // Executes the same query multiple times for NUM_ITERATIONS
     @Test
-    public void testFullTextQuery() throws Exception {
-        String query = "//*[jcr:contains(@text, 'Lorem')] ";
+    public void testFullTextSingleQuery() throws Exception {
+        createTestData();
+        String query = "//*[jcr:contains(@text, 'elit" + (NUM_NODES / 2) + "')] ";
         long startTest = LOG_PERF.start("Starting test executions");
         for (int j = 0; j < NUM_ITERATIONS; j++) {
             testQuery(query, XPATH);
@@ -86,7 +86,8 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
 
     // Executes different queries each time
     @Test
-    public void testFullTextQuery2() throws Exception {
+    public void testFullTextMultiQuery() throws Exception {
+        createTestData();
         long startTest = LOG_PERF.start("Starting test executions");
         Random rndm = new Random(42);
         for (int j = 0; j < NUM_ITERATIONS; j++) {
@@ -97,7 +98,21 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void testPropertyQuery() throws Exception {
+    public void testFullTextMultiQueryWithExtraText() throws Exception {
+        Random randomText = new Random(42);
+        createTestData(() -> ElasticTestUtils.randomString(randomText, 1000));
+        long startTest = LOG_PERF.start("Starting test executions");
+        Random rndm = new Random(42);
+        for (int j = 0; j < NUM_ITERATIONS; j++) {
+            String query = "//*[jcr:contains(@text, 'elit" + rndm.nextInt(NUM_NODES) + "')] ";
+            testQuery(query, XPATH);
+        }
+        LOG_PERF.end(startTest, -1, "{} iterations of tests completed", NUM_ITERATIONS);
+    }
+
+    @Test
+    public void testPropertySingleQuery() throws Exception {
+        createTestData();
         String query = "select [jcr:path] from [nt:base] where [title] = 'Title for node0'";
         long startTest = LOG_PERF.start("Starting test executions");
         for (int j = 0; j < NUM_ITERATIONS; j++) {
@@ -109,7 +124,8 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
 
     // Executes different queries in the test iterations
     @Test
-    public void testPropertyQuery2() throws Exception {
+    public void testPropertyMultiQuery() throws Exception {
+        createTestData();
         long startTest = LOG_PERF.start("Starting test executions");
         Random rndm = new Random(42);
         for (int j = 0; j < NUM_ITERATIONS; j++) {
@@ -119,8 +135,12 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
         LOG_PERF.end(startTest, -1, "{} iterations of tests completed", NUM_ITERATIONS);
     }
 
-
     private void createTestData() throws Exception {
+        createTestData(null);
+    }
+
+    private void createTestData(Supplier<String> extraContentSupplier) throws Exception {
+        long start = LOG_PERF.start("Starting data indexing");
         Tree content = root.getTree("/").addChild("content");
 
         for (int i = 0; i < NUM_SUB_CONTENT; i++) {
@@ -130,11 +150,20 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
             for (int j = 0; j < NUM_NODES; j++) {
                 Tree node = subContent.addChild("node" + j);
                 node.setProperty(PROP_2, "Title for node" + j);
-                node.setProperty(PROP_3, SAMPLE_TEXT + j);
+                String text = SAMPLE_TEXT + j;
+                if (extraContentSupplier != null) {
+                    text += "\n" + extraContentSupplier.get();
+                }
+                node.setProperty(PROP_3, text);
             }
+            root.commit();
         }
-        root.commit();
 
+        // Allow indexing to catch up
+        assertEventually(() ->
+                assertThat(countDocuments(index), equalTo((long) ((NUM_SUB_CONTENT * NUM_NODES) + NUM_SUB_CONTENT)))
+        );
+        LOG_PERF.end(start, -1, "{} documents indexed", countDocuments(index));
     }
 
     private void testQuery(String query, String language) throws Exception {
@@ -144,8 +173,8 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
         long start = LOG_PERF.start("Getting result rows");
         int i = 0;
         while (iterator.hasNext()) {
-            i++;
             ResultRow row = iterator.next();
+            i++;
         }
         LOG_PERF.end(start, -1, "{} Results fetched", i);
     }

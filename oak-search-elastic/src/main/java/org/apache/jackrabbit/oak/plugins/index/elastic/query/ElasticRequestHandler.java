@@ -275,7 +275,7 @@ public class ElasticRequestHandler {
             }
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
-                String p = getLuceneFieldName(propertyName, pr);
+                String p = getElasticFieldName(propertyName, pr);
                 QueryBuilder q = tokenToQuery(text, p, pr);
                 if (boost != null) {
                     q.boost(Float.parseFloat(boost));
@@ -312,8 +312,8 @@ public class ElasticRequestHandler {
                 break;
             case DIRECT_CHILDREN:
                 BoolQueryBuilder bq = boolQuery()
-                    .must(newAncestorQuery(path))
-                    .must(newDepthQuery(path, planResult));
+                        .must(newAncestorQuery(path))
+                        .must(newDepthQuery(path, planResult));
                 queries.add(bq);
                 break;
             case EXACT:
@@ -464,22 +464,24 @@ public class ElasticRequestHandler {
     }
 
     private static QueryBuilder tokenToQuery(String text, String fieldName, PlanResult pr) {
+        // default match query are executed in OR, we need to use AND instead to avoid that
+        // every document having at least one term in the `text` will match. If there are multiple
+        // contains clause they will go to different match queries and will be executed in OR
         QueryBuilder ret;
         IndexDefinition.IndexingRule indexingRule = pr.indexingRule;
         //Expand the query on fulltext field
-        if (FieldNames.FULLTEXT.equals(fieldName) &&
-                !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
+        if (FieldNames.FULLTEXT.equals(fieldName) && !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
             BoolQueryBuilder in = boolQuery();
             for (PropertyDefinition pd : indexingRule.getNodeScopeAnalyzedProps()) {
-                QueryBuilder q = matchQuery(pd.name, text).boost(pd.boost);
+                QueryBuilder q = matchQuery(pd.name, text).boost(pd.boost).operator(Operator.AND);
                 in.should(q);
             }
 
             //Add the query for actual fulltext field also. That query would not be boosted
             // TODO: do we need this if all the analyzed fields are queried?
-            ret = in.should(matchQuery(fieldName, text));
+            ret = in.should(matchQuery(fieldName, text).operator(Operator.AND));
         } else {
-            ret = matchQuery(fieldName, text);
+            ret = matchQuery(fieldName, text).operator(Operator.AND);
         }
 
         return ret;
@@ -532,7 +534,7 @@ public class ElasticRequestHandler {
         throw new IllegalStateException("PropertyRestriction not handled " + pr + " for index " + defn);
     }
 
-    private static String getLuceneFieldName(@Nullable String p, PlanResult pr) {
+    private static String getElasticFieldName(@Nullable String p, PlanResult pr) {
         if (p == null) {
             return FieldNames.FULLTEXT;
         }

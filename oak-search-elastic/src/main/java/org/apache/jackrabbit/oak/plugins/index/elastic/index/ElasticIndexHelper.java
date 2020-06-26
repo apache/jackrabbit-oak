@@ -182,6 +182,7 @@ class ElasticIndexHelper {
                         {
                             mappingBuilder.startObject("keyword")
                                     .field("type", "keyword")
+                                    .field("ignore_above", 256)
                                     .endObject();
                             if (useInSpellCheck) {
                                 mappingBuilder.startObject("trigram")
@@ -192,7 +193,9 @@ class ElasticIndexHelper {
                         mappingBuilder.endObject();
                     } else {
                         // always add keyword for sorting / faceting
-                        mappingBuilder.field("type", "keyword");
+                        mappingBuilder
+                                .field("type", "keyword")
+                                .field("ignore_above", 256);
                     }
                 }
             }

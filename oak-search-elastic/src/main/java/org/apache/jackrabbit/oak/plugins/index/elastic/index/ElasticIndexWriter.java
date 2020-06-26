@@ -232,7 +232,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             // init update status
             updatesMap.put(executionId, Boolean.FALSE);
 
-            LOG.info("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
+            LOG.debug("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
             if (LOG.isTraceEnabled()) {
                 LOG.trace("Bulk Requests: \n{}", bulkRequest.requests()
                         .stream()
@@ -244,7 +244,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
         @Override
         public void afterBulk(long executionId, BulkRequest bulkRequest, BulkResponse bulkResponse) {
-            LOG.info("Bulk with id {} processed with status {} in {}", executionId, bulkResponse.status(), bulkResponse.getTook());
+            LOG.debug("Bulk with id {} processed with status {} in {}", executionId, bulkResponse.status(), bulkResponse.getTook());
             if (LOG.isTraceEnabled()) {
                 try {
                     LOG.trace(Strings.toString(bulkResponse.toXContent(jsonBuilder(), EMPTY_PARAMS)));

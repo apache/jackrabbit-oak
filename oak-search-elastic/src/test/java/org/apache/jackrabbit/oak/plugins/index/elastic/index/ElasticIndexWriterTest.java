@@ -27,8 +27,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Random;
-
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.OrderingComparison.lessThan;
@@ -96,15 +95,7 @@ public class ElasticIndexWriterTest {
 
     @Test
     public void longDocumentPath() {
-        int leftLimit = 48; // '0'
-        int rightLimit = 122; // char '~'
-        int targetStringLength = 1024;
-        final Random random = new Random(42);
-
-        String generatedPath = random.ints(leftLimit, rightLimit + 1)
-                .limit(targetStringLength)
-                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-                .toString();
+        String generatedPath = randomString(1024);
 
         indexWriter.updateDocument(generatedPath, new ElasticDocument(generatedPath));
 

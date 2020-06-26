@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Random;
+
 public final class ElasticTestUtils {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticTestUtils.class);
 
@@ -50,5 +52,19 @@ public final class ElasticTestUtils {
 
             }
         }
+    }
+
+    public static String randomString(int size) {
+        return randomString(new Random(42), size);
+    }
+
+    public static String randomString(Random random, int size) {
+        int leftLimit = 48; // '0'
+        int rightLimit = 122; // char '~'
+
+        return random.ints(leftLimit, rightLimit + 1)
+                .limit(size)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
     }
 }
