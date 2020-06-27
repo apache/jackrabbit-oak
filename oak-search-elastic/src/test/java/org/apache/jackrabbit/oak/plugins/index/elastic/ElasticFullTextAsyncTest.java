@@ -111,7 +111,9 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
     public void testDefaultAnalyzer() throws Exception {
         IndexDefinitionBuilder builder = createIndex("analyzed_field");
         builder.async("async");
-        builder.indexRule("nt:base").property("analyzed_field").analyzed();
+        builder.indexRule("nt:base")
+                .property("analyzed_field")
+                .analyzed().nodeScopeIndex();
 
         setIndex(UUID.randomUUID().toString(), builder);
         root.commit();
@@ -123,8 +125,12 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
+            assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')] ", XPATH, Collections.singletonList("/test/a"));
             assertQuery("//*[jcr:contains(@analyzed_field, 'Sun')] ", XPATH, Collections.singletonList("/test/a"));
             assertQuery("//*[jcr:contains(@analyzed_field, 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(., 'SUN.jpg')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(., 'sun')] ", XPATH, Collections.singletonList("/test/a"));
+            assertQuery("//*[jcr:contains(., 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
         });
     }
 

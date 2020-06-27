@@ -129,6 +129,11 @@ class ElasticIndexHelper {
         mappingBuilder.startObject(FieldNames.PATH_DEPTH)
                 .field("type", "integer")
                 .endObject();
+        // TODO: to increase efficiency, we could potentially remove this and use a multi match query when needed
+        mappingBuilder.startObject(FieldNames.FULLTEXT)
+                .field("type", "text")
+                .field("analyzer", "oak_analyzer")
+                .endObject();
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // when the specific features will be implemented
 //                mappingBuilder.startObject(FieldNames.SUGGEST)
