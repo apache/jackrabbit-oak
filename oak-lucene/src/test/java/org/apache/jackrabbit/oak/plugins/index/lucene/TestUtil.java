@@ -83,13 +83,13 @@ public class TestUtil {
     public static final String TEST_NODE_TYPE = "[oak:TestNode]\n" + " - * (UNDEFINED) multiple\n"
         + " - * (UNDEFINED)\n" + " + * (nt:base) = oak:TestNode VERSION";
 
-    static void useV2(NodeBuilder idxNb) {
+    public static void useV2(NodeBuilder idxNb) {
         if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
             idxNb.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         }
     }
 
-    static void useV2(Tree idxTree) {
+    public static void useV2(Tree idxTree) {
         if (!IndexFormatVersion.getDefault().isAtLeast(IndexFormatVersion.V2)) {
             idxTree.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         }
