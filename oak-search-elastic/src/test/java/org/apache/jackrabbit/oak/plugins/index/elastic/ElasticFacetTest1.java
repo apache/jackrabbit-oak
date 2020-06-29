@@ -56,7 +56,7 @@ public class ElasticFacetTest1 extends FacetTest1 {
         return repository;
     }
 
-    public void assertEventually(Runnable r) {
+    protected void assertEventually(Runnable r) {
         TestUtils.assertEventually(r,
                 ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }

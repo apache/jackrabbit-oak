@@ -15,8 +15,8 @@ import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvid
 
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
-    private ElasticConnection esConnection;
-    public final int asyncIndexingTimeInSeconds = 5;
+    private final ElasticConnection esConnection;
+    private final int asyncIndexingTimeInSeconds = 5;
 
     public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :

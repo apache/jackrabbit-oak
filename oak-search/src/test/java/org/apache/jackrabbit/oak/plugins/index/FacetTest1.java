@@ -332,7 +332,7 @@ public abstract class FacetTest1 extends AbstractJcrTest {
                 .collect(Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
     }
 
-    public void assertEventually(Runnable r) {
+    protected void assertEventually(Runnable r) {
         TestUtils.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }

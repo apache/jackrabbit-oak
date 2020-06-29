@@ -38,7 +38,7 @@ public class ElasticSpellcheckTest1 extends SpellcheckTest1 {
     // key_id and key_secret are optional in case the ES server
     // needs authentication
     // Do not set this if docker is running and you want to run the tests on docker instead.
-    private static final String elasticConnectionString = "http://mokatari-ubuntu:9200";//System.getProperty("elasticConnectionString");
+    private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
 
     @ClassRule
     public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
