@@ -41,8 +41,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
         if (isAsync) {
             oak.withAsyncIndexing("async", asyncIndexingTimeInSeconds);
         }
-        return new TestRepository(oak).with(isAsync).with(asyncIndexUpdate)
-                .setEventualConsistentDelay(((asyncIndexingTimeInSeconds*1000) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT));
+        return new TestRepository(oak).with(isAsync).with(asyncIndexUpdate);
     }
 
     private IndexEditorProvider getIndexEditorProvider() {
