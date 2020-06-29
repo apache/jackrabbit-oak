@@ -5,6 +5,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnectionRule;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -15,6 +16,7 @@ import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvid
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
     private ElasticConnection esConnection;
+    public final int asyncIndexingTimeInSeconds = 5;
 
     public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
@@ -28,7 +30,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
 
-    public RepositoryOptionsUtil build() {
+    public TestRepository build() {
         Oak oak = new Oak(nodeStore)
                 .with(initialContent)
                 .with(securityProvider)
@@ -37,9 +39,10 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 .with(indexProvider)
                 .with(queryIndexProvider);
         if (isAsync) {
-            oak.withAsyncIndexing("async", defaultAsyncIndexingTimeInSeconds);
+            oak.withAsyncIndexing("async", asyncIndexingTimeInSeconds);
         }
-        return new RepositoryOptionsUtil(oak).with(isAsync).with(asyncIndexUpdate);
+        return new TestRepository(oak).with(isAsync).with(asyncIndexUpdate)
+                .setEventualConsistentDelay(((asyncIndexingTimeInSeconds*1000) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT));
     }
 
     private IndexEditorProvider getIndexEditorProvider() {

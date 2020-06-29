@@ -48,7 +48,7 @@ public abstract class SpellcheckTest1 extends AbstractJcrTest {
     private static final Logger LOG = LoggerFactory.getLogger(SpellcheckTest1.class);
     protected Node indexNode;
     protected IndexOptions indexOptions;
-    protected RepositoryOptionsUtil repositoryOptionsUtil;
+    protected TestRepository repositoryOptionsUtil;
 
     @Before
     public void createIndex() throws RepositoryException {

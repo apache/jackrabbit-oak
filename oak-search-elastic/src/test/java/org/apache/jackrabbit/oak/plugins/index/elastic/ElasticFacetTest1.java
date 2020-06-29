@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.ElasticTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.FacetTest1;
+import org.apache.jackrabbit.oak.plugins.index.TestUtils;
 import org.junit.After;
 import org.junit.ClassRule;
 
@@ -53,5 +54,10 @@ public class ElasticFacetTest1 extends FacetTest1 {
         Jcr jcr = new Jcr(oak);
         Repository repository = jcr.createRepository();
         return repository;
+    }
+
+    public void assertEventually(Runnable r) {
+        TestUtils.assertEventually(r,
+                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT) * 5);
     }
 }

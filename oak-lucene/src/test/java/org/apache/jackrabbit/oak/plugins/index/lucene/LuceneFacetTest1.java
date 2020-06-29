@@ -52,8 +52,8 @@ public class LuceneFacetTest1 extends FacetTest1 {
         return repository;
     }
 
-    private void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
+    public void assertEventually(Runnable r) {
+        TestUtils.assertEventually(r, (repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) * 5);
     }
 
 }

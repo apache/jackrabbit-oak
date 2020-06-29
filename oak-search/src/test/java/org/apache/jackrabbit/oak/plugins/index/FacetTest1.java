@@ -56,7 +56,7 @@ import static org.junit.Assert.assertTrue;
 public abstract class FacetTest1 extends AbstractJcrTest {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJcrTest.class);
     private static final PerfLogger LOG_PERF = new PerfLogger(LOG);
-    protected RepositoryOptionsUtil repositoryOptionsUtil;
+    protected TestRepository repositoryOptionsUtil;
     protected Node indexNode;
     protected IndexOptions indexOptions;
     private static final String FACET_PROP = "facets";
@@ -332,7 +332,7 @@ public abstract class FacetTest1 extends AbstractJcrTest {
                 .collect(Collectors.toMap(FacetResult.Facet::getLabel, FacetResult.Facet::getCount));
     }
 
-    private void assertEventually(Runnable r) {
+    public void assertEventually(Runnable r) {
         TestUtils.assertEventually(r, ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }

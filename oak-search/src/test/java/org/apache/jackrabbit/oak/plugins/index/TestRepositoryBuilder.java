@@ -35,7 +35,7 @@ public abstract class TestRepositoryBuilder {
 
     public TestRepositoryBuilder() {
         this.isAsync = isAsync;
-        this.nodeStore = createNodeStore(RepositoryOptionsUtil.NodeStoreType.MEMORY_NODE_STORE);
+        this.nodeStore = createNodeStore(TestRepository.NodeStoreType.MEMORY_NODE_STORE);
         this.trackingCorruptIndexHandler = new TrackingCorruptIndexHandler();
         trackingCorruptIndexHandler.setCorruptInterval(indexCorruptIntervalInMillis, TimeUnit.MILLISECONDS);
         initialContent = getInitialContent();
@@ -56,7 +56,7 @@ public abstract class TestRepositoryBuilder {
         };
     }
 
-    abstract protected RepositoryOptionsUtil build();
+    abstract protected TestRepository build();
 
     // Override this to provide a different flavour of node store
     // like segment or mongo mk
@@ -64,7 +64,7 @@ public abstract class TestRepositoryBuilder {
     // TODO provide a util here so that test classes simply need to mention the type of store they want to create
     // for now, memory store should suffice.
 
-    protected NodeStore createNodeStore(RepositoryOptionsUtil.NodeStoreType memoryNodeStore) {
+    protected NodeStore createNodeStore(TestRepository.NodeStoreType memoryNodeStore) {
         switch (memoryNodeStore) {
             case MEMORY_NODE_STORE:
             default:

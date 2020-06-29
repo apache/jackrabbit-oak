@@ -3,11 +3,11 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-public class RepositoryOptionsUtil {
+public class TestRepository {
 
     private AsyncIndexUpdate asyncIndexUpdate;
 
-    public RepositoryOptionsUtil(Oak oak) {
+    public TestRepository(Oak oak) {
         this.oak = oak;
     }
 
@@ -16,7 +16,6 @@ public class RepositoryOptionsUtil {
     }
 
     public final int defaultAsyncIndexingTimeInSeconds = 5;
-    public final long indexCorruptIntervalInMillis = 100;
 
     private boolean isAsync;
 
@@ -27,7 +26,7 @@ public class RepositoryOptionsUtil {
         return oak;
     }
 
-    public RepositoryOptionsUtil with(boolean isAsync) {
+    public TestRepository with(boolean isAsync) {
         this.isAsync = isAsync;
         return this;
     }
@@ -36,7 +35,7 @@ public class RepositoryOptionsUtil {
         return isAsync;
     }
 
-    public RepositoryOptionsUtil with(AsyncIndexUpdate asyncIndexUpdate) {
+    public TestRepository with(AsyncIndexUpdate asyncIndexUpdate) {
         this.asyncIndexUpdate = asyncIndexUpdate;
         return this;
     }

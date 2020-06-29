@@ -31,7 +31,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public abstract class PropertyIndexTest1 extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
-    protected RepositoryOptionsUtil repositoryOptionsUtil;
+    protected TestRepository repositoryOptionsUtil;
 
     protected void assertEventually(Runnable r) {
         TestUtils.assertEventually(r,

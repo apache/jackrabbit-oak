@@ -4,7 +4,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
-import org.apache.jackrabbit.oak.plugins.index.RepositoryOptionsUtil;
+import org.apache.jackrabbit.oak.plugins.index.TestRepository;
 import org.apache.jackrabbit.oak.plugins.index.TestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -45,7 +45,7 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
 
-    public RepositoryOptionsUtil build() {
+    public TestRepository build() {
         Oak oak = new Oak(nodeStore)
                 .with(getInitialContent())
                 .with(securityProvider)
@@ -59,6 +59,6 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
         if (isAsync) {
             oak.withAsyncIndexing("async", defaultAsyncIndexingTimeInSeconds);
         }
-        return new RepositoryOptionsUtil(oak).with(isAsync).with(asyncIndexUpdate);
+        return new TestRepository(oak).with(isAsync).with(asyncIndexUpdate);
     }
 }
