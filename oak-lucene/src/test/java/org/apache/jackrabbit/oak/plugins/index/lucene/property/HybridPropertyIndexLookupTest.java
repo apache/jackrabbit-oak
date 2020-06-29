@@ -23,7 +23,7 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -49,7 +49,7 @@ import static org.junit.Assert.assertThat;
 public class HybridPropertyIndexLookupTest {
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
-    private IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
     private String indexPath  = "/oak:index/foo";
     private PropertyIndexUpdateCallback callback = new PropertyIndexUpdateCallback(indexPath, builder, root);
 

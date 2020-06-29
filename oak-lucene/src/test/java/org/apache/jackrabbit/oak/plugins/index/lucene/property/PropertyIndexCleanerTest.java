@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner.CleanupStats;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
@@ -79,7 +79,7 @@ public class PropertyIndexCleanerTest {
 
     @Test
     public void syncIndexPaths() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
@@ -101,7 +101,7 @@ public class PropertyIndexCleanerTest {
 
     @Test
     public void simplePropertyIndexCleaning() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
@@ -146,7 +146,7 @@ public class PropertyIndexCleanerTest {
 
     @Test
     public void uniqueIndexCleaning() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
@@ -214,7 +214,7 @@ public class PropertyIndexCleanerTest {
 
     @Test
     public void noRunPerformedIfNoChangeInAsync() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
@@ -255,7 +255,7 @@ public class PropertyIndexCleanerTest {
 
     @Test
     public void recursiveDelete() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         String indexPath = "/oak:index/foo";
         addIndex(indexPath, defnb);
@@ -301,7 +301,7 @@ public class PropertyIndexCleanerTest {
         }
     }
 
-    private void addIndex(String indexPath, IndexDefinitionBuilder defnb) throws CommitFailedException {
+    private void addIndex(String indexPath, LuceneIndexDefinitionBuilder defnb) throws CommitFailedException {
         NodeBuilder nb = nodeStore.getRoot().builder();
         child(nb, getParentPath(indexPath)).setChildNode(getName(indexPath), defnb.build());
         merge(nb);

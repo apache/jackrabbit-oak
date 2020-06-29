@@ -29,14 +29,9 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -107,7 +102,7 @@ public class AsyncIndexStatsUpdateCallbackTest {
     @Test
     public void testCallbackWorksAsScheduled() throws Exception {
         luceneIndexEditorProvider.withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
-        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
         idxb.indexRule("nt:base")
                 .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
         idxb.build(root.getTree("/oak:index").addChild("lucenePropertyIndex"));
@@ -134,7 +129,7 @@ public class AsyncIndexStatsUpdateCallbackTest {
     @Test
     public void testNOOPDonotPerformCallbackStatsUpdate() throws Exception {
         luceneIndexEditorProvider.withAsyncIndexesSizeStatsUpdate(AsyncIndexesSizeStatsUpdate.NOOP);
-        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
         idxb.indexRule("nt:base")
                 .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
         idxb.build(root.getTree("/oak:index").addChild("lucenePropertyIndex"));

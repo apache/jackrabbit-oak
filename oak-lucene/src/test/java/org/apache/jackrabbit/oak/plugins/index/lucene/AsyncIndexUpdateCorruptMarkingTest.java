@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -97,7 +97,7 @@ public class AsyncIndexUpdateCorruptMarkingTest {
 
     @Test
     public void testLuceneIndexSegmentStats() throws Exception {
-        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
         idxb.indexRule("nt:base")
                 .property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
         idxb.build(root.getTree("/oak:index").addChild("lucenePropertyIndex"));

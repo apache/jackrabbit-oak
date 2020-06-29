@@ -20,7 +20,8 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -73,7 +74,7 @@ public class LuceneIndexPathRestrictionTest {
     @Test
     public void pathTranformationWithNoPathRestriction() throws Exception {
         IndexDefinitionBuilder idxBuilder =
-                new IndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
+                new LuceneIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
                         .noAsync().evaluatePathRestrictions();
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         idxBuilder.build();
@@ -106,7 +107,7 @@ public class LuceneIndexPathRestrictionTest {
     @Test
     public void pathTranformationWithAllChildrenPathRestriction() throws Exception {
         IndexDefinitionBuilder idxBuilder =
-                new IndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
+                new LuceneIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
                         .noAsync().evaluatePathRestrictions();
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         idxBuilder.build();
@@ -142,7 +143,7 @@ public class LuceneIndexPathRestrictionTest {
     @Test
     public void pathTranformationWithDirectChildrenPathRestriction() throws Exception {
         IndexDefinitionBuilder idxBuilder =
-                new IndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
+                new LuceneIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
                         .noAsync().evaluatePathRestrictions();
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         idxBuilder.build();
@@ -178,7 +179,7 @@ public class LuceneIndexPathRestrictionTest {
     @Test
     public void pathTranformationWithExactPathRestriction() throws Exception {
         IndexDefinitionBuilder idxBuilder =
-                new IndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
+                new LuceneIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
                         .noAsync().evaluatePathRestrictions();
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         idxBuilder.build();
@@ -214,7 +215,7 @@ public class LuceneIndexPathRestrictionTest {
     @Test
     public void pathTranformationWithParentFilter() throws Exception {
         IndexDefinitionBuilder idxBuilder =
-                new IndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
+                new LuceneIndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex"))
                         .noAsync().evaluatePathRestrictions();
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         idxBuilder.build();

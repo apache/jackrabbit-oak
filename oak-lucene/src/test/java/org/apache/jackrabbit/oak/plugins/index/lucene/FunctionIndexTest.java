@@ -45,10 +45,11 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.InitialContentHelper;
@@ -916,7 +917,7 @@ public class FunctionIndexTest extends AbstractQueryTest {
 
     @Test
     public void coalesce() throws Exception{
-        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("foo", null).function(
                 "lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname())))"
         );
@@ -942,7 +943,7 @@ public class FunctionIndexTest extends AbstractQueryTest {
 
     @Test
     public void coalesceOrdering() throws Exception{
-        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync();
         idxb.indexRule("nt:base").property("foo", null).function(
                 "coalesce([jcr:content/foo2], [jcr:content/foo])"
         ).ordered();

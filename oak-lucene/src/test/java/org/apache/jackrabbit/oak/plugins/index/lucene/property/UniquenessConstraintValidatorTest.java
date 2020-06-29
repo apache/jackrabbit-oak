@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyUpdateCallback;
@@ -42,7 +42,7 @@ import static org.junit.Assert.fail;
 public class UniquenessConstraintValidatorTest {
     private NodeState root = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
-    private IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
     private String indexPath  = "/oak:index/foo";
 
     @Test

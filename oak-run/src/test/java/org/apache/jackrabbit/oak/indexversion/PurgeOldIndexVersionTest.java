@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.index.AbstractIndexCommandTest;
 import org.apache.jackrabbit.oak.index.RepositoryFixture;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.run.PurgeOldIndexVersionCommand;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -49,7 +49,7 @@ public class PurgeOldIndexVersionTest extends AbstractIndexCommandTest {
     private final static String FOO1_INDEX_PATH = "/oak:index/fooIndex1";
 
     private void createCustomIndex(String path, int ootbVersion, int customVersion, boolean asyncIndex) throws IOException, RepositoryException {
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
         }

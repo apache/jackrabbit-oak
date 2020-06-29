@@ -65,12 +65,13 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
@@ -344,13 +345,13 @@ public class Persistence {
             String indexName = "lucene";
             if (!index.hasChildNode(indexName)) {
                 Set<String> INCLUDE_PROPS = ImmutableSet.of("test");
-                IndexDefinitionBuilder indexBuilder = new IndexDefinitionBuilder(index.child(indexName))
+                IndexDefinitionBuilder indexBuilder = new LuceneIndexDefinitionBuilder(index.child(indexName))
                         .codec("Lucene46")
                         .excludedPaths("/libs");
                 indexBuilder.async(FULLTEXT_ASYNC, IndexConstants.INDEXING_MODE_NRT);
                 indexBuilder.aggregateRule("nt:file", "jcr:content");
                 indexBuilder.indexRule("rep:Token");
-                IndexDefinitionBuilder.IndexRule indexRules = indexBuilder.indexRule("nt:base");
+                LuceneIndexDefinitionBuilder.IndexRule indexRules = indexBuilder.indexRule("nt:base");
                 indexRules.includePropertyTypes("String", "Binary");
                 for (String includeProp : INCLUDE_PROPS) {
                     indexRules.property(includeProp).propertyIndex();

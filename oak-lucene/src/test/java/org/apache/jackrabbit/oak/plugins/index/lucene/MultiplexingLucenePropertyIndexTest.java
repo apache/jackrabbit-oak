@@ -57,7 +57,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -141,7 +142,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void emptyIndex() throws Exception {
         NodeBuilder defnBuilder = builder.child("oak:index").child("foo");
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(defnBuilder).noAsync();
+        IndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(defnBuilder).noAsync();
         idxBuilder.indexRule("nt:base").property("propa").propertyIndex();
         idxBuilder.build();
 

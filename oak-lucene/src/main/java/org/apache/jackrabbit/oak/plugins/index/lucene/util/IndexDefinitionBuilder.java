@@ -60,6 +60,10 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+/**
+ *  @deprecated  As of release 1.32, replaced by {@link LuceneIndexDefinitionBuilder}
+ */
+@Deprecated
 public final class IndexDefinitionBuilder {
     private final NodeBuilder builder;
     private final Tree tree;

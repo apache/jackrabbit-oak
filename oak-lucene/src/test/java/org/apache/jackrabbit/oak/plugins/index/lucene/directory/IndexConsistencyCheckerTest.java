@@ -34,9 +34,8 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Level;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexConsistencyChecker.Result;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -60,7 +59,7 @@ import static org.junit.Assert.assertTrue;
 public class IndexConsistencyCheckerTest {
 
     private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
-    private NodeBuilder idx = new IndexDefinitionBuilder().build().builder();
+    private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
 
     @Rule

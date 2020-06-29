@@ -23,7 +23,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -41,7 +41,7 @@ public class LuceneIndexPropertyQueryTest {
     private IndexTracker tracker = new IndexTracker();
 
     private String indexPath  = "/oak:index/foo";
-    private IndexDefinitionBuilder defnb = new IndexDefinitionBuilder(child(builder, indexPath));
+    private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
 
     private LuceneIndexPropertyQuery query = new LuceneIndexPropertyQuery(tracker, indexPath);
 

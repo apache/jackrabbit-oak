@@ -53,7 +53,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -149,7 +149,7 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         nswb1.register(JournalPropertyService.class, new LuceneJournalPropertyService(1000), null);
         nswb2.register(JournalPropertyService.class, new LuceneJournalPropertyService(1000), null);
 
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "sync");
 

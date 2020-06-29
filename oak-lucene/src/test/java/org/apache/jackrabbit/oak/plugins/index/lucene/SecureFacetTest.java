@@ -25,7 +25,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.facet.FacetResult;
@@ -114,7 +114,7 @@ public class SecureFacetTest {
     }
 
     private void createIndex() throws RepositoryException {
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         idxBuilder.noAsync().evaluatePathRestrictions()
                 .indexRule("nt:base")
                 .property("cons")

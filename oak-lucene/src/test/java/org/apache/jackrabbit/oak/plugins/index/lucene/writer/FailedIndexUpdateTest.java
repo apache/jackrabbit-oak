@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.*;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -212,7 +212,7 @@ public class FailedIndexUpdateTest {
     }
 
     private void createIndex(String idxName, String propName, boolean shouldFail) throws CommitFailedException {
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
 
         idxBuilder
                 .includedPaths(TEST_CONTENT_PATH)

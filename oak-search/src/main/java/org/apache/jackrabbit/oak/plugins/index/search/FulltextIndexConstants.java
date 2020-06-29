@@ -317,6 +317,16 @@ public interface FulltextIndexConstants {
     String COMPAT_MODE = "compatVersion";
 
     /**
+     * Name of the codec to be used for indexing
+     */
+    String CODEC_NAME = "codec";
+
+    /**
+     * Name of the merge policy to be used while indexing
+     */
+    String MERGE_POLICY_NAME = "mergePolicy";
+
+    /**
      * Optional (index definition) property indicating whether facets should be ACL checked.
      * Default is true
      */

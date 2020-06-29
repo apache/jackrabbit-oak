@@ -52,11 +52,10 @@ import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConsta
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState.stringProperty;
 import static org.junit.Assert.*;
 
-public class IndexDefinitionBuilderTest {
-    private IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+public class LuceneIndexDefinitionBuilderTest {
+    private LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
     private NodeBuilder nodeBuilder = EMPTY_NODE.builder();
 
     @After
@@ -171,7 +170,7 @@ public class IndexDefinitionBuilderTest {
     @Test
     public void mergeExisting() throws Exception{
         nodeBuilder.setProperty("foo", "bar");
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         NodeState state = builder.build();
         assertEquals("bar", state.getString("foo"));
@@ -183,7 +182,7 @@ public class IndexDefinitionBuilderTest {
         builder.indexRule("nt:unstructured").property("foo").propertyIndex();
 
         nodeBuilder = builder.build().builder();
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         assertTrue(builder.hasIndexRule("nt:unstructured"));
         assertFalse(builder.hasIndexRule("nt:base"));
@@ -202,7 +201,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = builder.build().builder();
 
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.aggregateRule("foo").include("/path1");
         builder.aggregateRule("foo").include("/path3");
@@ -220,7 +219,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = builder.build().builder();
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.includedPaths("/a", "/b");
 
         assertFalse(builder.isReindexRequired());
@@ -231,14 +230,14 @@ public class IndexDefinitionBuilderTest {
 
         NodeState baseState = builder.build();
         nodeBuilder = baseState.builder();
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.indexRule("nt:file");
 
         assertTrue(builder.isReindexRequired());
         state = builder.build();
         assertTrue(state.getBoolean(REINDEX_PROPERTY_NAME));
 
-        builder = new IndexDefinitionBuilder(baseState.builder(), false);
+        builder = new LuceneIndexDefinitionBuilder(baseState.builder(), false);
         builder.indexRule("nt:file");
         assertTrue(builder.isReindexRequired());
         state = builder.build();
@@ -255,11 +254,11 @@ public class IndexDefinitionBuilderTest {
 
         NodeState oldState = nodeBuilder.getNodeState();
 
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.async("async", IndexConstants.INDEXING_MODE_SYNC);
         assertFalse(builder.build().getBoolean(REINDEX_PROPERTY_NAME));
 
-        builder = new IndexDefinitionBuilder(oldState.builder());
+        builder = new LuceneIndexDefinitionBuilder(oldState.builder());
         builder.async("fulltext-async", IndexConstants.INDEXING_MODE_SYNC);
         assertTrue(builder.build().getBoolean(REINDEX_PROPERTY_NAME));
     }
@@ -271,7 +270,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
 
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.queryPaths("/a","/b");
 
         currentNodeState = builder.build();
@@ -280,7 +279,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.queryPaths("/a","/c");
         currentNodeState = builder.build();
@@ -289,7 +288,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().removeProperty(IndexConstants.QUERY_PATHS);
         currentNodeState = builder.build();
 
@@ -304,7 +303,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
 
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.tags("foo1", "foo2");
 
         currentNodeState = builder.build();
@@ -313,7 +312,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.tags("foo2", "foo3");
         currentNodeState = builder.build();
@@ -322,7 +321,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.addTags("foo2");
         currentNodeState = builder.build();
@@ -331,7 +330,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().removeProperty(IndexConstants.INDEX_TAGS);
         currentNodeState = builder.build();
 
@@ -345,7 +344,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
 
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().setProperty(BLOB_SIZE,32768);
 
         currentNodeState = builder.build();
@@ -354,7 +353,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().setProperty(BLOB_SIZE,35768);
         currentNodeState = builder.build();
@@ -363,7 +362,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().removeProperty(BLOB_SIZE);
         currentNodeState = builder.build();
 
@@ -383,7 +382,7 @@ public class IndexDefinitionBuilderTest {
 
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         // Add the property weight to fooProp - this shouldn't cause reindex flag to set
         builder.indexRule("nt:base").property("fooProp").weight(10);
@@ -397,7 +396,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
 
         // Now change the value for weight on fooProp - this also shouldn't lead to setting of reindex flag
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.indexRule("nt:base").property("fooProp").weight(20);
         currentNodeState = builder.build();
@@ -407,7 +406,7 @@ public class IndexDefinitionBuilderTest {
         //Now check for property delete use case
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.indexRule("nt:base").property("fooProp").getBuilderTree().removeProperty(PROP_WEIGHT);
         currentNodeState = builder.build();
 
@@ -426,7 +425,7 @@ public class IndexDefinitionBuilderTest {
 
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         // Add the property  boost - this shouldn't cause reindex flag to set
         builder.indexRule("nt:base").property("fooProp").boost(1.0f);
@@ -440,7 +439,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
 
         // Now change the value for boost - this also shouldn't lead to setting of reindex flag
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.indexRule("nt:base").property("fooProp").boost(2.0f);
         currentNodeState = builder.build();
@@ -450,7 +449,7 @@ public class IndexDefinitionBuilderTest {
         //Now check for property delete use case
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.indexRule("nt:base").property("fooProp").getBuilderTree().removeProperty(FIELD_BOOST);
         currentNodeState = builder.build();
 
@@ -468,7 +467,7 @@ public class IndexDefinitionBuilderTest {
 
         // Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         // Add the "useIfExists" property
         builder.getBuilderTree().setProperty(IndexConstants.USE_IF_EXISTS, "/oak:index");
         currentNodeState = builder.build();
@@ -479,7 +478,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
 
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().removeProperty(IndexConstants.USE_IF_EXISTS);
 
         currentNodeState = builder.build();
@@ -499,7 +498,7 @@ public class IndexDefinitionBuilderTest {
 
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         //Add the facets child node now
         builder.getBuilderTree().addChild(PROP_FACETS);
         currentNodeState = builder.build();
@@ -510,7 +509,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
 
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().getChild(PROP_FACETS).remove();
 
         currentNodeState = builder.build();
@@ -528,7 +527,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         //Add top Children prop on facets node
         builder.getBuilderTree().getChild(PROP_FACETS).setProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN,100);
@@ -540,7 +539,7 @@ public class IndexDefinitionBuilderTest {
 
         //Now test with changing the value - this too shouldn't set the reindexing flag
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild(PROP_FACETS).setProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN,200);
         currentNodeState = builder.build();
@@ -550,7 +549,7 @@ public class IndexDefinitionBuilderTest {
         //Now check for property delete use case
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().getChild(PROP_FACETS).removeProperty(FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
         currentNodeState = builder.build();
 
@@ -570,7 +569,7 @@ public class IndexDefinitionBuilderTest {
 
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         //Add top secure prop on facets node
         builder.getBuilderTree().getChild(PROP_FACETS).setProperty(FulltextIndexConstants.PROP_SECURE_FACETS,FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_SECURE);
@@ -581,7 +580,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
 
         //Now test with changing the value - this too shouldn't set the reindexing flag
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild(PROP_FACETS).setProperty(FulltextIndexConstants.PROP_SECURE_FACETS,FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_INSECURE);
         currentNodeState = builder.build();
@@ -590,7 +589,7 @@ public class IndexDefinitionBuilderTest {
         //Now check for property delete use case
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().getChild(PROP_FACETS).removeProperty(FulltextIndexConstants.PROP_SECURE_FACETS);
         currentNodeState = builder.build();
 
@@ -610,7 +609,7 @@ public class IndexDefinitionBuilderTest {
 
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         //Add top sample size prop on facets node
         builder.getBuilderTree().getChild(PROP_FACETS).setProperty(FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,1000);
@@ -621,7 +620,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
 
         //Now test with changing the value - this too shouldn't set the reindexing flag
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild(PROP_FACETS).setProperty(FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,2000);
         currentNodeState = builder.build();
@@ -630,7 +629,7 @@ public class IndexDefinitionBuilderTest {
         //Now check for property delete use case
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().getChild(PROP_FACETS).removeProperty(FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE);
         currentNodeState = builder.build();
 
@@ -647,7 +646,7 @@ public class IndexDefinitionBuilderTest {
 
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild("indexRules").getChild("nt:base").setProperty(COST_PER_EXECUTION, 2.0);
         currentNodeState = builder.build();
@@ -657,7 +656,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
 
         //Now test with changing the value - this too shouldn't set the reindexing flag
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild("indexRules").getChild("nt:base").setProperty(COST_PER_EXECUTION, 3.0);
         currentNodeState = builder.build();
@@ -667,7 +666,7 @@ public class IndexDefinitionBuilderTest {
         //Now check for property delete use case
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().getChild("indexRules").getChild("nt:base").removeProperty(COST_PER_EXECUTION);
         currentNodeState = builder.build();
 
@@ -685,7 +684,7 @@ public class IndexDefinitionBuilderTest {
 
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild("indexRules").getChild("nt:base").setProperty(COST_PER_ENTRY, 2.0);
         currentNodeState = builder.build();
@@ -695,7 +694,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
 
         //Now test with changing the value - this too shouldn't set the reindexing flag
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild("indexRules").getChild("nt:base").setProperty(COST_PER_ENTRY, 3.0);
         currentNodeState = builder.build();
@@ -705,7 +704,7 @@ public class IndexDefinitionBuilderTest {
         //Now check for property delete use case
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().getChild("indexRules").getChild("nt:base").removeProperty(COST_PER_ENTRY);
         currentNodeState = builder.build();
 
@@ -720,7 +719,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
 
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.includedPaths("/a", "/b");
 
         currentNodeState = builder.build();
@@ -728,7 +727,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.includedPaths("/a", "/c");
         currentNodeState = builder.build();
@@ -736,7 +735,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
         builder.getBuilderTree().removeProperty(PathFilter.PROP_INCLUDED_PATHS);
         currentNodeState = builder.build();
 
@@ -753,7 +752,7 @@ public class IndexDefinitionBuilderTest {
 
         //Unset the reindex flag first because first build would have set it .
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().addChild(PROP_FACETS);
 
@@ -768,7 +767,7 @@ public class IndexDefinitionBuilderTest {
         //Now test with changing the value - this too should set the reindexing flag
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild(PROP_FACETS).setProperty("foo","bar2");
         currentNodeState = builder.build();
@@ -779,7 +778,7 @@ public class IndexDefinitionBuilderTest {
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.removeProperty(PROP_REFRESH_DEFN);
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().getChild(PROP_FACETS).remove();
         currentNodeState = builder.build();
@@ -788,7 +787,7 @@ public class IndexDefinitionBuilderTest {
 
         nodeBuilder = currentNodeState.builder();
         nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
-        builder = new IndexDefinitionBuilder(nodeBuilder);
+        builder = new LuceneIndexDefinitionBuilder(nodeBuilder);
 
         builder.getBuilderTree().addChild(PROP_FACETS);
 
@@ -821,14 +820,14 @@ public class IndexDefinitionBuilderTest {
 
         NodeBuilder updated = state.builder();
         updated.setProperty("type", "disabled");
-        IndexDefinitionBuilder newBuilder = new IndexDefinitionBuilder(updated);
+        LuceneIndexDefinitionBuilder newBuilder = new LuceneIndexDefinitionBuilder(updated);
 
         NodeState updatedState = newBuilder.build();
         assertEquals("disabled", updatedState.getString("type"));
 
         //Type other than 'disabled' would be reset
         updated.setProperty("type", "foo");
-        assertEquals("lucene", new IndexDefinitionBuilder(updated).build().getString("type"));
+        assertEquals("lucene", new LuceneIndexDefinitionBuilder(updated).build().getString("type"));
     }
 
     @Test
@@ -917,7 +916,7 @@ public class IndexDefinitionBuilderTest {
     public void tags() {
         NodeState state = EMPTY_NODE;
 
-        builder = new IndexDefinitionBuilder(state.builder());
+        builder = new LuceneIndexDefinitionBuilder(state.builder());
         builder.tags("foo");
         state = builder.build();
         Iterable<String> tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
@@ -925,7 +924,7 @@ public class IndexDefinitionBuilderTest {
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo"));
 
-        builder = new IndexDefinitionBuilder(state.builder());
+        builder = new LuceneIndexDefinitionBuilder(state.builder());
         builder.addTags("foo");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
@@ -933,7 +932,7 @@ public class IndexDefinitionBuilderTest {
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo"));
 
-        builder = new IndexDefinitionBuilder(state.builder());
+        builder = new LuceneIndexDefinitionBuilder(state.builder());
         builder.addTags("foo", "foo1");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
@@ -941,7 +940,7 @@ public class IndexDefinitionBuilderTest {
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo", "foo1"));
 
-        builder = new IndexDefinitionBuilder(state.builder());
+        builder = new LuceneIndexDefinitionBuilder(state.builder());
         builder.addTags("foo2");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
@@ -949,7 +948,7 @@ public class IndexDefinitionBuilderTest {
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo", "foo1", "foo2"));
 
-        builder = new IndexDefinitionBuilder(state.builder());
+        builder = new LuceneIndexDefinitionBuilder(state.builder());
         builder.addTags("foo2", "foo3");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
@@ -957,7 +956,7 @@ public class IndexDefinitionBuilderTest {
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo", "foo1", "foo2", "foo3"));
 
-        builder = new IndexDefinitionBuilder(state.builder());
+        builder = new LuceneIndexDefinitionBuilder(state.builder());
         builder.tags("foo4");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
@@ -965,7 +964,7 @@ public class IndexDefinitionBuilderTest {
         assertThat(state.getProperty(INDEX_TAGS).getValue(Type.STRINGS),
                 Matchers.containsInAnyOrder("foo4"));
 
-        builder = new IndexDefinitionBuilder(EMPTY_NODE.builder());
+        builder = new LuceneIndexDefinitionBuilder(EMPTY_NODE.builder());
         builder.addTags("foo5");
         state = builder.build();
         tags = state.getProperty(INDEX_TAGS).getValue(Type.STRINGS);
@@ -985,7 +984,7 @@ public class IndexDefinitionBuilderTest {
         NodeState initialIndexState = builder.build();
 
         // Use initial index def to add some other property rule - this should work
-        new IndexDefinitionBuilder(initialIndexState.builder())
+        new LuceneIndexDefinitionBuilder(initialIndexState.builder())
                 .indexRule("nt:base")
                 .property("bar");
     }

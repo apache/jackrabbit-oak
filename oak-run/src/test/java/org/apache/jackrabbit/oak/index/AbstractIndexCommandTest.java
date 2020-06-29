@@ -28,7 +28,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -78,7 +78,7 @@ public class AbstractIndexCommandTest {
     }
 
     private void createLuceneIndex(boolean asyncIndex) throws IOException, RepositoryException {
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         if (!asyncIndex) {
             idxBuilder.noAsync();
         }

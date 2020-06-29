@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.MultiplexersLucene;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -48,7 +48,7 @@ import static org.junit.Assert.*;
 
 public class LuceneIndexImporterTest {
     private NodeState rootState = InitialContentHelper.INITIAL_CONTENT;
-    private NodeBuilder idx = new IndexDefinitionBuilder().build().builder();
+    private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));

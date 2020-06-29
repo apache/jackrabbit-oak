@@ -67,12 +67,12 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder.IndexRule;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
@@ -315,7 +315,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     @Test
     public void newNodeTypesFoundLater2() throws Exception{
         String idxName = "hybridtest";
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule("oak:TestNode")
                 .property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex();
         idx.indexRule("nt:base")
@@ -505,8 +505,8 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     private static Tree createIndex(Tree index, String name, Set<String> propNames){
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
-        IndexRule rule = idx.indexRule("nt:base");
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
+        IndexDefinitionBuilder.IndexRule rule = idx.indexRule("nt:base");
         for (String propName : propNames){
             rule.property(propName).propertyIndex();
         }
@@ -516,7 +516,7 @@ public class HybridIndexTest extends AbstractQueryTest {
     }
 
     private static Tree createFulltextIndex(Tree index, String name){
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.evaluatePathRestrictions();
         idx.indexRule("nt:base")
                 .property(FulltextIndexConstants.REGEX_ALL_PROPS, true)

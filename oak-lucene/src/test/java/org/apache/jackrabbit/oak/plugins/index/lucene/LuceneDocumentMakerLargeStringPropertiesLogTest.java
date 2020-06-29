@@ -22,7 +22,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextDocumentMaker;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -74,7 +74,7 @@ public class LuceneDocumentMakerLargeStringPropertiesLogTest {
 
     private LuceneDocumentMaker addPropertyAccordingToType(NodeBuilder test, Type type, String... str) throws IOException {
         NodeState root = INITIAL_CONTENT;
-        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
         builder.indexRule("nt:base")
                 .property("foo")
                 .propertyIndex()

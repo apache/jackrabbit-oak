@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -44,7 +43,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.importer.ClusterNodeStoreLock;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -311,7 +310,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
     private void indexBarPropertyAlso(RepositoryFixture fixture2) throws IOException, RepositoryException {
         Session session = fixture2.getAdminSession();
         NodeState idxState = NodeStateUtils.getNode(fixture2.getNodeStore().getRoot(), TEST_INDEX_PATH);
-        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder(
+        LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder(
                 new MemoryNodeBuilder(idxState), false);
         idxb.indexRule("nt:base").property("bar").propertyIndex();
 

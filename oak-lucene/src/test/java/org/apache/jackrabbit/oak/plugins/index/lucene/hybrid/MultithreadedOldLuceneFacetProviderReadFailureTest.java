@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.OptionalEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -272,7 +272,7 @@ public class MultithreadedOldLuceneFacetProviderReadFailureTest extends Abstract
     }
 
     private Tree createIndex(Tree index, String name) throws RepositoryException {
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
         idxBuilder.noAsync()
                 .indexRule("nt:base")
                 .property("cons").propertyIndex()

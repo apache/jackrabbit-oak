@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -157,14 +157,14 @@ public class ReopenedLuceneIndexTest {
     }
 
     private void createIndex() throws CommitFailedException {
-        IndexDefinitionBuilder idxBuilderV1 = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxBuilderV1 = new LuceneIndexDefinitionBuilder();
         idxBuilderV1.noAsync().evaluatePathRestrictions()
                 .indexRule("nt:base")
                 .property("cons").nodeScopeIndex()
                 // to make a change in index but we won't query for this
                 .enclosingRule().property("foo").propertyIndex();
 
-        IndexDefinitionBuilder idxBuilderV2 = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxBuilderV2 = new LuceneIndexDefinitionBuilder();
         idxBuilderV2.noAsync().evaluatePathRestrictions()
                 .indexRule("nt:base")
                 .property("cons").propertyIndex()

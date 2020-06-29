@@ -65,7 +65,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
@@ -79,7 +79,6 @@ import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
@@ -532,7 +531,7 @@ public class IndexPlannerTest {
 
     @Test
     public void indexedButZeroWeightProps() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("bar").propertyIndex().weight(0);
 
@@ -828,7 +827,7 @@ public class IndexPlannerTest {
 
     @Test
     public void valuePattern_Equals() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base")
             .property("foo")
             .propertyIndex()
@@ -851,7 +850,7 @@ public class IndexPlannerTest {
 
     @Test
     public void valuePattern_StartsWith() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base")
             .property("foo")
             .propertyIndex()
@@ -877,7 +876,7 @@ public class IndexPlannerTest {
 
     @Test
     public void relativeProperty_Basics() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("jcr:content/bar").propertyIndex();
 
@@ -907,7 +906,7 @@ public class IndexPlannerTest {
 
     @Test
     public void relativeProperty_Non_NtBase() throws Exception {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:unstructured").property("foo").propertyIndex();
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
@@ -925,7 +924,7 @@ public class IndexPlannerTest {
 
     @Test
     public void relativeProperty_WithFulltext() throws Exception {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("bar").analyzed();
 
@@ -949,7 +948,7 @@ public class IndexPlannerTest {
 
     @Test
     public void relativeProperty_FullText() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.aggregateRule("nt:base").include("*");
 
@@ -969,7 +968,7 @@ public class IndexPlannerTest {
 
     @Test
     public void relativeProperty_MultipleMatch() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("bar").propertyIndex();
         defnb.indexRule("nt:base").property("baz").propertyIndex();
@@ -1019,7 +1018,7 @@ public class IndexPlannerTest {
 
     @Test
     public void syncIndex_uniqueIndex() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
@@ -1042,7 +1041,7 @@ public class IndexPlannerTest {
 
     @Test
     public void syncIndex_uniqueAndRelative() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
@@ -1065,7 +1064,7 @@ public class IndexPlannerTest {
 
     @Test
     public void syncIndex_nonUnique() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
@@ -1091,7 +1090,7 @@ public class IndexPlannerTest {
      */
     @Test
     public void syncIndex_nonUniqueAndUniqueBoth() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
         defnb.indexRule("nt:base").property("bar").propertyIndex().sync();
 
@@ -1116,7 +1115,7 @@ public class IndexPlannerTest {
 
     @Test
     public void syncIndex_NotUsedWithSort() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         defnb.indexRule("nt:base").property("bar").propertyIndex().ordered();
 
@@ -1139,7 +1138,7 @@ public class IndexPlannerTest {
 
     @Test
     public void syncIndex_NotUsedWithFulltext() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
         defnb.indexRule("nt:base").property("bar").analyzed();
 
@@ -1180,7 +1179,7 @@ public class IndexPlannerTest {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestSuperType");
 
@@ -1212,7 +1211,7 @@ public class IndexPlannerTest {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestMixA");
 
@@ -1234,7 +1233,7 @@ public class IndexPlannerTest {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestSuperType").sync();
 
@@ -1397,7 +1396,7 @@ public class IndexPlannerTest {
     @Test
     public void weightedPropDefs() throws Exception {
         String indexPath = "/test";
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex().weight(500)
             .enclosingRule().property("foo1").propertyIndex().weight(20)
             .enclosingRule().property("foo2").propertyIndex().weight(0)
@@ -1471,7 +1470,7 @@ public class IndexPlannerTest {
     @Test
     public void weightedRegexPropDefs() throws Exception {
         String indexPath = "/test";
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex()
             .enclosingRule().property("bar", "bar.*", true).propertyIndex().weight(20)
         ;
@@ -1516,7 +1515,7 @@ public class IndexPlannerTest {
     @Test
     public void overflowingWeight() throws Exception {
         String indexPath = "/test";
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex().weight(Integer.MAX_VALUE/2)
             .enclosingRule().property("foo1").propertyIndex()
         ;
@@ -1556,7 +1555,7 @@ public class IndexPlannerTest {
     @Test
     public void functionPropDef() throws Exception {
         String indexPath = "/test";
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         Tree fooPD = idxBuilder.getBuilderTree().getChild("indexRules").getChild("nt:base")
             .getChild("properties").getChild("foo");
@@ -1584,7 +1583,7 @@ public class IndexPlannerTest {
     @Test
     public void fullTextWithPropRestriction() throws Exception{
         String indexPath = "/test";
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").nodeScopeIndex()
             .enclosingRule().property("foo1").propertyIndex()
             .enclosingRule().property("foo2").analyzed();
@@ -1627,7 +1626,7 @@ public class IndexPlannerTest {
         try {
             LuceneIndexStatistics.failReadingFields = true;
             String indexPath = "/test";
-            IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+            LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
             idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
             idxBuilder.indexRule("nt:base").property("bar").propertyIndex();
             NodeState defn = idxBuilder.build();
@@ -1668,7 +1667,7 @@ public class IndexPlannerTest {
         try {
             LuceneIndexStatistics.failReadingSyntheticallyFalliableField = true;
             String indexPath = "/test";
-            IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+            LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
             idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
             idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
             idxBuilder.indexRule("nt:base").property(SYNTHETICALLY_FALLIABLE_FIELD).propertyIndex();
@@ -1725,7 +1724,7 @@ public class IndexPlannerTest {
     public void costForPathTransformation() throws Exception {
         LuceneIndexStatistics.failReadingSyntheticallyFalliableField = true;
         String indexPath = "/test";
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(child(builder, indexPath));
         idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
         idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
         idxBuilder.indexRule("nt:base").property("foo2").propertyIndex();
@@ -1780,7 +1779,7 @@ public class IndexPlannerTest {
 
     @Test
     public void facetGetsPlanned() throws Exception {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("facet").getBuilderTree().setProperty(FACETS, true);
 
@@ -1800,7 +1799,7 @@ public class IndexPlannerTest {
 
     @Test
     public void facetGetsPlanned2() throws Exception {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("facet1").getBuilderTree().setProperty(FACETS, true);
         defnb.indexRule("nt:base").property("rel/facet2").getBuilderTree().setProperty(FACETS, true);
@@ -1822,7 +1821,7 @@ public class IndexPlannerTest {
 
     @Test
     public void noFacetPropIndexed() throws Exception {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
 
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
@@ -1841,7 +1840,7 @@ public class IndexPlannerTest {
 
     @Test
     public void someFacetPropIndexed() throws Exception {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.indexRule("nt:base").property("facet").getBuilderTree().setProperty(FACETS, true);
 

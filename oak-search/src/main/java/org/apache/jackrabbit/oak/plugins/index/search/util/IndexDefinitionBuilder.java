@@ -19,13 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
-import java.util.Map;
-import java.util.Set;
-
-import javax.jcr.Node;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -40,11 +34,24 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import javax.jcr.Node;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -62,15 +69,15 @@ public class IndexDefinitionBuilder {
     private boolean reindexRequired;
 
 
-    public IndexDefinitionBuilder(){
+    public IndexDefinitionBuilder() {
         this(EMPTY_NODE.builder());
     }
 
-    public IndexDefinitionBuilder(NodeBuilder nodeBuilder){
+    public IndexDefinitionBuilder(NodeBuilder nodeBuilder) {
         this(nodeBuilder, true);
     }
 
-    public IndexDefinitionBuilder(NodeBuilder nodeBuilder, boolean autoManageReindexFlag){
+    public IndexDefinitionBuilder(NodeBuilder nodeBuilder, boolean autoManageReindexFlag) {
         this.autoManageReindexFlag = autoManageReindexFlag;
         this.builder = nodeBuilder;
         this.initial = nodeBuilder.getNodeState();
@@ -82,39 +89,74 @@ public class IndexDefinitionBuilder {
         indexRule = getOrCreateChild(tree, FulltextIndexConstants.INDEX_RULES);
     }
 
-    public IndexDefinitionBuilder evaluatePathRestrictions(){
+    public IndexDefinitionBuilder evaluatePathRestrictions() {
         tree.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         return this;
     }
 
-    public IndexDefinitionBuilder includedPaths(String ... paths){
+    public IndexDefinitionBuilder includedPaths(String... paths) {
         tree.setProperty(PathFilter.PROP_INCLUDED_PATHS, asList(paths), STRINGS);
         return this;
     }
 
-    public IndexDefinitionBuilder excludedPaths(String ... paths){
+    public IndexDefinitionBuilder excludedPaths(String... paths) {
         tree.setProperty(PathFilter.PROP_EXCLUDED_PATHS, asList(paths), STRINGS);
         return this;
     }
 
-    public IndexDefinitionBuilder queryPaths(String ... paths){
+    public IndexDefinitionBuilder queryPaths(String... paths) {
         tree.setProperty(IndexConstants.QUERY_PATHS, asList(paths), STRINGS);
         return this;
     }
 
-    public IndexDefinitionBuilder supersedes(String ... paths){
+    public IndexDefinitionBuilder supersedes(String... paths) {
         tree.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList(paths), STRINGS);
         return this;
     }
 
-    public IndexDefinitionBuilder noAsync(){
+    public IndexDefinitionBuilder noAsync() {
         tree.removeProperty("async");
         return this;
     }
 
-    public IndexDefinitionBuilder async(String ... asyncVals){
+    public IndexDefinitionBuilder deprecated() {
+        tree.setProperty(INDEX_DEPRECATED, true);
+        return this;
+    }
+
+    public IndexDefinitionBuilder async(String... asyncVals) {
         tree.removeProperty("async");
         tree.setProperty("async", asList(asyncVals), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder tags(String... tagVals) {
+        tree.removeProperty(INDEX_TAGS);
+        tree.setProperty(INDEX_TAGS, asList(tagVals), STRINGS);
+        return this;
+    }
+
+    public IndexDefinitionBuilder codec(String codecName){
+        tree.setProperty(FulltextIndexConstants.CODEC_NAME, checkNotNull(codecName));
+        return this;
+    }
+
+    public IndexDefinitionBuilder mergePolicy(String mergePolicy) {
+        tree.setProperty(FulltextIndexConstants.MERGE_POLICY_NAME, checkNotNull(mergePolicy));
+        return this;
+    }
+
+    public IndexDefinitionBuilder addTags(String... additionalTagVals) {
+        Set<String> currTags = Collections.emptySet();
+        if (tree.hasProperty(INDEX_TAGS)) {
+            currTags = Sets.newHashSet(tree.getProperty(INDEX_TAGS).getValue(STRINGS));
+        }
+        Set<String> tagVals = Sets.newHashSet(Iterables.concat(currTags, asList(additionalTagVals)));
+        boolean noAdditionalTags = currTags.containsAll(tagVals);
+        if (!noAdditionalTags) {
+            tree.removeProperty(INDEX_TAGS);
+            tree.setProperty(INDEX_TAGS, asList(Iterables.toArray(tagVals, String.class)), STRINGS);
+        }
         return this;
     }
 
@@ -123,16 +165,19 @@ public class IndexDefinitionBuilder {
         return this;
     }
 
-    public Tree getBuilderTree(){
+    public Tree getBuilderTree() {
         return tree;
     }
 
-    public NodeState build(){
+    public NodeState build() {
+        // make sure to check for reindex required before checking for refresh as refresh optimizes a bit using
+        // that assumption (we have tests that fail if the order is swapped btw)
         setReindexFlagIfRequired();
+        setRefreshFlagIfRequired();
         return builder.getNodeState();
     }
 
-    public Tree build(Tree tree){
+    public Tree build(Tree tree) {
         NodeStateCopyUtils.copyToTree(build(), tree);
         return tree;
     }
@@ -143,16 +188,26 @@ public class IndexDefinitionBuilder {
     }
 
     public boolean isReindexRequired() {
-        if (reindexRequired){
+        if (reindexRequired) {
             return true;
         }
         return !SelectiveEqualsDiff.equals(initial, builder.getNodeState());
     }
 
-    private void setReindexFlagIfRequired(){
-        if (!reindexRequired && !SelectiveEqualsDiff.equals(initial, builder.getNodeState()) && autoManageReindexFlag){
+    private void setReindexFlagIfRequired() {
+        if (!reindexRequired && !SelectiveEqualsDiff.equals(initial, builder.getNodeState()) && autoManageReindexFlag) {
             tree.setProperty("reindex", true);
             reindexRequired = true;
+        }
+    }
+
+    private void setRefreshFlagIfRequired() {
+        // Utilize the fact that reindex requirement is checked before checking for refresh
+        // It serves 2 purposes:
+        // * avoids setting up refresh if reindex is already set
+        // * avoid calling SelectiveEqualDiff#equal again
+        if (!isReindexRequired() && !initial.equals(builder.getNodeState())) {
+            tree.setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
         }
     }
 
@@ -169,16 +224,16 @@ public class IndexDefinitionBuilder {
 
     //~--------------------------------------< IndexRule >
 
-    public IndexRule indexRule(String type){
+    public IndexRule indexRule(String type) {
         IndexRule rule = rules.get(type);
-        if (rule == null){
+        if (rule == null) {
             rule = new IndexRule(getOrCreateChild(indexRule, type), type);
             rules.put(type, rule);
         }
         return rule;
     }
 
-    public boolean hasIndexRule(String type){
+    public boolean hasIndexRule(String type) {
         return indexRule.hasChild(type);
     }
 
@@ -194,12 +249,12 @@ public class IndexDefinitionBuilder {
             loadExisting();
         }
 
-        public IndexRule indexNodeName(){
+        public IndexRule indexNodeName() {
             indexRule.setProperty(FulltextIndexConstants.INDEX_NODE_NAME, true);
             return this;
         }
 
-        public IndexRule includePropertyTypes(String ... types){
+        public IndexRule includePropertyTypes(String... types) {
             indexRule.setProperty(FulltextIndexConstants.INCLUDE_PROPERTY_TYPES, asList(types), STRINGS);
             return this;
         }
@@ -209,7 +264,7 @@ public class IndexDefinitionBuilder {
             return this;
         }
 
-        public PropertyRule property(String name){
+        public PropertyRule property(String name) {
             return property(name, false);
         }
 
@@ -221,12 +276,12 @@ public class IndexDefinitionBuilder {
             return property(propDefnNodeName, name, false);
         }
 
-        public PropertyRule property(String propDefnNodeName, String name, boolean regex){
+        public PropertyRule property(String propDefnNodeName, String name, boolean regex) {
             PropertyRule propRule = props.get(name);
-            if (propRule == null){
+            if (propRule == null) {
                 Tree propTree = findExisting(name);
-                if (propTree == null){
-                    if (propDefnNodeName == null){
+                if (propTree == null) {
+                    if (propDefnNodeName == null) {
                         propDefnNodeName = createPropNodeName(name, regex);
                     }
                     propTree = getOrCreateChild(getPropsTree(), propDefnNodeName);
@@ -242,8 +297,8 @@ public class IndexDefinitionBuilder {
                 return;
             }
 
-            for (Tree tree : getPropsTree().getChildren()){
-                if (!tree.hasProperty(FulltextIndexConstants.PROP_NAME)){
+            for (Tree tree : getPropsTree().getChildren()) {
+                if (!tree.hasProperty(FulltextIndexConstants.PROP_NAME)) {
                     continue;
                 }
                 String name = tree.getProperty(FulltextIndexConstants.PROP_NAME).getValue(Type.STRING);
@@ -257,8 +312,14 @@ public class IndexDefinitionBuilder {
         }
 
         private Tree findExisting(String name) {
-            for (Tree tree : getPropsTree().getChildren()){
-                if (name.equals(tree.getProperty(FulltextIndexConstants.PROP_NAME).getValue(Type.STRING))){
+            for (Tree tree : getPropsTree().getChildren()) {
+                String treeName = tree.getName();
+                PropertyState ps = tree.getProperty(FulltextIndexConstants.PROP_NAME);
+                if (ps != null) {
+                    treeName = ps.getValue(Type.STRING);
+                }
+
+                if (name.equals(treeName)) {
                     return tree;
                 }
             }
@@ -267,10 +328,10 @@ public class IndexDefinitionBuilder {
 
         private String createPropNodeName(String name, boolean regex) {
             name = regex ? "prop" : getSafePropName(name);
-            if (name.isEmpty()){
+            if (name.isEmpty()) {
                 name = "prop";
             }
-            if (propNodeNames.contains(name)){
+            if (propNodeNames.contains(name)) {
                 name = name + "_" + propNodeNames.size();
             }
             propNodeNames.add(name);
@@ -281,7 +342,7 @@ public class IndexDefinitionBuilder {
             return ruleName;
         }
 
-        public boolean hasPropertyRule(String propName){
+        public boolean hasPropertyRule(String propName) {
             return findExisting(propName) != null;
         }
 
@@ -305,44 +366,55 @@ public class IndexDefinitionBuilder {
             }
         }
 
-        public PropertyRule useInExcerpt(){
+        public PropertyRule useInExcerpt() {
             propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, true);
             return this;
         }
 
-        public PropertyRule useInSpellcheck(){
+        public PropertyRule useInSpellcheck() {
             propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, true);
             return this;
         }
 
-        public PropertyRule type(String type){
+        public PropertyRule useInSimilarity() {
+            propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_SIMILARITY, true);
+            return this;
+        }
+
+        public PropertyRule useInSimilarity(boolean rerank) {
+            propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_SIMILARITY, true);
+            propTree.setProperty(FulltextIndexConstants.PROP_SIMILARITY_RERANK, rerank);
+            return this;
+        }
+
+        public PropertyRule type(String type) {
             //This would throw an IAE if type is invalid
             PropertyType.valueFromName(type);
             propTree.setProperty(FulltextIndexConstants.PROP_TYPE, type);
             return this;
         }
 
-        public PropertyRule useInSuggest(){
+        public PropertyRule useInSuggest() {
             propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_SUGGEST, true);
             return this;
         }
 
-        public PropertyRule analyzed(){
+        public PropertyRule analyzed() {
             propTree.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
             return this;
         }
 
-        public PropertyRule nodeScopeIndex(){
+        public PropertyRule nodeScopeIndex() {
             propTree.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
             return this;
         }
 
-        public PropertyRule ordered(){
+        public PropertyRule ordered() {
             propTree.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
             return this;
         }
 
-        public PropertyRule ordered(String type){
+        public PropertyRule ordered(String type) {
             type(type);
             propTree.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
             return this;
@@ -353,52 +425,62 @@ public class IndexDefinitionBuilder {
             return this;
         }
 
-        public PropertyRule propertyIndex(){
+        public PropertyRule propertyIndex() {
             propTree.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
             return this;
         }
 
-        public PropertyRule nullCheckEnabled(){
+        public PropertyRule nullCheckEnabled() {
             propTree.setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
             return this;
         }
 
-        public PropertyRule excludeFromAggregation(){
+        public PropertyRule excludeFromAggregation() {
             propTree.setProperty(FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, true);
             return this;
         }
 
-        public PropertyRule notNullCheckEnabled(){
+        public PropertyRule notNullCheckEnabled() {
             propTree.setProperty(FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true);
             return this;
         }
 
-        public PropertyRule weight(int weight){
+        public PropertyRule facets() {
+            propTree.setProperty(FulltextIndexConstants.PROP_FACETS, true);
+            return this;
+        }
+
+        public PropertyRule weight(int weight) {
             propTree.setProperty(FulltextIndexConstants.PROP_WEIGHT, weight);
             return this;
         }
 
-        public PropertyRule valuePattern(String valuePattern){
+        public PropertyRule boost(float boost) {
+            propTree.setProperty(FIELD_BOOST, (double) boost, Type.DOUBLE);
+            return this;
+        }
+
+        public PropertyRule valuePattern(String valuePattern) {
             propTree.setProperty(IndexConstants.VALUE_PATTERN, valuePattern);
             return this;
         }
 
-        public PropertyRule valueExcludedPrefixes(String... values){
+        public PropertyRule valueExcludedPrefixes(String... values) {
             propTree.setProperty(IndexConstants.VALUE_EXCLUDED_PREFIXES, asList(values), STRINGS);
             return this;
         }
 
-        public PropertyRule valueIncludedPrefixes(String... values){
+        public PropertyRule valueIncludedPrefixes(String... values) {
             propTree.setProperty(IndexConstants.VALUE_INCLUDED_PREFIXES, asList(values), STRINGS);
             return this;
         }
 
-        public PropertyRule sync(){
+        public PropertyRule sync() {
             propTree.setProperty(FulltextIndexConstants.PROP_SYNC, true);
             return this;
         }
 
-        public PropertyRule unique(){
+        public PropertyRule unique() {
             propTree.setProperty(FulltextIndexConstants.PROP_UNIQUE, true);
             return this;
         }
@@ -408,15 +490,15 @@ public class IndexDefinitionBuilder {
             return this;
         }
 
-        public IndexRule enclosingRule(){
+        public IndexRule enclosingRule() {
             return indexRule;
         }
 
-        public Tree getBuilderTree(){
+        public Tree getBuilderTree() {
             return propTree;
         }
 
-        public PropertyRule property(String name){
+        public PropertyRule property(String name) {
             return indexRule.property(name, false);
         }
 
@@ -431,21 +513,21 @@ public class IndexDefinitionBuilder {
 
     //~--------------------------------------< Aggregates >
 
-    public AggregateRule aggregateRule(String type){
-        if (aggregatesTree == null){
+    public AggregateRule aggregateRule(String type) {
+        if (aggregatesTree == null) {
             aggregatesTree = getOrCreateChild(tree, FulltextIndexConstants.AGGREGATES);
         }
         AggregateRule rule = aggRules.get(type);
-        if (rule == null){
+        if (rule == null) {
             rule = new AggregateRule(getOrCreateChild(aggregatesTree, type));
             aggRules.put(type, rule);
         }
         return rule;
     }
 
-    public AggregateRule aggregateRule(String primaryType, String ... includes){
+    public AggregateRule aggregateRule(String primaryType, String... includes) {
         AggregateRule rule = aggregateRule(primaryType);
-        for (String include : includes){
+        for (String include : includes) {
             rule.include(include);
         }
         return rule;
@@ -462,9 +544,9 @@ public class IndexDefinitionBuilder {
 
         public Include include(String includePath) {
             Include include = includes.get(includePath);
-            if (include == null){
+            if (include == null) {
                 Tree includeTree = findExisting(includePath);
-                if (includeTree == null){
+                if (includeTree == null) {
                     includeTree = getOrCreateChild(aggregate, "include" + includes.size());
                 }
                 include = new Include(this, includeTree);
@@ -475,8 +557,8 @@ public class IndexDefinitionBuilder {
         }
 
         private Tree findExisting(String includePath) {
-            for (Tree tree : aggregate.getChildren()){
-                if (includePath.equals(tree.getProperty(FulltextIndexConstants.AGG_PATH).getValue(Type.STRING))){
+            for (Tree tree : aggregate.getChildren()) {
+                if (includePath.equals(tree.getProperty(FulltextIndexConstants.AGG_PATH).getValue(Type.STRING))) {
                     return tree;
                 }
             }
@@ -484,7 +566,7 @@ public class IndexDefinitionBuilder {
         }
 
         private void loadExisting(Tree aggregate) {
-            for (Tree tree : aggregate.getChildren()){
+            for (Tree tree : aggregate.getChildren()) {
                 if (tree.hasProperty(FulltextIndexConstants.AGG_PATH)) {
                     Include include = new Include(this, tree);
                     includes.put(include.getPath(), include);
@@ -506,23 +588,23 @@ public class IndexDefinitionBuilder {
                 return this;
             }
 
-            public Include relativeNode(){
+            public Include relativeNode() {
                 include.setProperty(FulltextIndexConstants.AGG_RELATIVE_NODE, true);
                 return this;
             }
 
-            public Include include(String path){
+            public Include include(String path) {
                 return aggregateRule.include(path);
             }
 
-            public String getPath(){
+            public String getPath() {
                 return include.getProperty(FulltextIndexConstants.AGG_PATH).getValue(Type.STRING);
             }
         }
     }
 
-    private static Tree getOrCreateChild(Tree tree, String name){
-        if (tree.hasChild(name)){
+    private static Tree getOrCreateChild(Tree tree, String name) {
+        if (tree.hasChild(name)) {
             return tree.getChild(name);
         }
         Tree child = tree.addChild(name);
@@ -532,6 +614,21 @@ public class IndexDefinitionBuilder {
     }
 
     static class SelectiveEqualsDiff extends EqualsDiff {
+        // Properties for which changes shouldn't auto set the reindex flag
+        static final List<String> ignorablePropertiesList = of(
+                FulltextIndexConstants.PROP_WEIGHT,
+                FIELD_BOOST,
+                IndexConstants.USE_IF_EXISTS,
+                IndexConstants.QUERY_PATHS,
+                IndexConstants.INDEX_TAGS,
+                FulltextIndexConstants.BLOB_SIZE,
+                FulltextIndexConstants.COST_PER_ENTRY,
+                FulltextIndexConstants.COST_PER_EXECUTION);
+        static final List<String> ignorableFacetConfigProps = of(
+                FulltextIndexConstants.PROP_SECURE_FACETS,
+                FulltextIndexConstants.PROP_STATISTICAL_FACET_SAMPLE_SIZE,
+                FulltextIndexConstants.PROP_FACETS_TOP_CHILDREN);
+
         public static boolean equals(NodeState before, NodeState after) {
             return before.exists() == after.exists()
                     && after.compareAgainstBaseState(before, new SelectiveEqualsDiff());
@@ -539,15 +636,63 @@ public class IndexDefinitionBuilder {
 
         @Override
         public boolean propertyChanged(PropertyState before, PropertyState after) {
-            if (IndexConstants.ASYNC_PROPERTY_NAME.equals(before.getName())){
+            if (IndexConstants.ASYNC_PROPERTY_NAME.equals(before.getName())) {
                 Set<String> asyncBefore = getAsyncValuesWithoutNRT(before);
                 Set<String> asyncAfter = getAsyncValuesWithoutNRT(after);
                 return asyncBefore.equals(asyncAfter);
+            } else if (ignorablePropertiesList.contains(before.getName()) || ignorableFacetConfigProps.contains(before.getName())) {
+                return true;
             }
             return false;
         }
 
-        private Set<String> getAsyncValuesWithoutNRT(PropertyState state){
+        @Override
+        public boolean propertyAdded(PropertyState after) {
+            if (ignorablePropertiesList.contains(after.getName()) || ignorableFacetConfigProps.contains(after.getName())) {
+                return true;
+            }
+            return super.propertyAdded(after);
+        }
+
+        @Override
+        public boolean propertyDeleted(PropertyState before) {
+            if (ignorablePropertiesList.contains(before.getName()) || ignorableFacetConfigProps.contains(before.getName())) {
+                return true;
+            }
+            return super.propertyDeleted(before);
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
+                // This here makes sure any new property under FACETS that might be added in future and if so might require
+                // reindexing - then addition of  facet node (/facet/foo) with such property lead to auto set of reindex flag
+                for (PropertyState property : after.getProperties()) {
+                    if (!ignorableFacetConfigProps.contains(property.getName())) {
+                        return super.childNodeAdded(name, after);
+                    }
+                }
+                return true;
+            }
+            return super.childNodeAdded(name, after);
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            if (name.equals(FulltextIndexConstants.PROP_FACETS)) {
+                // This here makes sure any new property under FACETS that might be added in future and if so might require
+                // reindexing - then deletion of facet node  with such property lead to auto set of reindex flag
+                for (PropertyState property : before.getProperties()) {
+                    if (!ignorableFacetConfigProps.contains(property.getName())) {
+                        return super.childNodeAdded(name, before);
+                    }
+                }
+                return true;
+            }
+            return super.childNodeDeleted(name, before);
+        }
+
+        private Set<String> getAsyncValuesWithoutNRT(PropertyState state) {
             Set<String> async = Sets.newHashSet(state.getValue(Type.STRINGS));
             async.remove(IndexConstants.INDEXING_MODE_NRT);
             async.remove(IndexConstants.INDEXING_MODE_SYNC);
@@ -558,7 +703,7 @@ public class IndexDefinitionBuilder {
     static String getSafePropName(String relativePropName) {
         String propName = PathUtils.getName(relativePropName);
         int indexOfColon = propName.indexOf(':');
-        if (indexOfColon > 0){
+        if (indexOfColon > 0) {
             propName = propName.substring(indexOfColon + 1);
         }
 

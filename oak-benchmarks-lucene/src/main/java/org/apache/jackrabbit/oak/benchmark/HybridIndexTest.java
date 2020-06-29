@@ -64,7 +64,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
@@ -73,9 +72,9 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder.PropertyRule;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -469,10 +468,10 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         public void initialize(@NotNull NodeBuilder builder) {
             NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(builder);
 
-            IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
+            LuceneIndexDefinitionBuilder defnBuilder = new LuceneIndexDefinitionBuilder();
             defnBuilder.evaluatePathRestrictions();
             defnBuilder.async("async", indexingMode, "async");
-            PropertyRule pr = defnBuilder.indexRule("nt:base").property(indexedPropName).propertyIndex();
+            IndexDefinitionBuilder.PropertyRule pr = defnBuilder.indexRule("nt:base").property(indexedPropName).propertyIndex();
             if (syncIndexing) {
                 pr.sync();
             }
@@ -494,7 +493,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         public void initialize(@NotNull NodeBuilder builder) {
             NodeBuilder oakIndex = IndexUtils.getOrCreateOakIndex(builder);
 
-            IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
+            LuceneIndexDefinitionBuilder defnBuilder = new LuceneIndexDefinitionBuilder();
             defnBuilder.async("async", "async");
             defnBuilder.codec("Lucene46");
             defnBuilder.indexRule("nt:base")
