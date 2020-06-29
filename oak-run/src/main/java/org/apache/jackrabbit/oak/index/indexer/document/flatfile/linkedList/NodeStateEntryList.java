@@ -26,13 +26,14 @@ import org.jetbrains.annotations.NotNull;
 public interface NodeStateEntryList {
 
     /**
-     * Add {@code item} at the tail of the list
+     * Add an item at the tail of the list.
      */
     public void add(@NotNull NodeStateEntry item);
 
     /**
-     * Remove the first item from the list
-     * @return {@code NodeStateEntry} data in the removed item
+     * Remove the first item from the list.
+     *
+     * @return the removed item
      */
     public NodeStateEntry remove();
 
@@ -41,7 +42,7 @@ public interface NodeStateEntryList {
     public int size();
 
     /**
-     * @return {@link NodeIterator} object which would iterate the whole list
+     * Get an iterator to iterate over the whole list
      */
     public Iterator<NodeStateEntry> iterator();
 
