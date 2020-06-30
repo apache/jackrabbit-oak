@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.DocWriteRequest;
@@ -115,7 +116,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     @Override
     public void updateDocument(String path, ElasticDocument doc) {
         IndexRequest request = new IndexRequest(indexDefinition.getRemoteIndexAlias())
-                .id(idFromPath(path))
+                .id(ElasticIndexUtils.idFromPath(path))
                 .source(doc.build(), XContentType.JSON);
         bulkProcessor.add(request);
     }
@@ -123,7 +124,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     @Override
     public void deleteDocuments(String path) {
         DeleteRequest request = new DeleteRequest(indexDefinition.getRemoteIndexAlias())
-                .id(idFromPath(path));
+                .id(ElasticIndexUtils.idFromPath(path));
         bulkProcessor.add(request);
     }
 
@@ -275,25 +276,4 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         }
     }
 
-    /**
-     * Transforms a path into an _id compatible with Elasticsearch specification. The path cannot be larger than 512
-     * bytes. For performance reasons paths that are already compatible are returned untouched. Otherwise, SHA-256
-     * algorithm is used to return a transformed path (32 bytes max).
-     *
-     * @param path the document path
-     * @return the Elasticsearch compatible path
-     * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-id-field.html">
-     *     Mapping _id field</a>
-     */
-    private static String idFromPath(@NotNull String path) {
-        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
-        if (pathBytes.length > 512) {
-            try {
-                return new String(MessageDigest.getInstance("SHA-256").digest(pathBytes));
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-        return path;
-    }
 }

@@ -20,8 +20,10 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
+import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.MoreLikeThisHelperUtil;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
@@ -38,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.lucene.search.WildcardQuery;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
+import org.elasticsearch.index.query.MoreLikeThisQueryBuilder;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -50,15 +53,16 @@ import org.elasticsearch.search.suggest.phrase.DirectCandidateGeneratorBuilder;
 import org.elasticsearch.search.suggest.phrase.PhraseSuggestionBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javax.jcr.PropertyType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
@@ -82,12 +86,14 @@ import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
+import static org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
 
 /**
  * Class to map query plans into Elastic request objects.
  */
 public class ElasticRequestHandler {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticRequestHandler.class);
     private final static String SPELLCHECK_PREFIX = "spellcheck?term=";
     private static final String ES_TRIGRAM_SUFFIX = ".trigram";
 
@@ -122,9 +128,19 @@ public class ElasticRequestHandler {
         }
 
         if (propertyRestrictionQuery != null) {
-            boolQuery.must(queryStringQuery(propertyRestrictionQuery));
+            if (propertyRestrictionQuery.startsWith("mlt?")) {
+                // SimilarityImpl in oak-core sets property restriction for sim search and the query is somehting like
+                // mlt?mlt.fl=:path&mlt.mindf=0&stream.body=<path> . We need parse this query string and turn into a query
+                // elastic can understand.
+                String mltQueryString = propertyRestrictionQuery.replace("mlt?", "");
+                boolQuery.must(moreLikeThisQuery(mltQueryString));
+
+            } else {
+                boolQuery.must(queryStringQuery(propertyRestrictionQuery));
+            }
+
         } else if (planResult.evaluateNonFullTextConstraints()) {
-            for (QueryBuilder constraint: nonFullTextConstraints(indexPlan, planResult)) {
+            for (QueryBuilder constraint : nonFullTextConstraints(indexPlan, planResult)) {
                 boolQuery.filter(constraint);
             }
         }
@@ -187,6 +203,81 @@ public class ElasticRequestHandler {
                 .stream(planResult.indexingRule.getProperties().spliterator(), false)
                 .filter(pd -> pd.useInSpellcheck)
                 .map(pd -> pd.name);
+    }
+
+    /*
+    Generates mlt query builder from the given mltQueryString
+    There could be 2 cases here -
+    1) select [jcr:path] from [nt:base] where similar(., '/test/a') [Return nodes with similar content to /test/a]
+    Xpath variant - //element(*, nt:base)[rep:similar(., '/test/a')]
+    In this case org.apache.jackrabbit.oak.query.ast.SimilarImpl creates the mltQueryString as
+    mlt?mlt.fl=:path&mlt.mindf=0&stream.body=/test/a
+    2) select [jcr:path] from [nt:base] where " +
+       "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')
+       In this case the the exact mlt query passed above is passed to this method. This can be useful if we want to
+       fine tune the various default parameters.
+       The function name passed to native func ('elastic-sim') needs to be defined on index def
+       Refer https://jackrabbit.apache.org/oak/docs/query/lucene.html#native-query
+       TODO : Docs for writing a native mlt query with the various parameters that can be tuned
+       (The above is important since this is not a one-size-fits-all situation and the default values might not
+       be useful in every situation based on the type of content)
+     */
+    private QueryBuilder moreLikeThisQuery(String mltQueryString) {
+        MoreLikeThisQueryBuilder mlt;
+        Map<String, String> paramMap = MoreLikeThisHelperUtil.getParamMapFromMltQuery(mltQueryString);
+        String text = paramMap.get(MoreLikeThisHelperUtil.MLT_STREAM_BODY);
+        String fields = paramMap.get(MoreLikeThisHelperUtil.MLT_FILED);
+
+        if (text != null) {
+            // It's expected the text here to be the path of the doc
+            // In case the path of a node is greater than 512 bytes,
+            // we hash it before storing it as the _id for the elastic doc
+            text = ElasticIndexUtils.idFromPath(text);
+            if (FieldNames.PATH.equals(fields) || fields == null) {
+                // Handle the case 1) where default query sent by SimilarImpl (No Custom fields)
+                // We just need to specify the doc (Item) whose similar content we need to find
+                // We store path as the _id so no need to do anything extra here
+                // We expect Similar impl to send a query where text would have evaluated to node path.
+                mlt = new MoreLikeThisQueryBuilder(null, new Item[]{new Item(null, text)});
+            } else {
+                // This is for native queries if someone send additional fields via mlt.fl=field1,field2
+                String[] fieldsArray = fields.split(",");
+                mlt = new MoreLikeThisQueryBuilder(fieldsArray, null, new Item[]{new Item(null, text)});
+            }
+            // TODO : See if we might want to support like Text here (passed as null in above constructors)
+            // IT is not supported in our lucene implementation.
+        } else {
+            throw new RuntimeException("Missing required field stream.body in  MLT query: " + mltQueryString);
+        }
+
+        for (String key : paramMap.keySet()) {
+            String val = paramMap.get(key);
+            if (MoreLikeThisHelperUtil.MLT_MIN_DOC_FREQ.equals(key)) {
+                mlt.minDocFreq(Integer.parseInt(val));
+            } else if (MoreLikeThisHelperUtil.MLT_MIN_TERM_FREQ.equals(key)) {
+                mlt.minTermFreq(Integer.parseInt(val));
+            } else if (MoreLikeThisHelperUtil.MLT_BOOST_FACTOR.equals(key)) {
+                mlt.boost(Float.parseFloat(val));
+            } else if (MoreLikeThisHelperUtil.MLT_MAX_DOC_FREQ.equals(key)) {
+                mlt.maxDocFreq(Integer.parseInt(val));
+            } else if (MoreLikeThisHelperUtil.MLT_MAX_QUERY_TERMS.equals(key)) {
+                mlt.maxQueryTerms(Integer.parseInt(val));
+            } else if (MoreLikeThisHelperUtil.MLT_MAX_WORD_LENGTH.equals(key)) {
+                mlt.maxWordLength(Integer.parseInt(val));
+            } else if (MoreLikeThisHelperUtil.MLT_MIN_WORD_LENGTH.equals(key)) {
+                mlt.minWordLength(Integer.parseInt(val));
+            } else if (MoreLikeThisHelperUtil.MLT_MIN_SHOULD_MATCH.equals(key)) {
+                mlt.minimumShouldMatch(val);
+            } else if (MoreLikeThisHelperUtil.MLT_STOP_WORDS.equals(key)) {
+                // TODO : Read this from a stopwords text file, configured via index defn maybe ?
+                String[] stopWords = val.split(",");
+                mlt.stopWords(stopWords);
+            } else {
+                LOG.warn("Unrecognized param {} in the mlt query {}", key, mltQueryString);
+            }
+        }
+
+        return mlt;
     }
 
     public PhraseSuggestionBuilder suggestQuery(String field, String spellCheckQuery) {

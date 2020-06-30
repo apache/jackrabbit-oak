@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.MoreLikeThisHelperUtil;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
@@ -43,40 +45,38 @@ public class MoreLikeThisHelper {
         MoreLikeThis mlt = new MoreLikeThis(reader);
         mlt.setAnalyzer(analyzer);
         try {
+            Map<String, String> paramMap = MoreLikeThisHelperUtil.getParamMapFromMltQuery(mltQueryString);
             String text = null;
             String[] fields = {};
-            for (String param : mltQueryString.split("&")) {
-                String[] keyValuePair = param.split("=");
-                if (keyValuePair.length != 2 || keyValuePair[0] == null || keyValuePair[1] == null) {
-                    throw new RuntimeException("Unparsable native Lucene MLT query: " + mltQueryString);
-                } else {
-                    if ("stream.body".equals(keyValuePair[0])) {
-                        text = keyValuePair[1];
-                    } else if ("mlt.fl".equals(keyValuePair[0])) {
-                        fields = keyValuePair[1].split(",");
-                    } else if ("mlt.mindf".equals(keyValuePair[0])) {
-                        mlt.setMinDocFreq(Integer.parseInt(keyValuePair[1]));
-                    } else if ("mlt.mintf".equals(keyValuePair[0])) {
-                        mlt.setMinTermFreq(Integer.parseInt(keyValuePair[1]));
-                    } else if ("mlt.boost".equals(keyValuePair[0])) {
-                        mlt.setBoost(Boolean.parseBoolean(keyValuePair[1]));
-                    } else if ("mlt.qf".equals(keyValuePair[0])) {
-                        mlt.setBoostFactor(Float.parseFloat(keyValuePair[1]));
-                    } else if ("mlt.maxdf".equals(keyValuePair[0])) {
-                        mlt.setMaxDocFreq(Integer.parseInt(keyValuePair[1]));
-                    } else if ("mlt.maxdfp".equals(keyValuePair[0])) {
-                        mlt.setMaxDocFreqPct(Integer.parseInt(keyValuePair[1]));
-                    } else if ("mlt.maxntp".equals(keyValuePair[0])) {
-                        mlt.setMaxNumTokensParsed(Integer.parseInt(keyValuePair[1]));
-                    } else if ("mlt.maxqt".equals(keyValuePair[0])) {
-                        mlt.setMaxQueryTerms(Integer.parseInt(keyValuePair[1]));
-                    } else if ("mlt.maxwl".equals(keyValuePair[0])) {
-                        mlt.setMaxWordLen(Integer.parseInt(keyValuePair[1]));
-                    } else if ("mlt.minwl".equals(keyValuePair[0])) {
-                        mlt.setMinWordLen(Integer.parseInt(keyValuePair[1]));
-                    }
+            for (String key : paramMap.keySet()) {
+                String value = paramMap.get(key);
+                if (MoreLikeThisHelperUtil.MLT_STREAM_BODY.equals(key)) {
+                    text = value;
+                } else if (MoreLikeThisHelperUtil.MLT_FILED.equals(key)) {
+                    fields = value.split(",");
+                } else if (MoreLikeThisHelperUtil.MLT_MIN_DOC_FREQ.equals(key)) {
+                    mlt.setMinDocFreq(Integer.parseInt(value));
+                } else if (MoreLikeThisHelperUtil.MLT_MIN_TERM_FREQ.equals(key)) {
+                    mlt.setMinTermFreq(Integer.parseInt(value));
+                } else if (MoreLikeThisHelperUtil.MLT_BOOST.equals(key)) {
+                    mlt.setBoost(Boolean.parseBoolean(value));
+                } else if (MoreLikeThisHelperUtil.MLT_BOOST_FACTOR.equals(key)) {
+                    mlt.setBoostFactor(Float.parseFloat(value));
+                } else if (MoreLikeThisHelperUtil.MLT_MAX_DOC_FREQ.equals(key)) {
+                    mlt.setMaxDocFreq(Integer.parseInt(value));
+                } else if (MoreLikeThisHelperUtil.MLT_MAX_DOC_FREQ_PCT.equals(key)) {
+                    mlt.setMaxDocFreqPct(Integer.parseInt(value));
+                } else if (MoreLikeThisHelperUtil.MLT_MAX_NUM_TOKENS_PARSED.equals(key)) {
+                    mlt.setMaxNumTokensParsed(Integer.parseInt(value));
+                } else if (MoreLikeThisHelperUtil.MLT_MAX_QUERY_TERMS.equals(key)) {
+                    mlt.setMaxQueryTerms(Integer.parseInt(value));
+                } else if (MoreLikeThisHelperUtil.MLT_MAX_WORD_LENGTH.equals(key)) {
+                    mlt.setMaxWordLen(Integer.parseInt(value));
+                } else if (MoreLikeThisHelperUtil.MLT_MIN_WORD_LENGTH.equals(key)) {
+                    mlt.setMinWordLen(Integer.parseInt(value));
                 }
             }
+
             if (text != null) {
                 if (FieldNames.PATH.equals(fields[0])) {
                     IndexSearcher searcher = new IndexSearcher(reader);
