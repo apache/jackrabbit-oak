@@ -176,28 +176,22 @@ public class S3Backend extends AbstractSharedBackend {
                 }
             }
             String region = properties.getProperty(S3Constants.S3_REGION);
-            Region s3Region;
+            
             if (StringUtils.isNullOrEmpty(region)) {
                 com.amazonaws.regions.Region ec2Region = Regions.getCurrentRegion();
                 if (ec2Region != null) {
-                    s3Region = Region.fromValue(ec2Region.getName());
+                    region = ec2Region.getName();
                 } else {
                     throw new AmazonClientException(
                             "parameter ["
                                     + S3Constants.S3_REGION
                                     + "] not configured and cannot be derived from environment");
                 }
-            } else {
-                if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
-                    s3Region = Region.US_Standard;
-                } else if (Region.EU_Ireland.toString().equals(region)) {
-                    s3Region = Region.EU_Ireland;
-                } else {
-                    s3Region = Region.fromValue(region);
-                }
+            } else if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
+                    region = Region.US_Standard.toString();
             }
 
-            createBucketIfNeeded(s3Region);
+            createBucketIfNeeded(region);
 
             int writeThreads = 10;
             String writeThreadsStr = properties.getProperty(S3Constants.S3_WRITE_THREADS);
@@ -265,24 +259,24 @@ public class S3Backend extends AbstractSharedBackend {
         }
     }
 
-    private void createBucketIfNeeded(@NotNull final Region s3Region) {
+    private void createBucketIfNeeded(final String region) {
         try {
             if (!s3service.doesBucketExist(bucket)) {
-                CreateBucketRequest req = new CreateBucketRequest(bucket, s3Region);
+                CreateBucketRequest req = new CreateBucketRequest(bucket, region);
                 s3service.createBucket(req);
                 if (Utils.waitForBucket(s3service, bucket)) {
                     LOG.error("Bucket [{}] does not exist in [{}] and was not automatically created",
-                            bucket, s3Region.name());
+                            bucket, region);
                     return;
                 }
-                LOG.info("Created bucket [{}] in [{}] ", bucket, s3Region.name());
+                LOG.info("Created bucket [{}] in [{}] ", bucket, region);
             } else {
-                LOG.info("Using bucket [{}] in [{}] ", bucket, s3Region.name());
+                LOG.info("Using bucket [{}] in [{}] ", bucket, region);
             }
         }
         catch (SdkClientException awsException) {
             LOG.error("Attempt to create S3 bucket [{}] in [{}] failed",
-                    bucket, s3Region.name(), awsException);
+                    bucket, region, awsException);
         }
     }
 
