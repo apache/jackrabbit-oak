@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import joptsimple.OptionParser;
@@ -43,7 +42,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-@Ignore("OAK-9125")
 public class DocumentFixtureProviderTest {
 
     @Test
