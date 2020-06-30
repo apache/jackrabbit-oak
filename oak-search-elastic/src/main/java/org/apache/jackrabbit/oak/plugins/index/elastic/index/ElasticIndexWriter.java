@@ -38,7 +38,7 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
 import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -185,7 +185,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         // update the mapping
         GetAliasesRequest getAliasesRequest = new GetAliasesRequest(indexDefinition.getRemoteIndexAlias());
         GetAliasesResponse aliasesResponse = indicesClient.getAlias(getAliasesRequest, RequestOptions.DEFAULT);
-        Map<String, Set<AliasMetaData>> aliases = aliasesResponse.getAliases();
+        Map<String, Set<AliasMetadata>> aliases = aliasesResponse.getAliases();
         IndicesAliasesRequest indicesAliasesRequest = new IndicesAliasesRequest();
         for (String oldIndexName : aliases.keySet()) {
             IndicesAliasesRequest.AliasActions removeAction = new IndicesAliasesRequest.AliasActions(IndicesAliasesRequest.AliasActions.Type.REMOVE);
