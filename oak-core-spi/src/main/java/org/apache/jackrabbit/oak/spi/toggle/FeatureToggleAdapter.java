@@ -54,8 +54,9 @@ public final class FeatureToggleAdapter {
      * Changes the state of the feature toggle.
      *
      * @param state the new state of the feature toggle.
+     * @return the previous state.
      */
-    public void setEnabled(boolean state) {
-        this.state.set(state);
+    public boolean setEnabled(boolean state) {
+        return this.state.getAndSet(state);
     }
 }
