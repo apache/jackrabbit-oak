@@ -123,7 +123,7 @@
                 *
             </Import-Package>
             <Embed-Dependency>
-              oak-search;inline=true,
+              oak-search;scope=compile|runtime;inline=true,
                 lucene-*;inline=true,
               <!-- TODO FIXME OAK-3598 -->
               oak-core-spi;inline="org/apache/jackrabbit/oak/cache/AbstractCacheStats.class|org/apache/jackrabbit/oak/cache/CacheStats.class"
@@ -356,6 +356,13 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-tests</artifactId>
       <version>${jackrabbit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-search</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
