@@ -18,60 +18,45 @@
  */
 package org.apache.jackrabbit.oak.spi.toggle;
 
-import java.io.Closeable;
-import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
- * A feature toggle to control new functionality. The default state of a feature
- * toggle is {@code false} and can be controlled by third party code discovering
- * {@link FeatureToggleAdapter}s on the {@link Whiteboard}. Every adapter is
- * linked to a feature toggle and allows to control the state of the feature
- * toggle via {@link FeatureToggleAdapter#setEnabled(boolean)}.
+ * A feature toggle is registered with the {@link Whiteboard} and can be
+ * discovered by third party code to control the state of feature toggles.
  */
-public final class FeatureToggle implements Closeable {
+public final class FeatureToggle {
 
-    private final AtomicBoolean value;
+    private final String name;
 
-    private final Registration registration;
-
-    private FeatureToggle(AtomicBoolean value, Registration registration) {
-        this.value = value;
-        this.registration = registration;
-    }
+    private final AtomicBoolean state;
 
     /**
-     * Creates a new {@link FeatureToggle} with the given name and registers the
-     * corresponding {@link FeatureToggleAdapter} on the {@link Whiteboard}.
-     * Client code must call {@link FeatureToggle#close()} when the toggle is
-     * not used anymore.
+     * Create a new adapter with a given name and value.
      *
      * @param name the name of the feature toggle.
-     * @param whiteboard the whiteboard where to register the toggle adapter.
-     * @return the feature toggle.
+     * @param state the state for the feature toggle.
      */
-    public static FeatureToggle newFeatureToggle(String name, Whiteboard whiteboard) {
-        AtomicBoolean value = new AtomicBoolean();
-        FeatureToggleAdapter adapter = new FeatureToggleAdapter(name, value);
-        return new FeatureToggle(value, whiteboard.register(
-                FeatureToggleAdapter.class, adapter, Collections.emptyMap()));
+    public FeatureToggle(String name, AtomicBoolean state) {
+        this.name = name;
+        this.state = state;
     }
 
     /**
-     * @return the current state of this toggle.
+     * @return the name of the feature toggle.
      */
-    public boolean isEnabled() {
-        return value.get();
+    public String getName() {
+        return name;
     }
 
     /**
-     * Releases resources for this feature toggle.
+     * Changes the state of the feature toggle.
+     *
+     * @param state the new state of the feature toggle.
+     * @return the previous state.
      */
-    @Override
-    public void close() {
-        this.registration.unregister();
+    public boolean setEnabled(boolean state) {
+        return this.state.getAndSet(state);
     }
 }
