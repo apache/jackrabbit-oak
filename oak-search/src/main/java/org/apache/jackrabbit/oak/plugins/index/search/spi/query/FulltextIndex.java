@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.Cursors;
@@ -71,10 +70,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
         AdvanceFulltextQueryIndex {
 
-    private final Logger LOG = LoggerFactory
-            .getLogger(getClass());
-    private final PerfLogger PERF_LOGGER =
-            new PerfLogger(LoggerFactory.getLogger(getClass() + ".perf"));
+    private static final Logger LOG = LoggerFactory.getLogger(FulltextIndex.class);
 
     public static final String ATTR_PLAN_RESULT = "oak.fulltext.planResult";
 
@@ -87,14 +83,21 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
     protected abstract Predicate<NodeState> getIndexDefinitionPredicate();
 
     protected abstract String getFulltextRequestString(IndexPlan plan, IndexNode indexNode);
-    
+
     /**
      * Whether replaced indexes (that is, if a new version of the index is
      * available) should be filtered out.
-     * 
+     *
      * @return true if yes (e.g. in a blue-green deployment model)
      */
     protected abstract boolean filterReplacedIndexes();
+
+    /**
+     * Returns the {@link FulltextIndexPlanner} for the specified arguments
+     */
+    protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter, List<OrderEntry> sortOrder) {
+        return new FulltextIndexPlanner(indexNode, path, filter, sortOrder);
+    }
 
     @Override
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
@@ -110,7 +113,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                 indexNode = acquireIndexNode(path);
 
                 if (indexNode != null) {
-                    IndexPlan plan = new FulltextIndexPlanner(indexNode, path, filter, sortOrder).getPlan();
+                    IndexPlan plan = getPlanner(indexNode, path, filter, sortOrder).getPlan();
                     if (plan != null) {
                         plans.add(plan);
                     }
@@ -126,7 +129,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         }
         return plans;
     }
-    
+
     @Override
     public double getCost(Filter filter, NodeState root) {
         throw new UnsupportedOperationException("Not supported as implementing AdvancedQueryIndex");
@@ -169,10 +172,10 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         if (pr.hasPropertyIndexResult()) {
             FulltextIndexPlanner.PropertyIndexResult pres = pr.getPropertyIndexResult();
             sb.append(" sync:(")
-              .append(pres.propertyName);
+                    .append(pres.propertyName);
 
             if (!pres.propertyName.equals(pres.pr.propertyName)) {
-               sb.append("[").append(pres.pr.propertyName).append("]");
+                sb.append("[").append(pres.pr.propertyName).append("]");
             }
 
             sb.append(" ").append(pres.pr);

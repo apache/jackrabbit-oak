@@ -20,7 +20,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -33,8 +32,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.Aggregations;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,14 +95,17 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
     @Override
     public boolean hasNext() {
-        if (queue.isEmpty()) {
-            // this triggers, when needed, the scan of the next results chunk
-            elasticQueryScanner.scan();
-        }
-        try {
-            nextRow = queue.take();
-        } catch (InterruptedException e) {
-            throw new IllegalStateException("Error reading next result from Elastic", e);
+        // if nextRow is not null it means the caller invoked hasNext() before without calling next()
+        if (nextRow == null) {
+            if (queue.isEmpty()) {
+                // this triggers, when needed, the scan of the next results chunk
+                elasticQueryScanner.scan();
+            }
+            try {
+                nextRow = queue.take();
+            } catch (InterruptedException e) {
+                throw new IllegalStateException("Error reading next result from Elastic", e);
+            }
         }
         return !POISON_PILL.path.equals(nextRow.path);
     }
@@ -174,6 +175,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private final List<AggregationListener> aggregationListeners = new ArrayList<>();
 
         private final QueryBuilder query;
+        private final List<FieldSortBuilder> sorts;
         private final String[] sourceFields;
 
         // concurrent data structures to coordinate chunks loading
@@ -192,6 +194,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         ElasticQueryScanner(ElasticRequestHandler requestHandler,
                             List<ElasticResponseListener> listeners) {
             this.query = requestHandler.baseQuery();
+            this.sorts = requestHandler.baseSorts();
 
             final Set<String> sourceFieldsSet = new HashSet<>();
             final AtomicBoolean needsAggregations = new AtomicBoolean(false);
@@ -219,10 +222,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     // use a smaller size when the client asks for facets. This improves performance
                     // when the client is only interested in insecure facets
                     .size(needsAggregations.get() ? SMALL_RESULT_SET_SIZE : MEDIUM_RESULT_SET_SIZE)
-                    .fetchSource(sourceFields, null)
-                    // TODO: this needs to be moved in the requestHandler when sorting will be properly supported
-                    .sort(SortBuilders.fieldSort("_score").order(SortOrder.DESC))
-                    .sort(SortBuilders.fieldSort(FieldNames.PATH).order(SortOrder.ASC)); // tie-breaker
+                    .fetchSource(sourceFields, null);
+
+            this.sorts.forEach(searchSourceBuilder::sort);
 
             if (needsAggregations.get()) {
                 requestHandler.aggregations().forEach(searchSourceBuilder::aggregation);
@@ -309,10 +311,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .query(query)
                         .size(LARGE_RESULT_SET_SIZE)
                         .fetchSource(sourceFields, null)
-                        .searchAfter(lastHitSortValues)
-                        // TODO: this needs to be moved in the requestHandler when sorting will be properly supported
-                        .sort(SortBuilders.fieldSort("_score").order(SortOrder.DESC))
-                        .sort(SortBuilders.fieldSort(FieldNames.PATH).order(SortOrder.ASC)); // tie-breaker
+                        .searchAfter(lastHitSortValues);
+
+                this.sorts.forEach(searchSourceBuilder::sort);
 
                 final SearchRequest searchRequest = new SearchRequest(indexNode.getDefinition().getRemoteIndexAlias())
                         .source(searchSourceBuilder);

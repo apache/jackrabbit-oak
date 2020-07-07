@@ -31,6 +31,7 @@ import org.elasticsearch.common.Strings;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BiFunction;
@@ -61,6 +62,11 @@ class ElasticIndex extends FulltextIndex {
     @Override
     protected String getType() {
         return TYPE_ELASTICSEARCH;
+    }
+
+    @Override
+    protected FulltextIndexPlanner getPlanner(IndexNode indexNode, String path, Filter filter, List<OrderEntry> sortOrder) {
+        return new ElasticIndexPlanner(indexNode, path, filter, sortOrder);
     }
 
     @Override

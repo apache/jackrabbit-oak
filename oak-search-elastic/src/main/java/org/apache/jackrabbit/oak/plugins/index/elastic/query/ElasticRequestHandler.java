@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPla
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
@@ -48,6 +49,9 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.sort.FieldSortBuilder;
+import org.elasticsearch.search.sort.SortBuilders;
+import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.search.suggest.SuggestBuilders;
 import org.elasticsearch.search.suggest.phrase.DirectCandidateGeneratorBuilder;
 import org.elasticsearch.search.suggest.phrase.PhraseSuggestionBuilder;
@@ -57,6 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.jcr.PropertyType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -80,6 +85,7 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardPathQuery;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuilderFactory.newWildcardQuery;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
@@ -96,6 +102,10 @@ public class ElasticRequestHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticRequestHandler.class);
     private final static String SPELLCHECK_PREFIX = "spellcheck?term=";
     private static final String ES_TRIGRAM_SUFFIX = ".trigram";
+    private static final List<FieldSortBuilder> DEFAULT_SORTS = Arrays.asList(
+            SortBuilders.fieldSort("_score").order(SortOrder.DESC),
+            SortBuilders.fieldSort(FieldNames.PATH).order(SortOrder.ASC) // tie-breaker
+    );
 
     private final IndexPlan indexPlan;
     private final Filter filter;
@@ -129,7 +139,7 @@ public class ElasticRequestHandler {
 
         if (propertyRestrictionQuery != null) {
             if (propertyRestrictionQuery.startsWith("mlt?")) {
-                // SimilarityImpl in oak-core sets property restriction for sim search and the query is somehting like
+                // SimilarityImpl in oak-core sets property restriction for sim search and the query is something like
                 // mlt?mlt.fl=:path&mlt.mindf=0&stream.body=<path> . We need parse this query string and turn into a query
                 // elastic can understand.
                 String mltQueryString = propertyRestrictionQuery.replace("mlt?", "");
@@ -145,8 +155,6 @@ public class ElasticRequestHandler {
             }
         }
 
-        // TODO: sort with no other restriction
-
         if (!boolQuery.hasClauses()) {
             // TODO: what happens here in planning mode (specially, apparently for things like rep:similar)
             //For purely nodeType based queries all the documents would have to
@@ -157,6 +165,41 @@ public class ElasticRequestHandler {
         }
 
         return boolQuery;
+    }
+
+    public @NotNull List<FieldSortBuilder> baseSorts() {
+        List<QueryIndex.OrderEntry> sortOrder = indexPlan.getSortOrder();
+        if (sortOrder == null || sortOrder.isEmpty()) {
+            return DEFAULT_SORTS;
+        }
+        Map<String, List<PropertyDefinition>> indexProperties = elasticIndexDefinition.getPropertiesByName();
+        boolean hasTieBreaker = false;
+        List<FieldSortBuilder> list = new ArrayList<>();
+        for (QueryIndex.OrderEntry o : sortOrder) {
+            hasTieBreaker = false;
+            String sortPropertyName = o.getPropertyName();
+            String fieldName;
+            if (JCR_PATH.equals(sortPropertyName)) {
+                fieldName = FieldNames.PATH;
+                hasTieBreaker = true;
+            } else if (JCR_SCORE.equals(sortPropertyName)) {
+                fieldName = "_score";
+            } else if (indexProperties.containsKey(sortPropertyName)) {
+                fieldName = elasticIndexDefinition.getElasticKeyword(sortPropertyName);
+            } else {
+                LOG.warn("Unable to sort by {} for index {}", sortPropertyName, elasticIndexDefinition.getIndexName());
+                continue;
+            }
+            FieldSortBuilder order = SortBuilders.fieldSort(fieldName)
+                    .order(QueryIndex.OrderEntry.Order.ASCENDING.equals(o.getOrder()) ? SortOrder.ASC : SortOrder.DESC);
+            list.add(order);
+        }
+
+        if (!hasTieBreaker) {
+            list.add(SortBuilders.fieldSort(FieldNames.PATH).order(SortOrder.ASC));
+        }
+
+        return list;
     }
 
     public String getPropertyRestrictionQuery() {
@@ -366,7 +409,7 @@ public class ElasticRequestHandler {
             }
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
-                String p = getElasticFieldName(propertyName, pr);
+                String p = getElasticFieldName(propertyName);
                 QueryBuilder q = tokenToQuery(text, p, pr);
                 if (boost != null) {
                     q.boost(Float.parseFloat(boost));
@@ -625,12 +668,12 @@ public class ElasticRequestHandler {
         throw new IllegalStateException("PropertyRestriction not handled " + pr + " for index " + defn);
     }
 
-    private static String getElasticFieldName(@Nullable String p, PlanResult pr) {
+    private String getElasticFieldName(@Nullable String p) {
         if (p == null) {
             return FieldNames.FULLTEXT;
         }
 
-        if (pr.isPathTransformed()) {
+        if (planResult.isPathTransformed()) {
             p = PathUtils.getName(p);
         }
 
