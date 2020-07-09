@@ -30,6 +30,7 @@ Bug
 New Feature
 
     [OAK-9127] - Introduce Similarity Search (Text) support in oak-search-elastic
+    [OAK-9132] - Feature toggles
 
 Improvement
 
