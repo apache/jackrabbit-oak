@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.33.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.32.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,7 +15,7 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.33.0
+Changes in Oak 1.32.0
 ---------------------
 
 Bug
