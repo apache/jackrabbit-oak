@@ -30,7 +30,13 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
  * is {@code false} and can be controlled by third party code discovering
  * {@link FeatureToggle}s on the {@link Whiteboard}. Every feature is
  * linked to a feature toggle and allows to control the state of the feature
- * toggle via {@link FeatureToggle#setEnabled(boolean)}.
+ * toggle via {@link FeatureToggle#setEnabled(boolean)}. Creating a new feature
+ * involves registering a feature toggle on the {@link Whiteboard} and
+ * potentially comes with some overhead (e.g. when the whiteboard is based on
+ * OSGi). Therefore, client code should not create a new feature, check the
+ * state and then immediately release/close it again. Instead a feature should
+ * be acquired initially, checked at runtime whenever needed and finally
+ * released when the client component is destroyed.
  */
 public final class Feature implements Closeable {
 
@@ -53,7 +59,7 @@ public final class Feature implements Closeable {
      * @param whiteboard the whiteboard where to register the feature toggle.
      * @return the feature toggle.
      */
-    public static Feature newFeatureToggle(String name, Whiteboard whiteboard) {
+    public static Feature newFeature(String name, Whiteboard whiteboard) {
         AtomicBoolean value = new AtomicBoolean();
         FeatureToggle adapter = new FeatureToggle(name, value);
         return new Feature(value, whiteboard.register(

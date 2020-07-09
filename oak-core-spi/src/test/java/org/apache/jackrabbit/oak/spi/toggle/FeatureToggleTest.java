@@ -27,7 +27,7 @@ import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeatureToggle;
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.Is.is;
@@ -45,39 +45,41 @@ public class FeatureToggleTest {
 
     @Test
     public void disabledByDefault() {
-        try (Feature toggle = newFeatureToggle("my.toggle", whiteboard)) {
-            assertFalse(toggle.isEnabled());
+        try (Feature feature = newFeature("my.toggle", whiteboard)) {
+            assertFalse(feature.isEnabled());
         }
     }
 
     @Test
     public void register() {
-        try (Feature toggle = newFeatureToggle("my.toggle", whiteboard)) {
-            assertFalse(toggle.isEnabled());
-            List<FeatureToggle> adapters = getToggleAdapters();
-            assertEquals(1, adapters.size());
-            FeatureToggle adapter = adapters.get(0);
-            assertEquals("my.toggle", adapter.getName());
+        try (Feature feature = newFeature("my.toggle", whiteboard)) {
+            assertFalse(feature.isEnabled());
+            List<FeatureToggle> toggles = getFeatureToggles();
+            assertEquals(1, toggles.size());
+            FeatureToggle toggle = toggles.get(0);
+            assertEquals("my.toggle", toggle.getName());
 
-            assertFalse(adapter.setEnabled(true));
+            assertFalse(toggle.setEnabled(true));
             assertTrue(toggle.isEnabled());
+            assertTrue(feature.isEnabled());
 
-            assertTrue(adapter.setEnabled(true));
-            assertTrue(adapter.setEnabled(false));
+            assertTrue(toggle.setEnabled(true));
+            assertTrue(toggle.setEnabled(false));
             assertFalse(toggle.isEnabled());
+            assertFalse(feature.isEnabled());
         }
     }
 
     @Test
     public void registerMultiple() {
-        try (Feature t1 = newFeatureToggle("my.t1", whiteboard);
-             Feature t2 = newFeatureToggle("my.t2", whiteboard)) {
-            assertFalse(t1.isEnabled());
-            assertFalse(t2.isEnabled());
-            List<FeatureToggle> adapters = getToggleAdapters();
-            assertEquals(2, adapters.size());
+        try (Feature f1 = newFeature("my.t1", whiteboard);
+             Feature f2 = newFeature("my.t2", whiteboard)) {
+            assertFalse(f1.isEnabled());
+            assertFalse(f2.isEnabled());
+            List<FeatureToggle> toggles = getFeatureToggles();
+            assertEquals(2, toggles.size());
             List<String> toggleNames = new ArrayList<>();
-            for (FeatureToggle adapter : adapters) {
+            for (FeatureToggle adapter : toggles) {
                 toggleNames.add(adapter.getName());
             }
             assertThat(toggleNames, hasItems("my.t1", "my.t2"));
@@ -86,17 +88,17 @@ public class FeatureToggleTest {
 
     @Test
     public void unregisterOnClose() {
-        List<FeatureToggle> adapters;
-        try (Feature toggle = newFeatureToggle("my.toggle", whiteboard)) {
-            assertFalse(toggle.isEnabled());
-            adapters = getToggleAdapters();
-            assertEquals(1, adapters.size());
+        List<FeatureToggle> toggles;
+        try (Feature feature = newFeature("my.toggle", whiteboard)) {
+            assertFalse(feature.isEnabled());
+            toggles = getFeatureToggles();
+            assertEquals(1, toggles.size());
         }
-        adapters = getToggleAdapters();
-        assertThat(adapters, is(empty()));
+        toggles = getFeatureToggles();
+        assertThat(toggles, is(empty()));
     }
 
-    private List<FeatureToggle> getToggleAdapters() {
+    private List<FeatureToggle> getFeatureToggles() {
         return WhiteboardUtils.getServices(
                 whiteboard, FeatureToggle.class);
     }

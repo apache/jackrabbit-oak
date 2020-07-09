@@ -51,6 +51,13 @@ public final class FeatureToggle {
     }
 
     /**
+     * @return the current state of this feature toggle.
+     */
+    public boolean isEnabled() {
+        return state.get();
+    }
+
+    /**
      * Changes the state of the feature toggle.
      *
      * @param state the new state of the feature toggle.
