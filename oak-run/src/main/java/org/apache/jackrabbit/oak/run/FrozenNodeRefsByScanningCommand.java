@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.run;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -76,23 +74,15 @@ import joptsimple.OptionSpec;
  * Note that any property with uuid that cannot be resolved will *not be reported*, as that
  * is a legitimate use case of uuid property use. Only uuids that resolve will be analysed.
  * <p/>
- * Also note that this command has a few test parameters which can be used to "easily"
- * create a property with a reference (or just a string for that matter too).
- * <p/>
  * Example: 
  * <pre>
  * java -mx4g -jar oak-run-*.jar frozennoderefsbyscanning mongodb://localhost/&lt;dbname&gt; -user=admin -password=admin
- * </pre>
- * <p/>
- * Test Example for creating a reference:
- * <pre>
- * java -mx4g -jar oak-run-*.jar frozennoderefsbyscanning mongodb://localhost/&lt;dbname&gt; -user=admin -password=admin -testCreateRefPath=&lt;mypath&gt; -testCreateRefProp=&lt;mypropertyname&gt; -testCreateRefUuid=&lt;myuuid&gt; -read-write=true
  * </pre>
  */
 public class FrozenNodeRefsByScanningCommand implements Command {
 
     static {
-        // disable any query limits as our query is going to be a fulls can, and we are aware of it
+        // disable any query limits as our query is going to be a full scan, and we are aware of it
         System.setProperty("oak.queryLimitReads", String.valueOf(Long.MAX_VALUE));
 
         //		// disable the WARN of the TraversingCursor
@@ -103,7 +93,7 @@ public class FrozenNodeRefsByScanningCommand implements Command {
 
     public static final String NAME = "frozennoderefsbyscanning";
 
-    private final String summary = "Scans and lists all references to nt:frozenNode";
+    private final String summary = "Scans repository and lists all references to nt:frozenNode";
 
     @Override
     public void execute(String... args) throws Exception {
@@ -117,70 +107,41 @@ public class FrozenNodeRefsByScanningCommand implements Command {
         OptionSpec<String> userOption = parser.accepts("user", "User name").withOptionalArg().defaultsTo("admin");
         OptionSpec<String> passwordOption = parser.accepts("password", "Password").withOptionalArg().defaultsTo("admin");
 
-        OptionSpec<String> testCreateRefPathOption = parser.accepts("testCreateRefPath", "FOR TESTING ONLY: path where to create a reference from")
-                .withOptionalArg();
-        OptionSpec<String> testCreateRefPropOption = parser.accepts("testCreateRefProp", "FOR TESTING ONLY: property name for create a reference")
-                .withOptionalArg();
-        OptionSpec<String> testCreateRefTypeOption = parser
-                .accepts("testCreateRefType", "FOR TESTING ONLY: property type: 'reference' or anything else for a plain String").withOptionalArg();
-        OptionSpec<String> testCreateRefUuidOption = parser.accepts("testCreateRefUuid", "FOR TESTING ONLY: uuid to use as the reference")
-                .withOptionalArg();
-
         OptionSet options = opts.parseAndConfigure(parser, args);
 
         System.out.println("Opening nodestore...");
         NodeStoreFixture nodeStoreFixture = NodeStoreFixtureProvider.create(opts);
         System.out.println("Nodestore opened.");
 
-        if (uuidscan(userOption, passwordOption, testCreateRefPathOption, testCreateRefPropOption, testCreateRefTypeOption, testCreateRefUuidOption,
-                options, nodeStoreFixture)) {
-            System.err.println("FAILURE: References (in any uuid formatted property value) to nt:frozenNode found.");
+        int count = uuidscan(userOption, passwordOption, options, nodeStoreFixture);
+        if (count > 0) {
+            System.err.println("FAILURE: " + count + " Reference(s) (in any uuid formatted property value) to nt:frozenNode found.");
             System.exit(1);
         } else {
             System.out.println("SUCCESS: No references (in any uuid formatted property value) to nt:frozenNode found.");
         }
     }
 
-    private boolean uuidscan(OptionSpec<String> userOption, OptionSpec<String> passwordOption, OptionSpec<String> testCreateRefPathOption,
-            OptionSpec<String> testCreateRefPropOption, OptionSpec<String> testCreateRefTypeOption, OptionSpec<String> testCreateRefUuidOption,
+    /**
+     * Scans the repository (via an expensive traversing query, ouch, hence it needs username/password)
+     * and returns the number of references found. For this, any value formatted like a UUID is considered,
+     * then verified if it points to an nt:frozenNode.
+     */
+    private int uuidscan(OptionSpec<String> userOption, OptionSpec<String> passwordOption,
             OptionSet options, NodeStoreFixture nodeStoreFixture) throws IOException {
-        List<FrozenNodeRef> list = new LinkedList<FrozenNodeRef>();
-
         NodeStore nodeStore = nodeStoreFixture.getStore();
         String user = userOption.value(options);
         String password = passwordOption.value(options);
 
-        String createRefPath = testCreateRefPathOption.value(options);
-        String createRefProp = testCreateRefPropOption.value(options);
-        String createRefType = testCreateRefTypeOption.value(options);
-        String createRefUuid = testCreateRefUuidOption.value(options);
-
         Closer closer = Utils.createCloserWithShutdownHook();
         closer.register(nodeStoreFixture);
+
+        int count = 0;
+
         try {
 
             System.out.println("Logging in...");
             Session session = openSession(nodeStore, "crx.default", user, password);
-
-            if (createRefPath != null && createRefProp != null && createRefUuid != null) {
-                // this part of the code is only executed if any of the -testXX properties
-                // are set - which is as the name suggests only for setting up a test.
-                System.out.println(
-                        "Logged in, creating test reference: " + "path=" + createRefPath + ", property=" + createRefProp + ", uuid=" + createRefUuid);
-                Node n = session.getNode(createRefPath);
-                Value v;
-                if ("reference".equals(createRefType)) {
-                    v = session.getValueFactory().createValue(createRefUuid, PropertyType.REFERENCE);
-                } else {
-                    v = session.getValueFactory().createValue(createRefUuid, PropertyType.STRING);
-                }
-                n.setProperty(createRefProp, v);
-                session.save();
-                System.out.println("Created. Done.");
-                session.logout();
-                closer.close();
-                System.exit(0);
-            }
 
             System.out.println("Logged in, querying...");
             QueryManager qm = session.getWorkspace().getQueryManager();
@@ -203,13 +164,17 @@ public class FrozenNodeRefsByScanningCommand implements Command {
                     if (!p.isMultiple()) {
                         String propValue = p.getValue().getString();
                         if (propValue.matches("........-....-....-....-............")) {
-                            verify(list, session, n, p, propValue);
+                            if (verify(session, n, p, propValue)) {
+                                count++;
+                            }
                         }
                     } else {
                         for (Value v : p.getValues()) {
                             String propValue = v.getString();
                             if (propValue.matches("........-....-....-....-............")) {
-                                verify(list, session, n, p, propValue);
+                                if (verify(session, n, p, propValue)) {
+                                    count++;
+                                }
                             }
                         }
                     }
@@ -220,7 +185,7 @@ public class FrozenNodeRefsByScanningCommand implements Command {
             session.logout();
             System.out.println("done.");
 
-            return !list.isEmpty();
+            return count;
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {
@@ -228,13 +193,13 @@ public class FrozenNodeRefsByScanningCommand implements Command {
         }
     }
 
-    private void verify(List<FrozenNodeRef> list, Session session, Node n, Property p, String propValue) throws RepositoryException {
+    private boolean verify(Session session, Node n, Property p, String propValue) throws RepositoryException {
         try {
             Node node = session.getNodeByIdentifier(propValue);
             String path = node.getPath();
             boolean candidate = FrozenNodeRef.isFrozenNodeReferenceCandidate(path);
             if (!candidate) {
-                return;
+                return false;
             }
             Property primaryType = node.getProperty("jcr:primaryType");
             String primaryTypeValue = primaryType.getString();
@@ -242,18 +207,20 @@ public class FrozenNodeRefsByScanningCommand implements Command {
             if (!isNtFrozenNode) {
                 // this is where we ultimately have to continue out in any case - as only an nt:frozenNode
                 // is what we're interested in.
-                return;
+                return false;
             }
 
             String uuid = propValue;
             String referrerPath = n.getPath();
             String referrerProperty = p.getName();
             FrozenNodeRef ref = new FrozenNodeRef(referrerPath, referrerProperty, PropertyType.nameFromValue(p.getType()), uuid, path);
-            list.add(ref);
 
             System.out.println(FrozenNodeRef.REFERENCE_TO_NT_FROZEN_NODE_FOUND_PREFIX + ref.toInfoString());
+
+            return true;
         } catch (ItemNotFoundException notFound) {
             // then ignore
+            return false;
         }
     }
 

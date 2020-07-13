@@ -25,13 +25,9 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
 import org.apache.jackrabbit.oak.run.Utils.NodeStoreOptions;
 import org.apache.jackrabbit.oak.run.commons.Command;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -57,25 +53,24 @@ public class FrozenNodeRefsUsingIndexCommand implements Command {
     public void execute(String... args) throws Exception {
         String help = NAME + " {<path>|<mongo-uri>|<jdbc-uri>} [options]";
         Utils.NodeStoreOptions nopts = new Utils.NodeStoreOptions(help).parse(args);
-        if (hasNtFrozenNodeReferences(nopts)) {
-            System.err.println("FAILURE: References (in /oak:index/references) to nt:frozenNode found.");
+        int count = countNtFrozenNodeReferences(nopts);
+        if (count > 0) {
+            System.err.println("FAILURE: " + count + " Reference(s) (in /oak:index/references) to nt:frozenNode found.");
             System.exit(1);
         } else {
             System.out.println("SUCCESS: No references (in /oak:index/references) to nt:frozenNode found.");
         }
     }
 
-    private static boolean hasNtFrozenNodeReferences(NodeStoreOptions nopts) throws IOException {
+    /**
+     * Browses through /oak:index/references and counts how many references therein are
+     * to nt:frozenNode.
+     */
+    private static int countNtFrozenNodeReferences(NodeStoreOptions nopts) throws IOException {
         Closer closer = Utils.createCloserWithShutdownHook();
         try {
             NodeStore store = Utils.bootstrapNodeStore(nopts, closer);
             NodeState root = store.getRoot();
-
-            NodeBuilder b = root.builder();
-            NodeBuilder content = b.child("content");
-            PropertyState refProp = GenericPropertyState.referenceProperty("myref", "dd31e965-7e74-4c04-9a64-6698ecb4c624");
-            content.setProperty(refProp);
-            store.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
             NodeState oakIndex = root.getChildNode("oak:index");
             NodeState refIndex = oakIndex.getChildNode("reference");
@@ -84,7 +79,7 @@ public class FrozenNodeRefsUsingIndexCommand implements Command {
             System.out.println("Scanning ... refindex = " + refIndex);
             NodeState references = refIndex.getChildNode(":references");
 
-            List<FrozenNodeRef> list = new LinkedList<FrozenNodeRef>();
+            int count = 0;
 
             for (ChildNodeEntry child : references.getChildNodeEntries()) {
                 String uuid = child.getName();
@@ -104,16 +99,12 @@ public class FrozenNodeRefsUsingIndexCommand implements Command {
                         // is what we're interested in.
                         continue;
                     }
-                    appendFrozenNodeReference(list, root, child, uuidRefPath, p);
+                    count += countFrozenNodeReferences(root, child, uuidRefPath, p);
                 }
             }
             System.out.println("Scanning done.");
 
-            for (FrozenNodeRef ref : list) {
-                System.out.println(FrozenNodeRef.REFERENCE_TO_NT_FROZEN_NODE_FOUND_PREFIX + ref.toInfoString());
-            }
-
-            return !list.isEmpty();
+            return count;
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {
@@ -121,17 +112,20 @@ public class FrozenNodeRefsUsingIndexCommand implements Command {
         }
     }
 
-    private static void appendFrozenNodeReference(List<FrozenNodeRef> list, NodeState root, ChildNodeEntry referenceChild, String uuidRefPath,
+    private static int countFrozenNodeReferences(NodeState root, ChildNodeEntry referenceChild, String uuidRefPath,
             NodeState resolvedNodeState) {
         String uuid = referenceChild.getName();
         List<String> paths = new LinkedList<String>();
         scanReferrerPaths(paths, "/", referenceChild.getNodeState());
+        int count = 0;
         for (String referrerPropertyPath : paths) {
             String referrerPath = PathUtils.getAncestorPath(referrerPropertyPath, 1);
             String referrerProperty = PathUtils.getName(referrerPropertyPath);
             FrozenNodeRef ref = new FrozenNodeRef(referrerPath, referrerProperty, "Reference", uuid, uuidRefPath);
-            list.add(ref);
+            System.out.println(FrozenNodeRef.REFERENCE_TO_NT_FROZEN_NODE_FOUND_PREFIX + ref.toInfoString());
+            count++;
         }
+        return count;
     }
 
     private static void scanReferrerPaths(List<String> paths, String parentPath, NodeState referenceChildNodeState) {
