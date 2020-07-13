@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.3
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.4
 
 Introduction
 ------------
@@ -7,45 +7,35 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.3 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.4 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.22.3
+Changes in Oak 1.22.4
 ---------------------
-
-Technical task
-
-
-    [OAK-8920] - update Tomcat JDBC dependency to 8.5.51
-    [OAK-8937] - RDB*Store: update mysql jdbc driver reference to 8.0.19
-    [OAK-8939] - RDB*Store: update postgresql jdbc driver reference to 42.2.10
-    [OAK-8940] - RDB*Store: update mssql-jdbc driver reference to 8.2.1.jre8
 
 Bug
 
-    [OAK-8898] - On querying, IndexReader failed with AlreadyClosedException
-    [OAK-8922] - oak-run-commons: OakFixture broken for BlobStores that do not implement BlobAccessProvider
-    [OAK-8935] - Improve ClusterNodeInfo MAC address detection
-    [OAK-8944] - Missing journal entry on recovery
-    [OAK-8967] - OR query with ORDER BY don't work as expected
-    [OAK-8969] - Ignore domain overwrite doesn't work well when presignedHttpDownloadURICacheMaxSize is set
+    [OAK-8832] - Offline Compaction fails while erroneously accessing external blob
+    [OAK-9059] - Moving nodes doesn't remove source path(s) from HIDDEN_NESTED_CUGS
+    [OAK-9095] - MapRecord corruption when adding more than MapRecord.MAX_SIZE entries in branch record
+    [OAK-9096] - RDBDocumentStore: Update error code for MSSQL 2019
 
 Improvement
 
-    [OAK-8978] - Cache facet results
+    [OAK-9065] - JMX feature to remove large disabled indexes (recursive delete)
+    [OAK-9092] - Exception root cause message is swallowed
+    [OAK-9128] - Support s3 regions apart from default AWS regions
+
 
 Task
 
-    [OAK-8905] - AsyncIndexUpdate: improve logging when checkpoint cleanup gets skipped
-    [OAK-8953] - Update httpclient/mime dependencies to 4.5.12
-    [OAK-8954] - update jackson dependency to 2.10.3
-    [OAK-8955] - Update slf4j dependency to 1.7.30
-    [OAK-8959] - Update Tika dependency to 1.24
-    [OAK-8960] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.20
+    [OAK-9101] - Monitoring for maximum number of entries in biggest map record
+    [OAK-9105] - Update Oak trunk and 1.22 to Jackrabbit 2.20.1
+
 
 In addition to the above-mentioned changes, this release contains
 all changes included up to the previous Apache Jackrabbit Oak 1.22.x release.
