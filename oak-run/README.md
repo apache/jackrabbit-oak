@@ -141,7 +141,7 @@ browsing of an existing oak repository.
 frozennoderefsbyscanning
 ------------------------
 
-This command executes a potentially expensive (!) travering query searching for
+This command executes a potentially expensive (!) traversing query searching for
 all properties formatted as a UUID (incl String, Reference types) and verifies
 if they represent (potential) references to nt:frozenNode.
 
