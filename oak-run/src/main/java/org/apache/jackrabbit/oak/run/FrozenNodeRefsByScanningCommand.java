@@ -109,8 +109,9 @@ public class FrozenNodeRefsByScanningCommand implements Command {
 
         OptionSet options = opts.parseAndConfigure(parser, args);
 
-        System.out.println("Opening nodestore...");
-        NodeStoreFixture nodeStoreFixture = NodeStoreFixtureProvider.create(opts);
+        System.out.println("Opening nodestore (readOnly=true)...");
+        // explicitly set readOnly mode (overwriting any possibly set -read-write= option)
+        NodeStoreFixture nodeStoreFixture = NodeStoreFixtureProvider.create(opts, true);
         System.out.println("Nodestore opened.");
 
         int count = uuidscan(userOption, passwordOption, options, nodeStoreFixture);

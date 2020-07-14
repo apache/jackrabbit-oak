@@ -69,7 +69,8 @@ public class FrozenNodeRefsUsingIndexCommand implements Command {
     private static int countNtFrozenNodeReferences(NodeStoreOptions nopts) throws IOException {
         Closer closer = Utils.createCloserWithShutdownHook();
         try {
-            NodeStore store = Utils.bootstrapNodeStore(nopts, closer);
+            // explicitly set readOnly mode
+            NodeStore store = Utils.bootstrapNodeStore(nopts, closer, true);
             NodeState root = store.getRoot();
 
             NodeState oakIndex = root.getChildNode("oak:index");

@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.run.cli.DummyDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
@@ -167,6 +168,10 @@ class Utils {
     }
 
     public static NodeStore bootstrapNodeStore(NodeStoreOptions options, Closer closer) throws IOException, InvalidFileStoreVersionException {
+        return bootstrapNodeStore(options, closer, false);
+    }
+
+    public static NodeStore bootstrapNodeStore(NodeStoreOptions options, Closer closer, boolean readOnlyMode) throws IOException, InvalidFileStoreVersionException {
         String src = options.getStoreArg();
         if (src == null || src.length() == 0) {
             options.printHelpOn(System.err);
@@ -176,10 +181,21 @@ class Utils {
         if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
             DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
+                if (readOnlyMode) {
+                    builder.setReadOnlyMode();
+                } // otherwise default is read-write
                 DocumentNodeStore store = builder.build();
                 closer.register(asCloseable(store));
                 return store;
             }
+        }
+
+        if (readOnlyMode) {
+            ReadOnlyFileStore fileStore = fileStoreBuilder(new File(src))
+                .withStrictVersionCheck(true)
+                .buildReadOnly();
+            closer.register(fileStore);
+            return SegmentNodeStoreBuilders.builder(fileStore).build();
         }
 
         FileStore fileStore = fileStoreBuilder(new File(src))
