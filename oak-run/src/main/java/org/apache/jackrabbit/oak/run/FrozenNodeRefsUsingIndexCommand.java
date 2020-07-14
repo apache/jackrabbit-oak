@@ -70,6 +70,7 @@ public class FrozenNodeRefsUsingIndexCommand implements Command {
         Closer closer = Utils.createCloserWithShutdownHook();
         try {
             // explicitly set readOnly mode
+            System.out.println("Opening NodeStore in read-only mode.");
             NodeStore store = Utils.bootstrapNodeStore(nopts, closer, true);
             NodeState root = store.getRoot();
 
