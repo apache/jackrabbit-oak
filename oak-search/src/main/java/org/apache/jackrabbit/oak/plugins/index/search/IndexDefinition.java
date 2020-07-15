@@ -145,6 +145,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     public static final String CREATION_TIMESTAMP = "creationTimestamp";
     public static final String REINDEX_COMPLETION_TIMESTAMP = "reindexCompletionTimestamp";
+    /**
+     * Property to store paths for documents failed during index updates.
+     */
+    public static final String FAILED_DOC_PATHS = "failedDocPaths";
 
     /**
      * Meta property which provides the unique id
