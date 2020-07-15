@@ -108,7 +108,7 @@ public class ElasticIndexProviderService {
     private static final String PROP_ELASTIC_HOST = ElasticConnection.HOST_PROP;
 
     @Property(
-            intValue = ElasticConnection.DEFAULT_PORT,
+            value = "" + ElasticConnection.DEFAULT_PORT,
             label = "Elasticsearch connection port"
     )
     private static final String PROP_ELASTIC_PORT = ElasticConnection.PORT_PROP;
@@ -269,8 +269,9 @@ public class ElasticIndexProviderService {
                 (String) contextConfig.getOrDefault(PROP_ELASTIC_SCHEME, ElasticConnection.DEFAULT_SCHEME));
         final String host = System.getProperty(PROP_ELASTIC_HOST,
                 (String) contextConfig.getOrDefault(PROP_ELASTIC_HOST, ElasticConnection.DEFAULT_HOST));
-        final int port = Integer.getInteger(PROP_ELASTIC_PORT,
-                (int) contextConfig.getOrDefault(PROP_ELASTIC_PORT, ElasticConnection.DEFAULT_PORT));
+        final String portString = (String) contextConfig.getOrDefault(PROP_ELASTIC_PORT,
+                "" + ElasticConnection.DEFAULT_PORT);
+        final int port = Integer.getInteger(PROP_ELASTIC_PORT, Integer.parseInt(portString));
 
         // optional params
         final String apiKeyId = System.getProperty(PROP_ELASTIC_API_KEY_ID,
