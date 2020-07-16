@@ -39,13 +39,20 @@ public class ReindexOperations {
     private final NodeBuilder definitionBuilder;
     private final String indexPath;
     private final IndexDefinition.Builder indexDefBuilder;
+    private final boolean storedIndexDefinitionEnabled;
 
     public ReindexOperations(NodeState root, NodeBuilder definitionBuilder, String indexPath,
                              IndexDefinition.Builder indexDefBuilder) {
+        this(root, definitionBuilder, indexPath, indexDefBuilder, !IndexDefinition.isDisableStoredIndexDefinition());
+    }
+
+    public ReindexOperations(NodeState root, NodeBuilder definitionBuilder, String indexPath,
+                             IndexDefinition.Builder indexDefBuilder, boolean storedIndexDefinitionEnabled) {
         this.root = root;
         this.definitionBuilder = definitionBuilder;
         this.indexPath = indexPath;
         this.indexDefBuilder = indexDefBuilder;
+        this.storedIndexDefinitionEnabled = storedIndexDefinitionEnabled;
     }
 
     /**
@@ -61,7 +68,7 @@ public class ReindexOperations {
         //as index definition does not get modified as part of IndexUpdate run in most case we rely on base state
         //For case where index definition is rewritten there we get fresh state
         NodeState defnState = useStateFromBuilder ? definitionBuilder.getNodeState() : definitionBuilder.getBaseState();
-        if (!IndexDefinition.isDisableStoredIndexDefinition()) {
+        if (storedIndexDefinitionEnabled) {
             definitionBuilder.setChildNode(INDEX_DEFINITION_NODE, NodeStateCloner.cloneVisibleState(defnState));
             if (definitionBuilder.getChildNode(STATUS_NODE).exists()) {
                 definitionBuilder.getChildNode(STATUS_NODE).removeProperty(REINDEX_COMPLETION_TIMESTAMP);

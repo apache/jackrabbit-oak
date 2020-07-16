@@ -59,10 +59,10 @@ import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STA
 public abstract class FulltextIndexEditorContext<D> {
 
   private static final Logger log = LoggerFactory
-      .getLogger(FulltextIndexEditorContext.class);
+          .getLogger(FulltextIndexEditorContext.class);
 
   private static final PerfLogger PERF_LOGGER =
-      new PerfLogger(LoggerFactory.getLogger(FulltextIndexEditorContext.class.getName() + ".perf"));
+          new PerfLogger(LoggerFactory.getLogger(FulltextIndexEditorContext.class.getName() + ".perf"));
 
   protected IndexDefinition definition;
 
@@ -107,7 +107,7 @@ public abstract class FulltextIndexEditorContext<D> {
     this.definitionBuilder = definition;
     this.indexWriterFactory = indexWriterFactory;
     this.definition = indexDefinition != null ? indexDefinition :
-        createIndexDefinition(root, definition, indexingContext, asyncIndexing);
+            createIndexDefinition(root, definition, indexingContext, asyncIndexing);
     this.indexedNodes = 0;
     this.updateCallback = updateCallback;
     this.extractedTextCache = extractedTextCache;
@@ -167,7 +167,7 @@ public abstract class FulltextIndexEditorContext<D> {
       NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
       status.setProperty(IndexDefinition.STATUS_LAST_UPDATED, getUpdatedTime(currentTime), Type.DATE);
       status.setProperty("indexedNodes", indexedNodes);
-      if (!IndexDefinition.isDisableStoredIndexDefinition() && reindex) {
+      if (storedIndexDefinitionEnabled() && reindex) {
         NodeBuilder indexDefinition = definitionBuilder.child(STATUS_NODE);
         indexDefinition.setProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP, ISO8601.format(currentTime), Type.DATE);
         log.info(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP + " set to current time for index:" + definition.getIndexPath());
@@ -205,8 +205,12 @@ public abstract class FulltextIndexEditorContext<D> {
   public void enableReindexMode(){
     reindex = true;
     ReindexOperations reindexOps =
-            new ReindexOperations(root, definitionBuilder, definition.getIndexPath(), newDefinitionBuilder());
+            new ReindexOperations(root, definitionBuilder, definition.getIndexPath(), newDefinitionBuilder(), storedIndexDefinitionEnabled());
     definition = reindexOps.apply(indexDefnRewritten);
+  }
+
+  public boolean storedIndexDefinitionEnabled() {
+    return !IndexDefinition.isDisableStoredIndexDefinition();
   }
 
   public long incIndexedNodes() {
@@ -258,7 +262,7 @@ public abstract class FulltextIndexEditorContext<D> {
   }
 
   private IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
-      indexingContext, boolean asyncIndexing) {
+          indexingContext, boolean asyncIndexing) {
     NodeState defnState = definition.getBaseState();
     if (asyncIndexing) {
       // A good time to check and see if we want to inject our random
@@ -270,7 +274,7 @@ public abstract class FulltextIndexEditorContext<D> {
         defRandom = seed;
       }
 
-      if (!IndexDefinition.isDisableStoredIndexDefinition()) {
+      if (storedIndexDefinitionEnabled()) {
         if (definition.getBoolean(PROP_REFRESH_DEFN)) {
           definition.removeProperty(PROP_REFRESH_DEFN);
           NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);

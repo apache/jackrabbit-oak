@@ -53,12 +53,12 @@
                         </goals>
                         <phase>pre-integration-test</phase>
                         <configuration>
-                          <!--
-                            This is required as classes present in this module
-                            were part of oak-lucene. This should be removed
-                            post 1.10 release
-                          -->
-                          <comparisonArtifactId>oak-lucene</comparisonArtifactId>
+                            <!--
+                              This is required as classes present in this module
+                              were part of oak-lucene. This should be removed
+                              post 1.10 release
+                            -->
+                            <comparisonArtifactId>oak-lucene</comparisonArtifactId>
                         </configuration>
                     </execution>
                 </executions>
@@ -127,6 +127,7 @@
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
             <version>${tika.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Logging -->

@@ -31,7 +31,7 @@ import java.io.IOException;
 
 class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocument> {
 
-    private String indexPrefix;
+    private final String indexPrefix;
 
     ElasticIndexEditorContext(NodeState root,
                               NodeBuilder definition, @Nullable IndexDefinition indexDefinition,
@@ -70,5 +70,10 @@ class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocume
     @Override
     public ElasticIndexWriter getWriter() {
         return (ElasticIndexWriter) super.getWriter();
+    }
+
+    @Override
+    public boolean storedIndexDefinitionEnabled() {
+        return false;
     }
 }

@@ -45,7 +45,7 @@
         <configuration>
           <instructions>
             <_exportcontents>
-                org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
+              org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
               !com.carrotsearch.randomizedtesting.*,
@@ -81,8 +81,8 @@
             <exclude>**/fvs.csv</exclude>
           </excludes>
         </configuration>
-       </plugin>
-     </plugins>
+      </plugin>
+    </plugins>
   </build>
 
   <dependencies>
@@ -185,7 +185,6 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-search</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
