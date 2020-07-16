@@ -514,7 +514,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
             Object oakVersion = clusterNode.get(ClusterNodeInfo.OAK_VERSION_KEY);
             if (oakVersion != null && (oakVersion instanceof String)) {
                 try {
-                    warn = versionPredates("1.3.5", (String) oakVersion);
+                    warn = versionPredates((String) oakVersion, "1.3.5");
                 } catch (Exception e) {
                     logger.debug("hasBacklog: couldn't parse version " + oakVersion + " : " + e);
                     warn = true;
