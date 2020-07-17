@@ -281,10 +281,10 @@ public class LuceneIndexEditor2Test {
     }
 
 
-    private class TestWriterFactory implements FulltextIndexWriterFactory {
+    private class TestWriterFactory implements FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
         @Override
-        public LuceneIndexWriter newInstance(IndexDefinition definition,
-                                             NodeBuilder definitionBuilder, boolean reindex) {
+        public LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
+                                             CommitInfo commitInfo, boolean reindex) {
             return writer;
         }
     }

@@ -48,9 +48,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.REGEX_ALL_PROPS;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.REINDEX_COMPLETION_TIMESTAMP;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 
 /**
@@ -99,7 +97,7 @@ public abstract class FulltextIndexEditorContext<D> {
   protected FulltextIndexEditorContext(NodeState root, NodeBuilder definition,
                                        @Nullable IndexDefinition indexDefinition,
                                        IndexUpdateCallback updateCallback,
-                                       FulltextIndexWriterFactory indexWriterFactory,
+                                       FulltextIndexWriterFactory<D> indexWriterFactory,
                                        ExtractedTextCache extractedTextCache,
                                        IndexingContext indexingContext, boolean asyncIndexing) {
     this.root = root;
@@ -133,7 +131,7 @@ public abstract class FulltextIndexEditorContext<D> {
     if (writer == null) {
       //Lazy initialization so as to ensure that definition is based
       //on latest NodeBuilder state specially in case of reindexing
-      writer = indexWriterFactory.newInstance(definition, definitionBuilder, reindex);
+      writer = indexWriterFactory.newInstance(definition, definitionBuilder, indexingContext.getCommitInfo(), reindex);
     }
     return writer;
   }

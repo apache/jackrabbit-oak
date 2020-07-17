@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,11 +32,12 @@ class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<ElasticDoc
     }
 
     @Override
-    public ElasticIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex) {
+    public ElasticIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
+                                          CommitInfo commitInfo, boolean reindex) {
         if (!(definition instanceof ElasticIndexDefinition)) {
             throw new IllegalArgumentException("IndexDefinition must be of type ElasticsearchIndexDefinition " +
                     "instead of " + definition.getClass().getName());
         }
-        return new ElasticIndexWriter(elasticConnection, (ElasticIndexDefinition) definition, definitionBuilder);
+        return new ElasticIndexWriter(elasticConnection, (ElasticIndexDefinition) definition, definitionBuilder, commitInfo);
     }
 }
