@@ -89,7 +89,7 @@ public class FrozenNodeLogger implements Closeable {
     protected void logFrozenNode(Tree tree) {
         log.info("Frozen node {} looked up by id", tree.getPath());
         if (log.isDebugEnabled()) {
-            log.debug("Call stack", new Exception());
+            log.debug("Frozen node lookup call stack", new Exception());
         }
     }
 }
