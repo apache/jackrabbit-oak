@@ -49,7 +49,7 @@ public class FrozenNodeLogger implements Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(FrozenNodeLogger.class);
 
-    private static final long LOG_INTERVAL = 1000L;
+    private static final long LOG_INTERVAL = Long.getLong("oak.frozenNodeLogger.minInterval", 1000);
 
     private static long NO_MESSAGE_UNTIL = 0;
 
