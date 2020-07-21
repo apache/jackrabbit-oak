@@ -19,18 +19,6 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import com.google.common.base.Strings;
-import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.RetryExponentialRetry;
-import com.microsoft.azure.storage.RetryNoRetry;
-import com.microsoft.azure.storage.RetryPolicy;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -41,6 +29,21 @@ import java.net.SocketAddress;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Properties;
+
+import com.google.common.base.Strings;
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.OperationContext;
+import com.microsoft.azure.storage.RetryExponentialRetry;
+import com.microsoft.azure.storage.RetryNoRetry;
+import com.microsoft.azure.storage.RetryPolicy;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class Utils {
 
@@ -60,15 +63,34 @@ public final class Utils {
      * @param connectionString connectionString to configure @link {@link CloudBlobClient}
      * @return {@link CloudBlobClient}
      */
-    public static CloudBlobClient getBlobClient(final String connectionString) throws URISyntaxException, InvalidKeyException {
+    public static CloudBlobClient getBlobClient(@NotNull final String connectionString) throws URISyntaxException, InvalidKeyException {
+        return getBlobClient(connectionString, null);
+    }
+
+    public static CloudBlobClient getBlobClient(@NotNull final String connectionString,
+                                                @Nullable final BlobRequestOptions requestOptions) throws URISyntaxException, InvalidKeyException {
         CloudStorageAccount account = CloudStorageAccount.parse(connectionString);
         CloudBlobClient client = account.createCloudBlobClient();
+        if (null != requestOptions) {
+            client.setDefaultRequestOptions(requestOptions);
+        }
         return client;
     }
 
-    public static CloudBlobContainer getBlobContainer(final String connectionString, final String containerName) throws DataStoreException {
+    public static CloudBlobContainer getBlobContainer(@NotNull final String connectionString,
+                                                      @NotNull final String containerName) throws DataStoreException {
+        return getBlobContainer(connectionString, containerName, null);
+    }
+
+    public static CloudBlobContainer getBlobContainer(@NotNull final String connectionString,
+                                                      @NotNull final String containerName,
+                                                      @Nullable final BlobRequestOptions requestOptions) throws DataStoreException {
         try {
-            CloudBlobClient client = Utils.getBlobClient(connectionString);
+            CloudBlobClient client = (
+                    (null == requestOptions)
+                            ? Utils.getBlobClient(connectionString)
+                            : Utils.getBlobClient(connectionString, requestOptions)
+            );
             return client.getContainerReference(containerName);
         } catch (InvalidKeyException | URISyntaxException | StorageException e) {
             throw new DataStoreException(e);
