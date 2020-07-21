@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
@@ -94,7 +95,7 @@ public class DynamicBoostTest extends AbstractQueryTest {
         root.commit();
         factory.indexFieldProvider = new IndexFieldProviderImpl();
 
-        String log = runTest(IndexFieldProviderImpl.class);
+        String log = runTest(IndexFieldProviderImpl.class, true);
         assertEquals(
                 "[" +
                 "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0" +
@@ -111,15 +112,37 @@ public class DynamicBoostTest extends AbstractQueryTest {
         pt.setProperty("propertyIndex", true);
         root.commit();
 
-        String log = runTest(LuceneDocumentMaker.class);
+        String log = runTest(LuceneDocumentMaker.class, true);
         assertEquals(
                 "[" +
                 "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, " +
-                "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0" +
+                "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " +
+                "confidence is not finite: jcr:content/metadata/predictedTags, " +
+                "confidence is not finite: jcr:content/metadata/predictedTags, " +
+                "confidence parsing failed: jcr:content/metadata/predictedTags, " +
+                "confidence parsing failed: jcr:content/metadata/predictedTags, " +
+                "confidence is an array: jcr:content/metadata/predictedTags, " +
+                "confidence is an array: jcr:content/metadata/predictedTags, " +
+                "name is an array: jcr:content/metadata/predictedTags, " +
+                "name is an array: jcr:content/metadata/predictedTags" +
                 "]", log);
     }
 
-    private String runTest(Class<?> loggerClass) throws CommitFailedException {
+    @Test public void withDynamicBoostMissingProperty() throws Exception {
+        NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
+        Tree props = createIndex("dam:Asset");
+        Tree pt = createNodeWithType(props, "predictedTags", UNSTRUCTURED);
+        pt.setProperty("name", "jcr:content/metadata/predictedTags/.*");
+        pt.setProperty("isRegexp", true);
+        pt.setProperty("dynamicBoost", true);
+        pt.setProperty("propertyIndex", true);
+        root.commit();
+
+        String log = runTest(LuceneDocumentMaker.class, false);
+        assertEquals("[]", log);
+    }
+
+    private String runTest(Class<?> loggerClass, boolean nameProperty) throws CommitFailedException {
         LogCustomizer customLogs = LogCustomizer
                 .forLogger(loggerClass)
                 .enable(Level.TRACE).create();
@@ -134,17 +157,51 @@ public class DynamicBoostTest extends AbstractQueryTest {
                     "metadata", UNSTRUCTURED),
                     "predictedTags", UNSTRUCTURED);
             Tree t = createNodeWithType(predicted, "a", UNSTRUCTURED);
-            t.setProperty("name", "my:a");
+            if (nameProperty) {
+                t.setProperty("name", "my:a");
+            }
             t.setProperty("confidence", 10.0);
             root.commit();
-            // this is not detected
+
+            // this is not detected because updateCount is not set
             t.setProperty("confidence", 20);
             root.commit();
+
+            // this is not detected
+            if (nameProperty) {
+                t.removeProperty("confidence");
+                t.getParent().setProperty("updateCount", 1);
+                root.commit();
+            }
+
             // now we change an indexed property:
             // this is detected in the dynamicBoost case
             t.getParent().setProperty("updateCount", 2);
             t.setProperty("confidence", 30);
             root.commit();
+
+            // we try with an invalid value:
+            t.getParent().setProperty("updateCount", 3);
+            t.setProperty("confidence", Double.NEGATIVE_INFINITY);
+            root.commit();
+
+            // we try with another invalid value:
+            t.getParent().setProperty("updateCount", 4);
+            t.setProperty("confidence", "xz");
+            root.commit();
+
+            // we try with an array:
+            t.getParent().setProperty("updateCount", 5);
+            t.setProperty("confidence", new ArrayList<String>(), Type.STRINGS);
+            root.commit();
+
+            // we try with an array:
+            if (nameProperty) {
+                t.getParent().setProperty("updateCount", 6);
+                t.setProperty("name", new ArrayList<String>(), Type.STRINGS);
+                root.commit();
+            }
+
             return customLogs.getLogs().toString();
         } finally {
             customLogs.finished();
