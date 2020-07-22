@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -70,7 +71,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
      * Time in millis for which add call to queue
      * would wait before dropping off
      */
-    private final int offerTimeMillis;
+    private final long queueOfferTimeoutMillis;
 
     private volatile boolean stopped;
 
@@ -139,14 +140,15 @@ public class DocumentQueue implements Closeable, IndexingQueue {
     };
 
     public DocumentQueue(int maxQueueSize, IndexTracker tracker, Executor executor) {
-        this(maxQueueSize, tracker, executor, StatisticsProvider.NOOP);
+        this(maxQueueSize, LuceneIndexProviderService.PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT,
+                tracker, executor, StatisticsProvider.NOOP);
     }
 
-    public DocumentQueue(int maxQueueSize, IndexTracker tracker, Executor executor, StatisticsProvider sp) {
+    public DocumentQueue(int maxQueueSize, long queueOfferTimeoutMillis, IndexTracker tracker, Executor executor, StatisticsProvider sp) {
         this.docsQueue = new LinkedBlockingDeque<>(maxQueueSize);
         this.tracker = tracker;
         this.executor = executor;
-        this.offerTimeMillis = 100; //Wait for at most 100 mills while adding stuff to queue
+        this.queueOfferTimeoutMillis = queueOfferTimeoutMillis;
         this.queueSizeStats = sp.getCounterStats("HYBRID_QUEUE_SIZE", StatsOptions.DEFAULT);
         this.added = sp.getMeter("HYBRID_ADDED", StatsOptions.DEFAULT);
         this.dropped = sp.getMeter("HYBRID_DROPPED", StatsOptions.DEFAULT);
@@ -170,7 +172,7 @@ public class DocumentQueue implements Closeable, IndexingQueue {
         checkState(!stopped);
         boolean added = false;
         try {
-            added = docsQueue.offer(doc, offerTimeMillis, TimeUnit.MILLISECONDS);
+            added = docsQueue.offer(doc, queueOfferTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

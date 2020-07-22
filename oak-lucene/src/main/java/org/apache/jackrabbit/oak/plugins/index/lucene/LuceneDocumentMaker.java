@@ -336,22 +336,49 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             }
         }
     }
-    
+
     @Override
     protected boolean indexDynamicBoost(Document doc, PropertyDefinition pd, NodeState nodeState, String propertyName) {
         NodeState propertNode = nodeState;
         String parentName = PathUtils.getParentPath(propertyName);
         for (String c : PathUtils.elements(parentName)) {
-            propertNode = propertNode.getChildNode(c); 
+            propertNode = propertNode.getChildNode(c);
         }
         boolean added = false;
         for (String nodeName : propertNode.getChildNodeNames()) {
             NodeState dynaTag = propertNode.getChildNode(nodeName);
-            String dynaTagName = dynaTag.getProperty(DYNAMIC_BOOST_TAG_NAME).getValue(Type.STRING);
-            Double dynaTagConfidence = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE).getValue(Type.DOUBLE);
-
+            PropertyState p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_NAME);
+            if (p == null) {
+                // here we don't log a warning, because possibly it will be added later
+                continue;
+            }
+            if (p.isArray()) {
+                log.warn(p.getName() + " is an array: {}", parentName);
+                continue;
+            }
+            String dynaTagName = p.getValue(Type.STRING);
+            p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE);
+            if (p == null) {
+                // here we don't log a warning, because possibly it will be added later
+                continue;
+            }
+            if (p.isArray()) {
+                log.warn(p.getName() + " is an array: {}", parentName);
+                continue;
+            }
+            double dynaTagConfidence;
+            try {
+                dynaTagConfidence = p.getValue(Type.DOUBLE);
+            } catch (NumberFormatException e) {
+                log.warn(p.getName() + " parsing failed: {}", parentName, e);
+                continue;
+            }
+            if (!Double.isFinite(dynaTagConfidence)) {
+                log.warn(p.getName() + " is not finite: {}", parentName);
+                continue;
+            }
             List<String> tokens = new ArrayList<>(splitForIndexing(dynaTagName));
-            if (tokens.size() > 1) { 
+            if (tokens.size() > 1) {
                 // Actual name not in tokens
                 tokens.add(dynaTagName);
             }
@@ -386,7 +413,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             ft.setIndexOptions(org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_ONLY);
             ft.freeze();
         }
-    
+
         AugmentedField(String name, double weight) {
             super(name, "1", ft);
             setBoost((float) weight);
@@ -396,9 +423,9 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static List<String> splitForIndexing(String tagName) {
         return Arrays.asList(removeBackSlashes(tagName).split(DYNAMIC_BOOST_SPLIT_REGEX));
     }
-    
+
     private static String removeBackSlashes(String text) {
         return text.replaceAll("\\\\", "");
     }
-    
+
 }

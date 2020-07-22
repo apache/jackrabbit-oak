@@ -48,9 +48,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.REGEX_ALL_PROPS;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.REINDEX_COMPLETION_TIMESTAMP;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 
 /**
@@ -59,10 +57,10 @@ import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STA
 public abstract class FulltextIndexEditorContext<D> {
 
   private static final Logger log = LoggerFactory
-      .getLogger(FulltextIndexEditorContext.class);
+          .getLogger(FulltextIndexEditorContext.class);
 
   private static final PerfLogger PERF_LOGGER =
-      new PerfLogger(LoggerFactory.getLogger(FulltextIndexEditorContext.class.getName() + ".perf"));
+          new PerfLogger(LoggerFactory.getLogger(FulltextIndexEditorContext.class.getName() + ".perf"));
 
   protected IndexDefinition definition;
 
@@ -99,7 +97,7 @@ public abstract class FulltextIndexEditorContext<D> {
   protected FulltextIndexEditorContext(NodeState root, NodeBuilder definition,
                                        @Nullable IndexDefinition indexDefinition,
                                        IndexUpdateCallback updateCallback,
-                                       FulltextIndexWriterFactory indexWriterFactory,
+                                       FulltextIndexWriterFactory<D> indexWriterFactory,
                                        ExtractedTextCache extractedTextCache,
                                        IndexingContext indexingContext, boolean asyncIndexing) {
     this.root = root;
@@ -107,7 +105,7 @@ public abstract class FulltextIndexEditorContext<D> {
     this.definitionBuilder = definition;
     this.indexWriterFactory = indexWriterFactory;
     this.definition = indexDefinition != null ? indexDefinition :
-        createIndexDefinition(root, definition, indexingContext, asyncIndexing);
+            createIndexDefinition(root, definition, indexingContext, asyncIndexing);
     this.indexedNodes = 0;
     this.updateCallback = updateCallback;
     this.extractedTextCache = extractedTextCache;
@@ -133,7 +131,7 @@ public abstract class FulltextIndexEditorContext<D> {
     if (writer == null) {
       //Lazy initialization so as to ensure that definition is based
       //on latest NodeBuilder state specially in case of reindexing
-      writer = indexWriterFactory.newInstance(definition, definitionBuilder, reindex);
+      writer = indexWriterFactory.newInstance(definition, definitionBuilder, indexingContext.getCommitInfo(), reindex);
     }
     return writer;
   }
@@ -167,7 +165,7 @@ public abstract class FulltextIndexEditorContext<D> {
       NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
       status.setProperty(IndexDefinition.STATUS_LAST_UPDATED, getUpdatedTime(currentTime), Type.DATE);
       status.setProperty("indexedNodes", indexedNodes);
-      if (!IndexDefinition.isDisableStoredIndexDefinition() && reindex) {
+      if (storedIndexDefinitionEnabled() && reindex) {
         NodeBuilder indexDefinition = definitionBuilder.child(STATUS_NODE);
         indexDefinition.setProperty(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP, ISO8601.format(currentTime), Type.DATE);
         log.info(IndexDefinition.REINDEX_COMPLETION_TIMESTAMP + " set to current time for index:" + definition.getIndexPath());
@@ -205,8 +203,12 @@ public abstract class FulltextIndexEditorContext<D> {
   public void enableReindexMode(){
     reindex = true;
     ReindexOperations reindexOps =
-            new ReindexOperations(root, definitionBuilder, definition.getIndexPath(), newDefinitionBuilder());
+            new ReindexOperations(root, definitionBuilder, definition.getIndexPath(), newDefinitionBuilder(), storedIndexDefinitionEnabled());
     definition = reindexOps.apply(indexDefnRewritten);
+  }
+
+  public boolean storedIndexDefinitionEnabled() {
+    return !IndexDefinition.isDisableStoredIndexDefinition();
   }
 
   public long incIndexedNodes() {
@@ -258,7 +260,7 @@ public abstract class FulltextIndexEditorContext<D> {
   }
 
   private IndexDefinition createIndexDefinition(NodeState root, NodeBuilder definition, IndexingContext
-      indexingContext, boolean asyncIndexing) {
+          indexingContext, boolean asyncIndexing) {
     NodeState defnState = definition.getBaseState();
     if (asyncIndexing) {
       // A good time to check and see if we want to inject our random
@@ -270,7 +272,7 @@ public abstract class FulltextIndexEditorContext<D> {
         defRandom = seed;
       }
 
-      if (!IndexDefinition.isDisableStoredIndexDefinition()) {
+      if (storedIndexDefinitionEnabled()) {
         if (definition.getBoolean(PROP_REFRESH_DEFN)) {
           definition.removeProperty(PROP_REFRESH_DEFN);
           NodeState clonedState = NodeStateCloner.cloneVisibleState(defnState);

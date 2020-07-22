@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.elasticsearch.action.bulk.BulkProcessor;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.junit.Before;
@@ -45,7 +45,7 @@ public class ElasticIndexWriterTest {
     private ElasticIndexDefinition indexDefinitionMock;
 
     @Mock
-    private BulkProcessor bulkProcessorMock;
+    private ElasticBulkProcessorHandler bulkProcessorHandlerMock;
 
     private ElasticIndexWriter indexWriter;
 
@@ -53,7 +53,7 @@ public class ElasticIndexWriterTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         when(indexDefinitionMock.getRemoteIndexAlias()).thenReturn("test-index");
-        indexWriter = new ElasticIndexWriter(elasticConnectionMock, indexDefinitionMock, bulkProcessorMock);
+        indexWriter = new ElasticIndexWriter(elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
     }
 
     @Test
@@ -61,7 +61,7 @@ public class ElasticIndexWriterTest {
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
 
         ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(bulkProcessorMock).add(acIndexRequest.capture());
+        verify(bulkProcessorHandlerMock).add(acIndexRequest.capture());
 
         IndexRequest request = acIndexRequest.getValue();
         assertEquals("test-index", request.index());
@@ -73,7 +73,7 @@ public class ElasticIndexWriterTest {
         indexWriter.deleteDocuments("/bar");
 
         ArgumentCaptor<DeleteRequest> acDeleteRequest = ArgumentCaptor.forClass(DeleteRequest.class);
-        verify(bulkProcessorMock).add(acDeleteRequest.capture());
+        verify(bulkProcessorHandlerMock).add(acDeleteRequest.capture());
 
         DeleteRequest request = acDeleteRequest.getValue();
         assertEquals("test-index", request.index());
@@ -87,10 +87,8 @@ public class ElasticIndexWriterTest {
         indexWriter.deleteDocuments("/foo");
         indexWriter.deleteDocuments("/bar");
 
-        ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(bulkProcessorMock, times(2)).add(acIndexRequest.capture());
-        ArgumentCaptor<DeleteRequest> acDeleteRequest = ArgumentCaptor.forClass(DeleteRequest.class);
-        verify(bulkProcessorMock, times(2)).add(acDeleteRequest.capture());
+        ArgumentCaptor<DocWriteRequest<?>> request = ArgumentCaptor.forClass(DocWriteRequest.class);
+        verify(bulkProcessorHandlerMock, times(4)).add(request.capture());
     }
 
     @Test
@@ -100,7 +98,7 @@ public class ElasticIndexWriterTest {
         indexWriter.updateDocument(generatedPath, new ElasticDocument(generatedPath));
 
         ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(bulkProcessorMock).add(acIndexRequest.capture());
+        verify(bulkProcessorHandlerMock).add(acIndexRequest.capture());
 
         IndexRequest request = acIndexRequest.getValue();
         assertThat(request.id(), not(generatedPath));
@@ -110,7 +108,7 @@ public class ElasticIndexWriterTest {
     @Test
     public void closeBulkProcessor() {
         indexWriter.close(System.currentTimeMillis());
-        verify(bulkProcessorMock).close();
+        verify(bulkProcessorHandlerMock).close();
     }
 
 }

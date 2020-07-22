@@ -454,7 +454,15 @@ public class SessionDelegate {
     @Nullable
     public NodeDelegate getNodeByIdentifier(String id) {
         Tree tree = idManager.getTree(id);
-        return (tree == null || !tree.exists()) ? null : new NodeDelegate(this, tree);
+        if (tree == null || !tree.exists()) {
+            return null;
+        } else {
+            treeLookedUpByIdentifier(tree);
+            return new NodeDelegate(this, tree);
+        }
+    }
+
+    protected void treeLookedUpByIdentifier(@NotNull Tree tree) {
     }
 
     /**

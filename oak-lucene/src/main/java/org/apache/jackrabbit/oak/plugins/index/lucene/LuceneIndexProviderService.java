@@ -237,6 +237,15 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_HYBRID_QUEUE_SIZE = "hybridQueueSize";
 
+    public static final long PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT = 100;
+    @Property(
+            longValue = PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT,
+            label = "Queue timeout",
+            description = "Maximum time to wait for adding entries to the queue used for storing Lucene Documents which need to be " +
+                    "added to local index"
+    )
+    private static final String PROP_HYBRID_QUEUE_TIMEOUT = "hybridQueueTimeout";
+
     private static final boolean PROP_DISABLE_DEFN_STORAGE_DEFAULT = false;
     @Property(
             boolValue = PROP_DISABLE_DEFN_STORAGE_DEFAULT,
@@ -631,7 +640,8 @@ public class LuceneIndexProviderService {
         }
 
         int queueSize = PropertiesUtil.toInteger(config.get(PROP_HYBRID_QUEUE_SIZE), PROP_HYBRID_QUEUE_SIZE_DEFAULT);
-        documentQueue = new DocumentQueue(queueSize, tracker, getExecutorService(), statisticsProvider);
+        long queueOfferTimeoutMillis = PropertiesUtil.toLong(config.get(PROP_HYBRID_QUEUE_TIMEOUT), PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT);
+        documentQueue = new DocumentQueue(queueSize, queueOfferTimeoutMillis, tracker, getExecutorService(), statisticsProvider);
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(documentQueue, statisticsProvider);
         regs.add(bundleContext.registerService(Observer.class.getName(), localIndexObserver, null));
 

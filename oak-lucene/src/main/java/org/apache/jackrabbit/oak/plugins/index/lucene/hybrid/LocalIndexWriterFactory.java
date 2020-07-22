@@ -24,10 +24,11 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
-public class LocalIndexWriterFactory implements FulltextIndexWriterFactory {
+public class LocalIndexWriterFactory implements FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
     private final LuceneDocumentHolder documentHolder;
     private final String indexPath;
 
@@ -37,7 +38,8 @@ public class LocalIndexWriterFactory implements FulltextIndexWriterFactory {
     }
 
     @Override
-    public LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex) {
+    public LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
+                                         CommitInfo commitInfo, boolean reindex) {
         return new LocalIndexWriter(definition);
     }
 

@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -44,8 +45,8 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
     }
 
     @Override
-    public LuceneIndexWriter newInstance(IndexDefinition def,
-                                         NodeBuilder definitionBuilder, boolean reindex) {
+    public LuceneIndexWriter newInstance(IndexDefinition def, NodeBuilder definitionBuilder,
+                                         CommitInfo commitInfo, boolean reindex) {
         Preconditions.checkArgument(def instanceof LuceneIndexDefinition,
                 "Expected {} but found {} for index definition",
                 LuceneIndexDefinition.class, def.getClass());
@@ -54,7 +55,7 @@ public class DefaultIndexWriterFactory implements LuceneIndexWriterFactory {
 
         if (mountInfoProvider.hasNonDefaultMounts()){
             return new MultiplexingIndexWriter(directoryFactory, mountInfoProvider, definition,
-                definitionBuilder, reindex, writerConfig);
+                    definitionBuilder, reindex, writerConfig);
         }
         return new DefaultIndexWriter(definition, definitionBuilder, directoryFactory,
                 FulltextIndexConstants.INDEX_DATA_CHILD_NAME,

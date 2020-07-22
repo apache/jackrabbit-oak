@@ -17,6 +17,8 @@ The following runmodes are currently available:
     * debug           : Print status information about an Oak repository
     * explore         : Starts a GUI browser based on java swing
     * export          : Export repository content as json
+    * frozennoderefsbyscanning : Scan for nt:frozenNode references via query
+    * frozennoderefsusingindex : Scan for nt:frozenNode references via /oak:index
     * garbage         : Identifies blob garbage on a DocumentMK repository
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
@@ -135,6 +137,42 @@ The 'explore' mode starts a desktop browser GUI based on java swing which allows
 browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
+
+frozennoderefsbyscanning
+------------------------
+
+This command executes a potentially expensive (!) traversing query searching for
+all properties formatted as a UUID (incl String, Reference types) and verifies
+if they represent (potential) references to nt:frozenNode.
+
+Since this is a rather expensive command, consider using frozennoderefsusingindex
+(at least first) instead.
+
+If this is used eg on a MongoDB, consider running the command against
+a secondary MongoDB node, such as to not overload the primary MongoDB node.
+
+This tool is part of the effort to change the default nt:frozenNode node type
+definition to no longer be a mix:referenceable (see OAK-9134). Even though
+existing definitions aren't modified, the tool can be used to verify if
+an existing repository would potentially be in violation of OAK-9134 - ie if
+there are existing use cases of nt:frozenNode being a mix:referenceable.
+
+
+frozennoderefsusingindex
+------------------------
+
+This command browses through /oak:index/references and verifies if they
+represent references to nt:frozenNode.
+
+If this is used eg on a MongoDB, consider running the command against
+a secondary MongoDB node, such as to not overload the primary MongoDB node.
+
+This tool is part of the effort to change the default nt:frozenNode node type
+definition to no longer be a mix:referenceable (see OAK-9134). Even though
+existing definitions aren't modified, the tool can be used to verify if
+an existing repository would potentially be in violation of OAK-9134 - ie if
+there are existing use cases of nt:frozenNode being a mix:referenceable.
+
 
 History
 -------

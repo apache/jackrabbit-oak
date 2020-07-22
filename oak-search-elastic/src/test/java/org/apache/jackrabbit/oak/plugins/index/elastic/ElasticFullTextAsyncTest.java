@@ -16,14 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -59,6 +67,24 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
             assertThat(explain(query, XPATH), containsString("elasticsearch:" + indexId));
             assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/c", "/test/d"));
         });
+    }
+
+    @Test
+    public void testNoStoredIndexDefinition() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("propa");
+        builder.async("async");
+        builder.indexRule("nt:base").property("propa").analyzed();
+
+        String indexId = UUID.randomUUID().toString();
+        setIndex(indexId, builder);
+        root.commit();
+
+        assertEventually(() -> {
+            NodeState node = NodeStateUtils.getNode(nodeStore.getRoot(), "/" + INDEX_DEFINITIONS_NAME + "/" + indexId);
+            PropertyState ps = node.getProperty(IndexConstants.REINDEX_COUNT);
+            Assert.assertTrue(ps != null && ps.getValue(Type.LONG) == 1 && !node.hasChildNode(INDEX_DEFINITION_NODE));
+        });
+
     }
 
     @Test

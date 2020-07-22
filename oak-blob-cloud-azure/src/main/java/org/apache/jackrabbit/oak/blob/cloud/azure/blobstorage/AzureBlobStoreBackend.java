@@ -54,7 +54,6 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.microsoft.azure.storage.AccessCondition;
-import com.microsoft.azure.storage.RequestOptions;
 import com.microsoft.azure.storage.ResultContinuation;
 import com.microsoft.azure.storage.ResultSegment;
 import com.microsoft.azure.storage.RetryPolicy;
@@ -77,11 +76,11 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadToken;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.util.Base64;
@@ -108,11 +107,13 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     static final long MAX_BINARY_UPLOAD_SIZE = (long) Math.floor(1024L * 1024L * 1024L * 1024L * 4.75); // 4.75TB, Azure limit
     private static final int MAX_ALLOWABLE_UPLOAD_URIS = 50000; // Azure limit
     private static final int MAX_UNIQUE_RECORD_TRIES = 10;
+    private static final int DEFAULT_CONCURRENT_REQUEST_COUNT = 2;
+    private static final int MAX_CONCURRENT_REQUEST_COUNT = 50;
 
     private Properties properties;
     private String containerName;
     private String connectionString;
-    private int concurrentRequestCount = 1;
+    private int concurrentRequestCount = DEFAULT_CONCURRENT_REQUEST_COUNT;
     private RetryPolicy retryPolicy;
     private Integer requestTimeout;
     private int httpDownloadURIExpirySeconds = 0; // disabled by default
@@ -131,15 +132,16 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     protected CloudBlobContainer getAzureContainer() throws DataStoreException {
-        CloudBlobContainer container = Utils.getBlobContainer(connectionString, containerName);
-        RequestOptions requestOptions = container.getServiceClient().getDefaultRequestOptions();
-        if (retryPolicy != null) {
+        BlobRequestOptions requestOptions = new BlobRequestOptions();
+        if (null != retryPolicy) {
             requestOptions.setRetryPolicyFactory(retryPolicy);
         }
-        if (requestTimeout != null) {
+        if (null != requestTimeout) {
             requestOptions.setTimeoutIntervalInMs(requestTimeout);
         }
-        return container;
+        requestOptions.setConcurrentRequestCount(concurrentRequestCount);
+
+        return Utils.getBlobContainer(connectionString, containerName, requestOptions);
     }
 
     @Override
@@ -164,8 +166,23 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 containerName = (String) properties.get(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
                 createBlobContainer = PropertiesUtil.toBoolean(properties.getProperty(AzureConstants.AZURE_CREATE_CONTAINER), true);
                 connectionString = Utils.getConnectionStringFromProperties(properties);
-                concurrentRequestCount = PropertiesUtil.toInteger(properties.get(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION), 1);
+
+                concurrentRequestCount = PropertiesUtil.toInteger(
+                        properties.get(AzureConstants.AZURE_BLOB_CONCURRENT_REQUESTS_PER_OPERATION),
+                        DEFAULT_CONCURRENT_REQUEST_COUNT);
+                if (concurrentRequestCount < DEFAULT_CONCURRENT_REQUEST_COUNT) {
+                    LOG.warn("Invalid setting [{}] for concurrentRequestsPerOperation (too low); resetting to {}",
+                            concurrentRequestCount,
+                            DEFAULT_CONCURRENT_REQUEST_COUNT);
+                    concurrentRequestCount = DEFAULT_CONCURRENT_REQUEST_COUNT;
+                } else if (concurrentRequestCount > MAX_CONCURRENT_REQUEST_COUNT) {
+                    LOG.warn("Invalid setting [{}] for concurrentRequestsPerOperation (too high); resetting to {}",
+                            concurrentRequestCount,
+                            MAX_CONCURRENT_REQUEST_COUNT);
+                    concurrentRequestCount = MAX_CONCURRENT_REQUEST_COUNT;
+                }
                 LOG.info("Using concurrentRequestsPerOperation={}", concurrentRequestCount);
+
                 retryPolicy = Utils.getRetryPolicy((String)properties.get(AzureConstants.AZURE_BLOB_MAX_REQUEST_RETRY));
                 if (properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT) != null) {
                     requestTimeout = PropertiesUtil.toInteger(properties.getProperty(AzureConstants.AZURE_BLOB_REQUEST_TIMEOUT), RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT);

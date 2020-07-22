@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.31-SNAPSHOT</version>
+    <version>1.33-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -45,7 +45,7 @@
         <configuration>
           <instructions>
             <_exportcontents>
-                org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
+              org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
               !com.carrotsearch.randomizedtesting.*,
@@ -63,7 +63,7 @@
               *
             </Import-Package>
             <Embed-Dependency>
-              oak-search;inline=true,
+              oak-search;scope=compile|runtime;inline=true,
               elasticsearch;groupId=org.elasticsearch,
               *;scope=compile|runtime
             </Embed-Dependency>
@@ -81,8 +81,8 @@
             <exclude>**/fvs.csv</exclude>
           </excludes>
         </configuration>
-       </plugin>
-     </plugins>
+      </plugin>
+    </plugins>
   </build>
 
   <dependencies>
@@ -185,7 +185,12 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-search</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-jcr</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <!-- Logging -->
@@ -252,6 +257,14 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
       <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-search</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
 
