@@ -131,6 +131,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private int asyncInterval = Integer.getInteger("asyncInterval", 5);
     private int cleanerIntervalInSecs = Integer.getInteger("cleanerIntervalInSecs", 10);
     private int queueSize = Integer.getInteger("queueSize", 1000);
+    private long queueTimeout = Long.getLong("queueTimeout", 100);
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
     private boolean dumpStats = Boolean.getBoolean("dumpStats");
     private boolean useOakCodec = Boolean.parseBoolean(System.getProperty("useOakCodec", "true"));
@@ -385,7 +386,7 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
                 null, //augmentorFactory
                 mip);
 
-        queue = new DocumentQueue(queueSize, tracker, executorService, statsProvider);
+        queue = new DocumentQueue(queueSize, queueTimeout, tracker, executorService, statsProvider);
         localIndexObserver = new LocalIndexObserver(queue, statsProvider);
         luceneEditorProvider.setIndexingQueue(queue);
 

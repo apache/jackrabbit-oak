@@ -74,7 +74,7 @@ import joptsimple.OptionSpec;
  * Note that any property with uuid that cannot be resolved will *not be reported*, as that
  * is a legitimate use case of uuid property use. Only uuids that resolve will be analysed.
  * <p>
- * Example: 
+ * Example:
  * <pre>
  * java -mx4g -jar oak-run-*.jar frozennoderefsbyscanning mongodb://localhost/&lt;dbname&gt; -user=admin -password=admin
  * </pre>
@@ -248,8 +248,9 @@ public class FrozenNodeRefsByScanningCommand implements Command {
                 .getExitingScheduledExecutorService((ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         int queueSize = Integer.getInteger("queueSize", 1000);
+        long queueTimeout = Long.getLong("queueTimeoutMillis", 100);
         IndexTracker tracker = new IndexTracker();
-        DocumentQueue queue = new DocumentQueue(queueSize, tracker, executorService, statsProvider);
+        DocumentQueue queue = new DocumentQueue(queueSize, queueTimeout, tracker, executorService, statsProvider);
         ep.setIndexingQueue(queue);
         return ep;
     }
