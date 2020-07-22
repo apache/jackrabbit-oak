@@ -35,11 +35,11 @@ import com.google.common.io.Closer;
 
 /**
  * Scans and lists all references to nt:frozenNode and returns an exit code of 1 if any are found (0 otherwise).
- * <p/>
+ * <p>
  * This variant uses the /oak:index/reference by scanning through that list (only)
  * and checking if any reference points to an nt:frozenNode (under /jcr:system/jcr:versionStorage
- * at depth > 7).
- * <p/>
+ * at depth &gt; 7).
+ * <p>
  * Example: 
  * <pre>
  * java -mx4g -jar oak-run-*.jar frozennoderefsusingindex mongodb://localhost/&lt;dbname&gt;
