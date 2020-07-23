@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  */
 class ElasticIndexHelper {
 
-    public static CreateIndexRequest createIndexRequest(ElasticIndexDefinition indexDefinition) throws IOException {
-        final CreateIndexRequest request = new CreateIndexRequest(indexDefinition.getRemoteIndexName());
+    public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
+        final CreateIndexRequest request = new CreateIndexRequest(remoteIndexName);
 
         // provision settings
         request.settings(loadSettings(indexDefinition));

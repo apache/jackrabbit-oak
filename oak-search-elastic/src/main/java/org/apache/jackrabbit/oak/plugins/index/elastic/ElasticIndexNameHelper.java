@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -40,6 +41,26 @@ public class ElasticIndexNameHelper {
     }
 
     /**
+     * Create a name for remote elastic index from given index definition and seed.
+     * @param indexDefinition elastic index definition to use
+     * @param seed seed to use
+     * @return remote elastic index name
+     */
+    public static String getRemoteIndexName(ElasticIndexDefinition indexDefinition, long seed) {
+        return getElasticSafeIndexName(
+                indexDefinition.getRemoteIndexAlias() + "-" + Long.toHexString(seed));
+    }
+
+    /**
+     * Create a name for remote elastic index from given index definition and a randomly generated seed.
+     * @param indexDefinition elastic index definition to use
+     * @return remote elastic index name
+     */
+    public static String getRemoteIndexName(ElasticIndexDefinition indexDefinition) {
+        return getRemoteIndexName(indexDefinition, UUID.randomUUID().getMostSignificantBits());
+    }
+
+    /**
      * <ul>
      *     <li>abc -> abc</li>
      *     <li>xy:abc -> xyabc</li>
@@ -48,7 +69,7 @@ public class ElasticIndexNameHelper {
      * <p>
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
-    public static String getElasticSafeIndexName(String indexPath) {
+    private static String getElasticSafeIndexName(String indexPath) {
         String name = StreamSupport
                 .stream(PathUtils.elements(indexPath).spliterator(), false)
                 .limit(3) //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
