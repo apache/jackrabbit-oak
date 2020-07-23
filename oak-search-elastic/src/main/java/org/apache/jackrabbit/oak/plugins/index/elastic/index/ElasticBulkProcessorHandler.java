@@ -76,6 +76,11 @@ class ElasticBulkProcessorHandler {
     private final Phaser phaser = new Phaser(1); // register main controller
 
     /**
+     * IOException object wrapping any error/exception which occurred while trying to update index in elasticsearch.
+     */
+    private volatile IOException ioException;
+
+    /**
      * Key-value structure to keep the history of bulk requests. Keys are the bulk execution ids, the boolean
      * value is {@code true} when at least an update is performed, otherwise {@code false}.
      */
@@ -148,7 +153,7 @@ class ElasticBulkProcessorHandler {
         totalOperations++;
     }
 
-    public boolean close() {
+    public boolean close() throws IOException {
         LOG.trace("Calling close on bulk processor {}", bulkProcessor);
         bulkProcessor.close();
         LOG.trace("Bulk Processor {} closed", bulkProcessor);
@@ -165,6 +170,10 @@ class ElasticBulkProcessorHandler {
             phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
         } catch (InterruptedException | TimeoutException e) {
             LOG.error("Error waiting for bulk requests to return", e);
+        }
+
+        if (ioException != null) {
+            throw ioException;
         }
 
         if (LOG.isTraceEnabled()) {
@@ -250,6 +259,7 @@ class ElasticBulkProcessorHandler {
         @Override
         public void afterBulk(long executionId, BulkRequest bulkRequest, Throwable throwable) {
             LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, throwable);
+            ElasticBulkProcessorHandler.this.ioException = new IOException(throwable);
             phaser.arriveAndDeregister();
         }
     }
@@ -284,7 +294,7 @@ class ElasticBulkProcessorHandler {
         }
 
         @Override
-        public boolean close() {
+        public boolean close() throws IOException {
             isClosed.set(true);
             // calling super closes the bulk processor. If not empty it calls #requestConsumer for the last time
             boolean closed = super.close();

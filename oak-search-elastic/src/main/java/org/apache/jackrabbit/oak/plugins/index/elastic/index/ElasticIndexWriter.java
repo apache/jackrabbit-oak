@@ -93,7 +93,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     @Override
-    public boolean close(long timestamp) {
+    public boolean close(long timestamp) throws IOException {
         return bulkProcessorHandler.close();
     }
 
