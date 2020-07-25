@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -155,7 +157,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
                 .with(getInitialContent())
                 .with(new OpenSecurityProvider())
                 .with(editorProvider)
-                .with(indexProvider)
+                .with((Observer) indexProvider)
+                .with((QueryIndexProvider) indexProvider)
                 .with(new PropertyIndexEditorProvider())
                 .with(new NodeTypeIndexProvider());
 

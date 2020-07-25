@@ -29,12 +29,14 @@ public class ElasticIndexNode implements IndexNode {
 
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
+    private final ElasticIndexStatistics indexStatistics;
 
-    ElasticIndexNode(@NotNull NodeState root, @NotNull String indexPath,
-                     @NotNull ElasticConnection elasticConnection) {
+    public ElasticIndexNode(@NotNull NodeState root, @NotNull String indexPath,
+                            @NotNull ElasticConnection elasticConnection) {
         final NodeState indexNS = NodeStateUtils.getNode(root, indexPath);
         this.elasticConnection = elasticConnection;
         this.indexDefinition = new ElasticIndexDefinition(root, indexNS, indexPath, elasticConnection.getIndexPrefix());
+        this.indexStatistics = new ElasticIndexStatistics(elasticConnection, indexDefinition);
     }
 
     @Override
@@ -60,6 +62,6 @@ public class ElasticIndexNode implements IndexNode {
 
     @Override
     public @Nullable IndexStatistics getIndexStatistics() {
-        return new ElasticIndexStatistics(elasticConnection, indexDefinition);
+        return indexStatistics;
     }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
@@ -31,6 +30,8 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,9 +83,9 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
 
 
     ElasticPropertyFTIndexedContentAvailability(final File dump,
-                                                       final boolean flat,
-                                                       final boolean doReport,
-                                                       final Boolean storageEnabled, ElasticConnection coordinate) {
+                                                final boolean flat,
+                                                final boolean doReport,
+                                                final Boolean storageEnabled, ElasticConnection coordinate) {
         super(dump, flat, doReport, storageEnabled);
         this.coordinate = coordinate;
     }
@@ -102,9 +103,10 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
                             new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
                     ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate);
                     oak.with(editorProvider)
-                            .with(indexProvider)
+                            .with((Observer) indexProvider)
+                            .with((QueryIndexProvider) indexProvider)
                             .with((new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled)).async())
-                                    // the WikipediaImporter set a property `title`
+                            // the WikipediaImporter set a property `title`
                             .with(new FullTextPropertyInitialiser(elasticTitleIndexName, of("title"),
                                     ElasticIndexDefinition.TYPE_ELASTICSEARCH).async())
                             .withAsyncIndexing("async", 5);
@@ -121,6 +123,5 @@ public class ElasticPropertyFTIndexedContentAvailability extends PropertyFullTex
         TestHelper.cleanupRemoteElastic(coordinate, elasticGlobalIndexName);
         TestHelper.cleanupRemoteElastic(coordinate, elasticTitleIndexName);
     }
-
 
 }

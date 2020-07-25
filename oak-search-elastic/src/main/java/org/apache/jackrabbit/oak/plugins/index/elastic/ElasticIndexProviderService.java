@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorP
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -184,6 +185,9 @@ public class ElasticIndexProviderService {
 
     private void registerIndexProvider(BundleContext bundleContext) {
         ElasticIndexProvider indexProvider = new ElasticIndexProvider(elasticConnection);
+
+        // register observer needed for index tracking
+        regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
 
         Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", ElasticIndexDefinition.TYPE_ELASTICSEARCH);
