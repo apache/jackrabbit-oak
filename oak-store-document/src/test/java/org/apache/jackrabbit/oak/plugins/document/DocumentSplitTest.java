@@ -48,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -83,6 +85,8 @@ import static org.junit.Assert.fail;
  */
 public class DocumentSplitTest extends BaseDocumentMKTest {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DocumentSplitTest.class);
+
     @Test
     public void largeBatchSplitTest() throws Exception {
         for(int i=1; i<21; i+=5) {
@@ -101,7 +105,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     }
 
     private void batchSplitTest(int batchSize, int splitDocCnt) throws Exception {
-        System.out.println("batchSplitTest batchSize = " + batchSize+ ", splitDocCnt = " + splitDocCnt);
+        LOG.info("batchSplitTest batchSize = " + batchSize+ ", splitDocCnt = " + splitDocCnt);
         // this tests wants to use CountingDocumentStore - hence creating a fresh DocumentMk
         // plus it wants to set the batchSize
         mk.dispose();
@@ -156,7 +160,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             VersionGCStats stats = gc.gc(1, TimeUnit.MILLISECONDS);
             actualSplitDocGCCount += stats.splitDocGCCount;
             if (actualSplitDocGCCount != splitDocCnt) {
-                System.out.println("Expected " + splitDocCnt + ", actual " + actualSplitDocGCCount);
+                LOG.info("Expected " + splitDocCnt + ", actual " + actualSplitDocGCCount);
                 // advance time a bit to ensure gc does clean up the split docs
                 ns.getClock().waitUntil(ns.getClock().getTime() + 1000);
                 ns.runBackgroundUpdateOperations();
