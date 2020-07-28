@@ -39,10 +39,14 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.search.join.ScoreMode;
 import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.InnerHitBuilder;
+import org.elasticsearch.index.query.MatchBoolPrefixQueryBuilder;
 import org.elasticsearch.index.query.MatchPhraseQueryBuilder;
 import org.elasticsearch.index.query.MoreLikeThisQueryBuilder;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.NestedQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -59,6 +63,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import javax.jcr.PropertyType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,6 +73,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
@@ -87,12 +93,13 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
+import static org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
+import static org.elasticsearch.index.query.QueryBuilders.nestedQuery;
 import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
-import static org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
 
 /**
  * Class to map query plans into Elastic request objects.
@@ -101,6 +108,7 @@ public class ElasticRequestHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticRequestHandler.class);
     private final static String SPELLCHECK_PREFIX = "spellcheck?term=";
+    protected final static String SUGGEST_PREFIX = "suggest?term=";
     private static final String ES_TRIGRAM_SUFFIX = ".trigram";
     private static final List<FieldSortBuilder> DEFAULT_SORTS = Arrays.asList(
             SortBuilders.fieldSort("_score").order(SortOrder.DESC),
@@ -208,6 +216,10 @@ public class ElasticRequestHandler {
 
     public boolean requiresSpellCheck() {
         return propertyRestrictionQuery != null && propertyRestrictionQuery.startsWith(SPELLCHECK_PREFIX);
+    }
+
+    public boolean requiresSuggestion() {
+        return propertyRestrictionQuery != null && propertyRestrictionQuery.startsWith(SUGGEST_PREFIX);
     }
 
     public ElasticFacetProvider getAsyncFacetProvider(ElasticResponseHandler responseHandler) {
@@ -528,6 +540,17 @@ public class ElasticRequestHandler {
             }
         }
         return queries;
+    }
+
+    public BoolQueryBuilder suggestionMatchQuery(String suggestion) {
+        QueryBuilder qb = new MatchBoolPrefixQueryBuilder(FieldNames.SUGGEST + ".suggestion", suggestion).operator(Operator.AND);
+        NestedQueryBuilder nestedQueryBuilder = nestedQuery(FieldNames.SUGGEST, qb, ScoreMode.Max);
+        InnerHitBuilder in = new InnerHitBuilder().setSize(100);
+        nestedQueryBuilder.innerHit(in);
+        BoolQueryBuilder query = boolQuery()
+                .must(nestedQueryBuilder);
+        nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
+        return query;
     }
 
     private static QueryBuilder nodeTypeConstraints(IndexDefinition.IndexingRule defn, Filter filter) {

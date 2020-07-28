@@ -341,6 +341,10 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         }
 
         public FulltextResultRow(String suggestion, long weight) {
+            this(suggestion, (double)weight);
+        }
+
+        public FulltextResultRow(String suggestion, double weight) {
             this.isVirutal = true;
             this.path = "/";
             this.score = weight;
