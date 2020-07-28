@@ -105,7 +105,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     }
 
     private void batchSplitTest(int batchSize, int splitDocCnt) throws Exception {
-        LOG.info("batchSplitTest batchSize = " + batchSize+ ", splitDocCnt = " + splitDocCnt);
+        LOG.info("batchSplitTest: batchSize = " + batchSize+ ", splitDocCnt = " + splitDocCnt);
         // this tests wants to use CountingDocumentStore - hence creating a fresh DocumentMk
         // plus it wants to set the batchSize
         mk.dispose();
@@ -160,7 +160,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             VersionGCStats stats = gc.gc(1, TimeUnit.MILLISECONDS);
             actualSplitDocGCCount += stats.splitDocGCCount;
             if (actualSplitDocGCCount != splitDocCnt) {
-                LOG.info("Expected " + splitDocCnt + ", actual " + actualSplitDocGCCount);
+                LOG.info("batchSplitTest: Expected " + splitDocCnt + ", actual " + actualSplitDocGCCount);
                 // advance time a bit to ensure gc does clean up the split docs
                 ns.getClock().waitUntil(ns.getClock().getTime() + 1000);
                 ns.runBackgroundUpdateOperations();
