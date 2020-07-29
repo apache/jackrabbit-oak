@@ -97,6 +97,7 @@ import static org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
+import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
 import static org.elasticsearch.index.query.QueryBuilders.nestedQuery;
 import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
@@ -421,8 +422,7 @@ public class ElasticRequestHandler {
             }
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
-                String p = getElasticFieldName(propertyName);
-                QueryBuilder q = tokenToQuery(text, p, pr);
+                QueryBuilder q = fullTextQuery(text, getElasticFieldName(propertyName), pr);
                 if (boost != null) {
                     q.boost(Float.parseFloat(boost));
                 }
@@ -620,28 +620,21 @@ public class ElasticRequestHandler {
         return QueryBuilders.multiMatchQuery(uuid);
     }
 
-    private static QueryBuilder tokenToQuery(String text, String fieldName, PlanResult pr) {
+    private static QueryBuilder fullTextQuery(String text, String fieldName, PlanResult pr) {
         // default match query are executed in OR, we need to use AND instead to avoid that
         // every document having at least one term in the `text` will match. If there are multiple
         // contains clause they will go to different match queries and will be executed in OR
-        QueryBuilder ret;
-        IndexDefinition.IndexingRule indexingRule = pr.indexingRule;
-        //Expand the query on fulltext field
-        if (FieldNames.FULLTEXT.equals(fieldName) && !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
-            BoolQueryBuilder in = boolQuery();
-            for (PropertyDefinition pd : indexingRule.getNodeScopeAnalyzedProps()) {
-                QueryBuilder q = matchQuery(pd.name, text).boost(pd.boost).operator(Operator.AND);
-                in.should(q);
-            }
-
-            //Add the query for actual fulltext field also. That query would not be boosted
-            // TODO: do we need this if all the analyzed fields are queried?
-            ret = in.should(matchQuery(fieldName, text).operator(Operator.AND));
+        if (FieldNames.FULLTEXT.equals(fieldName) && !pr.indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
+            MultiMatchQueryBuilder multiMatchQuery = multiMatchQuery(text)
+                    .operator(Operator.AND)
+                    .type(MultiMatchQueryBuilder.Type.CROSS_FIELDS);
+            pr.indexingRule.getNodeScopeAnalyzedProps().forEach(pd -> multiMatchQuery.field(pd.name, pd.boost));
+            // Add the query for actual fulltext field also. That query would not be boosted
+            // and could contain other parts like renditions, node name, etc
+            return multiMatchQuery.field(fieldName);
         } else {
-            ret = matchQuery(fieldName, text).operator(Operator.AND);
+            return matchQuery(fieldName, text).operator(Operator.AND);
         }
-
-        return ret;
     }
 
     private QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,

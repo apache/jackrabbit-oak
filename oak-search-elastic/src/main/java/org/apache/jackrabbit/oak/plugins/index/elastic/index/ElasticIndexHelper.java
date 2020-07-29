@@ -130,7 +130,6 @@ class ElasticIndexHelper {
                 .field("type", "integer")
                 .field("doc_values", false) // no need to sort/aggregate here
                 .endObject();
-        // TODO: to increase efficiency, we could potentially remove this and use a multi match query when needed
         mappingBuilder.startObject(FieldNames.FULLTEXT)
                 .field("type", "text")
                 .field("analyzer", "oak_analyzer")
