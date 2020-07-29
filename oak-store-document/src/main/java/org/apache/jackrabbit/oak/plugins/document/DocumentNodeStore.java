@@ -2406,7 +2406,7 @@ public final class DocumentNodeStore
             }
             removeCandiates.add(id);
             if (splitOps.size() >= getCreateOrUpdateBatchSize()) {
-                batchSplit(splitOps, pathsToinvalidate, invalidatedPaths);
+                batchSplit(splitOps, pathsToinvalidate);
                 splitOps.clear();
                 invalidatedPaths.addAll(pathsToinvalidate);
                 pathsToinvalidate.clear();
@@ -2416,28 +2416,29 @@ public final class DocumentNodeStore
         }
 
         if (splitOps.size() > 0) {
-            batchSplit(splitOps, pathsToinvalidate, invalidatedPaths);
+            batchSplit(splitOps, pathsToinvalidate);
             splitCandidates.keySet().removeAll(removeCandiates);
         }
     }
 
-    private void batchSplit(List<UpdateOp> splitOps, Set<Path> pathsToinvalidate,
-            Set<Path> invalidatedPaths) {
-        // create journal entry for cache invalidation
-        JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
-        entry.modified(pathsToinvalidate);
-        Revision r = newRevision().asBranchRevision();
-        UpdateOp journalOp = entry.asUpdateOp(r);
-        if (store.create(JOURNAL, singletonList(journalOp))) {
-            changes.invalidate(singletonList(r));
-            LOG.debug("Journal entry {} created for split of document(s) {}",
-                    journalOp.getId(), pathsToinvalidate);
-        } else {
-            String msg = "Unable to create journal entry " +
-                    journalOp.getId() + " for document invalidation. " +
-                    "Will be retried with next background split " +
-                    "operation.";
-            throw new DocumentStoreException(msg);
+    private void batchSplit(List<UpdateOp> splitOps, Set<Path> pathsToinvalidate) {
+        if (!pathsToinvalidate.isEmpty()) {
+            // create journal entry for cache invalidation
+            JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
+            entry.modified(pathsToinvalidate);
+            Revision r = newRevision().asBranchRevision();
+            UpdateOp journalOp = entry.asUpdateOp(r);
+            if (store.create(JOURNAL, singletonList(journalOp))) {
+                changes.invalidate(singletonList(r));
+                LOG.debug("Journal entry {} created for split of document(s) {}",
+                        journalOp.getId(), pathsToinvalidate);
+            } else {
+                String msg = "Unable to create journal entry " +
+                        journalOp.getId() + " for document invalidation. " +
+                        "Will be retried with next background split " +
+                        "operation.";
+                throw new DocumentStoreException(msg);
+            }
         }
         // apply the split operations
         List<NodeDocument> beforeList = store.createOrUpdate(Collection.NODES, splitOps);
