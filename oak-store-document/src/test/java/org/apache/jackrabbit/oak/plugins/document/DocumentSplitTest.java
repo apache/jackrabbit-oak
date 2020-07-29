@@ -47,6 +47,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +89,26 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentSplitTest.class);
 
+    private String createOrUpdateBatchSize;
+    private boolean createOrUpdateBatchSizeIsNull;
+
+    @Before
+    public void backupProperty() {
+        createOrUpdateBatchSize = System.getProperty("oak.documentMK.createOrUpdateBatchSize");
+        if (createOrUpdateBatchSize == null) {
+            createOrUpdateBatchSizeIsNull = true;
+        }
+    }
+
+    @After
+    public void restoreProperty() {
+        if (createOrUpdateBatchSize != null) {
+            System.setProperty("oak.documentMK.createOrUpdateBatchSize", createOrUpdateBatchSize);
+        } else if (createOrUpdateBatchSizeIsNull) {
+            System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
+        }
+    }
+
     @Test
     public void largeBatchSplitTest() throws Exception {
         for(int i=1; i<21; i+=5) {
@@ -108,7 +130,10 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         LOG.info("batchSplitTest: batchSize = " + batchSize+ ", splitDocCnt = " + splitDocCnt);
         // this tests wants to use CountingDocumentStore - hence creating a fresh DocumentMk
         // plus it wants to set the batchSize
-        mk.dispose();
+        if (mk != null) {
+            mk.dispose();
+            mk = null;
+        }
 
         System.setProperty("oak.documentMK.createOrUpdateBatchSize", String.valueOf(batchSize));
         DocumentMK.Builder mkBuilder = new DocumentMK.Builder();
@@ -170,6 +195,8 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         // make sure those splitDocCnt split docs are deleted
         assertEquals("gc not as expected: expected " + splitDocCnt
                 + ", got " + actualSplitDocGCCount, splitDocCnt, actualSplitDocGCCount);
+        mk.dispose();
+        mk = null;
     }
 
     @Test
