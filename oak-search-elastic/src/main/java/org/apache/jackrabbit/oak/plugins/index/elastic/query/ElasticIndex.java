@@ -113,6 +113,8 @@ class ElasticIndex extends FulltextIndex {
         try {
             if (requestHandler.requiresSpellCheck()) {
                 itr = new ElasticSpellcheckIterator(indexNode, requestHandler, responseHandler);
+            } else if (requestHandler.requiresSuggestion()) {
+                itr = new ElasticSuggestIterator(acquireIndexNode(plan), requestHandler, responseHandler);
             } else {
                 // this function is called for each extracted row. Passing FulltextIndex::shouldInclude means that for each
                 // row we evaluate getPathRestriction(plan) & plan.getFilter().getPathRestriction(). Providing a partial
