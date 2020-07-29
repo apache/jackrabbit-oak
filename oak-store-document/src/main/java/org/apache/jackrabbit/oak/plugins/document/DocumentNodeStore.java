@@ -127,6 +127,7 @@ import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -3195,6 +3196,7 @@ public final class DocumentNodeStore
      * @param timeoutMillis optional amount of millis to wait for the thread to terminate at max
      * @return true if thread is no longer running
      */
+    @TestOnly
     boolean stopBackgroundUpdateThread(long timeoutMillis) throws InterruptedException {
         backgroundUpdateOperation.forceStop();
         if (timeoutMillis > 0) {
