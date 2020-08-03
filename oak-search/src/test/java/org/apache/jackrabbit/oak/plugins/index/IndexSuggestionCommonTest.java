@@ -22,6 +22,7 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.query.AbstractJcrTest;
+import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,14 +36,15 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 import javax.jcr.security.Privilege;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
@@ -59,12 +61,12 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         root = session.getRootNode();
     }
 
-    private void createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName)
+    private Node createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName)
             throws Exception {
-        createSuggestIndex(name, indexedNodeType, indexedPropertyName, false, false);
+        return createSuggestIndex(name, indexedNodeType, indexedPropertyName, false, false);
     }
 
-    private void createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName, boolean addFullText, boolean suggestAnalyzed)
+    private Node createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName, boolean addFullText, boolean suggestAnalyzed)
             throws Exception {
         Node def = root.getNode(INDEX_DEFINITIONS_NAME)
                 .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
@@ -75,12 +77,23 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         if (suggestAnalyzed) {
             def.addNode(FulltextIndexConstants.SUGGESTION_CONFIG).setProperty("suggestAnalyzed", suggestAnalyzed);
         }
+        addPropertyDefinition(def, indexedNodeType, indexedPropertyName, addFullText);
+        return def;
+    }
 
+    private Node getOrCreate(Node parent, String childName, String type) throws RepositoryException {
+        if (parent.hasNode(childName)) {
+            return parent.getNode(childName);
+        }
+        return parent.addNode(childName, type);
+    }
 
-        Node propertyIdxDef = def.addNode(INDEX_RULES, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(indexedNodeType, JcrConstants.NT_UNSTRUCTURED)
-                .addNode(FulltextIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED)
-                .addNode("indexedProperty", JcrConstants.NT_UNSTRUCTURED);
+    private void addPropertyDefinition(Node indexDefNode, String indexedNodeType, String indexedPropertyName, boolean addFullText) throws Exception {
+        Node rulesNode = getOrCreate(indexDefNode, INDEX_RULES, JcrConstants.NT_UNSTRUCTURED);
+        Node nodeTypeNode = getOrCreate(rulesNode, indexedNodeType, JcrConstants.NT_UNSTRUCTURED);
+        Node propertiesNode = getOrCreate(nodeTypeNode, FulltextIndexConstants.PROP_NODE, JcrConstants.NT_UNSTRUCTURED);
+        Node propertyIdxDef = getOrCreate(propertiesNode, Text.escapeIllegalJcrChars(indexedPropertyName),
+                JcrConstants.NT_UNSTRUCTURED);
         propertyIdxDef.setProperty("propertyIndex", true);
         propertyIdxDef.setProperty("analyzed", true);
         propertyIdxDef.setProperty("useInSuggest", true);
@@ -140,7 +153,7 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         if (shouldSuggest) {
             assertEventually(() -> {
                 try {
-                    assertNotNull("There should be some suggestion", getResult(queryManager, suggQuery));
+                    assertTrue("There should be some suggestion", getAllResults(queryManager, suggQuery).size() > 0);
                 } catch (RepositoryException e) {
                     throw new RuntimeException(e);
                 }
@@ -149,7 +162,7 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         } else {
             assertEventually(() -> {
                 try {
-                    assertNull("There shouldn't be any suggestion", getResult(queryManager, suggQuery));
+                    assertEquals("There shouldn't be any suggestion", 0, getAllResults(queryManager, suggQuery).size());
                 } catch (RepositoryException e) {
                     throw new RuntimeException(e);
                 }
@@ -159,16 +172,15 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         userSession.logout();
     }
 
-    private String getResult(QueryManager queryManager, String suggQuery) throws RepositoryException {
+    private List<String> getAllResults(QueryManager queryManager, String suggQuery) throws RepositoryException {
 
         QueryResult result = queryManager.createQuery(suggQuery, Query.JCR_SQL2).execute();
         RowIterator rows = result.getRows();
 
-        String value = null;
+        List<String> value = new ArrayList<>();
         while (rows.hasNext()) {
             Row firstRow = rows.nextRow();
-            value = firstRow.getValue("suggestion").getString();
-            break;
+            value.add(firstRow.getValue("suggestion").getString());
         }
         return value;
     }
@@ -195,7 +207,8 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         QueryManager queryManager = adminSession.getWorkspace().getQueryManager();
         assertEventually(() -> {
             try {
-                assertEquals("Node name should be suggested", "indexedNode", getResult(queryManager, suggQuery));
+                List<String> results = getAllResults(queryManager, suggQuery);
+                assertTrue("Node name should be suggested", results.size() == 1 && "indexedNode".equals(results.get(0)));
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }
@@ -361,6 +374,33 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
                 indexPropName, indexPropValue,
                 true, true,
                 suggestQueryText, false, false);
+    }
+
+    @Test
+    public void testMultipleSuggestionProperties() throws Exception {
+        String nodeType = JcrConstants.NT_UNSTRUCTURED;
+        String suggestProp1 = "shortDes";
+        String suggestProp2 = "longDes";
+
+        Node indexDefNode = createSuggestIndex("index-suggest", nodeType, suggestProp1);
+        addPropertyDefinition(indexDefNode, nodeType, suggestProp2, false);
+
+        Node indexedNode = root.addNode("indexedNode", nodeType);
+        indexedNode.setProperty(suggestProp1, "car there");
+        indexedNode = root.addNode("indexedNode2", nodeType);
+        indexedNode.setProperty(suggestProp2, "car here");
+
+        session.save();
+
+        String suggQuery = createSuggestQuery(nodeType, "car");
+        QueryManager queryManager = session.getWorkspace().getQueryManager();
+        assertEventually(() -> {
+            try {
+                assertEquals("There should be some suggestion",2, getAllResults(queryManager, suggQuery).size());
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private static void assertEventually(Runnable r) {

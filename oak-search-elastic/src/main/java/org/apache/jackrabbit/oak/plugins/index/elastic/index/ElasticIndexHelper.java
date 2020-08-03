@@ -149,14 +149,13 @@ class ElasticIndexHelper {
 
     private static void mapIndexRules(ElasticIndexDefinition indexDefinition, XContentBuilder mappingBuilder) throws IOException {
         checkIndexRules(indexDefinition);
-
+        boolean useInSuggest = false;
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
 
             Type<?> type = null;
             boolean useInSpellCheck = false;
-            boolean useInSuggest = false;
             for (PropertyDefinition pd : propertyDefinitions) {
                 type = Type.fromTag(pd.getType(), false);
                 if (pd.useInSpellcheck) {
@@ -165,22 +164,6 @@ class ElasticIndexHelper {
                 if (pd.useInSuggest) {
                     useInSuggest = true;
                 }
-            }
-
-            if (useInSuggest) {
-                mappingBuilder.startObject(FieldNames.SUGGEST);
-                {
-                    mappingBuilder.field("type", "nested");
-                    mappingBuilder.startObject("properties");
-                    {
-                        mappingBuilder.startObject("suggestion")
-                                .field("type", "text")
-                                .field("analyzer", "oak_analyzer")
-                                .endObject();
-                    }
-                    mappingBuilder.endObject();
-                }
-                mappingBuilder.endObject();
             }
 
             mappingBuilder.startObject(name);
@@ -221,6 +204,22 @@ class ElasticIndexHelper {
                                 .field("ignore_above", 256);
                     }
                 }
+            }
+            mappingBuilder.endObject();
+        }
+
+        if (useInSuggest) {
+            mappingBuilder.startObject(FieldNames.SUGGEST);
+            {
+                mappingBuilder.field("type", "nested");
+                mappingBuilder.startObject("properties");
+                {
+                    mappingBuilder.startObject("suggestion")
+                            .field("type", "text")
+                            .field("analyzer", "oak_analyzer")
+                            .endObject();
+                }
+                mappingBuilder.endObject();
             }
             mappingBuilder.endObject();
         }
