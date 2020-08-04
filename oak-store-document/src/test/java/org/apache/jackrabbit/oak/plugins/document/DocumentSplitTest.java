@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -36,7 +35,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -47,11 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -86,118 +80,6 @@ import static org.junit.Assert.fail;
  * Check correct splitting of documents (OAK-926 & OAK-1342).
  */
 public class DocumentSplitTest extends BaseDocumentMKTest {
-
-    private static final Logger LOG = LoggerFactory.getLogger(DocumentSplitTest.class);
-
-    private String createOrUpdateBatchSize;
-    private boolean createOrUpdateBatchSizeIsNull;
-
-    @Before
-    public void backupProperty() {
-        createOrUpdateBatchSize = System.getProperty("oak.documentMK.createOrUpdateBatchSize");
-        if (createOrUpdateBatchSize == null) {
-            createOrUpdateBatchSizeIsNull = true;
-        }
-    }
-
-    @After
-    public void restoreProperty() {
-        if (createOrUpdateBatchSize != null) {
-            System.setProperty("oak.documentMK.createOrUpdateBatchSize", createOrUpdateBatchSize);
-        } else if (createOrUpdateBatchSizeIsNull) {
-            System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
-        }
-    }
-
-    @Test
-    public void largeBatchSplitTest() throws Exception {
-        for(int i=1; i<21; i+=5) {
-            batchSplitTest(1000, i * 1000);
-        }
-    }
-
-    @Test
-    public void mediumBatchSplitTest() throws Exception {
-        batchSplitTest(50, 1000);
-    }
-
-    @Test
-    public void smallBatchSplitTest() throws Exception {
-        batchSplitTest(1, 1000);
-    }
-
-    private void batchSplitTest(int batchSize, int splitDocCnt) throws Exception {
-        LOG.info("batchSplitTest: batchSize = " + batchSize+ ", splitDocCnt = " + splitDocCnt);
-        // this tests wants to use CountingDocumentStore - hence creating a fresh DocumentMk
-        // plus it wants to set the batchSize
-        if (mk != null) {
-            mk.dispose();
-            mk = null;
-        }
-
-        System.setProperty("oak.documentMK.createOrUpdateBatchSize", String.valueOf(batchSize));
-        DocumentMK.Builder mkBuilder = new DocumentMK.Builder();
-        MemoryDocumentStore delegateStore = new MemoryDocumentStore();
-        CountingDocumentStore store = new CountingDocumentStore(delegateStore);
-        mkBuilder.setDocumentStore(store);
-        mk = mkBuilder.open();
-        DocumentNodeStore ns = mk.getNodeStore();
-        assertTrue(ns.stopBackgroundUpdateThread(10000));
-        assertEquals(batchSize, ns.getCreateOrUpdateBatchSize());
-
-        NodeBuilder builder = ns.getRoot().builder();
-        for(int child = 0; child < 100; child++) {
-            builder.child("testchild-" + child);
-        }
-        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        for(int i=0; i<2; i++) {
-            builder = ns.getRoot().builder();
-            for(int child = 0; child < splitDocCnt; child++) {
-                PropertyState binary = binaryProperty("prop", randomBytes(5 * 1024));
-                builder.child("testchild-" + child).setProperty(binary);
-            }
-            ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        }
-        store.resetCounters();
-        ns.runBackgroundUpdateOperations();
-        int createOrUpdates = store.getNumCreateOrUpdateCalls(NODES);
-        int minBatchSplitCalls = Math.max(1, splitDocCnt / Math.max(1, batchSize / 2));
-        int maxBatchSplitCalls = minBatchSplitCalls + Math.max(1, splitDocCnt % batchSize);
-        // backgroundWrite could issue another 2 writes, so:
-        maxBatchSplitCalls += 2;
-        assertTrue("batchSize = " + batchSize
-                + ", splitDocCnt = " + splitDocCnt
-                + ", minBatchSplitCalls=" + minBatchSplitCalls
-                + ", createOrUpdates=" + createOrUpdates,
-                minBatchSplitCalls <= createOrUpdates);
-        assertTrue("batchSize = " + batchSize
-                + ", splitDocCnt = " + splitDocCnt
-                + ", minBatchSplitCalls=" + minBatchSplitCalls
-                + ", maxBatchSplitCalls=" + maxBatchSplitCalls
-                + ", createOrUpdates="+createOrUpdates,
-                maxBatchSplitCalls >= createOrUpdates);
-        VersionGarbageCollector gc = ns.getVersionGarbageCollector();
-
-        int actualSplitDocGCCount = 0;
-        long timeout = ns.getClock().getTime() + 10000;
-        while(actualSplitDocGCCount != splitDocCnt && ns.getClock().getTime() < timeout) {
-            VersionGCStats stats = gc.gc(1, TimeUnit.MILLISECONDS);
-            actualSplitDocGCCount += stats.splitDocGCCount;
-            if (actualSplitDocGCCount != splitDocCnt) {
-                LOG.info("batchSplitTest: Expected " + splitDocCnt + ", actual " + actualSplitDocGCCount);
-                // advance time a bit to ensure gc does clean up the split docs
-                ns.getClock().waitUntil(ns.getClock().getTime() + 1000);
-                ns.runBackgroundUpdateOperations();
-            }
-        }
-
-        // make sure those splitDocCnt split docs are deleted
-        assertEquals("gc not as expected: expected " + splitDocCnt
-                + ", got " + actualSplitDocGCCount, splitDocCnt, actualSplitDocGCCount);
-        mk.dispose();
-        mk = null;
-    }
 
     @Test
     public void splitRevisions() throws Exception {
