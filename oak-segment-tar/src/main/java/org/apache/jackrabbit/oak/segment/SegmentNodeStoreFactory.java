@@ -47,6 +47,7 @@ import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RoleStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -641,51 +642,6 @@ public class SegmentNodeStoreFactory {
     }
 
     private static StatisticsProvider getRoleStatisticsProvider(StatisticsProvider delegate, String role) {
-        RepositoryStatistics repositoryStatistics = new RepositoryStatistics() {
-
-            @Override
-            public TimeSeries getTimeSeries(Type type) {
-                return getTimeSeries(type.name(), type.isResetValueEachSecond());
-            }
-
-            @Override
-            public TimeSeries getTimeSeries(String type, boolean resetValueEachSecond) {
-                return delegate.getStats().getTimeSeries(addRoleToName(type, role), resetValueEachSecond);
-            }
-        };
-
-        return new StatisticsProvider() {
-
-            @Override
-            public RepositoryStatistics getStats() {
-                return repositoryStatistics;
-            }
-
-            @Override
-            public MeterStats getMeter(String name, StatsOptions options) {
-                return delegate.getMeter(addRoleToName(name, role), options);
-            }
-
-            @Override
-            public CounterStats getCounterStats(String name, StatsOptions options) {
-                return delegate.getCounterStats(addRoleToName(name, role), options);
-            }
-
-            @Override
-            public TimerStats getTimer(String name, StatsOptions options) {
-                return delegate.getTimer(addRoleToName(name, role), options);
-            }
-
-            @Override
-            public HistogramStats getHistogram(String name, StatsOptions options) {
-                return delegate.getHistogram(addRoleToName(name, role), options);
-            }
-
-        };
+        return new RoleStatisticsProvider(delegate, role);
     }
-
-    private static String addRoleToName(String name, String role) {
-        return role + '.' + name;
-    }
-
 }

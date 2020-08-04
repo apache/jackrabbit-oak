@@ -18,7 +18,10 @@
 package org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.concurrent.Callable;
 
 /**
  * This interface represents a cache which survives segment store restarts.
@@ -32,10 +35,11 @@ public interface PersistentCache {
      *
      * @param msb the most significant bits of the identifier of the segment
      * @param lsb the least significant bits of the identifier of the segment
+     * @param loader in case of cache miss, with {@code loader.call()} missing element will be retrieved
      * @return byte buffer containing the segment data or null if the segment doesn't exist
      */
     @Nullable
-    Buffer readSegment(long msb, long lsb);
+    Buffer readSegment(long msb, long lsb, @NotNull Callable<Buffer> loader);
 
     /**
      * Check if the segment exists in the cache.

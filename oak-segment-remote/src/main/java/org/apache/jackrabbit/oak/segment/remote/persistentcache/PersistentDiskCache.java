@@ -17,9 +17,12 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
+import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.AbstractPersistentCache;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.SegmentCacheStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,18 +40,24 @@ import java.nio.file.attribute.FileTime;
 import java.util.Comparator;
 import java.util.Spliterator;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 public class PersistentDiskCache extends AbstractPersistentCache {
     private static final Logger logger = LoggerFactory.getLogger(PersistentDiskCache.class);
     public static final int DEFAULT_MAX_CACHE_SIZE_MB = 512;
+    public static final String NAME = "Segment Disk Cache";
 
     private final File directory;
     private final long maxCacheSizeBytes;
+    private final IOMonitor diskCacheIOMonitor;
 
     final AtomicBoolean cleanupInProgress = new AtomicBoolean(false);
+
+    final AtomicLong evictionCount = new AtomicLong();
 
     private static final Comparator<Path> sortedByAccessTime = (path1, path2) -> {
         try {
@@ -61,43 +70,53 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         return 0;
     };
 
-    public PersistentDiskCache(File directory, int cacheMaxSizeMB) {
+    public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor) {
         this.directory = directory;
         this.maxCacheSizeBytes = cacheMaxSizeMB * 1024L * 1024L;
-
+        this.diskCacheIOMonitor = diskCacheIOMonitor;
         if (!directory.exists()) {
             directory.mkdirs();
         }
 
-        cacheSize.set(FileUtils.sizeOfDirectory(directory));
+        segmentCacheStats = new SegmentCacheStats(
+                NAME,
+                () -> maxCacheSizeBytes,
+                () -> Long.valueOf(directory.listFiles().length),
+                () -> FileUtils.sizeOfDirectory(directory),
+                () -> evictionCount.get());
     }
 
     @Override
-    public Buffer readSegment(long msb, long lsb) {
-        String segmentId = new UUID(msb, lsb).toString();
-        File segmentFile = new File(directory, segmentId);
+    protected Buffer readSegmentInternal(long msb, long lsb) {
+        try {
+            String segmentId = new UUID(msb, lsb).toString();
+            File segmentFile = new File(directory, segmentId);
 
-        if (segmentFile.exists()) {
-            try (FileInputStream fis = new FileInputStream(segmentFile);
-                 FileChannel channel = fis.getChannel()) {
-                int length = (int) channel.size();
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            if (segmentFile.exists()) {
+                diskCacheIOMonitor.beforeSegmentRead(segmentFile, msb, lsb, (int) segmentFile.length());
+                try (FileInputStream fis = new FileInputStream(segmentFile); FileChannel channel = fis.getChannel()) {
+                    int length = (int) channel.size();
 
-                Buffer buffer = Buffer.allocateDirect(length);
-                if (buffer.readFully(channel, 0) < length) {
-                    throw new EOFException();
+                    Buffer buffer = Buffer.allocateDirect(length);
+                    if (buffer.readFully(channel, 0) < length) {
+                        throw new EOFException();
+                    }
+
+                    long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
+                    diskCacheIOMonitor.afterSegmentRead(segmentFile, msb, lsb, (int) segmentFile.length(), elapsed);
+
+                    buffer.flip();
+
+                    return buffer;
+                } catch (FileNotFoundException e) {
+                    logger.info("Segment {} deleted from file system!", segmentId);
+                } catch (IOException e) {
+                    logger.error("Error loading segment {} from cache:", segmentId, e);
                 }
-                buffer.flip();
-
-                return buffer;
-            } catch (FileNotFoundException e) {
-                logger.info("Segment {} deleted from file system!", segmentId);
-            } catch (IOException e) {
-                logger.error("Error loading segment {} from cache: {}", segmentId, e);
             }
-        }
-
-        if (nextCache != null) {
-            return nextCache.readSegment(msb, lsb);
+        } catch (Exception e) {
+            logger.error("Exception while reading segment {} from the cache:", new UUID(msb, lsb), e);
         }
 
         return null;
@@ -162,6 +181,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     if (cacheSize.get() > maxCacheSizeBytes * 0.66) {
                         cacheSize.addAndGet(-path.toFile().length());
                         path.toFile().delete();
+                        evictionCount.incrementAndGet();
                     } else {
                         breaker.stop();
                     }

@@ -18,19 +18,29 @@
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 
 import java.io.File;
-import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
 
@@ -39,13 +49,13 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
 
     @Before
     public void setUp() throws Exception {
-        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 10 * 1024);
+        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 10 * 1024, new IOMonitorAdapter());
     }
 
     @Test
     public void cleanupTest() throws Exception {
         persistentCache.close();
-        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 0);
+        persistentCache = new PersistentDiskCache(temporaryFolder.newFolder(), 0, new IOMonitorAdapter());
         final List<TestSegment> testSegments = new ArrayList<>(SEGMENTS);
         final List<Map<String, Buffer>> segmentsRead = new ArrayList<>(THREADS);
 
@@ -86,7 +96,7 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
             final long[] id = segment.getSegmentId();
             try {
                 final Map<String, Buffer> segmentsReadThisThread = segmentsRead.get(nThread);
-                final Buffer segmentRead = persistentCache.readSegment(id[0], id[1]);
+                final Buffer segmentRead = persistentCache.readSegment(id[0], id[1], () -> null);
                 segmentsReadThisThread.put(new UUID(id[0], id[1]).toString(), segmentRead);
             } catch (Throwable t) {
                 errors.incrementAndGet();
@@ -114,5 +124,31 @@ public class PersistentDiskCacheTest extends AbstractPersistentCacheTest {
             }
         }
         assertEquals("Segment(s) not cleaned up in cache", 0, SEGMENTS - errors.get());
+    }
+
+    @Test
+    public void testIOMonitor() throws IOException {
+        IOMonitorAdapter ioMonitorAdapter = Mockito.mock(IOMonitorAdapter.class);
+
+        persistentCache.close();
+        File cacheFolder = temporaryFolder.newFolder();
+        persistentCache = new PersistentDiskCache(cacheFolder, 0, ioMonitorAdapter);
+
+        UUID segmentUUID = UUID.randomUUID();
+
+        persistentCache.readSegment(segmentUUID.getMostSignificantBits(), segmentUUID.getLeastSignificantBits(), () -> null);
+
+        //Segment not in cache, monitor methods not invoked
+        verify(ioMonitorAdapter, never()).beforeSegmentRead(any(), anyLong(), anyLong(), anyInt());
+        verify(ioMonitorAdapter, never()).afterSegmentRead(any(), anyLong(), anyLong(), anyInt(), anyLong());
+
+        //place segment in disk cache
+        File segmentFile = new File(cacheFolder, segmentUUID.toString());
+        segmentFile.createNewFile();
+
+        persistentCache.readSegment(segmentUUID.getMostSignificantBits(), segmentUUID.getLeastSignificantBits(), () -> null);
+
+        verify(ioMonitorAdapter, times(1)).beforeSegmentRead(eq(segmentFile), eq(segmentUUID.getMostSignificantBits()), eq(segmentUUID.getLeastSignificantBits()), anyInt());
+        verify(ioMonitorAdapter, times(1)).afterSegmentRead(eq(segmentFile), eq(segmentUUID.getMostSignificantBits()), eq(segmentUUID.getLeastSignificantBits()), anyInt(), anyLong());
     }
 }

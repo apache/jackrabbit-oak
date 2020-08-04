@@ -104,7 +104,7 @@ public abstract class AbstractPersistentCacheTest {
             final TestSegment segment = testSegments.get(nSegment);
             final long[] id = segment.getSegmentId();
             try {
-                final Buffer segmentRead = persistentCache.readSegment(id[0], id[1]);
+                final Buffer segmentRead = persistentCache.readSegment(id[0], id[1], () -> null);
                 segmentsReadThisThread.put(new UUID(id[0], id[1]).toString(), segmentRead);
             } finally {
                 done.incrementAndGet();
@@ -146,7 +146,7 @@ public abstract class AbstractPersistentCacheTest {
                 if (persistentCache.containsSegment(msb, lsb)) {
                     containsFailures.incrementAndGet();
                 }
-                if (persistentCache.readSegment(msb, lsb) != null) {
+                if (persistentCache.readSegment(msb, lsb, () -> null) != null) {
                     readFailures.incrementAndGet();
                 }
             } catch (Throwable t) {
@@ -184,7 +184,7 @@ public abstract class AbstractPersistentCacheTest {
                 if (!persistentCache.containsSegment(segmentId[0], segmentId[1])) {
                     containsFailures.incrementAndGet();
                 }
-                if (persistentCache.readSegment(segmentId[0], segmentId[1]) == null) {
+                if (persistentCache.readSegment(segmentId[0], segmentId[1], () -> null) == null) {
                     readFailures.incrementAndGet();
                 }
             } catch (Throwable t) {
@@ -219,7 +219,7 @@ public abstract class AbstractPersistentCacheTest {
 
         waitWhile.accept(() -> done.get() < SEGMENTS);
 
-        Buffer segmentRead = persistentCache.readSegment(segmentId[0], segmentId[1]);
+        Buffer segmentRead = persistentCache.readSegment(segmentId[0], segmentId[1], () -> null);
         assertNotNull("The segment was not found", segmentRead);
         assertSegmentBufferEquals(testSegment.getSegmentBuffer(), segmentRead);
     }

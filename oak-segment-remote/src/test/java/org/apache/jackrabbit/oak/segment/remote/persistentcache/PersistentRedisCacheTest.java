@@ -17,19 +17,37 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 import redis.embedded.RedisServer;
+
+import java.io.IOException;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
 
     private RedisServer redisServer;
+    private IOMonitorAdapter ioMonitorAdapter;
 
     @Before
     public void setUp() throws Exception {
         redisServer = RedisServer.builder().build();
         redisServer.start();
         int port = redisServer.ports().get(0);
+        ioMonitorAdapter = Mockito.mock(IOMonitorAdapter.class);
+
         persistentCache = new PersistentRedisCache(
                 "localhost",
                 port,
@@ -38,7 +56,9 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
                 50,
                 10,
                 2000,
-                200000
+                200000,
+                0,
+                ioMonitorAdapter
         );
     }
 
@@ -46,4 +66,26 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
     public void tearDown() throws Exception {
         redisServer.stop();
     }
+
+    @Test
+    public void testIOMonitor() throws IOException, InterruptedException {
+
+        UUID segmentUUID = UUID.randomUUID();
+        long msb = segmentUUID.getMostSignificantBits();
+        long lsb = segmentUUID.getLeastSignificantBits();
+
+        persistentCache.readSegment(msb, lsb, () -> null);
+
+        //Segment not in cache, monitor methods not invoked
+        verify(ioMonitorAdapter, never()).afterSegmentRead(any(), anyLong(), anyLong(), anyInt(), anyLong());
+
+        persistentCache.writeSegment(msb, lsb, Buffer.wrap("segment_content".getBytes()));
+
+        Thread.sleep(300);
+
+        persistentCache.readSegment(msb, lsb, () -> null);
+
+        verify(ioMonitorAdapter, times(1)).afterSegmentRead(any(), eq(msb), eq(lsb), anyInt(), anyLong());
+    }
+
 }

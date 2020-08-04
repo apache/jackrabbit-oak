@@ -45,14 +45,7 @@ public class CachingSegmentArchiveReader implements SegmentArchiveReader {
     @Override
     @Nullable
     public Buffer readSegment(long msb, long lsb) throws IOException {
-        Buffer buffer = persistentCache.readSegment(msb, lsb);
-        if (buffer == null) {
-            buffer = delegate.readSegment(msb, lsb);
-            if (buffer != null) {
-                persistentCache.writeSegment(msb, lsb, buffer);
-            }
-        }
-        return buffer;
+        return persistentCache.readSegment(msb, lsb, () -> delegate.readSegment(msb, lsb));
     }
 
     @Override

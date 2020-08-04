@@ -35,7 +35,7 @@
     <groovy.version>2.4.17</groovy.version>
     <!--
       Size History:
-      + 55 MB Add support for 3rd level cache (GRANITE-30735)
+      + 55 MB Add support for segment persistent cache (OAK-7744)
       + 54 MB AWS support for segment-tar (OAK-8827)
       + 52 MB AWS java sdk update (OAK-8875)
       + 51 MB AWS java sdk update (OAK-7536)
