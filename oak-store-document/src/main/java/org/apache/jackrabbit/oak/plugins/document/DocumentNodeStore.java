@@ -48,7 +48,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -127,7 +126,6 @@ import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -323,8 +321,6 @@ public final class DocumentNodeStore
      * Background thread performing updates of _lastRev entries.
      */
     private Thread backgroundUpdateThread;
-
-    BackgroundUpdateOperation backgroundUpdateOperation;
 
     /**
      * Monitor object to synchronize background writes.
@@ -691,7 +687,7 @@ public final class DocumentNodeStore
                 "DocumentNodeStore background read thread " + threadNamePostfix);
         backgroundReadThread.setDaemon(true);
         backgroundUpdateThread = new Thread(
-                backgroundUpdateOperation = new BackgroundUpdateOperation(this, isDisposed),
+                new BackgroundUpdateOperation(this, isDisposed),
                 "DocumentNodeStore background update thread " + threadNamePostfix);
         backgroundUpdateThread.setDaemon(true);
         backgroundSweepThread = new Thread(
@@ -2382,10 +2378,7 @@ public final class DocumentNodeStore
 
     private void backgroundSplit() {
         Set<Path> invalidatedPaths = new HashSet<>();
-        Set<Path> pathsToinvalidate = new HashSet<>();
         RevisionVector head = getHeadRevision();
-        List<UpdateOp> splitOps = new LinkedList<>();
-        List<String> removeCandiates = new LinkedList<>();
         for (Iterator<String> it = splitCandidates.keySet().iterator(); it.hasNext();) {
             String id = it.next();
             NodeDocument doc = store.find(Collection.NODES, id);
@@ -2399,65 +2392,43 @@ public final class DocumentNodeStore
                 // already has a pending _lastRev update or an invalidation
                 // entry was already added in this backgroundSplit() call
                 if (unsavedLastRevisions.get(path) == null
-                        && !invalidatedPaths.contains(path)) {
-                    pathsToinvalidate.add(path);
+                        && invalidatedPaths.add(path)) {
+                    // create journal entry for cache invalidation
+                    JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
+                    entry.modified(path);
+                    Revision r = newRevision().asBranchRevision();
+                    UpdateOp journalOp = entry.asUpdateOp(r);
+                    if (store.create(JOURNAL, singletonList(journalOp))) {
+                        changes.invalidate(singletonList(r));
+                        LOG.debug("Journal entry {} created for split of document {}",
+                                journalOp.getId(), path);
+                    } else {
+                        String msg = "Unable to create journal entry " +
+                                journalOp.getId() + " for document invalidation. " +
+                                "Will be retried with next background split " +
+                                "operation.";
+                        throw new DocumentStoreException(msg);
+                    }
                 }
-                splitOps.add(op);
-            }
-            removeCandiates.add(id);
-            if (splitOps.size() >= getCreateOrUpdateBatchSize()) {
-                batchSplit(splitOps, pathsToinvalidate);
-                splitOps.clear();
-                invalidatedPaths.addAll(pathsToinvalidate);
-                pathsToinvalidate.clear();
-                splitCandidates.keySet().removeAll(removeCandiates);
-                removeCandiates.clear();
-            }
-        }
-
-        if (splitOps.size() > 0) {
-            batchSplit(splitOps, pathsToinvalidate);
-            splitCandidates.keySet().removeAll(removeCandiates);
-        }
-    }
-
-    private void batchSplit(List<UpdateOp> splitOps, Set<Path> pathsToinvalidate) {
-        if (!pathsToinvalidate.isEmpty()) {
-            // create journal entry for cache invalidation
-            JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
-            entry.modified(pathsToinvalidate);
-            Revision r = newRevision().asBranchRevision();
-            UpdateOp journalOp = entry.asUpdateOp(r);
-            if (store.create(JOURNAL, singletonList(journalOp))) {
-                changes.invalidate(singletonList(r));
-                LOG.debug("Journal entry {} created for split of document(s) {}",
-                        journalOp.getId(), pathsToinvalidate);
-            } else {
-                String msg = "Unable to create journal entry " +
-                        journalOp.getId() + " for document invalidation. " +
-                        "Will be retried with next background split " +
-                        "operation.";
-                throw new DocumentStoreException(msg);
-            }
-        }
-        // apply the split operations
-        List<NodeDocument> beforeList = store.createOrUpdate(Collection.NODES, splitOps);
-        if (LOG.isDebugEnabled()) {
-            // this is rather expensive - but given we were doing log.debug before
-            // the batchSplit mechanism, so this somewhat negates the batch improvement indeed
-            for (int i = 0; i < splitOps.size(); i++) {
-                UpdateOp op = splitOps.get(i);
-                NodeDocument before = beforeList.size() > i ? beforeList.get(i) : null;
+                // apply the split operations
+                NodeDocument before = null;
+                if (!op.isNew() ||
+                        !store.create(Collection.NODES, Collections.singletonList(op))) {
+                    before = store.createOrUpdate(Collection.NODES, op);
+                }
                 if (before != null) {
-                    NodeDocument after = store.find(Collection.NODES, op.getId());
-                    if (after != null) {
-                        LOG.debug("Split operation on {}. Size before: {}, after: {}",
-                                op.getId(), before.getMemory(), after.getMemory());
+                    if (LOG.isDebugEnabled()) {
+                        NodeDocument after = store.find(Collection.NODES, op.getId());
+                        if (after != null) {
+                            LOG.debug("Split operation on {}. Size before: {}, after: {}",
+                                    id, before.getMemory(), after.getMemory());
+                        }
                     }
                 } else {
                     LOG.debug("Split operation created {}", op.getId());
                 }
             }
+            it.remove();
         }
     }
 
@@ -3189,23 +3160,6 @@ public final class DocumentNodeStore
         }
     }
 
-    /**
-     * FOR TESTING ONLY :
-     * stops the backgroundUpdateThread (by overwriting its
-     * isDisposed flag) and optionally waits for the thread to
-     * terminate.
-     * @param timeoutMillis optional amount of millis to wait for the thread to terminate at max
-     * @return true if thread is no longer running
-     */
-    @TestOnly
-    boolean stopBackgroundUpdateThread(long timeoutMillis) throws InterruptedException {
-        backgroundUpdateOperation.forceStop();
-        if (timeoutMillis > 0) {
-            backgroundUpdateThread.join(timeoutMillis);
-        }
-        return !backgroundUpdateThread.isAlive();
-    }
-
     public DocumentNodeStoreMBean getMBean() {
         return mbean;
     }
@@ -3222,7 +3176,7 @@ public final class DocumentNodeStore
 
     private static abstract class NodeStoreTask implements Runnable {
         final WeakReference<DocumentNodeStore> ref;
-        private AtomicBoolean isDisposed;
+        private final AtomicBoolean isDisposed;
         private final Supplier<Integer> delaySupplier;
         private boolean failing;
 
@@ -3246,10 +3200,6 @@ public final class DocumentNodeStore
         NodeStoreTask(final DocumentNodeStore nodeStore,
                       final AtomicBoolean isDisposed) {
             this(nodeStore, isDisposed, null);
-        }
-
-        void forceStop() {
-            isDisposed = new AtomicBoolean(true);
         }
 
         protected abstract void execute(@NotNull DocumentNodeStore nodeStore);
