@@ -140,9 +140,10 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         MemoryDocumentStore delegateStore = new MemoryDocumentStore();
         CountingDocumentStore store = new CountingDocumentStore(delegateStore);
         mkBuilder.setDocumentStore(store);
+        // disable automatic background operations
+        mkBuilder.setAsyncDelay(0);
         mk = mkBuilder.open();
         DocumentNodeStore ns = mk.getNodeStore();
-        assertTrue(ns.stopBackgroundUpdateThread(10000));
         assertEquals(batchSize, ns.getCreateOrUpdateBatchSize());
 
         NodeBuilder builder = ns.getRoot().builder();
