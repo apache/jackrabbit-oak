@@ -64,33 +64,33 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
 
             @Override
             public void initialize(@NotNull NodeBuilder builder) {
-                        super.initialize(builder);
-                        // registering additional node types for wider testing
-                        InputStream stream = null;
-                        try {
-                            stream = ElasticIndexAggregationNtFileTest.class
-                                    .getResourceAsStream("test_nodetypes.cnd");
-                            NodeState base = builder.getNodeState();
-                            NodeStore store = new MemoryNodeStore(base);
+                super.initialize(builder);
+                // registering additional node types for wider testing
+                InputStream stream = null;
+                try {
+                    stream = ElasticIndexAggregationNtFileTest.class
+                            .getResourceAsStream("test_nodetypes.cnd");
+                    NodeState base = builder.getNodeState();
+                    NodeStore store = new MemoryNodeStore(base);
 
-                            Root root = RootFactory.createSystemRoot(store, new EditorHook(
-                                    new CompositeEditorProvider(new NamespaceEditorProvider(),
-                                            new TypeEditorProvider())), null, null, null);
-                            NodeTypeRegistry.register(root, stream, "testing node types");
-                            NodeState target = store.getRoot();
-                            target.compareAgainstBaseState(base, new ApplyDiff(builder));
-                        } catch (Exception e) {
-                            LOG.error("Error while registering required node types. Failing here", e);
-                            fail("Error while registering required node types");
-                        } finally {
-                            printNodeTypes(builder);
-                            if (stream != null) {
-                                try {
-                                    stream.close();
-                                } catch (IOException e) {
-                                    LOG.debug("Ignoring exception on stream closing.", e);
-                                }
-                            }
+                    Root root = RootFactory.createSystemRoot(store, new EditorHook(
+                            new CompositeEditorProvider(new NamespaceEditorProvider(),
+                                    new TypeEditorProvider())), null, null, null);
+                    NodeTypeRegistry.register(root, stream, "testing node types");
+                    NodeState target = store.getRoot();
+                    target.compareAgainstBaseState(base, new ApplyDiff(builder));
+                } catch (Exception e) {
+                    LOG.error("Error while registering required node types. Failing here", e);
+                    fail("Error while registering required node types");
+                } finally {
+                    printNodeTypes(builder);
+                    if (stream != null) {
+                        try {
+                            stream.close();
+                        } catch (IOException e) {
+                            LOG.debug("Ignoring exception on stream closing.", e);
+                        }
+                    }
                 }
             }
 
@@ -126,7 +126,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
     }
 
     @Test
-    public void indexNtFileText() throws CommitFailedException, InterruptedException {
+    public void indexNtFileText() throws CommitFailedException {
         setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
                 "jcr:contains(jcr:content/renditions/dam.text.txt/jcr:content, 'quick') ]";
@@ -149,7 +149,5 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
         assertEventually(()-> {
             assertQuery(statement, "xpath", expected);
         });
-
-
     }
 }

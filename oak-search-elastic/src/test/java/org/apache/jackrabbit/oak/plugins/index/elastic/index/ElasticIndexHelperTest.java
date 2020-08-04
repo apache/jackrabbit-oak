@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -47,7 +48,7 @@ public class ElasticIndexHelperTest {
         ElasticIndexDefinition definition =
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
-        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(definition);
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(ElasticIndexNameHelper.getRemoteIndexName(definition), definition);
 
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> jsonMap = mapper.readValue(request.mappings().streamInput(), Map.class);
@@ -70,7 +71,7 @@ public class ElasticIndexHelperTest {
         ElasticIndexDefinition definition =
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
-        ElasticIndexHelper.createIndexRequest(definition);
+        ElasticIndexHelper.createIndexRequest(ElasticIndexNameHelper.getRemoteIndexName(definition), definition);
     }
 
     @Test
@@ -85,7 +86,7 @@ public class ElasticIndexHelperTest {
         ElasticIndexDefinition definition =
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
-        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(definition);
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(ElasticIndexNameHelper.getRemoteIndexName(definition), definition);
 
         assertThat(request.settings().get("analysis.filter.oak_word_delimiter_graph_filter.preserve_original"), is("false"));
 
@@ -113,7 +114,7 @@ public class ElasticIndexHelperTest {
         ElasticIndexDefinition definition =
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
-        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(definition);
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(ElasticIndexNameHelper.getRemoteIndexName(definition), definition);
 
         assertThat(request.settings().get("analysis.filter.oak_word_delimiter_graph_filter.preserve_original"), is("true"));
     }
@@ -130,7 +131,7 @@ public class ElasticIndexHelperTest {
         ElasticIndexDefinition definition =
                 new ElasticIndexDefinition(nodeState, nodeState, "path", "prefix");
 
-        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(definition);
+        CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(ElasticIndexNameHelper.getRemoteIndexName(definition), definition);
 
         assertThat(request.settings().get("analysis.filter.shingle.type"), is("shingle"));
         assertThat(request.settings().get("analysis.analyzer.trigram.type"), is("custom"));

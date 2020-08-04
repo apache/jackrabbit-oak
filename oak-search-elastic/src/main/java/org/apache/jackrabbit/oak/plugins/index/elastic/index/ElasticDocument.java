@@ -95,15 +95,15 @@ class ElasticDocument {
                 if (fulltext.size() > 0) {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }
-            if (suggest.size() > 0) {
-                builder.startObject(FieldNames.SUGGEST).field("input", suggest).endObject();
-            }
-            if (notNullProps.size() > 0) {
-                builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
-            }
-            if (nullProps.size() > 0) {
-                builder.field(FieldNames.NULL_PROPS, nullProps);
-            }
+                if (suggest.size() > 0) {
+                    builder.startObject(FieldNames.SUGGEST).field("suggestion", suggest).endObject();
+                }
+                if (notNullProps.size() > 0) {
+                    builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
+                }
+                if (nullProps.size() > 0) {
+                    builder.field(FieldNames.NULL_PROPS, nullProps);
+                }
                 for (Map.Entry<String, Object> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue());
                 }

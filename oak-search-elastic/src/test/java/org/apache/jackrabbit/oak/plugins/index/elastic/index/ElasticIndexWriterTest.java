@@ -27,6 +27,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.io.IOException;
+
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -106,7 +108,7 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    public void closeBulkProcessor() {
+    public void closeBulkProcessor() throws IOException {
         indexWriter.close(System.currentTimeMillis());
         verify(bulkProcessorHandlerMock).close();
     }

@@ -145,6 +145,8 @@
       org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
       org.apache.jackrabbit.oak.jcr.query.QueryTest#fnNameEncoding                                   <!-- OAK-1000 -->
+
+      org.apache.jackrabbit.test.api.nodetype.PredefinedNodeTypeTest#testFrozenNode                  <!-- OAK-9161 -->
     </known.issues>
   </properties>
 

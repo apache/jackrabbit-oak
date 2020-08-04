@@ -110,8 +110,12 @@ class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
     @Override
     protected void indexFulltextValue(ElasticDocument doc, String value) {
-        // Note: diversion from lucene impl - here we are storing even these cases and not just binary
         doc.addFulltext(value);
+    }
+
+    @Override
+    protected boolean isFulltextValuePersisted() {
+        return false;
     }
 
     @Override

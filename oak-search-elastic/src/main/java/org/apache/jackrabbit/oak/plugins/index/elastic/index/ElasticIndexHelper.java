@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
  */
 class ElasticIndexHelper {
 
-    public static CreateIndexRequest createIndexRequest(ElasticIndexDefinition indexDefinition) throws IOException {
-        final CreateIndexRequest request = new CreateIndexRequest(indexDefinition.getRemoteIndexName());
+    public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
+        final CreateIndexRequest request = new CreateIndexRequest(remoteIndexName);
 
         // provision settings
         request.settings(loadSettings(indexDefinition));
@@ -130,7 +130,6 @@ class ElasticIndexHelper {
                 .field("type", "integer")
                 .field("doc_values", false) // no need to sort/aggregate here
                 .endObject();
-        // TODO: to increase efficiency, we could potentially remove this and use a multi match query when needed
         mappingBuilder.startObject(FieldNames.FULLTEXT)
                 .field("type", "text")
                 .field("analyzer", "oak_analyzer")
@@ -150,20 +149,21 @@ class ElasticIndexHelper {
 
     private static void mapIndexRules(ElasticIndexDefinition indexDefinition, XContentBuilder mappingBuilder) throws IOException {
         checkIndexRules(indexDefinition);
-
+        boolean useInSuggest = false;
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
 
             Type<?> type = null;
             boolean useInSpellCheck = false;
-            for (PropertyDefinition pd: propertyDefinitions) {
+            for (PropertyDefinition pd : propertyDefinitions) {
                 type = Type.fromTag(pd.getType(), false);
                 if (pd.useInSpellcheck) {
                     useInSpellCheck = true;
-                    break;
                 }
-
+                if (pd.useInSuggest) {
+                    useInSuggest = true;
+                }
             }
 
             mappingBuilder.startObject(name);
@@ -204,6 +204,22 @@ class ElasticIndexHelper {
                                 .field("ignore_above", 256);
                     }
                 }
+            }
+            mappingBuilder.endObject();
+        }
+
+        if (useInSuggest) {
+            mappingBuilder.startObject(FieldNames.SUGGEST);
+            {
+                mappingBuilder.field("type", "nested");
+                mappingBuilder.startObject("properties");
+                {
+                    mappingBuilder.startObject("suggestion")
+                            .field("type", "text")
+                            .field("analyzer", "oak_analyzer")
+                            .endObject();
+                }
+                mappingBuilder.endObject();
             }
             mappingBuilder.endObject();
         }

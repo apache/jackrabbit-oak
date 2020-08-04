@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnectionRule;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
@@ -52,7 +53,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 .with(initialContent)
                 .with(securityProvider)
                 .with(editorProvider)
-                .with(indexProvider)
+                .with((Observer) indexProvider)
                 .with(indexProvider)
                 .with(queryIndexProvider);
         if (isAsync) {

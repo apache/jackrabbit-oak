@@ -68,9 +68,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     private final int logWarnStringSizeThreshold;
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
-                               @NotNull IndexDefinition definition,
-                               IndexDefinition.IndexingRule indexingRule,
-                               @NotNull String path) {
+                                 @NotNull IndexDefinition definition,
+                                 IndexDefinition.IndexingRule indexingRule,
+                                 @NotNull String path) {
         this.textExtractor = textExtractor;
         this.definition = checkNotNull(definition);
         this.indexingRule = checkNotNull(indexingRule);
@@ -204,7 +204,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return finalizeDoc(document, dirty, facet);
     }
 
-
     private boolean indexFacets(D doc, PropertyState property, String pname, PropertyDefinition pd) {
         int tag = property.getType().tag();
         int idxDefinedTag = pd.getType();
@@ -277,7 +276,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     }
 
                     if (pd.nodeScopeIndex) {
-                        indexFulltextValue(doc, value);
+                        if (isFulltextValuePersisted()) {
+                            indexFulltextValue(doc, value);
+                        }
                         if (pd.useInSimilarity) {
                             log.trace("indexing similarity strings for {}", pd.name);
                             try {
@@ -301,6 +302,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         }
 
         return dirty;
+    }
+
+    /**
+     * Returns {@code true} if nodeScopeIndex full text values need to be indexed
+     */
+    protected boolean isFulltextValuePersisted() {
+        return true;
     }
 
     protected abstract boolean indexSimilarityTag(D doc, PropertyState property);
@@ -377,7 +385,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     private List<String> newBinary(
-        PropertyState property, NodeState state, String path) {
+            PropertyState property, NodeState state, String path) {
         if (textExtractor == null){
             //Skip text extraction for sync indexing
             return Collections.emptyList();
@@ -416,7 +424,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         }
         return fieldAdded;
     }
-
 
     private boolean indexNullCheckEnabledProps(String path, D doc, NodeState state) {
         boolean fieldAdded = false;
@@ -461,7 +468,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             if (pd != null
                     && pd.index
                     && (pd.includePropertyType(ps.getType().tag())
-                            || indexingRule.includePropertyType(ps.getType().tag()))) {
+                    || indexingRule.includePropertyType(ps.getType().tag()))) {
                 dirty = true;
                 break;
             }
@@ -513,7 +520,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
      * index aggregates on a certain path
      */
     private boolean[] indexAggregates(final String path, final D document,
-                                    final NodeState state) {
+                                      final NodeState state) {
         final AtomicBoolean dirtyFlag = new AtomicBoolean();
         final AtomicBoolean facetFlag = new AtomicBoolean();
         indexingRule.getAggregate().collectAggregates(state, new Aggregate.ResultCollector() {
@@ -630,6 +637,5 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         //cameCase file name to allow faster like search
         indexNodeName(doc, value);
     }
-
 
 }

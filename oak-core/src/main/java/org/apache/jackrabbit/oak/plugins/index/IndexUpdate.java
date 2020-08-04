@@ -71,6 +71,7 @@ import org.slf4j.LoggerFactory;
 public class IndexUpdate implements Editor, PathSource {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
+    private static final String TYPE_ELASTICSEARCH = "elasticsearch";
 
     /**
      * <p>
@@ -212,13 +213,17 @@ public class IndexUpdate implements Editor, PathSource {
 
     private boolean shouldReindex(NodeBuilder definition, NodeState before,
             String name) {
+        PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
+
         //Async indexes are not considered for reindexing for sync indexing
-        if (!isMatchingIndexMode(definition)){
+        // Skip this check for elastic index
+        // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ? 
+        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)){
             return false;
         }
 
         //Do not attempt reindex of disabled indexes
-        PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
+
         if (type != null && TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
             return false;
         }

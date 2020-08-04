@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.util.ElasticGlobalInitializer;
@@ -34,6 +32,8 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvide
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
 import javax.jcr.Repository;
 import java.io.File;
@@ -59,7 +59,8 @@ public class ElasticFullTextWithGlobalIndexSearchTest extends SearchTest {
                             new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
                     ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate);
                     oak.with(editorProvider)
-                            .with(indexProvider)
+                            .with((Observer) indexProvider)
+                            .with((QueryIndexProvider) indexProvider)
                             .with(new PropertyIndexEditorProvider())
                             .with(new NodeTypeIndexProvider())
                             .with(new ElasticGlobalInitializer(elasticGlobalIndexName, storageEnabled))

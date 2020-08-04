@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
@@ -28,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.elasticsearch.common.Strings;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
 import java.util.List;
@@ -51,12 +49,10 @@ class ElasticIndex extends FulltextIndex {
     // higher than some threshold below which the query should rather be answered by something else if possible
     private static final double MIN_COST = 100.1;
 
-    private final ElasticConnection elasticConnection;
-    private final NodeState root;
+    private final ElasticIndexTracker elasticIndexTracker;
 
-    ElasticIndex(@NotNull ElasticConnection elasticConnection, @NotNull NodeState root) {
-        this.elasticConnection = elasticConnection;
-        this.root = root;
+    ElasticIndex(ElasticIndexTracker elasticIndexTracker) {
+        this.elasticIndexTracker = elasticIndexTracker;
     }
 
     @Override
@@ -96,7 +92,7 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected IndexNode acquireIndexNode(String indexPath) {
-        return new ElasticIndexNode(root, indexPath, elasticConnection);
+        return elasticIndexTracker.acquireIndexNode(indexPath, TYPE_ELASTICSEARCH);
     }
 
     @Override
@@ -113,24 +109,31 @@ class ElasticIndex extends FulltextIndex {
         final ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
 
         final Iterator<FulltextResultRow> itr;
-        if (requestHandler.requiresSpellCheck()) {
-            itr = new ElasticSpellcheckIterator(acquireIndexNode(plan), requestHandler, responseHandler);
-        } else {
-            // this function is called for each extracted row. Passing FulltextIndex::shouldInclude means that for each
-            // row we evaluate getPathRestriction(plan) & plan.getFilter().getPathRestriction(). Providing a partial
-            // function (https://en.wikipedia.org/wiki/Partial_function) we can evaluate them once and still use a predicate as before
-            BiFunction<String, Filter.PathRestriction, Predicate<String>> partialShouldInclude = (path, pathRestriction) -> docPath ->
-                    shouldInclude(path, pathRestriction, docPath);
+        ElasticIndexNode indexNode = acquireIndexNode(plan);
+        try {
+            if (requestHandler.requiresSpellCheck()) {
+                itr = new ElasticSpellcheckIterator(indexNode, requestHandler, responseHandler);
+            } else if (requestHandler.requiresSuggestion()) {
+                itr = new ElasticSuggestIterator(acquireIndexNode(plan), requestHandler, responseHandler);
+            } else {
+                // this function is called for each extracted row. Passing FulltextIndex::shouldInclude means that for each
+                // row we evaluate getPathRestriction(plan) & plan.getFilter().getPathRestriction(). Providing a partial
+                // function (https://en.wikipedia.org/wiki/Partial_function) we can evaluate them once and still use a predicate as before
+                BiFunction<String, Filter.PathRestriction, Predicate<String>> partialShouldInclude = (path, pathRestriction) -> docPath ->
+                        shouldInclude(path, pathRestriction, docPath);
 
-            itr = new ElasticResultRowAsyncIterator(
-                    acquireIndexNode(plan),
-                    requestHandler,
-                    responseHandler,
-                    plan,
-                    partialShouldInclude.apply(getPathRestriction(plan), filter.getPathRestriction()),
-                    getEstimator(plan.getPlanName())
-            );
+                itr = new ElasticResultRowAsyncIterator(
+                        indexNode,
+                        requestHandler,
+                        responseHandler,
+                        plan,
+                        partialShouldInclude.apply(getPathRestriction(plan), filter.getPathRestriction()),
+                        getEstimator(plan.getPlanName())
+                );
 
+            }
+        } finally {
+            indexNode.release();
         }
         return new FulltextPathCursor(itr, REWOUND_STATE_PROVIDER_NOOP, plan, filter.getQueryLimits(), getSizeEstimator(plan));
     }
