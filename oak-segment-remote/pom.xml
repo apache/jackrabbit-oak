@@ -45,7 +45,8 @@
                   *
               </Import-Package>
               <Export-Package>
-              	org.apache.jackrabbit.oak.segment.remote
+              	org.apache.jackrabbit.oak.segment.remote,
+              	org.apache.jackrabbit.oak.segment.remote.queue
               </Export-Package>
               <Embed-Dependency>
                 org.apache.servicemix.bundles.*,
