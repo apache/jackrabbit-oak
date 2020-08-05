@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
+import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,7 +36,8 @@ class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager> 
         // The :status gets updated every time the indexed content is changed (with properties like last_update_ts),
         // removing the check on :status reduces drastically the contention between queries (that need to acquire the
         // read lock) and updates (need to acquire the write lock).
-        return isIndexDefinitionChanged(before, after);
+        // Moreover, we don't check diffs in stored index definitions since are not created for elastic.
+        return !EqualsDiff.equals(before, after);
     }
 
     @Override
