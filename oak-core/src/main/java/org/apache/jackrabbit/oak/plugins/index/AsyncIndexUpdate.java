@@ -81,6 +81,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.Counting;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
@@ -1217,6 +1218,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             private final MeterStats indexedNodeCountMeter;
             private final TimerStats indexerTimer;
             private final HistogramStats indexedNodePerCycleHisto;
+            private final CounterStats lastIndexedTime;
             private StatisticsProvider statisticsProvider;
 
             private final String[] names = {"Executions", "Nodes"};
@@ -1231,6 +1233,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexerTimer = statsProvider.getTimer(stats("INDEXER_TIME"), StatsOptions.METRICS_ONLY);
                 indexedNodePerCycleHisto = statsProvider.getHistogram(stats("INDEXER_NODE_COUNT_HISTO"), StatsOptions
                         .METRICS_ONLY);
+                lastIndexedTime = statsProvider.getCounterStats(stats("LAST_INDEXED_TIME"), StatsOptions.DEFAULT);
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
                         "Consolidated stats", names,
@@ -1246,6 +1249,8 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 indexedNodeCountMeter.mark(updates);
                 indexerTimer.update(timeInMillis, TimeUnit.MILLISECONDS);
                 indexedNodePerCycleHisto.update(updates);
+                long previousLastIndexedTime = lastIndexedTime.getCount();
+                lastIndexedTime.inc(System.currentTimeMillis() - previousLastIndexedTime);
             }
 
             public Counting getExecutionCounter() {
