@@ -33,8 +33,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.Comparator;
@@ -131,15 +133,28 @@ public class PersistentDiskCache extends AbstractPersistentCache {
     public void writeSegment(long msb, long lsb, Buffer buffer) {
         String segmentId = new UUID(msb, lsb).toString();
         File segmentFile = new File(directory, segmentId);
+        File tempSegmentFile = new File(directory, segmentId + System.nanoTime() + ".part");
+
         Buffer bufferCopy = buffer.duplicate();
 
         Runnable task = () -> {
             if (lockSegmentWrite(segmentId)) {
-                try (FileChannel channel = new FileOutputStream(segmentFile).getChannel()) {
+                try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
                     int fileSize = bufferCopy.write(channel);
+                    try {
+                        Files.move(tempSegmentFile.toPath(), segmentFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
+                    } catch (AtomicMoveNotSupportedException e) {
+                        Files.move(tempSegmentFile.toPath(), segmentFile.toPath());
+                    }
                     cacheSize.addAndGet(fileSize);
-                } catch (Throwable t) {
-                    logger.error("Error writing segment {} to cache: {}", segmentId, t);
+                } catch (Exception e) {
+                    logger.error("Error writing segment {} to cache: {}", segmentId, e);
+                    try {
+                        Files.deleteIfExists(segmentFile.toPath());
+                        Files.deleteIfExists(tempSegmentFile.toPath());
+                    } catch (IOException i) {
+                        logger.error("Error while deleting corrupted segment file {}", segmentId, i);
+                    }
                 } finally {
                     unlockSegmentWrite(segmentId);
                 }
