@@ -60,7 +60,7 @@ public class FlatFileStoreIteratorTest {
     public void simpleTraversal() {
         Set<String> preferred = ImmutableSet.of("jcr:content");
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
-                "/a/d", "/e"));
+                "/a/d", "/e", "/e/e"));
 
         FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred);
         NodeStateEntry a = fitr.next();
@@ -86,7 +86,11 @@ public class FlatFileStoreIteratorTest {
 
         NodeStateEntry nse4 = fitr.next();
         assertEquals("/e", nse4.getPath());
-        assertEquals(0, nse4.getNodeState().getChildNodeCount(100));
+        assertEquals(1, nse4.getNodeState().getChildNodeCount(100));
+
+        NodeStateEntry nse5 = fitr.next();
+        assertEquals("/e/e", nse5.getPath());
+        assertEquals(0, nse5.getNodeState().getChildNodeCount(100));
 
         assertFalse(fitr.hasNext());
     }
