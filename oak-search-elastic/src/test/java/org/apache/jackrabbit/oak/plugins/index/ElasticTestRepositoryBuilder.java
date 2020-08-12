@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnectionRule;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -45,6 +46,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 editorProvider,
                 new NodeCounterEditorProvider()
         )));
+        queryEngineSettings = new QueryEngineSettings();
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
 
@@ -55,7 +57,9 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 .with(editorProvider)
                 .with((Observer) indexProvider)
                 .with(indexProvider)
-                .with(queryIndexProvider);
+                .with(indexEditorProvider)
+                .with(queryIndexProvider)
+                .with(queryEngineSettings);
         if (isAsync) {
             oak.withAsyncIndexing("async", asyncIndexingTimeInSeconds);
         }

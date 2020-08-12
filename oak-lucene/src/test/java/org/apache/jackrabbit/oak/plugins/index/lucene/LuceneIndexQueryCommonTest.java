@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,33 +16,36 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.IndexSuggestionCommonTest;
+import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.plugins.index.IndexQueryCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LuceneIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
+/**
+ * Tests the query engine using the default index implementation: the
+ * {@link LuceneIndexProvider}
+ */
+public class LuceneIndexQueryCommonTest extends IndexQueryCommonTest {
+
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     @Override
-    protected Repository createJcrRepository() throws RepositoryException {
+    protected ContentRepository createRepository() {
+        LuceneTestRepositoryBuilder luceneTestRepositoryBuilder = new LuceneTestRepositoryBuilder(executorService, temporaryFolder);
+        luceneTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
+        repositoryOptionsUtil = luceneTestRepositoryBuilder.build();
         indexOptions = new LuceneIndexOptions();
-        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
-        Oak oak = repositoryOptionsUtil.getOak();
-        Jcr jcr = new Jcr(oak);
-        Repository repository = jcr.createRepository();
-        return repository;
+        return repositoryOptionsUtil.getOak().createContentRepository();
     }
 
     @After

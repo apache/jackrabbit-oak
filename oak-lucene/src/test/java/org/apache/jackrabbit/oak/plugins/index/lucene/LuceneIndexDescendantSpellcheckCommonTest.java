@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.IndexSuggestionCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSpellcheckCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.junit.After;
 import org.junit.Rule;
@@ -30,7 +30,8 @@ import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LuceneIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
+public class LuceneIndexDescendantSpellcheckCommonTest extends IndexDescendantSpellcheckCommonTest {
+
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
@@ -49,5 +50,6 @@ public class LuceneIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
     public void shutdownExecutor() {
         executorService.shutdown();
     }
+
 
 }
