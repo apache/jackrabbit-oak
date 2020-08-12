@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexTracker;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -25,9 +26,11 @@ import org.jetbrains.annotations.NotNull;
 class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager> {
 
     private final ElasticConnection elasticConnection;
+    private final ElasticMetricHandler elasticMetricHandler;
 
-    ElasticIndexTracker(@NotNull ElasticConnection elasticConnection) {
+    ElasticIndexTracker(@NotNull ElasticConnection elasticConnection, @NotNull ElasticMetricHandler elasticMetricHandler) {
         this.elasticConnection = elasticConnection;
+        this.elasticMetricHandler = elasticMetricHandler;
     }
 
     @Override
@@ -42,6 +45,6 @@ class ElasticIndexTracker extends FulltextIndexTracker<ElasticIndexNodeManager> 
 
     @Override
     protected ElasticIndexNodeManager openIndex(String path, NodeState root, NodeState node) {
-        return new ElasticIndexNodeManager(elasticConnection, path, root);
+        return new ElasticIndexNodeManager(path, root, elasticConnection, elasticMetricHandler);
     }
 }

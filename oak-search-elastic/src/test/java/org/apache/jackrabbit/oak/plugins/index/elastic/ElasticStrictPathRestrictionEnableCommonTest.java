@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
-import org.apache.jackrabbit.oak.plugins.index.ElasticTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.StrictPathRestrictionEnableCommonTest;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.junit.ClassRule;

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index;
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.StrictPathRestriction;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnectionRule;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexOptions;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSpellcheckCommonTest;
 import org.junit.ClassRule;
 
-public class ElasticStrictPathRestrictionWarnCommonTest extends StrictPathRestrictionWarnCommonTest {
+import javax.jcr.Repository;
+
+public class ElasticIndexDescendantSpellcheckCommonTest extends IndexDescendantSpellcheckCommonTest {
 
     // Set this connection string as
     // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
@@ -35,13 +35,11 @@ public class ElasticStrictPathRestrictionWarnCommonTest extends StrictPathRestri
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
 
     @Override
-    protected ContentRepository createRepository() {
+    protected Repository createJcrRepository() {
         indexOptions = new ElasticIndexOptions();
-        ElasticTestRepositoryBuilder elasticTestRepositoryBuilder = new ElasticTestRepositoryBuilder(elasticRule);
-        QueryEngineSettings queryEngineSettings = new QueryEngineSettings();
-        queryEngineSettings.setStrictPathRestriction(StrictPathRestriction.WARN.name());
-        elasticTestRepositoryBuilder.setQueryEngineSettings(queryEngineSettings);
-        repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
-        return repositoryOptionsUtil.getOak().createContentRepository();
+        repositoryOptionsUtil = new ElasticTestRepositoryBuilder(elasticRule).build();
+        Oak oak = repositoryOptionsUtil.getOak();
+        Jcr jcr = new Jcr(oak);
+        return jcr.createRepository();
     }
 }

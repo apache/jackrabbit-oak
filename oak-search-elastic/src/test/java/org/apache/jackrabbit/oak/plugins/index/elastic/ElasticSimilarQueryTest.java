@@ -16,15 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
-
 
 public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
@@ -47,10 +46,8 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         test.addChild("c").setProperty("text", "He said Hi.");
         root.commit();
 
-        assertEventually(() -> assertQuery(nativeQueryString,
-                Arrays.asList("/test/b")));
+        assertEventually(() -> assertQuery(nativeQueryString, Collections.singletonList("/test/b")));
     }
-
 
     /*
     This test mirror the test org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexQueryTest#testRepSimilarQuery
@@ -102,7 +99,6 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         assertEventually(() -> assertQuery(query, XPATH,
                 Arrays.asList("/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
     }
-
 
     @Test
     public void testRepSimilarWithStopWords() throws Exception {
@@ -158,7 +154,6 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
 
     }
 
-
     @Test
     public void testRepSimilarQueryWithLongPath() throws Exception {
         createIndex(false);
@@ -182,7 +177,6 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         assertEventually(() -> assertQuery(query,
                 Arrays.asList("/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));
     }
-
 
     private void createIndex(boolean nativeQuery) throws Exception {
         IndexDefinitionBuilder builder = createIndex("text");

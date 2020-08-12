@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexNodeManager;
 import org.apache.jackrabbit.oak.plugins.index.search.update.ReaderRefreshPolicy;
@@ -27,9 +28,10 @@ class ElasticIndexNodeManager extends IndexNodeManager<ElasticIndexNode> {
     private final ElasticIndexNode elasticIndexNode;
     private final String path;
 
-    ElasticIndexNodeManager(ElasticConnection elasticConnection, String path, NodeState root) {
+    ElasticIndexNodeManager(String path, NodeState root,
+                            ElasticConnection elasticConnection, ElasticMetricHandler elasticMetricHandler) {
         this.path = path;
-        this.elasticIndexNode = new ElasticIndexNode(root, path, elasticConnection) {
+        this.elasticIndexNode = new ElasticIndexNode(root, path, elasticConnection, elasticMetricHandler) {
             @Override
             public void release() {
                 ElasticIndexNodeManager.this.release();

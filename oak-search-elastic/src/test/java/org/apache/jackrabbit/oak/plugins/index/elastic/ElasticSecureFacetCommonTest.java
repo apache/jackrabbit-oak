@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.ElasticTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.SecureFacetCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.TestUtils;
 import org.junit.After;
@@ -51,8 +50,7 @@ public class ElasticSecureFacetCommonTest extends SecureFacetCommonTest {
         repositoryOptionsUtil = new ElasticTestRepositoryBuilder(elasticRule).build();
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
-        Repository repository = jcr.createRepository();
-        return repository;
+        return jcr.createRepository();
     }
 
     protected void assertEventually(Runnable r) {

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-
 import com.github.dockerjava.api.DockerClient;
 import org.elasticsearch.Version;
 import org.junit.rules.ExternalResource;
@@ -130,7 +129,6 @@ public class ElasticConnectionRule extends ExternalResource {
             elasticConnection = null;
         }
     }
-
 
     private void checkIfDockerClientAvailable() {
         DockerClient client = null;
