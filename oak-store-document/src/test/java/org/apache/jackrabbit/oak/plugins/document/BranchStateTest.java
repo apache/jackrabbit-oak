@@ -68,6 +68,8 @@ public class BranchStateTest {
         }
         assertNotNull(store.find(Collection.NODES, testId));
 
+        //TODO: uncomment
+        //BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     private static final class FailingHook implements CommitHook {
