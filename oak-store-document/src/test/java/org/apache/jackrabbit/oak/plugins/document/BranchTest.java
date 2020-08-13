@@ -235,8 +235,7 @@ public class BranchTest {
                 .setDocumentStore(store).build();
         assertFalse(ns.getRoot().hasProperty("p"));
 
-        //TODO: uncomment:
-        //BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test
@@ -273,8 +272,7 @@ public class BranchTest {
         assertNotNull(state);
         assertEquals("a", state.getString("p"));
 
-        // TODO: uncomment
-        // BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     private void assertModifiedPaths(Iterable<Path> actual, String... expected) {
