@@ -113,6 +113,67 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         });
     }
 
+    /*
+    In this test only nodeScope property is set over index. (OAK-9166)
+     */
+    @Test
+    public void onlyNodeScopeIndexedQuery() throws Exception {
+        IndexDefinitionBuilder builder = createIndex(false, "a", "b").async("async");
+        builder.indexRule("nt:base").property("a").nodeScopeIndex();
+        builder.indexRule("nt:base").property("b").nodeScopeIndex();
+
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("nodea").setProperty("a", "hello");
+        test.addChild("nodeb").setProperty("a", "world");
+        test.addChild("nodec").setProperty("a", "hello world");
+        Tree d = test.addChild("noded");
+        d.setProperty("a", "hello");
+        d.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, Arrays.asList("/test/nodec", "/test/noded"));
+        });
+    }
+
+    /*
+        In ES we don't add a property data to :fulltext if both nodescope and analyzed is set on index. Instead we use a
+        multimatch query with cross_fields
+        In this test only we set nodeScope on a property and on b property just analyzed property is set over index. (OAK-9166)
+        contains query of type contain(., 'string') should not return b.
+     */
+    @Test
+    public void onlyAnalyzedPropertyShouldNotBeReturnedForNodeScopeIndexedQuery() throws Exception {
+        IndexDefinitionBuilder builder = createIndex(false, "a", "b").async("async");
+        builder.indexRule("nt:base").property("a").nodeScopeIndex();
+        builder.indexRule("nt:base").property("b").analyzed();
+
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("nodea").setProperty("b", "hello");
+        test.addChild("nodeb").setProperty("b", "world");
+        test.addChild("nodec").setProperty("a", "hello world");
+        Tree d = test.addChild("noded");
+        d.setProperty("a", "hello");
+        d.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')] ", XPATH, Arrays.asList("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, Arrays.asList("/test/nodec"));
+        });
+    }
+
     @Test
     public void fullTextMultiTermQuery() throws Exception {
         IndexDefinitionBuilder builder = createIndex("analyzed_field");

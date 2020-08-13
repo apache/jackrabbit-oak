@@ -276,7 +276,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     }
 
                     if (pd.nodeScopeIndex) {
-                        if (isFulltextValuePersisted()) {
+                        if (isFulltextValuePersistedAtNode(pd)) {
                             indexFulltextValue(doc, value);
                         }
                         if (pd.useInSimilarity) {
@@ -305,9 +305,13 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     /**
-     * Returns {@code true} if nodeScopeIndex full text values need to be indexed
+     * In elastic we don't add analyzed data in :fulltext if index has both analyzed
+     * and nodescope property. Instead we fire a multiMatch with cross_fields.
+     *
+     * Returns {@code true} if nodeScopeIndex full text values need to be indexed at node level (:fulltext)
      */
-    protected boolean isFulltextValuePersisted() {
+    protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
+        // By default nodeScopeIndex full text values need to be indexed.
         return true;
     }
 
