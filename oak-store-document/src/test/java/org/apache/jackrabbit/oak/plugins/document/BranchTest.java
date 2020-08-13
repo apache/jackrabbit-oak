@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -93,7 +92,6 @@ public class BranchTest {
     }
 
     @Test
-    @Ignore
     public void rootBranchCommitChildTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
@@ -110,7 +108,6 @@ public class BranchTest {
     }
 
     @Test
-    @Ignore
     public void childBranchCommitChildTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
@@ -131,7 +128,6 @@ public class BranchTest {
     }
 
     @Test
-    @Ignore
     public void manyBranchCommitsDepthTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
@@ -160,7 +156,6 @@ public class BranchTest {
     }
 
     @Test
-    @Ignore
     public void manyBranchCommitsWidthTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
@@ -189,7 +184,6 @@ public class BranchTest {
     }
 
     @Test
-    @Ignore
     public void mixedPre18BranchTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()

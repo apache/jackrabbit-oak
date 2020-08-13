@@ -87,15 +87,13 @@ public class BranchCommitTestHelper {
 
         // optional step 6 : simulate an upgrade to post 1.8 without a fix yet
         if (simulatePreFixUpgrade) {
-            //TODO: uncomment:
-//            NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED;
+            NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED;
             ns = newBuilder
                     .setClusterId(1)
                     .setDocumentStore(memStore).build();
             ns.dispose();
             // put back the fix asap
-            //TODO: uncomment:
-//            NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
+            NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
 
             // OPEN QUESTION: does it need a sweep and what manages that the sweep was applied
             // FOR NOW : remove "_sweepRev"
