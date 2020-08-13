@@ -307,4 +307,11 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
         assertTrue(pwdNode.getProperty(REP_PWD_HISTORY).isArray());
         assertTrue(pwdNode.getProperty(REP_PWD_HISTORY).getType().isArray());
     }
+
+    @Test
+    public void testUpdateMissingPwHash() throws Exception {
+        User u = getUserManager(root).createUser("uid", null);
+        PasswordHistory ph = new PasswordHistory(ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE+1));
+        assertFalse(ph.updatePasswordHistory(root.getTree(u.getPath()), "pw"));
+    }
 }
