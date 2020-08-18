@@ -482,6 +482,18 @@ weight
   See [OAK-6735][OAK-6735] for details.
 : Since 1.10: the default value is now `5`.
   See [OAK-7379][OAK-7379] for details.
+  
+sync
+: Since 1.8.0, [OAK-6535]
+: Changes to the content are available in the index as soon as they are committed.
+  Requires "propertyIndex=true".
+  Relative properties and notNullCheckEnabled are not supported.
+: See [synchronous Lucene property indexes][synchronous-lucene-property-indexes] for details.
+
+unique
+: Since 1.8.0, [OAK-6535]
+: Requires "sync=true". Enforces unique property values in the content.
+: See [synchronous Lucene property indexes][synchronous-lucene-property-indexes] for details.
 
 <a name="property-names"></a>**Property Names**
 
@@ -2140,6 +2152,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [OAK-5187]: https://issues.apache.org/jira/browse/OAK-5187
 [OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
+[OAK-6535]: https://issues.apache.org/jira/browse/OAK-6535
 [OAK-6735]: https://issues.apache.org/jira/browse/OAK-6735
 [OAK-7379]: https://issues.apache.org/jira/browse/OAK-7379
 [OAK-7739]: https://issues.apache.org/jira/browse/OAK-7739
@@ -2157,3 +2170,4 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
 [score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
 [oak-lucene]: http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/
+[synchronous-lucene-property-indexes]: http://jackrabbit.apache.org/archive/wiki/JCR/Synchronous-Lucene-Property-Indexes_115513516.html
