@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSuggestionCommonTest;
+import org.junit.After;
 import org.junit.ClassRule;
 
 import javax.jcr.Repository;
+import java.io.IOException;
 
 public class ElasticIndexDescendantSuggestionCommonTest extends IndexDescendantSuggestionCommonTest {
 
@@ -41,5 +43,13 @@ public class ElasticIndexDescendantSuggestionCommonTest extends IndexDescendantS
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
         return jcr.createRepository();
+    }
+
+    /**
+     * Close the ES connection after every test method execution
+     */
+    @After
+    public void cleanup() throws IOException {
+        elasticRule.closeElasticConnection();
     }
 }

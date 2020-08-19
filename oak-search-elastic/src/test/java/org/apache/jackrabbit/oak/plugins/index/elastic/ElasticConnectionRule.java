@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import com.github.dockerjava.api.DockerClient;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.client.RequestOptions;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -123,6 +125,7 @@ public class ElasticConnectionRule extends ExternalResource {
 
     public void closeElasticConnection() throws IOException {
         if (elasticConnection != null) {
+            elasticConnection.getClient().indices().delete(new DeleteIndexRequest(elasticConnection.getIndexPrefix() + "*"), RequestOptions.DEFAULT);
             elasticConnection.close();
             // Make this object null otherwise tests after the first test would
             // receive an client that is closed.

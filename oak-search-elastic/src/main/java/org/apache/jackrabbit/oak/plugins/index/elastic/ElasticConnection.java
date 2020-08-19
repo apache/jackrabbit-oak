@@ -239,7 +239,7 @@ public class ElasticConnection implements Closeable {
             @Override
             public ElasticConnection build() {
                 return new ElasticConnection(
-                        Objects.requireNonNull(indexPrefix, "indexPrefix must be not null"),
+                        Objects.requireNonNull(ElasticIndexNameHelper.getElasticSafeName(indexPrefix), "indexPrefix must be not null"),
                         Objects.requireNonNull(scheme, "scheme must be not null"),
                         Objects.requireNonNull(host, "host must be not null"),
                         Objects.requireNonNull(port, "port must be not null"),

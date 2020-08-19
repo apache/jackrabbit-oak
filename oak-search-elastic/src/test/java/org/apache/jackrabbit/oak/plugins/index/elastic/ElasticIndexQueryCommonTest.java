@@ -20,7 +20,10 @@ import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.IndexQueryCommonTest;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.junit.After;
 import org.junit.ClassRule;
+
+import java.io.IOException;
 
 public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
@@ -43,5 +46,13 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         elasticTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
         repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();
+    }
+
+    /**
+     * Close the ES connection after every test method execution
+     */
+    @After
+    public void cleanup() throws IOException {
+        elasticRule.closeElasticConnection();
     }
 }

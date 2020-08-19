@@ -20,7 +20,10 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.plugins.index.StrictPathRestrictionEnableCommonTest;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.junit.After;
 import org.junit.ClassRule;
+
+import java.io.IOException;
 
 public class ElasticStrictPathRestrictionEnableCommonTest extends StrictPathRestrictionEnableCommonTest {
 
@@ -42,5 +45,13 @@ public class ElasticStrictPathRestrictionEnableCommonTest extends StrictPathRest
         elasticTestRepositoryBuilder.setQueryEngineSettings(queryEngineSettings);
         repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();
+    }
+
+    /**
+     * Close the ES connection after every test method execution
+     */
+    @After
+    public void cleanup() throws IOException {
+        elasticRule.closeElasticConnection();
     }
 }

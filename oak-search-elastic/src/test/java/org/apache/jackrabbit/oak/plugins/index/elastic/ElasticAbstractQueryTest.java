@@ -67,7 +67,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     // needs authentication
     // Do not set this if docker is running and you want to run the tests on docker instead.
     private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
-    private ElasticConnection esConnection;
+    protected ElasticConnection esConnection;
 
     // This is instantiated during repo creation but not hooked up to the async indexing lane
     // This can be used by the extending classes to trigger the async index update as per need (not having to wait for async indexing cycle)
