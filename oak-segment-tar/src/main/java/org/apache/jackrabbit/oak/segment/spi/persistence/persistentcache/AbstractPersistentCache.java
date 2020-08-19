@@ -29,9 +29,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -45,13 +46,13 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
     protected ExecutorService executor;
     protected AtomicLong cacheSize = new AtomicLong(0);
     protected PersistentCache nextCache;
-    protected final HashSet<String> writesPending;
+    protected final Set<String> writesPending;
 
     protected SegmentCacheStats segmentCacheStats;
 
     public AbstractPersistentCache() {
         executor = Executors.newFixedThreadPool(THREADS);
-        writesPending = new HashSet<>();
+        writesPending = ConcurrentHashMap.newKeySet();
     }
 
     public PersistentCache linkWith(AbstractPersistentCache nextCache) {
@@ -139,20 +140,6 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
     }
 
     public int getWritesPending() {
-        synchronized (writesPending) {
-            return writesPending.size();
-        }
-    }
-
-    protected boolean lockSegmentWrite(String segmentId) {
-        synchronized (writesPending) {
-            return writesPending.add(segmentId);
-        }
-    }
-
-    protected void unlockSegmentWrite(String segmentId) {
-        synchronized (writesPending) {
-            writesPending.remove(segmentId);
-        }
+        return writesPending.size();
     }
 }

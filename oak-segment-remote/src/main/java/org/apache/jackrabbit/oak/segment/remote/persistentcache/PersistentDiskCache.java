@@ -138,7 +138,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         Buffer bufferCopy = buffer.duplicate();
 
         Runnable task = () -> {
-            if (lockSegmentWrite(segmentId)) {
+            if (writesPending.add(segmentId)) {
                 try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
                     int fileSize = bufferCopy.write(channel);
                     try {
@@ -156,7 +156,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                         logger.error("Error while deleting corrupted segment file {}", segmentId, i);
                     }
                 } finally {
-                    unlockSegmentWrite(segmentId);
+                    writesPending.remove(segmentId);
                 }
             }
             cleanUp();

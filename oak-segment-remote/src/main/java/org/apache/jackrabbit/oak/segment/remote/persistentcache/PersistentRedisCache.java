@@ -165,7 +165,7 @@ public class PersistentRedisCache extends AbstractPersistentCache {
         Buffer bufferCopy = buffer.duplicate();
 
         Runnable task = () -> {
-            if (lockSegmentWrite(segmentId)) {
+            if (writesPending.add(segmentId)) {
                 final ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 try (WritableByteChannel channel = Channels.newChannel(bos); Jedis redis = redisPool.getResource()) {
                     while (bufferCopy.hasRemaining()) {
@@ -177,7 +177,7 @@ public class PersistentRedisCache extends AbstractPersistentCache {
                 } catch (Throwable t) {
                     logger.error("Error writing segment {} to cache: {}", segmentId, t);
                 } finally {
-                    unlockSegmentWrite(segmentId);
+                    writesPending.remove(segmentId);
                 }
             }
         };
