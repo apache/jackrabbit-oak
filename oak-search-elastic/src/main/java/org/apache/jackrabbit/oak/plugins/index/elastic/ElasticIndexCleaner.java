@@ -76,6 +76,21 @@ public class ElasticIndexCleaner implements Runnable {
     public void run() {
         try {
             NodeState root = nodeStore.getRoot();
+            Set<String> existingIndices = new HashSet<>();
+            root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries().forEach(childNodeEntry -> {
+                PropertyState typeProperty = childNodeEntry.getNodeState().getProperty(IndexConstants.TYPE_PROPERTY_NAME);
+                if (typeProperty != null && typeProperty.getValue(Type.STRING).equals(ElasticIndexDefinition.TYPE_ELASTICSEARCH)) {
+                    String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + childNodeEntry.getName();
+                    String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, childNodeEntry.getNodeState(), indexPath);
+                    if (remoteIndexName != null) {
+                        existingIndices.add(remoteIndexName);
+                    }
+                }
+            });
+            if (existingIndices.isEmpty()) {
+                LOG.debug("No elastic indices found in the repository.");
+                return;
+            }
             GetIndexRequest getIndexRequest = new GetIndexRequest(elasticConnection.getIndexPrefix() + "*")
                     .indicesOptions(IndicesOptions.lenientExpandOpen());
             String[] remoteIndices = elasticConnection.getClient().indices()
@@ -88,17 +103,7 @@ public class ElasticIndexCleaner implements Runnable {
             List<String> externallyDeletedIndices = danglingRemoteIndicesMap.keySet().stream().
                     filter(index -> Arrays.stream(remoteIndices).noneMatch(remoteIndex -> remoteIndex.equals(index))).collect(Collectors.toList());
             externallyDeletedIndices.forEach(danglingRemoteIndicesMap::remove);
-            Set<String> existingIndices = new HashSet<>();
-            root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNodeEntries().forEach(childNodeEntry -> {
-                PropertyState typeProperty = childNodeEntry.getNodeState().getProperty(IndexConstants.TYPE_PROPERTY_NAME);
-                if (typeProperty != null && typeProperty.getValue(Type.STRING).equals(ElasticIndexDefinition.TYPE_ELASTICSEARCH)) {
-                    String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + childNodeEntry.getName();
-                    String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(indexPrefix, childNodeEntry.getNodeState(), indexPath);
-                    if (remoteIndexName != null) {
-                        existingIndices.add(remoteIndexName);
-                    }
-                }
-            });
+
 
             List<String> indicesToDelete = new ArrayList<>();
             for (String remoteIndexName : remoteIndices) {
