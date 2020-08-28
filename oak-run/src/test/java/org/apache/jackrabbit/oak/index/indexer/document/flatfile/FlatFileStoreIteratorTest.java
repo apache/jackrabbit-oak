@@ -62,37 +62,38 @@ public class FlatFileStoreIteratorTest {
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
                 "/a/d", "/e", "/e/e"));
 
-        FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred);
-        NodeStateEntry a = fitr.next();
-        assertEquals("/a", a.getPath());
+        try (FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred)) {
+            NodeStateEntry a = fitr.next();
+            assertEquals("/a", a.getPath());
 
-        NodeState ns1 = a.getNodeState().getChildNode("jcr:content");
-        assertEquals("/a/jcr:content", ns1.getString("path"));
-        assertEquals(1, fitr.getBufferSize());
+            NodeState ns1 = a.getNodeState().getChildNode("jcr:content");
+            assertEquals("/a/jcr:content", ns1.getString("path"));
+            assertEquals(1, fitr.getBufferSize());
 
-        NodeState ns2 = ns1.getChildNode("metadata");
-        assertEquals("/a/jcr:content/metadata", ns2.getString("path"));
-        assertEquals(2, fitr.getBufferSize());
+            NodeState ns2 = ns1.getChildNode("metadata");
+            assertEquals("/a/jcr:content/metadata", ns2.getString("path"));
+            assertEquals(2, fitr.getBufferSize());
 
-        NodeStateEntry nse1 = fitr.next();
-        assertEquals("/a/jcr:content", nse1.getPath());
+            NodeStateEntry nse1 = fitr.next();
+            assertEquals("/a/jcr:content", nse1.getPath());
 
-        NodeStateEntry nse2 = fitr.next();
-        assertEquals("/a/jcr:content/metadata", nse2.getPath());
+            NodeStateEntry nse2 = fitr.next();
+            assertEquals("/a/jcr:content/metadata", nse2.getPath());
 
-        NodeStateEntry nse3 = fitr.next();
-        assertEquals("/a/d", nse3.getPath());
-        assertEquals(0, nse3.getNodeState().getChildNodeCount(100));
+            NodeStateEntry nse3 = fitr.next();
+            assertEquals("/a/d", nse3.getPath());
+            assertEquals(0, nse3.getNodeState().getChildNodeCount(100));
 
-        NodeStateEntry nse4 = fitr.next();
-        assertEquals("/e", nse4.getPath());
-        assertEquals(1, nse4.getNodeState().getChildNodeCount(100));
+            NodeStateEntry nse4 = fitr.next();
+            assertEquals("/e", nse4.getPath());
+            assertEquals(1, nse4.getNodeState().getChildNodeCount(100));
 
-        NodeStateEntry nse5 = fitr.next();
-        assertEquals("/e/e", nse5.getPath());
-        assertEquals(0, nse5.getNodeState().getChildNodeCount(100));
+            NodeStateEntry nse5 = fitr.next();
+            assertEquals("/e/e", nse5.getPath());
+            assertEquals(0, nse5.getNodeState().getChildNodeCount(100));
 
-        assertFalse(fitr.hasNext());
+            assertFalse(fitr.hasNext());
+        }
     }
 
     @Test
@@ -101,26 +102,26 @@ public class FlatFileStoreIteratorTest {
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata",
                 "/a/d", "/e"));
 
-        FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred);
-        NodeStateEntry a = fitr.next();
-        assertEquals("/a", a.getPath());
+        try (FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred)) {
+            NodeStateEntry a = fitr.next();
+            assertEquals("/a", a.getPath());
 
-        NodeState ns1 = a.getNodeState().getChildNode("jcr:content");
+            NodeState ns1 = a.getNodeState().getChildNode("jcr:content");
 
-        NodeStateEntry nse1 = fitr.next();
-        assertEquals("/a/jcr:content", nse1.getPath());
-        assertEquals(1, nse1.getNodeState().getChildNodeCount(100));
+            NodeStateEntry nse1 = fitr.next();
+            assertEquals("/a/jcr:content", nse1.getPath());
+            assertEquals(1, nse1.getNodeState().getChildNodeCount(100));
 
-        //Now move past /a/jcr:content
-        NodeStateEntry nse2 = fitr.next();
-        assertEquals("/a/jcr:content/metadata", nse2.getPath());
+            //Now move past /a/jcr:content
+            NodeStateEntry nse2 = fitr.next();
+            assertEquals("/a/jcr:content/metadata", nse2.getPath());
 
-        try {
-            //Now access from /a/jcr:content node should fail
-            ns1.getChildNodeCount(100);
-            fail("Access should have failed");
-        } catch (IllegalStateException ignore) {
-
+            try {
+                //Now access from /a/jcr:content node should fail
+                ns1.getChildNodeCount(100);
+                fail("Access should have failed");
+            } catch (IllegalStateException ignore) {
+            }
         }
     }
 
@@ -131,19 +132,19 @@ public class FlatFileStoreIteratorTest {
 
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/j:c", "/a/j:c/j:c", "/a/b"));
 
-        FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred);
+        try (FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred)) {
+            NodeStateEntry a = fitr.next();
+            assertEquals("/a", a.getPath());
 
-        NodeStateEntry a = fitr.next();
-        assertEquals("/a", a.getPath());
+            NodeState aNS = a.getNodeState();
 
-        NodeState aNS = a.getNodeState();
-
-        // fake aggregate rule like "j:c/*"
-        for (ChildNodeEntry cne : aNS.getChildNodeEntries()) {
-            NodeState childNS = cne.getNodeState();
-            // read preferred names for aggregation sub-tree nodes
-            for (String prefName : preferred) {
-                childNS.getChildNode(prefName);
+            // fake aggregate rule like "j:c/*"
+            for (ChildNodeEntry cne : aNS.getChildNodeEntries()) {
+                NodeState childNS = cne.getNodeState();
+                // read preferred names for aggregation sub-tree nodes
+                for (String prefName : preferred) {
+                    childNS.getChildNode(prefName);
+                }
             }
         }
     }
@@ -156,19 +157,20 @@ public class FlatFileStoreIteratorTest {
 
         CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/b", "/a/c"));
 
-        FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred);
+        try (FlatFileStoreIterator fitr = newFlatFileStore(citr.iterator(), preferred)) {
 
-        NodeStateEntry a = fitr.next();
-        assertEquals("/a", a.getPath());
+            NodeStateEntry a = fitr.next();
+            assertEquals("/a", a.getPath());
 
-        NodeState aNS = a.getNodeState();
-        aNS.getChildNode("j:c");
+            NodeState aNS = a.getNodeState();
+            aNS.getChildNode("j:c");
 
-        // Don't read whole tree to conclude that "j:c" doesn't exist (reading /a/b should imply that it doesn't exist)
-        assertEquals(1, fitr.getBufferSize());
+            // Don't read whole tree to conclude that "j:c" doesn't exist (reading /a/b should imply that it doesn't exist)
+            assertEquals(1, fitr.getBufferSize());
 
-        // read remaining entries to trigger release of resources
-        Iterators.size(fitr);
+            // read remaining entries to trigger release of resources
+            Iterators.size(fitr);
+        }
     }
 
     @Test
