@@ -189,6 +189,9 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
         AdvanceFulltextQueryIndex {
 
+    private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
+    private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
+
     private static double MIN_COST = 2.1;
 
     private static final Logger LOG = LoggerFactory
@@ -427,7 +430,18 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
-                        while (true) {
+                        long startLoop = System.currentTimeMillis();
+                        for (int repeated = 0;; repeated++) {
+                            if (repeated > 0) {
+                                long now = System.currentTimeMillis();
+                                if (now > startLoop + LOAD_DOCS_WARN) {
+                                    LOG.warn("loadDocs lastDoc {} repeated {} times for query {}", lastDoc, repeated, query);
+                                    if (repeated > 1 && now > startLoop + LOAD_DOCS_STOP) {
+                                        LOG.error("loadDocs stops", new Exception());
+                                        break;
+                                    }
+                                }
+                            }
                             if (lastDoc != null) {
                                 LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
                                 if (sort == null) {
