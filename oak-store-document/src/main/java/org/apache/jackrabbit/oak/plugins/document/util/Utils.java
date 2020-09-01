@@ -109,7 +109,7 @@ public class Utils {
     };
 
     /**
-     * A predicate for property and _deleted names.
+     * A predicate for property, _deleted, _commitRoot or _revisions names.
      */
     public static final Predicate<String> PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS = new Predicate<String>() {
         @Override
@@ -119,7 +119,7 @@ public class Utils {
     };
 
     /**
-     * A predicate for property and _deleted names.
+     * A predicate for _commitRoot and _revisions names.
      */
     public static final Predicate<String> COMMITROOT_OR_REVISIONS = new Predicate<String>() {
         @Override
