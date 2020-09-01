@@ -57,6 +57,8 @@ final class NodeDocumentSweeper2 {
 
     private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentSweeper2.class);
 
+    private static final int YIELD_SIZE = 500;
+
     private static final int INVALIDATE_BATCH_SIZE = 100;
 
     private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
@@ -173,8 +175,21 @@ final class NodeDocumentSweeper2 {
             final Iterable<NodeDocument> docs) {
         return filter(transform(docs,
                 new Function<NodeDocument, Map.Entry<Path, UpdateOp>>() {
+
+            int yieldCnt = 0;
+            long lastYield = System.currentTimeMillis();
+
             @Override
             public Map.Entry<Path, UpdateOp> apply(NodeDocument doc) {
+                if (++yieldCnt >= YIELD_SIZE) {
+                    try {
+                        Thread.sleep(Math.max(1, System.currentTimeMillis() - lastYield));
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                    lastYield = System.currentTimeMillis();
+                    yieldCnt = 0;
+                }
                 return immutableEntry(doc.getPath(), sweepOne(doc));
             }
         }), new Predicate<Map.Entry<Path, UpdateOp>>() {
