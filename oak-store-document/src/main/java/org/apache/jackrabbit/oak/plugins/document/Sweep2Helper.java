@@ -149,20 +149,8 @@ public class Sweep2Helper {
         }
     
         // another instance marked as sweeping - check to see if it is still active or it might have crashed
-        ClusterViewDocument clusterViewDoc = ClusterViewDocument.doRead(ns);
-        if (clusterViewDoc == null) {
-            // no clusterView yet - we need to let the caller retry later.
-            // this can happen if the DocumentDiscoveryLiteService wasn't
-            // activated yet or its BackgroundWorker didn't get to
-            // check the view/update it yet.
-            // since that is an async operation, this is a legitimate situation.
-            // but instead of retrying within this method, we leave that to the
-            // caller of this method - hence returning that special value of 0 here.
-            LOG.info("acquireSweep2LockIfNecessary : no clusterView yet, need to determine status later");
-            return 0;
-        }
-    
-        if (clusterViewDoc.getActiveIds().contains(lockClusterId)) {
+        if (ClusterNodeInfoDocument.all(ns.getDocumentStore()).stream()
+                .anyMatch(info -> info.getClusterId() == lockClusterId && info.isActive())) {
             // then another instance is busy sweep2-ing, which is fine.
             // but we should continue monitoring until that other instance is done
             LOG.debug("acquireSweep2LockIfNecessary : another instance (id {}) is (still) busy doing a sweep2.",
