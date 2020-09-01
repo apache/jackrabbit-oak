@@ -31,6 +31,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -78,8 +79,6 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
     private final String compositionType;
     private final boolean useAggregationFilter;
 
-    private List<String> nodePaths = new ArrayList<>();
-
     public PrinicipalBasedReadTest(int itemsToRead, int numberOfACEs, int subjectSize, boolean entriesForEachPrincipal, boolean testDefault, @NotNull String compositionType, boolean useAggregationFilter, boolean doReport) {
         super(false, itemsToRead, doReport, false);
 
@@ -124,15 +123,6 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
         }
 
         adminSession.save();
-    }
-
-    @Override
-    protected void visitingNode(Node node, int i) throws RepositoryException {
-        super.visitingNode(node, i);
-        String path = node.getPath();
-        if (!path.contains(AccessControlConstants.REP_POLICY)) {
-            nodePaths.add(path);
-        }
     }
 
     private void createForRotatingPrincipal(@NotNull JackrabbitAccessControlManager acMgr, @NotNull List<Privilege> allPrivileges) throws RepositoryException {
@@ -195,14 +185,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
     @Override
     protected void afterSuite() throws Exception {
         try {
-            UserManager userManager = ((JackrabbitSession) adminSession).getUserManager();
-            for (Principal p : subject.getPrincipals()) {
-                Authorizable a = userManager.getAuthorizable(p);
-                if (a != null) {
-                    a.remove();
-                }
-            }
-            adminSession.save();
+            Utils.removePrincipals(subject.getPrincipals(), adminSession);
         }  finally  {
             super.afterSuite();
         }

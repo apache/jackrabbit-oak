@@ -47,6 +47,8 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersT
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.CanReadNonExisting;
+import org.apache.jackrabbit.oak.benchmark.authorization.HasPermissionHasItemGetItemTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.HasPrivilegesHasItemGetItemTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.permission.EagerCacheSizeTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.HasItemGetItemIsModifiedTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.PermissionEvaluationTest;
@@ -255,6 +257,16 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getNumberOfInitialAce().value(options),
                                 benchmarkOptions.getNumberOfUsers().value(options),
                                 cacheSize,
+                                benchmarkOptions.getReport().value(options)),
+                        new HasPrivilegesHasItemGetItemTest(
+                                benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getNumberOfInitialAce().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getReport().value(options)),
+                        new HasPermissionHasItemGetItemTest(
+                                benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getNumberOfInitialAce().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
                                 benchmarkOptions.getReport().value(options)),
                         new ConcurrentReadDeepTreeTest(
                                 benchmarkOptions.getRunAsAdmin().value(options),

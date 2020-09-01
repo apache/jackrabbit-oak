@@ -29,6 +29,7 @@ public class HasItemGetItemIsModifiedTest extends PrinicipalBasedReadTest {
         super(itemsToRead, numberOfACEs, subjectSize, entriesForEachPrincipal, testDefault, compositionType, useAggregationFilter, doReport);
     }
 
+    @Override
     protected void randomRead(Session testSession, List<String> allPaths, int cnt) throws RepositoryException {
         boolean logout = false;
         if (testSession == null) {
