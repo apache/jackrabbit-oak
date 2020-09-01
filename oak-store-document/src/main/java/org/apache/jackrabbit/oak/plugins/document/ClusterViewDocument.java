@@ -376,7 +376,7 @@ class ClusterViewDocument {
      * internal reader of an existing clusterView document from the settings
      * collection
      **/
-    static ClusterViewDocument doRead(DocumentNodeStore documentNodeStore) {
+    private static ClusterViewDocument doRead(DocumentNodeStore documentNodeStore) {
         DocumentStore documentStore = documentNodeStore.getDocumentStore();
         Document doc = documentStore.find(Collection.SETTINGS, "clusterView",
                 -1 /* -1; avoid caching */);
@@ -481,15 +481,6 @@ class ClusterViewDocument {
     /** Returns the set of inactive ids of this cluster view **/
     Set<Integer> getInactiveIds() {
         return new HashSet<Integer>(Arrays.asList(inactiveIds));
-    }
-
-    /** Returns the set of active, recovering and inactive ids of this cluster view **/
-    Set<Integer> getAllIds() {
-        Set<Integer> result = new HashSet<>();
-        result.addAll(getActiveIds());
-        result.addAll(getRecoveringIds());
-        result.addAll(getInactiveIds());
-        return result;
     }
 
     /** Returns the history map **/
