@@ -2564,7 +2564,7 @@ public final class DocumentNodeStore
 
         // at this point we did properly acquire a lock and can go ahead doing sweep2
         LOG.info("backgroundSweep2: starting sweep2.");
-        int num = forceBackgroundSweep2(new Revision(0, 0, clusterId));
+        int num = forceBackgroundSweep2();
         LOG.info("backgroundSweep2: finished sweep2, num swept=" + num);
 
         // release the lock.
@@ -2579,7 +2579,8 @@ public final class DocumentNodeStore
         return true;
     }
 
-    private int forceBackgroundSweep2(Revision startRev) throws DocumentStoreException {
+    private int forceBackgroundSweep2() throws DocumentStoreException {
+        final Revision startRev = new Revision(0, 0, clusterId);
         final RevisionVector emptySweepRevision = new RevisionVector();
         CommitValueResolver cvr = new CachingCommitValueResolver(8*1024, () -> emptySweepRevision);
         NodeDocumentSweeper2 sweeper = new NodeDocumentSweeper2(this, cvr, false);
