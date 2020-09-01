@@ -123,11 +123,9 @@ final class NodeDocumentSweeper2 {
      *
      * @param documents the documents to sweep
      * @param listener the listener to receive required sweep update operations.
-     * @return the new sweep revision or {@code null} if no updates were done.
      * @throws DocumentStoreException if reading from the store or writing to
      *          the store failed.
      */
-    @Nullable
     void sweep(@NotNull Iterable<NodeDocument> documents,
                    @NotNull NodeDocumentSweepListener listener)
             throws DocumentStoreException {
