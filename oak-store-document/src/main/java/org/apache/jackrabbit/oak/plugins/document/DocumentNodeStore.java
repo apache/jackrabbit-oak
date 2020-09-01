@@ -350,6 +350,12 @@ public final class DocumentNodeStore
     private Thread backgroundSweepThread;
 
     /**
+     * Extra, one-off sweep2 background task for fixing OAK-9176 ie missing _bc
+     * on parents and root.
+     */
+    private Thread backgroundSweep2Thread;
+
+    /**
      * The sweep revision vector. Revisions for trunk commits older than this
      * can safely be considered committed without looking up the commit value
      * on the commit root document.
@@ -710,6 +716,38 @@ public final class DocumentNodeStore
             // triggering sweep
             runBackgroundUpdateOperations();
 
+            // check if we need a sweep2 *before* doing a backgroundSweep.
+            // this enables us to detect a direct Oak <= 1.6 upgrade situation,
+            // where a sweep2 is *not* needed.
+
+            // there are 3 different cases with sweep[1]/sweep2:
+            // 1) Oak <= 1.6 direct upgrade:
+            //    -> no sweep2 is needed as a sweep1 is needed anyway and sweep2
+            //       from now on happens as part of it (with the OAK-9176 fix)
+            // 2) Oak >= 1.8 which never did an Oak <= 1.6 upgrade:
+            //    -> no sweep2 is needed as OAK-9176 doesn't apply (the repository
+            //       never ran <= 1.6)
+            // 3) Oak >= 1.8 which was previously doing an Oak <= 1.6 upgrade:
+            //    -> A (full) sweep2 is needed. This is the main case of OAK-9176.
+
+            // In case 3 there is a valid, recent "_sweepRev" - and
+            // we can go ahead and do a "quick" backgroundSweep() here
+            // before continuing, to unblock the startup.
+            // After that, an async/background task is started for sweep2.
+
+            // which of cases 1-3 we have is determined via 'sweep2LockIfNecessary'
+            // and recorded in the settings collection.
+
+            // except for this case detection (which acquires a "sweep2 lock" if needed)
+            // we can otherwise continue normally. That means, a sweep1 can
+            // be considered as usual.
+            // Note that for case 3, doing this normal sweep1 can now also
+            // fix some "_bc" - which before OAK-9176 were missing
+            // and which sweep2 would separately fix as well - but this is not a problem.
+
+            // So: acquire sweep2 if one is necessary (check if it necessary)
+            long sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(this, clusterId, true);
+
             // perform an initial document sweep if needed
             // this may be long running if there is no sweep revision
             // for this clusterId (upgrade from Oak <= 1.6).
@@ -718,6 +756,15 @@ public final class DocumentNodeStore
 
             backgroundUpdateThread.start();
             backgroundSweepThread.start();
+
+            if (sweep2Lock >= 0) {
+                // sweep2 is necessary - so start a sweep2 background task
+                backgroundSweep2Thread = new Thread(
+                        new BackgroundSweep2Operation(this, isDisposed, sweep2Lock),
+                        "DocumentNodeStore background sweep2 thread " + threadNamePostfix);
+                backgroundSweep2Thread.setDaemon(true);
+                backgroundSweep2Thread.start();
+            }
         }
 
         persistentCache = builder.getPersistentCache();
@@ -754,7 +801,8 @@ public final class DocumentNodeStore
 
         Utils.joinQuietly(backgroundReadThread,
                 backgroundUpdateThread,
-                backgroundSweepThread);
+                backgroundSweepThread,
+                backgroundSweep2Thread);
 
         DocumentStoreException ex = null;
 
@@ -2493,6 +2541,114 @@ public final class DocumentNodeStore
 
     }
 
+    /**
+     * Executes the sweep2 (from within a background thread)
+     * @param sweep2Lock the lock value originally acquired
+     * @return true if sweep2 is done or no longer needed, false otherwise (in which case it should be retried)
+     * @throws DocumentStoreException
+     */
+    private boolean backgroundSweep2(long sweep2Lock) throws DocumentStoreException {
+        if (sweep2Lock == 0) {
+            sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(this, clusterId,
+                    false /* no check required as we know in backgroundSweep2 that it is necessary */);
+            if (sweep2Lock == 0) {
+                // still not well defined, retry in a minute (done in BackgroundSweep2Operation)
+                return false;
+            }
+            if (sweep2Lock == -1) {
+                // then we're done
+                return true;
+            }
+        }
+        // sweep2Lock > 0
+
+        // at this point we did properly acquire a lock and can go ahead doing sweep2
+        LOG.info("backgroundSweep2: starting sweep2.");
+        int num = forceBackgroundSweep2(new Revision(0, 0, clusterId));
+        LOG.info("backgroundSweep2: finished sweep2, num swept=" + num);
+
+        // release the lock.
+        // Note that in theory someone else could have released our lock, or that
+        // the sweep2 status was deleted - that actually doesn't matter:
+        // we just went through a full, successful sweep2 and we want to record it
+        // that way - irrespective of any interference with the status
+        // -> hence the 'force' aspect of releasing here
+        if (!Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, clusterId)) {
+            LOG.error("backgroundSweep2 : sweep2 finished but we failed to update the sweep2 status accordingly");
+        }
+        return true;
+    }
+
+    private int forceBackgroundSweep2(Revision startRev) throws DocumentStoreException {
+        final RevisionVector emptySweepRevision = new RevisionVector();
+        CommitValueResolver cvr = new CachingCommitValueResolver(8*1024, () -> emptySweepRevision);
+        NodeDocumentSweeper2 sweeper = new NodeDocumentSweeper2(this, cvr, false);
+        LOG.info("Starting document sweep2. Head: {}, starting at {}",
+                sweeper.getHeadRevision(), startRev);
+        Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(startRev.getTimestamp());
+        try {
+            final AtomicInteger numUpdates = new AtomicInteger();
+
+            sweeper.sweep(docs, new NodeDocumentSweepListener() {
+                @Override
+                public void sweepUpdate(final Map<Path, UpdateOp> updates)
+                        throws DocumentStoreException {
+                    // create a synthetic commit. this commit does not have any
+                    // changes, we just use it to create a journal entry for
+                    // cache invalidation and apply the sweep updates
+                    backgroundOperationLock.readLock().lock();
+                    try {
+                        boolean success = false;
+                        Revision r = commitQueue.createRevision();
+                        try {
+                            commitQueue.done(r, new CommitQueue.Callback() {
+                                @Override
+                                public void headOfQueue(@NotNull Revision revision) {
+                                    writeUpdates(updates, revision);
+                                }
+                            });
+                            success = true;
+                        } finally {
+                            if (!success && commitQueue.contains(r)) {
+                                commitQueue.canceled(r);
+                            }
+                        }
+                    } finally {
+                        backgroundOperationLock.readLock().unlock();
+                    }
+                }
+
+                private void writeUpdates(Map<Path, UpdateOp> updates,
+                                          Revision revision)
+                        throws DocumentStoreException {
+                    // create journal entry
+                    JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
+                    entry.modified(updates.keySet());
+                    Revision r = newRevision().asBranchRevision();
+                    if (!store.create(JOURNAL, singletonList(entry.asUpdateOp(r)))) {
+                        String msg = "Unable to create journal entry for " +
+                                "document invalidation. Will be retried with " +
+                                "next background sweep operation.";
+                        throw new DocumentStoreException(msg);
+                    }
+                    changes.invalidate(Collections.singleton(r));
+                    unsavedLastRevisions.put(ROOT, revision);
+                    RevisionVector newHead = getHeadRevision().update(revision);
+                    setRoot(newHead);
+                    commitQueue.headRevisionChanged();
+
+                    store.createOrUpdate(NODES, Lists.newArrayList(updates.values()));
+                    numUpdates.addAndGet(updates.size());
+                    LOG.debug("Background sweep updated {}", updates.keySet());
+                }
+            });
+
+            return numUpdates.get();
+        } finally {
+            Utils.closeIfCloseable(docs);
+        }
+    }
+
     private int backgroundSweep() throws DocumentStoreException {
         // decide if it needs to run
         Revision head = getHeadRevision().getRevision(clusterId);
@@ -3290,6 +3446,50 @@ public final class DocumentNodeStore
                 delay = (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
             }
             return Suppliers.ofInstance(delay);
+        }
+    }
+
+    /**
+     * Background sweep2 operation (also see OAK-9176 for details/context).
+     */
+    private static class BackgroundSweep2Operation extends NodeStoreTask {
+
+        private final long sweep2Lock;
+        private int retryCount = 0;
+
+        BackgroundSweep2Operation(DocumentNodeStore nodeStore,
+                                 AtomicBoolean isDisposed,
+                                 long sweep2Lock) {
+            // default asyncDelay is 1000ms == 1sec
+            // the sweep2 is fine to run every 60sec by default as it is not time critical
+            // to achieve this we're doing a Math.min(60sec, 60 * getAsyncDelay())
+            super(nodeStore, isDisposed,
+                    Suppliers.ofInstance(Math.min(60000, 60 * nodeStore.getAsyncDelay())));
+            if (sweep2Lock < 0) {
+                throw new IllegalArgumentException("sweep2Lock must not be negative");
+            }
+            this.sweep2Lock = sweep2Lock;
+        }
+
+        @Override
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
+            if (retryCount > 0) {
+                LOG.info("BackgroundSweep2Operation.execute: retrying sweep2. retryCount=" + retryCount);
+            }
+            if (nodeStore.backgroundSweep2(sweep2Lock)) {
+                done();
+            }
+            // log the fact that we noticed an ongoing sweep2 - is only logged once every 5min
+            // until either the other instance finishes or crashes, at which point we or another
+            // instance will pick up
+            if (++retryCount % 5 == 0) {
+                LOG.info("BackgroundSweep2Operation.execute: another instance is currently (still) executing sweep2. "
+                        + "Waiting for its outcome. retryCount=" + retryCount);
+            }
+        }
+
+        private void done() {
+            ref.clear();
         }
     }
 

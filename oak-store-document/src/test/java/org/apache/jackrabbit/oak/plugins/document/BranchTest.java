@@ -104,7 +104,7 @@ public class BranchTest {
 
         merge(ns, builder);
 
-        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test
@@ -124,7 +124,7 @@ public class BranchTest {
 
         merge(ns, builder);
 
-        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test
@@ -152,7 +152,7 @@ public class BranchTest {
 
         merge(ns, builder);
 
-        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test
@@ -180,7 +180,7 @@ public class BranchTest {
 
         merge(ns, builder);
 
-        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test
@@ -217,7 +217,7 @@ public class BranchTest {
 
         // step 4c: / also failed with a similar reason as the above, except the root
         //          only has changes in "_revisions" (not "_commitRoot")
-        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test
@@ -235,7 +235,7 @@ public class BranchTest {
                 .setDocumentStore(store).build();
         assertFalse(ns.getRoot().hasProperty("p"));
 
-        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test
@@ -272,7 +272,7 @@ public class BranchTest {
         assertNotNull(state);
         assertEquals("a", state.getString("p"));
 
-        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     private void assertModifiedPaths(Iterable<Path> actual, String... expected) {

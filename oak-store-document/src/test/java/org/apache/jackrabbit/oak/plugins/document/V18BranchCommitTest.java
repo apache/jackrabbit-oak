@@ -52,7 +52,7 @@ public class V18BranchCommitTest {
      */
     @After
     public void tearDownPiggybackTest() {
-        BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test

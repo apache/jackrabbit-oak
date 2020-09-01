@@ -16,20 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-
-import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.partition;
@@ -40,26 +26,44 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedE
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeRevision;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setDeletedOnce;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.COMMITROOT_OR_REVISIONS;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 
 /**
- * The {@code NodeDocumentSweeper} is responsible for removing uncommitted
- * changes from {@code NodeDocument}s for a given clusterId.
+ * The {@code NodeDocumentSweeper2} is used for the so-called sweep2, which is
+ * a repository traversal updating documents that have missing branch commit ("_bc") 
+ * properties (details see OAK-9176).
+ * This class is similar to NodeDocumentSweeper as it is based on the same principles,
+ * with a few notable exceptions (like it only looks at _commitRoot and _revisions etc).
+ * And due to these exceptions the class is forked rather than modified/subclasses
+ * (also to enable later refactoring of the NodeDocumentSweeper itself).
  * <p>
  * This class is not thread-safe.
  */
-final class NodeDocumentSweeper {
+final class NodeDocumentSweeper2 {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentSweeper.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentSweeper2.class);
 
     private static final int INVALIDATE_BATCH_SIZE = 100;
 
     private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
 
-    /** holds the Predicate actually used in sweepOne. This is modifiable ONLY FOR TESTING PURPOSE */
-    static Predicate<String> SWEEP_ONE_PREDICATE = PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
-
     private final RevisionContext context;
+
+    private final CommitValueResolver commitValueResolver;
 
     private final int clusterId;
 
@@ -73,6 +77,7 @@ final class NodeDocumentSweeper {
     private long lastCount;
     private long startOfScan;
     private long lastLog;
+
 
     /**
      * Creates a new sweeper for the given context. The sweeper is initialized
@@ -96,9 +101,11 @@ final class NodeDocumentSweeper {
      * @param sweepNewerThanHead whether uncommitted changes newer than the head
      *                 revision should be reverted.
      */
-    NodeDocumentSweeper(RevisionContext context,
+    NodeDocumentSweeper2(RevisionContext context,
+                        CommitValueResolver commitValueResolver,
                         boolean sweepNewerThanHead) {
         this.context = checkNotNull(context);
+        this.commitValueResolver = checkNotNull(commitValueResolver);
         this.clusterId = context.getClusterId();
         this.headRevision= context.getHeadRevision();
         this.sweepNewerThanHead = sweepNewerThanHead;
@@ -119,10 +126,10 @@ final class NodeDocumentSweeper {
      *          the store failed.
      */
     @Nullable
-    Revision sweep(@NotNull Iterable<NodeDocument> documents,
+    void sweep(@NotNull Iterable<NodeDocument> documents,
                    @NotNull NodeDocumentSweepListener listener)
             throws DocumentStoreException {
-        return performSweep(documents, checkNotNull(listener));
+        performSweep(documents, checkNotNull(listener));
     }
 
     /**
@@ -135,7 +142,7 @@ final class NodeDocumentSweeper {
     //----------------------------< internal >----------------------------------
 
     @Nullable
-    private Revision performSweep(Iterable<NodeDocument> documents,
+    private void performSweep(Iterable<NodeDocument> documents,
                                   NodeDocumentSweepListener listener)
             throws DocumentStoreException {
         head = headRevision.getRevision(clusterId);
@@ -148,7 +155,7 @@ final class NodeDocumentSweeper {
             LOG.warn("Head revision does not have an entry for " +
                             "clusterId {}. Sweeping of documents is skipped.",
                     clusterId);
-            return null;
+            return;
         }
 
         Iterable<Map.Entry<Path, UpdateOp>> ops = sweepOperations(documents);
@@ -160,7 +167,6 @@ final class NodeDocumentSweeper {
             listener.sweepUpdate(updates);
         }
         LOG.debug("Document sweep finished");
-        return head;
     }
 
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
@@ -186,14 +192,13 @@ final class NodeDocumentSweeper {
         // - DELETED : for new node (this)
         // - COMMITROOT : for new child (parent)
         // - REVISIONS : for commit roots (root for branch commits)
-        for (String property : filter(doc.keySet(), SWEEP_ONE_PREDICATE)) {
+        for (String property : filter(doc.keySet(), COMMITROOT_OR_REVISIONS)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();
-                // only consider change for this cluster node
-                if (rev.getClusterId() != clusterId) {
-                    continue;
-                }
+
+                // consider any clusterId for sweep2
+
                 Revision cRev = getCommitRevision(doc, rev);
                 if (cRev == null) {
                     uncommitted(doc, property, rev, op);
@@ -319,11 +324,16 @@ final class NodeDocumentSweeper {
         return new UpdateOp(doc.getId(), false);
     }
 
+    public String getCommitValue(@NotNull Revision changeRevision,
+            @NotNull NodeDocument doc) {
+        return commitValueResolver.resolve(changeRevision, doc);
+    }
+
     @Nullable
     private Revision getCommitRevision(final NodeDocument doc,
                                        final Revision rev)
             throws DocumentStoreException {
-        String cv = context.getCommitValue(rev, doc);
+        String cv = /*context.*/getCommitValue(rev, doc);
         if (cv == null) {
             return null;
         }

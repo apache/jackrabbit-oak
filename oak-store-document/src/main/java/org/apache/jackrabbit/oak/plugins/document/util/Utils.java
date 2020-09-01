@@ -118,6 +118,16 @@ public class Utils {
         }
     };
 
+    /**
+     * A predicate for property and _deleted names.
+     */
+    public static final Predicate<String> COMMITROOT_OR_REVISIONS = new Predicate<String>() {
+        @Override
+        public boolean apply(@Nullable String input) {
+            return isCommitRootEntry(input) || isRevisionsEntry(input);
+        }
+    };
+
     public static int pathDepth(String path) {
         if (path.equals("/")) {
             return 0;
@@ -995,7 +1005,9 @@ public class Utils {
     public static void joinQuietly(Thread... threads) {
         for (Thread t : threads) {
             try {
-                t.join();
+                if (t != null) {
+                    t.join();
+                }
             } catch (InterruptedException e) {
                 // ignore
             }

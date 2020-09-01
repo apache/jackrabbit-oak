@@ -68,10 +68,7 @@ public class BranchStateTest {
         }
         assertNotNull(store.find(Collection.NODES, testId));
 
-        // TODO: the test doesn't work here yet since there are uncommitted changes
-        // which the test removes as part of the upgrade-sweep simulation
-        // (so the test doesn't properly support uncommitted changes yet)
-        //BranchCommitTestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     private static final class FailingHook implements CommitHook {
