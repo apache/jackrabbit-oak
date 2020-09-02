@@ -136,7 +136,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {
-        return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed || pd.fulltextEnabled());
+        return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed);
     }
 
     @Override

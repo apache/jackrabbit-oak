@@ -142,6 +142,32 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         });
     }
 
+    @Test
+    public void propertyIndexWithNodeScopeIndexedQuery() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a", "b").async("async");
+        builder.indexRule("nt:base").property("a").nodeScopeIndex();
+        builder.indexRule("nt:base").property("b").nodeScopeIndex();
+
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("nodea").setProperty("a", "hello");
+        test.addChild("nodeb").setProperty("a", "world");
+        test.addChild("nodec").setProperty("a", "hello world");
+        Tree d = test.addChild("noded");
+        d.setProperty("a", "hello");
+        d.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')] ", XPATH, Arrays.asList("/test/nodea", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')] ", XPATH, Arrays.asList("/test/nodec", "/test/noded"));
+        });
+    }
+
     /*
         In ES we don't add a property data to :fulltext if both nodescope and analyzed is set on index. Instead we use a
         multimatch query with cross_fields
