@@ -2627,7 +2627,7 @@ public final class DocumentNodeStore
                     if (!store.create(JOURNAL, singletonList(entry.asUpdateOp(r)))) {
                         String msg = "Unable to create journal entry for " +
                                 "document invalidation. Will be retried with " +
-                                "next background sweep operation.";
+                                "next background sweep2 operation.";
                         throw new DocumentStoreException(msg);
                     }
                     changes.invalidate(Collections.singleton(r));

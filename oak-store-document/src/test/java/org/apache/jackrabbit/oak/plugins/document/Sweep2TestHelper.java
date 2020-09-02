@@ -22,8 +22,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
@@ -127,6 +131,7 @@ public class Sweep2TestHelper {
 
             assertBranchCommitsEqual(ns, ns.getSweepRevisions(), originalNode, actualNode);
         }
+        assertEquals(0, scanForMissingBranchCommits(ns).size());
     }
 
     private static boolean waitForSweep2Done(DocumentNodeStore ns, long maxWaitMillis) {
@@ -218,5 +223,31 @@ public class Sweep2TestHelper {
         NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
 
         return ns;
+    }
+
+    static List<Path> scanForMissingBranchCommits(DocumentNodeStore ns) {
+        List<NodeDocument> nodes = ns.getDocumentStore().query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
+        List<Path> paths = new LinkedList<>();
+        for (NodeDocument nodeDocument : nodes) {
+            if (containsMissingBranchCommit(ns, nodeDocument)) {
+                paths.add(nodeDocument.getPath());
+            }
+        }
+        return paths;
+    }
+
+    static boolean containsMissingBranchCommit(DocumentNodeStore ns, NodeDocument nodeDocument) {
+        final RevisionVector emptySweepRevision = new RevisionVector();
+        CommitValueResolver cvr = new CachingCommitValueResolver(8*1024, () -> emptySweepRevision);
+        MissingBcSweeper2 sweeper = new MissingBcSweeper2(ns, cvr);
+        final List<Map<Path, UpdateOp>> updatesList = new LinkedList<>();
+        sweeper.sweep(Arrays.asList(nodeDocument), new NodeDocumentSweepListener() {
+
+            @Override
+            public void sweepUpdate(Map<Path, UpdateOp> updates) throws DocumentStoreException {
+                updatesList.add(updates);
+            }
+        });
+        return !updatesList.isEmpty();
     }
 }
