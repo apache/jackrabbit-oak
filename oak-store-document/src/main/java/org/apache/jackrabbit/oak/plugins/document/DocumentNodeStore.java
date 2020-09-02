@@ -2580,13 +2580,11 @@ public final class DocumentNodeStore
     }
 
     private int forceBackgroundSweep2() throws DocumentStoreException {
-        final Revision startRev = new Revision(0, 0, clusterId);
         final RevisionVector emptySweepRevision = new RevisionVector();
         CommitValueResolver cvr = new CachingCommitValueResolver(8*1024, () -> emptySweepRevision);
         MissingBcSweeper2 sweeper = new MissingBcSweeper2(this, cvr);
-        LOG.info("Starting document sweep2. Head: {}, starting at {}",
-                this.getHeadRevision(), startRev);
-        Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(startRev.getTimestamp());
+        LOG.info("Starting document sweep2. Head: {}, starting at 0", getHeadRevision());
+        Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(0);
         try {
             final AtomicInteger numUpdates = new AtomicInteger();
 
