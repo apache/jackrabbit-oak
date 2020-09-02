@@ -105,7 +105,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
     }
 
 
-    private static boolean isClean(DocumentNodeStore ns, String path) {
+    static boolean isClean(DocumentNodeStore ns, String path) {
         // use find that also reads from the cache
         NodeDocument doc = ns.getDocumentStore().find(NODES, Utils.getIdFromPath(path));
         for (Revision c : doc.getAllChanges()) {
@@ -144,7 +144,7 @@ public class DocumentNodeStoreSweepIT extends AbstractTwoNodeTest {
         store.fail().never();
     }
 
-    private String createUncommittedChanges(DocumentNodeStore ns,
+    static String createUncommittedChanges(DocumentNodeStore ns,
                                           FailingDocumentStore store) throws Exception {
         ns.setMaxBackOffMillis(0);
         NodeBuilder builder = ns.getRoot().builder();

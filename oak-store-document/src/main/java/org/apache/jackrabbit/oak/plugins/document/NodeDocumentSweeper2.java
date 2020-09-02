@@ -22,10 +22,6 @@ import static com.google.common.collect.Iterables.partition;
 import static com.google.common.collect.Iterables.transform;
 import static com.google.common.collect.Maps.immutableEntry;
 import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeRevision;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setDeletedOnce;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.COMMITROOT_OR_REVISIONS;
 
 import java.util.List;
@@ -71,10 +67,6 @@ final class NodeDocumentSweeper2 {
 
     private final RevisionVector headRevision;
 
-    private final boolean sweepNewerThanHead;
-
-    private Revision head;
-
     private long totalCount;
     private long lastCount;
     private long startOfScan;
@@ -104,13 +96,11 @@ final class NodeDocumentSweeper2 {
      *                 revision should be reverted.
      */
     NodeDocumentSweeper2(RevisionContext context,
-                        CommitValueResolver commitValueResolver,
-                        boolean sweepNewerThanHead) {
+                        CommitValueResolver commitValueResolver) {
         this.context = checkNotNull(context);
         this.commitValueResolver = checkNotNull(commitValueResolver);
         this.clusterId = context.getClusterId();
         this.headRevision= context.getHeadRevision();
-        this.sweepNewerThanHead = sweepNewerThanHead;
     }
 
     /**
@@ -132,31 +122,16 @@ final class NodeDocumentSweeper2 {
         performSweep(documents, checkNotNull(listener));
     }
 
-    /**
-     * @return the head revision vector in use by this sweeper.
-     */
-    RevisionVector getHeadRevision() {
-        return headRevision;
-    }
-
     //----------------------------< internal >----------------------------------
 
     @Nullable
     private void performSweep(Iterable<NodeDocument> documents,
                                   NodeDocumentSweepListener listener)
             throws DocumentStoreException {
-        head = headRevision.getRevision(clusterId);
         totalCount = 0;
         lastCount = 0;
         startOfScan = context.getClock().getTime();
         lastLog = startOfScan;
-
-        if (head == null) {
-            LOG.warn("Head revision does not have an entry for " +
-                            "clusterId {}. Sweeping of documents is skipped.",
-                    clusterId);
-            return;
-        }
 
         Iterable<Map.Entry<Path, UpdateOp>> ops = sweepOperations(documents);
         for (List<Map.Entry<Path, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
@@ -199,7 +174,7 @@ final class NodeDocumentSweeper2 {
     }
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {
-        UpdateOp op = createUpdateOp(doc);
+        UpdateOp op = null;
         // go through PROPERTY_OR_DELETED_OR_COMMITROOT, whereas :
         // - PROPERTY : for content changes
         // - DELETED : for new node (this)
@@ -214,10 +189,17 @@ final class NodeDocumentSweeper2 {
 
                 Revision cRev = getCommitRevision(doc, rev);
                 if (cRev == null) {
-                    uncommitted(doc, property, rev, op);
+                    // originally the uncommitted case
+                    // however, sweep2 doesn't touch anything uncommitted
                 } else if (cRev.equals(rev)) {
-                    committed(property, rev, op);
+                    // originally the committed case
+                    // however, that was only logging and sweep2 is not about that,
+                    // hence nothing to be done here
                 } else {
+                    // this is what sweep2 is about : adding _bc for _commitRoot and _revisions
+                    if (op == null) {
+                        op = createUpdateOp(doc);
+                    }
                     committedBranch(doc, property, rev, cRev, op);
                 }
             }
@@ -245,51 +227,7 @@ final class NodeDocumentSweeper2 {
             lastCount = 0;
         }
 
-        return op.hasChanges() ? op : null;
-    }
-
-    private void uncommitted(NodeDocument doc,
-                             String property,
-                             Revision rev,
-                             UpdateOp op) {
-        if (head.compareRevisionTime(rev) < 0 && !sweepNewerThanHead) {
-            // ignore changes that happen after the
-            // head we are currently looking at
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Uncommitted change on {}, {} @ {} newer than head {} ",
-                        op.getId(), property, rev, head);
-            }
-            return;
-        }
-        if (isV18BranchCommit(rev, doc)) {
-            // this is a not yet merged branch commit
-            // -> do nothing
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Unmerged branch commit on {}, {} @ {}",
-                        op.getId(), property, rev);
-            }
-        } else {
-            // this may be a not yet merged branch commit, but since it
-            // wasn't created by this Oak version, it must be a left over
-            // from an old branch which cannot be merged anyway.
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Uncommitted change on {}, {} @ {}",
-                        op.getId(), property, rev);
-            }
-            op.removeMapEntry(property, rev);
-            if (doc.getLocalCommitRoot().containsKey(rev)) {
-                removeCommitRoot(op, rev);
-            } else {
-                removeRevision(op, rev);
-            }
-            // set _deletedOnce if uncommitted change is a failed create
-            // node operation and doc does not have _deletedOnce yet
-            if (isDeletedEntry(property)
-                    && !doc.wasDeletedOnce()
-                    && "false".equals(doc.getLocalDeleted().get(rev))) {
-                setDeletedOnce(op);
-            }
-        }
+        return op == null ? null : op.hasChanges() ? op : null;
     }
 
     /**
@@ -308,21 +246,12 @@ final class NodeDocumentSweeper2 {
         return doc.getLocalBranchCommits().contains(rev);
     }
 
-    private void committed(String property,
-                           Revision rev,
-                           UpdateOp op) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Committed change on {}, {} @ {}",
-                    op.getId(), property, rev);
-        }
-    }
-
     private void committedBranch(NodeDocument doc,
                                  String property,
                                  Revision rev,
                                  Revision cRev,
                                  UpdateOp op) {
-        boolean newerThanHead = cRev.compareRevisionTime(head) > 0;
+        boolean newerThanHead = headRevision.isRevisionNewer(cRev);
         if (LOG.isDebugEnabled()) {
             String msg = newerThanHead ? " (newer than head)" : "";
             LOG.debug("Committed branch change on {}, {} @ {}/{}{}",
@@ -337,7 +266,7 @@ final class NodeDocumentSweeper2 {
         return new UpdateOp(doc.getId(), false);
     }
 
-    public String getCommitValue(@NotNull Revision changeRevision,
+    private String getCommitValue(@NotNull Revision changeRevision,
             @NotNull NodeDocument doc) {
         return commitValueResolver.resolve(changeRevision, doc);
     }

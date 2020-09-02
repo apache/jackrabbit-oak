@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -197,13 +198,21 @@ public class Sweep2TestHelper {
     }
 
     static DocumentNodeStore applyPre18Aging(DocumentStore memStore, DocumentMKBuilderProvider builderProvider, int newClusterId) {
+        return applyPre18Aging(memStore, builderProvider, newClusterId, -1);
+    }
+
+    static DocumentNodeStore applyPre18Aging(DocumentStore memStore, DocumentMKBuilderProvider builderProvider, int newClusterId, int asyncDelay) {
         revertToPre18State(memStore);
 
         // mark as swept2 to avoid a proper sweep2, only makes sense for testing
         Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(memStore, 1);
 
         NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED;
-        DocumentNodeStore ns = builderProvider.newBuilder()
+        Builder builder = builderProvider.newBuilder();
+        if (asyncDelay != -1) {
+            builder.setAsyncDelay(asyncDelay);
+        }
+        DocumentNodeStore ns = builder
                 .setClusterId(newClusterId)
                 .setDocumentStore(memStore).build();
         NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;

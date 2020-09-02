@@ -110,6 +110,54 @@ public class Sweep2Test {
         assertTrue(isSweep2Necessary(ns2));
     }
 
+    @Test
+    public void testSweep2() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(0)
+                .setClusterId(1)
+                .setDocumentStore(store).build();
+        assertFalse(isSweep2Necessary(ns));
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a").child("b").child("c");
+        persistToBranch(builder);
+        merge(ns, builder);
+
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, builderProvider, 2, 0);
+        Sweep2TestHelper.removeSweep2Status(store);
+
+        builder = ns.getRoot().builder();
+        builder.child("d");
+        persistToBranch(builder);
+        assertFalse(DocumentNodeStoreSweepIT.isClean(ns2, "/d"));
+        assertTrue(DocumentNodeStoreSweepIT.isClean(ns2, "/a"));
+        assertTrue(ns2.backgroundSweep2(0));
+        assertFalse(DocumentNodeStoreSweepIT.isClean(ns2, "/d"));
+        assertTrue(DocumentNodeStoreSweepIT.isClean(ns2, "/a"));
+    }
+
+    @Test
+    public void testSweep2Uncommitted() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        FailingDocumentStore fStore = new FailingDocumentStore(store, 42);
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(0)
+                .setClusterId(1)
+                .setDocumentStore(fStore).build();
+        assertFalse(isSweep2Necessary(ns));
+
+        DocumentNodeStoreSweepIT.createUncommittedChanges(ns, fStore);
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, builderProvider, 2, 0);
+        Sweep2TestHelper.removeSweep2Status(store);
+
+        // node-1 is not committed
+        assertFalse(DocumentNodeStoreSweepIT.isClean(ns2, "/node-1"));
+        assertTrue(ns2.backgroundSweep2(0));
+        // doing a backgroundSweep2 should not change anything on node-1 though,
+        // so it should still not be clean
+        assertFalse(DocumentNodeStoreSweepIT.isClean(ns2, "/node-1"));
+    }
+
     /**
      * Another test for case 3 : a pre-1.8 repo was previously upgraded to 1.8, now comes OAK-9176
      * (This time with branch commits that are fine)

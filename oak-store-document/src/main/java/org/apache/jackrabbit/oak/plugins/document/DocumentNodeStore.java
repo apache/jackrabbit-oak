@@ -2547,7 +2547,7 @@ public final class DocumentNodeStore
      * @return true if sweep2 is done or no longer needed, false otherwise (in which case it should be retried)
      * @throws DocumentStoreException
      */
-    private boolean backgroundSweep2(long sweep2Lock) throws DocumentStoreException {
+    boolean backgroundSweep2(long sweep2Lock) throws DocumentStoreException {
         if (sweep2Lock == 0) {
             sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(this, clusterId,
                     false /* no check required as we know in backgroundSweep2 that it is necessary */);
@@ -2583,9 +2583,9 @@ public final class DocumentNodeStore
         final Revision startRev = new Revision(0, 0, clusterId);
         final RevisionVector emptySweepRevision = new RevisionVector();
         CommitValueResolver cvr = new CachingCommitValueResolver(8*1024, () -> emptySweepRevision);
-        NodeDocumentSweeper2 sweeper = new NodeDocumentSweeper2(this, cvr, false);
+        NodeDocumentSweeper2 sweeper = new NodeDocumentSweeper2(this, cvr);
         LOG.info("Starting document sweep2. Head: {}, starting at {}",
-                sweeper.getHeadRevision(), startRev);
+                this.getHeadRevision(), startRev);
         Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(startRev.getTimestamp());
         try {
             final AtomicInteger numUpdates = new AtomicInteger();
