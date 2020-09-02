@@ -244,8 +244,6 @@ public class Sweep2Test {
     }
 
     @Test
-    //TODO
-    @Ignore(value="TODO: currently fails due to split documents having missing _bc")
     public void largeBranchCommitsWidthTest() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()

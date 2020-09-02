@@ -229,6 +229,13 @@ public class Sweep2TestHelper {
         List<NodeDocument> nodes = ns.getDocumentStore().query(Collection.NODES, NodeDocument.MIN_ID_VALUE, NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
         List<Path> paths = new LinkedList<>();
         for (NodeDocument nodeDocument : nodes) {
+            if (nodeDocument.isSplitDocument()) {
+                // as per MissingLastRevSeeker.getCandidates only documents
+                // with a MODIFIED_IN_SECS (_modified) are considered for sweeping.
+                // split documents do not contain that, so they are not part of sweeping.
+                // hence we should filter those out for the test here
+                continue;
+            }
             if (containsMissingBranchCommit(ns, nodeDocument)) {
                 paths.add(nodeDocument.getPath());
             }
@@ -238,7 +245,9 @@ public class Sweep2TestHelper {
 
     static boolean containsMissingBranchCommit(DocumentNodeStore ns, NodeDocument nodeDocument) {
         final RevisionVector emptySweepRevision = new RevisionVector();
-        CommitValueResolver cvr = new CachingCommitValueResolver(8*1024, () -> emptySweepRevision);
+        CommitValueResolver cvr = new CachingCommitValueResolver(
+                0 /* to make sure each commit value is calculated explicitly, separately */,
+                () -> emptySweepRevision);
         MissingBcSweeper2 sweeper = new MissingBcSweeper2(ns, cvr);
         final List<Map<Path, UpdateOp>> updatesList = new LinkedList<>();
         sweeper.sweep(Arrays.asList(nodeDocument), new NodeDocumentSweepListener() {
