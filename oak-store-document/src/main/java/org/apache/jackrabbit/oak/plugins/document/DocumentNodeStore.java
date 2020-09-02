@@ -2581,14 +2581,16 @@ public final class DocumentNodeStore
 
     private int forceBackgroundSweep2() throws DocumentStoreException {
         final RevisionVector emptySweepRevision = new RevisionVector();
-        CommitValueResolver cvr = new CachingCommitValueResolver(8*1024, () -> emptySweepRevision);
+        CommitValueResolver cvr = new CachingCommitValueResolver(
+                0 /* disable caching for sweep2 as caching has a risk of propagating wrong values */,
+                () -> emptySweepRevision);
         MissingBcSweeper2 sweeper = new MissingBcSweeper2(this, cvr);
         LOG.info("Starting document sweep2. Head: {}, starting at 0", getHeadRevision());
         Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(0);
         try {
             final AtomicInteger numUpdates = new AtomicInteger();
 
-            sweeper.sweep(docs, new NodeDocumentSweepListener() {
+            sweeper.sweep2(docs, new NodeDocumentSweepListener() {
                 @Override
                 public void sweepUpdate(final Map<Path, UpdateOp> updates)
                         throws DocumentStoreException {
@@ -2638,7 +2640,7 @@ public final class DocumentNodeStore
 
                     store.createOrUpdate(NODES, Lists.newArrayList(updates.values()));
                     numUpdates.addAndGet(updates.size());
-                    LOG.debug("Background sweep updated {}", updates.keySet());
+                    LOG.debug("Background sweep2 updated {}", updates.keySet());
                 }
             });
 

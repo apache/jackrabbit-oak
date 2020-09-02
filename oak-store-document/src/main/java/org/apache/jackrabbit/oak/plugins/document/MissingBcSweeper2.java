@@ -74,26 +74,9 @@ final class MissingBcSweeper2 {
 
 
     /**
-     * Creates a new sweeper for the given context. The sweeper is initialized
-     * in the constructor with the head revision provided by the revision
-     * context. This is the head revision used later when the documents are
-     * check for uncommitted changes in
-     * {@link #sweep(Iterable, NodeDocumentSweepListener)}.
-     * <p>
-     * In combination with {@code sweepNewerThanHead == false}, the revision
-     * context may return a head revision that is not up-to-date, as long as it
-     * is consistent with documents passed to the {@code sweep()} method. That
-     * is, the documents must reflect all changes visible from the provided head
-     * revision. The sweeper will then only revert uncommitted changes up to the
-     * head revision. With {@code sweepNewerThanHead == true}, the sweeper will
-     * also revert uncommitted changes that are newer than the head revision.
-     * This is usually only useful during recovery of a cluster node, when it is
-     * guaranteed that there are no in-progress commits newer than the current
-     * head revision.
+     * Creates a new sweeper v2 for the given context..
      *
      * @param context the revision context.
-     * @param sweepNewerThanHead whether uncommitted changes newer than the head
-     *                 revision should be reverted.
      */
     MissingBcSweeper2(RevisionContext context,
                         CommitValueResolver commitValueResolver) {
@@ -104,28 +87,24 @@ final class MissingBcSweeper2 {
     }
 
     /**
-     * Performs a sweep and reports the required updates to the given sweep
-     * listener. The returned revision is the new sweep revision for the
-     * clusterId associated with the revision context used to create this
-     * sweeper. The caller is responsible for storing the returned sweep
-     * revision on the root document. This method returns {@code null} if no
-     * update was possible.
+     * Performs a sweep2 and reports the required updates to the given sweep
+     * listener.
      *
      * @param documents the documents to sweep
      * @param listener the listener to receive required sweep update operations.
      * @throws DocumentStoreException if reading from the store or writing to
      *          the store failed.
      */
-    void sweep(@NotNull Iterable<NodeDocument> documents,
+    void sweep2(@NotNull Iterable<NodeDocument> documents,
                    @NotNull NodeDocumentSweepListener listener)
             throws DocumentStoreException {
-        performSweep(documents, checkNotNull(listener));
+        performSweep2(documents, checkNotNull(listener));
     }
 
     //----------------------------< internal >----------------------------------
 
     @Nullable
-    private void performSweep(Iterable<NodeDocument> documents,
+    private void performSweep2(Iterable<NodeDocument> documents,
                                   NodeDocumentSweepListener listener)
             throws DocumentStoreException {
         totalCount = 0;
@@ -141,7 +120,7 @@ final class MissingBcSweeper2 {
             }
             listener.sweepUpdate(updates);
         }
-        LOG.debug("Document sweep finished");
+        LOG.debug("Document sweep2 finished");
     }
 
     private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
@@ -218,7 +197,7 @@ final class MissingBcSweeper2 {
             long lastRateMin = (lastCount * TimeUnit.MINUTES.toMillis(1)) / lastElapsed;
 
             String message = String.format(
-                    "Sweep on cluster node [%d]: %d nodes scanned in %s (~%d/m) - last interval %d nodes in %s (~%d/m)",
+                    "Sweep2 on cluster node [%d]: %d nodes scanned in %s (~%d/m) - last interval %d nodes in %s (~%d/m)",
                     clusterId, totalCount, df.format(totalElapsed, TimeUnit.MILLISECONDS), totalRateMin, lastCount,
                     df.format(lastElapsed, TimeUnit.MILLISECONDS), lastRateMin);
 

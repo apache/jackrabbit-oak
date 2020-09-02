@@ -250,7 +250,7 @@ public class Sweep2TestHelper {
                 () -> emptySweepRevision);
         MissingBcSweeper2 sweeper = new MissingBcSweeper2(ns, cvr);
         final List<Map<Path, UpdateOp>> updatesList = new LinkedList<>();
-        sweeper.sweep(Arrays.asList(nodeDocument), new NodeDocumentSweepListener() {
+        sweeper.sweep2(Arrays.asList(nodeDocument), new NodeDocumentSweepListener() {
 
             @Override
             public void sweepUpdate(Map<Path, UpdateOp> updates) throws DocumentStoreException {
