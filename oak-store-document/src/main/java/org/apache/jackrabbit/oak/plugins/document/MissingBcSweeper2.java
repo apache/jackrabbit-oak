@@ -39,7 +39,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
 /**
- * The {@code NodeDocumentSweeper2} is used for the so-called sweep2, which is
+ * The {@code MissingBcSweeper2} is used for the so-called sweep2, which is
  * a repository traversal updating documents that have missing branch commit ("_bc") 
  * properties (details see OAK-9176).
  * This class is similar to NodeDocumentSweeper as it is based on the same principles,
@@ -49,9 +49,9 @@ import com.google.common.base.Predicate;
  * <p>
  * This class is not thread-safe.
  */
-final class NodeDocumentSweeper2 {
+final class MissingBcSweeper2 {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NodeDocumentSweeper2.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MissingBcSweeper2.class);
 
     private static final int YIELD_SIZE = 500;
 
@@ -95,7 +95,7 @@ final class NodeDocumentSweeper2 {
      * @param sweepNewerThanHead whether uncommitted changes newer than the head
      *                 revision should be reverted.
      */
-    NodeDocumentSweeper2(RevisionContext context,
+    MissingBcSweeper2(RevisionContext context,
                         CommitValueResolver commitValueResolver) {
         this.context = checkNotNull(context);
         this.commitValueResolver = checkNotNull(commitValueResolver);

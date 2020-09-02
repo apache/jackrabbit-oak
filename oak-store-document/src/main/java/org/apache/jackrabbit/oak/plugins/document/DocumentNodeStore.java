@@ -2583,7 +2583,7 @@ public final class DocumentNodeStore
         final Revision startRev = new Revision(0, 0, clusterId);
         final RevisionVector emptySweepRevision = new RevisionVector();
         CommitValueResolver cvr = new CachingCommitValueResolver(8*1024, () -> emptySweepRevision);
-        NodeDocumentSweeper2 sweeper = new NodeDocumentSweeper2(this, cvr);
+        MissingBcSweeper2 sweeper = new MissingBcSweeper2(this, cvr);
         LOG.info("Starting document sweep2. Head: {}, starting at {}",
                 this.getHeadRevision(), startRev);
         Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(startRev.getTimestamp());
