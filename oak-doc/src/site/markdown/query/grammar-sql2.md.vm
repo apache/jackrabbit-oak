@@ -59,6 +59,11 @@ All queries should have a path restriction
 
 "union" combines the result of this query with the results of another query,
 where "union all" does not remove duplicates.
+Note that for fulltext queries, it is problematic to use union, 
+because scoring is done for each subquery individually.
+The score is not useful to compare results of different subqueries,
+so that the union of multiple fulltext queries won't be ordered by score
+as one might expect.
 
 "order by" may use an index.
 If there is no index for the given sort order, 
@@ -215,6 +220,11 @@ As a special case, sorting by "jcr:score" in descending order is ignored
 (and if no fulltext index is used, then the score doesn't apply).
 If for some reason you want to enforce sorting by "jcr:score", then
 you can use the workaround to order by "LOWER([jcr:score]) DESC".
+Note that for fulltext queries, it is problematic to use union, 
+because scoring is done for each subquery individually.
+The score is not useful to compare results of different subqueries,
+so that the union of multiple fulltext queries won't be ordered by score
+as one might expect.
 
 Examples:
 
