@@ -44,6 +44,7 @@ Improvement
     [OAK-9151] - Support term suggestion in Oak ES
     [OAK-9156] - Port lucene tests
     [OAK-9165] - Lucene: unique sync property index don't work properly
+    [OAK-9170] - Make loading segment disk cache fail safe in case when write operation is interrupted by failure
     [OAK-9173] - Oak-run indexing fails with "This map is closed"
     [OAK-9180] - Optimise synchronisation between threads when writing to 3rd level segment cache 
     [OAK-9184] - Very slow, potential endless loop in LucenePropertyIndex.loadDocs()
