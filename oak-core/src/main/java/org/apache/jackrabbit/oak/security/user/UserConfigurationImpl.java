@@ -54,6 +54,7 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -191,7 +192,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         setParameters(ConfigurationParameters.of(properties));
     }
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL)
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policyOption = ReferencePolicyOption.GREEDY)
     private BlobAccessProvider blobAccessProvider;
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -268,15 +269,6 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     private BlobAccessProvider getBlobAccessProvider() {
         BlobAccessProvider provider = blobAccessProvider;
-        if (provider == null) {
-            SecurityProvider securityProvider = getSecurityProvider();
-            if (securityProvider instanceof WhiteboardAware) {
-                Whiteboard wb = ((WhiteboardAware) securityProvider).getWhiteboard();
-                if (wb != null) {
-                    provider = WhiteboardUtils.getService(wb, BlobAccessProvider.class);
-                }
-            }
-        }
         if (provider == null) {
             provider = DEFAULT_BLOB_ACCESS_PROVIDER;
             blobAccessProvider = provider;
