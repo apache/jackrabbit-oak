@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
@@ -32,14 +33,17 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Rule;
 import org.junit.Test;
+import org.osgi.framework.ServiceRegistration;
 
 import java.lang.reflect.Field;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_DEFAULT_DEPTH;
@@ -138,6 +142,25 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         Field f = PartialValueFactory.class.getDeclaredField("blobAccessProvider");
         f.setAccessible(true);
         assertSame(PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER, f.get(vf));
+    }
+
+    @Test
+    public void testBindBlobAccessProvider() throws Exception {
+        UserConfigurationImpl uc = new UserConfigurationImpl(getSecurityProvider());
+        context.registerInjectActivateService(uc, ImmutableMap.of(PARAM_DEFAULT_DEPTH, "8"));
+
+        BlobAccessProvider bap = mock(BlobAccessProvider.class);
+        ServiceRegistration reg = context.bundleContext().registerService(
+                BlobAccessProvider.class.getName(),
+                bap, new Hashtable<String, Object>());
+
+        uc.getUserManager(root, getNamePathMapper());
+        Field f = UserConfigurationImpl.class.getDeclaredField("blobAccessProvider");
+        f.setAccessible(true);
+        assertSame(bap, f.get(uc));
+
+        reg.unregister();
+        assertSame(PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER, f.get(uc));
     }
 
     @Test
