@@ -54,6 +54,7 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
@@ -192,8 +193,17 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         setParameters(ConfigurationParameters.of(properties));
     }
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policyOption = ReferencePolicyOption.GREEDY)
-    private BlobAccessProvider blobAccessProvider;
+    private BlobAccessProvider blobAccessProvider = DEFAULT_BLOB_ACCESS_PROVIDER;
+    
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC)
+    void bindBlobAccessProvider(BlobAccessProvider bap) {
+        blobAccessProvider = bap;
+    }
+
+    void unbindBlobAccessProvider(BlobAccessProvider bap) {
+        blobAccessProvider = DEFAULT_BLOB_ACCESS_PROVIDER;
+    }
 
     //----------------------------------------------< SecurityConfiguration >---
     @NotNull
@@ -249,7 +259,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
-        PartialValueFactory vf = new PartialValueFactory(namePathMapper, getBlobAccessProvider());
+        PartialValueFactory vf = new PartialValueFactory(namePathMapper, blobAccessProvider);
         UserManager umgr = new UserManagerImpl(root, vf, getSecurityProvider());
         if (getParameters().getConfigValue(UserConstants.PARAM_SUPPORT_AUTOSAVE, false)) {
             return new AutoSaveEnabledManager(umgr, root);
@@ -262,17 +272,5 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Override
     public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new UserPrincipalProvider(root, this, namePathMapper);
-    }
-
-    //-----------------------------------------------------------< internal >---
-
-    @NotNull
-    private BlobAccessProvider getBlobAccessProvider() {
-        BlobAccessProvider provider = blobAccessProvider;
-        if (provider == null) {
-            provider = DEFAULT_BLOB_ACCESS_PROVIDER;
-            blobAccessProvider = provider;
-        }
-        return provider;
     }
 }
