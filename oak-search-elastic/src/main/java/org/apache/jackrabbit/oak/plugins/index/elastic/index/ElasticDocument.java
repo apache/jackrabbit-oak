@@ -39,6 +39,7 @@ class ElasticDocument {
     private final List<String> notNullProps;
     private final List<String> nullProps;
     private final Map<String, Object> properties;
+    private final Map<String, List<Map<String, Object>>> dynamicBoostFields;
 
     ElasticDocument(String path) {
         this.path = path;
@@ -47,6 +48,7 @@ class ElasticDocument {
         this.notNullProps = new ArrayList<>();
         this.nullProps = new ArrayList<>();
         this.properties = new HashMap<>();
+        this.dynamicBoostFields = new HashMap<>();
     }
 
     void addFulltext(String value) {
@@ -85,6 +87,18 @@ class ElasticDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
+    void addDynamicBoostField(String propName, String token, double boost) {
+        List<Map<String, Object>> tokens = dynamicBoostFields.get(propName);
+        if (tokens == null) {
+            tokens = new ArrayList<>();
+        }
+        Map<String, Object> tokenValue = new HashMap<>(2);
+        tokenValue.put("token", token);
+        tokenValue.put("boost", boost);
+        tokens.add(tokenValue);
+        dynamicBoostFields.put(propName, tokens);
+    }
+
     public String build() {
         String ret;
         try {
@@ -106,6 +120,9 @@ class ElasticDocument {
                 }
                 for (Map.Entry<String, Object> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue());
+                }
+                for (Map.Entry<String, List<Map<String, Object>>> f : dynamicBoostFields.entrySet()) {
+                    builder.field(f.getKey(), f.getValue());
                 }
             }
             builder.endObject();

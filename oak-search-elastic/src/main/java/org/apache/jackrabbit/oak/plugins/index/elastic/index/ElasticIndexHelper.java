@@ -44,6 +44,7 @@ class ElasticIndexHelper {
         final XContentBuilder mappingBuilder = XContentFactory.jsonBuilder();
         mappingBuilder.startObject();
         {
+            //mappingBuilder.field("dynamic", false);
             mappingBuilder.startObject("properties");
             {
                 mapInternalProperties(mappingBuilder);
@@ -217,6 +218,26 @@ class ElasticIndexHelper {
                     mappingBuilder.startObject("suggestion")
                             .field("type", "text")
                             .field("analyzer", "oak_analyzer")
+                            .endObject();
+                }
+                mappingBuilder.endObject();
+            }
+            mappingBuilder.endObject();
+        }
+
+        for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
+            mappingBuilder.startObject(pd.nodeName);
+            {
+                mappingBuilder.field("type", "nested");
+                mappingBuilder.startObject("properties");
+                {
+                    mappingBuilder.startObject("token")
+                            .field("type", "keyword")
+                            .field("ignore_above", 256)
+                            .field("doc_values", false)
+                            .endObject();
+                    mappingBuilder.startObject("boost")
+                            .field("type", "double")
                             .endObject();
                 }
                 mappingBuilder.endObject();

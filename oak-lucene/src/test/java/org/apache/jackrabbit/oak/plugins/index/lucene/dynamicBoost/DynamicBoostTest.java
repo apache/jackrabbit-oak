@@ -152,10 +152,10 @@ public class DynamicBoostTest extends AbstractQueryTest {
             Tree node = createNodeWithType(test, "item", "dam:Asset");
             Tree predicted =
                     createNodeWithType(
-                    createNodeWithType(
-                    createNodeWithType(node, JcrConstants.JCR_CONTENT, UNSTRUCTURED),
-                    "metadata", UNSTRUCTURED),
-                    "predictedTags", UNSTRUCTURED);
+                            createNodeWithType(
+                                    createNodeWithType(node, JcrConstants.JCR_CONTENT, UNSTRUCTURED),
+                                    "metadata", UNSTRUCTURED),
+                            "predictedTags", UNSTRUCTURED);
             Tree t = createNodeWithType(predicted, "a", UNSTRUCTURED);
             if (nameProperty) {
                 t.setProperty("name", "my:a");

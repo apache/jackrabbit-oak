@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -1063,6 +1064,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
         public List<PropertyDefinition> getSimilarityProperties() {
             return similarityProperties;
+        }
+
+        public Stream<PropertyDefinition> getNamePattersProperties() {
+            return namePatterns.stream().map(NamePattern::getConfig);
         }
 
         @Override

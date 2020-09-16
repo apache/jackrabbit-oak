@@ -176,15 +176,15 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     }
 
     protected IndexDefinitionBuilder createIndex(String... propNames) {
-        return createIndex(true, propNames);
+        return createIndex(true, "nt:base", propNames);
     }
 
-    protected IndexDefinitionBuilder createIndex(boolean isPropertyIndex, String... propNames) {
+    protected IndexDefinitionBuilder createIndex(boolean isPropertyIndex, String nodeType, String... propNames) {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         if (!useAsyncIndexing()) {
             builder = builder.noAsync();
         }
-        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("nt:base");
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(nodeType);
         if (isPropertyIndex) {
             for (String propName : propNames) {
                 indexRule.property(propName).propertyIndex();

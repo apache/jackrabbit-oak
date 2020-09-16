@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -61,6 +62,10 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
     private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
+    private static final String DYNAMIC_BOOST_TAG_NAME = "name";
+    private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
+    private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
+
     private final FulltextBinaryTextExtractor textExtractor;
     protected final IndexDefinition definition;
     protected final IndexDefinition.IndexingRule indexingRule;
@@ -101,7 +106,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     protected abstract void indexTypedProperty(D doc, PropertyState property, String pname, PropertyDefinition pd, int index);
 
-    protected abstract boolean indexDynamicBoost(D doc, PropertyDefinition pd, NodeState nodeState, String propertyName);
+    protected abstract boolean indexDynamicBoost(D doc, String parent, String nodeName, String token, double confidence);
 
     protected abstract void indexAncestors(D doc, String path);
 
@@ -247,7 +252,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
             if (pd.dynamicBoost) {
                 try {
-                    dirty |= indexDynamicBoost(doc, pd, state, pname);
+                    dirty |= indexDynamicBoost(doc, pname, pd.nodeName, state);
                 } catch (Exception e) {
                     log.error("Could not index dynamic boost for property {} and definition {}", property, pd, e);
                 }
@@ -622,6 +627,75 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
         }
         return dirty;
+    }
+
+    protected boolean indexDynamicBoost(D doc, String propertyName, String nodeName, NodeState nodeState) {
+        NodeState propertyNode = nodeState;
+        String parentName = PathUtils.getParentPath(propertyName);
+        for (String c : PathUtils.elements(parentName)) {
+            propertyNode = propertyNode.getChildNode(c);
+        }
+        boolean added = false;
+        for (String childNodeName : propertyNode.getChildNodeNames()) {
+            NodeState dynaTag = propertyNode.getChildNode(childNodeName);
+            PropertyState p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_NAME);
+            if (p == null) {
+                // here we don't log a warning, because possibly it will be added later
+                continue;
+            }
+            if (p.isArray()) {
+                log.warn(p.getName() + " is an array: {}", parentName);
+                continue;
+            }
+            String dynaTagName = p.getValue(Type.STRING);
+            p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE);
+            if (p == null) {
+                // here we don't log a warning, because possibly it will be added later
+                continue;
+            }
+            if (p.isArray()) {
+                log.warn(p.getName() + " is an array: {}", parentName);
+                continue;
+            }
+            double dynaTagConfidence;
+            try {
+                dynaTagConfidence = p.getValue(Type.DOUBLE);
+            } catch (NumberFormatException e) {
+                log.warn(p.getName() + " parsing failed: {}", parentName, e);
+                continue;
+            }
+            if (!Double.isFinite(dynaTagConfidence)) {
+                log.warn(p.getName() + " is not finite: {}", parentName);
+                continue;
+            }
+            List<String> tokens = new ArrayList<>(splitForIndexing(dynaTagName));
+            if (tokens.size() > 1) {
+                // Actual name not in tokens
+                tokens.add(dynaTagName);
+            }
+            boolean addedForThisChild = false;
+            for (String token : tokens) {
+                if (indexDynamicBoost(doc, parentName, nodeName, token, dynaTagConfidence)) {
+                    addedForThisChild = true;
+                    added = true;
+                }
+            }
+            if (addedForThisChild) {
+                log.trace(
+                        "Added augmented fields: {}[{}], {}",
+                        parentName + "/", String.join(", ", tokens), dynaTagConfidence
+                );
+            }
+        }
+        return added;
+    }
+
+    private static List<String> splitForIndexing(String tagName) {
+        return Arrays.asList(removeBackSlashes(tagName).split(DYNAMIC_BOOST_SPLIT_REGEX));
+    }
+
+    private static String removeBackSlashes(String text) {
+        return text.replaceAll("\\\\", "");
     }
 
     protected String getIndexName() {

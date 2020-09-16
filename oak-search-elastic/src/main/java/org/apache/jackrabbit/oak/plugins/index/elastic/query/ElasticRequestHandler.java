@@ -50,6 +50,7 @@ import org.elasticsearch.index.query.NestedQueryBuilder;
 import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
@@ -95,6 +96,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
 import static org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
+import static org.elasticsearch.index.query.QueryBuilders.functionScoreQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchAllQuery;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 import static org.elasticsearch.index.query.QueryBuilders.multiMatchQuery;
@@ -422,20 +424,32 @@ public class ElasticRequestHandler {
             }
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
-                QueryBuilder q = fullTextQuery(text, getElasticFieldName(propertyName), pr);
+                // base query
+                QueryBuilder fullTextQuery = fullTextQuery(text, getElasticFieldName(propertyName), pr);
                 if (boost != null) {
-                    q.boost(Float.parseFloat(boost));
+                    fullTextQuery.boost(Float.parseFloat(boost));
                 }
+                BoolQueryBuilder boolQueryBuilder = boolQuery().must(fullTextQuery);
+                // add dynamic boosts in SHOULD if available
+                Stream<QueryBuilder> dynamicScoreQueries = dynamicScoreQueries(text);
+                dynamicScoreQueries.forEach(boolQueryBuilder::should);
+
                 if (not) {
-                    BoolQueryBuilder bq = boolQuery().mustNot(q);
+                    BoolQueryBuilder bq = boolQuery().mustNot(boolQueryBuilder);
                     result.set(bq);
                 } else {
-                    result.set(q);
+                    result.set(boolQueryBuilder);
                 }
                 return true;
             }
         });
         return result.get();
+    }
+
+    private Stream<QueryBuilder> dynamicScoreQueries(String text) {
+        return elasticIndexDefinition.getDynamicBoostProperties().stream()
+                .map(pd -> nestedQuery(pd.nodeName, functionScoreQuery(termQuery(pd.nodeName + ".token", text),
+                        ScoreFunctionBuilders.fieldValueFactorFunction(pd.nodeName + ".boost")), ScoreMode.Avg));
     }
 
     private List<QueryBuilder> nonFullTextConstraints(IndexPlan plan, PlanResult planResult) {
@@ -635,6 +649,7 @@ public class ElasticRequestHandler {
         } else {
             return matchQuery(fieldName, text).operator(Operator.AND);
         }
+
     }
 
     private QueryBuilder createQuery(String propertyName, Filter.PropertyRestriction pr,

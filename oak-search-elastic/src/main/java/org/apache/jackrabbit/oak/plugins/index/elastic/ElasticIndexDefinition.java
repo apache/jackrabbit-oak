@@ -84,6 +84,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private final String remoteAlias;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
+    private final List<PropertyDefinition> dynamicBoostProperties;
 
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
@@ -93,12 +94,18 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
         this.bulkRetries = getOptionalValue(defn, BULK_RETRIES, BULK_RETRIES_DEFAULT);
         this.bulkRetriesBackoff = getOptionalValue(defn, BULK_RETRIES_BACKOFF, BULK_RETRIES_BACKOFF_DEFAULT);
-
+        
         this.propertiesByName = getDefinedRules()
                 .stream()
                 .flatMap(rule -> StreamSupport.stream(rule.getProperties().spliterator(), false))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
                 .collect(Collectors.groupingBy(pd -> pd.name));
+
+        this.dynamicBoostProperties = getDefinedRules()
+                .stream()
+                .flatMap(IndexingRule::getNamePattersProperties)
+                .filter(pd -> pd.dynamicBoost)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -112,6 +119,10 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public Map<String, List<PropertyDefinition>> getPropertiesByName() {
         return propertiesByName;
+    }
+
+    public List<PropertyDefinition> getDynamicBoostProperties() {
+        return dynamicBoostProperties;
     }
 
     /**

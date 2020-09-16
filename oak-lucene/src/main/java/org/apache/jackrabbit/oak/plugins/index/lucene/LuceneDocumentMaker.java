@@ -20,8 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -54,10 +52,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPro
 
 public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static final Logger log = LoggerFactory.getLogger(LuceneDocumentMaker.class);
-
-    private static final String DYNAMIC_BOOST_TAG_NAME = "name";
-    private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
-    private static final String DYNAMIC_BOOST_SPLIT_REGEX = "[:/]";
 
     private final FacetsConfigProvider facetsConfigProvider;
     private final IndexAugmentorFactory augmentorFactory;
@@ -314,7 +308,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     @Override
-    protected void indexSimilarityStrings(Document doc, PropertyDefinition pd, String value) throws IOException {
+    protected void indexSimilarityStrings(Document doc, PropertyDefinition pd, String value) {
         for (Field f : FieldFactory.newSimilarityFields(pd.name, value)) {
             doc.add(f);
         }
@@ -338,69 +332,15 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     }
 
     @Override
-    protected boolean indexDynamicBoost(Document doc, PropertyDefinition pd, NodeState nodeState, String propertyName) {
-        NodeState propertNode = nodeState;
-        String parentName = PathUtils.getParentPath(propertyName);
-        for (String c : PathUtils.elements(parentName)) {
-            propertNode = propertNode.getChildNode(c);
-        }
-        boolean added = false;
-        for (String nodeName : propertNode.getChildNodeNames()) {
-            NodeState dynaTag = propertNode.getChildNode(nodeName);
-            PropertyState p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_NAME);
-            if (p == null) {
-                // here we don't log a warning, because possibly it will be added later
-                continue;
-            }
-            if (p.isArray()) {
-                log.warn(p.getName() + " is an array: {}", parentName);
-                continue;
-            }
-            String dynaTagName = p.getValue(Type.STRING);
-            p = dynaTag.getProperty(DYNAMIC_BOOST_TAG_CONFIDENCE);
-            if (p == null) {
-                // here we don't log a warning, because possibly it will be added later
-                continue;
-            }
-            if (p.isArray()) {
-                log.warn(p.getName() + " is an array: {}", parentName);
-                continue;
-            }
-            double dynaTagConfidence;
-            try {
-                dynaTagConfidence = p.getValue(Type.DOUBLE);
-            } catch (NumberFormatException e) {
-                log.warn(p.getName() + " parsing failed: {}", parentName, e);
-                continue;
-            }
-            if (!Double.isFinite(dynaTagConfidence)) {
-                log.warn(p.getName() + " is not finite: {}", parentName);
-                continue;
-            }
-            List<String> tokens = new ArrayList<>(splitForIndexing(dynaTagName));
-            if (tokens.size() > 1) {
-                // Actual name not in tokens
-                tokens.add(dynaTagName);
-            }
-            boolean addedForThisChild = false;
-            for (String token : tokens) {
-                if (token.length() > 0) {
-                    AugmentedField f = new AugmentedField(parentName + "/" + token.toLowerCase(), dynaTagConfidence);
-                    if (doc.getField(f.name()) == null) {
-                        addedForThisChild = true;
-                        added = true;
-                        doc.add(f);
-                    }
-                }
-            }
-            if (addedForThisChild) {
-                log.trace(
-                        "Added augmented fields: {}[{}], {}",
-                        parentName + "/", String.join(", ", tokens), dynaTagConfidence
-                );
+    protected boolean indexDynamicBoost(Document doc, String parent, String nodeName, String token, double confidence) {
+        if (token.length() > 0) {
+            AugmentedField f = new AugmentedField(parent + "/" + token.toLowerCase(), confidence);
+            if (doc.getField(f.name()) == null) {
+                doc.add(f);
+                return true;
             }
         }
-        return added;
+        return false;
     }
 
     private static class AugmentedField extends Field {
@@ -418,14 +358,6 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
             super(name, "1", ft);
             setBoost((float) weight);
         }
-    }
-
-    private static List<String> splitForIndexing(String tagName) {
-        return Arrays.asList(removeBackSlashes(tagName).split(DYNAMIC_BOOST_SPLIT_REGEX));
-    }
-
-    private static String removeBackSlashes(String text) {
-        return text.replaceAll("\\\\", "");
     }
 
 }

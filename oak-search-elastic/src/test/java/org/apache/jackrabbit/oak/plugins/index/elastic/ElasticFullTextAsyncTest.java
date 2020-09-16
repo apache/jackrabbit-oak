@@ -118,7 +118,7 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
      */
     @Test
     public void onlyNodeScopeIndexedQuery() throws Exception {
-        IndexDefinitionBuilder builder = createIndex(false, "a", "b").async("async");
+        IndexDefinitionBuilder builder = createIndex(false, "nt:base", "a", "b").async("async");
         builder.indexRule("nt:base").property("a").nodeScopeIndex();
         builder.indexRule("nt:base").property("b").nodeScopeIndex();
 
@@ -176,7 +176,7 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
      */
     @Test
     public void onlyAnalyzedPropertyShouldNotBeReturnedForNodeScopeIndexedQuery() throws Exception {
-        IndexDefinitionBuilder builder = createIndex(false, "a", "b").async("async");
+        IndexDefinitionBuilder builder = createIndex(false, "nt:base", "a", "b").async("async");
         builder.indexRule("nt:base").property("a").nodeScopeIndex();
         builder.indexRule("nt:base").property("b").analyzed();
 
