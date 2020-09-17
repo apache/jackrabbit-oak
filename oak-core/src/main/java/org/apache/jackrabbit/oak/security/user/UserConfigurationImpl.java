@@ -43,6 +43,9 @@ import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
@@ -189,7 +192,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         setParameters(ConfigurationParameters.of(properties));
     }
 
-    private BlobAccessProvider blobAccessProvider = DEFAULT_BLOB_ACCESS_PROVIDER;
+    private BlobAccessProvider blobAccessProvider;
     
     @Reference(cardinality = ReferenceCardinality.OPTIONAL,
             policy = ReferencePolicy.DYNAMIC)
@@ -255,7 +258,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
-        PartialValueFactory vf = new PartialValueFactory(namePathMapper, blobAccessProvider);
+        PartialValueFactory vf = new PartialValueFactory(namePathMapper, getBlobAccessProvider());
         UserManager umgr = new UserManagerImpl(root, vf, getSecurityProvider());
         if (getParameters().getConfigValue(UserConstants.PARAM_SUPPORT_AUTOSAVE, false)) {
             return new AutoSaveEnabledManager(umgr, root);
@@ -268,5 +271,24 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Override
     public PrincipalProvider getUserPrincipalProvider(@NotNull Root root, @NotNull NamePathMapper namePathMapper) {
         return new UserPrincipalProvider(root, this, namePathMapper);
+    }
+    
+    @NotNull
+    private BlobAccessProvider getBlobAccessProvider() {
+        BlobAccessProvider provider = blobAccessProvider;
+        if (provider == null) {
+            SecurityProvider securityProvider = getSecurityProvider();
+            if (securityProvider instanceof WhiteboardAware) {
+                Whiteboard wb = ((WhiteboardAware) securityProvider).getWhiteboard();
+                if (wb != null) {
+                    provider = WhiteboardUtils.getService(wb, BlobAccessProvider.class);
+                }
+            }
+        }
+        if (provider == null) {
+            provider = DEFAULT_BLOB_ACCESS_PROVIDER;
+        }
+        blobAccessProvider = provider;
+        return provider;
     }
 }
