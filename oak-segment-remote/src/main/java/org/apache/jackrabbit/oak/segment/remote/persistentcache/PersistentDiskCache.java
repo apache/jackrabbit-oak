@@ -166,10 +166,6 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         };
 
         executor.execute(task);
-
-        if (nextCache != null) {
-            nextCache.writeSegment(msb, lsb, buffer);
-        }
     }
 
     private boolean isCacheFull() {

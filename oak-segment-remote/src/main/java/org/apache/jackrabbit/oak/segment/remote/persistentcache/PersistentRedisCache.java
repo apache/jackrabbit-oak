@@ -183,10 +183,6 @@ public class PersistentRedisCache extends AbstractPersistentCache {
         };
 
         executor.execute(task);
-
-        if (nextCache != null) {
-            nextCache.writeSegment(msb, lsb, buffer);
-        }
     }
 
     @Override
