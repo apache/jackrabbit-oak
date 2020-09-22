@@ -16,35 +16,31 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
-import java.util.List;
+import java.util.Random;
 
-public class HasPermissionHasItemGetItemTest extends AbstractHasItemGetItemTest {
+public class RefreshHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
-    private static final List<String> PERMISSIONS = Lists.newArrayList(Permissions.PERMISSION_NAMES.values());
+    private final Random r = new Random();
 
-    public HasPermissionHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
+    public RefreshHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
     @NotNull
     @Override
     String additionalMethodName() {
-        return "hasPermission";
+        return "refresh";
     }
 
     @Override
     void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
         try {
-            String actions = Text.implode((String[]) Utils.getRandom(PERMISSIONS, 3).toArray(new String[0]), ",");
-            s.hasPermission(path, actions);
+            s.refresh(r.nextBoolean());
         } catch (RepositoryException e) {
             if (doReport) {
                 e.printStackTrace(System.out);
@@ -55,6 +51,6 @@ public class HasPermissionHasItemGetItemTest extends AbstractHasItemGetItemTest 
     @NotNull
     @Override
     protected String getTestNodeName() {
-        return "HasPermissionHasItemGetItemTest";
+        return "RefreshHasItemGetItemTest";
     }
 }

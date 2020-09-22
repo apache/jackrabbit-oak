@@ -17,17 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counting;
 import com.codahale.metrics.Metric;
@@ -47,8 +36,11 @@ import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncAllUsersT
 import org.apache.jackrabbit.oak.benchmark.authentication.external.SyncExternalUsersTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.AceCreationTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.CanReadNonExisting;
+import org.apache.jackrabbit.oak.benchmark.authorization.SaveHasItemGetItemTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.HasPermissionHasItemGetItemTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.HasPrivilegesHasItemGetItemTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.RefreshHasItemGetItemTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.RefreshHasPrivPermHasItemGetItemTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.permission.EagerCacheSizeTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.HasItemGetItemIsModifiedTest;
 import org.apache.jackrabbit.oak.benchmark.authorization.principalbased.PermissionEvaluationTest;
@@ -60,6 +52,17 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class BenchmarkRunner {
 
@@ -264,6 +267,21 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getNumberOfGroups().value(options),
                                 benchmarkOptions.getReport().value(options)),
                         new HasPermissionHasItemGetItemTest(
+                                benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getNumberOfInitialAce().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getReport().value(options)),
+                        new RefreshHasItemGetItemTest(
+                                benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getNumberOfInitialAce().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getReport().value(options)),
+                        new RefreshHasPrivPermHasItemGetItemTest(
+                                benchmarkOptions.getItemsToRead().value(options),
+                                benchmarkOptions.getNumberOfInitialAce().value(options),
+                                benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getReport().value(options)),
+                        new SaveHasItemGetItemTest(
                                 benchmarkOptions.getItemsToRead().value(options),
                                 benchmarkOptions.getNumberOfInitialAce().value(options),
                                 benchmarkOptions.getNumberOfGroups().value(options),

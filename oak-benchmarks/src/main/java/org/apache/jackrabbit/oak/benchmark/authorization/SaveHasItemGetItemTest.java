@@ -16,45 +16,47 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
-import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
-import java.util.List;
 
-public class HasPermissionHasItemGetItemTest extends AbstractHasItemGetItemTest {
+/**
+ * Test effect of PermissionProvider.refresh called upon Session.save(). In contrast to {@link RefreshHasItemGetItemTest}
+ * a separate Session is created for the save operation to reflect the scenario where the session is logged-out after
+ * saving changes.
+ */
+public class SaveHasItemGetItemTest extends AbstractHasItemGetItemTest {
 
-    private static final List<String> PERMISSIONS = Lists.newArrayList(Permissions.PERMISSION_NAMES.values());
+    private static final Logger log = LoggerFactory.getLogger(SaveHasItemGetItemTest.class);
 
-    public HasPermissionHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
+    public SaveHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
     @NotNull
     @Override
     String additionalMethodName() {
-        return "hasPermission";
+        return "save";
     }
 
     @Override
     void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
+        Session otherS = null;
         try {
-            String actions = Text.implode((String[]) Utils.getRandom(PERMISSIONS, 3).toArray(new String[0]), ",");
-            s.hasPermission(path, actions);
+            otherS = getTestSession();
+            otherS.save();
         } catch (RepositoryException e) {
             if (doReport) {
                 e.printStackTrace(System.out);
             }
+        } finally {
+            if (otherS != null && otherS.isLive()) {
+                otherS.logout();
+            }
         }
-    }
-
-    @NotNull
-    @Override
-    protected String getTestNodeName() {
-        return "HasPermissionHasItemGetItemTest";
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -25,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.Item;
@@ -35,6 +37,7 @@ import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
 import java.security.Principal;
 import java.util.List;
+import java.util.Set;
 
 import static javax.jcr.security.Privilege.JCR_ALL;
 
@@ -46,6 +49,7 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
     private Subject subject;
 
     List<Privilege> allPrivileges;
+    private Set<String> nodeSet;
 
     AbstractHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
         super(false, itemsToRead, doReport, false);
@@ -82,6 +86,7 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
         createForEachPrincipal(principal, acMgr, allPrivileges);
 
         adminSession.save();
+        nodeSet = ImmutableSet.copyOf(nodePaths);
     }
 
     private void createForEachPrincipal(@NotNull Principal pGrantedRead, @NotNull JackrabbitAccessControlManager acMgr, @NotNull List<Privilege> allPrivileges) throws RepositoryException {
@@ -128,7 +133,7 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
                 String path = allPaths.get(index);
                 if (i % 100 == 0) {
                     addCnt++;
-                    additionalRead(path, testSession, acMgr);
+                    additionalOperations(path, testSession, acMgr);
                 }
                 if (testSession.itemExists(path)) {
                     Item item = testSession.getItem(path);
@@ -152,9 +157,24 @@ abstract class AbstractHasItemGetItemTest extends ReadDeepTreeTest {
         }
     }
 
+    @NotNull
     abstract String additionalMethodName();
 
-    abstract void additionalRead(String path, Session s, AccessControlManager acMgr);
+    abstract void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr);
+
+    @NotNull
+    String getAccessControlledPath(@NotNull String path) {
+        String np = path;
+        if (!nodeSet.contains(path)) {
+            int ind = path.indexOf(AccessControlConstants.REP_POLICY);
+            if (ind == -1) {
+                np = PathUtils.getParentPath(path);
+            } else {
+                np = path.substring(0, ind);
+            }
+        }
+        return np;
+    }
 
     @NotNull
     @Override
