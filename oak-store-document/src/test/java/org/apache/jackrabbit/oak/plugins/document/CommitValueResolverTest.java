@@ -45,7 +45,7 @@ public class CommitValueResolverTest {
     @Before
     public void setup() {
         ns = builderProvider.newBuilder().setUpdateLimit(20).setAsyncDelay(0).getNodeStore();
-        resolver = new CommitValueResolver(0, new Supplier<RevisionVector>() {
+        resolver = new CachingCommitValueResolver(0, new Supplier<RevisionVector>() {
             @Override
             public RevisionVector get() {
                 return ns.getSweepRevisions();
