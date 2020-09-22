@@ -27,15 +27,17 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 class ElasticDocument {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocument.class);
 
     private final String path;
     private final List<String> fulltext;
-    private final List<String> suggest;
+    private final Set<String> suggest;
     private final List<String> notNullProps;
     private final List<String> nullProps;
     private final Map<String, Object> properties;
@@ -43,7 +45,7 @@ class ElasticDocument {
     ElasticDocument(String path) {
         this.path = path;
         this.fulltext = new ArrayList<>();
-        this.suggest = new ArrayList<>();
+        this.suggest = new HashSet<>();
         this.notNullProps = new ArrayList<>();
         this.nullProps = new ArrayList<>();
         this.properties = new HashMap<>();
