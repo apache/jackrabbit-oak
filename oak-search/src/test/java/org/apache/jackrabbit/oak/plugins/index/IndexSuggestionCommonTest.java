@@ -387,16 +387,28 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
 
         Node indexedNode = root.addNode("indexedNode", nodeType);
         indexedNode.setProperty(suggestProp1, "car there");
+        indexedNode.setProperty(suggestProp2, "bike there");
         indexedNode = root.addNode("indexedNode2", nodeType);
+        indexedNode.setProperty(suggestProp1, "bike here");
         indexedNode.setProperty(suggestProp2, "car here");
 
         session.save();
 
-        String suggQuery = createSuggestQuery(nodeType, "car");
         QueryManager queryManager = session.getWorkspace().getQueryManager();
         assertEventually(() -> {
             try {
-                assertEquals("There should be some suggestion",2, getAllResults(queryManager, suggQuery).size());
+                List<String> results = getAllResults(queryManager, createSuggestQuery(nodeType, "car"));
+                assertEquals("There should be some suggestion",2, results.size());
+                assertTrue(results.stream().allMatch(r -> r.startsWith("car")));
+            } catch (RepositoryException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        assertEventually(() -> {
+            try {
+                List<String> results = getAllResults(queryManager, createSuggestQuery(nodeType, "bike"));
+                assertEquals("There should be some suggestion",2, results.size());
+                assertTrue(results.stream().allMatch(r -> r.startsWith("bike")));
             } catch (RepositoryException e) {
                 throw new RuntimeException(e);
             }

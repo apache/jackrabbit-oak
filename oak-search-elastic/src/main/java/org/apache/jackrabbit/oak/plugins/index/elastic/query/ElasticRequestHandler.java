@@ -543,10 +543,9 @@ public class ElasticRequestHandler {
     }
 
     public BoolQueryBuilder suggestionMatchQuery(String suggestion) {
-        QueryBuilder qb = new MatchBoolPrefixQueryBuilder(FieldNames.SUGGEST + ".suggestion", suggestion).operator(Operator.AND);
+        QueryBuilder qb = new MatchBoolPrefixQueryBuilder(FieldNames.SUGGEST + ".value", suggestion).operator(Operator.AND);
         NestedQueryBuilder nestedQueryBuilder = nestedQuery(FieldNames.SUGGEST, qb, ScoreMode.Max);
-        InnerHitBuilder in = new InnerHitBuilder().setSize(100);
-        nestedQueryBuilder.innerHit(in);
+        nestedQueryBuilder.innerHit(new InnerHitBuilder().setSize(100));
         BoolQueryBuilder query = boolQuery()
                 .must(nestedQueryBuilder);
         nonFullTextConstraints(indexPlan, planResult).forEach(query::must);
