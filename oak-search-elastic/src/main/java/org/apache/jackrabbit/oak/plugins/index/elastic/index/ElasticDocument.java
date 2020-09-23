@@ -98,7 +98,11 @@ class ElasticDocument {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }
                 if (suggest.size() > 0) {
-                    builder.startObject(FieldNames.SUGGEST).field("suggestion", suggest).endObject();
+                    builder.startArray(FieldNames.SUGGEST);
+                    for(String val: suggest) {
+                        builder.startObject().field("value", val).endObject();
+                    }
+                    builder.endArray();
                 }
                 if (notNullProps.size() > 0) {
                     builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
