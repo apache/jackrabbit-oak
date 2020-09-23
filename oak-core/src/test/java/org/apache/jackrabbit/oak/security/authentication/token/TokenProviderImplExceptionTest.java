@@ -19,19 +19,29 @@ package org.apache.jackrabbit.oak.security.authentication.token;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
+import java.util.UUID;
 
+import static junit.framework.TestCase.assertNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,6 +49,7 @@ import static org.mockito.Mockito.when;
 
 public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
 
+    private UserConfiguration uc;
     private TokenProviderImpl tp;
     private UserManager userManager;
 
@@ -48,7 +59,7 @@ public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
         super.before();
 
         userManager = mock(UserManager.class);
-        UserConfiguration uc = mock(UserConfiguration.class);
+        uc = mock(UserConfiguration.class);
         when(uc.getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(userManager);
 
         tp = createTokenProvider(root, uc);
@@ -60,6 +71,94 @@ public class TokenProviderImplExceptionTest extends AbstractTokenTest  {
 
         assertNull(tp.createToken(new SimpleCredentials("uid", new char[0])));
         verify(userManager, times(1)).getAuthorizable("uid");
+    }
+
+    @Test
+    public void testCreateTokenAccessDenied() throws Exception {
+        User u = mock(User.class);
+        when(u.getPath()).thenReturn("/testuser");
+        when(userManager.getAuthorizable(anyString())).thenReturn(u);
+
+        Tree tokenTree = when(mock(Tree.class).exists()).thenReturn(false).getMock();
+        when(tokenTree.getProperty(JCR_UUID)).thenReturn(PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
+
+        Tree tokenParent = mock(Tree.class);
+        when(tokenParent.exists()).thenReturn(true);
+        when(tokenParent.addChild(anyString())).thenReturn(tokenTree);
+
+        String parentPath = "/testuser/" + TOKENS_NODE_NAME;
+        Tree userTree = mock(Tree.class);
+        when(userTree.exists()).thenReturn(true);
+        when(userTree.getChild(TOKENS_NODE_NAME)).thenReturn(tokenParent);
+
+        Root r = mock(Root.class);
+        when(r.getTree(parentPath)).thenReturn(tokenParent);
+        when(r.getTree("/testuser")).thenReturn(userTree);
+
+        TokenProviderImpl tokenProvider = createTokenProvider(r, uc);
+        assertNull(tokenProvider.createToken(new SimpleCredentials("uid", new char[0])));
+    }
+
+    @Test
+    public void testCreateTokenRetry() throws Exception {
+        User u = mock(User.class);
+        when(u.getPath()).thenReturn("/testuser");
+        when(userManager.getAuthorizable(anyString())).thenReturn(u);
+
+        Tree tokenTree = when(mock(Tree.class).exists()).thenReturn(true).getMock();
+        when(tokenTree.getProperty(JCR_UUID)).thenReturn(PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
+
+        Tree tokenParent = when(mock(Tree.class).exists()).thenReturn(true).getMock();
+        when(tokenParent.addChild(anyString())).thenReturn(tokenTree);
+
+        String parentPath = "/testuser/" + TOKENS_NODE_NAME;
+        Tree userTree = mock(Tree.class);
+        when(userTree.exists()).thenReturn(true);
+        when(userTree.getChild(TOKENS_NODE_NAME)).thenReturn(tokenParent);
+
+        Root r = mock(Root.class);
+        doAnswer(new Answer() {
+            int cnt = 0;
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                if (cnt++ == 0) {
+                    throw new CommitFailedException(CommitFailedException.CONSTRAINT, 1, "conflict");
+                } else {
+                    return null;
+                }
+            }
+        }).when(r).commit(CommitMarker.asCommitAttributes());
+        when(r.getTree(parentPath)).thenReturn(tokenParent);
+        when(r.getTree("/testuser")).thenReturn(userTree);
+
+        TokenProviderImpl tokenProvider = createTokenProvider(r, uc);
+        assertNotNull(tokenProvider.createToken(new SimpleCredentials("uid", new char[0])));
+    }
+
+    @Test
+    public void testCreateTokenCommitParentFails() throws Exception {
+        User u = mock(User.class);
+        when(u.getPath()).thenReturn("/testuser");
+        when(userManager.getAuthorizable(anyString())).thenReturn(u);
+
+        Tree tokenTree = when(mock(Tree.class).exists()).thenReturn(true).getMock();
+        when(tokenTree.getProperty(JCR_UUID)).thenReturn(PropertyStates.createProperty(JCR_UUID, UUID.randomUUID().toString()));
+
+        Tree tokenParent = when(mock(Tree.class).exists()).thenReturn(true).getMock();
+        when(tokenParent.addChild(anyString())).thenReturn(tokenTree);
+
+        String parentPath = "/testuser/" + TOKENS_NODE_NAME;
+        Tree userTree = mock(Tree.class);
+        when(userTree.exists()).thenReturn(true);
+        when(userTree.getChild(TOKENS_NODE_NAME)).thenReturn(tokenParent);
+
+        Root r = mock(Root.class);
+        doThrow(new CommitFailedException(CommitFailedException.CONSTRAINT, 1, "conflict")).when(r).commit();
+        when(r.getTree(parentPath)).thenReturn(tokenParent);
+        when(r.getTree("/testuser")).thenReturn(userTree);
+
+        TokenProviderImpl tokenProvider = createTokenProvider(r, uc);
+        assertNotNull(tokenProvider.createToken(new SimpleCredentials("uid", new char[0])));
     }
 
     @Test

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import javax.jcr.AccessDeniedException;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -36,6 +37,7 @@ import org.junit.Before;
 
 import java.util.Collections;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertNotNull;
 
 /**
@@ -97,6 +99,11 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest implements 
         tree.setProperty(tokenTree.getProperty(TOKEN_ATTRIBUTE_EXPIRY));
         tokenTree.remove();
         return tree;
+    }
+
+    @NotNull
+    Tree getUserTree(@NotNull String uid) throws RepositoryException {
+        return root.getTree(checkNotNull(getUserManager(root).getAuthorizable(uid)).getPath());
     }
 
     @NotNull

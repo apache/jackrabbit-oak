@@ -46,7 +46,7 @@ public class TokenNoRefreshTest extends AbstractTokenTest {
 
     @Test
     public void testNotReset() {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = tokenProvider.createToken(userId, Collections.emptyMap());
 
         assertNotNull(info);
         assertFalse(info.resetExpiration(new Date().getTime()));

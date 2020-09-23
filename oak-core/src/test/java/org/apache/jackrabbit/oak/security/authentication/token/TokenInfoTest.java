@@ -16,21 +16,26 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.apache.jackrabbit.util.Text;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
-import org.junit.Before;
-import org.junit.Test;
-
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * TokenInfoTest...
@@ -108,17 +113,17 @@ public class TokenInfoTest extends AbstractTokenTest {
 
     @Test
     public void testGetAttributes() {
-        Map<String, String> reserved = new HashMap<String, String>();
+        Map<String, String> reserved = new HashMap<>();
         reserved.put(TOKEN_ATTRIBUTE, "value");
         reserved.put(TOKEN_ATTRIBUTE_KEY, "value");
         reserved.put(TOKEN_ATTRIBUTE_EXPIRY, "value");
 
-        Map<String, String> privateAttributes = new HashMap<String, String>();
+        Map<String, String> privateAttributes = new HashMap<>();
         privateAttributes.put(".token_exp", "value");
         privateAttributes.put(".tokenTest", "value");
         privateAttributes.put(".token_something", "value");
 
-        Map<String, String> publicAttributes = new HashMap<String, String>();
+        Map<String, String> publicAttributes = new HashMap<>();
         publicAttributes.put("any", "value");
         publicAttributes.put("another", "value");
 
@@ -131,17 +136,17 @@ public class TokenInfoTest extends AbstractTokenTest {
 
         Map<String,String> pubAttr = info.getPublicAttributes();
         assertEquals("public attributes",publicAttributes.size(), pubAttr.size());
-        for (String key : publicAttributes.keySet()) {
-            assertTrue("public attribute "+key+" not contained",pubAttr.containsKey(key));
-            assertEquals("public attribute " + key,publicAttributes.get(key), pubAttr.get(key));
-        }
+        publicAttributes.forEach((key, value) -> {
+            assertTrue("public attribute " + key + " not contained", pubAttr.containsKey(key));
+            assertEquals("public attribute " + key, value, pubAttr.get(key));
+        });
 
         Map<String,String> privAttr = info.getPrivateAttributes();
         assertEquals("private attributes",privateAttributes.size(), privAttr.size());
-        for (String key : privateAttributes.keySet()) {
-            assertTrue("private attribute "+key+" not contained",privAttr.containsKey(key));
-            assertEquals("private attribute" + key,privateAttributes.get(key), privAttr.get(key));
-        }
+        privateAttributes.forEach((key, value) -> {
+            assertTrue("private attribute " + key + " not contained", privAttr.containsKey(key));
+            assertEquals("private attribute" + key, value, privAttr.get(key));
+        });
 
         for (String key : reserved.keySet()) {
             assertFalse("reserved attribute "+key,privAttr.containsKey(key));
@@ -156,16 +161,10 @@ public class TokenInfoTest extends AbstractTokenTest {
     }
 
     @Test
-    public void testRemoveToken2() {
-        TokenInfo info = createTokenInfo(tokenProvider, userId);
-        assertTrue(info.remove());
-    }
-
-    @Test
     public void testRemoveTokenRemovesNode() throws Exception {
         TokenInfo info = createTokenInfo(tokenProvider, userId);
 
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         Tree tokens = userTree.getChild(TOKENS_NODE_NAME);
         String tokenNodePath = tokens.getChildren().iterator().next().getPath();
 
@@ -175,15 +174,39 @@ public class TokenInfoTest extends AbstractTokenTest {
 
     @Test
     public void testRemoveTokenTreeRemoved() {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = tokenProvider.createToken(userId, Collections.emptyMap());
         assertNotNull(info);
 
         Tree tokenTree = getTokenTree(info);
         assertNotNull(tokenTree);
         tokenTree.remove();
 
-        // resetting expiration on a token tree that no longer exists should not success
+        // removing a token tree that no longer exists should not succeed
         assertFalse(info.remove());
+    }
+
+    @Test
+    public void testRemoveTokenTreeRemovalFails() {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.emptyMap());
+        String path = getTokenTree(info).getPath();
+        String userPath = Text.getRelativeParent(path, 2);
+        String token = info.getToken();
+
+        Tree tokenTree = mock(Tree.class);
+        when(tokenTree.remove()).thenReturn(false);
+        when(tokenTree.exists()).thenReturn(true);
+        when(tokenTree.getPath()).thenReturn(path);
+
+        Tree realTree = root.getTree(path);
+        when(tokenTree.getParent()).thenReturn(realTree.getParent());
+        when(tokenTree.getProperty(JCR_PRIMARYTYPE)).thenReturn(realTree.getProperty(JCR_PRIMARYTYPE));
+
+        Root r = mock(Root.class);
+        when(r.getTree(path)).thenReturn(tokenTree);
+        when(r.getTree(userPath)).thenReturn(root.getTree(userPath));
+
+        TokenProviderImpl tp = createTokenProvider(r, getUserConfiguration());
+        assertFalse(tp.getTokenInfo(path).remove());
     }
 
     @Test
