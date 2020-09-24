@@ -146,6 +146,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             new JournalPropertyHandlerFactory();
     private int updateLimit = UPDATE_LIMIT;
     private int commitValueCacheSize = 10000;
+    private boolean cacheEmptyCommitValue = false;
     private long maxRevisionAgeMillis = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
     private GCMonitor gcMonitor = new LoggingGCMonitor(
             LoggerFactory.getLogger(VersionGarbageCollector.class));
@@ -571,6 +572,28 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public int getCommitValueCacheSize() {
         return commitValueCacheSize;
+    }
+
+    /**
+     * Controls whether caching of empty commit values (negative cache) is
+     * enabled. This cache is disabled by default. The cache can only be enabled
+     * on a {@link #setReadOnlyMode() read-only} store. In read-write mode, the
+     * cache is always be disabled.
+     *
+     * @param enable {@code true} to enable the empty commit value cache.
+     * @return this builder.
+     */
+    public T setCacheEmptyCommitValue(boolean enable) {
+        this.cacheEmptyCommitValue = enable;
+        return thisBuilder();
+    }
+
+    /**
+     * @return {@code true} when caching of empty commit values is enabled,
+     *      {@code false} otherwise.
+     */
+    public boolean getCacheEmptyCommitValue() {
+        return cacheEmptyCommitValue;
     }
 
     public T setJournalGCMaxAge(long maxRevisionAgeMillis) {
