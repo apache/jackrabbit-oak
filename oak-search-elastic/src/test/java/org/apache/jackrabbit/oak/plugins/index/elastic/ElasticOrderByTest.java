@@ -167,9 +167,4 @@ public class ElasticOrderByTest extends ElasticAbstractQueryTest {
         assertOrderedQuery("select [jcr:path] from [nt:base] order by @bar DESC, @foo DESC",
                 asList("/test/b", "/test/a2", "/test/a1"));
     }
-
-    private void assertOrderedQuery(String sql, List<String> paths) {
-        List<String> result = executeQuery(sql, AbstractQueryTest.SQL2, true, true);
-        assertEquals(paths, result);
-    }
 }

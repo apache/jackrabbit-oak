@@ -87,12 +87,12 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')] ",
+            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]",
                     XPATH, Arrays.asList("/test/item1", "/test/item2"));
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'red flower')] ",
-                    XPATH, Arrays.asList("/test/item1", "/test/item2"), true);
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'blue flower')] ",
-                    XPATH, Arrays.asList("/test/item2", "/test/item1"), true);
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'red flower')",
+                    Arrays.asList("/test/item1", "/test/item2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'blue flower')",
+                    Arrays.asList("/test/item2", "/test/item1"));
         });
     }
 

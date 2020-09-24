@@ -272,9 +272,7 @@ public abstract class AbstractQueryTest {
             if (!query.contains("order by") && !skipSort) {
                 Collections.sort(lines);
             }
-        } catch (ParseException e) {
-            lines.add(e.toString());
-        } catch (IllegalArgumentException e) {
+        } catch (ParseException | IllegalArgumentException e) {
             lines.add(e.toString());
         }
         time = System.currentTimeMillis() - time;
