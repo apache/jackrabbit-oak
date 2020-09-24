@@ -309,7 +309,7 @@ indexNodeName
 By default, the cost of using this index is calculated follows: For each query,
 the overhead is one operation. For each entry in the index, the cost is one.
 The following only applies to `compatVersion` 2 only:
-To use use a lower or higher cost, you can set the following optional properties
+To use a lower or higher cost, you can set the following optional properties
 in the index definition:
 
     - costPerExecution (Double) = 1.0

@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
@@ -61,9 +60,9 @@ public class PermissionStoreImplTest extends AbstractSecurityTest implements Per
         super.before();
         testPrincipal = getTestUser().getPrincipal();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"), namePathMapper);
-        NodeUtil testNode = rootNode.addChild("testPath", JcrConstants.NT_UNSTRUCTURED);
-        testNode.addChild("childNode", JcrConstants.NT_UNSTRUCTURED);
+        Tree rootNode = root.getTree("/");
+        Tree testNode = TreeUtil.addChild(rootNode, "testPath", JcrConstants.NT_UNSTRUCTURED);
+        TreeUtil.addChild(testNode, "childNode", JcrConstants.NT_UNSTRUCTURED);
 
         addAcl(testPath, EveryonePrincipal.getInstance());
         addAcl(childPath, EveryonePrincipal.getInstance());

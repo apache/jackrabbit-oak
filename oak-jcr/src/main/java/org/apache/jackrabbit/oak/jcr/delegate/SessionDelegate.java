@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionAware;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
@@ -104,6 +105,7 @@ public class SessionDelegate {
     private String userData = null;
 
     private PermissionProvider permissionProvider;
+    private boolean refreshPermissionProvider = false;
 
     /**
      * The lock used to guarantee synchronized execution of repository
@@ -344,7 +346,7 @@ public class SessionDelegate {
             info.put(EventFactory.USER_DATA, userData);
         }
         root.commit(info.build());
-        if (permissionProvider != null) {
+        if (permissionProvider != null && refreshPermissionProvider) {
             permissionProvider.refresh();
         }
     }
@@ -514,7 +516,7 @@ public class SessionDelegate {
         } else {
             root.refresh();
         }
-        if (permissionProvider != null) {
+        if (permissionProvider != null && refreshPermissionProvider) {
             permissionProvider.refresh();
         }
     }
@@ -581,9 +583,14 @@ public class SessionDelegate {
     @NotNull
     public PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
-            permissionProvider = checkNotNull(securityProvider)
-                    .getConfiguration(AuthorizationConfiguration.class)
-                    .getPermissionProvider(root, getWorkspaceName(), getAuthInfo().getPrincipals());
+            if (root instanceof PermissionAware) {
+                permissionProvider = ((PermissionAware) root).getPermissionProvider();
+            } else {
+                permissionProvider = checkNotNull(securityProvider)
+                                .getConfiguration(AuthorizationConfiguration.class)
+                                .getPermissionProvider(root, getWorkspaceName(), getAuthInfo().getPrincipals());
+                refreshPermissionProvider = true;
+            }
         }
         return permissionProvider;
     }

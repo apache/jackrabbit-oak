@@ -16,49 +16,29 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-import java.util.Set;
 
 public class HasPrivilegesHasItemGetItemTest extends AbstractHasItemGetItemTest {
-
-    private Set<String> nodeSet;
 
     public HasPrivilegesHasItemGetItemTest(int itemsToRead, int numberOfACEs, int numberOfGroups, boolean doReport) {
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
-    @Override
-    protected void beforeSuite() throws Exception {
-        super.beforeSuite();
-        nodeSet = ImmutableSet.copyOf(nodePaths);
-    }
-
+    @NotNull
     @Override
     String additionalMethodName() {
         return "hasPrivileges";
     }
 
     @Override
-    void additionalRead(String path, Session s, AccessControlManager acMgr) {
-        String np = path;
-        if (!nodeSet.contains(path)) {
-            int ind = path.indexOf(AccessControlConstants.REP_POLICY);
-            if (ind == -1) {
-                np = PathUtils.getParentPath(path);
-            } else {
-                np = path.substring(0, ind);
-            }
-        }
+    void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
         try {
-            acMgr.hasPrivileges(np, (Privilege[]) Utils.getRandom(allPrivileges, 3).toArray(new Privilege[0]));
+            acMgr.hasPrivileges(getAccessControlledPath(path), (Privilege[]) Utils.getRandom(allPrivileges, 3).toArray(new Privilege[0]));
         } catch (RepositoryException e) {
             if (doReport) {
                 e.printStackTrace(System.out);

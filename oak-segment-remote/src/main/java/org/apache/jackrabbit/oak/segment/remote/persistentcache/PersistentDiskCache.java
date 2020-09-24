@@ -139,8 +139,11 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
         Runnable task = () -> {
             if (writesPending.add(segmentId)) {
-                try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
-                    int fileSize = bufferCopy.write(channel);
+                try {
+                    int fileSize;
+                    try (FileChannel channel = new FileOutputStream(tempSegmentFile).getChannel()) {
+                        fileSize = bufferCopy.write(channel);
+                    }
                     try {
                         Files.move(tempSegmentFile.toPath(), segmentFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
                     } catch (AtomicMoveNotSupportedException e) {
@@ -163,10 +166,6 @@ public class PersistentDiskCache extends AbstractPersistentCache {
         };
 
         executor.execute(task);
-
-        if (nextCache != null) {
-            nextCache.writeSegment(msb, lsb, buffer);
-        }
     }
 
     private boolean isCacheFull() {

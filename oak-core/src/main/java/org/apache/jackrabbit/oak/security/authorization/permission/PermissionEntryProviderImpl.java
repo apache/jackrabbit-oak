@@ -16,21 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
+
 class PermissionEntryProviderImpl implements PermissionEntryProvider {
-
-    private static final String EAGER_CACHE_SIZE_PARAM = "eagerCacheSize";
-
-    private static final long DEFAULT_SIZE = 250;
 
     /**
      * The set of principal names for which this {@code PermissionEntryProvider}
@@ -40,7 +37,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private final PermissionStore store;
 
-    private final long maxSize;
+    private final ConfigurationParameters options;
 
     /**
      * Flag to indicate if the the store contains any permission entries for the
@@ -48,30 +45,37 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
      */
     private boolean noExistingNames;
 
+    private boolean initialized = false;
+    private boolean isRefreshed = false;
+
     private PermissionCache permissionCache;
 
     PermissionEntryProviderImpl(@NotNull PermissionStore store, @NotNull Set<String> principalNames, @NotNull ConfigurationParameters options) {
         this.store = store;
         this.principalNames = Collections.unmodifiableSet(principalNames);
-        this.maxSize = options.getConfigValue(EAGER_CACHE_SIZE_PARAM, DEFAULT_SIZE);
-        init();
+        this.options = options;
     }
 
     private void init() {
-        PermissionCacheBuilder builder = new PermissionCacheBuilder(store);
-        noExistingNames = builder.init(principalNames, maxSize);
-        permissionCache = builder.build();
+        if (!initialized) {
+            PermissionCacheBuilder builder = new PermissionCacheBuilder(store);
+            noExistingNames = builder.init(principalNames, new CacheStrategyImpl(options, isRefreshed));
+            permissionCache = builder.build();
+            initialized = true;
+        }
     }
 
     //--------------------------------------------< PermissionEntryProvider >---
     @Override
     public void flush() {
-        init();
+        initialized = false;
+        isRefreshed = true;
     }
 
     @Override
     @NotNull
     public Iterator<PermissionEntry> getEntryIterator(@NotNull EntryPredicate predicate) {
+        init();
         if (noExistingNames) {
             return Collections.emptyIterator();
         } else {
@@ -82,14 +86,11 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
     @Override
     @NotNull
     public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
+        init();
         return permissionCache.getEntries(accessControlledTree);
     }
 
     //------------------------------------------------------------< private >---
-    @NotNull
-    private Collection<PermissionEntry> getEntries(@NotNull String path) {
-        return permissionCache.getEntries(path);
-    }
 
     private final class EntryIterator extends AbstractLazyIterator<PermissionEntry> {
 
@@ -124,6 +125,11 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
                 }
             }
             return next;
+        }
+
+        @NotNull
+        private Collection<PermissionEntry> getEntries(@NotNull String path) {
+            return permissionCache.getEntries(path);
         }
     }
 }

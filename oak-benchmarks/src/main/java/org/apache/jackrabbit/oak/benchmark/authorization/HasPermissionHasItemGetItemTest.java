@@ -34,13 +34,14 @@ public class HasPermissionHasItemGetItemTest extends AbstractHasItemGetItemTest 
         super(itemsToRead, numberOfACEs, numberOfGroups, doReport);
     }
 
+    @NotNull
     @Override
     String additionalMethodName() {
         return "hasPermission";
     }
 
     @Override
-    void additionalRead(String path, Session s, AccessControlManager acMgr) {
+    void additionalOperations(@NotNull String path, @NotNull Session s, @NotNull AccessControlManager acMgr) {
         try {
             String actions = Text.implode((String[]) Utils.getRandom(PERMISSIONS, 3).toArray(new String[0]), ",");
             s.hasPermission(path, actions);

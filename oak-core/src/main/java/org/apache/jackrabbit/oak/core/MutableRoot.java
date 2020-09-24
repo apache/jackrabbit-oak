@@ -61,13 +61,14 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionAware;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 
-class MutableRoot implements Root {
+class MutableRoot implements Root, PermissionAware {
 
     /**
      * The underlying store to which this root belongs
@@ -372,6 +373,13 @@ class MutableRoot implements Root {
                 .putAll(info)
                 .put(CommitContext.NAME, new SimpleCommitContext())
                 .build();
+    }
+
+    //--------------------------------------------------------------------------------------------< PermissionAware >---
+    @NotNull
+    @Override
+    public PermissionProvider getPermissionProvider() {
+        return permissionProvider.get();
     }
 
     //---------------------------------------------------------< MoveRecord >---

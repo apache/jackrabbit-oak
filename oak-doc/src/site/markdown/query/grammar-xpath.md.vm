@@ -93,6 +93,11 @@ It is supported only for compatibility.
 Queries using the construct `(filter1 | filter2)' are converted to union,
 that is, one query is generated for each filter, and the result of both
 queries is combined.
+Note that for fulltext queries, it is problematic to use union, 
+because scoring is done for each subquery individually.
+The score is not useful to compare results of different subqueries,
+so that the union of multiple fulltext queries won't be ordered by score
+as one might expect.
 
 Examples:
 
@@ -265,6 +270,11 @@ As a special case, sorting by "jcr:score" in descending order is ignored
 (and if no fulltext index is used, then the score doesn't apply).
 If for some reason you want to enforce sorting by "jcr:score", then
 you can use the workaround to order by "fn:lowercase(@jcr:score) descending".
+Note that for fulltext queries, it is problematic to use union, 
+because scoring is done for each subquery individually.
+The score is not useful to compare results of different subqueries,
+so that the union of multiple fulltext queries won't be ordered by score
+as one might expect.
 
 Examples:
 

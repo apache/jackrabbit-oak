@@ -27,15 +27,17 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 class ElasticDocument {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocument.class);
 
     private final String path;
-    private final List<String> fulltext;
-    private final List<String> suggest;
+    private final Set<String> fulltext;
+    private final Set<String> suggest;
     private final List<String> notNullProps;
     private final List<String> nullProps;
     private final Map<String, Object> properties;
@@ -43,8 +45,8 @@ class ElasticDocument {
 
     ElasticDocument(String path) {
         this.path = path;
-        this.fulltext = new ArrayList<>();
-        this.suggest = new ArrayList<>();
+        this.fulltext = new LinkedHashSet<>();
+        this.suggest = new LinkedHashSet<>();
         this.notNullProps = new ArrayList<>();
         this.nullProps = new ArrayList<>();
         this.properties = new HashMap<>();
@@ -110,7 +112,11 @@ class ElasticDocument {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }
                 if (suggest.size() > 0) {
-                    builder.startObject(FieldNames.SUGGEST).field("suggestion", suggest).endObject();
+                    builder.startArray(FieldNames.SUGGEST);
+                    for(String val: suggest) {
+                        builder.startObject().field("value", val).endObject();
+                    }
+                    builder.endArray();
                 }
                 if (notNullProps.size() > 0) {
                     builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);

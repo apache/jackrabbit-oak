@@ -72,6 +72,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -123,18 +124,18 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    private CompiledPermissionImpl create(@NotNull ConfigurationParameters options, @NotNull Set<Principal> principals, @Nullable PermissionStore store) {
+    private PermissionStore mockPermissionStore(@NotNull Root r, @NotNull String wspName) {
+        return spy(new PermissionStoreImpl(r, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider()));
+    }
+
+    private CompiledPermissionImpl create(@NotNull Root r, @NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull PermissionStore store, @NotNull ConfigurationParameters options) {
         AuthorizationConfiguration config = getConfig(AuthorizationConfiguration.class);
         assertTrue(config instanceof CompositeAuthorizationConfiguration);
 
         AuthorizationConfiguration defConfig = ((CompositeAuthorizationConfiguration) config).getDefaultConfig();
         assertTrue(defConfig instanceof AuthorizationConfigurationImpl);
 
-        Root r = getRootProvider().createReadOnlyRoot(testSession.getLatestRoot());
-        String workspaceName = testSession.getWorkspaceName();
-        PermissionStore pStore = (store == null) ? new PermissionStoreImpl(r, workspaceName, config.getRestrictionProvider()) : store;
-
-        CompiledPermissions cp = CompiledPermissionImpl.create(r, workspaceName, pStore, principals, options, config.getContext(), (AuthorizationConfigurationImpl) defConfig);
+        CompiledPermissions cp = CompiledPermissionImpl.create(r, workspaceName, store, principals, options, config.getContext(), (AuthorizationConfigurationImpl) defConfig);
         assertTrue(cp instanceof CompiledPermissionImpl);
 
         return (CompiledPermissionImpl) cp;
@@ -142,7 +143,11 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
     @NotNull
     private CompiledPermissionImpl createForTestSession(@NotNull ConfigurationParameters options) {
-        return create(options, testSession.getAuthInfo().getPrincipals(), null);
+        Root r = getRootProvider().createReadOnlyRoot(testSession.getLatestRoot());
+        String workspaceName = testSession.getWorkspaceName();
+        PermissionStore pStore = mockPermissionStore(r, workspaceName);
+
+        return create(r, workspaceName, testSession.getAuthInfo().getPrincipals(), pStore, options);
     }
 
     @NotNull
@@ -216,7 +221,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
             assertFalse(cp.hasPrivileges(t, PrivilegeConstants.REP_READ_NODES));
             assertFalse(cp.hasPrivileges(t, JCR_READ));
 
-            assertEquals(0, cp.getPrivileges(t).size());
+            assertTrue(cp.getPrivileges(t).isEmpty());
 
             TreePermission tp = createTreePermission(cp, readPath);
             assertFalse(tp.canRead());
@@ -230,21 +235,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         // cp with DefaultReadPolicy
         CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
         for (String readPath : PermissionConstants.DEFAULT_READ_PATHS) {
-            assertTrue(cp.isGranted(readPath, Permissions.READ_NODE));
-
-            Tree t = createReadonlyTree(readPath);
-            assertTrue(cp.isGranted(t, null, Permissions.READ_NODE));
-            assertTrue(cp.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
-
-            assertTrue(cp.hasPrivileges(t, PrivilegeConstants.REP_READ_NODES));
-            assertTrue(cp.hasPrivileges(t, JCR_READ));
-
-            assertEquals(ImmutableSet.of(JCR_READ), cp.getPrivileges(t));
-
-            TreePermission tp = createTreePermission(cp, readPath);
-            assertTrue(tp.canRead());
-            assertTrue(tp.canRead(mock(PropertyState.class)));
-            assertFalse(tp.canReadAll());
+            assertReadPath(cp, readPath);
         }
     }
 
@@ -254,22 +245,26 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH, "/another", "/yet/another")));
 
         for (String readPath : new String[]{TEST_PATH, SUBTREE_PATH, TEST_PATH + "/nonExisting"}) {
-            assertTrue(cp.isGranted(readPath, Permissions.READ_NODE));
-
-            Tree t = createReadonlyTree(readPath);
-            assertTrue(cp.isGranted(t, null, Permissions.READ_NODE));
-            assertTrue(cp.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
-
-            assertTrue(cp.hasPrivileges(t, PrivilegeConstants.REP_READ_NODES));
-            assertTrue(cp.hasPrivileges(t, JCR_READ));
-
-            assertEquals(ImmutableSet.of(JCR_READ), cp.getPrivileges(t));
-
-            TreePermission tp = createTreePermission(cp, readPath);
-            assertTrue(tp.canRead());
-            assertTrue(tp.canRead(mock(PropertyState.class)));
-            assertFalse(tp.canReadAll());
+            assertReadPath(cp, readPath);
         }
+    }
+
+    private void assertReadPath(@NotNull CompiledPermissionImpl cp, @NotNull String readPath) {
+        assertTrue(cp.isGranted(readPath, Permissions.READ_NODE));
+
+        Tree t = createReadonlyTree(readPath);
+        assertTrue(cp.isGranted(t, null, Permissions.READ_NODE));
+        assertTrue(cp.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+
+        assertTrue(cp.hasPrivileges(t, PrivilegeConstants.REP_READ_NODES));
+        assertTrue(cp.hasPrivileges(t, JCR_READ));
+
+        assertEquals(ImmutableSet.of(JCR_READ), cp.getPrivileges(t));
+
+        TreePermission tp = createTreePermission(cp, readPath);
+        assertTrue(tp.canRead());
+        assertTrue(tp.canRead(mock(PropertyState.class)));
+        assertFalse(tp.canReadAll());
     }
 
     @Test
@@ -443,6 +438,44 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testCacheBuildOnDemand() throws Exception {
+        grant(ACCESS_CONTROLLED_PATH, getTestUser().getPrincipal(), JCR_VERSION_MANAGEMENT);
+        grant(ACCESS_CONTROLLED_PATH, EveryonePrincipal.getInstance(), JCR_READ);
+        root.commit();
+
+        Root readOnlyRoot = getRootProvider().createReadOnlyRoot(testSession.getLatestRoot());
+        String wspName = testSession.getWorkspaceName();
+
+        PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
+        Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, principals, store, ConfigurationParameters.EMPTY);
+
+        // verify lazy initialization of the permission cache
+        verify(store, never()).getNumEntries(anyString(), anyLong());
+
+        cp.isGranted(ACCESS_CONTROLLED_PATH, Permissions.VERSION_MANAGEMENT);
+        verify(store, times(2)).getNumEntries(anyString(), anyLong());
+
+        cp.isGranted(ACCESS_CONTROLLED_PATH, Permissions.READ);
+        verify(store, times(2)).getNumEntries(anyString(), anyLong());
+
+        clearInvocations(store);
+
+        // subsequent reads must not trigger re-loading of the permission cache.
+        cp.isGranted(ACCESS_CONTROLLED_PATH, Permissions.WRITE);
+        verify(store, never()).getNumEntries(anyString(), anyLong());
+
+        // flush must not eagerly re-load permission cache
+        cp.refresh(readOnlyRoot, wspName);
+        verify(store, times(1)).flush(readOnlyRoot);
+        verify(store, never()).getNumEntries(anyString(), anyLong());
+
+        // verifying permissions that requires init of both user and group store
+        cp.isGranted(ACCESS_CONTROLLED_PATH, Permissions.MODIFY_PROPERTY);
+        verify(store, times(2)).getNumEntries(anyString(), anyLong());
+    }
+
+    @Test
     public void testMissingGroupStore() throws Exception {
         grant(ACCESS_CONTROLLED_PATH, getTestUser().getPrincipal(), JCR_VERSION_MANAGEMENT);
         root.commit();
@@ -451,13 +484,18 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
         String wspName = testSession.getWorkspaceName();
 
         // create cp for user principal only (no group principals that hold the permission setup)
-        PermissionStore store = spy(new PermissionStoreImpl(readOnlyRoot, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider()));
-        CompiledPermissionImpl cp = create(ConfigurationParameters.EMPTY, ImmutableSet.of(getTestUser().getPrincipal()), store);
+        PermissionStore store = mockPermissionStore(readOnlyRoot, wspName);
+        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, ImmutableSet.of(getTestUser().getPrincipal()), store, ConfigurationParameters.EMPTY);
 
+        verify(store, never()).getNumEntries(anyString(), anyLong());
+
+        cp.isGranted(ACCESS_CONTROLLED_PATH, Permissions.READ_NODE);
         verify(store, times(1)).getNumEntries(anyString(), anyLong());
 
         cp.refresh(readOnlyRoot, wspName);
+        verify(store, times(1)).getNumEntries(anyString(), anyLong());
 
+        cp.isGranted(ACCESS_CONTROLLED_PATH, Permissions.READ_NODE);
         verify(store, times(2)).getNumEntries(anyString(), anyLong());
 
         assertFalse(cp.isGranted(ACCESS_CONTROLLED_PATH, SET_PROPERTY));
@@ -479,18 +517,23 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testMissingUserStore() throws Exception {
+    public void testMissingUserStore() {
         Root readOnlyRoot = getRootProvider().createReadOnlyRoot(testSession.getLatestRoot());
         String wspName = testSession.getWorkspaceName();
 
         // create cp for group principal only (no user principal)
         PermissionStore store = spy(new PermissionStoreImpl(readOnlyRoot, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider()));
-        CompiledPermissionImpl cp = create(ConfigurationParameters.EMPTY, ImmutableSet.of(EveryonePrincipal.getInstance()), store);
+        CompiledPermissionImpl cp = create(readOnlyRoot, wspName, ImmutableSet.of(EveryonePrincipal.getInstance()), store, ConfigurationParameters.EMPTY);
 
+        verify(store, never()).getNumEntries(anyString(), anyLong());
+
+        cp.isGranted(ACCESS_CONTROLLED_PATH, Permissions.READ_NODE);
         verify(store, times(1)).getNumEntries(anyString(), anyLong());
 
         cp.refresh(readOnlyRoot, wspName);
+        verify(store, times(1)).getNumEntries(anyString(), anyLong());
 
+        cp.isGranted(ACCESS_CONTROLLED_PATH, Permissions.READ_NODE);
         verify(store, times(2)).getNumEntries(anyString(), anyLong());
 
         assertTrue(cp.isGranted(ACCESS_CONTROLLED_PATH, SET_PROPERTY));

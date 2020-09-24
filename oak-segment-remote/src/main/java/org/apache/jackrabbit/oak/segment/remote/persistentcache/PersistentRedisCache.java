@@ -175,7 +175,7 @@ public class PersistentRedisCache extends AbstractPersistentCache {
                     redis.set(key, bos.toByteArray(), setParamsWithExpire);
                     cacheSize.addAndGet(bos.size());
                 } catch (Throwable t) {
-                    logger.error("Error writing segment {} to cache: {}", segmentId, t);
+                    logger.debug("Unable to write segment {} to cache: {}", segmentId, t.getMessage());
                 } finally {
                     writesPending.remove(segmentId);
                 }
@@ -183,10 +183,6 @@ public class PersistentRedisCache extends AbstractPersistentCache {
         };
 
         executor.execute(task);
-
-        if (nextCache != null) {
-            nextCache.writeSegment(msb, lsb, buffer);
-        }
     }
 
     @Override
