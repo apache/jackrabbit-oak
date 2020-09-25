@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +83,7 @@ public class CountingDocumentStore implements DocumentStore {
         if (printStacks) {
             new Exception("find [" + getStats(collection).numFindCalls + "] (" + collection + ") " + key).printStackTrace();
         }
-        return delegate.find(collection, key);
+        return rewrap(collection, delegate.find(collection, key));
     }
 
     @Override
@@ -93,7 +94,7 @@ public class CountingDocumentStore implements DocumentStore {
         if (printStacks) {
             new Exception("find [" + getStats(collection).numFindCalls + "] (" + collection + ") " + key + " [max: " + maxCacheAge + "]").printStackTrace();
         }
-        return delegate.find(collection, key, maxCacheAge);
+        return rewrap(collection, delegate.find(collection, key, maxCacheAge));
     }
 
     @NotNull
@@ -106,7 +107,7 @@ public class CountingDocumentStore implements DocumentStore {
         if (printStacks) {
             new Exception("query1 [" + getStats(collection).numQueryCalls + "] (" + collection + ") " + fromKey + ", to " + toKey + ". limit " + limit).printStackTrace();
         }
-        return delegate.query(collection, fromKey, toKey, limit);
+        return rewrap(collection, delegate.query(collection, fromKey, toKey, limit));
     }
 
     @NotNull
@@ -121,7 +122,7 @@ public class CountingDocumentStore implements DocumentStore {
         if (printStacks) {
             new Exception("query2 [" + getStats(collection).numQueryCalls + "] (" + collection + ") " + fromKey + ", to " + toKey + ". limit " + limit).printStackTrace();
         }
-        return delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+        return rewrap(collection, delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit));
     }
 
     @Override
@@ -164,21 +165,21 @@ public class CountingDocumentStore implements DocumentStore {
     public <T extends Document> T createOrUpdate(Collection<T> collection,
                                                  UpdateOp update) {
         getStats(collection).numCreateOrUpdateCalls++;
-        return delegate.createOrUpdate(collection, update);
+        return rewrap(collection, delegate.createOrUpdate(collection, update));
     }
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
                                                        List<UpdateOp> updateOps) {
         getStats(collection).numCreateOrUpdateCalls++;
-        return delegate.createOrUpdate(collection, updateOps);
+        return rewrap(collection, delegate.createOrUpdate(collection, updateOps));
     }
 
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                 UpdateOp update) {
         getStats(collection).numCreateOrUpdateCalls++;
-        return delegate.findAndUpdate(collection, update);
+        return rewrap(collection, delegate.findAndUpdate(collection, update));
     }
 
     @Override
@@ -205,7 +206,7 @@ public class CountingDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> T getIfCached(Collection<T> collection,
                                               String key) {
-        return delegate.getIfCached(collection, key);
+        return rewrap(collection, delegate.getIfCached(collection, key));
     }
 
     @Override
@@ -232,5 +233,23 @@ public class CountingDocumentStore implements DocumentStore {
     @Override
     public long determineServerTimeDifferenceMillis() {
         return delegate.determineServerTimeDifferenceMillis();
+    }
+
+    private <T extends Document> T rewrap(Collection<T> collection, T doc) {
+        if (doc == null) {
+            return null;
+        }
+        T d = collection.newDocument(this);
+        doc.deepCopy(d);
+        return d;
+    }
+
+    private <T extends Document> List<T> rewrap(Collection<T> collection,
+                                                List<T> docs) {
+        List<T> docList = new ArrayList<>(docs.size());
+        for (T d : docs) {
+            docList.add(rewrap(collection, d));
+        }
+        return docList;
     }
 }
