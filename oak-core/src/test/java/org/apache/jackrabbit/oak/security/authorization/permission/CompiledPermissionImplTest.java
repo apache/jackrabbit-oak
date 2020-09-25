@@ -26,6 +26,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeType;
+import org.apache.jackrabbit.oak.plugins.tree.TreeTypeAware;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
@@ -47,7 +50,9 @@ import org.junit.Test;
 
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
+import java.lang.reflect.Field;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -73,12 +78,14 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
@@ -548,5 +555,81 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest {
 
         verify(store, times(2)).load(anyString());
         verify(store, never()).load(anyString(), anyString());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGetTreePermissionInvalidParent() {
+        String wspName = adminSession.getWorkspaceName();
+        CompiledPermissionImpl cp = create(root, wspName, Collections.singleton(EveryonePrincipal.getInstance()), mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
+        TreePermission invalidParentTreePermission = mock(TreePermission.class);
+        cp.getTreePermission(root.getTree("/jcr:system"), invalidParentTreePermission);
+    }
+
+    @Test
+    public void testGetTreePermissionForHiddenVersionable() throws Exception {
+        String wspName = adminSession.getWorkspaceName();
+        CompiledPermissionImpl cp = create(root, wspName, Collections.singleton(EveryonePrincipal.getInstance()), mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
+
+        Tree hidden = mock(Tree.class, withSettings().extraInterfaces(TreeTypeAware.class));
+        when(((TreeTypeAware) hidden).getType()).thenReturn(TreeType.HIDDEN);
+        when(hidden.exists()).thenReturn(true);
+
+        setVersionManager(cp, hidden);
+
+        Tree t = when(mock(Tree.class).exists()).thenReturn(true).getMock();
+        TreePermission tp = cp.getTreePermission(t, TreeType.VERSION, TreePermission.EMPTY);
+        assertTrue(tp instanceof VersionTreePermission);
+        assertTrue(tp.canReadAll());
+    }
+
+    @Test
+    public void testGetTreePermissionForInternalVersionable() throws Exception {
+        String wspName = adminSession.getWorkspaceName();
+        CompiledPermissionImpl cp = create(root, wspName, Collections.singleton(EveryonePrincipal.getInstance()), mockPermissionStore(root, wspName), ConfigurationParameters.EMPTY);
+
+        Tree internal = mock(Tree.class, withSettings().extraInterfaces(TreeTypeAware.class));
+        when(((TreeTypeAware) internal).getType()).thenReturn(TreeType.INTERNAL);
+        when(internal.exists()).thenReturn(true);
+
+        setVersionManager(cp, internal);
+
+        Tree t = when(mock(Tree.class).exists()).thenReturn(true).getMock();
+        TreePermission tp = cp.getTreePermission(t, TreeType.VERSION, TreePermission.EMPTY);
+        assertTrue(tp instanceof VersionTreePermission);
+        assertFalse(tp.canRead());
+        assertFalse(tp.canReadProperties());
+        assertFalse(tp.canReadAll());
+        assertFalse(tp.isGranted(Permissions.NO_PERMISSION));
+    }
+
+    private static void setVersionManager(@NotNull CompiledPermissionImpl cp, @NotNull Tree t) throws Exception {
+        ReadOnlyVersionManager versionManager = createVersionManager(t);
+        Field f = CompiledPermissionImpl.class.getDeclaredField("versionManager");
+        f.setAccessible(true);
+        f.set(cp, versionManager);
+    }
+
+    private static ReadOnlyVersionManager createVersionManager(final @Nullable Tree t) {
+        return new ReadOnlyVersionManager() {
+            @Override
+            protected @NotNull Tree getVersionStorage() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            protected @NotNull Root getWorkspaceRoot() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            protected @NotNull ReadOnlyNodeTypeManager getNodeTypeManager() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public @Nullable Tree getVersionable(@NotNull Tree versionTree, @NotNull String workspaceName) {
+                return t;
+            }
+        };
     }
 }

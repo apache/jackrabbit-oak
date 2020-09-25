@@ -103,7 +103,7 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
     }
 
     @NotNull
-    private TreePermission getTreePermission(@NotNull ContentSession cs, @NotNull String path) throws Exception {
+    private TreePermission getTreePermission(@NotNull ContentSession cs, @NotNull String path) {
         Root r = cs.getLatestRoot();
         PermissionProvider pp = config.getPermissionProvider(r, cs.getWorkspaceName(), cs.getAuthInfo().getPrincipals());
 
@@ -117,57 +117,57 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
     }
 
     @Test
-    public void testTreePermissionImpl() throws Exception {
+    public void testTreePermissionImpl() {
         TreePermission tp = getTreePermission(accessSession, REPO_POLICY_PATH);
         assertTrue(tp instanceof RepoPolicyTreePermission);
     }
 
     @Test
-    public void testGetChildPermission() throws Exception {
+    public void testGetChildPermission() {
         TreePermission tp = getTreePermission(accessSession, REPO_POLICY_PATH);
         assertSame(tp, tp.getChildPermission("childName", EmptyNodeState.EMPTY_NODE));
     }
 
     @Test
-    public void testCanRead() throws Exception {
+    public void testCanRead() {
         TreePermission tp = getTreePermission(accessSession, REPO_POLICY_PATH);
         assertTrue(tp.canRead());
     }
 
     @Test
-    public void testCanRead2() throws Exception {
+    public void testCanRead2() {
         TreePermission tp = getTreePermission(noAccessSession, REPO_POLICY_PATH);
         assertFalse(tp.canRead());
     }
 
     @Test
-    public void testCanReadAceNode() throws Exception {
+    public void testCanReadAceNode() {
         TreePermission tp = getTreePermission(accessSession, root.getTree(REPO_POLICY_PATH).getChildren().iterator().next().getPath());
         assertTrue(tp.canRead());
     }
 
     @Test
-    public void testCanReadAceNode2() throws Exception {
+    public void testCanReadAceNode2() {
         TreePermission tp = getTreePermission(noAccessSession, root.getTree(REPO_POLICY_PATH).getChildren().iterator().next().getPath());
         assertFalse(tp.canRead());
     }
 
 
     @Test
-    public void testCanReadProperty() throws Exception {
+    public void testCanReadProperty() {
         TreePermission tp = getTreePermission(accessSession, REPO_POLICY_PATH);
         assertTrue(tp.canRead(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_ACL)));
     }
 
     @Test
-    public void testCanReadProperty2() throws Exception {
+    public void testCanReadProperty2() {
         TreePermission tp = getTreePermission(noAccessSession, REPO_POLICY_PATH);
         assertFalse(tp.canRead(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_ACL)));
     }
 
 
     @Test
-    public void testCanReadPropertyAceNode() throws Exception {
+    public void testCanReadPropertyAceNode() {
         Tree aceTree = root.getTree(REPO_POLICY_PATH).getChildren().iterator().next();
         PropertyState principalProp = aceTree.getProperty(REP_PRINCIPAL_NAME);
 
@@ -176,7 +176,7 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
     }
 
     @Test
-    public void testCanReadPropertyAceNode2() throws Exception {
+    public void testCanReadPropertyAceNode2() {
         Tree aceTree = root.getTree(REPO_POLICY_PATH).getChildren().iterator().next();
         PropertyState principalProp = aceTree.getProperty(REP_PRINCIPAL_NAME);
 
@@ -185,31 +185,31 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
     }
 
     @Test
-    public void testCanReadProperties() throws Exception {
+    public void testCanReadProperties() {
         TreePermission tp = getTreePermission(accessSession, REPO_POLICY_PATH);
         assertTrue(tp.canReadProperties());
     }
 
     @Test
-    public void testCanReadProperties2() throws Exception {
+    public void testCanReadProperties2() {
         TreePermission tp = getTreePermission(noAccessSession, REPO_POLICY_PATH);
         assertFalse(tp.canReadProperties());
     }
 
     @Test
-    public void testCanReadAll() throws Exception {
+    public void testCanReadAll() {
         TreePermission tp = getTreePermission(accessSession, REPO_POLICY_PATH);
         assertFalse(tp.canReadAll());
     }
 
     @Test
-    public void testCanReadAll2() throws Exception {
+    public void testCanReadAll2() {
         TreePermission tp = getTreePermission(noAccessSession, REPO_POLICY_PATH);
         assertFalse(tp.canReadAll());
     }
 
     @Test
-    public void testIsGranted() throws Exception {
+    public void testIsGranted() {
         TreePermission tp = getTreePermission(accessSession, REPO_POLICY_PATH);
         assertTrue(tp.isGranted(Permissions.NAMESPACE_MANAGEMENT));
         assertFalse(tp.isGranted(Permissions.WORKSPACE_MANAGEMENT));
@@ -217,7 +217,7 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
     }
 
     @Test
-    public void testIsGranted2() throws Exception {
+    public void testIsGranted2() {
         TreePermission tp = getTreePermission(noAccessSession, REPO_POLICY_PATH);
         assertFalse(tp.isGranted(Permissions.NAMESPACE_MANAGEMENT));
         assertFalse(tp.isGranted(Permissions.WORKSPACE_MANAGEMENT));
@@ -225,7 +225,7 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
     }
 
     @Test
-    public void testIsGrantedProperty() throws Exception {
+    public void testIsGrantedProperty() {
         PropertyState ps = PropertyStates.createProperty("name", "value");
         TreePermission tp = getTreePermission(accessSession, REPO_POLICY_PATH);
         assertTrue(tp.isGranted(Permissions.NAMESPACE_MANAGEMENT, ps));
@@ -234,7 +234,7 @@ public class RepoPolicyTreePermissionTest extends AbstractSecurityTest implement
     }
 
     @Test
-    public void testIsGrantedProperty2() throws Exception {
+    public void testIsGrantedProperty2() {
         PropertyState ps = PropertyStates.createProperty("name", "value");
         TreePermission tp = getTreePermission(noAccessSession, REPO_POLICY_PATH);
         assertFalse(tp.isGranted(Permissions.NAMESPACE_MANAGEMENT, ps));

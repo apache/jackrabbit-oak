@@ -47,8 +47,6 @@ public abstract class AbstractCacheTest {
         return ppe;
     }
 
-
-
     @NotNull
     static CacheStrategy createStrategy(long maxSize, long maxPaths, boolean isRefresh) {
         return new CacheStrategyImpl(ConfigurationParameters.of(

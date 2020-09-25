@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
+import java.util.Collections;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -25,18 +26,21 @@ import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TreePermissionImplTest extends AbstractSecurityTest implements AccessControlConstants {
+
+    private static final String TEST_PATH = "/test";
 
     private AuthorizationConfiguration config;
     private Principal testPrincipal;
@@ -45,7 +49,7 @@ public class TreePermissionImplTest extends AbstractSecurityTest implements Acce
     public void before() throws Exception {
         super.before();
 
-        new NodeUtil(root.getTree("/")).addChild("test", JcrConstants.NT_UNSTRUCTURED);
+        TreeUtil.addChild(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED);
         root.commit();
         config = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
         testPrincipal = getTestUser().getPrincipal();
@@ -54,7 +58,7 @@ public class TreePermissionImplTest extends AbstractSecurityTest implements Acce
     @Override
     public void after() throws Exception {
         try {
-            root.getTree("/test").remove();
+            root.getTree(TEST_PATH).remove();
             if (root.hasPendingChanges()) {
                 root.commit();
             }
@@ -63,23 +67,23 @@ public class TreePermissionImplTest extends AbstractSecurityTest implements Acce
         }
     }
 
-    private TreePermission getTreePermission(String path) throws Exception {
+    private TreePermission getTreePermission() throws Exception {
         ContentSession testSession = createTestSession();
         PermissionProvider pp = config.getPermissionProvider(testSession.getLatestRoot(), testSession.getWorkspaceName(), testSession.getAuthInfo().getPrincipals());
 
-        return pp.getTreePermission(root.getTree(path), TreePermission.EMPTY);
+        return pp.getTreePermission(root.getTree(TEST_PATH), TreePermission.EMPTY);
     }
 
     @Test
     public void testCanReadProperties() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/test");
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true);
         acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES), false);
-        acMgr.setPolicy("/test", acl);
+        acMgr.setPolicy(TEST_PATH, acl);
         root.commit();
 
-        TreePermission tp = getTreePermission("/test");
+        TreePermission tp = getTreePermission();
 
         assertFalse(tp.canReadProperties());
         assertTrue(tp.canRead());
@@ -89,21 +93,36 @@ public class TreePermissionImplTest extends AbstractSecurityTest implements Acce
     @Test
     public void testCanReadProperties2() throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/test");
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
         acl.addEntry(getTestUser().getPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_READ), true);
-        acMgr.setPolicy("/test", acl);
+        acMgr.setPolicy(TEST_PATH, acl);
         root.commit();
 
         Tree policyTree = root.getTree("/test/rep:policy");
-        NodeUtil ace = new NodeUtil(policyTree).addChild("ace2", NT_REP_DENY_ACE);
-        ace.setNames(REP_PRIVILEGES, PrivilegeConstants.REP_READ_PROPERTIES);
-        ace.setString(REP_PRINCIPAL_NAME, getTestUser().getPrincipal().getName());
+        Tree ace = TreeUtil.addChild(policyTree, "ace2", NT_REP_DENY_ACE);
+        ace.setProperty(REP_PRIVILEGES, Collections.singleton(PrivilegeConstants.REP_READ_PROPERTIES), Type.NAMES);
+        ace.setProperty(REP_PRINCIPAL_NAME, getTestUser().getPrincipal().getName());
         root.commit();
 
-        TreePermission tp = getTreePermission("/test");
+        TreePermission tp = getTreePermission();
 
         assertFalse(tp.canReadProperties());
         assertTrue(tp.canRead());
         assertFalse(tp.canReadProperties());
+    }
+
+    @Test
+    public void testCanReadAll() throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_PATH);
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ALL), true);
+        acMgr.setPolicy(TEST_PATH, acl);
+        root.commit();
+
+        TreePermission tp = getTreePermission();
+
+        assertFalse(tp.canReadAll());
+        assertTrue(tp.canRead());
+        assertFalse(tp.canReadAll());
     }
 }
