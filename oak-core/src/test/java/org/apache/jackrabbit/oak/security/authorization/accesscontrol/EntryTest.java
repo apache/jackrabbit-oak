@@ -16,24 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.ValueFormatException;
-import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.Privilege;
-
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -48,14 +30,32 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class EntryTest extends AbstractAccessControlTest {
 
@@ -71,11 +71,7 @@ public class EntryTest extends AbstractAccessControlTest {
         super.before();
 
         acMgr = getAccessControlManager(root);
-        testPrincipal = new Principal() {
-            public String getName() {
-                return "TestPrincipal";
-            }
-        };
+        testPrincipal = () -> "TestPrincipal";
         ValueFactory valueFactory = getValueFactory(root);
         globValue = valueFactory.createValue("*");
         nameValue = valueFactory.createValue("nt:file", PropertyType.NAME);
@@ -99,12 +95,12 @@ public class EntryTest extends AbstractAccessControlTest {
         return createEntry(testPrincipal, true, restrictions, PrivilegeConstants.JCR_READ);
     }
 
-    private Restriction createRestriction(String name, Value value) throws Exception {
-        return getRestrictionProvider().createRestriction("/a/b/c", name, value);
+    private Restriction createRestriction(Value value) throws Exception {
+        return getRestrictionProvider().createRestriction("/a/b/c", AccessControlConstants.REP_GLOB, value);
     }
 
-    private Restriction createRestriction(String name, Value[] values) throws Exception {
-        return getRestrictionProvider().createRestriction("/a/b/c", name, values);
+    private Restriction createRestriction(Value[] values) throws Exception {
+        return getRestrictionProvider().createRestriction("/a/b/c", AccessControlConstants.REP_NT_NAMES, values);
     }
 
     @Test
@@ -124,17 +120,12 @@ public class EntryTest extends AbstractAccessControlTest {
         assertSame(testPrincipal, tmpl.getPrincipal());
     }
 
-    @Test
+    @Test(expected=AccessControlException.class)
     public void testNullPrincipal() throws Exception {
-        try {
-            Privilege[] privs = new Privilege[]{
-                    acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)
-            };
-            createEntry(null, privs, false);
-            fail("Principal must not be null");
-        } catch (AccessControlException e) {
-            // success
-        }
+        Privilege[] privs = new Privilege[]{
+                acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)
+        };
+        createEntry(null, privs, false);
     }
 
     @Test
@@ -246,12 +237,12 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetRestrictionNames() throws Exception {
         // empty restrictions
-        String[] restrictionNames = createEntry(Collections.<Restriction>emptySet()).getRestrictionNames();
+        String[] restrictionNames = createEntry(Collections.emptySet()).getRestrictionNames();
         assertNotNull(restrictionNames);
         assertEquals(0, restrictionNames.length);
 
-        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
-        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
+        Restriction globRestr = createRestriction(globValue);
+        Restriction nameRestr = createRestriction(nameValues);
 
         // single restriction
         restrictionNames = createEntry(ImmutableSet.of(globRestr)).getRestrictionNames();
@@ -265,14 +256,14 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetRestrictionForEmpty() throws Exception {
         // empty restrictions
-        Value val = createEntry(Collections.<Restriction>emptySet()).getRestriction(AccessControlConstants.REP_GLOB);
+        Value val = createEntry(Collections.emptySet()).getRestriction(AccessControlConstants.REP_GLOB);
         assertNull(val);
     }
 
     @Test
     public void testGetNonExistingRestriction() throws Exception {
         // single valued restriction
-        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
+        Restriction globRestr = createRestriction(globValue);
         ACE ace = createEntry(ImmutableSet.of(globRestr));
         assertNull(ace.getRestriction(AccessControlConstants.REP_NT_NAMES));
     }
@@ -280,7 +271,7 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetRestrictionForSingleValued() throws Exception {
         // single valued restriction
-        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
+        Restriction globRestr = createRestriction(globValue);
         ACE ace = createEntry(ImmutableSet.of(globRestr));
         Value val = ace.getRestriction(AccessControlConstants.REP_GLOB);
         assertNotNull(val);
@@ -293,7 +284,7 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test(expected = ValueFormatException.class)
     public void testGetRestrictionForMultiValued() throws Exception {
         // multivalued restriction
-        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
+        Restriction nameRestr = createRestriction(nameValues);
         ACE ace = createEntry(ImmutableSet.of(nameRestr));
 
         ace.getRestriction(AccessControlConstants.REP_NT_NAMES);
@@ -305,7 +296,7 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetRestrictionForMultiValued2() throws Exception {
         // single value restriction stored in multi-value property
-        Restriction singleNameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, new Value[] {nameValue});
+        Restriction singleNameRestr = createRestriction(new Value[] {nameValue});
 
         ACE ace = createEntry(ImmutableSet.of(singleNameRestr));
         Value val = ace.getRestriction(AccessControlConstants.REP_NT_NAMES);
@@ -318,7 +309,7 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetEmptyRestrictions() throws Exception {
         // empty restrictions
-        Value[] vs = createEntry(Collections.<Restriction>emptySet()).getRestrictions(AccessControlConstants.REP_GLOB);
+        Value[] vs = createEntry(Collections.emptySet()).getRestrictions(AccessControlConstants.REP_GLOB);
         assertNull(vs);
     }
 
@@ -327,7 +318,7 @@ public class EntryTest extends AbstractAccessControlTest {
      */
     @Test
     public void testGetNonExistingRestrictions() throws Exception {
-        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
+        Restriction nameRestr = createRestriction(nameValues);
         ACE ace = createEntry(ImmutableSet.of(nameRestr));
         assertNull(ace.getRestrictions(AccessControlConstants.REP_GLOB));
     }
@@ -338,7 +329,7 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetRestrictionsForSingleValue() throws Exception {
         // single valued restriction
-        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
+        Restriction globRestr = createRestriction(globValue);
         ACE ace = createEntry(ImmutableSet.of(globRestr));
         Value[] vs = ace.getRestrictions(AccessControlConstants.REP_GLOB);
         assertNotNull(vs);
@@ -351,9 +342,10 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetRestrictionsForMultiValued() throws Exception {
         // multivalued restriction
-        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
+        Restriction nameRestr = createRestriction(nameValues);
         ACE ace = createEntry(ImmutableSet.of(nameRestr));
         Value[] vs = ace.getRestrictions(AccessControlConstants.REP_NT_NAMES);
+        assertNotNull(vs);
         assertEquals(2, vs.length);
         assertArrayEquals(nameValues, vs);
     }
@@ -364,17 +356,18 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testGetRestrictionsForMultiValued2() throws Exception {
         // single value restriction stored in multi-value property
-        Restriction singleNameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, new Value[]{nameValue});
+        Restriction singleNameRestr = createRestriction(new Value[]{nameValue});
         ACE ace = createEntry(ImmutableSet.of(singleNameRestr));
         Value[] vs = ace.getRestrictions(AccessControlConstants.REP_NT_NAMES);
+        assertNotNull(vs);
         assertEquals(1, vs.length);
         assertEquals(nameValue, vs[0]);
     }
 
     @Test
     public void testGetRestrictions() throws Exception {
-        Restriction nameRestr = createRestriction(AccessControlConstants.REP_NT_NAMES, nameValues);
-        Restriction globRestr = createRestriction(AccessControlConstants.REP_GLOB, globValue);
+        Restriction nameRestr = createRestriction(nameValues);
+        Restriction globRestr = createRestriction(globValue);
 
         Set<Restriction> expected = ImmutableSet.of(nameRestr, globRestr);
         ACE ace = createEntry(expected);
@@ -384,7 +377,7 @@ public class EntryTest extends AbstractAccessControlTest {
 
     @Test
     public void testGetRestrictionsNone() throws Exception {
-        ACE ace = createEntry(ImmutableSet.<Restriction>of());
+        ACE ace = createEntry(ImmutableSet.of());
 
         assertTrue(ace.getRestrictions().isEmpty());
     }
@@ -392,7 +385,7 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testEquals() throws RepositoryException {
 
-        Map<AccessControlEntry, AccessControlEntry> equalAces = new HashMap<AccessControlEntry, AccessControlEntry>();
+        Map<AccessControlEntry, AccessControlEntry> equalAces = new HashMap<>();
 
         ACE ace = createEntry(PrivilegeConstants.JCR_ALL);
         // create same entry again
@@ -407,9 +400,9 @@ public class EntryTest extends AbstractAccessControlTest {
         equalAces.put(ace, createEntry(testPrincipal, aggregateAllPrivs, true));
 
         // create entry with different privilege order
-        List<Privilege> reordered = new ArrayList<Privilege>(Arrays.asList(aggregateAllPrivs));
+        List<Privilege> reordered = new ArrayList<>(Arrays.asList(aggregateAllPrivs));
         reordered.add(reordered.remove(0));
-        equalAces.put(createEntry(testPrincipal, reordered.toArray(new Privilege[reordered.size()]), true),
+        equalAces.put(createEntry(testPrincipal, reordered.toArray(new Privilege[0]), true),
                 createEntry(testPrincipal, aggregateAllPrivs, true));
 
         // even if entries are build with aggregated or declared aggregate privileges
@@ -433,75 +426,30 @@ public class EntryTest extends AbstractAccessControlTest {
     @Test
     public void testNotEquals() throws RepositoryException {
         ACE ace = createEntry(new String[]{PrivilegeConstants.JCR_ALL}, true);
-        List<JackrabbitAccessControlEntry> otherAces = new ArrayList<JackrabbitAccessControlEntry>();
+        List<JackrabbitAccessControlEntry> otherAces = new ArrayList<>();
 
-        try {
-            // ACE template with different principal
-            Principal princ = new Principal() {
-                public String getName() {
-                    return "a name";
-                }
-            };
-            Privilege[] privs = new Privilege[]{
-                    acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)
-            };
-            otherAces.add(createEntry(princ, privs, true));
-        } catch (RepositoryException e) {
-        }
-
-        // ACE template with different privileges
-        try {
-            otherAces.add(createEntry(new String[]{PrivilegeConstants.JCR_READ}, true));
-        } catch (RepositoryException e) {
-        }
-        // ACE template with different 'allow' flag
-        try {
-            otherAces.add(createEntry(new String[]{PrivilegeConstants.JCR_ALL}, false));
-        } catch (RepositoryException e) {
-        }
-        // ACE template with different privileges and 'allows
-        try {
-            otherAces.add(createEntry(new String[]{PrivilegeConstants.REP_WRITE}, false));
-        } catch (RepositoryException e) {
-        }
-
-        // other ace impl
-        final Privilege[] privs = new Privilege[]{
+        // ACE template with different principal
+        Principal princ = () -> "a name";
+        Privilege[] privs = new Privilege[]{
                 acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)
         };
+        otherAces.add(createEntry(princ, privs, true));
 
-        JackrabbitAccessControlEntry pe = new JackrabbitAccessControlEntry() {
-            public boolean isAllow() {
-                return true;
-            }
+        // ACE template with different privileges
+        otherAces.add(createEntry(new String[]{PrivilegeConstants.JCR_READ}, true));
 
-            @NotNull
-            public String[] getRestrictionNames() {
-                return new String[0];
-            }
+        // ACE template with different 'allow' flag
+        otherAces.add(createEntry(new String[]{PrivilegeConstants.JCR_ALL}, false));
 
-            @Nullable
-            public Value getRestriction(@NotNull String restrictionName) {
-                return null;
-            }
+        // ACE template with different privileges and 'allows
+        otherAces.add(createEntry(new String[]{PrivilegeConstants.REP_WRITE}, false));
 
-            @Nullable
-            public Value[] getRestrictions(@NotNull String restrictionName) {
-                return null;
-            }
-
-            public Principal getPrincipal() {
-                return testPrincipal;
-            }
-
-            public Privilege[] getPrivileges() {
-                return privs;
-            }
-        };
+        // other ace impl
+        JackrabbitAccessControlEntry pe = new Jace(testPrincipal, privs);
         otherAces.add(pe);
 
         for (JackrabbitAccessControlEntry otherAce : otherAces) {
-            assertFalse(ace.equals(otherAce));
+            assertNotEquals(ace, otherAce);
         }
     }
 
@@ -512,9 +460,9 @@ public class EntryTest extends AbstractAccessControlTest {
         Privilege[] aggregateAllPrivs = acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL).getAggregatePrivileges();
         List<Privilege> l = Lists.newArrayList(aggregateAllPrivs);
         l.add(l.remove(0));
-        Privilege[] reordered = l.toArray(new Privilege[l.size()]);
+        Privilege[] reordered = l.toArray(new Privilege[0]);
 
-        Map<AccessControlEntry, AccessControlEntry> equivalent = new HashMap<AccessControlEntry, AccessControlEntry>();
+        Map<AccessControlEntry, AccessControlEntry> equivalent = new HashMap<>();
         // create same entry again
         equivalent.put(ace, createEntry(PrivilegeConstants.JCR_ALL));
         // create entry with duplicate privs
@@ -543,13 +491,9 @@ public class EntryTest extends AbstractAccessControlTest {
         final Privilege[] privs = AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_ALL);
 
         // and the opposite:
-        List<JackrabbitAccessControlEntry> otherAces = new ArrayList<JackrabbitAccessControlEntry>();
+        List<JackrabbitAccessControlEntry> otherAces = new ArrayList<>();
         // ACE template with different principal
-        Principal princ = new Principal() {
-            public String getName() {
-                return "a name";
-            }
-        };
+        Principal princ = () -> "a name";
         otherAces.add(createEntry(princ, privs, true));
 
         // ACE template with different privileges
@@ -562,51 +506,62 @@ public class EntryTest extends AbstractAccessControlTest {
         otherAces.add(createEntry(new String[]{PrivilegeConstants.REP_WRITE}, false));
 
         // other ace impl
-        JackrabbitAccessControlEntry pe = new JackrabbitAccessControlEntry() {
-            public boolean isAllow() {
-                return true;
-            }
-
-            @NotNull
-            public String[] getRestrictionNames() {
-                return new String[0];
-            }
-
-            @Nullable
-            public Value getRestriction(@NotNull String restrictionName) {
-                return null;
-            }
-
-            @Nullable
-            public Value[] getRestrictions(@NotNull String restrictionName) {
-                return null;
-            }
-
-            public Principal getPrincipal() {
-                return testPrincipal;
-            }
-
-            public Privilege[] getPrivileges() {
-                return privs;
-            }
-        };
+        JackrabbitAccessControlEntry pe = new Jace(testPrincipal, privs);
         otherAces.add(pe);
 
         for (JackrabbitAccessControlEntry otherAce : otherAces) {
-            assertFalse(ace.hashCode() == otherAce.hashCode());
+            assertNotEquals(ace.hashCode(), otherAce.hashCode());
         }
 
     }
 
     private class EmptyACE extends ACE {
 
-        public EmptyACE(PrivilegeBits privilegeBits) throws AccessControlException {
+        EmptyACE(PrivilegeBits privilegeBits) throws AccessControlException {
             super(testPrincipal, privilegeBits, true, null, namePathMapper);
         }
 
         @Override
         public Privilege[] getPrivileges() {
             return new Privilege[0];
+        }
+    }
+
+    private static final class Jace implements JackrabbitAccessControlEntry {
+
+        private final Principal principal;
+        private final Privilege[] privs;
+
+        private Jace(@NotNull Principal principal, @NotNull Privilege[] privs) {
+            this.principal = principal;
+            this.privs = privs;
+        }
+
+        public boolean isAllow() {
+            return true;
+        }
+
+        @NotNull
+        public String[] getRestrictionNames() {
+            return new String[0];
+        }
+
+        @Nullable
+        public Value getRestriction(@NotNull String restrictionName) {
+            return null;
+        }
+
+        @Nullable
+        public Value[] getRestrictions(@NotNull String restrictionName) {
+            return null;
+        }
+
+        public Principal getPrincipal() {
+            return principal;
+        }
+
+        public Privilege[] getPrivileges() {
+            return privs;
         }
     }
 }

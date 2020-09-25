@@ -95,6 +95,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_LOCK_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -247,10 +248,10 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     }
 
     @NotNull
-    private Map<String, Value[]> getMvRestriction(@NotNull String name, int type, @NotNull String... values) throws ValueFormatException {
+    private Map<String, Value[]> getMvRestriction(@NotNull String name, @NotNull String... values) throws ValueFormatException {
         List<Value> list = new ArrayList<>();
         for (String v : values) {
-            list.add(valueFactory.createValue(v, type));
+            list.add(valueFactory.createValue(v, PropertyType.NAME));
         }
         return ImmutableMap.of(name, list.toArray(new Value[0]));
     }
@@ -925,7 +926,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         ACL policy = setupPolicy(testPath, testPrivileges);
         assertEquals(1, policy.size());
 
-        Tree policyTree = root.getTree(policy.getPath()).getChild(REP_POLICY);
+        Tree policyTree = root.getTree(testPath).getChild(REP_POLICY);
         TreeUtil.addChild(policyTree, "child", NT_OAK_UNSTRUCTURED);
 
         AccessControlPolicy[] policies = acMgr.getPolicies(testPath);
@@ -933,6 +934,21 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         assertEquals(1, ((ACL) policies[0]).size());
     }
 
+    @Test
+    public void testGetPoliciesWithInvalidatedPrivileges() throws Exception {
+        ACL policy = setupPolicy(testPath, privilegesFromNames(JCR_LOCK_MANAGEMENT));
+        assertEquals(1, policy.size());
+
+        Tree privTree = root.getTree(PrivilegeConstants.PRIVILEGES_PATH).getChild(JCR_LOCK_MANAGEMENT);
+        privTree.remove();
+
+        AccessControlPolicy[] policies = acMgr.getPolicies(testPath);
+        assertPolicies(policies, 1);
+        ACL acl = (ACL) policies[0];
+        assertEquals(1, acl.size());
+        Privilege[] privs = acl.getAccessControlEntries()[0].getPrivileges();
+        assertArrayEquals(new Privilege[0], privs);
+    }
 
     //---------------------------------------< getEffectivePolicies(String) >---
     @Test
@@ -1019,9 +1035,9 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     @Test
     public void testGetEffectivePoliciesMatchingRestriction() throws Exception {
         ACL policy = TestUtility.setupPolicy(acMgr, testPath, testPrincipal, privilegesFromNames(JCR_READ), true, null,
-                getMvRestriction(REP_ITEM_NAMES, PropertyType.NAME,"child"));
+                getMvRestriction(REP_ITEM_NAMES, "child"));
         policy.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, null,
-                getMvRestriction(REP_ITEM_NAMES, PropertyType.NAME,"notMatching"));
+                getMvRestriction(REP_ITEM_NAMES, "notMatching"));
         acMgr.setPolicy(policy.getPath(), policy);
 
         Tree child = TreeUtil.addChild(root.getTree(testPath), "child", JcrConstants.NT_UNSTRUCTURED);
@@ -1048,7 +1064,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     @Test
     public void testGetEffectivePoliciesMatchingPropertyRestriction() throws Exception {
         TestUtility.setupPolicy(acMgr, testPath, testPrincipal, privilegesFromNames(JCR_READ), false, null,
-                getMvRestriction(REP_ITEM_NAMES, PropertyType.NAME, JcrConstants.JCR_PRIMARYTYPE));
+                getMvRestriction(REP_ITEM_NAMES, JcrConstants.JCR_PRIMARYTYPE));
 
         Tree child = TreeUtil.addChild(root.getTree(testPath), "child", JcrConstants.NT_UNSTRUCTURED);
         Tree grandChild = TreeUtil.addChild(child, "child", JcrConstants.NT_UNSTRUCTURED);
@@ -1062,7 +1078,7 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     @Test
     public void testGetEffectivePoliciesNotMatchingRestriction() throws Exception {
         TestUtility.setupPolicy(acMgr, testPath, testPrincipal, privilegesFromNames(JCR_READ), true, null,
-                getMvRestriction(REP_NT_NAMES, PropertyType.NAME,NT_OAK_UNSTRUCTURED));
+                getMvRestriction(REP_NT_NAMES, NT_OAK_UNSTRUCTURED));
 
         Tree child = TreeUtil.addChild(root.getTree(testPath), "child", NT_OAK_UNSTRUCTURED);
         Tree grandChild = TreeUtil.addChild(child, "grandChild", JcrConstants.NT_UNSTRUCTURED);
@@ -1300,28 +1316,18 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         }
     }
 
-    @Test
+    @Test(expected = PathNotFoundException.class)
     public void testSetPolicyPropertyPath() throws Exception {
-        try {
-            String path = "/jcr:primaryType";
-            AccessControlPolicy acl = createPolicy(path);
-            acMgr.setPolicy(path, acl);
-            fail("Setting access control policy at property path should fail");
-        } catch (PathNotFoundException e) {
-            // success
-        }
+        String path = "/jcr:primaryType";
+        AccessControlPolicy acl = createPolicy(path);
+        acMgr.setPolicy(path, acl);
     }
 
-    @Test
+    @Test(expected = PathNotFoundException.class)
     public void testSetPolicyNonExistingNodePath() throws Exception {
-        try {
-            String path = "/non/existing";
-            AccessControlPolicy acl = createPolicy(path);
-            acMgr.setPolicy(path, acl);
-            fail("Setting access control policy for non-existing node path should fail");
-        } catch (PathNotFoundException e) {
-            // success
-        }
+        String path = "/non/existing";
+        AccessControlPolicy acl = createPolicy(path);
+        acMgr.setPolicy(path, acl);
     }
 
     @Test
@@ -1470,28 +1476,18 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
         }
     }
 
-    @Test
+    @Test(expected = PathNotFoundException.class)
     public void testRemovePolicyPropertyPath() throws Exception {
-        try {
-            String path = "/jcr:primaryType";
-            AccessControlPolicy acl = createPolicy(path);
-            acMgr.removePolicy(path, acl);
-            fail("Removing access control policy at property path should fail");
-        } catch (PathNotFoundException e) {
-            // success
-        }
+        String path = "/jcr:primaryType";
+        AccessControlPolicy acl = createPolicy(path);
+        acMgr.removePolicy(path, acl);
     }
 
-    @Test
+    @Test(expected = PathNotFoundException.class)
     public void testRemovePolicyNonExistingNodePath() throws Exception {
-        try {
-            String path = "/non/existing";
-            AccessControlPolicy acl = createPolicy(path);
-            acMgr.removePolicy(path, acl);
-            fail("Removing access control policy for non-existing node path should fail");
-        } catch (PathNotFoundException e) {
-            // success
-        }
+        String path = "/non/existing";
+        AccessControlPolicy acl = createPolicy(path);
+        acMgr.removePolicy(path, acl);
     }
 
     @Test
@@ -1524,17 +1520,12 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     }
 
     //-----------------------------------< getApplicablePolicies(Principal) >---
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testGetApplicablePoliciesNullPrincipal() throws Exception {
-        try {
-            acMgr.getApplicablePolicies((Principal) null);
-            fail("Null is not a valid principal");
-        } catch (AccessControlException e) {
-            // success
-        }
+        acMgr.getApplicablePolicies((Principal) null);
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testGetApplicablePoliciesInvalidPrincipal() throws Exception {
         Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
         int i = 0;
@@ -1542,12 +1533,8 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
             unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
         }
         unknown = new InvalidTestPrincipal("unknown" + i);
-        try {
-            acMgr.getApplicablePolicies(unknown);
-            fail("Unknown principal should be detected.");
-        } catch (AccessControlException e) {
-            // success
-        }
+
+        acMgr.getApplicablePolicies(unknown);
     }
 
     @Test
@@ -1587,17 +1574,12 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
     }
 
     //---------------------------------------------< getPolicies(Principal) >---
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testGetPoliciesNullPrincipal() throws Exception {
-        try {
-            acMgr.getPolicies((Principal) null);
-            fail("Null is not a valid principal");
-        } catch (AccessControlException e) {
-            // success
-        }
+        acMgr.getPolicies((Principal) null);
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testGetPoliciesInvalidPrincipal() throws Exception {
         Principal unknown = getPrincipalManager(root).getPrincipal("unknown");
         int i = 0;
@@ -1605,12 +1587,8 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
             unknown = getPrincipalManager(root).getPrincipal("unknown"+i);
         }
         unknown = new InvalidTestPrincipal("unknown" + i);
-        try {
-            acMgr.getPolicies(unknown);
-            fail("Unknown principal should be detected.");
-        } catch (AccessControlException e) {
-            // success
-        }
+
+        acMgr.getPolicies(unknown);
     }
 
     @Test
@@ -1836,7 +1814,6 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest implement
                 root.commit();
             }
         }
-
     }
 
     @Test

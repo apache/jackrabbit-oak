@@ -20,7 +20,6 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +46,7 @@ public class NodeACLTest extends AbstractAccessControlTest {
         policy.addAccessControlEntry(EveryonePrincipal.getInstance(), testPrivileges);
         acMgr.setPolicy(TEST_PATH, policy);
 
-        nodeAcl = getNodeAcl(acMgr, TEST_PATH);
+        nodeAcl = getNodeAcl(acMgr);
     }
 
     @After
@@ -60,8 +59,8 @@ public class NodeACLTest extends AbstractAccessControlTest {
     }
 
     @NotNull
-    private static ACL getNodeAcl(@NotNull JackrabbitAccessControlManager acMgr, @Nullable String path) throws RepositoryException {
-        for (AccessControlPolicy acp : acMgr.getPolicies(path)) {
+    private static ACL getNodeAcl(@NotNull JackrabbitAccessControlManager acMgr) throws RepositoryException {
+        for (AccessControlPolicy acp : acMgr.getPolicies(AbstractAccessControlTest.TEST_PATH)) {
             if (acp instanceof ACL) {
                 return (ACL) acp;
             }
@@ -72,7 +71,7 @@ public class NodeACLTest extends AbstractAccessControlTest {
     @Test
     public void testEquals() throws Exception {
         assertEquals(nodeAcl, nodeAcl);
-        assertEquals(nodeAcl, getNodeAcl(getAccessControlManager(root), TEST_PATH));
+        assertEquals(nodeAcl, getNodeAcl(getAccessControlManager(root)));
     }
 
     @Test
@@ -86,7 +85,7 @@ public class NodeACLTest extends AbstractAccessControlTest {
 
     @Test
     public void testEqualsDifferentEntries() throws Exception {
-        ACL acl = getNodeAcl(getAccessControlManager(root), TEST_PATH);
+        ACL acl = getNodeAcl(getAccessControlManager(root));
         acl.removeAccessControlEntry(acl.getAccessControlEntries()[0]);
         assertNotEquals(nodeAcl, acl);
     }

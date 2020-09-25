@@ -36,12 +36,12 @@ public class AdminPrincipalsAbortTest extends AdminPrincipalsBaseTest {
     }
 
     @Override
-    void assertResult(boolean success) throws Exception {
+    void assertResult(boolean success) {
         fail("Adding an ACE for an admin principal should fail");
     }
 
     @Override
-    void assertException() throws Exception {
+    void assertException() {
         // success -> nothing to do
     }
 }
