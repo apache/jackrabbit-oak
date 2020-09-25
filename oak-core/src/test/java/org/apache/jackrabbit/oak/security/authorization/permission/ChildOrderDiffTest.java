@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ChildOrderDiffTest {
 
@@ -37,76 +37,76 @@ public class ChildOrderDiffTest {
     public void testBeforeEmptyAfterEmpty() {
         PropertyState before = createPropertyState();
         PropertyState after = createPropertyState();
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testBeforeEmpty() {
         PropertyState before = createPropertyState();
         PropertyState after = createPropertyState("n1", "n2");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testAfterEmpty() {
         PropertyState before = createPropertyState("n1", "n2");
         PropertyState after = createPropertyState();
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
         public void testAfterEqualsBefore() {
         PropertyState eq = createPropertyState("n1", "n2");
-        assertNull(ChildOrderDiff.firstReordered(eq, eq));
+        assertFalse(ChildOrderDiff.isReordered(eq, eq));
     }
 
     @Test
     public void testAppendedAtEnd() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n1", "n2", "n3", "n4");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testInsertedAtBeginning() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n0", "n1", "n2", "n3");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testInserted() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n1", "n11", "n2", "n3");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testLastReplaced() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n1", "n2", "n4");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testFirstRemoved() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n2", "n3");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testSecondRemoved() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n1", "n3");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testLastRemoved() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n1", "n2");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
 
@@ -114,55 +114,55 @@ public class ChildOrderDiffTest {
     public void testReorderedFirstToEnd() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n2", "n3", "n1");
-        assertEquals("n2", ChildOrderDiff.firstReordered(before, after));
+        assertTrue(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testReorderedLastBeforeSecond() {
         PropertyState before = createPropertyState("n1", "n2", "n3");
         PropertyState after = createPropertyState("n1", "n3", "n2");
-        assertEquals("n3", ChildOrderDiff.firstReordered(before, after));
+        assertTrue(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testRemovedAndReordered() {
         PropertyState before = createPropertyState("n1", "n2", "n3", "n4");
         PropertyState after = createPropertyState("n1", "n4", "n3");
-        assertEquals("n4", ChildOrderDiff.firstReordered(before, after));
+        assertTrue(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testInsertedRemovedAndReordered() {
         PropertyState before = createPropertyState("n1", "n2", "n3", "n4");
         PropertyState after = createPropertyState("n1", "n11", "n4", "n3");
-        assertEquals("n4", ChildOrderDiff.firstReordered(before, after));
+        assertTrue(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testRemovedAndReorderedAppended() {
         PropertyState before = createPropertyState("n1", "n2", "n3", "n4");
         PropertyState after = createPropertyState("n1", "n4", "n3", "n33");
-        assertEquals("n4", ChildOrderDiff.firstReordered(before, after));
+        assertTrue(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testReorderedAndReplaced() {
         PropertyState before = createPropertyState("n1", "n2", "n3", "n4");
         PropertyState after = createPropertyState("n4", "n1", "n6");
-        assertEquals("n4", ChildOrderDiff.firstReordered(before, after));
+        assertTrue(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testOnlyLastEquals() {
         PropertyState before = createPropertyState("n1", "n2");
         PropertyState after = createPropertyState("n5", "n6", "n7", "n2");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 
     @Test
     public void testAllDifferent() {
         PropertyState before = createPropertyState("n1", "n2", "n3", "n4");
         PropertyState after = createPropertyState("n5", "n6", "n7", "n8", "n9");
-        assertNull(ChildOrderDiff.firstReordered(before, after));
+        assertFalse(ChildOrderDiff.isReordered(before, after));
     }
 }

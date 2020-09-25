@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Iterator;
 import java.util.Set;
+
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
@@ -41,38 +43,19 @@ final class ChildOrderDiff {
      *
      * @param before
      * @param after
-     * @return the name of the first reordered child if any user-supplied node
-     * reorder happened; {@code null} otherwise.
+     * @return {@code true} if any user-supplied node
+     * reorder happened; {@code false} otherwise.
      */
-    @Nullable
-    static String firstReordered(@NotNull PropertyState before, @NotNull PropertyState after) {
+    static boolean isReordered(@NotNull PropertyState before, @NotNull PropertyState after) {
         Set<String> afterNames = newLinkedHashSet(after.getValue(Type.NAMES));
         Set<String> beforeNames = newLinkedHashSet(before.getValue(Type.NAMES));
 
-        Iterator<String> a = afterNames.iterator();
-        Iterator<String> b = beforeNames.iterator();
-        while (a.hasNext() && b.hasNext()) {
-            String aName = a.next();
-            String bName = b.next();
-            while (!aName.equals(bName)) {
-                if (!beforeNames.contains(aName)) {
-                    if (a.hasNext()) {
-                        aName = a.next();
-                    } else {
-                        return null;
-                    }
-                } else if (!afterNames.contains(bName)) {
-                    if (b.hasNext()) {
-                        bName = b.next();
-                    } else {
-                        return null;
-                    }
-                } else {
-                    return aName;
-                }
-            }
-        }
+        // drop all newly added values from 'afterNames'
+        afterNames.retainAll(beforeNames);
+        // drop all removed values from 'beforeNames'
+        beforeNames.retainAll(afterNames);
 
-        return null;
+        // names got reordered if the elements in the 2 intersections aren't equal
+        return !Iterables.elementsEqual(afterNames, beforeNames);
     }
 }
