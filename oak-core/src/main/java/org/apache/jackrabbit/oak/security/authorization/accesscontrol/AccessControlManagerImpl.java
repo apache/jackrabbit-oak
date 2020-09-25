@@ -396,7 +396,7 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         Result aceResult = searchAces(principals, r);
         Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new PolicyComparator());
 
-        Set<String> paths = Sets.newHashSet();
+        Set<String> processed = Sets.newHashSet();
         Predicate<Tree> predicate = new PrincipalPredicate(principals);
         for (ResultRow row : aceResult.getRows()) {
             String acePath = row.getPath();
@@ -409,13 +409,12 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             }
 
             String path = (REP_REPO_POLICY.equals(aclName)) ? null : accessControlledTree.getPath();
-            if (paths.contains(path)) {
-                continue;
-            }
-            JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true, predicate);
-            if (policy != null) {
-                effective.add(policy);
-                paths.add(path);
+            if (!processed.contains(path)) {
+                JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true, predicate);
+                if (policy != null) {
+                    effective.add(policy);
+                    processed.add(path);
+                }
             }
         }
         return effective.toArray(new AccessControlPolicy[0]);
@@ -622,16 +621,16 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
 
             if (PermissionUtil.isAdminOrSystem(ImmutableSet.of(principal), configParams)) {
                 log.warn("Attempt to create an ACE for an administrative principal which always has full access: {}", getPath());
-                switch (Util.getImportBehavior(getConfig())) {
-                    case ImportBehavior.ABORT:
-                        throw new AccessControlException("Attempt to create an ACE for an administrative principal which always has full access.");
+                switch (importBehavior) {
                     case ImportBehavior.IGNORE:
                         return false;
                     case ImportBehavior.BESTEFFORT:
                         // just log warning, no other action required.
                         break;
+                    case ImportBehavior.ABORT:
                     default :
-                        throw new IllegalArgumentException("Invalid import behavior" + importBehavior);
+                        throw new AccessControlException("Attempt to create an ACE for an administrative principal which always has full access.");
+
                 }
             }
             return true;
