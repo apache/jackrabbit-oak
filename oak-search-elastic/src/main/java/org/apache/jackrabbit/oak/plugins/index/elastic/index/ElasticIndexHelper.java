@@ -229,9 +229,8 @@ class ElasticIndexHelper {
                 mappingBuilder.startObject("properties");
                 {
                     mappingBuilder.startObject("token")
-                            .field("type", "keyword")
-                            .field("ignore_above", 256)
-                            .field("doc_values", false)
+                            .field("type", "text")
+                            .field("analyzer", "oak_analyzer")
                             .endObject();
                     mappingBuilder.startObject("boost")
                             .field("type", "double")

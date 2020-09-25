@@ -29,7 +29,6 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.UUID;
 
 public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
@@ -44,6 +43,69 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
 
     @Test
     public void dynamicBoost() throws CommitFailedException {
+        configureIndex();
+
+        Tree test = createNodeWithType(root.getTree("/"), "test", UNSTRUCTURED);
+        Tree item1Metadata = createNodeWithMetadata(test, "item1", "flower with a lot of red and a bit of blue");
+        Tree item1Color1 = createNodeWithType(item1Metadata,"color1", UNSTRUCTURED);
+        item1Color1.setProperty("name", "red");
+        item1Color1.setProperty("confidence", 9.0);
+        Tree item1Color2 = createNodeWithType(item1Metadata,"color2", UNSTRUCTURED);
+        item1Color2.setProperty("name", "blue");
+        item1Color2.setProperty("confidence", 1.0);
+
+        Tree item2Metadata = createNodeWithMetadata(test, "item2", "flower with a lot of blue and a bit of red");
+        Tree item2Color1 = createNodeWithType(item2Metadata,"color1", UNSTRUCTURED);
+        item2Color1.setProperty("name", "blue");
+        item2Color1.setProperty("confidence", 9.0);
+        Tree item2Color2 = createNodeWithType(item2Metadata,"color2", UNSTRUCTURED);
+        item2Color2.setProperty("name", "red");
+        item2Color2.setProperty("confidence", 1.0);
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]",
+                    XPATH, Arrays.asList("/test/item1", "/test/item2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'red flower')",
+                    Arrays.asList("/test/item1", "/test/item2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'blue flower')",
+                    Arrays.asList("/test/item2", "/test/item1"));
+        });
+    }
+
+    @Test
+    public void dynamicBoostAnalyzed() throws CommitFailedException {
+        configureIndex();
+
+        Tree test = createNodeWithType(root.getTree("/"), "test", UNSTRUCTURED);
+        Tree item1Metadata = createNodeWithMetadata(test, "item1", "flower with a lot of red and a bit of blue");
+        Tree item1Color1 = createNodeWithType(item1Metadata,"color1", UNSTRUCTURED);
+        item1Color1.setProperty("name", "red");
+        item1Color1.setProperty("confidence", 9.0);
+        Tree item1Color2 = createNodeWithType(item1Metadata,"color2", UNSTRUCTURED);
+        item1Color2.setProperty("name", "blue");
+        item1Color2.setProperty("confidence", 1.0);
+
+        Tree item2Metadata = createNodeWithMetadata(test, "item2", "flower with a lot of blue and a bit of red");
+        Tree item2Color1 = createNodeWithType(item2Metadata,"color1", UNSTRUCTURED);
+        item2Color1.setProperty("name", "blue");
+        item2Color1.setProperty("confidence", 9.0);
+        Tree item2Color2 = createNodeWithType(item2Metadata,"color2", UNSTRUCTURED);
+        item2Color2.setProperty("name", "red");
+        item2Color2.setProperty("confidence", 1.0);
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]",
+                    XPATH, Arrays.asList("/test/item1", "/test/item2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'red-flower')",
+                    Arrays.asList("/test/item1", "/test/item2"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'blue-flower')",
+                    Arrays.asList("/test/item2", "/test/item1"));
+        });
+    }
+
+    private void configureIndex() throws CommitFailedException {
         NodeTypeRegistry.register(root, toInputStream(ASSET_NODE_TYPE), "test nodeType");
         IndexDefinitionBuilder builder = createIndex(true, "dam:Asset", "title", "dynamicBoost");
         IndexDefinitionBuilder.PropertyRule title = builder.indexRule("dam:Asset")
@@ -58,42 +120,15 @@ public class ElasticDynamicBoostQueryTest extends ElasticAbstractQueryTest {
         dbTree.setProperty("dynamicBoost", true);
         setIndex("damAsset_" + UUID.randomUUID(), builder);
         root.commit();
+    }
 
-        Tree test = createNodeWithType(root.getTree("/"), "test", UNSTRUCTURED);
-        Tree item1 = createNodeWithType(test, "item1", "dam:Asset");
-        item1.setProperty("title", "flower with a lot of red and a bit of blue");
+    private Tree createNodeWithMetadata(Tree parent, String nodeName, String title) {
+        Tree item = createNodeWithType(parent, nodeName, "dam:Asset");
+        item.setProperty("title", title);
 
-        Tree item1Metadata = createNodeWithType(
-                createNodeWithType(item1, JcrConstants.JCR_CONTENT, UNSTRUCTURED),
+        return createNodeWithType(
+                createNodeWithType(item, JcrConstants.JCR_CONTENT, UNSTRUCTURED),
                 "metadata", UNSTRUCTURED);
-        Tree item1Color1 = createNodeWithType(item1Metadata,"color1", UNSTRUCTURED);
-        item1Color1.setProperty("name", "red");
-        item1Color1.setProperty("confidence", 9.0);
-        Tree item1Color2 = createNodeWithType(item1Metadata,"color2", UNSTRUCTURED);
-        item1Color2.setProperty("name", "blue");
-        item1Color2.setProperty("confidence", 1.0);
-
-        Tree item2 = createNodeWithType(test, "item2", "dam:Asset");
-        item2.setProperty("title", "flower with a lot of blue and a bit of red");
-        Tree item2Metadata = createNodeWithType(
-                createNodeWithType(item2, JcrConstants.JCR_CONTENT, UNSTRUCTURED),
-                "metadata", UNSTRUCTURED);
-        Tree item2Color1 = createNodeWithType(item1Metadata,"color1", UNSTRUCTURED);
-        item2Color1.setProperty("name", "blue");
-        item2Color1.setProperty("confidence", 9.0);
-        Tree item2Color2 = createNodeWithType(item1Metadata,"color2", UNSTRUCTURED);
-        item2Color2.setProperty("name", "red");
-        item2Color2.setProperty("confidence", 1.0);
-        root.commit();
-
-        assertEventually(() -> {
-            assertQuery("//element(*, dam:Asset)[jcr:contains(@title, 'flower')]",
-                    XPATH, Arrays.asList("/test/item1", "/test/item2"));
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'red flower')",
-                    Arrays.asList("/test/item1", "/test/item2"));
-            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'blue flower')",
-                    Arrays.asList("/test/item2", "/test/item1"));
-        });
     }
 
     private static Tree createNodeWithType(Tree t, String nodeName, String typeName){

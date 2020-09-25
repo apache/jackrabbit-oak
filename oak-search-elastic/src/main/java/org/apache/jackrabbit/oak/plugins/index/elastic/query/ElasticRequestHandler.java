@@ -448,7 +448,7 @@ public class ElasticRequestHandler {
 
     private Stream<QueryBuilder> dynamicScoreQueries(String text) {
         return elasticIndexDefinition.getDynamicBoostProperties().stream()
-                .map(pd -> nestedQuery(pd.nodeName, functionScoreQuery(termQuery(pd.nodeName + ".token", text),
+                .map(pd -> nestedQuery(pd.nodeName, functionScoreQuery(matchQuery(pd.nodeName + ".token", text),
                         ScoreFunctionBuilders.fieldValueFactorFunction(pd.nodeName + ".boost")), ScoreMode.Avg));
     }
 
