@@ -527,7 +527,10 @@ public final class DocumentNodeStore
         this.nodeCachePredicate = builder.getNodeCachePredicate();
         this.updateLimit = builder.getUpdateLimit();
         this.commitValueResolver = new CachingCommitValueResolver(
-                builder.getCommitValueCacheSize(), this::getSweepRevisions);
+                builder.getCommitValueCacheSize(), this::getSweepRevisions)
+                .withEmptyCommitValueCache(
+                        builder.getCacheEmptyCommitValue() && builder.getReadOnlyMode(),
+                        builder.getClock(), builder.getJournalGCMaxAge());
         this.blobStore = builder.getBlobStore();
         this.nodeStoreStatsCollector = builder.getNodeStoreStatsCollector();
         if (builder.isUseSimpleRevision()) {
