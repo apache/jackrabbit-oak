@@ -56,7 +56,7 @@ public class Explorer {
     public static void main(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
         OptionSpec skipSizeCheck = parser.accepts("skip-size-check", "Don't compute the size of the records");
-        OptionSpec<String> nonOptions = parser.nonOptions().ofType(String.class);
+        OptionSpec<String> nonOptions = parser.nonOptions("path to repository").ofType(String.class);
         OptionSet options = parser.parse(args);
 
         if (options.valuesOf(nonOptions).isEmpty()) {
