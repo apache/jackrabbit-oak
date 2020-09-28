@@ -181,7 +181,7 @@ final class NodeDocumentSweeper {
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {
         UpdateOp op = createUpdateOp(doc);
-        // go through PROPERTY_OR_DELETED_OR_COMMITROOT, whereas :
+        // go through PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS, whereas :
         // - PROPERTY : for content changes
         // - DELETED : for new node (this)
         // - COMMITROOT : for new child (parent)

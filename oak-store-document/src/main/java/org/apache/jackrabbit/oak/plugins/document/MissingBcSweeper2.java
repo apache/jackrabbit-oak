@@ -159,9 +159,10 @@ final class MissingBcSweeper2 {
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {
         UpdateOp op = null;
-        // go through PROPERTY_OR_DELETED_OR_COMMITROOT, whereas :
-        // - PROPERTY : for content changes
-        // - DELETED : for new node (this)
+        // the blueprint NodeDocumentSweeper.sweepOne goes through
+        // PROPERTY_OR_DELETED_OR_COMMITROOT here, as that's the new full sweep1.
+        // the sweep2 though, only goes through COMMITROOT_OR_REVISIONS,
+        // as that's what was left out by the original sweep1:
         // - COMMITROOT : for new child (parent)
         // - REVISIONS : for commit roots (root for branch commits)
         for (String property : filter(doc.keySet(), COMMITROOT_OR_REVISIONS)) {
