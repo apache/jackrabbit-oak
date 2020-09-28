@@ -138,7 +138,7 @@ browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [--skip-size-check]
 
-Microsoft Azure node stores are also supported using the following command.  The secret key must be supplied as an environment variable `codeAZURE_SECRET_KEY`.  
+Microsoft Azure node stores are also supported using the following command.  The secret key must be supplied as an environment variable `AZURE_SECRET_KEY`.  
 
     $ java -jar oak-run-*.jar explore az:https://myaccount.blob.core.windows.net/container/repository [--skip-size-check]
 
