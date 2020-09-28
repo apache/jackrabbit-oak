@@ -29,11 +29,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import junitx.util.PrivateAccessor;
 
@@ -118,7 +121,7 @@ public class Sweep2TestHelper {
             NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
 
             // remove the sweep2Status - this is what manages whether the sweep2 was applied or not
-            removeSweep2Status(memStore);
+            removeSweep2Status(memStore, false);
         }
 
         // step 7 : startup new instance (1.8+) - thanks to the above simulatePre18Behaviour
@@ -199,11 +202,44 @@ public class Sweep2TestHelper {
         removeSweepRev.remove("_sweepRev");
         assertNotNull(store.findAndUpdate(Collection.NODES, removeSweepRev));
         // C : remove the "sweep2Status" from the settings
-        removeSweep2Status(store);
+        removeSweep2Status(store, false);
     }
 
     static void removeSweep2Status(DocumentStore store) {
+        // most of the tests rely on sweep2 being done for all clusterIds.
+        // hence setting emptySweepRev to true by default here to achieve that.
+        removeSweep2Status(store, true);
+    }
+
+    /**
+     * Removes the "sweep2Status" from the settings collection as well
+     * as emptying the "_sweepRev" from the "0:/" root if desired.
+     * <p/>
+     * The reason for emptying the "_sweepRev", and not straight removing it,
+     * is that it has an influence on whether Sweep2Helper.isSweep2Necessary
+     * considers a sweep2 necessary or not: if it's not there, then the
+     * repository never saw a sweep1 - if it is there, then it did.
+     * Now for the latter, if it saw a sweep1, the sweep2 is only done
+     * for clusterIds in that list, not for all. But some of the tests
+     * would like to have sweep2 done for other clusterIds as well.
+     * So this is to account for that fact.
+     * @param store the store on which to do the modifications
+     * @param emptySweepRev whether or not "_sweepRev" should be emptied.
+     */
+    static void removeSweep2Status(DocumentStore store, boolean emptySweepRev) {
         store.remove(Collection.SETTINGS, "sweep2Status");
+        if (emptySweepRev) {
+            String rootId = Utils.getIdFromPath("/");
+            NodeDocument rootDoc = store.find(Collection.NODES, rootId);
+            SortedMap<Revision, String> sweepRevs = rootDoc.getLocalMap(NodeDocument.SWEEP_REV);
+            if (!sweepRevs.isEmpty()) {
+                UpdateOp emptySweepRevOp = new UpdateOp(rootId, false);
+                for (Revision rev : sweepRevs.keySet()) {
+                    emptySweepRevOp.removeMapEntry("_sweepRev", rev);
+                }
+                assertNotNull(store.findAndUpdate(Collection.NODES, emptySweepRevOp));
+            }
+        }
     }
 
     /**
@@ -269,7 +305,7 @@ public class Sweep2TestHelper {
         CommitValueResolver cvr = new CachingCommitValueResolver(
                 0 /* to make sure each commit value is calculated explicitly, separately */,
                 () -> emptySweepRevision);
-        MissingBcSweeper2 sweeper = new MissingBcSweeper2(ns, cvr);
+        MissingBcSweeper2 sweeper = new MissingBcSweeper2(ns, cvr, null);
         final List<Map<Path, UpdateOp>> updatesList = new LinkedList<>();
         sweeper.sweep2(Arrays.asList(nodeDocument), new NodeDocumentSweepListener() {
 

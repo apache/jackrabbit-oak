@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -2562,9 +2563,19 @@ public final class DocumentNodeStore
         }
         // sweep2Lock > 0
 
+        // compile the list of clusterIds for which sweep2 should be done.
+        // in an ideal situation sweep(1) would have been done for all clusterIds,
+        // and in that case "_sweepRev" will contain all clusterIds ever used.
+        // However, it is a supported situation that not sweep(1) was not run for all clusterIds,
+        // and in this case sweep2 must also not be done for all, but only for those clusterIds.
+        List<Integer> includedClusterIds = new LinkedList<>();
+        for (Revision aSweepRev : sweepRevisions) {
+            includedClusterIds.add(aSweepRev.getClusterId());
+        }
+
         // at this point we did properly acquire a lock and can go ahead doing sweep2
-        LOG.info("backgroundSweep2: starting sweep2.");
-        int num = forceBackgroundSweep2();
+        LOG.info("backgroundSweep2: starting sweep2 (includedClusterIds={})", includedClusterIds);
+        int num = forceBackgroundSweep2(includedClusterIds);
         LOG.info("backgroundSweep2: finished sweep2, num swept=" + num);
 
         // release the lock.
@@ -2579,12 +2590,20 @@ public final class DocumentNodeStore
         return true;
     }
 
-    private int forceBackgroundSweep2() throws DocumentStoreException {
+    /**
+     * Executes a sweep2 either only for the provided or for all clusterIds otherwise
+     * (which case applies depends on the status of sweep(1) in the repository).
+     * @param includedClusterIds restrict sweep2 to only these clusterIds - or do it for
+     * all clusterIds if this list is empty or null.
+     * @return number of documents swept
+     * @throws DocumentStoreException
+     */
+    int forceBackgroundSweep2(List<Integer> includedClusterIds) throws DocumentStoreException {
         final RevisionVector emptySweepRevision = new RevisionVector();
         CommitValueResolver cvr = new CachingCommitValueResolver(
                 0 /* disable caching for sweep2 as caching has a risk of propagating wrong values */,
                 () -> emptySweepRevision);
-        MissingBcSweeper2 sweeper = new MissingBcSweeper2(this, cvr);
+        MissingBcSweeper2 sweeper = new MissingBcSweeper2(this, cvr, includedClusterIds);
         LOG.info("Starting document sweep2. Head: {}, starting at 0", getHeadRevision());
         Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(0);
         try {

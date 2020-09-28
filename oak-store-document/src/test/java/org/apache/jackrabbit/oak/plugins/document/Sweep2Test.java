@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -180,13 +181,15 @@ public class Sweep2Test {
 
         fStore.fail().on(Collection.JOURNAL).after(0).once();
         try {
-            ns2.backgroundSweep2(0);
+            // directly invoking forceBackgroundSweep2 to have control over the include list
+            ns2.forceBackgroundSweep2(Collections.emptyList());
             fail("Should have thrown a DocumentStoreException");
         } catch (DocumentStoreException e) {
             // expected
         }
         assertEquals(4, Sweep2TestHelper.scanForMissingBranchCommits(ns).size());
-        assertTrue(ns2.backgroundSweep2(0));
+        // directly invoking forceBackgroundSweep2 to have control over the include list
+        ns2.forceBackgroundSweep2(Collections.emptyList());
         assertEquals(0, Sweep2TestHelper.scanForMissingBranchCommits(ns).size());
     }
 
@@ -422,7 +425,6 @@ public class Sweep2Test {
      * that have not been swept and some that have - and then sweep2 comes along.
      */
     @Test
-    @Ignore(value="OAK-9176 : currently fails since sweep2 is always going through all clusterIds")
     public void testPartiallySwept() throws Exception {
         MemoryDocumentStore store = new MemoryDocumentStore();
         for(int clusterId = 1; clusterId <= 5; clusterId++) {

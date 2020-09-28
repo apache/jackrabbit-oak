@@ -231,7 +231,7 @@ public final class NodeDocument extends Document {
      * and all previous non-branch revisions by this cluster node can be
      * considered committed.
      */
-    private static final String SWEEP_REV = "_sweepRev";
+    static final String SWEEP_REV = "_sweepRev";
 
     //~----------------------------< Split Document Types >
 

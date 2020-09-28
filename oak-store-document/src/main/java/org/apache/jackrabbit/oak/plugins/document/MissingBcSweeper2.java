@@ -24,6 +24,8 @@ import static com.google.common.collect.Maps.immutableEntry;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.COMMITROOT_OR_REVISIONS;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -63,7 +65,9 @@ final class MissingBcSweeper2 {
 
     private final CommitValueResolver commitValueResolver;
 
-    private final int clusterId;
+    private final int executingClusterId;
+
+    private final List<Integer> includedClusterIds;
 
     private final RevisionVector headRevision;
 
@@ -72,17 +76,18 @@ final class MissingBcSweeper2 {
     private long startOfScan;
     private long lastLog;
 
-
     /**
      * Creates a new sweeper v2 for the given context..
      *
      * @param context the revision context.
      */
     MissingBcSweeper2(RevisionContext context,
-                        CommitValueResolver commitValueResolver) {
+                    CommitValueResolver commitValueResolver,
+                    List<Integer> includedClusterIds) {
         this.context = checkNotNull(context);
         this.commitValueResolver = checkNotNull(commitValueResolver);
-        this.clusterId = context.getClusterId();
+        this.executingClusterId = context.getClusterId();
+        this.includedClusterIds = includedClusterIds == null ? new LinkedList<>() : Collections.unmodifiableList(includedClusterIds);
         this.headRevision= context.getHeadRevision();
     }
 
@@ -164,7 +169,13 @@ final class MissingBcSweeper2 {
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();
 
-                // consider any clusterId for sweep2
+                if (!includedClusterIds.isEmpty() && !includedClusterIds.contains(rev.getClusterId())) {
+                    // if the normal sweep(1) happened for some clusterIds already,
+                    // then sweep2 is only done for those.
+                    // In this case includedClusterIds contains that list.
+                    // If that list is empty, it's done for all.
+                    continue;
+                }
 
                 Revision cRev = getCommitRevision(doc, rev);
                 if (cRev == null) {
@@ -196,9 +207,15 @@ final class MissingBcSweeper2 {
             long totalRateMin = (totalCount * TimeUnit.MINUTES.toMillis(1)) / totalElapsed;
             long lastRateMin = (lastCount * TimeUnit.MINUTES.toMillis(1)) / lastElapsed;
 
+            String restrictionMsg;
+            if (includedClusterIds.isEmpty()) {
+                restrictionMsg = "unrestricted, ie for all clusterIds";
+            } else {
+                restrictionMsg = "restricted to clusterIds " + includedClusterIds;
+            }
             String message = String.format(
-                    "Sweep2 on cluster node [%d]: %d nodes scanned in %s (~%d/m) - last interval %d nodes in %s (~%d/m)",
-                    clusterId, totalCount, df.format(totalElapsed, TimeUnit.MILLISECONDS), totalRateMin, lastCount,
+                    "Sweep2 executed by cluster node [%d] (%s): %d nodes scanned in %s (~%d/m) - last interval %d nodes in %s (~%d/m)",
+                    executingClusterId, restrictionMsg, totalCount, df.format(totalElapsed, TimeUnit.MILLISECONDS), totalRateMin, lastCount,
                     df.format(lastElapsed, TimeUnit.MILLISECONDS), lastRateMin);
 
             LOG.info(message);
