@@ -28,6 +28,7 @@ import static org.junit.Assert.fail;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -124,7 +125,7 @@ public class Sweep2Test {
         persistToBranch(builder);
         merge(ns, builder);
 
-        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, builderProvider, 2, 0);
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, withAsyncDelay(builderProvider, 0), 2);
         Sweep2TestHelper.removeSweep2Status(store);
 
         builder = ns.getRoot().builder();
@@ -148,7 +149,7 @@ public class Sweep2Test {
         assertFalse(isSweep2Necessary(ns));
 
         DocumentNodeStoreSweepIT.createUncommittedChanges(ns, fStore);
-        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(fStore, builderProvider, 2, 0);
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(fStore, withAsyncDelay(builderProvider, 0), 2);
         Sweep2TestHelper.removeSweep2Status(fStore);
 
         // node-1 is not committed
@@ -173,7 +174,7 @@ public class Sweep2Test {
         persistToBranch(builder);
         merge(ns, builder);
         assertEquals(0, Sweep2TestHelper.scanForMissingBranchCommits(ns).size());
-        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(fStore, builderProvider, 2, 0);
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(fStore, withAsyncDelay(builderProvider, 0), 2);
         assertEquals(4, Sweep2TestHelper.scanForMissingBranchCommits(ns).size());
         Sweep2TestHelper.removeSweep2Status(fStore);
 
@@ -416,6 +417,83 @@ public class Sweep2Test {
         assertTrue(ns.getRoot().getChildNode("base").getChildNode("camp").getChildNode("a").getChildNode("b").exists());
     }
 
+    /**
+     * This tests a repository which contains a mix of revisions from clusterNodeIds
+     * that have not been swept and some that have - and then sweep2 comes along.
+     */
+    @Test
+    @Ignore(value="OAK-9176 : currently fails since sweep2 is always going through all clusterIds")
+    public void testPartiallySwept() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        for(int clusterId = 1; clusterId <= 5; clusterId++) {
+            // create some changes with this specific clusterId
+            DocumentNodeStore ns = builderProvider.newBuilder()
+                    .setAsyncDelay(0)
+                    .setClusterId(clusterId)
+                    .setDocumentStore(store).build();
+            NodeBuilder builder = ns.getRoot().builder();
+            builder.child("a" + clusterId).child("b" + clusterId).child("c" + clusterId);
+            persistToBranch(builder);
+            merge(ns, builder);
+            ns.dispose();
+        }
+        // revert back the entire store
+        Sweep2TestHelper.revertToPre18State(store);
+        // no sweep2 necessary at this point as no sweep1 was done yet
+        assertFalse(sweep2Done(store));
+        Sweep2TestHelper.revertToPre18State(store);
+        // then do a sweep1 for some of the clusterIds only
+        for (DocumentNodeStore ns : Sweep2TestHelper.applyPre18Aging(store, builderProvider, 1, 2)) {
+            ns.dispose();
+        }
+        store.remove(Collection.SETTINGS, Sweep2StatusDocument.SWEEP2_STATUS_ID);
+        assertFalse(sweep2Done(store));
+        // now start up an instance normally, which should trigger a sweep2
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setAsyncDelay(1 /*0 would disable sweep2*/)
+                .setClusterId(3)
+                .setDocumentStore(store).build();
+        assertTrue(waitForSweep2Done(store, 2000));
+        ns.dispose();
+        assertTrue(sweep2Done(store));
+
+        // the result of all of this should be that
+        // * for clusterId 1 and 2 a sweep1 happened first, then a sweep2 should have been done
+        // * for clusterId 3 a sweep2 happened directly (without a sweep1)
+        // * for clusterId 4 and 5 no sweep1/2 happened - they still look "pre 1.8" and stay that way
+
+        assertTrue("/a1 has no _bc", hasBcProperty(store, "/a1"));
+        assertTrue("/a2 has no _bc", hasBcProperty(store, "/a2"));
+        assertTrue("/a3 has no _bc", hasBcProperty(store, "/a3"));
+        assertFalse("/a4 has _bc", hasBcProperty(store, "/a4"));
+        assertFalse("/a5 has _bc", hasBcProperty(store, "/a5"));
+    }
+
+    private boolean hasBcProperty(MemoryDocumentStore store, String path) {
+        NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(path));
+        if (doc == null) {
+            fail("could not find " + path);
+        }
+        Set<Revision> bc = doc.getLocalBranchCommits();
+        return bc != null && !bc.isEmpty();
+    }
+
+    private boolean waitForSweep2Done(MemoryDocumentStore store, int maxWaitMillis) throws InterruptedException {
+        final long timeout = System.currentTimeMillis() + maxWaitMillis;
+        while(!sweep2Done(store) && System.currentTimeMillis() < timeout) {
+            Thread.sleep(10);
+        }
+        return sweep2Done(store);
+    }
+
+    private boolean sweep2Done(MemoryDocumentStore store) {
+        Sweep2StatusDocument sweep2Status = Sweep2StatusDocument.readFrom(store);
+        if (sweep2Status == null) {
+            return false;
+        }
+        return sweep2Status.isSwept();
+    }
+
     private static boolean isSweep2Necessary(DocumentNodeStore ns) {
         return Sweep2Helper.isSweep2Necessary(ns.getDocumentStore());
     }
@@ -426,5 +504,14 @@ public class Sweep2Test {
 
     private static boolean forceReleaseSweep2LockAndMarkSwept(DocumentStore store, int clusterId) {
         return Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, clusterId);
+    }
+
+    private DocumentMKBuilderProvider withAsyncDelay(DocumentMKBuilderProvider builderProvider, int asyncDelay) {
+        return new DocumentMKBuilderProvider() {
+            @Override
+            public Builder newBuilder() {
+                return super.newBuilder().setAsyncDelay(asyncDelay);
+            }
+        };
     }
 }

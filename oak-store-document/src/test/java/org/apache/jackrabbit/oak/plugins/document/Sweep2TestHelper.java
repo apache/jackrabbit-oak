@@ -48,6 +48,10 @@ public class Sweep2TestHelper {
         Set<Integer> activeIds = new HashSet<Integer>();
         activeIds.add(ns.getClusterId());
         ClusterViewDocument.readOrUpdate(ns, activeIds, null, null);
+        testPre18UpgradeSimulations(memStore, builderProvider);
+    }
+
+    static void testPre18UpgradeSimulations(MemoryDocumentStore memStore, DocumentMKBuilderProvider builderProvider) {
         doTestPre18Upgrade(memStore.copy(), builderProvider.newBuilder(), false);
         doTestPre18Upgrade(memStore.copy(), builderProvider.newBuilder(), true);
     }
@@ -202,11 +206,27 @@ public class Sweep2TestHelper {
         store.remove(Collection.SETTINGS, "sweep2Status");
     }
 
+    /**
+     * This simulates the provided store having done the changes
+     * "pre 1.8" - ie it "ages" the document in a way that it looks
+     * like they were applied "pre 1.8".
+     * <p/>
+     * The way this is done is to remove all the "_bc" entries
+     * (as they didn't exist before 1.8) - *and then* doing a normal sweep (ie "sweep1")
+     */
     static DocumentNodeStore applyPre18Aging(DocumentStore memStore, DocumentMKBuilderProvider builderProvider, int newClusterId) {
-        return applyPre18Aging(memStore, builderProvider, newClusterId, -1);
+        return applyPre18Aging(memStore, builderProvider, new int[] {newClusterId}).get(0);
     }
 
-    static DocumentNodeStore applyPre18Aging(DocumentStore memStore, DocumentMKBuilderProvider builderProvider, int newClusterId, int asyncDelay) {
+    /**
+     * This simulates the provided store having done the changes
+     * "pre 1.8" - ie it "ages" the document in a way that it looks
+     * like they were applied "pre 1.8".
+     * <p/>
+     * The way this is done is to remove all the "_bc" entries
+     * (as they didn't exist before 1.8) - *and then* doing a normal sweep (ie "sweep1")
+     */
+    static List<DocumentNodeStore> applyPre18Aging(DocumentStore memStore, DocumentMKBuilderProvider builderProvider, int... newClusterId) {
         revertToPre18State(memStore);
 
         // mark as swept2 to avoid a proper sweep2, only makes sense for testing
@@ -214,15 +234,16 @@ public class Sweep2TestHelper {
 
         NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED;
         Builder builder = builderProvider.newBuilder();
-        if (asyncDelay != -1) {
-            builder.setAsyncDelay(asyncDelay);
+        List<DocumentNodeStore> nss = new LinkedList<>();
+        for (int aClusterId : newClusterId) {
+            DocumentNodeStore ns = builder
+                    .setClusterId(aClusterId)
+                    .setDocumentStore(memStore).build();
+            nss.add(ns);
         }
-        DocumentNodeStore ns = builder
-                .setClusterId(newClusterId)
-                .setDocumentStore(memStore).build();
         NodeDocumentSweeper.SWEEP_ONE_PREDICATE = Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
 
-        return ns;
+        return nss;
     }
 
     static List<Path> scanForMissingBranchCommits(DocumentNodeStore ns) {

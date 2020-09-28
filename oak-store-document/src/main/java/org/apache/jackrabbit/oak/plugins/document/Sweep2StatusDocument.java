@@ -30,7 +30,7 @@ public class Sweep2StatusDocument {
 
     private static final Logger LOG = LoggerFactory.getLogger(Sweep2StatusDocument.class);
 
-    private static final String SWEEP2_STATUS_ID = "sweep2Status";
+    static final String SWEEP2_STATUS_ID = "sweep2Status";
 
     private static final String STATUS_PROPERTY = "status";
     private static final String STATUS_VALUE_SWEEPING = "sweeping";
