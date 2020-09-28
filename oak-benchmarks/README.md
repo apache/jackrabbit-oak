@@ -20,7 +20,7 @@ be invoked like this:
 
 The following benchmark options (with default values) are currently supported:
 
-    --azure [String]       - Azure Connection String (default:          
+    --azure                - Azure Connection String (default:          
                                DefaultEndpointsProtocol=http;           
                                AccountName=devstoreaccount1;            
                                AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;
