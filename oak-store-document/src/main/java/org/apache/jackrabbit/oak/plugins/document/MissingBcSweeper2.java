@@ -108,7 +108,6 @@ final class MissingBcSweeper2 {
 
     //----------------------------< internal >----------------------------------
 
-    @Nullable
     private void performSweep2(Iterable<NodeDocument> documents,
                                   NodeDocumentSweepListener listener)
             throws DocumentStoreException {
