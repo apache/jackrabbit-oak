@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.jackrabbit.oak.explorer;
 
 import com.google.common.base.Function;
@@ -40,8 +58,10 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
     protected Map<String, Set<UUID>> index;
 
 
+    @Override
     public abstract void open() throws IOException;
 
+    @Override
     public void close() {
         store.close();
         store = null;
@@ -50,6 +70,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
 
     abstract protected JournalFile getJournal();
 
+    @Override
     public List<String> readRevisions() {
         JournalFile journal = getJournal();
 
@@ -90,20 +111,24 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return revs;
     }
 
+    @Override
     public Map<String, Set<UUID>> getTarReaderIndex() {
         return store.getTarReaderIndex();
     }
 
+    @Override
     public Map<UUID, Set<UUID>> getTarGraph(String file) throws IOException {
         return store.getTarGraph(file);
     }
 
+    @Override
     public List<String> getTarFiles() {
         List<String> files = new ArrayList<>(store.getTarReaderIndex().keySet());
         files.sort(reverseOrder());
         return files;
     }
 
+    @Override
     public void getGcRoots(UUID uuidIn, Map<UUID, Set<Map.Entry<UUID, String>>> links) throws IOException {
         Deque<UUID> todos = new ArrayDeque<UUID>();
         todos.add(uuidIn);
@@ -134,6 +159,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         }
     }
 
+    @Override
     public Set<UUID> getReferencedSegmentIds() {
         Set<UUID> ids = newHashSet();
 
@@ -144,26 +170,32 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return ids;
     }
 
+    @Override
     public NodeState getHead() {
         return store.getHead();
     }
 
+    @Override
     public NodeState readNodeState(String recordId) {
         return store.getReader().readNode(RecordId.fromString(store.getSegmentIdProvider(), recordId));
     }
 
+    @Override
     public void setRevision(String revision) {
         store.setRevision(revision);
     }
 
+    @Override
     public boolean isPersisted(NodeState state) {
         return state instanceof SegmentNodeState;
     }
 
+    @Override
     public boolean isPersisted(PropertyState state) {
         return state instanceof SegmentPropertyState;
     }
 
+    @Override
     public String getRecordId(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getRecordId((SegmentNodeState) state);
@@ -172,6 +204,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public UUID getSegmentId(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getSegmentId((SegmentNodeState) state);
@@ -180,6 +213,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public String getRecordId(PropertyState state) {
         if (state instanceof SegmentPropertyState) {
             return getRecordId((SegmentPropertyState) state);
@@ -188,6 +222,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public UUID getSegmentId(PropertyState state) {
         if (state instanceof SegmentPropertyState) {
             return getSegmentId((SegmentPropertyState) state);
@@ -196,6 +231,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public String getTemplateRecordId(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getTemplateRecordId((SegmentNodeState) state);
@@ -204,6 +240,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public UUID getTemplateSegmentId(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getTemplateSegmentId((SegmentNodeState) state);
@@ -212,6 +249,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public String getFile(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getFile((SegmentNodeState) state);
@@ -220,6 +258,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public String getFile(PropertyState state) {
         if (state instanceof SegmentPropertyState) {
             return getFile((SegmentPropertyState) state);
@@ -228,6 +267,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public String getTemplateFile(NodeState state) {
         if (state instanceof SegmentNodeState) {
             return getTemplateFile((SegmentNodeState) state);
@@ -236,6 +276,7 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return null;
     }
 
+    @Override
     public Map<UUID, String> getBulkSegmentIds(Blob blob) {
         Map<UUID, String> result = Maps.newHashMap();
 
@@ -246,10 +287,12 @@ public abstract class AbstractSegmentTarExplorerBackend implements ExplorerBacke
         return result;
     }
 
+    @Override
     public String getPersistedCompactionMapStats() {
         return "";
     }
 
+    @Override
     public boolean isExternal(Blob blob) {
         if (blob instanceof SegmentBlob) {
             return isExternal((SegmentBlob) blob);
