@@ -147,8 +147,6 @@ public class Sweep2StatusDocument {
             if (existing.keySet().contains(LOCK_PROPERTY)) {
                 updateOp.remove(LOCK_PROPERTY);
             }
-            ArrayList<UpdateOp> updateOps = new ArrayList<UpdateOp>();
-            updateOps.add(updateOp);
             if (documentStore.findAndUpdate(Collection.SETTINGS, updateOp) == null) {
                 LOG.info("forceReleaseLockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
                 existing = documentStore.find(Collection.SETTINGS, SWEEP2_STATUS_ID,
