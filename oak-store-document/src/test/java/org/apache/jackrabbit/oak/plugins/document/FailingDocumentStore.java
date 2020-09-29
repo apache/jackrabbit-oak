@@ -69,6 +69,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
             numFailures.set(0);
             failAfter.set(Long.MAX_VALUE);
             exceptionType = Type.GENERIC;
+            collectionIncludeList = null;
         }
 
         void once() {
