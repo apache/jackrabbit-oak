@@ -58,8 +58,7 @@ public class Sweep2Helper {
             Revision rev = entry.getKey();
     
             // consider all clusterIds..
-            String rawCommitValue = entry.getValue();
-            String cv = rawCommitValue;
+            String cv = entry.getValue();
             if (cv == null) {
                 // skip
                 continue;
