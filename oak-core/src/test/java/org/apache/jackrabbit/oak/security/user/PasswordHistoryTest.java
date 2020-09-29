@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -295,7 +294,7 @@ public class PasswordHistoryTest extends AbstractSecurityTest implements UserCon
     @Test
     public void testSingleTypeHistoryProperty() throws Exception {
         Tree userTree = root.getTree(getTestUser().getPath());
-        Tree pwdNode = new NodeUtil(userTree).getOrAddChild(REP_PWD, NT_REP_PASSWORD).getTree();
+        Tree pwdNode = TreeUtil.getOrAddChild(userTree, REP_PWD, NT_REP_PASSWORD);
 
         pwdNode.setProperty(REP_PWD_HISTORY, "singleValuedProperty");
         assertFalse(pwdNode.getProperty(REP_PWD_HISTORY).isArray());

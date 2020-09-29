@@ -64,9 +64,9 @@ public class UserImporterSessionAutosaveTest extends UserImporterTest {
     }
 
     @Override
-    boolean init(boolean createAction) throws Exception {
+    boolean init(boolean createAction, Class<?>... extraInterfaces) throws Exception {
         getUserManager(root).autoSave(false);
-        boolean b = super.init(createAction);
+        boolean b = super.init(createAction, extraInterfaces);
         getUserManager(root).autoSave(true);
         return b;
     }

@@ -23,6 +23,7 @@ import javax.jcr.RepositoryException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -39,7 +41,7 @@ import static org.junit.Assert.assertTrue;
 public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
     Tree groupTree;
-    Tree memberRefList;
+    private Tree memberRefList;
 
     UserProvider userProvider;
 
@@ -88,7 +90,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
 
     @Test
     public void testKnownMemberThresholdReached() throws Exception {
-        List<String> memberIds = new ArrayList();
+        List<String> memberIds = new ArrayList<>();
         for (int i = 0; i <= MembershipWriter.DEFAULT_MEMBERSHIP_THRESHOLD; i++) {
             memberIds.add(userProvider.getContentID("m"+i));
         }
@@ -207,5 +209,23 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
         PropertyState members = groupTree.getProperty(REP_MEMBERS);
         assertNotNull(members);
         assertEquals(ImmutableList.of(knownMemberContentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
+    }
+
+    @Test
+    public void testAddExistingMembers() throws Exception {
+        Tree userTree = createUserTree();
+        String contentId = userProvider.getContentID(userTree);
+
+        // member to be imported has already been added before
+        Group gr = (Group) ((UserManagerImpl) getUserManager(root)).getAuthorizable(groupTree);
+        checkNotNull(gr).addMembers(TEST_USER_ID);
+
+        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+        assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+        importer.processReferences();
+
+        PropertyState members = groupTree.getProperty(REP_MEMBERS);
+        assertNotNull(members);
+        assertEquals(ImmutableList.of(contentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
     }
 }

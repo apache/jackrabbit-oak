@@ -40,7 +40,6 @@ import static org.mockito.Mockito.when;
 
 public class UserImporterPasswordTreeTest extends UserImporterBaseTest {
 
-    private Tree userTree;
     private Tree pwTree;
 
     @Override
@@ -48,7 +47,7 @@ public class UserImporterPasswordTreeTest extends UserImporterBaseTest {
         super.before();
 
         init();
-        userTree = createUserTree();
+        Tree userTree = createUserTree();
         pwTree = TreeUtil.addChild(userTree, REP_PWD, NT_REP_PASSWORD);
     }
 

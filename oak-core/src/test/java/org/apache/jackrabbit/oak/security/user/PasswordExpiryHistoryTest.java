@@ -60,13 +60,7 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
         pwAction.init(null, ConfigurationParameters.of(
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{4,}).*"
         ));
-        final AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-            @NotNull
-            @Override
-            public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-                return ImmutableList.of(pwAction);
-            }
-        };
+        final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(pwAction);
 
         ConfigurationParameters userConfig = ConfigurationParameters.of(
                 ImmutableMap.of(

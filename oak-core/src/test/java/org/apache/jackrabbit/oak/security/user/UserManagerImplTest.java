@@ -211,18 +211,13 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testIsAutoSave() throws Exception {
+    public void testIsAutoSave() {
         assertFalse(userMgr.isAutoSave());
     }
 
-    @Test
+    @Test(expected = UnsupportedRepositoryOperationException.class)
     public void testAutoSave() throws Exception {
-        try {
-            userMgr.autoSave(true);
-            fail("should fail");
-        } catch (UnsupportedRepositoryOperationException e) {
-            // success
-        }
+        userMgr.autoSave(true);
     }
 
     @Test
@@ -397,17 +392,12 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateGroupWithNullId() throws RepositoryException {
-        userMgr.createGroup((String) null, new PrincipalImpl("groupPrincipalName"), null);
+        userMgr.createGroup(null, new PrincipalImpl("groupPrincipalName"), null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateUserWithEmptyPrincipalName() throws Exception {
-        userMgr.createUser("another", null, new Principal() {
-            @Override
-            public String getName() {
-                return "";
-            }
-        }, null);
+        userMgr.createUser("another", null, () -> "", null);
     }
 
     @Test(expected = IllegalArgumentException.class)

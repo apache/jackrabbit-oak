@@ -51,7 +51,7 @@ public class EveryoneGroupTest extends AbstractSecurityTest {
         UserManager userMgr = getUserManager(root);
         everyoneGroup = userMgr.createGroup(EveryonePrincipal.getInstance());
 
-        authorizables = new HashSet<Authorizable>(2);
+        authorizables = new HashSet<>(2);
         authorizables.add(userMgr.createGroup("testGroup"));
         authorizables.add(userMgr.createUser("testUser", "pw"));
         root.commit();

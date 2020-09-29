@@ -28,10 +28,12 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
@@ -59,13 +61,14 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
         return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
-    private void assertNodeName(Authorizable authorizable) throws RepositoryException {
+    private void assertNodeName(@Nullable Authorizable authorizable) throws RepositoryException {
+        assertNotNull(authorizable);
         assertEquals(id, authorizable.getID());
 
         String path = authorizable.getPath();
         Tree tree = root.getTree(path);
 
-        assertFalse(id.equals(tree.getName()));
+        assertNotEquals(id, tree.getName());
         assertEquals(RandomAuthorizableNodeName.DEFAULT_LENGTH, tree.getName().length());
     }
 
@@ -75,7 +78,7 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
         String path = authorizable.getPath();
         Tree tree = root.getTree(path);
 
-        assertFalse(id.equals(tree.getName()));
+        assertNotEquals(id, tree.getName());
         assertEquals(RandomAuthorizableNodeName.DEFAULT_LENGTH, tree.getName().length());
 
         String end = '/' + relPath + '/' + tree.getName();
@@ -86,9 +89,9 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
     public void testGenerateNodeName() {
         String nodeName = nameGenerator.generateNodeName(id);
 
-        assertFalse("id".equals(nodeName));
+        assertNotEquals("id", nodeName);
         assertEquals(RandomAuthorizableNodeName.DEFAULT_LENGTH, nodeName.length());
-        assertFalse(nodeName.equals(nameGenerator.generateNodeName(id)));
+        assertNotEquals(nodeName, nameGenerator.generateNodeName(id));
     }
 
     @Test
