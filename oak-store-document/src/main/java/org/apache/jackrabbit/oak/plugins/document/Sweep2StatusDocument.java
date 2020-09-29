@@ -149,8 +149,6 @@ public class Sweep2StatusDocument {
             }
             if (documentStore.findAndUpdate(Collection.SETTINGS, updateOp) == null) {
                 LOG.info("forceReleaseLockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
-                existing = documentStore.find(Collection.SETTINGS, SWEEP2_STATUS_ID,
-                        -1 /* -1; avoid caching */);
                 Sweep2StatusDocument status = readFrom(documentStore);
                 if (status == null) {
                     LOG.warn("forceReleaseLockAndMarkSwept: no existing sweep2 status after updating failed");
