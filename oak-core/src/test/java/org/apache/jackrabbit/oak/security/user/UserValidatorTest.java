@@ -22,6 +22,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
@@ -44,13 +45,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @since OAK 1.0
@@ -87,6 +92,30 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         return new UserValidator(before, after, uvp);
     }
 
+    private void assertRemoveProperty(@NotNull String name, int expectedCode) throws CommitFailedException {
+        try {
+            Tree userTree = root.getTree(userPath);
+            userTree.removeProperty(name);
+            root.commit();
+        } catch (CommitFailedException e) {
+            assertEquals(expectedCode, e.getCode());
+            assertTrue(e.isConstraintViolation());
+            throw e;
+        }
+    }
+
+    private void assertChangeProperty(@NotNull String name, @NotNull String value, int expectedCode) throws CommitFailedException {
+        try {
+            Tree userTree = root.getTree(userPath);
+            userTree.setProperty(name, value);
+            root.commit();
+        } catch (CommitFailedException e) {
+            assertEquals(expectedCode, e.getCode());
+            assertTrue(e.isConstraintViolation());
+            throw e;
+        }
+    }
+
     @NotNull
     private ConfigurationParameters getConfig() {
         return getUserConfiguration().getParameters();
@@ -94,22 +123,12 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test(expected = CommitFailedException.class)
     public void removePassword() throws Exception {
-        try {
-            Tree userTree = root.getTree(userPath);
-            userTree.removeProperty(REP_PASSWORD);
-            root.commit();
-        } catch (CommitFailedException e) {
-            assertEquals(25, e.getCode());
-            assertTrue(e.isConstraintViolation());
-            throw e;
-        }
+        assertRemoveProperty(REP_PASSWORD, 25);
     }
 
     @Test(expected = CommitFailedException.class)
     public void removePrincipalName() throws Exception {
-        Tree userTree = root.getTree(userPath);
-        userTree.removeProperty(REP_PRINCIPAL_NAME);
-        root.commit();
+        assertRemoveProperty(REP_PRINCIPAL_NAME, 22);
     }
 
     @Test(expected = CommitFailedException.class)
@@ -127,15 +146,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test(expected = CommitFailedException.class)
     public void removeAuthorizableId() throws Exception {
-        try {
-            Tree userTree = root.getTree(userPath);
-            userTree.removeProperty(REP_AUTHORIZABLE_ID);
-            root.commit();
-        } catch (CommitFailedException e) {
-            assertEquals(25, e.getCode());
-            assertTrue(e.isConstraintViolation());
-            throw e;
-        }
+        assertRemoveProperty(REP_AUTHORIZABLE_ID, 25);
     }
 
     @Test(expected = CommitFailedException.class)
@@ -207,9 +218,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test(expected = CommitFailedException.class)
     public void changeUUID() throws Exception {
-        Tree userTree = root.getTree(userPath);
-        userTree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
-        root.commit();
+        assertChangeProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString(), 23);
     }
 
     @Test
@@ -221,23 +230,27 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
 
     @Test(expected = CommitFailedException.class)
     public void changePrincipalName() throws Exception {
-        Tree userTree = root.getTree(userPath);
-        userTree.setProperty(REP_PRINCIPAL_NAME, "another");
-        root.commit();
+        assertChangeProperty(REP_PRINCIPAL_NAME, "another", 22);
     }
 
     @Test(expected = CommitFailedException.class)
     public void changeAuthorizableId() throws Exception {
-        Tree userTree = root.getTree(userPath);
-        userTree.setProperty(REP_AUTHORIZABLE_ID, "modified");
-        root.commit();
+        assertChangeProperty(REP_AUTHORIZABLE_ID, "modified", 22);
     }
 
     @Test(expected = CommitFailedException.class)
     public void changePasswordToPlainText() throws Exception {
-        Tree userTree = root.getTree(userPath);
-        userTree.setProperty(REP_PASSWORD, "plaintext");
-        root.commit();
+        assertChangeProperty(REP_PASSWORD, "plaintext", 24);
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void changePasswordToPlainText2() throws Exception {
+        Tree beforeTree = when(mock(Tree.class).getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)).getMock();
+        Tree afterTree = root.getTree(userPath);
+
+        UserValidator uv = new UserValidator(beforeTree, afterTree, new UserValidatorProvider(ConfigurationParameters.EMPTY, getRootProvider(), getTreeProvider()));
+        PropertyState plainTextAfter = PropertyStates.createProperty(REP_PASSWORD, "pw");
+        uv.propertyChanged(afterTree.getProperty(REP_PASSWORD), plainTextAfter);
     }
 
     @Test(expected = CommitFailedException.class)
@@ -316,7 +329,7 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
         String adminId = getConfig().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
         Authorizable admin = getUserManager(root).getAuthorizable(adminId);
 
-        Tree userTree = root.getTree(admin.getPath());
+        Tree userTree = root.getTree(checkNotNull(admin).getPath());
         UserValidator validator = createUserValidator(userTree, userTree);
         userTree.remove();
 
