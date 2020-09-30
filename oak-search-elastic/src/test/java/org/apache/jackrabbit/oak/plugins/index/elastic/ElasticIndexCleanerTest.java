@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.junit.Assert.assertFalse;
@@ -109,6 +110,33 @@ public class ElasticIndexCleanerTest extends ElasticAbstractQueryTest {
         assertFalse(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName1), RequestOptions.DEFAULT));
         assertFalse(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName2), RequestOptions.DEFAULT));
         assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName3), RequestOptions.DEFAULT));
+    }
+
+    @Test
+    public void preventDisabledIndexDeletion() throws Exception {
+        int indexDeletionThresholdTime = 5;
+        String indexId = createIndexAndContentNode("propa", "test1");
+        String indexPath = "/" + INDEX_DEFINITIONS_NAME + "/" + indexId;
+        NodeState oakIndex = nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME);
+        NodeState indexState = oakIndex.getChildNode(indexId);
+        indexState.builder().remove();
+
+        root.refresh();
+        root.getTree(indexPath).setProperty("type", "disabled");
+        root.commit();
+
+        ElasticIndexCleaner cleaner = new ElasticIndexCleaner(esConnection, nodeStore, indexDeletionThresholdTime);
+        cleaner.run();
+
+        String remoteIndexName = ElasticIndexNameHelper.getRemoteIndexName(esConnection.getIndexPrefix(), indexState,
+                indexPath);
+        assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName), RequestOptions.DEFAULT));
+
+        Thread.sleep(TimeUnit.SECONDS.toMillis(indexDeletionThresholdTime));
+        cleaner.run();
+
+        assertTrue(esConnection.getClient().indices().exists(new GetIndexRequest(remoteIndexName), RequestOptions.DEFAULT));
+
     }
 
 }

@@ -51,7 +51,8 @@ public class ElasticIndexNameHelper {
             throw new IllegalArgumentException("Not an index definition node state");
         }
         PropertyState type = indexNode.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
-        if (type == null || !ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING))) {
+        String typeValue = type != null ? type.getValue(Type.STRING) : "";
+        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(typeValue)) {
             throw new IllegalArgumentException("Not an elastic index node");
         }
         PropertyState seedProp = indexNode.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
