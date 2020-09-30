@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.12-SNAPSHOT</version>
+        <version>1.35-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -42,10 +42,18 @@
                         <Import-Package>
                           <!-- OAK-7182 -->${guava.osgi.import},
                             org.apache.jackrabbit.oak.segment.spi*,
+                            org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,
                             *
                         </Import-Package>
-                        <Export-Package />
+                        <Export-Package>
+                            org.apache.jackrabbit.oak.segment.azure,
+                            org.apache.jackrabbit.oak.segment.azure.queue,
+                            org.apache.jackrabbit.oak.segment.azure.util,
+                            com.microsoft.azure.storage,
+                            com.microsoft.azure.storage.core,
+                            com.microsoft.azure.storage.blob
+                        </Export-Package>
                         <Embed-Dependency>
                             azure-storage,
                             azure-keyvault-core
@@ -112,10 +120,22 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Nullability annotations -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+        </dependency>
+
         <!-- Dependencies to other Oak components -->
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-segment-tar</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-segment-remote</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -130,12 +150,10 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
-            <version>5.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
-            <version>0.9.7</version>
         </dependency>
 
         <!-- Test dependencies -->

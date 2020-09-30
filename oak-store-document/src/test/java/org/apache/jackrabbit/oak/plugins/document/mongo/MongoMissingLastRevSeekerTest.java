@@ -103,7 +103,7 @@ public class MongoMissingLastRevSeekerTest {
                 assertNotNull(store.findAndUpdate(NODES, op));
                 updated = true;
             }
-            if (doc.getPath().startsWith("/node-")) {
+            if (doc.getPath().toString().startsWith("/node-")) {
                 ids.add(doc.getId());
             }
         }

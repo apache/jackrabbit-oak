@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import javax.jcr.NoSuchWorkspaceException;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
-import javax.security.auth.login.CredentialExpiredException;
-import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -42,6 +34,13 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
+import javax.security.auth.login.CredentialExpiredException;
+import javax.security.auth.login.LoginException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -72,14 +71,9 @@ public class PasswordExpiryAdminTest extends AbstractSecurityTest {
 
     @NotNull
     @Override
-    protected ContentSession createAdminSession(@NotNull ContentRepository repository) throws LoginException, NoSuchWorkspaceException {
+    protected ContentSession createAdminSession(@NotNull ContentRepository repository) {
         try {
-            return Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                @Override
-                public ContentSession run() throws NoSuchWorkspaceException, LoginException {
-                    return repository.login(null, null);
-                }
-            });
+            return Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
         } catch (PrivilegedActionException e) {
             throw new RuntimeException(e);
         }

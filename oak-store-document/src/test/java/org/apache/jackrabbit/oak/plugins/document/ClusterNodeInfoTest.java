@@ -28,11 +28,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -44,11 +47,22 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+@RunWith(Parameterized.class)
 public class ClusterNodeInfoTest {
 
     private Clock clock;
     private TestStore store;
     private FailureHandler handler = new FailureHandler();
+    private boolean invisible;
+
+    public ClusterNodeInfoTest(boolean invisible) {
+        this.invisible = invisible;
+    }
+
+    @Parameterized.Parameters(name="{index}: ({0})")
+    public static List<Boolean> fixtures() {
+        return Lists.newArrayList(false, true);
+    }
 
     @Before
     public void before() throws Exception {
@@ -551,7 +565,7 @@ public class ClusterNodeInfoTest {
     private ClusterNodeInfo newClusterNodeInfo(int clusterId,
                                                String instanceId) {
         ClusterNodeInfo info = ClusterNodeInfo.getInstance(store,
-                new SimpleRecoveryHandler(), null, instanceId, clusterId);
+                new SimpleRecoveryHandler(), null, instanceId, clusterId, invisible);
         info.setLeaseFailureHandler(handler);
         return info;
     }

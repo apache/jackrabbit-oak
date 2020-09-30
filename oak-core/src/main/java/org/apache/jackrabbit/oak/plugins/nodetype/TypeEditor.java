@@ -34,17 +34,17 @@ import static org.apache.jackrabbit.oak.commons.UUIDUtils.isValidUUID;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.valueConstraint;
+import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.asPredicate;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -425,9 +425,9 @@ public class TypeEditor extends DefaultEditor {
         }
 
         for (String constraint : constraints.getValue(STRINGS)) {
-            Predicate<Value> predicate = valueConstraint(requiredType, constraint);
+            Predicate<Value> predicate = asPredicate(requiredType, constraint);
             for (Value v : valueFactory.createValues(property)) {
-                if (predicate.apply(v)) {
+                if (predicate.test(v)) {
                     return;
                 }
             }
@@ -475,6 +475,9 @@ public class TypeEditor extends DefaultEditor {
         }
         if (!names.isEmpty()) {
             for (String name : names) {
+                if (NodeStateUtils.isHidden(name)) {
+                    continue;
+                }
                 NodeState child = after.getChildNode(name);
                 String primary = child.getName(JCR_PRIMARYTYPE);
                 Iterable<String> mixins = child.getNames(JCR_MIXINTYPES);

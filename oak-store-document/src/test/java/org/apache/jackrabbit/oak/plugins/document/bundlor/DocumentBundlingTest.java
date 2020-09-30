@@ -19,8 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.document.bundlor;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -38,11 +40,12 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.NamePathRev;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.RandomStream;
 import org.apache.jackrabbit.oak.plugins.document.TestNodeObserver;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -57,6 +60,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.h2.mvstore.WriteBuffer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
@@ -186,7 +190,7 @@ public class DocumentBundlingTest {
         int nonBundledMem = nonBundledFile.getMemory() + nonBundledContent.getMemory();
         int bundledMem = bundledFile.getMemory();
 
-        assertEquals(1386, bundledMem);
+        assertEquals(1510, bundledMem);
         assertThat(bundledMem, is(greaterThan(nonBundledMem)));
     }
 
@@ -274,7 +278,7 @@ public class DocumentBundlingTest {
 
         List<String> bundledPaths = new ArrayList<>();
         for (DocumentNodeState bs : appNode.getAllBundledNodesStates()) {
-            bundledPaths.add(bs.getPath());
+            bundledPaths.add(bs.getPath().toString());
         }
         assertThat(bundledPaths, containsInAnyOrder(
                 "/test/book.jpg/jcr:content",
@@ -392,6 +396,26 @@ public class DocumentBundlingTest {
         assertTrue(hasNodeProperty("/test/book.jpg", "_children"));
     }
 
+    @Test
+    public void hasChildren_BundledRoot_BundledChildRemoved() throws Exception{
+        createTestNode("/test/book.jpg", createChild(newNode("app:Asset"), "jcr:content").getNodeState());
+
+        ds.reset();
+
+        assertEquals(1, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertEquals(0, ds.queryPaths.size());
+
+        NodeBuilder builder = store.getRoot().builder();
+        childBuilder(builder, "/test/book.jpg/jcr:content").remove();
+        merge(builder);
+
+        ds.reset();
+        assertEquals(0, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+        assertFalse(getLatestNode("test/book.jpg").hasChildNode("jcr:content"));
+        assertEquals(0, ds.queryPaths.size());
+
+        assertTrue(hasNodeProperty("/test/book.jpg", META_PROP_BUNDLED_CHILD));
+    }
 
     @Test
     public void hasChildren_BundledRoot_NonBundledChild() throws Exception{
@@ -613,7 +637,7 @@ public class DocumentBundlingTest {
     }
 
     @Test
-    public void jsonSerialization() throws Exception{
+    public void bufferSerialization() throws Exception {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder appNB = newNode("app:Asset");
         createChild(appNB,
@@ -629,8 +653,11 @@ public class DocumentBundlingTest {
 
         merge(builder);
         DocumentNodeState appNode = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
-        String json = appNode.asString();
-        NodeState appNode2 = DocumentNodeState.fromString(store, json);
+        WriteBuffer wb = new WriteBuffer(1024);
+        CacheType.NODE.writeValue(wb, appNode);
+        ByteBuffer rb = wb.getBuffer();
+        rb.rewind();
+        NodeState appNode2 = CacheType.NODE.readValue(store, ds, rb);
         AssertingDiff.assertEquals(appNode, appNode2);
     }
 
@@ -723,9 +750,9 @@ public class DocumentBundlingTest {
 
         merge(builder);
 
-        Set<PathRev> cachedPaths = store.getNodeChildrenCache().asMap().keySet();
-        for (PathRev pr : cachedPaths){
-            assertFalse(pr.getPath().contains("jcr:content/renditions"));
+        Set<NamePathRev> cachedPaths = store.getNodeChildrenCache().asMap().keySet();
+        for (NamePathRev pr : cachedPaths){
+            assertFalse(pr.getPath().toString().contains("jcr:content/renditions"));
         }
     }
 
@@ -799,6 +826,57 @@ public class DocumentBundlingTest {
         fileNode = newNode("nt:file");
         fileNode.child("jcr:content").setProperty("jcr:data", "foo2");
         builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+    }
+
+    @Test
+    public void deleteAndRecreateAsNonBundledNode() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNtFileWithContent();
+        fileNode.child("jcr:content").child("extra");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        builder = store.getRoot().builder();
+        builder.child("test").child("book.jpg").remove();
+        merge(builder);
+
+        builder = store.getRoot().builder();
+        builder.child("test").setChildNode("book.jpg",
+                newNode("oak:Unstructured").getNodeState());
+        builder.child("test").child("book.jpg").setChildNode("jcr:content",
+                newNode("oak:Unstructured").getNodeState());
+        merge(builder);
+
+        Set<String> names = propertyNamesFor("/test/book.jpg");
+        assertThat(names, containsInAnyOrder("jcr:primaryType"));
+
+        names = propertyNamesFor("/test/book.jpg/jcr:content");
+        assertThat(names, containsInAnyOrder("jcr:primaryType"));
+    }
+
+    private Set<String> propertyNamesFor(String path) {
+        Set<String> names = new HashSet<>();
+        for (PropertyState p : getLatestNode(path).getProperties()) {
+            names.add(p.getName());
+        }
+        return names;
+    }
+
+    @Test
+    public void deleteDescendantNodesOfBundledNode() throws Exception {
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder fileNode = newNtFileWithContent();
+        NodeBuilder jcrContent = fileNode.child("jcr:content");
+        jcrContent.child("foo").child("a");
+        jcrContent.child("bar").child("b");
+        builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+        merge(builder);
+
+        builder = store.getRoot().builder();
+        jcrContent = childBuilder(builder, "test/book.jpg/jcr:content");
+        childBuilder(jcrContent, "foo/a").remove();
+        childBuilder(jcrContent, "bar/b").remove();
         merge(builder);
     }
 
@@ -977,6 +1055,12 @@ public class DocumentBundlingTest {
     static NodeBuilder newNode(String typeName){
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(JCR_PRIMARYTYPE, typeName);
+        return builder;
+    }
+
+    private static NodeBuilder newNtFileWithContent() {
+        NodeBuilder builder = newNode("nt:file");
+        builder.child("jcr:content").setProperty("jcr:data", "test");
         return builder;
     }
 

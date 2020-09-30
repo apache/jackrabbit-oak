@@ -33,7 +33,9 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNotNull;
 
@@ -58,7 +60,13 @@ public class MongoDocumentStoreMetricsTest extends AbstractMongoConnectionTest {
                 newMongoDocumentNodeStoreBuilder());
         try {
             MongoDocumentStoreMetrics metrics = new MongoDocumentStoreMetrics(store, statsProvider);
+            assertEquals(0, getCount("MongoDB.fsUsedSize"));
+            assertEquals(0, getCount("MongoDB.fsTotalSize"));
+
             metrics.run();
+            assertThat(getCount("MongoDB.fsUsedSize"), greaterThan(0L));
+            assertThat(getCount("MongoDB.fsTotalSize"), greaterThan(0L));
+
             // document for root node
             assertEquals(1, getCount("MongoDB.nodes.count"));
             // one cluster node

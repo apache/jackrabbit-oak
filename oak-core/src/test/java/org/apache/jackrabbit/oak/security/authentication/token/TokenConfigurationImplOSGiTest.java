@@ -49,7 +49,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
 
         tokenConfiguration.setSecurityProvider(getSecurityProvider());
 
-        context.registerInjectActivateService(tokenConfiguration, ImmutableMap.<String, Object>of(
+        context.registerInjectActivateService(tokenConfiguration, ImmutableMap.of(
                 TokenProvider.PARAM_TOKEN_EXPIRATION, 25,
                 TokenProvider.PARAM_TOKEN_LENGTH, 4));
 
@@ -65,7 +65,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testDefaultCredentialsSupport() throws Exception {
+    public void testDefaultCredentialsSupport() {
         TokenProvider tp = tokenConfiguration.getTokenProvider(root);
         assertTrue(tp.doCreateToken(sc));
     }

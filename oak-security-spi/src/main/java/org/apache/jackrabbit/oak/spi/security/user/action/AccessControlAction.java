@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
 import javax.jcr.RepositoryException;
@@ -41,6 +40,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * The {@code AccessControlAction} allows to setup permissions upon creation
@@ -135,6 +136,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
      * @param paramName the name of the configuration option
      * @return a valid string array containing the privilege names.
      */
+    @NotNull
     private static String[] privilegeNames(ConfigurationParameters config, String paramName) {
         String[] privilegeNames = config.getConfigValue(paramName, null, String[].class);
         if (privilegeNames != null && privilegeNames.length > 0) {
@@ -146,28 +148,8 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     private void setAC(@NotNull Authorizable authorizable, @NotNull Root root,
                        @NotNull NamePathMapper namePathMapper) throws RepositoryException {
-        if (securityProvider == null) {
-            throw new IllegalStateException("Not initialized");
-        }
-        if (authorizable.isGroup()) {
-            if (groupPrivilegeNames.length == 0) {
-                log.debug("No privileges configured for groups; omit ac setup.");
-                return;
-            }
-        } else {
-            if (userPrivilegeNames.length == 0) {
-                log.debug("No privileges configured for users; omit ac setup.");
-                return;
-            }
-            if (isBuiltInUser(authorizable)) {
-                log.debug("System user: " + authorizable.getID() + "; omit ac setup.");
-                return;
-            }
-        }
-
-        Principal principal = authorizable.getPrincipal();
-        if (administrativePrincipals.contains(principal.getName())) {
-            log.debug("Administrative principal: " + principal.getName() + "; omit ac setup.");
+        checkState(securityProvider != null, "Not initialized");
+        if (omitSetup(authorizable)) {
             return;
         }
 
@@ -184,16 +166,39 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         }
 
         if (acl == null) {
-            log.warn("Cannot process AccessControlAction: no applicable ACL at " + path);
+            log.warn("Cannot process AccessControlAction: no applicable ACL at {}", path);
         } else {
             // setup acl according to configuration.
-            boolean modified = false;
             String[] privNames = (authorizable.isGroup()) ? groupPrivilegeNames : userPrivilegeNames;
-            modified = acl.addAccessControlEntry(principal, getPrivileges(privNames, acMgr));
-            if (modified) {
+            if (acl.addAccessControlEntry(authorizable.getPrincipal(), getPrivileges(privNames, acMgr))) {
                 acMgr.setPolicy(path, acl);
             }
         }
+    }
+
+    private boolean omitSetup(@NotNull Authorizable authorizable) throws RepositoryException {
+        if (authorizable.isGroup()) {
+            if (groupPrivilegeNames.length == 0) {
+                log.debug("No privileges configured for groups; omit ac setup.");
+                return true;
+            }
+        } else {
+            if (userPrivilegeNames.length == 0) {
+                log.debug("No privileges configured for users; omit ac setup.");
+                return true;
+            }
+            if (isBuiltInUser(authorizable)) {
+                log.debug("System user: {}; omit ac setup.", authorizable.getID());
+                return true;
+            }
+        }
+
+        String principalName = authorizable.getPrincipal().getName();
+        if (administrativePrincipals.contains(principalName)) {
+            log.debug("Administrative principal: {}; omit ac setup.", principalName);
+            return true;
+        }
+        return false;
     }
 
     private boolean isBuiltInUser(@NotNull Authorizable authorizable) throws RepositoryException {
@@ -211,11 +216,9 @@ public class AccessControlAction extends AbstractAuthorizableAction {
      * @throws javax.jcr.RepositoryException If a privilege name cannot be
      * resolved to a valid privilege.
      */
-    private static Privilege[] getPrivileges(@Nullable String[] privNames,
+    @NotNull
+    private static Privilege[] getPrivileges(@NotNull String[] privNames,
                                              @NotNull AccessControlManager acMgr) throws RepositoryException {
-        if (privNames == null || privNames.length == 0) {
-            return new Privilege[0];
-        }
         Privilege[] privileges = new Privilege[privNames.length];
         for (int i = 0; i < privNames.length; i++) {
             privileges[i] = acMgr.privilegeFromName(privNames[i]);

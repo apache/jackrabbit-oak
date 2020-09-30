@@ -16,13 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.jackrabbit.oak.plugins.document.Path;
+import org.apache.jackrabbit.oak.plugins.document.PathComparator;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.mapdb.BTreeKeySerializer;
 import org.mapdb.BTreeMap;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -31,7 +36,7 @@ import org.mapdb.Serializer;
 /**
  * A MapFactory backed by MapDB, which stores the map in a temporary file.
  */
-public class MapDBMapFactory extends MapFactory {
+public class MapDBMapFactory extends MapFactory implements Closeable {
 
     private final AtomicInteger counter = new AtomicInteger();
     private final DB db;
@@ -39,18 +44,53 @@ public class MapDBMapFactory extends MapFactory {
     public MapDBMapFactory() {
         this.db = DBMaker.newTempFileDB()
                 .deleteFilesAfterClose()
-                .closeOnJvmShutdown()
                 .transactionDisable()
                 .asyncWriteEnable()
                 .make();
     }
 
     @Override
-    public BTreeMap<String, Revision> create() {
+    public BTreeMap<Path, Revision> create() {
         return db.createTreeMap(String.valueOf(counter.incrementAndGet()))
+                .keySerializer(new PathSerializer())
                 .valueSerializer(new RevisionSerializer())
                 .counterEnable()
-                .makeStringMap();
+                .make();
+    }
+
+
+    @Override
+    public void close() throws IOException {
+        this.db.close();
+    }
+
+    private static class PathSerializer
+            extends BTreeKeySerializer<Path>
+            implements Serializable {
+
+        @Override
+        public void serialize(DataOutput out, int start, int end, Object[] keys)
+                throws IOException {
+            for (int i = start; i < end; i++) {
+                String p = keys[i].toString();
+                out.writeUTF(p);
+            }
+        }
+
+        @Override
+        public Object[] deserialize(DataInput in, int start, int end, int size)
+                throws IOException {
+            Object[] keys = new Object[size];
+            for (int i = start; i < end; i++) {
+                keys[i] = Path.fromString(in.readUTF());
+            }
+            return keys;
+        }
+
+        @Override
+        public Comparator<Path> getComparator() {
+            return PathComparator.INSTANCE;
+        }
     }
 
     private static class RevisionSerializer implements Serializer<Revision>,

@@ -26,8 +26,10 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import javax.jcr.Repository;
@@ -73,7 +75,9 @@ public class PersistentCacheTest extends AbstractTest {
     @Override
     protected void runTest() throws Exception {
         for (int i = 0; i < ITEMS_TO_ADD; i++) {
-            PathRev key = PathRev.fromString("/" + timestamp.getAndIncrement() + "@" + new Revision(timestamp.getAndIncrement(), 0, 0));
+            Path p = Path.fromString("/" + timestamp.getAndIncrement());
+            Revision r = new Revision(timestamp.getAndIncrement(), 0, 0);
+            PathRev key = new PathRev(p, new RevisionVector(r));
             nodesCache.put(key, dns.getRoot());
             nodesCache.getIfPresent(key); // read, so the entry is marked as used
         }

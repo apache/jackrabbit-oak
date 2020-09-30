@@ -71,10 +71,9 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     }
 
     //--------------------------------------------------< ValidatorProvider >---
-
-    @Override @NotNull
-    public Validator getRootValidator(
-            NodeState before, NodeState after, CommitInfo info) {
+    @NotNull
+    @Override
+    public Validator getRootValidator(NodeState before, NodeState after, CommitInfo info) {
         PermissionProvider pp = acConfig.getPermissionProvider(createReadOnlyRoot(before), workspaceName, principals);
         if (moveTracker.isEmpty()) {
             return new PermissionValidator(before, after, pp, this);
@@ -84,7 +83,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     }
 
     //--------------------------------------------------------------------------
-
+    @NotNull
     Context getAccessControlContext() {
         if (acCtx == null) {
             acCtx = acConfig.getContext();
@@ -92,6 +91,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         return acCtx;
     }
 
+    @NotNull
     Context getUserContext() {
         if (userCtx == null) {
             UserConfiguration uc = providerCtx.getSecurityProvider().getConfiguration(UserConfiguration.class);
@@ -100,6 +100,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         return userCtx;
     }
 
+    @NotNull
     TreeProvider getTreeProvider() {
         return providerCtx.getTreeProvider();
     }
@@ -108,10 +109,12 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         return Permissions.includes(jr2Permissions, permission);
     }
 
+    @NotNull
     Root createReadOnlyRoot(@NotNull NodeState nodeState) {
         return providerCtx.getRootProvider().createReadOnlyRoot(nodeState);
     }
 
+    @NotNull
     Tree createReadOnlyTree(@NotNull NodeState nodeState) {
         return providerCtx.getTreeProvider().createReadOnlyTree(nodeState);
     }

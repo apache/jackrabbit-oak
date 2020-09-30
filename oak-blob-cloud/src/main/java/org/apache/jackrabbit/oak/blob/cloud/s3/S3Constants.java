@@ -103,6 +103,21 @@ public final class S3Constants {
     public static final String S3_ENCRYPTION_SSE_S3 = "SSE_S3";
 
     /**
+     *  Constant to set SSE_KMS encryption.
+     */
+    public static final String S3_ENCRYPTION_SSE_KMS = "SSE_KMS";
+
+    /**
+     *  Constant to set keyID for SSE_KMS encryption.
+     */
+    public static final String S3_SSE_KMS_KEYID = "kmsKeyId";
+
+    /**
+     *  Constant to set S3 signature for SSE_KMS encryption.
+     */
+    public static final String S3_SIG_V4 = "AWSS3V4SignerType";
+
+    /**
      *  Constant to set proxy host.
      */
     public static final String PROXY_HOST = "proxyHost";
@@ -124,6 +139,18 @@ public final class S3Constants {
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE = "presignedHttpDownloadURICacheMaxSize";
 
     public static final String PRESIGNED_URI_ENABLE_ACCELERATION = "presignedURIEnableTransferAcceleration";
+
+    /**
+     * Boolean flag to allow disabling of verification check on download URI
+     * generation.  Default is true (the existence check is performed).
+     *
+     * Some installations may prefer to disable async uploads, in which case it
+     * is possible to disable the existence check and thus greatly speed up the
+     * generation of presigned download URIs.  See OAK-7998 which describes why
+     * the existence check was added to understand how async uploading relates
+     * to this feature.
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS = "presignedHttpDownloadURIVerifyExists";
 
     /**
      * private constructor so that class cannot initialized from outside.

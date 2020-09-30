@@ -16,34 +16,50 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlManager;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_ADMIN_ID;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_GROUP_PATH;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_AUTHORIZABLE_ID;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_DISABLED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -63,7 +79,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     private Value v;
 
-    private List<Group> groups = new ArrayList();
+    private List<Group> groups = new ArrayList<>();
 
     @Before
     public void before() throws Exception {
@@ -89,7 +105,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
-            user.removeProperty(propertyName);
+            root.refresh();
             for (Group g : groups) {
                 g.remove();
             }
@@ -210,7 +226,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         root.commit();
 
         for (AuthorizableType type : new AuthorizableType[] {AuthorizableType.AUTHORIZABLE, AuthorizableType.GROUP}) {
-            Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), AuthorizableType.AUTHORIZABLE, false);
+            Iterator<Authorizable> result = queryMgr.findAuthorizables("rel/path/to/" + propertyName, v.getString(), type, false);
             assertResultContainsAuthorizables(result, g);
         }
     }
@@ -240,7 +256,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     public void testQueryMaxCountZero() throws Exception {
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> queryBuilder) {
+            public <T> void build(@NotNull QueryBuilder<T> queryBuilder) {
                 queryBuilder.setLimit(0, 0);
 
             }
@@ -253,7 +269,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         String userId = user.getID();
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches(userId));
                 builder.setScope(EveryonePrincipal.NAME, false);
             }
@@ -272,7 +288,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope(EveryonePrincipal.NAME, false);
             }
@@ -291,7 +307,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("eGroup", false);
             }
@@ -310,7 +326,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
             }
         };
@@ -321,13 +337,13 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
     @Test
     public void testQueryScopeNotMember() throws Exception {
-        Group g = createGroup("g1", null);
+        createGroup("g1", null);
         user.setProperty(propertyName, v);
         root.commit();
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("g1", false);
             }
@@ -346,7 +362,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("g1", false);
             }
@@ -367,7 +383,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("g1", true);
             }
@@ -388,7 +404,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.eq(propertyName, v));
                 builder.setScope("g1", false);
             }
@@ -408,7 +424,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
                 builder.setCondition(builder.gt(propertyName, valueFactory.createValue(20)));
             }
@@ -429,7 +445,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
                 builder.setCondition(builder.gt(propertyName, valueFactory.createValue(20)));
@@ -451,7 +467,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
             }
@@ -472,7 +488,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.exists(propertyName));
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.DESCENDING, true);
             }
@@ -493,7 +509,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.exists(propertyName));
                 builder.setSortOrder(propertyName, QueryBuilder.Direction.DESCENDING, false);
             }
@@ -510,7 +526,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches("group_with_underscore"));
             }
         };
@@ -526,12 +542,57 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
 
         Query q = new Query() {
             @Override
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.nameMatches("group_with_underscore"));
             }
         };
 
         Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
         assertResultContainsAuthorizables(result, g);
+    }
+
+    @Test
+    public void testFindWhenRootTreeIsSearchRoot() throws Exception {
+        ConfigurationParameters config = ConfigurationParameters.of(PARAM_GROUP_PATH, PathUtils.ROOT_PATH);
+        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(ConfigurationParameters.of(UserConfiguration.NAME, config)).withRootProvider(getRootProvider()).withTreeProvider(getTreeProvider()).build();
+        UserManagerImpl umgr = new UserManagerImpl(root, getPartialValueFactory(), sp);
+        UserQueryManager uqm = new UserQueryManager(umgr, getNamePathMapper(), config, root);
+
+        Iterator<Authorizable> result = uqm.findAuthorizables(REP_AUTHORIZABLE_ID, DEFAULT_ADMIN_ID, AuthorizableType.AUTHORIZABLE);
+        assertTrue(result.hasNext());
+    }
+
+    @Test
+    public void testFindReservedProperty() throws Exception {
+        user.setProperty("subtree/"+REP_DISABLED, valueFactory.createValue("disabled"));
+
+        Iterator<Authorizable> result = queryMgr.findAuthorizables(REP_DISABLED, "disabled", AuthorizableType.USER);
+        assertFalse(result.hasNext());
+
+        user.removeProperty("subtree/"+REP_DISABLED);
+        user.disable("disabled");
+
+        result = queryMgr.findAuthorizables(REP_DISABLED, "disabled", AuthorizableType.USER);
+        assertTrue(result.hasNext());
+    }
+
+    @Test
+    public void testFindResultNotAccessible() throws Exception {
+        user.setProperty("profile/name", valueFactory.createValue("userName"));
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, PathUtils.concat(user.getPath(), "profile"));
+        if (acl != null && acl.addAccessControlEntry(user.getPrincipal(), privilegesFromNames(JCR_READ))) {
+            acMgr.setPolicy(acl.getPath(), acl);
+        }
+        root.commit();
+
+        try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
+            Root r = cs.getLatestRoot();
+            UserManagerImpl uMgr = new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider());
+            UserQueryManager uqm = new UserQueryManager(uMgr, getNamePathMapper(), ConfigurationParameters.EMPTY, r);
+
+            Iterator<Authorizable> result = uqm.findAuthorizables("name", "userName", AuthorizableType.USER);
+            assertFalse(result.hasNext());
+        }
     }
 }

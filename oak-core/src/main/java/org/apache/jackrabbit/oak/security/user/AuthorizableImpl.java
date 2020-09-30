@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,21 +68,24 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     abstract void checkValidTree(@NotNull Tree tree) throws RepositoryException;
 
-    static boolean isValidAuthorizableImpl(Authorizable authorizable) {
+    static boolean isValidAuthorizableImpl(@NotNull Authorizable authorizable) {
         return authorizable instanceof AuthorizableImpl;
     }
 
     //-------------------------------------------------------< Authorizable >---
+    @NotNull
     @Override
     public String getID() {
         return id;
     }
 
+    @NotNull
     @Override
     public Iterator<Group> declaredMemberOf() throws RepositoryException {
         return getMembership(false);
     }
 
+    @NotNull
     @Override
     public Iterator<Group> memberOf() throws RepositoryException {
         return getMembership(true);
@@ -98,41 +102,45 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         getTree().remove();
     }
 
+    @NotNull
     @Override
     public Iterator<String> getPropertyNames() throws RepositoryException {
         return getPropertyNames(".");
     }
 
+    @NotNull
     @Override
-    public Iterator<String> getPropertyNames(String relPath) throws RepositoryException {
+    public Iterator<String> getPropertyNames(@NotNull String relPath) throws RepositoryException {
         return getAuthorizableProperties().getNames(relPath);
     }
 
     @Override
-    public boolean hasProperty(String relPath) throws RepositoryException {
+    public boolean hasProperty(@NotNull String relPath) throws RepositoryException {
         return getAuthorizableProperties().hasProperty(relPath);
     }
 
+    @Nullable
     @Override
-    public Value[] getProperty(String relPath) throws RepositoryException {
+    public Value[] getProperty(@NotNull String relPath) throws RepositoryException {
         return getAuthorizableProperties().getProperty(relPath);
     }
 
     @Override
-    public void setProperty(String relPath, Value value) throws RepositoryException {
+    public void setProperty(@NotNull String relPath, @Nullable Value value) throws RepositoryException {
         getAuthorizableProperties().setProperty(relPath, value);
     }
 
     @Override
-    public void setProperty(String relPath, Value[] values) throws RepositoryException {
+    public void setProperty(@NotNull String relPath, @Nullable Value[] values) throws RepositoryException {
         getAuthorizableProperties().setProperty(relPath, values);
     }
 
     @Override
-    public boolean removeProperty(String relPath) throws RepositoryException {
+    public boolean removeProperty(@NotNull String relPath) throws RepositoryException {
         return getAuthorizableProperties().removeProperty(relPath);
     }
 
+    @NotNull
     @Override
     public String getPath() {
         return userManager.getNamePathMapper().getJcrPath(getTree().getPath());
@@ -183,17 +191,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
     @NotNull
     String getPrincipalName() throws RepositoryException {
-        if (principalName == null) {
-            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
-            if (pNameProp != null) {
-                principalName = pNameProp.getValue(STRING);
-            } else {
-                String msg = "Authorizable without principal name " + id;
-                log.warn(msg);
-                throw new RepositoryException(msg);
-            }
+        String pName = internalGetPrincipalName();
+        if (pName == null) {
+            String msg = "Authorizable without principal name " + id;
+            log.warn(msg);
+            throw new RepositoryException(msg);
         }
-        return principalName;
+        return pName;
     }
 
     /**
@@ -217,10 +221,20 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      *
      * @return {@code true} if this authorizable represents the group everyone
      * is member of; {@code false} otherwise.
-     * @throws RepositoryException If an error occurs.
      */
-    boolean isEveryone() throws RepositoryException {
-        return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName());
+    boolean isEveryone() {
+        return isGroup() && EveryonePrincipal.NAME.equals(internalGetPrincipalName());
+    }
+
+    @Nullable
+    private String internalGetPrincipalName() {
+        if (principalName == null) {
+            PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
+            if (pNameProp != null) {
+                principalName = pNameProp.getValue(STRING);
+            }
+        }
+        return principalName;
     }
 
     /**

@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This implementation of {@code User} delegates back to a
@@ -83,6 +84,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
         });
     }
 
+    @NotNull
     @Override
     public Credentials getCredentials() {
         return sessionDelegate.safePerform(new SessionOperation<Credentials>("getCredentials") {
@@ -94,6 +96,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
         });
     }
 
+    @NotNull
     @Override
     public Impersonation getImpersonation() {
         return sessionDelegate.safePerform(new SessionOperation<Impersonation>("getImpersonation") {
@@ -107,7 +110,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     }
 
     @Override
-    public void changePassword(final String password) throws RepositoryException {
+    public void changePassword(@Nullable final String password) throws RepositoryException {
         sessionDelegate.performVoid(new SessionOperation<Void>("changePassword", true) {
             @Override
             public void performVoid() throws RepositoryException {
@@ -117,7 +120,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     }
 
     @Override
-    public void changePassword(final String password, final String oldPassword) throws RepositoryException {
+    public void changePassword(@Nullable final String password, @NotNull final String oldPassword) throws RepositoryException {
         sessionDelegate.performVoid(new SessionOperation<Void>("changePassword", true) {
             @Override
             public void performVoid() throws RepositoryException {
@@ -127,7 +130,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     }
 
     @Override
-    public void disable(final String reason) throws RepositoryException {
+    public void disable(@Nullable final String reason) throws RepositoryException {
         sessionDelegate.performVoid(new SessionOperation<Void>("disable", true) {
             @Override
             public void performVoid() throws RepositoryException {
@@ -147,6 +150,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
         });
     }
 
+    @Nullable
     @Override
     public String getDisabledReason() throws RepositoryException {
         return sessionDelegate.performNullable(new SessionOperation<String>("getDisabledReason") {

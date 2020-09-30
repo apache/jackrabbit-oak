@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -50,13 +51,16 @@ import org.jetbrains.annotations.NotNull;
 class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     private final List<AccessControlManager> acMgrs;
+    private final AggregationFilter aggregationFilter;
 
     public CompositeAccessControlManager(@NotNull Root root,
                                          @NotNull NamePathMapper namePathMapper,
                                          @NotNull SecurityProvider securityProvider,
-                                         @NotNull List<AccessControlManager> acMgrs) {
+                                         @NotNull List<AccessControlManager> acMgrs,
+                                         @NotNull AggregationFilter aggregationFilter) {
         super(root, namePathMapper, securityProvider);
         this.acMgrs = acMgrs;
+        this.aggregationFilter = aggregationFilter;
     }
 
     //-----------------------------------------------< AccessControlManager >---
@@ -86,6 +90,9 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
         ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             policies.add(acMgr.getEffectivePolicies(absPath));
+            if (aggregationFilter.stop(acMgr, absPath)) {
+                break;
+            }
         }
         List<AccessControlPolicy> l = policies.build();
         return l.toArray(new AccessControlPolicy[0]);
@@ -125,8 +132,9 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
     }
 
     //-------------------------------------< JackrabbitAccessControlManager >---
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) throws RepositoryException {
         ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager && acMgr instanceof PolicyOwner) {
@@ -137,8 +145,9 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
         return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) throws RepositoryException {
         ImmutableList.Builder<JackrabbitAccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
@@ -149,12 +158,17 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
         return l.toArray(new JackrabbitAccessControlPolicy[0]);
     }
 
+    @NotNull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws RepositoryException {
         ImmutableList.Builder<AccessControlPolicy> policies = ImmutableList.builder();
         for (AccessControlManager acMgr : acMgrs) {
             if (acMgr instanceof JackrabbitAccessControlManager) {
-                policies.add(((JackrabbitAccessControlManager) acMgr).getEffectivePolicies(principals));
+                JackrabbitAccessControlManager jAcMgr = (JackrabbitAccessControlManager) acMgr;
+                policies.add(jAcMgr.getEffectivePolicies(principals));
+                if (aggregationFilter.stop(jAcMgr, principals)) {
+                    break;
+                }
             }
         }
         List<AccessControlPolicy> l = policies.build();

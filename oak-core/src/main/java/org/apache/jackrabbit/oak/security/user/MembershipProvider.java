@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
@@ -152,51 +151,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
         final Iterable<String> refPaths = identifierManager.getReferences(
                 authorizableTree, REP_MEMBERS, NT_REP_MEMBER_REFERENCES, true
         );
-
-        return new AbstractMemberIterator(refPaths.iterator()) {
-            @Override
-            protected String internalGetNext(@NotNull String propPath) {
-                String next = null;
-
-                String groupPath = getGroupPath(propPath);
-                if (groupPath != null) {
-                    if (processedPaths.add(groupPath)) {
-                        // we didn't see this path before, so continue
-                        next = groupPath;
-                        if (includeInherited) {
-                            // inject a parent iterator if inherited memberships is requested
-                            Tree group = getByPath(groupPath, AuthorizableType.GROUP);
-                            if (group != null) {
-                                remember(group);
-                            }
-                        }
-                    }
-                } else {
-                    log.debug("Not a membership reference property " + propPath);
-                }
-                return next;
-            }
-
-            @NotNull
-            @Override
-            protected Iterator<String> getNextIterator(@NotNull Tree groupTree) {
-                return getMembership(groupTree, true, processedPaths);
-            }
-
-            @Nullable
-            private String getGroupPath(@NotNull String membersPropPath) {
-                int index = membersPropPath.indexOf('/' + REP_MEMBERS_LIST);
-                if (index < 0) {
-                    index = membersPropPath.indexOf('/' + REP_MEMBERS);
-                }
-
-                if (index > 0) {
-                    return membersPropPath.substring(0, index);
-                } else {
-                    return null;
-                }
-            }
-        };
+        return new MembershipIterator(refPaths.iterator(), includeInherited, processedPaths);
     }
 
     /**
@@ -245,7 +200,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             @Override
             protected boolean hasProcessedReference(@NotNull String value) {
                 if (groupContentId.equals(value)) {
-                    log.warn("Cyclic group membership detected for contentId " + groupContentId);
+                    log.warn("Cyclic group membership detected for contentId {}", groupContentId);
                     return false;
                 }
                 return processedRefs.add(value);
@@ -338,7 +293,6 @@ class MembershipProvider extends AuthorizableBaseProvider {
      * @param groupTree the group to add the member to
      * @param newMemberTree the tree of the new member
      * @return {@code true} if the member was added
-     * @throws RepositoryException if an error occurs
      */
     boolean addMember(@NotNull Tree groupTree, @NotNull Tree newMemberTree) {
         return writer.addMember(groupTree, getContentID(newMemberTree));
@@ -507,5 +461,60 @@ class MembershipProvider extends AuthorizableBaseProvider {
          */
         @NotNull
         protected abstract Iterator<String> getNextIterator(@NotNull Tree groupTree);
+    }
+
+    private final class MembershipIterator extends AbstractMemberIterator {
+
+        private final boolean includeInherited;
+        private final Set<String> processedPaths;
+
+        private MembershipIterator(@NotNull Iterator<String> references, boolean includeInherited, @NotNull Set<String> processedPaths) {
+            super(references);
+            this.includeInherited = includeInherited;
+            this.processedPaths = processedPaths;
+        }
+
+        @Override
+        protected String internalGetNext(@NotNull String propPath) {
+            String next = null;
+
+            String groupPath = getGroupPath(propPath);
+            if (groupPath != null) {
+                if (processedPaths.add(groupPath)) {
+                    // we didn't see this path before, so continue
+                    next = groupPath;
+                    if (includeInherited) {
+                        // inject a parent iterator if inherited memberships is requested
+                        Tree group = getByPath(groupPath, AuthorizableType.GROUP);
+                        if (group != null) {
+                            remember(group);
+                        }
+                    }
+                }
+            } else {
+                log.debug("Not a membership reference property {}", propPath);
+            }
+            return next;
+        }
+
+        @NotNull
+        @Override
+        protected Iterator<String> getNextIterator(@NotNull Tree groupTree) {
+            return getMembership(groupTree, true, processedPaths);
+        }
+
+        @Nullable
+        private String getGroupPath(@NotNull String membersPropPath) {
+            int index = membersPropPath.indexOf('/' + REP_MEMBERS_LIST);
+            if (index < 0) {
+                index = membersPropPath.indexOf('/' + REP_MEMBERS);
+            }
+
+            if (index > 0) {
+                return membersPropPath.substring(0, index);
+            } else {
+                return null;
+            }
+        }
     }
 }

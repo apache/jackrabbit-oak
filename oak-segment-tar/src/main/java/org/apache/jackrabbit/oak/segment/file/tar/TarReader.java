@@ -41,6 +41,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Predicate;
+
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
@@ -48,7 +50,6 @@ import org.apache.jackrabbit.oak.segment.file.tar.index.IndexEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,7 +152,7 @@ public class TarReader implements Closeable {
         }
 
         if (backup) {
-            backupSafely(archiveManager, file);
+            backupSafely(archiveManager, file, entries.keySet());
         }
     }
 
@@ -201,18 +202,13 @@ public class TarReader implements Closeable {
      * overwritten.
      *
      * @param file File to backup.
+     * @param recoveredEntries
      */
-    private static void backupSafely(SegmentArchiveManager archiveManager, String file) throws IOException {
+    private static void backupSafely(SegmentArchiveManager archiveManager, String file, Set<UUID> recoveredEntries) throws IOException {
         String backup = findAvailGen(file, ".bak", archiveManager);
         log.info("Backing up {} to {}", file, backup);
-        if (!archiveManager.renameTo(file, backup)) {
-            log.warn("Renaming failed, so using copy to backup {}", file);
-            archiveManager.copyFile(file, backup);
-            if (!archiveManager.delete(file)) {
-                throw new IOException(
-                        "Could not remove broken tar file " + file);
-            }
-        }
+
+        archiveManager.backup(file, backup, recoveredEntries);
     }
 
     /**

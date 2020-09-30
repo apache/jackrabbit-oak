@@ -26,9 +26,11 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 /**
  * An {@link org.apache.jackrabbit.oak.spi.commit.Observer} looking for changes on persisted Solr server configuration nodes.
- * If any change is done there, the related {@link org.apache.solr.client.solrj.SolrServer}s are shutdown and unregistered
+ * If any change is done there, the related {@link org.apache.solr.client.solrj.SolrClient}s are shutdown and unregistered
  * from the {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry}
  */
 public class NodeStateSolrServersObserver extends DiffObserver {
@@ -44,7 +46,11 @@ public class NodeStateSolrServersObserver extends DiffObserver {
         log.debug("shutting down persisted Solr server");
         NodeStateSolrServerConfigurationProvider nodeStateSolrServerConfigurationProvider = new NodeStateSolrServerConfigurationProvider(nodeState);
         OakSolrServer oakSolrServer = new OakSolrServer(nodeStateSolrServerConfigurationProvider);
-        oakSolrServer.shutdown();
+        try {
+            oakSolrServer.close();
+        } catch (IOException e) {
+            log.error("could not close OakSolrServer {}", oakSolrServer, e);
+        }
         log.info("persisted Solr server has been shutdown");
     }
 

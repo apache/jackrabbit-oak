@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.12-SNAPSHOT</version>
+        <version>1.35-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -53,12 +53,12 @@
                         </goals>
                         <phase>pre-integration-test</phase>
                         <configuration>
-                          <!--
-                            This is required as classes present in this module
-                            were part of oak-lucene. This should be removed
-                            post 1.10 release
-                          -->
-                          <comparisonArtifactId>oak-lucene</comparisonArtifactId>
+                            <!--
+                              This is required as classes present in this module
+                              were part of oak-lucene. This should be removed
+                              post 1.10 release
+                            -->
+                            <comparisonArtifactId>oak-lucene</comparisonArtifactId>
                         </configuration>
                     </execution>
                 </executions>
@@ -66,6 +66,11 @@
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/lms-data.tsv</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -96,6 +101,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-jcr</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-core</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
@@ -116,6 +127,7 @@
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
             <version>${tika.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Logging -->
@@ -153,6 +165,7 @@
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-jcr</artifactId>
             <version>${project.version}</version>
+            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -167,6 +180,11 @@
             <artifactId>oak-commons</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
 

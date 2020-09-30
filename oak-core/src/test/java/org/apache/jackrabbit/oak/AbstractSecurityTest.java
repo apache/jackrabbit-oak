@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak;
 
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -212,7 +214,7 @@ public abstract class AbstractSecurityTest {
         }
     }
 
-    protected Privilege[] privilegesFromNames(String... privilegeNames) throws RepositoryException {
+    protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
         return privilegesFromNames(Arrays.asList(privilegeNames));
     }
 
@@ -241,7 +243,7 @@ public abstract class AbstractSecurityTest {
         return new PartialValueFactory(getNamePathMapper());
     }
 
-    protected long waitForSystemTimeIncrement(long old) {
+    protected static long waitForSystemTimeIncrement(long old) {
         while (old == System.currentTimeMillis()) {
             // wait for system timer to move
         }
@@ -272,5 +274,10 @@ public abstract class AbstractSecurityTest {
 
     public TreeProvider getTreeProvider() {
         return treeProvider;
+    }
+
+    @NotNull
+    public static Set<Principal> getPrincipals(@NotNull ContentSession session) {
+        return session.getAuthInfo().getPrincipals();
     }
 }

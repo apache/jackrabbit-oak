@@ -113,8 +113,7 @@ class PermissionValidator extends DefaultValidator {
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         String name = after.getName();
         if (TreeConstants.OAK_CHILD_ORDER.equals(name)) {
-            String childName = ChildOrderDiff.firstReordered(before, after);
-            if (childName != null) {
+            if (ChildOrderDiff.isReordered(before, after)) {
                 checkPermissions(parentAfter, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
             } // else: no re-order but only internal update
         } else if (isImmutableProperty(name, parentAfter)) {
@@ -317,11 +316,11 @@ class PermissionValidator extends DefaultValidator {
         // doesn't reveal if a given property is expected to be never modified
         // after creation.
         NodeState parentNs = provider.getTreeProvider().asNodeState(parent);
-        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parentNs)) {
+        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.test(parentNs)) {
             return true;
         } else {
             return (JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
-                    && isCreated.apply(parentNs);
+                    && isCreated.test(parentNs);
         }
     }
 
@@ -333,13 +332,13 @@ class PermissionValidator extends DefaultValidator {
         return provider.getAccessControlContext().definesTree(tree);
     }
 
-    private boolean isVersionstorageTree(Tree tree) {
+    private boolean isVersionstorageTree(@NotNull Tree tree) {
         return permission == Permissions.VERSION_MANAGEMENT &&
                 VersionConstants.REP_VERSIONSTORAGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Nullable
-    private Tree getVersionHistoryTree(Tree versionstorageTree) throws CommitFailedException {
+    private Tree getVersionHistoryTree(@NotNull Tree versionstorageTree) throws CommitFailedException {
         Tree versionHistory = null;
         for (Tree child : versionstorageTree.getChildren()) {
             if (VersionConstants.NT_VERSIONHISTORY.equals(TreeUtil.getPrimaryTypeName(child))) {

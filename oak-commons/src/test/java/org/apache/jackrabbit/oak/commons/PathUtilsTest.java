@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.commons;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
@@ -519,5 +520,16 @@ public class PathUtilsTest extends TestCase {
         PathUtils.unifyInExcludes(includes, excludes);
         assertEquals(newHashSet("/a", "/b"), includes);
         assertEquals(newHashSet(), excludes);
+    }
+
+    public void testDropIndexFromNamePerformance() {
+        int loopCount = 1000000;
+        long time = System.nanoTime();
+        for (int i = 0; i < loopCount; i++) {
+            PathUtils.dropIndexFromName("jcr:content");
+        }
+        time = System.nanoTime() - time;
+        System.out.println("PathUtils.dropIndexFromName(): " +
+                TimeUnit.NANOSECONDS.toMillis(time) + " ms.");
     }
 }

@@ -77,7 +77,7 @@ class PermissionEntryCache {
                 }
             }
         } else {
-            log.error("Failed to load entries for principal '%s' at path %s", principalName, path);
+            log.error("Failed to load entries for principal '{}' at path {}", principalName, path);
         }
     }
 }

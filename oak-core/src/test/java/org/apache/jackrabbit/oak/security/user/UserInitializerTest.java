@@ -16,30 +16,24 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.PrivilegedExceptionAction;
-import java.util.HashMap;
-import java.util.Map;
-import javax.jcr.GuestCredentials;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
-
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -48,9 +42,17 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.jcr.GuestCredentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
+import java.security.PrivilegedExceptionAction;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -59,6 +61,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 /**
  * @since OAK 1.0
@@ -117,7 +123,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testUserIndexDefinitions() throws Exception {
+    public void testUserIndexDefinitions() {
         Tree oakIndex = root.getTree('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
         assertTrue(oakIndex.exists());
 
@@ -139,13 +145,22 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 Iterables.toArray(declaringNtNames, String.class));
     }
 
+    private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {
+        assertTrue(tree.exists());
+
+        assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
+        assertArrayEquals(
+                propName, new String[]{propName},
+                Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
+    }
+
     /**
      * @since OAK 1.0 The configuration defines if the password of the
      * admin user is being set.
      */
     @Test
     public void testAdminConfiguration() throws Exception {
-        Map<String,Object> userParams = new HashMap();
+        Map<String,Object> userParams = new HashMap<>();
         userParams.put(UserConstants.PARAM_ADMIN_ID, "admin");
         userParams.put(UserConstants.PARAM_OMIT_ADMIN_PW, true);
 
@@ -158,13 +173,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 .with(sp)
                 .createContentRepository();
 
-        ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-            @Override
-            public ContentSession run() throws Exception {
-                return repo.login(null, null);
-            }
-        });
-        try {
+        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
@@ -174,21 +183,13 @@ public class UserInitializerTest extends AbstractSecurityTest {
             Tree adminTree = root.getTree(adminUser.getPath());
             assertTrue(adminTree.exists());
             assertNull(adminTree.getProperty(UserConstants.REP_PASSWORD));
-        } finally {
-            cs.close();
         }
 
         // login as admin should fail
-        ContentSession adminSession = null;
-        try {
-            adminSession = repo.login(new SimpleCredentials("admin", new char[0]), null);
+        try (ContentSession adminSession = repo.login(new SimpleCredentials("admin", new char[0]), null)) {
             fail();
         } catch (LoginException e) {
             //success
-        } finally {
-            if (adminSession != null) {
-                adminSession.close();
-            }
         }
     }
 
@@ -197,7 +198,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
      */
     @Test
     public void testAnonymousConfiguration() throws Exception {
-        Map<String,Object> userParams = new HashMap();
+        Map<String,Object> userParams = new HashMap<>();
         userParams.put(UserConstants.PARAM_ANONYMOUS_ID, "");
 
         ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
@@ -209,42 +210,29 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 .with(sp)
                 .createContentRepository();
 
-        ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-            @Override
-            public ContentSession run() throws Exception {
-                return repo.login(null, null);
-            }
-        });
-        try {
+        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
             Authorizable anonymous = umgr.getAuthorizable(UserConstants.DEFAULT_ANONYMOUS_ID);
             assertNull(anonymous);
-        } finally {
-            cs.close();
         }
 
         // login as admin should fail
-        ContentSession anonymousSession = null;
-        try {
-            anonymousSession = repo.login(new GuestCredentials(), null);
+        try (ContentSession anonymousSession = repo.login(new GuestCredentials(), null)) {
             fail();
         } catch (LoginException e) {
             //success
-        } finally {
-            if (anonymousSession != null) {
-                anonymousSession.close();
-            }
         }
     }
 
-    private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {
-        assertTrue(tree.exists());
+    @Test
+    public void testSecondInit() {
+        NodeBuilder builder = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
 
-        assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
-        assertArrayEquals(
-                propName, new String[]{propName},
-                Iterables.toArray(TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES), String.class));
+        UserInitializer ui = new UserInitializer(getSecurityProvider());
+        ui.initialize(builder, adminSession.getWorkspaceName());
+
+        verify(builder, never()).child(anyString());
     }
 }

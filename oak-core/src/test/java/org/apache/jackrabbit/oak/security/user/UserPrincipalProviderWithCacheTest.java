@@ -16,22 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Set;
-import javax.jcr.NoSuchWorkspaceException;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
-
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -43,24 +29,33 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
-import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+
+import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
+import java.security.Principal;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -103,6 +98,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         );
     }
 
+    @NotNull
     @Override
     protected PrincipalProvider createPrincipalProvider() {
         return createPrincipalProvider(root);
@@ -114,28 +110,21 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
 
     private ContentSession getSystemSession() throws Exception {
         if (systemSession == null) {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                @Override
-                public ContentSession run() throws LoginException, NoSuchWorkspaceException {
-                    return login(null);
-
-                }
-            });
+            systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
         }
         return systemSession;
     }
 
-    private UserConfiguration changeUserConfiguration(ConfigurationParameters params) {
+    private void changeUserConfiguration(ConfigurationParameters params) {
         UserConfiguration userConfig = getUserConfiguration();
         ((ConfigurationBase) userConfig).setParameters(params);
-        return userConfig;
     }
 
     private Tree getCacheTree(Root root) throws Exception {
         return getCacheTree(root, getTestUser().getPath());
     }
 
-    private Tree getCacheTree(Root root, String authorizablePath) throws Exception {
+    private Tree getCacheTree(Root root, String authorizablePath) {
         return root.getTree(authorizablePath + '/' + CacheConstants.REP_CACHE);
     }
 
@@ -267,75 +256,6 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
     }
 
     @Test
-    public void testGroupPrincipals() throws Exception {
-        // a) force the cache to be created
-        PrincipalProvider pp = createPrincipalProvider(systemRoot);
-        Iterable<? extends Principal> principals = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate());
-
-        for (Principal p : principals) {
-            String className = p.getClass().getName();
-            assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipalImpl", className);
-        }
-
-        Principal testPrincipal = getTestUser().getPrincipal();
-
-        // b) retrieve principals again (this time from the cache)
-        // -> verify that they are a different implementation
-        Iterable<? extends Principal> principalsAgain = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate());
-        for (Principal p : principalsAgain) {
-            String className = p.getClass().getName();
-            assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);
-
-            assertTrue(p instanceof TreeBasedPrincipal);
-            assertEquals(testGroup.getPath(), ((TreeBasedPrincipal) p).getPath());
-
-            GroupPrincipal principalGroup = (GroupPrincipal) p;
-            assertTrue(principalGroup.isMember(testPrincipal));
-
-            Enumeration<? extends Principal> members = principalGroup.members();
-            assertTrue(members.hasMoreElements());
-            assertEquals(testPrincipal, members.nextElement());
-            assertEquals(testGroup2.getPrincipal(), members.nextElement());
-            assertFalse(members.hasMoreElements());
-        }
-    }
-
-    @Test
-    public void testCachedPrincipalsGroupRemoved() throws Exception {
-        // a) force the cache to be created
-        PrincipalProvider pp = createPrincipalProvider(systemRoot);
-        Iterable<? extends Principal> principals = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate());
-
-        for (Principal p : principals) {
-            String className = p.getClass().getName();
-            assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipalImpl", className);
-        }
-
-        testGroup.remove();
-        root.commit();
-
-        systemRoot.refresh();
-
-        // b) retrieve principals again (this time from the cache)
-        //    principal for 'testGroup' is no longer backed by an user mgt group
-        //    verify that this doesn't lead to runtime exceptions
-        Iterable<? extends Principal> principalsAgain = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate());
-        for (Principal p : principalsAgain) {
-            String className = p.getClass().getName();
-            assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);
-
-            assertTrue(p instanceof TreeBasedPrincipal);
-            assertNull(((TreeBasedPrincipal) p).getPath());
-
-            GroupPrincipal principalGroup = (GroupPrincipal) p;
-            assertFalse(principalGroup.isMember(getTestUser().getPrincipal()));
-
-            Enumeration<? extends Principal> members = principalGroup.members();
-            assertFalse(members.hasMoreElements());
-        }
-    }
-
-    @Test
     public void testGroupPrincipalNameEscape() throws Exception {
         String gId = null;
         try {
@@ -409,13 +329,18 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         // retrieve principals again to have cache updated
         pp = createPrincipalProvider(systemRoot);
         Set<? extends Principal> principalsAgain = pp.getPrincipals(userId);
-        assertFalse(principals.equals(principalsAgain));
+        assertNotEquals(principals, principalsAgain);
         assertPrincipals(principalsAgain, EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
 
         // verify that the cache has really been updated
         cache = getCacheTree(systemRoot);
-        assertNotSame(2, new NodeUtil(cache).getLong(CacheConstants.REP_EXPIRATION, 2));
+        assertNotSame(2, TreeUtil.getLong(cache, CacheConstants.REP_EXPIRATION, 2));
         assertEquals("", TreeUtil.getString(cache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES));
+
+        // check that an cached empty membership set doesn't break the retrieval (OAK-8306)
+        principalsAgain = pp.getPrincipals(userId);
+        assertNotEquals(principals, principalsAgain);
+        assertPrincipals(principalsAgain, EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
     }
 
     @Test
@@ -437,7 +362,7 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         // not causing NPE although the property is missing
         pp = createPrincipalProvider(systemRoot);
         Set<? extends Principal> principalsAgain = pp.getPrincipals(userId);
-        assertTrue(principals.equals(principalsAgain));
+        assertEquals(principals, principalsAgain);
 
         // verify that the cache has really been updated
         cache = getCacheTree(systemRoot);
@@ -527,31 +452,19 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         props.add(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED));
         props.add(PropertyStates.createProperty("residualProp", "anyvalue"));
 
-        // changing cache with (normally) sufficiently privileged session must not succeed
-        for (PropertyState ps : props) {
-            try {
-                Tree cache = getCacheTree(root);
-                cache.setProperty(ps);
-                root.commit();
-                fail("Attempt to modify the cache tree must fail.");
-            } catch (CommitFailedException e) {
-                // success
-            } finally {
-                root.refresh();
-            }
-        }
-
-        // changing cache with system session must not succeed either
-        for (PropertyState ps : props) {
-            try {
-                Tree cache = getCacheTree(systemRoot);
-                cache.setProperty(ps);
-                systemRoot.commit();
-                fail("Attempt to modify the cache tree must fail.");
-            } catch (CommitFailedException e) {
-                // success
-            } finally {
-                systemRoot.refresh();
+        // changing cache with (normally) sufficiently privileged session and with system-session must not succeed
+        for (Root r : new Root[] {root, systemRoot}) {
+            for (PropertyState ps : props) {
+                try {
+                    Tree cache = getCacheTree(r);
+                    cache.setProperty(ps);
+                    r.commit();
+                    fail("Attempt to modify the cache tree must fail.");
+                } catch (CommitFailedException e) {
+                    // success
+                } finally {
+                    r.refresh();
+                }
             }
         }
     }
@@ -572,16 +485,14 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
     public void testConcurrentLoginWithCacheRemoval() throws Exception {
         changeUserConfiguration(ConfigurationParameters.of(UserPrincipalProvider.PARAM_CACHE_EXPIRATION, 1));
 
-        final List<Exception> exceptions = new ArrayList<Exception>();
-        List<Thread> threads = new ArrayList<Thread>();
+        final List<Exception> exceptions = new ArrayList<>();
+        List<Thread> threads = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
-            threads.add(new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        login(new SimpleCredentials(userId, userId.toCharArray())).close();
-                    } catch (Exception e) {
-                        exceptions.add(e);
-                    }
+            threads.add(new Thread(() -> {
+                try {
+                    login(new SimpleCredentials(userId, userId.toCharArray())).close();
+                } catch (Exception e) {
+                    exceptions.add(e);
                 }
             }));
         }
@@ -596,15 +507,6 @@ public class UserPrincipalProviderWithCacheTest extends AbstractPrincipalProvide
         }
         if (!exceptions.isEmpty()) {
             fail();
-        }
-    }
-
-    //--------------------------------------------------------------------------
-
-    private static final class GroupPredicate implements Predicate<Principal> {
-        @Override
-        public boolean apply(@Nullable Principal input) {
-            return (input instanceof GroupPrincipal) && !EveryonePrincipal.getInstance().equals(input);
         }
     }
 }

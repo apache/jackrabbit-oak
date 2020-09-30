@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.segment.data;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 
 class SegmentDataRaw implements SegmentData {
 

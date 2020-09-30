@@ -23,18 +23,22 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -44,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -55,6 +60,8 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -211,6 +218,135 @@ public class SharedDataStoreUtilsTest {
             .refsNotAvailableFromRepos(dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                 dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()));
         assertEquals(Sets.newHashSet(expectedMissingRepoId), missingRepoIds);
+    }
+
+    @Test
+    public void testRefsOld() throws Exception {
+        Clock clock = new Clock.Virtual();
+        TimeLapsedDataStore ds = new TimeLapsedDataStore(clock);
+        Data data = new Data();
+
+        String repoId1 = UUID.randomUUID().toString();
+
+        data.repoIds.add(repoId1);
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId1));
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId1));
+
+        String repoId2 = UUID.randomUUID().toString();
+
+        data.repoIds.add(repoId2);
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId2));
+
+        clock.waitUntil(10);
+        // All the references from registered repositories are available
+        Set<String> repos = SharedDataStoreUtils
+            .refsNotOld(ds.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
+                ds.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()), 5);
+        assertEquals(Collections.EMPTY_SET, repos);
+    }
+
+    @Test
+    public void testRefsNotOldOne() throws Exception {
+        Clock clock = new Clock.Virtual();
+        TimeLapsedDataStore ds = new TimeLapsedDataStore(clock);
+        Data data = new Data();
+
+        String repoId1 = UUID.randomUUID().toString();
+
+        data.repoIds.add(repoId1);
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId1));
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId1));
+
+        String repoId2 = UUID.randomUUID().toString();
+
+        data.repoIds.add(repoId2);
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId2));
+
+        clock.waitUntil(10);
+        // Only references from first registered repository is available
+        Set<String> repos = SharedDataStoreUtils
+            .refsNotOld(ds.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
+                ds.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()), 3);
+        assertEquals(Stream.of(repoId2).collect(Collectors.toSet()), repos);
+    }
+
+    @Test
+    public void testRefsNotOldAll() throws Exception {
+        Clock clock = new Clock.Virtual();
+        TimeLapsedDataStore ds = new TimeLapsedDataStore(clock);
+        Data data = new Data();
+
+        String repoId1 = UUID.randomUUID().toString();
+
+        data.repoIds.add(repoId1);
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId1));
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId1));
+
+        String repoId2 = UUID.randomUUID().toString();
+
+        data.repoIds.add(repoId2);
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId2));
+        ds.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+            SharedStoreRecordType.MARKED_START_MARKER.getNameFromId(repoId2));
+
+        clock.waitUntil(5);
+        // none of the references from registered repositories are available
+        Set<String> repos = SharedDataStoreUtils
+            .refsNotOld(ds.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
+                ds.getAllMetadataRecords(SharedStoreRecordType.MARKED_START_MARKER.getType()), 2);
+        assertEquals(Stream.of(repoId1, repoId2).collect(Collectors.toSet()), repos);
+    }
+
+    @Test
+    public void repoMarkerExistOnClose() throws Exception {
+        File rootFolder = folder.newFolder();
+        dataStore = getBlobStore(rootFolder);
+        String repoId = UUID.randomUUID().toString();
+        dataStore.setRepositoryId(repoId);
+        assertEquals(repoId, dataStore.getRepositoryId());
+        assertNotNull(dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+
+        assertNotNull(FileUtils.getFile(new File(rootFolder, "repository/datastore"),
+            SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+        dataStore.close();
+
+        dataStore = getBlobStore(rootFolder);
+        assertNotNull(dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+    }
+
+    @Test
+    public void transientRepoMarkerDeleteOnClose() throws Exception {
+        System.setProperty("oak.datastore.sharedTransient", "true");
+        try {
+            File rootFolder = folder.newFolder();
+            dataStore = getBlobStore(rootFolder);
+            String repoId = UUID.randomUUID().toString();
+            dataStore.setRepositoryId(repoId);
+            assertEquals(repoId, dataStore.getRepositoryId());
+            assertNotNull(dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+
+            assertNotNull(FileUtils.getFile(new File(rootFolder, "repository/datastore"),
+                SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+            dataStore.close();
+
+            dataStore = getBlobStore(rootFolder);
+            assertNull(dataStore.getMetadataRecord(SharedStoreRecordType.REPOSITORY.getNameFromId(repoId)));
+        } finally {
+            System.clearProperty("oak.datastore.sharedTransient");
+        }
     }
 
     private void addMultipleMetadata(boolean extended) throws Exception {

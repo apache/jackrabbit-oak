@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -42,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -99,9 +101,9 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
             root.refresh();
             String[] rm = new String[] { groupId, groupId2, groupId3 };
             for (String id : rm) {
-                Group gr = getUserManager(root).getAuthorizable(id, Group.class);
-                if (gr != null) {
-                    gr.remove();
+                Authorizable a = getUserManager(root).getAuthorizable(id);
+                if (a != null) {
+                    a.remove();
                     root.commit();
                 }
             }
@@ -110,20 +112,33 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
         }
     }
 
+    @NotNull
     protected abstract PrincipalProvider createPrincipalProvider();
 
     @Test
-    public void testGetPrincipals() throws Exception {
+    public void testGetPrincipals() {
         String adminId = adminSession.getAuthInfo().getUserID();
         Set<? extends Principal> principals = principalProvider.getPrincipals(adminId);
 
         assertNotNull(principals);
         assertFalse(principals.isEmpty());
         assertTrue(principals.contains(EveryonePrincipal.getInstance()));
+        assertEquals(adminSession.getAuthInfo().getPrincipals(), principals);
 
         for (Principal principal : principals) {
             assertNotNull(principalProvider.getPrincipal(principal.getName()));
         }
+    }
+
+    @Test
+    public void testGetPrincipalsNonExistingId() throws Exception {
+        assertNull(getUserManager(root).getAuthorizable("nonExisting"));
+        assertTrue(principalProvider.getPrincipals("nonExisting").isEmpty());
+    }
+
+    @Test
+    public void testGetPrincipalsForGroup() throws Exception {
+        assertTrue(principalProvider.getPrincipals(testGroup.getID()).isEmpty());
     }
 
     @Test
@@ -149,25 +164,25 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
     }
 
     @Test
-    public void testGetitemBasedPrincipalPropertyPath() throws Exception {
+    public void testGetItemBasedPrincipalPropertyPath() throws Exception {
         String propPath = PathUtils.concat(((ItemBasedPrincipal) userPrincipal).getPath(), UserConstants.REP_PRINCIPAL_NAME);
         assertNull(principalProvider.getItemBasedPrincipal(getNamePathMapper().getOakPath(propPath)));
     }
 
     @Test
-    public void testGetItemBasedPrincipalNonExisting() throws Exception {
+    public void testGetItemBasedPrincipalNonExisting() {
         assertNull(principalProvider.getItemBasedPrincipal(UserConstants.DEFAULT_GROUP_PATH));
     }
 
     @Test
-    public void testUserPrincipal() throws Exception {
+    public void testUserPrincipal() {
         Principal principal = principalProvider.getPrincipal(userPrincipal.getName());
 
         assertNotNull(principal);
     }
 
     @Test
-    public void testNonExistingPrincipal() throws Exception {
+    public void testNonExistingPrincipal() {
         assertNull(principalProvider.getPrincipal(nonExisting.getName()));
     }
 
@@ -330,18 +345,17 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
         tests.put(PrincipalManager.SEARCH_TYPE_GROUP, Boolean.TRUE);
         tests.put(PrincipalManager.SEARCH_TYPE_NOT_GROUP, Boolean.FALSE);
 
-        for (Integer searchType : tests.keySet()) {
+        tests.forEach((key, value) -> {
             boolean found = false;
-            Iterator<? extends Principal> it = principalProvider.findPrincipals(EveryonePrincipal.NAME, searchType);
+            Iterator<? extends Principal> it = principalProvider.findPrincipals(EveryonePrincipal.NAME, key);
             while (it.hasNext()) {
                 Principal p = it.next();
                 if (p.getName().equals(EveryonePrincipal.NAME)) {
                     found = true;
                 }
             }
-            Boolean expected = tests.get(searchType);
-            assertEquals(expected, found);
-        }
+            assertEquals(value, found);
+        });
     }
 
     @Test
@@ -434,5 +448,19 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
             l.add(i.next().getName());
         }
         return l;
+    }
+
+    @Test
+    public void testFindRangeNegativeOffset() {
+        List<String> expected = Arrays.asList(groupId, groupId2, groupId3);
+        Collections.sort(expected);
+
+        for (int limit = -1; limit < expected.size() + 2; limit++) {
+            Iterator<? extends Principal> i1 = principalProvider.findPrincipals("testGroup", false,
+                    PrincipalManager.SEARCH_TYPE_ALL, -1, limit);
+            Iterator<? extends Principal> i2 = principalProvider.findPrincipals("testGroup", true,
+                    PrincipalManager.SEARCH_TYPE_ALL, 0, limit);
+            assertTrue(Iterators.elementsEqual(i1, i2));
+        }
     }
 }

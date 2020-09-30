@@ -26,9 +26,13 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore.DataStoreFixture;
+import org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessDSGCFixture;
 import org.apache.jackrabbit.oak.jcr.util.ComponentHolder;
+import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.segment.SegmentBlobReferenceRetriever;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -46,7 +50,8 @@ import com.google.common.collect.Table;
  * - SegmentNodeStore, storing data in-memory
  * - an optional DataStore provided by DataStoreFixture
  */
-public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements ComponentHolder {
+public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements ComponentHolder,
+    BinaryAccessDSGCFixture {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -126,6 +131,19 @@ public class SegmentMemoryNodeStoreFixture extends NodeStoreFixture implements C
         } finally {
             components.row(nodeStore).clear();
         }
+    }
+
+    @Override
+    public void compactStore(NodeStore nodeStore) {
+        FileStore fileStore = get(nodeStore, FileStore.class.getName());
+        for (int i = 0; i< SegmentGCOptions.defaultGCOptions().getRetainedGenerations(); i++) {
+            fileStore.compactFull();
+        }
+    }
+
+    @Override
+    public BlobReferenceRetriever getBlobReferenceRetriever(NodeStore nodeStore) {
+        return new SegmentBlobReferenceRetriever(get(nodeStore, FileStore.class.getName()));
     }
 
     @Override

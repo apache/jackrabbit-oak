@@ -192,7 +192,8 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                         // ex.printStackTrace();
                         String state = ex.getSQLState();
                         if ("22001".equals(state)
-                                /* everybody */ || ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */) {
+                                /* everybody */ || ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */
+                                || ("S0001".equals(state) && 2628 == ex.getErrorCode()) /* MSSQL update*/) {
                             // overflow
                             stmt = close(stmt);
                             connection.rollback();
@@ -239,6 +240,7 @@ public class RDBDocumentStorePerformanceTest extends AbstractDocumentStoreTest {
                 }
             } catch (SQLException ex) {
                 LOG.error(ex.getMessage() + " " + ex.getSQLState() + " " + ex.getErrorCode(), ex);
+                throw(ex);
             } finally {
                 connection = close(connection);
             }

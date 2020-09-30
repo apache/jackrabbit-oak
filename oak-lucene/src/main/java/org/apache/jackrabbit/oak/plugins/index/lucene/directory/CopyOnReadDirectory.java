@@ -62,9 +62,15 @@ public class CopyOnReadDirectory extends FilterDirectory {
     private final IndexCopier indexCopier;
     private final Directory remote;
     private final Directory local;
+    private final boolean prefetch;
     private final String indexPath;
     private final Executor executor;
     private final AtomicBoolean closed = new AtomicBoolean();
+
+    // exported as package private to be useful in tests
+    static final String WAIT_OTHER_COPY_SYSPROP_NAME = "cor.waitCopyMillis";
+
+    long waitOtherCopyTimeoutMillis = Long.getLong(WAIT_OTHER_COPY_SYSPROP_NAME, TimeUnit.SECONDS.toMillis(30));
 
     private final ConcurrentMap<String, CORFileReference> files = newConcurrentMap();
 
@@ -75,6 +81,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         this.executor = executor;
         this.remote = remote;
         this.local = local;
+        this.prefetch = prefetch;
         this.indexPath = indexPath;
 
         if (prefetch) {
@@ -106,7 +113,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 return files.get(name).openLocalInput(context);
             } else {
                 indexCopier.readFromRemote(true);
-                log.trace(
+                logRemoteAccess(
                         "[{}] opening existing remote file as local version is not valid {}",
                         indexPath, name);
                 return remote.openInput(name, context);
@@ -136,7 +143,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
             return toPut.openLocalInput(context);
         }
 
-        log.trace("[{}] opening new remote file {}", indexPath, name);
+        logRemoteAccess("[{}] opening new remote file {}", indexPath, name);
         indexCopier.readFromRemote(true);
         return remote.openInput(name, context);
     }
@@ -210,20 +217,25 @@ public class CopyOnReadDirectory extends FilterDirectory {
                             name, humanReadableByteCount(fileSize));
                 }
             } else {
-                long localLength = local.fileLength(name);
                 long remoteLength = remote.fileLength(name);
+
+                LocalIndexFile file = new LocalIndexFile(local, name, remoteLength, true);
+                // as a local file exists, attempt a wait for completion of any potential ongoing concurrent copy
+                indexCopier.waitForCopyCompletion(file, waitOtherCopyTimeoutMillis);
+
+                long localLength = local.fileLength(name);
 
                 //Do a simple consistency check. Ideally Lucene index files are never
                 //updated but still do a check if the copy is consistent
                 if (localLength != remoteLength) {
-                    LocalIndexFile file = new LocalIndexFile(local, name, remoteLength, true);
                     if (!indexCopier.isCopyInProgress(file)) {
                         log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. " +
                                         "Content would be read from remote file only",
                                 indexPath, name, local, localLength, remoteLength);
                         indexCopier.foundInvalidFile();
                     } else {
-                        log.trace("[{}] Found in progress copy of file {}. Would read from remote", indexPath, name);
+
+                        logRemoteAccess("[{}] Found in progress copy of file {}. Would read from remote", indexPath, name);
                     }
                 } else {
                     reference.markValid();
@@ -251,6 +263,8 @@ public class CopyOnReadDirectory extends FilterDirectory {
     }
 
     /**
+     * Close the files _after_ the method returns (asynchronously).
+     * 
      * On close file which are not present in remote are removed from local.
      * CopyOnReadDir is opened at different revisions of the index state
      *
@@ -262,8 +276,6 @@ public class CopyOnReadDirectory extends FilterDirectory {
      * be ensured that any currently opened IndexSearcher does not get affected.
      * The way IndexSearchers get created in IndexTracker it ensures that new searcher
      * pinned to newer revision gets opened first and then existing ones are closed.
-     *
-     *
      */
     @Override
     public void close() throws IOException {
@@ -345,6 +357,14 @@ public class CopyOnReadDirectory extends FilterDirectory {
             log.debug(
                     "[{}] Following files have been removed from Lucene index directory {}",
                     indexPath, filesToBeDeleted);
+        }
+    }
+
+    private void logRemoteAccess(String format, Object o1, Object o2) {
+        if (prefetch) {
+            log.warn(format, o1, o2);
+        } else {
+            log.trace(format, o1, o2);
         }
     }
 

@@ -91,18 +91,21 @@ public final class PredefinedAuthorizationConfiguration extends ConfigurationBas
                 throw new AccessControlException();
             }
 
+            @NotNull
             @Override
-            public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) {
+            public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) {
                 return new JackrabbitAccessControlPolicy[0];
             }
 
+            @NotNull
             @Override
-            public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) {
+            public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) {
                 return new JackrabbitAccessControlPolicy[0];
             }
 
+            @NotNull
             @Override
-            public AccessControlPolicy[] getEffectivePolicies(Set<Principal> set) {
+            public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> set) {
                 return new AccessControlPolicy[0];
             }
         };

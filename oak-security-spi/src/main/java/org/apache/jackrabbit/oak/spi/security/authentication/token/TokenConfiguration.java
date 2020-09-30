@@ -34,5 +34,5 @@ public interface TokenConfiguration extends SecurityConfiguration {
      * @return A new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
      */
     @NotNull
-    TokenProvider getTokenProvider(Root root);
+    TokenProvider getTokenProvider(@NotNull Root root);
 }

@@ -14,6 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+<<<<<<< HEAD:oak-jcr/src/test/java/org/apache/jackrabbit/oak/jcr/security/authorization/MixReferenceableTest.java
+package org.apache.jackrabbit.oak.jcr.security.authorization;
+
+/**
+ * Implementation of {@code AbstractAutoCreatedPropertyTest} for mix:referenceable
+ * nodes.
+ */
+public class MixReferenceableTest extends AbstractAutoCreatedPropertyTest {
+
+    String getNodeName() {
+        return "referenceable";
+    }
+
+    String getMixinName() {
+        return mixReferenceable;
+    }
+=======
 
 package org.apache.jackrabbit.oak.segment.file;
 
@@ -36,4 +53,5 @@ class EstimationResult {
         return gcLog;
     }
 
+>>>>>>> upstream/trunk:oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/EstimationResult.java
 }

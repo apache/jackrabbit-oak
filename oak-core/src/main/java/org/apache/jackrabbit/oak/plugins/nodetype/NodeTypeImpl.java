@@ -485,7 +485,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private ReadOnlyNodeTypeManager getManager() {
         final Tree types = definition.getParent();
         return new ReadOnlyNodeTypeManager() {
-            @Override @Nullable
+            @NotNull
+            @Override
             protected Tree getTypes() {
                 return types;
             }
@@ -664,7 +665,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
         // Any of the constraints must be met
         for (String constraint : constraints) {
-            if (Constraints.valueConstraint(value.getType(), constraint).apply(value)) {
+            if (Constraints.asPredicate(value.getType(), constraint).test(value)) {
                 return true;
             }
         }
@@ -690,7 +691,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private static int getIndex(@NotNull Tree tree) {
         String name = tree.getName();
         int i = name.lastIndexOf('[');
-        return (i == -1) ? 1 : Integer.valueOf(name.substring(i+1, name.lastIndexOf(']')));
+        return (i == -1) ? 1 : Integer.parseInt(name.substring(i+1, name.lastIndexOf(']')));
     }
 
     private boolean matches(String childNodeName, String name) {

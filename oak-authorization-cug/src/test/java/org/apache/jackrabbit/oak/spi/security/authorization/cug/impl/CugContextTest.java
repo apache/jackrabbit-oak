@@ -28,10 +28,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,9 +56,9 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
         super.before();
 
         // add more child nodes
-        NodeUtil n = new NodeUtil(root.getTree(SUPPORTED_PATH));
-        n.addChild("a", NT_OAK_UNSTRUCTURED).addChild("b", NT_OAK_UNSTRUCTURED).addChild("c", NT_OAK_UNSTRUCTURED);
-        n.addChild("aa", NT_OAK_UNSTRUCTURED).addChild("bb", NT_OAK_UNSTRUCTURED).addChild("cc", NT_OAK_UNSTRUCTURED);
+        Tree n = root.getTree(SUPPORTED_PATH);
+        createTrees(n, NT_OAK_UNSTRUCTURED, "a", "b", "c");
+        createTrees(n, NT_OAK_UNSTRUCTURED, "aa", "bb", "cc");
 
         // create cugs
         createCug("/content/a", getTestUser().getPrincipal());
@@ -141,7 +141,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
         PropertyState ps = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, ImmutableSet.of(getTestUser().getPrincipal().getName()), Type.STRINGS);
 
         // cug at unsupported path -> context doesn't take supported paths into account.
-        Tree invalidCug = new NodeUtil(root.getTree(UNSUPPORTED_PATH)).addChild(CugConstants.REP_CUG_POLICY, CugConstants.NT_REP_CUG_POLICY).getTree();
+        Tree invalidCug = TreeUtil.addChild(root.getTree(UNSUPPORTED_PATH), CugConstants.REP_CUG_POLICY, CugConstants.NT_REP_CUG_POLICY);
         invalidCug.setProperty(ps);
 
         assertTrue(CugContext.INSTANCE.definesContextRoot(invalidCug));
@@ -149,7 +149,7 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
         assertTrue(CugContext.INSTANCE.definesProperty(invalidCug, invalidCug.getProperty(CugConstants.REP_PRINCIPAL_NAMES)));
 
         // 'cug' with wrong node type -> detected as no-cug by context
-        invalidCug = new NodeUtil(root.getTree(UNSUPPORTED_PATH)).addChild(CugConstants.REP_CUG_POLICY, NT_OAK_UNSTRUCTURED).getTree();
+        invalidCug = TreeUtil.addChild(root.getTree(UNSUPPORTED_PATH), CugConstants.REP_CUG_POLICY, NT_OAK_UNSTRUCTURED);
         invalidCug.setProperty(ps);
 
         assertFalse(CugContext.INSTANCE.definesContextRoot(invalidCug));

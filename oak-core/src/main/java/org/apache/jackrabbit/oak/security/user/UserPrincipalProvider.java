@@ -20,6 +20,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
@@ -155,14 +156,15 @@ class UserPrincipalProvider implements PrincipalProvider {
         return principals;
     }
 
+    @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final String nameHint, final int searchType) {
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final int searchType) {
         return findPrincipals(nameHint, false, searchType, 0, -1);
     }
 
     @NotNull
     @Override
-    public Iterator<? extends Principal> findPrincipals(final String nameHint, final boolean fullText, final int searchType, long offset,
+    public Iterator<? extends Principal> findPrincipals(@Nullable final String nameHint, final boolean fullText, final int searchType, long offset,
             long limit) {
         if (offset < 0) {
             offset = 0;
@@ -227,7 +229,7 @@ class UserPrincipalProvider implements PrincipalProvider {
             if (AuthorizableType.GROUP == type) {
                 return createGroupPrincipal(authorizableTree);
             } else if (AuthorizableType.USER == type) {
-                return createUserPrincipal(UserUtil.getAuthorizableId(authorizableTree, type), authorizableTree);
+                return createUserPrincipal(UserUtil.getAuthorizableId(authorizableTree, AuthorizableType.USER), authorizableTree);
             }
         }
         return null;
@@ -271,15 +273,15 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     @NotNull
     private Set<Principal> getGroupMembership(@NotNull Tree authorizableTree) {
-        Set<Principal> groupPrincipals = null;
+        Set<Principal> groupPrincipals = new HashSet<>();
         boolean doCache = cacheEnabled && UserUtil.isType(authorizableTree, AuthorizableType.USER);
+        boolean doLoad = true;
         if (doCache) {
-            groupPrincipals = readGroupsFromCache(authorizableTree);
+            doLoad = readGroupsFromCache(authorizableTree, groupPrincipals);
         }
 
         // caching not configured or cache expired: use the membershipProvider to calculate
-        if (groupPrincipals == null) {
-            groupPrincipals = new HashSet<>();
+        if (doLoad) {
             Iterator<String> groupPaths = membershipProvider.getMembership(authorizableTree, true);
             while (groupPaths.hasNext()) {
                 Tree groupTree = userProvider.getAuthorizableByPath(groupPaths.next());
@@ -309,60 +311,51 @@ class UserPrincipalProvider implements PrincipalProvider {
             Tree cache = authorizableNode.getChild(CacheConstants.REP_CACHE);
             if (!cache.exists()) {
                 if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
-                    log.debug("Omit cache creation for user without group membership at " + authorizableNode.getPath());
+                    log.debug("Omit cache creation for user without group membership at {}", authorizableNode.getPath());
                     return;
                 } else {
-                    log.debug("Create new group membership cache at " + authorizableNode.getPath());
+                    log.debug("Create new group membership cache at {}", authorizableNode.getPath());
                     cache = TreeUtil.addChild(authorizableNode, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
                 }
             }
 
             cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
-            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, new Function<Principal, String>() {
-                @Override
-                public String apply(Principal input) {
-                    return Text.escape(input.getName());
-                }
-            }));
+            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
             cache.setProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, value);
 
             root.commit(CacheValidatorProvider.asCommitAttributes());
-            log.debug("Cached group membership at " + authorizableNode.getPath());
+            log.debug("Cached group membership at {}", authorizableNode.getPath());
 
-        } catch (AccessDeniedException e) {
-            log.debug("Failed to cache group membership", e.getMessage());
-        } catch (CommitFailedException e) {
-            log.debug("Failed to cache group membership", e.getMessage(), e);
+        } catch (AccessDeniedException | CommitFailedException e) {
+            log.debug("Failed to cache group membership: {}", e.getMessage());
         } finally {
             root.refresh();
         }
     }
 
-    @Nullable
-    private Set<Principal> readGroupsFromCache(@NotNull Tree authorizableNode) {
+    private boolean readGroupsFromCache(@NotNull Tree authorizableNode, @NotNull Set<Principal> groups) {
         Tree principalCache = authorizableNode.getChild(CacheConstants.REP_CACHE);
         if (!principalCache.exists()) {
-            log.debug("No group cache at " + authorizableNode.getPath());
-            return null;
+            log.debug("No group cache at {}", authorizableNode.getPath());
+            return true;
         }
 
         if (isValidCache(principalCache)) {
-            log.debug("Reading group membership at " + authorizableNode.getPath());
+            log.debug("Reading group membership at {}", authorizableNode.getPath());
 
             String str = TreeUtil.getString(principalCache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES);
-            if (str == null || str.isEmpty()) {
-                return Collections.emptySet();
+            if (Strings.isNullOrEmpty(str)) {
+                return false;
             }
 
-            Set<Principal> groups = new HashSet<>();
             for (String s : Text.explode(str, ',')) {
                 final String name = Text.unescape(s);
                 groups.add(new CachedGroupPrincipal(name, namePathMapper, root, config));
             }
-            return groups;
+            return false;
         } else {
-            log.debug("Expired group cache for " + authorizableNode.getPath());
-            return null;
+            log.debug("Expired group cache for {}", authorizableNode.getPath());
+            return true;
         }
     }
 
@@ -399,8 +392,8 @@ class UserPrincipalProvider implements PrincipalProvider {
      */
     private final class ResultRowToPrincipal implements Function<ResultRow, Principal> {
         @Override
-        public Principal apply(@Nullable ResultRow resultRow) {
-            return (resultRow != null) ? createPrincipal(resultRow.getTree(null)) : null;
+        public Principal apply(ResultRow resultRow) {
+            return createPrincipal(resultRow.getTree(null));
         }
     }
 
@@ -411,9 +404,8 @@ class UserPrincipalProvider implements PrincipalProvider {
     private static final class EveryonePredicate implements Predicate<Principal> {
         private boolean servedEveryone = false;
         @Override
-        public boolean apply(@Nullable Principal principal) {
-            String pName = (principal == null) ? null : principal.getName();
-            if (EveryonePrincipal.NAME.equals(pName)) {
+        public boolean apply(Principal principal) {
+            if (EveryonePrincipal.NAME.equals(principal.getName())) {
                 if (servedEveryone) {
                     return false;
                 } else {
@@ -431,7 +423,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     // Group Principal implementations that retrieve member information on demand
     //--------------------------------------------------------------------------
 
-    private static abstract class BaseGroupPrincipal extends AbstractGroupPrincipal {
+    private abstract static class BaseGroupPrincipal extends AbstractGroupPrincipal {
 
         private final Root root;
         private final UserConfiguration config;
@@ -444,6 +436,7 @@ class UserPrincipalProvider implements PrincipalProvider {
             this.config = config;
         }
 
+        @NotNull
         @Override
         UserManager getUserManager() {
             if (userManager == null) {
@@ -467,7 +460,7 @@ class UserPrincipalProvider implements PrincipalProvider {
         @Override
         Iterator<Authorizable> getMembers() throws RepositoryException {
             org.apache.jackrabbit.api.security.user.Group g = getGroup();
-            return (g == null) ? Collections.<Authorizable>emptyIterator() : g.getMembers();
+            return (g == null) ? Collections.emptyIterator() : g.getMembers();
         }
 
         @Nullable
@@ -509,21 +502,24 @@ class UserPrincipalProvider implements PrincipalProvider {
             super(principalName, "", namePathMapper, root, config);
         }
 
+        @NotNull
         @Override
-        String getOakPath() {
-            String groupPath = getPath();
-            return (groupPath == null) ? null : getNamePathMapper().getOakPath(getPath());
+        String getOakPath() throws RepositoryException {
+            String oakPath = getNamePathMapper().getOakPath(getPath());
+            if (oakPath == null) {
+                throw new RepositoryException("Failed to retrieve path of group principal " + getName());
+            }
+            return oakPath;
         }
 
+        @NotNull
         @Override
-        public String getPath() {
-            try {
-                org.apache.jackrabbit.api.security.user.Group gr = getGroup();
-                return (gr == null) ? null : gr.getPath();
-            } catch (RepositoryException e) {
-                log.error("Failed to retrieve path from group principal", e.getMessage());
-                return null;
+        public String getPath() throws RepositoryException {
+            org.apache.jackrabbit.api.security.user.Group gr = getGroup();
+            if (gr == null) {
+                throw new RepositoryException("Failed to retrieve path of group principal " + getName());
             }
+            return gr.getPath();
         }
 
         @Override

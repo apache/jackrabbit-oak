@@ -106,28 +106,28 @@ public class UserManagerImpl implements UserManager {
     }
 
     //--------------------------------------------------------< UserManager >---
+    @Nullable
     @Override
-    public Authorizable getAuthorizable(String id) throws RepositoryException {
-        Authorizable authorizable = null;
+    public Authorizable getAuthorizable(@NotNull String id) throws RepositoryException {
         Tree tree = (Strings.isNullOrEmpty(id)) ? null : userProvider.getAuthorizable(id);
-        if (tree != null) {
-            authorizable = getAuthorizable(UserUtil.getAuthorizableId(tree), tree);
-        }
-        return authorizable;
+        return getAuthorizable(tree);
     }
 
+    @Nullable
     @Override
-    public <T extends Authorizable> T getAuthorizable(String id, Class<T> authorizableClass) throws RepositoryException {
+    public <T extends Authorizable> T getAuthorizable(@NotNull String id, @NotNull Class<T> authorizableClass) throws RepositoryException {
         return UserUtil.castAuthorizable(getAuthorizable(id), authorizableClass);
     }
 
+    @Nullable
     @Override
-    public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
+    public Authorizable getAuthorizable(@NotNull Principal principal) throws RepositoryException {
         return (principal == null) ? null : getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
     }
 
+    @Nullable
     @Override
-    public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
+    public Authorizable getAuthorizableByPath(@NotNull String path) throws RepositoryException {
         String oakPath = namePathMapper.getOakPath(path);
         if (oakPath == null) {
             throw new RepositoryException("Invalid path " + path);
@@ -135,29 +135,34 @@ public class UserManagerImpl implements UserManager {
         return getAuthorizableByOakPath(oakPath);
     }
 
+    @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(String relPath, String value) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value) throws RepositoryException {
         return findAuthorizables(relPath, value, SEARCH_TYPE_AUTHORIZABLE);
     }
 
+    @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull String relPath, @Nullable String value, int searchType) throws RepositoryException {
         return getQueryManager().findAuthorizables(relPath, value, AuthorizableType.getType(searchType));
     }
 
+    @NotNull
     @Override
-    public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
+    public Iterator<Authorizable> findAuthorizables(@NotNull Query query) throws RepositoryException {
         return getQueryManager().findAuthorizables(query);
     }
 
+    @NotNull
     @Override
-    public User createUser(final String userID, String password) throws RepositoryException {
+    public User createUser(@NotNull final String userID, @Nullable String password) throws RepositoryException {
         Principal principal = new PrincipalImpl(userID);
         return createUser(userID, password, principal, null);
     }
 
+    @NotNull
     @Override
-    public User createUser(String userID, String password, Principal principal,
+    public User createUser(@NotNull String userID, @Nullable String password, @NotNull Principal principal,
                            @Nullable String intermediatePath) throws RepositoryException {
         checkValidId(userID);
         checkValidPrincipal(principal, false);
@@ -168,18 +173,19 @@ public class UserManagerImpl implements UserManager {
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
         if (password != null) {
-            setPassword(userTree, userID, password, true);
+            setPassword(userTree, userID, password, false);
         }
 
         User user = new UserImpl(userID, userTree, this);
         onCreate(user, password);
 
-        log.debug("User created: " + userID);
+        log.debug("User created: {}", userID);
         return user;
     }
 
+    @NotNull
     @Override
-    public User createSystemUser(String userID, String intermediatePath) throws RepositoryException {
+    public User createSystemUser(@NotNull String userID, @Nullable String intermediatePath) throws RepositoryException {
         checkValidId(userID);
         Principal principal = new PrincipalImpl(userID);
         checkValidPrincipal(principal, false);
@@ -189,28 +195,32 @@ public class UserManagerImpl implements UserManager {
 
         User user = new SystemUserImpl(userID, userTree, this);
 
-        log.debug("System user created: " + userID);
+        log.debug("System user created: {}", userID);
         return user;
     }
 
+    @NotNull
     @Override
-    public Group createGroup(String groupId) throws RepositoryException {
+    public Group createGroup(@NotNull String groupId) throws RepositoryException {
         Principal principal = new PrincipalImpl(groupId);
         return createGroup(groupId, principal, null);
     }
 
+    @NotNull
     @Override
-    public Group createGroup(Principal principal) throws RepositoryException {
+    public Group createGroup(@NotNull Principal principal) throws RepositoryException {
         return createGroup(principal, null);
     }
 
+    @NotNull
     @Override
-    public Group createGroup(Principal principal, @Nullable String intermediatePath) throws RepositoryException {
+    public Group createGroup(@NotNull Principal principal, @Nullable String intermediatePath) throws RepositoryException {
         return createGroup(principal.getName(), principal, intermediatePath);
     }
 
+    @NotNull
     @Override
-    public Group createGroup(String groupID, Principal principal, @Nullable String intermediatePath) throws RepositoryException {
+    public Group createGroup(@NotNull String groupID, @NotNull Principal principal, @Nullable String intermediatePath) throws RepositoryException {
         checkValidId(groupID);
         checkValidPrincipal(principal, true);
 
@@ -223,7 +233,7 @@ public class UserManagerImpl implements UserManager {
         Group group = new GroupImpl(groupID, groupTree, this);
         onCreate(group);
 
-        log.debug("Group created: " + groupID);
+        log.debug("Group created: {}", groupID);
         return group;
     }
 
@@ -379,7 +389,20 @@ public class UserManagerImpl implements UserManager {
         if (tree == null || !tree.exists()) {
             return null;
         }
-        return getAuthorizable(UserUtil.getAuthorizableId(tree), tree);
+        String id = UserUtil.getAuthorizableId(tree);
+        if (id == null) {
+            return null;
+        }
+        if (UserUtil.isType(tree, AuthorizableType.USER)) {
+            if (UserUtil.isSystemUser(tree)) {
+                return new SystemUserImpl(id, tree, this);
+            } else {
+                return new UserImpl(id, tree, this);
+            }
+        } else {
+            // type has already been verified upon retrieving the ID, safe to assume this is a group
+            return new GroupImpl(id, tree, this);
+        }
     }
 
     @Nullable
@@ -420,24 +443,6 @@ public class UserManagerImpl implements UserManager {
         return config;
     }
 
-    @Nullable
-    private Authorizable getAuthorizable(@Nullable String id, @Nullable Tree tree) throws RepositoryException {
-        if (id == null || tree == null) {
-            return null;
-        }
-        if (UserUtil.isType(tree, AuthorizableType.USER)) {
-            if (UserUtil.isSystemUser(tree)) {
-                return new SystemUserImpl(id, tree, this);
-            } else {
-                return new UserImpl(id, tree, this);
-            }
-        } else if (UserUtil.isType(tree, AuthorizableType.GROUP)) {
-            return new GroupImpl(id, tree, this);
-        } else {
-            throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
-        }
-    }
-
     private void checkValidId(@Nullable String id) throws RepositoryException {
         if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("Invalid ID " + id);
@@ -463,9 +468,9 @@ public class UserManagerImpl implements UserManager {
         authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
     }
 
-    void setPassword(@NotNull Tree userTree, @NotNull String userId, @NotNull String password, boolean forceHash) throws RepositoryException {
+    void setPassword(@NotNull Tree userTree, @NotNull String userId, @NotNull String password, boolean isImport) throws RepositoryException {
         String pwHash;
-        if (forceHash || PasswordUtil.isPlainTextPassword(password)) {
+        if (!isImport || PasswordUtil.isPlainTextPassword(password)) {
             try {
                 pwHash = PasswordUtil.buildPasswordHash(password, config);
             } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
@@ -478,21 +483,23 @@ public class UserManagerImpl implements UserManager {
 
         // set last-modified property if pw-expiry is enabled and the user is not
         // admin. if initial-pw-change is enabled, we don't set the last modified
-        // for new users, in order to force a pw change upon the next login
-        boolean expiryEnabled = passwordExpiryEnabled();
-        boolean forceInitialPwChange = forceInitialPasswordChangeEnabled();
-        boolean isNewUser = userTree.getStatus() == Tree.Status.NEW;
-
-        if (Utils.canHavePasswordExpired(userId, config)
-                // only expiry is enabled, set in all cases
-                && ((expiryEnabled && !forceInitialPwChange)
-                // as soon as force initial pw is enabled, we set in all cases except new users,
-                // irrespective of password expiry being enabled or not
-                || (forceInitialPwChange && !isNewUser))) {
-
+        // for new or imported users, in order to force a pw change upon the next login
+        if (Utils.canHavePasswordExpired(userId, config) && setPasswordLastModified(userTree, isImport)) {
             Tree pwdTree = TreeUtil.getOrAddChild(userTree, UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD);
             // System.currentTimeMillis() may be inaccurate on windows. This is accepted for this feature.
             pwdTree.setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, System.currentTimeMillis(), Type.LONG);
+        }
+    }
+
+    private boolean setPasswordLastModified(@NotNull Tree userTree, boolean isImport) {
+        if (forceInitialPasswordChangeEnabled()) {
+            // initial-pw-change: set last-mod property except for new or imported users (irrespective of pw-expiry configuration)
+            return !(isImport || userTree.getStatus() == Tree.Status.NEW);
+        } else if (passwordExpiryEnabled()) {
+            // only expiry is enabled: set for all user mgt api calls. for user-import only set upon user creation (new tree)
+            return !isImport || userTree.getStatus() == Tree.Status.NEW;
+        } else {
+            return false;
         }
     }
 

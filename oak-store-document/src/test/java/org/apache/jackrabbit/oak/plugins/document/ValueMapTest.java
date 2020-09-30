@@ -33,6 +33,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -45,18 +46,17 @@ public class ValueMapTest {
 
     @Test
     public void previousDocs1() {
-        String rootPath = "/";
-        String rootId = Utils.getIdFromPath(rootPath);
+        String rootId = Utils.getIdFromPath(ROOT);
         Revision r0 = new Revision(0, 0, 1);
         MemoryDocumentStore store = new MemoryDocumentStore();
         // create previous docs
-        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r0, 0), true);
+        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r0, 0), true);
         op.setMapEntry("prop", r0, "0");
         NodeDocument.setRevision(op, r0, "c");
         store.createOrUpdate(NODES, op);
         Revision r1low = new Revision(1, 0, 1);
         Revision r1high = new Revision(1, 10, 1);
-        op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r1high, 0), true);
+        op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r1high, 0), true);
         for (int i = r1low.getCounter(); i <= r1high.getCounter(); i++) {
             Revision r = new Revision(1, i, 1);
             op.setMapEntry("foo", r, String.valueOf(i));
@@ -88,8 +88,7 @@ public class ValueMapTest {
     @Test
     public void previousDocs2() {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        String rootPath = "/";
-        String rootId = Utils.getIdFromPath(rootPath);
+        String rootId = Utils.getIdFromPath(ROOT);
         Revision r01 = new Revision(0, 0, 1);
         Revision r12 = new Revision(1, 0, 2);
         Revision r22 = new Revision(2, 0, 2);
@@ -97,14 +96,14 @@ public class ValueMapTest {
         Revision r42 = new Revision(4, 0, 2);
         Revision r51 = new Revision(5, 0, 1);
         // create previous docs
-        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r31, 0), true);
+        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r31, 0), true);
         op.setMapEntry("p0", r01, "0");
         NodeDocument.setRevision(op, r01, "c");
         op.setMapEntry("p1", r31, "1");
         NodeDocument.setRevision(op, r31, "c");
         store.createOrUpdate(NODES, op);
 
-        op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r42, 0), true);
+        op = new UpdateOp(Utils.getPreviousIdFor(ROOT, r42, 0), true);
         op.setMapEntry("p1", r12, "0");
         NodeDocument.setRevision(op, r12, "c");
         op.setMapEntry("p1", r22, "1");
@@ -127,8 +126,8 @@ public class ValueMapTest {
         List<NodeDocument> prevDocs = Lists.newArrayList(
                 doc.getPreviousDocs("p1", null));
         assertEquals(2, prevDocs.size());
-        assertEquals(Utils.getPreviousIdFor(rootPath, r31, 0), prevDocs.get(0).getId());
-        assertEquals(Utils.getPreviousIdFor(rootPath, r42, 0), prevDocs.get(1).getId());
+        assertEquals(Utils.getPreviousIdFor(ROOT, r31, 0), prevDocs.get(0).getId());
+        assertEquals(Utils.getPreviousIdFor(ROOT, r42, 0), prevDocs.get(1).getId());
 
         List<Revision> revs = new ArrayList<Revision>();
         for (Revision r : doc.getValueMap("p1").keySet()) {
@@ -189,12 +188,12 @@ public class ValueMapTest {
         Range range1 = new Range(r7, r5, 0);
         Range range2 = new Range(r4, r1, 0);
         
-        String prevId1 = Utils.getPreviousIdFor("/", range1.high, 0);
+        String prevId1 = Utils.getPreviousIdFor(ROOT, range1.high, 0);
         UpdateOp prevOp1 = new UpdateOp(prevId1, true);
         NodeDocument.setRevision(prevOp1, r5, "c");
         NodeDocument.setRevision(prevOp1, r7, "c");
 
-        String prevId2 = Utils.getPreviousIdFor("/", range2.high, 0);
+        String prevId2 = Utils.getPreviousIdFor(ROOT, range2.high, 0);
         UpdateOp prevOp2 = new UpdateOp(prevId2, true);
         NodeDocument.setRevision(prevOp2, r1, "c");
         NodeDocument.setRevision(prevOp2, r2, "c");

@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class EmptyPatternTest {
@@ -43,6 +44,11 @@ public class EmptyPatternTest {
     @Test
     public void testMatchesProperty() {
         assertTrue(RestrictionPattern.EMPTY.matches(Mockito.mock(Tree.class), Mockito.mock(PropertyState.class)));
+    }
+
+    @Test
+    public void testToString() {
+        assertEquals(RestrictionPattern.EMPTY.toString(), RestrictionPattern.EMPTY.toString());
     }
 
 }

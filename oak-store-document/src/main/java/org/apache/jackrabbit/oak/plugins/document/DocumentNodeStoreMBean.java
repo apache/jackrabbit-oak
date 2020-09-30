@@ -64,4 +64,26 @@ public interface DocumentNodeStoreMBean {
     CompositeData getBranchCommitHistory();
 
     CompositeData getMergeBranchCommitHistory();
+
+    @Description("Triggers last revision recovery of nodes, below a given path and clusterId.\n" +
+            "Returns number of records updated after performing recovery.\n" +
+            "Note: Recovery can only be performed on inactive clusterIds. If the clusterNode is in ReadOnly mode,\n" +
+            "it will return the no. of documents which needs update and won't perform recovery")
+    int recover(
+            @Description("The absolute path of a node.")
+            @Name("path")
+            String path, 
+            @Description("The id of an inactive cluster node.")
+            @Name("clusterId")
+            int clusterId);
+
+    @Description("Invalidates all the caches used by the DocumentNodeStore: DiffCache, NodeCache and NodeChildrenCache.")
+    String cleanAllCaches();
+
+    @Description("Invalidates the specified cache: DiffCache, NodeCache or NodeChildrenCache.\n" +
+            "Note: The values are case insensitive.")
+    String cleanIndividualCache(
+            @Description("Possible values are: DIFF, NODE, NODECHILDREN")
+            @Name("name")
+            String name);
 }

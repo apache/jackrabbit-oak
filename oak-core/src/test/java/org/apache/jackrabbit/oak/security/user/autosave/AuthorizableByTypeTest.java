@@ -36,8 +36,8 @@ public class AuthorizableByTypeTest extends AbstractAutoSaveTest {
     public void before() throws Exception {
         super.before();
 
-        user = getTestUser();
-        group = mgr.createGroup("testGroup" + UUID.randomUUID());
+        user = autosaveMgr.getAuthorizable(getTestUser().getID(), User.class);
+        group = autosaveMgr.createGroup("testGroup" + UUID.randomUUID());
         root.commit();
     }
 
@@ -56,37 +56,37 @@ public class AuthorizableByTypeTest extends AbstractAutoSaveTest {
 
     @Test
     public void testUserByIdAndType() throws Exception {
-        User u = mgr.getAuthorizable(user.getID(), User.class);
+        User u = autosaveMgr.getAuthorizable(user.getID(), User.class);
         assertTrue(u instanceof UserImpl);
 
-        Authorizable auth = mgr.getAuthorizable(user.getID(), user.getClass());
+        Authorizable auth = autosaveMgr.getAuthorizable(user.getID(), user.getClass());
         assertTrue(auth instanceof UserImpl);
 
-        auth = mgr.getAuthorizable(user.getID(), Authorizable.class);
+        auth = autosaveMgr.getAuthorizable(user.getID(), Authorizable.class);
         assertTrue(auth instanceof AuthorizableImpl);
     }
 
     @Test
     public void testGroupByIdAndType() throws Exception {
-        Group g = mgr.getAuthorizable(group.getID(), Group.class);
+        Group g = autosaveMgr.getAuthorizable(group.getID(), Group.class);
         assertTrue(g instanceof GroupImpl);
 
-        Authorizable auth = mgr.getAuthorizable(group.getID(), group.getClass());
+        Authorizable auth = autosaveMgr.getAuthorizable(group.getID(), group.getClass());
         assertTrue(auth instanceof GroupImpl);
 
-        auth = mgr.getAuthorizable(group.getID(), Authorizable.class);
+        auth = autosaveMgr.getAuthorizable(group.getID(), Authorizable.class);
         assertTrue(auth instanceof AuthorizableImpl);
     }
 
     @Test(expected = AuthorizableTypeException.class)
     public void testUserByIdAndWrongType() throws Exception {
-        mgr.getAuthorizable(user.getID(), Group.class);
+        autosaveMgr.getAuthorizable(user.getID(), Group.class);
         fail("Wrong Authorizable type is not detected.");
     }
 
     @Test(expected = AuthorizableTypeException.class)
     public void testGroupByIdAndWrongType() throws Exception {
-        mgr.getAuthorizable(group.getID(), User.class);
+        autosaveMgr.getAuthorizable(group.getID(), User.class);
         fail("Wrong Authorizable type is not detected.");
     }
 }

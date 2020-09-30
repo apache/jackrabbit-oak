@@ -16,23 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx;
 
-import java.io.IOException;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import javax.jcr.NoSuchWorkspaceException;
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
-
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.json.JsonUtil;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -55,9 +41,20 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
+import java.io.IOException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 final class Delegatee {
 
@@ -95,11 +92,13 @@ final class Delegatee {
         log.info("Created delegatee for SyncMBean with session: {} {}", systemSession, systemSession.getAuthInfo().getUserID());
     }
 
+    @NotNull
     static Delegatee createInstance(@NotNull ContentRepository repository, @NotNull SecurityProvider securityProvider,
                                     @NotNull SyncHandler handler, @NotNull ExternalIdentityProvider idp) {
         return createInstance(repository, securityProvider, handler, idp, DEFAULT_BATCH_SIZE);
     }
 
+    @NotNull
     static Delegatee createInstance(@NotNull final ContentRepository repository,
                                     @NotNull SecurityProvider securityProvider,
                                     @NotNull SyncHandler handler,
@@ -107,12 +106,7 @@ final class Delegatee {
                                     int batchSize) {
         ContentSession systemSession;
         try {
-            systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-                @Override
-                public ContentSession run() throws NoSuchWorkspaceException, LoginException {
-                    return repository.login(null, null);
-                }
-            });
+            systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repository.login(null, null));
         } catch (PrivilegedActionException e) {
             throw new SyncRuntimeException(ERROR_CREATE_DELEGATEE, e);
         }
@@ -144,14 +138,14 @@ final class Delegatee {
         context.setKeepMissing(!purge)
                 .setForceGroupSync(true)
                 .setForceUserSync(true);
-        List<String> list = new ArrayList<>();
+        ResultMessages messages = new ResultMessages();
 
         List<SyncResult> results = new ArrayList<>(batchSize);
         for (String userId : userIds) {
-            results = syncUser(userId, false, results, list);
+            results = syncUser(userId, false, results, messages);
         }
-        commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[0]);
+        commit(messages, results, NO_BATCH_SIZE);
+        return messages.getMessages();
     }
 
     /**
@@ -160,7 +154,7 @@ final class Delegatee {
     @NotNull
     String[] syncAllUsers(boolean purge) {
         try {
-            List<String> list = new ArrayList<>();
+            ResultMessages messages = new ResultMessages();
             context.setKeepMissing(!purge)
                     .setForceGroupSync(true)
                     .setForceUserSync(true);
@@ -170,11 +164,11 @@ final class Delegatee {
             while (it.hasNext()) {
                 SyncedIdentity id = it.next();
                 if (isMyIDP(id)) {
-                    results = syncUser(id.getId(), false, results, list);
+                    results = syncUser(id.getId(), false, results, messages);
                 }
             }
-            commit(list, results, NO_BATCH_SIZE);
-            return list.toArray(new String[0]);
+            commit(messages, results, NO_BATCH_SIZE);
+            return messages.getMessages();
         } catch (RepositoryException e) {
             throw new IllegalStateException("Error retrieving users for syncing", e);
         }
@@ -185,7 +179,7 @@ final class Delegatee {
      */
     @NotNull
     String[] syncExternalUsers(@NotNull String[] externalIds) {
-        List<String> list = new ArrayList<>();
+        ResultMessages messages = new ResultMessages();
         context.setForceGroupSync(true).setForceUserSync(true);
 
         List<SyncResult> results = new ArrayList<>(batchSize);
@@ -197,7 +191,7 @@ final class Delegatee {
                 try {
                     ExternalIdentity id = idp.getIdentity(ref);
                     if (id != null) {
-                        results = syncUser(id, results, list);
+                        results = syncUser(id, results, messages);
                     } else {
                         results.add(new DefaultSyncResultImpl(
                                 new DefaultSyncedIdentity("", ref, false, -1),
@@ -210,8 +204,8 @@ final class Delegatee {
                 }
             }
         }
-        commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[0]);
+        commit(messages, results, NO_BATCH_SIZE);
+        return messages.getMessages();
     }
 
     /**
@@ -219,17 +213,17 @@ final class Delegatee {
      */
     @NotNull
     String[] syncAllExternalUsers() {
-        List<String> list = new ArrayList<>();
+        ResultMessages messages = new ResultMessages();
         context.setForceGroupSync(true).setForceUserSync(true);
         try {
             List<SyncResult> results = new ArrayList<>(batchSize);
             Iterator<ExternalUser> it = idp.listUsers();
             while (it.hasNext()) {
                 ExternalUser user = it.next();
-                results = syncUser(user, results, list);
+                results = syncUser(user, results, messages);
             }
-            commit(list, results, NO_BATCH_SIZE);
-            return list.toArray(new String[0]);
+            commit(messages, results, NO_BATCH_SIZE);
+            return messages.getMessages();
         } catch (ExternalIdentityException e) {
             throw new SyncRuntimeException("Unable to retrieve external users", e);
         }
@@ -249,16 +243,17 @@ final class Delegatee {
     @NotNull
     String[] purgeOrphanedUsers() {
         context.setKeepMissing(false);
-        List<String> list = new ArrayList<>();
+
+        ResultMessages messages = new ResultMessages();
         Iterator<String> orphanedIdentities = internalListOrphanedIdentities();
 
         List<SyncResult> results = new ArrayList<>(batchSize);
         while (orphanedIdentities.hasNext()) {
             String userId = orphanedIdentities.next();
-            results = syncUser(userId, true, results, list);
+            results = syncUser(userId, true, results, messages);
         }
-        commit(list, results, NO_BATCH_SIZE);
-        return list.toArray(new String[0]);
+        commit(messages, results, NO_BATCH_SIZE);
+        return messages.getMessages();
     }
 
     //------------------------------------------------------------< private >---
@@ -266,11 +261,11 @@ final class Delegatee {
     private boolean isMyIDP(@NotNull SyncedIdentity id) {
         ExternalIdentityRef ref = id.getExternalIdRef();
         String providerName = (ref == null) ? null : ref.getProviderName();
-        return providerName != null && (providerName.isEmpty() || providerName.equals(idp.getName()));
+        return providerName != null && providerName.equals(idp.getName());
     }
 
     @NotNull
-    private List<SyncResult> syncUser(@NotNull ExternalIdentity id, @NotNull List<SyncResult> results, @NotNull List<String> list) {
+    private List<SyncResult> syncUser(@NotNull ExternalIdentity id, @NotNull List<SyncResult> results, @NotNull ResultMessages messages) {
         try {
             SyncResult r = context.sync(id);
             if (r.getIdentity() == null) {
@@ -287,29 +282,31 @@ final class Delegatee {
             log.error(ERROR_SYNC_USER, id, e);
             results.add(new ErrorSyncResult(id.getExternalId(), e));
         }
-        return commit(list, results, batchSize);
+        return commit(messages, results, batchSize);
     }
 
+    @NotNull
     private List<SyncResult> syncUser(@NotNull String userId, boolean includeIdpName,
-                                      @NotNull List<SyncResult> results, @NotNull List<String> list) {
+                                      @NotNull List<SyncResult> results, @NotNull ResultMessages messages) {
         try {
             results.add(context.sync(userId));
         } catch (SyncException e) {
             log.warn(ERROR_SYNC_USER, userId, e);
             results.add(new ErrorSyncResult(userId, ((includeIdpName) ? idp.getName() : null), e));
         }
-        return commit(list, results, batchSize);
+        return commit(messages, results, batchSize);
     }
 
-    private List<SyncResult> commit(@NotNull List<String> list, @NotNull List<SyncResult> resultList, int size) {
+    @NotNull
+    private List<SyncResult> commit(@NotNull ResultMessages messages, @NotNull List<SyncResult> resultList, int size) {
         if (resultList.isEmpty() || resultList.size() < size) {
             return resultList;
         } else {
             try {
                 root.commit();
-                append(list, resultList);
+                messages.append(resultList);
             } catch (CommitFailedException e) {
-                append(list, resultList, e);
+                messages.append(resultList, e);
             } finally {
                 // make sure there are not pending changes that would fail the next batches
                 root.refresh();
@@ -322,150 +319,23 @@ final class Delegatee {
     private Iterator<String> internalListOrphanedIdentities() {
         try {
             Iterator<SyncedIdentity> it = handler.listIdentities(userMgr);
-            return Iterators.filter(Iterators.transform(it, new Function<SyncedIdentity, String>() {
-                @Nullable
-                @Override
-                public String apply(@Nullable SyncedIdentity syncedIdentity) {
-                    if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
-                        ExternalIdentityRef ref = syncedIdentity.getExternalIdRef();
-                        try {
-                            ExternalIdentity extId = (ref == null) ? null : idp.getIdentity(ref);
-                            if (extId == null) {
-                                return syncedIdentity.getId();
-                            }
-                        } catch (ExternalIdentityException e) {
-                            log.error("Error while fetching external identity {}", syncedIdentity, e);
+            return Iterators.filter(Iterators.transform(it, syncedIdentity -> {
+                if (syncedIdentity != null && isMyIDP(syncedIdentity)) {
+                    try {
+                        // nonNull-ExternalIdRef has already been asserted by 'isMyIDP'
+                        ExternalIdentity extId = idp.getIdentity(checkNotNull(syncedIdentity.getExternalIdRef()));
+                        if (extId == null) {
+                            return syncedIdentity.getId();
                         }
+                    } catch (ExternalIdentityException e) {
+                        log.error("Error while fetching external identity {}", syncedIdentity, e);
                     }
-                    return null;
                 }
+                return null;
             }), Predicates.notNull());
         } catch (RepositoryException e) {
             log.error("Error while listing orphaned users", e);
             return Collections.emptyIterator();
-        }
-    }
-
-    private static void append(@NotNull List<String> list, @NotNull SyncResult r) {
-        if (r instanceof ErrorSyncResult) {
-            ((ErrorSyncResult) r).append(list);
-        } else {
-            append(list, r.getIdentity(), getOperationFromStatus(r.getStatus()), null);
-        }
-    }
-
-    private static void append(@NotNull List<String> list, @Nullable SyncedIdentity syncedIdentity, @NotNull Exception e) {
-        append(list, syncedIdentity, "ERR", e.toString());
-    }
-
-    private static void append(@NotNull List<String> list, @Nullable SyncedIdentity syncedIdentity, @NotNull String op, @Nullable String msg) {
-        String uid = JsonUtil.getJsonString((syncedIdentity == null ? null : syncedIdentity.getId()));
-        ExternalIdentityRef externalIdentityRef = (syncedIdentity == null) ? null : syncedIdentity.getExternalIdRef();
-        String eid = (externalIdentityRef == null) ? "\"\"" : JsonUtil.getJsonString(externalIdentityRef.getString());
-
-        if (msg == null) {
-            list.add(String.format("{op:\"%s\",uid:%s,eid:%s}", op, uid, eid));
-        } else {
-            list.add(String.format("{op:\"%s\",uid:%s,eid:%s,msg:%s}", op, uid, eid, JsonUtil.getJsonString(msg)));
-        }
-    }
-
-    private static void append(@NotNull List<String> list, @NotNull List<SyncResult> results) {
-        for (SyncResult result : results) {
-            append(list, result);
-        }
-    }
-
-    private static void append(@NotNull List<String> list, @NotNull List<SyncResult> results, @NotNull Exception e) {
-        for (SyncResult result : results) {
-            if (result instanceof ErrorSyncResult) {
-                ((ErrorSyncResult) result).append(list);
-            } else {
-                SyncResult.Status st = result.getStatus();
-                switch (st) {
-                    case ADD:
-                    case DELETE:
-                    case UPDATE:
-                    case ENABLE:
-                    case DISABLE:
-                        append(list, result.getIdentity(), e);
-                        break;
-                    default:
-                        append(list, result);
-                }
-            }
-        }
-    }
-
-    private static String getOperationFromStatus(SyncResult.Status syncStatus) {
-        String op;
-        switch (syncStatus) {
-            case NOP:
-                op = "nop";
-                break;
-            case ADD:
-                op = "add";
-                break;
-            case UPDATE:
-                op = "upd";
-                break;
-            case DELETE:
-                op = "del";
-                break;
-            case ENABLE:
-                op = "ena";
-                break;
-            case DISABLE:
-                op = "dis";
-                break;
-            case NO_SUCH_AUTHORIZABLE:
-                op = "nsa";
-                break;
-            case NO_SUCH_IDENTITY:
-                op = "nsi";
-                break;
-            case MISSING:
-                op = "mis";
-                break;
-            case FOREIGN:
-                op = "for";
-                break;
-            default:
-                op = "";
-        }
-        return op;
-    }
-
-    private static final class ErrorSyncResult implements SyncResult {
-
-        private final SyncedIdentity syncedIdentity;
-        private final Exception error;
-
-        private ErrorSyncResult(@NotNull String userId, @Nullable String idpName, @NotNull Exception error) {
-            ExternalIdentityRef ref = (idpName != null) ? new ExternalIdentityRef(userId, idpName) : null;
-            this.syncedIdentity = new DefaultSyncedIdentity(userId, ref, false, -1);
-            this.error = error;
-        }
-
-        private ErrorSyncResult(@NotNull ExternalIdentityRef ref, @NotNull Exception error) {
-            this.syncedIdentity = new DefaultSyncedIdentity(ref.getId(), ref, false, -1);
-            this.error = error;
-        }
-
-        @NotNull
-        @Override
-        public SyncedIdentity getIdentity() {
-            return syncedIdentity;
-        }
-
-        @NotNull
-        @Override
-        public Status getStatus() {
-            return Status.NOP;
-        }
-
-        private void append(@NotNull List<String> list) {
-            Delegatee.append(list, syncedIdentity, error);
         }
     }
 }

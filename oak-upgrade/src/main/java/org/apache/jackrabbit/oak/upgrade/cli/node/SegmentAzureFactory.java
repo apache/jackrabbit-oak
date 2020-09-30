@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.node;
 import static org.apache.jackrabbit.oak.segment.SegmentCache.DEFAULT_SEGMENT_CACHE_MB;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.FileStoreUtils.asCloseable;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -111,7 +112,9 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             throw new IllegalStateException(e);
         }
 
-        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(Files.createTempDir())
+        File tmpDir = Files.createTempDir();
+        closer.register(() -> tmpDir.delete());
+        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
 
         if (blobStore != null) {
@@ -163,17 +166,19 @@ public class SegmentAzureFactory implements NodeStoreFactory {
             throw new IllegalStateException(e);
         }
 
-        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(Files.createTempDir())
+        File tmpDir = Files.createTempDir();
+        FileStoreBuilder builder = FileStoreBuilder.fileStoreBuilder(tmpDir)
                 .withCustomPersistence(azPersistence).withMemoryMapping(false);
 
         ReadOnlyFileStore fs;
         try {
             fs = builder.buildReadOnly();
+            return FileStoreUtils.hasExternalBlobReferences(fs);
         } catch (InvalidFileStoreVersionException e) {
             throw new IOException(e);
+        } finally {
+            tmpDir.delete();
         }
-
-        return FileStoreUtils.hasExternalBlobReferences(fs);
     }
 
     @Override

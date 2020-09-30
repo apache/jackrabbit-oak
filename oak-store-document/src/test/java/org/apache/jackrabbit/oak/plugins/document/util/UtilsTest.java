@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -29,12 +30,14 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -46,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -71,18 +75,18 @@ public class UtilsTest {
     public void getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
         assertEquals("2:p/" + r.toString() + "/0",
-                Utils.getPreviousIdFor("/", r, 0));
+                Utils.getPreviousIdFor(Path.ROOT, r, 0));
         assertEquals("3:p/test/" + r.toString() + "/1",
-                Utils.getPreviousIdFor("/test", r, 1));
+                Utils.getPreviousIdFor(Path.fromString("/test"), r, 1));
         assertEquals("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString() + "/3",
-                Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3));
+                Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3));
     }
 
     @Test
     public void previousDoc() throws Exception{
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor("/", r, 0)));
-        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3)));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0)));
+        assertTrue(Utils.isPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
         assertFalse(Utils.isPreviousDocId(Utils.getIdFromPath("/a/b")));
         assertFalse(Utils.isPreviousDocId("foo"));
         assertFalse(Utils.isPreviousDocId("0:"));
@@ -91,9 +95,9 @@ public class UtilsTest {
     @Test
     public void leafPreviousDoc() throws Exception {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/", r, 0)));
-        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 0)));
-        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3)));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.ROOT, r, 0)));
+        assertTrue(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 0)));
+        assertFalse(Utils.isLeafPreviousDocId(Utils.getPreviousIdFor(Path.fromString("/a/b/c/d/e/f/g/h/i/j/k/l/m"), r, 3)));
         assertFalse(Utils.isLeafPreviousDocId(Utils.getIdFromPath("/a/b")));
         assertFalse(Utils.isLeafPreviousDocId("foo"));
         assertFalse(Utils.isLeafPreviousDocId("0:"));
@@ -102,19 +106,19 @@ public class UtilsTest {
 
     @Test
     public void getParentIdFromLowerLimit() throws Exception{
-        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit("/foo")));
+        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit(Path.fromString("/foo"))));
         assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar"));
     }
 
     @Test
     public void getParentId() throws Exception{
-        String longPath = PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo");
+        Path longPath = Path.fromString(PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo"));
         assertTrue(Utils.isLongPath(longPath));
 
         assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
 
-        assertNull(Utils.getParentId(Utils.getIdFromPath("/")));
-        assertEquals("1:/foo",Utils.getParentId("2:/foo/bar"));
+        assertNull(Utils.getParentId(Utils.getIdFromPath(Path.ROOT)));
+        assertEquals("1:/foo", Utils.getParentId("2:/foo/bar"));
     }
 
     @Test
@@ -128,7 +132,7 @@ public class UtilsTest {
     @Test
     public void performance_getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        String path = "/some/test/path/foo";
+        Path path = Path.fromString("/some/test/path/foo");
         // warm up
         for (int i = 0; i < 1 * 1000 * 1000; i++) {
             Utils.getPreviousIdFor(path, r, 0);
@@ -300,9 +304,9 @@ public class UtilsTest {
 
     @Test
     public void isIdFromLongPath() {
-        String path = "/test";
+        Path path = Path.fromString("/test");
         while (!Utils.isLongPath(path)) {
-            path += path;
+            path = new Path(path, path.getName());
         }
         String idFromLongPath = Utils.getIdFromPath(path);
         assertTrue(Utils.isIdFromLongPath(idFromLongPath));
@@ -310,6 +314,16 @@ public class UtilsTest {
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MIN_ID_VALUE));
         assertFalse(Utils.isIdFromLongPath(NodeDocument.MAX_ID_VALUE));
         assertFalse(Utils.isIdFromLongPath(":"));
+    }
+
+    @Test
+    public void idDepth() {
+        assertEquals(0, Utils.getIdDepth(Path.ROOT));
+        assertEquals(0, Utils.getIdDepth(Path.fromString("a")));
+        assertEquals(1, Utils.getIdDepth(Path.fromString("/a")));
+        assertEquals(2, Utils.getIdDepth(Path.fromString("/a/b")));
+        assertEquals(3, Utils.getIdDepth(Path.fromString("/a/b/c")));
+        assertEquals(2, Utils.getIdDepth(Path.fromString("a/b/c")));
     }
 
     @Test
@@ -391,5 +405,49 @@ public class UtilsTest {
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString("newer than current time"));
         }
+    }
+
+    @Test
+    public void getStartRevisionsEmpty() {
+        RevisionVector rv = Utils.getStartRevisions(Collections.emptyList());
+        assertEquals(0, rv.getDimensions());
+    }
+
+    @Test
+    public void getStartRevisionsSingleNode() {
+        int clusterId = 1;
+        long now = System.currentTimeMillis();
+        ClusterNodeInfoDocument info = mockedClusterNodeInfo(clusterId, now);
+        RevisionVector rv = Utils.getStartRevisions(Collections.singleton(info));
+        assertEquals(1, rv.getDimensions());
+        Revision r = rv.getRevision(clusterId);
+        assertNotNull(r);
+        assertEquals(now, r.getTimestamp());
+    }
+
+    @Test
+    public void getStartRevisionsMultipleNodes() {
+        int clusterId1 = 1;
+        int clusterId2 = 2;
+        long startTime1 = System.currentTimeMillis();
+        long startTime2 = startTime1 + 1000;
+        ClusterNodeInfoDocument info1 = mockedClusterNodeInfo(clusterId1, startTime1);
+        ClusterNodeInfoDocument info2 = mockedClusterNodeInfo(clusterId2, startTime2);
+        RevisionVector rv = Utils.getStartRevisions(Arrays.asList(info1, info2));
+        assertEquals(2, rv.getDimensions());
+        Revision r1 = rv.getRevision(clusterId1);
+        assertNotNull(r1);
+        Revision r2 = rv.getRevision(clusterId2);
+        assertNotNull(r2);
+        assertEquals(startTime1, r1.getTimestamp());
+        assertEquals(startTime2, r2.getTimestamp());
+    }
+
+    private static ClusterNodeInfoDocument mockedClusterNodeInfo(int clusterId,
+                                                                 long startTime) {
+        ClusterNodeInfoDocument info = Mockito.mock(ClusterNodeInfoDocument.class);
+        Mockito.when(info.getClusterId()).thenReturn(clusterId);
+        Mockito.when(info.getStartTime()).thenReturn(startTime);
+        return info;
     }
 }

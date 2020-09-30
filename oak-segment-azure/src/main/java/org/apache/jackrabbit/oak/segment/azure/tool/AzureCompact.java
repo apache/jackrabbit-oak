@@ -30,6 +30,7 @@ import com.google.common.io.Files;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.JournalReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
@@ -69,6 +70,8 @@ public class AzureCompact {
         private long gcLogInterval = 150000;
 
         private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
+
+        private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
 
         private Builder() {
             // Prevent external instantiation.
@@ -131,6 +134,17 @@ public class AzureCompact {
         }
 
         /**
+         * The compactor type to be used by compaction. If not specified it defaults to
+         * "diff" compactor
+         * @param compactorType the compactor type
+         * @return this builder
+         */
+        public Builder withCompactorType(CompactorType compactorType) {
+            this.compactorType = compactorType;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Compact} command.
          *
          * @return an instance of {@link Runnable}.
@@ -149,11 +163,14 @@ public class AzureCompact {
 
     private final long gcLogInterval;
 
+    private final CompactorType compactorType;
+
     private AzureCompact(Builder builder) {
         this.path = builder.path;
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
+        this.compactorType = builder.compactorType;
     }
 
     public int run() {
@@ -174,7 +191,7 @@ public class AzureCompact {
         System.out.printf("    -> compacting\n");
 
         try (FileStore store = newFileStore(persistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
-                gcLogInterval)) {
+                gcLogInterval, compactorType)) {
             if (!store.compactFull()) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;

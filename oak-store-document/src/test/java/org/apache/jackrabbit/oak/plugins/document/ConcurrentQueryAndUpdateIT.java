@@ -87,7 +87,7 @@ public class ConcurrentQueryAndUpdateIT extends AbstractDocumentStoreTest {
     }
 
     private void queryDocuments() {
-        ds.query(NODES, getKeyLowerLimit("/"), getKeyUpperLimit("/"), 100);
+        ds.query(NODES, getKeyLowerLimit(Path.ROOT), getKeyUpperLimit(Path.ROOT), 100);
     }
 
     private void updateDocuments() {

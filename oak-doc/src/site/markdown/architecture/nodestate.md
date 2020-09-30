@@ -260,7 +260,7 @@ the exact set of changes being committed.
 If, based on the content diff or some other inspection of the commit, a
 hook decides to reject the commit for example due to a constraint violation,
 it can do so by throwing a `CommitFailedException` with an appropriate error
-code as outlined in http://wiki.apache.org/jackrabbit/OakErrorCodes.
+code as outlined in https://jackrabbit.apache.org/archive/wiki/JCR/OakErrorCodes_115513474.html.
 
 If the commit is acceptable, the hook can return the after state as-is or
 it can make some additional modifications and return the resulting node state.

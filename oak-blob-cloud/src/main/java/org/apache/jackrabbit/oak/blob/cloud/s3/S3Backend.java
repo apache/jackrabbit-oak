@@ -17,6 +17,10 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Iterables.filter;
+import static java.lang.Thread.currentThread;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -42,12 +46,14 @@ import java.util.concurrent.TimeUnit;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.HttpMethod;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsResult;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
@@ -78,10 +84,12 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.protocol.HTTP;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordDownloadOptions;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUpload;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.DataRecordUploadException;
@@ -92,10 +100,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Iterables.filter;
-import static java.lang.Thread.currentThread;
-
 /**
  * A data store backend that stores data on Amazon S3.
  */
@@ -105,6 +109,8 @@ public class S3Backend extends AbstractSharedBackend {
      * Logger instance.
      */
     private static final Logger LOG = LoggerFactory.getLogger(S3Backend.class);
+    private static final Logger LOG_STREAMS_DOWNLOAD = LoggerFactory.getLogger("oak.datastore.download.streams");
+    private static final Logger LOG_STREAMS_UPLOAD = LoggerFactory.getLogger("oak.datastore.upload.streams");
 
     private static final String KEY_PREFIX = "dataStore_";
 
@@ -147,6 +153,8 @@ public class S3Backend extends AbstractSharedBackend {
     private int httpUploadURIExpirySeconds = 0;
     private int httpDownloadURIExpirySeconds = 0;
 
+    private boolean presignedDownloadURIVerifyExists = true;
+
     public void init() throws DataStoreException {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
@@ -168,33 +176,22 @@ public class S3Backend extends AbstractSharedBackend {
                 }
             }
             String region = properties.getProperty(S3Constants.S3_REGION);
-            Region s3Region;
+            
             if (StringUtils.isNullOrEmpty(region)) {
                 com.amazonaws.regions.Region ec2Region = Regions.getCurrentRegion();
                 if (ec2Region != null) {
-                    s3Region = Region.fromValue(ec2Region.getName());
+                    region = ec2Region.getName();
                 } else {
                     throw new AmazonClientException(
                             "parameter ["
                                     + S3Constants.S3_REGION
                                     + "] not configured and cannot be derived from environment");
                 }
-            } else {
-                if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
-                    s3Region = Region.US_Standard;
-                } else if (Region.EU_Ireland.toString().equals(region)) {
-                    s3Region = Region.EU_Ireland;
-                } else {
-                    s3Region = Region.fromValue(region);
-                }
+            } else if (Utils.DEFAULT_AWS_BUCKET_REGION.equals(region)) {
+                    region = Region.US_Standard.toString();
             }
 
-            if (!s3service.doesBucketExist(bucket)) {
-                s3service.createBucket(bucket, s3Region);
-                LOG.info("Created bucket [{}] in [{}] ", bucket, region);
-            } else {
-                LOG.info("Using bucket [{}] in [{}] ", bucket, region);
-            }
+            createBucketIfNeeded(region);
 
             int writeThreads = 10;
             String writeThreadsStr = properties.getProperty(S3Constants.S3_WRITE_THREADS);
@@ -238,6 +235,9 @@ public class S3Backend extends AbstractSharedBackend {
             String enablePresignedAccelerationStr = properties.getProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION);
             setBinaryTransferAccelerationEnabled(enablePresignedAccelerationStr != null && "true".equals(enablePresignedAccelerationStr));
 
+            presignedDownloadURIVerifyExists =
+                    PropertiesUtil.toBoolean(properties.get(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS), true);
+
             LOG.debug("S3 Backend initialized in [{}] ms",
                 +(System.currentTimeMillis() - startTime.getTime()));
         } catch (Exception e) {
@@ -256,6 +256,27 @@ public class S3Backend extends AbstractSharedBackend {
             if (contextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(contextClassLoader);
             }
+        }
+    }
+
+    private void createBucketIfNeeded(final String region) {
+        try {
+            if (!s3service.doesBucketExist(bucket)) {
+                CreateBucketRequest req = new CreateBucketRequest(bucket, region);
+                s3service.createBucket(req);
+                if (Utils.waitForBucket(s3service, bucket)) {
+                    LOG.error("Bucket [{}] does not exist in [{}] and was not automatically created",
+                            bucket, region);
+                    return;
+                }
+                LOG.info("Created bucket [{}] in [{}] ", bucket, region);
+            } else {
+                LOG.info("Using bucket [{}] in [{}] ", bucket, region);
+            }
+        }
+        catch (SdkClientException awsException) {
+            LOG.error("Attempt to create S3 bucket [{}] in [{}] failed",
+                    bucket, region, awsException);
         }
     }
 
@@ -327,6 +348,10 @@ public class S3Backend extends AbstractSharedBackend {
                     // start multipart parallel upload using amazon sdk
                     Upload up = tmx.upload(s3ReqDecorator.decorate(new PutObjectRequest(
                         bucket, key, file)));
+                    if (LOG_STREAMS_UPLOAD.isDebugEnabled()) {
+                        // Log message, with exception so we can get a trace to see where the call came from
+                        LOG_STREAMS_UPLOAD.debug("Binary uploaded to S3 - identifier={}", key, new Exception());
+                    }
                     // wait for upload to finish
                     up.waitForUploadResult();
                     LOG.debug("synchronous upload to identifier [{}] completed.", identifier);
@@ -387,8 +412,9 @@ public class S3Backend extends AbstractSharedBackend {
             S3Object object = s3service.getObject(bucket, key);
             InputStream in = object.getObjectContent();
             LOG.debug("[{}] read took [{}]ms", identifier, (System.currentTimeMillis() - start));
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("binary downloaded from S3: " + identifier, new Exception());
+            if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
+                // Log message, with exception so we can get a trace to see where the call came from
+                LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", key, new Exception());
             }
             return in;
         } catch (AmazonServiceException e) {
@@ -631,7 +657,7 @@ public class S3Backend extends AbstractSharedBackend {
             return record;
         } catch (AmazonServiceException e) {
             if (e.getStatusCode() == 404 || e.getStatusCode() == 403) {
-                LOG.info(
+                LOG.debug(
                         "getRecord:Identifier [{}] not found. Took [{}] ms.",
                         identifier, (System.currentTimeMillis() - start));
             }
@@ -740,12 +766,28 @@ public class S3Backend extends AbstractSharedBackend {
             return null;
         }
 
+        // When running unit test from Maven, it doesn't always honor the @NotNull decorators
+        if (null == identifier) throw new NullPointerException("identifier");
+        if (null == downloadOptions) throw new NullPointerException("downloadOptions");
+
         URI uri = null;
         // if cache is enabled, check the cache
         if (httpDownloadURICache != null) {
             uri = httpDownloadURICache.getIfPresent(identifier);
         }
-        if (uri == null) {
+        if (null == uri) {
+            if (presignedDownloadURIVerifyExists) {
+                try {
+                    if (!exists(identifier)) {
+                        LOG.warn("Cannot create download URI for nonexistent blob {}; returning null", getKeyName(identifier));
+                        return null;
+                    }
+                } catch (DataStoreException e) {
+                    LOG.warn("Cannot create download URI for blob {} (caught DataStoreException); returning null", getKeyName(identifier), e);
+                    return null;
+                }
+            }
+
             Map<String, String> requestParams = Maps.newHashMap();
             requestParams.put("response-cache-control",
                     String.format("private, max-age=%d, immutable",
@@ -818,7 +860,7 @@ public class S3Backend extends AbstractSharedBackend {
             else {
                 // multi-part
                 InitiateMultipartUploadRequest req = new InitiateMultipartUploadRequest(bucket, blobId);
-                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(req);
+                InitiateMultipartUploadResult res = s3service.initiateMultipartUpload(s3ReqDecorator.decorate(req));
                 uploadId = res.getUploadId();
 
                 long numParts;
@@ -853,30 +895,37 @@ public class S3Backend extends AbstractSharedBackend {
                             presignedURIRequestParams));
                 }
             }
-        }
 
-        try {
-            byte[] secret = getOrCreateReferenceKey();
-            String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(secret);
+            try {
+                byte[] secret = getOrCreateReferenceKey();
+                String uploadToken = new DataRecordUploadToken(blobId, uploadId).getEncodedToken(secret);
 
-            return new DataRecordUpload() {
-                @Override
-                @NotNull
-                public String getUploadToken() { return uploadToken; }
+                return new DataRecordUpload() {
+                    @Override
+                    @NotNull
+                    public String getUploadToken() {
+                        return uploadToken;
+                    }
 
-                @Override
-                public long getMinPartSize() { return minPartSize; }
+                    @Override
+                    public long getMinPartSize() {
+                        return minPartSize;
+                    }
 
-                @Override
-                public long getMaxPartSize() { return maxPartSize; }
+                    @Override
+                    public long getMaxPartSize() {
+                        return maxPartSize;
+                    }
 
-                @Override
-                @NotNull
-                public Collection<URI> getUploadURIs() { return uploadPartURIs; }
-            };
-        }
-        catch (DataStoreException e) {
-            LOG.warn("Unable to obtain data store key");
+                    @Override
+                    @NotNull
+                    public Collection<URI> getUploadURIs() {
+                        return uploadPartURIs;
+                    }
+                };
+            } catch (DataStoreException e) {
+                LOG.warn("Unable to obtain data store key");
+            }
         }
 
         return null;
@@ -890,37 +939,64 @@ public class S3Backend extends AbstractSharedBackend {
         }
 
         DataRecordUploadToken uploadToken = DataRecordUploadToken.fromEncodedToken(uploadTokenStr, getOrCreateReferenceKey());
-        String blobId = uploadToken.getBlobId();
-        if (uploadToken.getUploadId().isPresent()) {
-            // An existing upload ID means this is a multi-part upload
-            String uploadId = uploadToken.getUploadId().get();
-            ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, blobId, uploadId);
-            PartListing listing = s3service.listParts(listPartsRequest);
-            List<PartETag> eTags = Lists.newArrayList();
-            for (PartSummary partSummary : listing.getParts()) {
-                PartETag eTag = new PartETag(partSummary.getPartNumber(), partSummary.getETag());
-                eTags.add(eTag);
+        String key = uploadToken.getBlobId();
+        DataIdentifier blobId = new DataIdentifier(getIdentifierName(key));
+
+        DataRecord record = null;
+        try {
+            record = getRecord(blobId);
+            // If this succeeds this means either it was a "single put" upload
+            // (we don't need to do anything in this case - blob is already uploaded)
+            // or it was completed before with the same token.
+        }
+        catch (DataStoreException e) {
+            // record doesn't exist - so this means we are safe to do the complete request
+            if (uploadToken.getUploadId().isPresent()) {
+                // An existing upload ID means this is a multi-part upload
+                String uploadId = uploadToken.getUploadId().get();
+                ListPartsRequest listPartsRequest = new ListPartsRequest(bucket, key, uploadId);
+                PartListing listing = s3service.listParts(listPartsRequest);
+                List<PartETag> eTags = Lists.newArrayList();
+                long size = 0L;
+                Date lastModified = null;
+                for (PartSummary partSummary : listing.getParts()) {
+                    PartETag eTag = new PartETag(partSummary.getPartNumber(), partSummary.getETag());
+                    eTags.add(eTag);
+                    size += partSummary.getSize();
+                    if (null == lastModified || partSummary.getLastModified().after(lastModified)) {
+                        lastModified = partSummary.getLastModified();
+                    }
+                }
+
+                CompleteMultipartUploadRequest completeReq = new CompleteMultipartUploadRequest(
+                        bucket,
+                        key,
+                        uploadId,
+                        eTags
+                );
+
+                s3service.completeMultipartUpload(completeReq);
+
+                record = new S3DataRecord(
+                        this,
+                        s3service,
+                        bucket,
+                        blobId,
+                        lastModified.getTime(),
+                        size
+                );
             }
-
-            CompleteMultipartUploadRequest completeReq = new CompleteMultipartUploadRequest(
-                    bucket,
-                    blobId,
-                    uploadId,
-                    eTags
-            );
-
-            s3service.completeMultipartUpload(completeReq);
-        }
-        // else do nothing - single-put upload is already complete
-
-
-        if (! s3service.doesObjectExist(bucket, blobId)) {
-            throw new DataRecordUploadException(
-                    String.format("Unable to finalize direct write of binary %s", blobId)
-            );
+            else {
+                // Something is wrong - upload ID missing from upload token
+                // but record doesn't exist already, so this is invalid
+                throw new DataRecordUploadException(
+                        String.format("Unable to finalize direct write of binary %s - upload ID missing from upload token",
+                                blobId)
+                );
+            }
         }
 
-        return getRecord(new DataIdentifier(getIdentifierName(blobId)));
+        return record;
     }
 
     private URI createPresignedURI(DataIdentifier identifier,
@@ -942,6 +1018,10 @@ public class S3Backend extends AbstractSharedBackend {
             GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
                     .withMethod(method)
                     .withExpiration(expiration);
+
+            if (method != HttpMethod.GET) {
+               request = s3ReqDecorator.decorate(request);
+            }
 
             for (Map.Entry<String, String> e : reqParams.entrySet()) {
                 request.addRequestParameter(e.getKey(), e.getValue());
@@ -1107,10 +1187,12 @@ public class S3Backend extends AbstractSharedBackend {
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
             }
-            if (LOG.isDebugEnabled()) {
-                // Log message, with exception so we can get a trace to see where the call
-                // came from
-                LOG.debug("binary downloaded from S3: " + getIdentifier(), new Exception());
+            else {
+                // Don't worry about stream logging for metadata records
+                if (LOG_STREAMS_DOWNLOAD.isDebugEnabled()) {
+                    // Log message, with exception so we can get a trace to see where the call came from
+                    LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", id, new Exception());
+                }
             }
             return s3service.getObject(bucket, id).getObjectContent();
         }

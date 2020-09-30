@@ -16,26 +16,35 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 /**
  * Extension of the {@link ExternalGroupPrincipalProviderTest} with 'automembership'
@@ -65,15 +74,17 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     }
 
     @Override
+    @NotNull
     protected DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig syncConfig = super.createSyncConfig();
-        syncConfig.user().setAutoMembership(USER_AUTO_MEMBERSHIP_GROUP_ID, NON_EXISTING_GROUP_ID);
+        syncConfig.user().setAutoMembership(USER_AUTO_MEMBERSHIP_GROUP_ID, NON_EXISTING_GROUP_ID, USER_ID);
         syncConfig.group().setAutoMembership(GROUP_AUTO_MEMBERSHIP_GROUP_ID, NON_EXISTING_GROUP_ID2);
 
         return syncConfig;
     }
 
     @Override
+    @NotNull
     Set<Principal> getExpectedGroupPrincipals(@NotNull String userId) throws Exception {
         return ImmutableSet.<Principal>builder()
                 .addAll(super.getExpectedGroupPrincipals(userId))
@@ -82,11 +93,10 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
     }
 
     @Override
-    @Test
-    public void testFindPrincipalsByTypeAll() throws Exception {
-        Set<? extends Principal> res = ImmutableSet.copyOf(principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_ALL));
-        // not automembership principals expected here
-        assertEquals(super.getExpectedGroupPrincipals(USER_ID), res);
+    @NotNull
+    Set<Principal> getExpectedAllSearchResult(@NotNull String userId) throws Exception {
+        // not automembership principals expected when searching for principals => call super method
+        return super.getExpectedGroupPrincipals(userId);
     }
 
     @Test
@@ -109,7 +119,31 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         Set<Principal> result = principalProvider.getMembershipPrincipals(user.getPrincipal());
         assertTrue(result.contains(userAutoMembershipGroup.getPrincipal()));
         assertTrue(result.contains(groupAutoMembershipGroup.getPrincipal()));
+        assertFalse(result.contains(user.getPrincipal()));
         assertEquals(expected, result);
+    }
+
+    @Test
+    public void testGetGroupPrincipalsTwice() throws Exception {
+        Authorizable user = getUserManager(root).getAuthorizable(USER_ID);
+        Set<Principal> result = principalProvider.getMembershipPrincipals(user.getPrincipal());
+        assertEquals(result, principalProvider.getMembershipPrincipals(user.getPrincipal()));
+    }
+
+    @Test
+    public void testGetGroupPrincipalsIgnoresNonGroupPrincipals() throws Exception {
+        UserConfiguration uc = spy(getUserConfiguration());
+        UserManager um = spy(getUserManager(root));
+
+        Principal p = new PrincipalImpl(USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME);
+        Group gr = when(mock(Group.class).getPrincipal()).thenReturn(p).getMock();
+        when(gr.isGroup()).thenReturn(true);
+        when(um.getAuthorizable(USER_AUTO_MEMBERSHIP_GROUP_ID)).thenReturn(gr);
+        when(uc.getUserManager(root, NamePathMapper.DEFAULT)).thenReturn(um);
+
+        ExternalGroupPrincipalProvider pp = new ExternalGroupPrincipalProvider(root, uc, NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), getAutoMembership()));
+        Set<Principal> result = pp.getMembershipPrincipals(um.getAuthorizable(USER_ID).getPrincipal());
+        assertFalse(Iterables.contains(Iterables.transform(result, principal -> principal.getName()), USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME));
     }
 
     @Test
@@ -119,6 +153,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         Set<? extends Principal> result = principalProvider.getPrincipals(USER_ID);
         assertTrue(result.contains(userAutoMembershipGroup.getPrincipal()));
         assertTrue(result.contains(groupAutoMembershipGroup.getPrincipal()));
+        assertFalse(result.contains(getUserManager(root).getAuthorizable(USER_ID).getPrincipal()));
         assertEquals(expected, result);
     }
 
@@ -139,14 +174,5 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
             assertFalse(Iterators.contains(res, groupAutoMembershipGroup.getPrincipal()));
             assertFalse(Iterators.contains(res, new PrincipalImpl(NON_EXISTING_GROUP_ID)));
         }
-    }
-
-    @Test
-    public void testFindPrincipalsByTypeGroup() throws Exception {
-        Iterator<? extends Principal> res = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
-
-        assertFalse(Iterators.contains(res, userAutoMembershipGroup.getPrincipal()));
-        assertFalse(Iterators.contains(res, groupAutoMembershipGroup.getPrincipal()));
-        assertFalse(Iterators.contains(res, new PrincipalImpl(NON_EXISTING_GROUP_ID)));
     }
 }

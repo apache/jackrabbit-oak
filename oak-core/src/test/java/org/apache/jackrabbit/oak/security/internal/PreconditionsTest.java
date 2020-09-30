@@ -37,6 +37,13 @@ public class PreconditionsTest {
     }
 
     @Test
+    public void testAddPreconditionTwice() {
+        preconditions.addPrecondition("a");
+        preconditions.addPrecondition("a");
+        assertFalse(preconditions.areSatisfied());
+    }
+
+    @Test
     public void testClearPrecondition() {
         preconditions.addPrecondition("a");
         preconditions.clearPreconditions();

@@ -24,22 +24,21 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
 
-import com.google.common.collect.Maps;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.StringUtils;
+import com.google.common.collect.Maps;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Amazon S3 utilities.
@@ -130,6 +129,33 @@ public final class Utils {
     }
 
     /**
+     * Waits for an S3 bucket, one we expect to exist, to report that it exists.
+     * A check for the bucket is called with a limited number of repeats with
+     * an increasing backoff.
+     *
+     * Usually you would call this after creating a bucket to block until the
+     * bucket is actually available before moving forward with other tasks that
+     * expect the bucket to be available.
+     *
+     * @param s3Client The AmazonS3 client connection to the storage service.
+     * @param bucketName The name of the bucket to check.
+     * @return True if the bucket exists; false otherwise.
+     */
+    public static boolean waitForBucket(@NotNull final AmazonS3 s3Client, @NotNull final String bucketName) {
+        int tries = 0;
+        boolean bucketExists = false;
+        while (20 > tries++) {
+            bucketExists = s3Client.doesBucketExistV2(bucketName);
+            if (bucketExists) break;
+            try {
+                Thread.sleep(100 * tries);
+            }
+            catch (InterruptedException e) { }
+        }
+        return bucketExists;
+    }
+
+    /**
      * Delete S3 bucket. This method first deletes all objects from bucket and
      * then delete empty bucket.
      * 
@@ -197,6 +223,7 @@ public final class Utils {
         int socketTimeOut = Integer.parseInt(prop.getProperty(S3Constants.S3_SOCK_TIMEOUT));
         int maxConnections = Integer.parseInt(prop.getProperty(S3Constants.S3_MAX_CONNS));
         int maxErrorRetry = Integer.parseInt(prop.getProperty(S3Constants.S3_MAX_ERR_RETRY));
+        String encryptionType = prop.getProperty(S3Constants.S3_ENCRYPTION);
 
         String protocol = prop.getProperty(S3Constants.S3_CONN_PROTOCOL);
         String proxyHost = prop.getProperty(S3Constants.PROXY_HOST);
@@ -220,6 +247,10 @@ public final class Utils {
         cc.setSocketTimeout(socketTimeOut);
         cc.setMaxConnections(maxConnections);
         cc.setMaxErrorRetry(maxErrorRetry);
+        if (encryptionType != null
+                && encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
+            cc.withSignerOverride("AWSS3V4SignerType");
+        }
         return cc;
     }
 

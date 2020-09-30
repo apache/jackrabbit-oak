@@ -80,14 +80,14 @@ public class MultiplexingIndexWriterTest {
     @Test
     public void defaultWriterWithNoMounts() throws Exception{
         LuceneIndexWriterFactory factory = newDirectoryFactory(Mounts.defaultMountInfoProvider());
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
         assertThat(writer, instanceOf(DefaultIndexWriter.class));
     }
 
     @Test
     public void closeWithoutChange() throws Exception{
         LuceneIndexWriterFactory factory = newDirectoryFactory();
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
         assertTrue(writer.close(0));
         assertEquals(2, Iterables.size(getIndexDirNodes()));
         assertFalse(builder.hasChildNode(indexDirName(roMount)));
@@ -95,10 +95,10 @@ public class MultiplexingIndexWriterTest {
         assertEquals(0, numDocs(defaultMount));
 
         // delete all dir nodes first
-        getIndexDirNodes().stream().forEach(dirName -> builder.getChildNode(dirName).remove());
+        getIndexDirNodes().forEach(dirName -> builder.getChildNode(dirName).remove());
 
         // empty index dir doesn't get created during normal indexing
-        writer = factory.newInstance(defn, builder, false);
+        writer = factory.newInstance(defn, builder, null, false);
         assertFalse(writer.close(0));
         assertEquals(0, Iterables.size(getIndexDirNodes()));
     }
@@ -106,7 +106,7 @@ public class MultiplexingIndexWriterTest {
     @Test
     public void writesInDefaultMount() throws Exception{
         LuceneIndexWriterFactory factory = newDirectoryFactory();
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
 
         //1. Add entry in foo mount
@@ -118,7 +118,7 @@ public class MultiplexingIndexWriterTest {
         assertEquals(0, numDocs(defaultMount));
 
         //2. Add entry in default mount
-        writer = factory.newInstance(defn, builder, true);
+        writer = factory.newInstance(defn, builder, null, true);
         writer.updateDocument("/content", newDoc("/content"));
         writer.close(0);
 
@@ -128,7 +128,7 @@ public class MultiplexingIndexWriterTest {
         assertEquals(1, numDocs(defaultMount));
 
         //3. Add another entry in foo mount without reindexing
-        writer = factory.newInstance(defn, builder, false);
+        writer = factory.newInstance(defn, builder, null, false);
         writer.updateDocument("/libs/config1", newDoc("/libs/config1"));
         writer.close(0);
 
@@ -137,7 +137,7 @@ public class MultiplexingIndexWriterTest {
         assertEquals(1, numDocs(defaultMount));
 
         //4. Add another entry in default mount without reindexing
-        writer = factory.newInstance(defn, builder, false);
+        writer = factory.newInstance(defn, builder, null, false);
         writer.updateDocument("/content1", newDoc("/content1"));
         writer.close(0);
 
@@ -150,12 +150,12 @@ public class MultiplexingIndexWriterTest {
     @Test
     public void writesInDefaultMountBlobStore() throws Exception {
         CachingFileDataStore ds = DataStoreUtils
-            .createCachingFDS(folder.newFolder().getAbsolutePath(),
-                folder.newFolder().getAbsolutePath());
+                .createCachingFDS(folder.newFolder().getAbsolutePath(),
+                        folder.newFolder().getAbsolutePath());
 
         DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, new DataStoreBlobStore(ds));
         LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig);
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         //1. Add entry in foo mount
         writer.updateDocument("/libs/config", newDoc("/libs/config"));
@@ -166,7 +166,7 @@ public class MultiplexingIndexWriterTest {
         assertEquals(0, numDocs(defaultMount));
 
         //2. Add entry in default mount
-        writer = factory.newInstance(defn, builder, true);
+        writer = factory.newInstance(defn, builder, null, true);
         writer.updateDocument("/content", newDoc("/content"));
         writer.close(0);
 
@@ -176,7 +176,7 @@ public class MultiplexingIndexWriterTest {
         assertEquals(1, numDocs(defaultMount));
 
         //3. Add another entry in foo mount without reindexing
-        writer = factory.newInstance(defn, builder, false);
+        writer = factory.newInstance(defn, builder, null, false);
         writer.updateDocument("/libs/config1", newDoc("/libs/config1"));
         writer.close(0);
 
@@ -185,7 +185,7 @@ public class MultiplexingIndexWriterTest {
         assertEquals(1, numDocs(defaultMount));
 
         //4. Add another entry in default mount without reindexing
-        writer = factory.newInstance(defn, builder, false);
+        writer = factory.newInstance(defn, builder, null, false);
         writer.updateDocument("/content1", newDoc("/content1"));
         writer.close(0);
 
@@ -198,7 +198,7 @@ public class MultiplexingIndexWriterTest {
     @Test
     public void deletes() throws Exception{
         LuceneIndexWriterFactory factory = newDirectoryFactory();
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         writer.updateDocument("/libs/config", newDoc("/libs/config"));
         writer.updateDocument("/libs/install", newDoc("/libs/install"));
@@ -209,14 +209,14 @@ public class MultiplexingIndexWriterTest {
         assertEquals(2, numDocs(fooMount));
         assertEquals(2, numDocs(defaultMount));
 
-        writer = factory.newInstance(defn, builder, true);
+        writer = factory.newInstance(defn, builder, null, true);
         writer.deleteDocuments("/libs/config");
         writer.close(0);
 
         assertEquals(1, numDocs(fooMount));
         assertEquals(2, numDocs(defaultMount));
 
-        writer = factory.newInstance(defn, builder, true);
+        writer = factory.newInstance(defn, builder, null, true);
         writer.deleteDocuments("/content");
         writer.close(0);
 
@@ -230,7 +230,7 @@ public class MultiplexingIndexWriterTest {
                 .mount("foo", "/content/remote").build();
         initializeMounts();
         LuceneIndexWriterFactory factory = newDirectoryFactory();
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         writer.updateDocument("/content/remote/a", newDoc("/content/remote/a"));
         writer.updateDocument("/etc", newDoc("/etc"));
@@ -240,7 +240,7 @@ public class MultiplexingIndexWriterTest {
         assertEquals(1, numDocs(fooMount));
         assertEquals(2, numDocs(defaultMount));
 
-        writer = factory.newInstance(defn, builder, true);
+        writer = factory.newInstance(defn, builder, null, true);
         writer.deleteDocuments("/content");
         writer.close(0);
 

@@ -93,6 +93,7 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -109,6 +110,13 @@ import org.slf4j.LoggerFactory;
 public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Node, JackrabbitNode {
 
     /**
+     * Use an zero length MVP to check read permission on jcr:mixinTypes (OAK-7652)
+     */
+    private static final PropertyState EMPTY_MIXIN_TYPES = PropertyStates.createProperty(
+            JcrConstants.JCR_MIXINTYPES, Collections.emptyList(), Type.NAMES);
+
+
+    /**
      * The maximum returned value for {@link NodeIterator#getSize()}. If there
      * are more nodes, the method returns -1.
      */
@@ -118,6 +126,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      * logger instance
      */
     private static final Logger LOG = LoggerFactory.getLogger(NodeImpl.class);
+
+    private final int logWarnStringSizeThreshold;
 
     @Nullable
     public static NodeImpl<? extends NodeDelegate> createNodeOrNull(
@@ -151,6 +161,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     public NodeImpl(T dlg, SessionContext sessionContext) {
         super(dlg, sessionContext);
+        logWarnStringSizeThreshold = Integer.getInteger(
+                OakJcrConstants.WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
+                OakJcrConstants.DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -930,7 +943,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), getMixinTypeNames(tree), oakName);
+                Iterable<String> mixins = () -> getMixinTypeNames(tree);
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), mixins, oakName);
             }
         });
     }
@@ -1286,7 +1300,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @NotNull
-    private Iterator<String> getMixinTypeNames(@NotNull Tree tree) throws RepositoryException {
+    private Iterator<String> getMixinTypeNames(@NotNull Tree tree) {
         if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadMixinTypes(tree)) {
             return TreeUtil.getMixinTypeNames(tree).iterator();
         } else {
@@ -1304,12 +1318,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         };
     }
 
-    private boolean canReadMixinTypes(@NotNull Tree tree) throws RepositoryException {
-        // OAK-7652: use an zero length MVP to check read permission on jcr:mixinTypes
-        PropertyState mixinTypes = PropertyStates.createProperty(
-                JcrConstants.JCR_MIXINTYPES, Collections.emptyList(), Type.NAMES);
+    private boolean canReadMixinTypes(@NotNull Tree tree) {
         return sessionContext.getAccessManager().hasPermissions(
-                tree, mixinTypes, Permissions.READ_PROPERTY);
+                tree, EMPTY_MIXIN_TYPES, Permissions.READ_PROPERTY);
     }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
@@ -1359,6 +1370,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         PropertyState state = PropertyStates.createProperty(
                 JCR_PRIMARYTYPE, getOakName(nodeTypeName), NAME);
         dlg.setProperty(state, true, true);
+
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NodeTypeConstants.NODE_TYPES_PATH);
+        TreeUtil.autoCreateItems(
+                dlg.getTree(), typeRoot.getChild(nodeTypeName), typeRoot, sessionDelegate.getAuthInfo().getUserID());
+
         dlg.setOrderableChildren(nt.hasOrderableChildNodes());
     }
 
@@ -1368,6 +1384,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createSingleState(
                 oakName, value, Type.fromTag(value.getType(), false));
+        if (value.getType() == PropertyType.STRING) {
+            logLargeStringProperties(jcrName, value.getString());
+        }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {
             @Override
             public void checkPreconditions() throws RepositoryException {
@@ -1392,6 +1411,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
+    private void logLargeStringProperties(String propertyName, String value) throws RepositoryException {
+        if (value.length() > logWarnStringSizeThreshold) {
+            LOG.warn("String length: {} for property: {} at Node: {} is greater than configured value {}", value.length(), propertyName, this.getPath(), logWarnStringSizeThreshold);
+        }
+    }
+
     private Property internalSetProperty(
             final String jcrName, final Value[] values,
             final int type, final boolean exactTypeMatch)
@@ -1403,7 +1428,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
             LOG.warn("Large multi valued property [{}/{}] detected ({} values).",dlg.getPath(), jcrName, values.length);
         }
-
+        for (Value value : values) {
+            if (value != null && value.getType() == PropertyType.STRING) {
+                logLargeStringProperties(jcrName, value.getString());
+            }
+        }
         return perform(new ItemWriteOperation<Property>("internalSetProperty") {
             @Override
             public void checkPreconditions() throws RepositoryException {

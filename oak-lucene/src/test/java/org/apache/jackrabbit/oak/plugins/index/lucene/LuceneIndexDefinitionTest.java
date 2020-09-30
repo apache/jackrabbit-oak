@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
@@ -989,7 +989,7 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void uniqueIsSync() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").unique();
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
@@ -1000,7 +1000,7 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void syncIsProperty() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").sync();
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
@@ -1010,7 +1010,7 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void syncPropertyDefinitions() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").sync();
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
@@ -1038,7 +1038,7 @@ public class LuceneIndexDefinitionTest {
         root = builder.getNodeState();
 
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestSuperType");
 
@@ -1063,7 +1063,7 @@ public class LuceneIndexDefinitionTest {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestSuperType").sync();
 
@@ -1085,7 +1085,7 @@ public class LuceneIndexDefinitionTest {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestSuperType").sync();
         defnb.indexRule("oak:TestSuperType").property("foo").propertyIndex();
@@ -1106,7 +1106,7 @@ public class LuceneIndexDefinitionTest {
         TestUtil.registerNodeType(builder, testNodeTypeDefn);
         root = builder.getNodeState();
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestSuperType").sync();
         defnb.aggregateRule("oak:TestSuperType").include("*");
@@ -1129,7 +1129,7 @@ public class LuceneIndexDefinitionTest {
         root = builder.getNodeState();
 
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.nodeTypeIndex();
         defnb.indexRule("oak:TestMixA");
 
@@ -1152,7 +1152,7 @@ public class LuceneIndexDefinitionTest {
         root = builder.getNodeState();
 
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("oak:TestMixA").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex();
         defnb.indexRule("oak:TestSuperType").property(JcrConstants.JCR_PRIMARYTYPE).propertyIndex().sync();
 
@@ -1172,7 +1172,7 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void relativeNodeNames_None() {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
 
         IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
@@ -1182,7 +1182,7 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void relativeNodeNames_RelativeProp() {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
         defnb.indexRule("nt:base").property("bar").propertyIndex();
 
@@ -1193,7 +1193,7 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void relativeNodeNames_Aggregate() {
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
         defnb.aggregateRule("nt:base").include("jcr:content/metadata");
         defnb.aggregateRule("nt:base").include("jcr:content/metadata/type/*");
@@ -1206,7 +1206,7 @@ public class LuceneIndexDefinitionTest {
 
     @Test
     public void regexAllProps() {
-        IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
         builder.indexRule("nt:base").property("p");
         builder.indexRule("nt:base").property("all", FulltextIndexConstants.REGEX_ALL_PROPS, true);
 

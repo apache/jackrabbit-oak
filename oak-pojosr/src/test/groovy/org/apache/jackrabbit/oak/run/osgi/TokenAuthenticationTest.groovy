@@ -105,7 +105,12 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest {
             if(sharedCreds instanceof SimpleCredentials) {
                 credential.setAttribute(".token", ((SimpleCredentials)sharedCreds).getAttribute(".token"))
             }
-            return false
+            return false;
+        }
+
+        @Override
+        boolean logout() {
+            return false;
         }
     }
 

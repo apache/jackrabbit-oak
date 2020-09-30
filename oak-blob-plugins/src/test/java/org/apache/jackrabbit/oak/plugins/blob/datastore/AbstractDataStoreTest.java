@@ -120,6 +120,25 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
+     * Testcase to validate {@link DataStore#addRecord(InputStream)} API.
+     */
+    @Test
+    public void testAddDuplicateRecord() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testAddDuplicateRecord, testDir=" + dataStoreDir);
+            doAddDuplicateRecordTest();
+            LOG.info("Testcase: " + this.getClass().getName()
+                + "#testAddDuplicateRecord finished, time taken = ["
+                + (System.currentTimeMillis() - start) + "]ms");
+        } catch (Exception e) {
+            LOG.error("error:", e);
+            fail(e.getMessage());
+        }
+    }
+
+    /**
      * Testcase to validate {@link DataStore#getRecord(DataIdentifier)} API.
      */
     @Test
@@ -136,7 +155,27 @@ public abstract class AbstractDataStoreTest {
             LOG.error("error:", e);
         }
     }
-    
+
+    /**
+     * Testcase to validate {@link DataStore#getRecord(DataIdentifier)} API in
+     * case where supplied data identifier is not a valid blob ID.
+     */
+    @Test
+    public void testGetRecordInvalidDataIdentifier() {
+        try {
+            long start = System.currentTimeMillis();
+            LOG.info("Testcase: " + this.getClass().getName()
+                    + "#testGetRecordInvalidDataIdentifier, testDir=" + dataStoreDir);
+            doGetRecordInvalidDataIdentifierTest();
+            LOG.info("Testcase: " + this.getClass().getName()
+                    + "#testGetRecordInvalidDataIdentifier finished, time taken = ["
+                    + (System.currentTimeMillis() - start) + "]ms");
+        }
+        catch (Exception e) {
+            LOG.error("error:", e);
+        }
+    }
+
     /**
      * Testcase to validate {@link DataStore#getAllIdentifiers()} API.
      */
@@ -289,6 +328,24 @@ public abstract class AbstractDataStoreTest {
     }
 
     /**
+     * Test {@link DataStore#addRecord(InputStream)} and assert length & last modified of copied
+     * record.
+     */
+    protected void doAddDuplicateRecordTest() throws Exception {
+        byte[] data = new byte[dataLength];
+        randomGen.nextBytes(data);
+        DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+        Assert.assertEquals(data.length, rec.getLength());
+        assertRecord(data, rec);
+
+        DataRecord rec2 = ds.addRecord(new ByteArrayInputStream(data));
+        Assert.assertEquals(data.length, rec2.getLength());
+        assertRecord(data, rec2);
+
+        assertTrue("Copied record last modified not greater", rec.getLastModified() <= rec2.getLastModified());
+    }
+
+    /**
      * Test {@link DataStore#getRecord(DataIdentifier)} and assert length and
      * inputstream.
      */
@@ -299,6 +356,19 @@ public abstract class AbstractDataStoreTest {
         rec = ds.getRecord(rec.getIdentifier());
         Assert.assertEquals(data.length, rec.getLength());
         assertRecord(data, rec);
+    }
+
+    /**
+     * Test {@link DataStore#getRecord(DataIdentifier)} with invalid id.
+     */
+    protected void doGetRecordInvalidDataIdentifierTest() throws Exception {
+        try {
+            ds.getRecord(new DataIdentifier("invalid"));
+            fail();
+        }
+        catch (DataStoreException e) {
+            // Expected
+        }
     }
 
     /**

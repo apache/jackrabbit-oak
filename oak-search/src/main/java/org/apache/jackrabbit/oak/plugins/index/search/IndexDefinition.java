@@ -42,6 +42,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -51,7 +52,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.search.util.FunctionIndexProcessor;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
@@ -141,6 +142,13 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      * upto which index is upto date (OAK-6194)
      */
     public static final String STATUS_LAST_UPDATED = "lastUpdated";
+
+    public static final String CREATION_TIMESTAMP = "creationTimestamp";
+    public static final String REINDEX_COMPLETION_TIMESTAMP = "reindexCompletionTimestamp";
+    /**
+     * Property to store paths for documents failed during index updates.
+     */
+    public static final String FAILED_DOC_PATHS = "failedDocPaths";
 
     /**
      * Meta property which provides the unique id
@@ -257,6 +265,11 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private final boolean testMode;
 
+    /**
+     * See {@link FulltextIndexConstants#PROP_VALUE_REGEX}
+     */
+    private final Pattern propertyRegex;
+
     public boolean isTestMode() {
         return testMode;
     }
@@ -341,85 +354,95 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     protected IndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
-        this.root = root;
-        this.version = checkNotNull(version);
-        this.uid = uid;
-        this.definition = defn;
-        this.indexPath = checkNotNull(indexPath);
-        this.indexName = indexPath;
-        this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
-        this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
+        try {
+            this.root = root;
+            this.version = checkNotNull(version);
+            this.uid = uid;
+            this.definition = defn;
+            this.indexPath = checkNotNull(indexPath);
+            this.indexName = indexPath;
+            this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
+            this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
 
-        this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
+            this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
 
-        this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
+            this.aggregates = nodeTypeIndex ? Collections.emptyMap() : collectAggregates(defn);
 
-        NodeState rulesState = defn.getChildNode(FulltextIndexConstants.INDEX_RULES);
-        if (!rulesState.exists()){
-            rulesState = createIndexRules(defn).getNodeState();
-        }
-
-        this.testMode = getOptionalValue(defn, FulltextIndexConstants.TEST_MODE, false);
-        List<IndexingRule> definedIndexRules = newArrayList();
-        this.indexRules = collectIndexRules(rulesState, definedIndexRules);
-        this.definedRules = ImmutableList.copyOf(definedIndexRules);
-
-        this.fullTextEnabled = hasFulltextEnabledIndexRule(definedIndexRules);
-        this.evaluatePathRestrictions = getOptionalValue(defn, EVALUATE_PATH_RESTRICTION, false);
-
-        String functionName = getOptionalValue(defn, FulltextIndexConstants.FUNC_NAME, null);
-        if (fullTextEnabled && functionName == null){
-            functionName = getDefaultFunctionName();
-        }
-        this.funcName = functionName != null ? "native*" + functionName : null;
-
-        if (defn.hasProperty(ENTRY_COUNT_PROPERTY_NAME)) {
-            this.entryCountDefined = true;
-            this.entryCount = defn.getProperty(ENTRY_COUNT_PROPERTY_NAME).getValue(Type.LONG);
-        } else {
-            this.entryCountDefined = false;
-            this.entryCount = DEFAULT_ENTRY_COUNT;
-        }
-
-        this.maxFieldLength = getOptionalValue(defn, FulltextIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
-        this.costPerEntry = getOptionalValue(defn, FulltextIndexConstants.COST_PER_ENTRY, getDefaultCostPerEntry(version));
-        this.costPerExecution = getOptionalValue(defn, FulltextIndexConstants.COST_PER_EXECUTION, 1.0);
-        this.hasCustomTikaConfig = getTikaConfigNode().exists();
-        this.customTikaMimeTypeMappings = buildMimeTypeMap(definition.getChildNode(TIKA).getChildNode(TIKA_MIME_TYPES));
-        this.maxExtractLength = determineMaxExtractLength();
-        this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
-                DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
-        this.scorerProviderName = getOptionalValue(defn, FulltextIndexConstants.PROP_SCORER_PROVIDER, null);
-        this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
-        this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
-        this.queryPaths = getOptionalStrings(defn, IndexConstants.QUERY_PATHS);
-        this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
-
-        {
-            PropertyState randomPS = defn.getProperty(PROP_RANDOM_SEED);
-            if (randomPS != null && randomPS.getType() == Type.LONG) {
-                randomSeed = randomPS.getValue(Type.LONG);
-            } else {
-                // create a random number
-                randomSeed = UUID.randomUUID().getMostSignificantBits();
+            NodeState rulesState = defn.getChildNode(FulltextIndexConstants.INDEX_RULES);
+            if (!rulesState.exists()){
+                rulesState = createIndexRules(defn).getNodeState();
             }
-        }
-        if (defn.hasChildNode(FACETS)) {
-            NodeState facetsConfig =  defn.getChildNode(FACETS);
-            this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, facetsConfig);
-            this.numberOfTopFacets = getOptionalValue(facetsConfig, PROP_FACETS_TOP_CHILDREN, DEFAULT_FACET_COUNT);
-        } else {
-            this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, null);
-            this.numberOfTopFacets = DEFAULT_FACET_COUNT;
-        }
 
-        this.suggestEnabled = evaluateSuggestionEnabled();
-        this.spellcheckEnabled = evaluateSpellcheckEnabled();
-        this.nrtIndexMode = supportsNRTIndexing(defn);
-        this.syncIndexMode = supportsSyncIndexing(defn);
-        this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
-        this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
-        this.deprecated = getOptionalValue(defn, IndexConstants.INDEX_DEPRECATED, false);
+            this.testMode = getOptionalValue(defn, FulltextIndexConstants.TEST_MODE, false);
+            List<IndexingRule> definedIndexRules = newArrayList();
+            this.indexRules = collectIndexRules(rulesState, definedIndexRules);
+            this.definedRules = ImmutableList.copyOf(definedIndexRules);
+
+            this.fullTextEnabled = hasFulltextEnabledIndexRule(definedIndexRules);
+            this.evaluatePathRestrictions = getOptionalValue(defn, EVALUATE_PATH_RESTRICTION, false);
+            if (defn.hasProperty(PROP_VALUE_REGEX)) {
+                this.propertyRegex = Pattern.compile(getOptionalValue(defn, PROP_VALUE_REGEX, ""));
+            } else {
+                this.propertyRegex = null;
+            }
+            String functionName = getOptionalValue(defn, FulltextIndexConstants.FUNC_NAME, null);
+            if (fullTextEnabled && functionName == null) {
+                functionName = getDefaultFunctionName();
+            }
+            this.funcName = functionName != null ? "native*" + functionName : null;
+
+            if (defn.hasProperty(ENTRY_COUNT_PROPERTY_NAME)) {
+                this.entryCountDefined = true;
+                this.entryCount = getOptionalValue(defn, ENTRY_COUNT_PROPERTY_NAME, DEFAULT_ENTRY_COUNT);
+            } else {
+                this.entryCountDefined = false;
+                this.entryCount = DEFAULT_ENTRY_COUNT;
+            }
+
+            this.maxFieldLength = getOptionalValue(defn, FulltextIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
+            this.costPerEntry = getOptionalValue(defn, FulltextIndexConstants.COST_PER_ENTRY, getDefaultCostPerEntry(version));
+            this.costPerExecution = getOptionalValue(defn, FulltextIndexConstants.COST_PER_EXECUTION, 1.0);
+            this.hasCustomTikaConfig = getTikaConfigNode().exists();
+            this.customTikaMimeTypeMappings = buildMimeTypeMap(definition.getChildNode(TIKA).getChildNode(TIKA_MIME_TYPES));
+            this.maxExtractLength = determineMaxExtractLength();
+            this.suggesterUpdateFrequencyMinutes = evaluateSuggesterUpdateFrequencyMinutes(defn,
+                    DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+            this.scorerProviderName = getOptionalValue(defn, FulltextIndexConstants.PROP_SCORER_PROVIDER, null);
+            this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
+            this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
+            this.queryPaths = getOptionalStrings(defn, IndexConstants.QUERY_PATHS);
+            this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
+
+            {
+                PropertyState randomPS = defn.getProperty(PROP_RANDOM_SEED);
+                if (randomPS != null && randomPS.getType() == Type.LONG) {
+                    randomSeed = randomPS.getValue(Type.LONG);
+                } else {
+                    // create a random number
+                    randomSeed = UUID.randomUUID().getMostSignificantBits();
+                }
+            }
+            if (defn.hasChildNode(FACETS)) {
+                NodeState facetsConfig = defn.getChildNode(FACETS);
+                this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, facetsConfig);
+                this.numberOfTopFacets = getOptionalValue(facetsConfig, PROP_FACETS_TOP_CHILDREN, DEFAULT_FACET_COUNT);
+            } else {
+                this.secureFacets = SecureFacetConfiguration.getInstance(randomSeed, null);
+                this.numberOfTopFacets = DEFAULT_FACET_COUNT;
+            }
+
+            this.suggestEnabled = evaluateSuggestionEnabled();
+            this.spellcheckEnabled = evaluateSpellcheckEnabled();
+            this.nrtIndexMode = supportsNRTIndexing(defn);
+            this.syncIndexMode = supportsSyncIndexing(defn);
+            this.syncPropertyIndexes = definedRules.stream().anyMatch(ir -> !ir.syncProps.isEmpty());
+            this.useIfExists = getOptionalValue(defn, IndexConstants.USE_IF_EXISTS, null);
+            this.deprecated = getOptionalValue(defn, IndexConstants.INDEX_DEPRECATED, false);
+        } catch (IllegalStateException e) {
+            log.error("Config error for index definition at {} . Please correct the index definition "
+                    + "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
+            throw new IllegalStateException(e);
+        }
     }
 
     public NodeState getDefinitionNodeState() {
@@ -593,7 +616,12 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
     }
 
     /**
-     * Check if the index definition is fresh of some index has happened
+     * Check if the index definition is fresh, or (some) indexing has occurred.
+     *
+     * WARNING: If there is _any_ hidden node, then it is assumed that
+     * no reindex is needed. Even if the hidden node is completely unrelated
+     * and doesn't contain index data (for example the node ":status").
+     * See also OAK-7991.
      *
      * @param definition nodestate for Index Definition
      * @return true if index has some indexed content
@@ -769,7 +797,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         }
 
         Map<String, List<IndexingRule>> nt2rules = newHashMap();
-        ReadOnlyNodeTypeManager ntReg = createNodeTypeManager(TreeFactory.createReadOnlyTree(root));
+        ReadOnlyNodeTypeManager ntReg = createNodeTypeManager(RootFactory.createReadOnlyRoot(root));
 
         //Use Tree API to read ordered child nodes
         Tree ruleTree = TreeFactory.createReadOnlyTree(indexRules);
@@ -827,6 +855,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
         return false;
+    }
+
+    public Pattern getPropertyRegex() {
+        return propertyRegex;
     }
 
     public boolean isSuggestEnabled() {
@@ -999,6 +1031,18 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
          */
         public String getBaseNodeType() {
             return baseNodeType;
+        }
+
+        /**
+         * Returns all the configured {@code PropertyDefinition}s for this {@code IndexRule}.
+         *
+         * In case of a pure nodetype index we just return primaryType and mixins.
+         *
+         * @return an {@code Iterable} of {@code PropertyDefinition}s.
+         * @see IndexDefinition#isPureNodeTypeIndex()
+         */
+        public Iterable<PropertyDefinition> getProperties() {
+            return propConfigs.values();
         }
 
         public List<PropertyDefinition> getNullCheckEnabledProperties() {
@@ -1177,7 +1221,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                         for (String p : properties) {
                             if (PathUtils.getDepth(p) > 1) {
                                 PropertyDefinition pd2 = new PropertyDefinition(this, p, propDefnNode);
-                                propAggregate.add(new Aggregate.PropertyInclude(pd2));
+                                propAggregate.add(new Aggregate.FunctionInclude(pd2));
                             }
                         }
                         // a function index has no other options
@@ -1567,10 +1611,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.<String>emptySet();
     }
 
-    private static Set<String> toLowerCase(Set<String> values){
+    private static Set<String> toLowerCase(Set<String> values) {
         Set<String> result = newHashSet();
         for(String val : values){
-            result.add(val.toLowerCase());
+            result.add(val.toLowerCase(Locale.ENGLISH));
         }
         return ImmutableSet.copyOf(result);
     }
@@ -1588,11 +1632,12 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         }
     }
 
-    private static ReadOnlyNodeTypeManager createNodeTypeManager(final Tree root) {
+    private static ReadOnlyNodeTypeManager createNodeTypeManager(final Root root) {
         return new ReadOnlyNodeTypeManager() {
+            @NotNull
             @Override
             protected Tree getTypes() {
-                return TreeUtil.getTree(root,NODE_TYPES_PATH);
+                return root.getTree(NODE_TYPES_PATH);
             }
 
             @NotNull

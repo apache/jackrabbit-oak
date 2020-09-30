@@ -18,10 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -52,6 +54,8 @@ final class NodeDocumentSweeper {
 
     private static final int INVALIDATE_BATCH_SIZE = 100;
 
+    private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
+
     private final RevisionContext context;
 
     private final int clusterId;
@@ -62,7 +66,10 @@ final class NodeDocumentSweeper {
 
     private Revision head;
 
-    private long documentCount;
+    private long totalCount;
+    private long lastCount;
+    private long startOfScan;
+    private long lastLog;
 
     /**
      * Creates a new sweeper for the given context. The sweeper is initialized
@@ -129,7 +136,11 @@ final class NodeDocumentSweeper {
                                   NodeDocumentSweepListener listener)
             throws DocumentStoreException {
         head = headRevision.getRevision(clusterId);
-        documentCount = 0;
+        totalCount = 0;
+        lastCount = 0;
+        startOfScan = context.getClock().getTime();
+        lastLog = startOfScan;
+
         if (head == null) {
             LOG.warn("Head revision does not have an entry for " +
                             "clusterId {}. Sweeping of documents is skipped.",
@@ -137,10 +148,10 @@ final class NodeDocumentSweeper {
             return null;
         }
 
-        Iterable<Map.Entry<String, UpdateOp>> ops = sweepOperations(documents);
-        for (List<Map.Entry<String, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
-            Map<String, UpdateOp> updates = newHashMap();
-            for (Map.Entry<String, UpdateOp> entry : batch) {
+        Iterable<Map.Entry<Path, UpdateOp>> ops = sweepOperations(documents);
+        for (List<Map.Entry<Path, UpdateOp>> batch : partition(ops, INVALIDATE_BATCH_SIZE)) {
+            Map<Path, UpdateOp> updates = newHashMap();
+            for (Map.Entry<Path, UpdateOp> entry : batch) {
                 updates.put(entry.getKey(), entry.getValue());
             }
             listener.sweepUpdate(updates);
@@ -149,17 +160,17 @@ final class NodeDocumentSweeper {
         return head;
     }
 
-    private Iterable<Map.Entry<String, UpdateOp>> sweepOperations(
+    private Iterable<Map.Entry<Path, UpdateOp>> sweepOperations(
             final Iterable<NodeDocument> docs) {
         return filter(transform(docs,
-                new Function<NodeDocument, Map.Entry<String, UpdateOp>>() {
+                new Function<NodeDocument, Map.Entry<Path, UpdateOp>>() {
             @Override
-            public Map.Entry<String, UpdateOp> apply(NodeDocument doc) {
+            public Map.Entry<Path, UpdateOp> apply(NodeDocument doc) {
                 return immutableEntry(doc.getPath(), sweepOne(doc));
             }
-        }), new Predicate<Map.Entry<String, UpdateOp>>() {
+        }), new Predicate<Map.Entry<Path, UpdateOp>>() {
             @Override
-            public boolean apply(Map.Entry<String, UpdateOp> input) {
+            public boolean apply(Map.Entry<Path, UpdateOp> input) {
                 return input.getValue() != null;
             }
         });
@@ -185,9 +196,29 @@ final class NodeDocumentSweeper {
                 }
             }
         }
-        if (++documentCount % 100000 == 0) {
-            LOG.info("Checked {} documents so far", documentCount);
+
+        totalCount++;
+        lastCount++;
+        long now = context.getClock().getTime();
+        long lastElapsed = now - lastLog;
+
+        if (lastElapsed >= LOGINTERVALMS) {
+            TimeDurationFormatter df = TimeDurationFormatter.forLogging();
+
+            long totalElapsed = now - startOfScan;
+            long totalRateMin = (totalCount * TimeUnit.MINUTES.toMillis(1)) / totalElapsed;
+            long lastRateMin = (lastCount * TimeUnit.MINUTES.toMillis(1)) / lastElapsed;
+
+            String message = String.format(
+                    "Sweep on cluster node [%d]: %d nodes scanned in %s (~%d/m) - last interval %d nodes in %s (~%d/m)",
+                    clusterId, totalCount, df.format(totalElapsed, TimeUnit.MILLISECONDS), totalRateMin, lastCount,
+                    df.format(lastElapsed, TimeUnit.MILLISECONDS), lastRateMin);
+
+            LOG.info(message);
+            lastLog = now;
+            lastCount = 0;
         }
+
         return op.hasChanges() ? op : null;
     }
 

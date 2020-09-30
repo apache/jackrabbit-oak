@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.ExtractedText.ExtractionResult;
 import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -79,6 +80,7 @@ public class ExtractedTextCache {
     private long totalTextSize;
     private long totalTime;
     private int preFetchedCount;
+    private final StatisticsProvider statisticsProvider;
 
     // the actual cache. key: content id, value: extracted text
     private final Cache<String, String> cache;
@@ -97,6 +99,11 @@ public class ExtractedTextCache {
 
     public ExtractedTextCache(long maxWeight, long expiryTimeInSecs, boolean alwaysUsePreExtractedCache,
                               File indexDir) {
+        this(maxWeight, expiryTimeInSecs, alwaysUsePreExtractedCache, indexDir, null);
+    }
+
+    public ExtractedTextCache(long maxWeight, long expiryTimeInSecs, boolean alwaysUsePreExtractedCache,
+                              File indexDir, StatisticsProvider statisticsProvider) {
         if (maxWeight > 0) {
             cache = CacheBuilder.newBuilder()
                     .weigher(EmpiricalWeigher.INSTANCE)
@@ -114,6 +121,7 @@ public class ExtractedTextCache {
         this.timeoutMap = new ConcurrentHashMap<>();
         this.indexDir = indexDir;
         loadTimeoutMap();
+        this.statisticsProvider = statisticsProvider;
     }
 
     /**
@@ -189,6 +197,10 @@ public class ExtractedTextCache {
         this.totalTime += timeInMillis;
         this.totalBytesRead += bytesRead;
         this.totalTextSize += textLength;
+    }
+
+    public StatisticsProvider getStatisticsProvider() {
+        return statisticsProvider;
     }
 
     public TextExtractionStatsMBean getStatsMBean() {

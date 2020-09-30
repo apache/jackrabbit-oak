@@ -20,8 +20,9 @@ package org.apache.jackrabbit.oak.segment.data;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
+
 import com.google.common.base.Charsets;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 
 class SegmentDataV12 implements SegmentData {
 

@@ -58,4 +58,9 @@ public final class PreAuthLoginModule extends AbstractLoginModule {
     public boolean commit() {
         return false;
     }
+
+    @Override
+    public boolean logout() {
+        return false;
+    }
 }

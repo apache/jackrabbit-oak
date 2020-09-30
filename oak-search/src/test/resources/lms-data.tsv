@@ -1,0 +1,122 @@
+2	2	select [jcr:path], [jcr:score], * from [nt:base] as a where contains([text], 'hello') and isdescendantnode(a, '/') order by score(a) /* xpath: /jcr:root//*[jcr:contains(@text, 'hello')] order by jcr:score() */
+0	1585	select [jcr:path] as [path] from [nt:base] where native('solr', '*:*')
+141	1585	select [jcr:path] as [path] from [nt:base] where native('solr', '*:*')
+272	1585	select [jcr:path] as [path] from [nt:base] where native('solr', '*:*')
+261	2	select [jcr:path] as [path] from [nt:base] where ISCHILDNODE([/testroot]) AND CONTAINS(text, 'hallo')
+44	2	select [jcr:path] as [path] from [nt:base] where contains([node1/text], 'hello') order by [jcr:path]
+86	3	select [jcr:path] as [path] from [nt:base] where contains([node2/text], 'hello OR hallo') order by [jcr:path]
+52	1	select [jcr:path] as [path] from [nt:base] where contains([node1/text], 'hello') and contains([node2/text], 'hallo') order by [jcr:path]
+0	0	select [jcr:path] as [path] from [nt:base] where contains([text], 'hello or hallo') order by [jcr:path]
+1	0	SELECT [rep:spellcheck()] FROM [nt:base] WHERE [jcr:path] = '/' AND SPELLCHECK('helo')
+0	0	select [jcr:path], [jcr:score], [rep:spellcheck()] from [nt:base] as a where spellcheck('helo') and issamenode(a, '/') /* xpath: /jcr:root[rep:spellcheck('helo')]/(rep:spellcheck()) */
+0	1	SELECT * FROM [nt:unstructured] WHERE [jcr:path] LIKE '/testroot/%' AND CONTAINS(*, 'fox')
+0	1	SELECT * FROM [nt:unstructured] WHERE CONTAINS(*, 'fox')
+0	2	SELECT * FROM [nt:unstructured] WHERE [jcr:path] LIKE '/testroot/%' AND CONTAINS(*, '''fox juMps'' Test OR otheR')
+0	2	SELECT * FROM [nt:unstructured] WHERE [jcr:path] LIKE '/testroot/%' AND CONTAINS(*, 'fox jumps')
+0	2	SELECT * FROM [nt:unstructured] WHERE [jcr:path] LIKE '/testroot/%' AND CONTAINS(*, '''fox jumps'' test OR other')
+2	2	select [jcr:path], [jcr:score], * from [nt:unstructured] as a where contains(*, 'quick fox') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/element(*, nt:unstructured)[jcr:contains(*, 'quick fox')] */
+1	1	select [jcr:path], [jcr:score], * from [nt:unstructured] as a where contains([title], 'quick fox') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/element(*, nt:unstructured)[jcr:contains(@title, 'quick fox')] */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'foo:bar') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'foo:bar')] */
+0	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND CONTAINS(*, 'foo:bar')
+0	1	SELECT * FROM [nt:unstructured] WHERE contains(*, 'fox') AND [jcr:path] LIKE '/testroot/%'
+1	8	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'qu*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'qu*')] */
+2	8	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'qu*')
+7	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'qu*ck') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'qu*ck')] */
+2	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'qu*ck')
+2	3	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'quick*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'quick*')] */
+2	3	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'quick*')
+5	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*quick') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*quick')] */
+1	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*quick')
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'qu*Ck') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'qu*Ck')] */
+1	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'qu*Ck')
+1	1580	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*o*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*o*')] */
+1044	1580	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*o*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*o*')] */
+1398	1580	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*o*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*o*')] */
+759	1580	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*o*')
+1005	1580	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*o*')
+1177	1580	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*o*')
+2112	5	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*ump*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*ump*')] */
+603	5	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*ump*')
+523	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'qu**ck') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'qu**ck')] */
+252	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'qu**ck')
+98	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'q***u**c*k') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'q***u**c*k')] */
+145	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'q***u**c*k')
+0	5	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*uMp*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*uMp*')] */
+103	5	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*uMp*')
+0	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'quic?') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'quic?')] */
+75	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'quic?')
+0	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '?uick') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '?uick')] */
+52	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '?uick')
+0	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'qu?ck') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'qu?ck')] */
+38	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'qu?ck')
+0	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'qu?cK') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'qu?cK')] */
+27	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'qu?cK')
+0	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'q??ck') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'q??ck')] */
+19	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'q??ck')
+0	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '?uic?') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '?uic?')] */
+15	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '?uic?')
+0	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '??iCk') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '??iCk')] */
+10	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '??iCk')
+0	418	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*ab*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*ab*')] */
+160	418	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*ab*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*ab*')] */
+330	418	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, '*ab*') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, '*ab*')] */
+259	418	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*ab*')
+307	418	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*ab*')
+340	418	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, '*ab*')
+503	0	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'q***j**c*k') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'q***j**c*k')] */
+197	0	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'q***j**c*k')
+95	1	SELECT * FROM [nt:unstructured] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'text ''fox jumps'' -other')
+0	1	SELECT * FROM [nt:unstructured] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'text "fox jumps"')
+0	1	SELECT * FROM [nt:unstructured] WHERE [jcr:path] LIKE '/testroot/%' AND CONTAINS(title, 'fox jumps')
+0	2	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo')
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo')
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo')
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo') 
+0	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo')
+0	4	 select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo') /* xpath: testroot/*[jcr:contains(@prop1, 'foo') or jcr:contains(@prop2, 'foo') or jcr:contains(@prop3, 'foo')] order by @jcr:score descending */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo') 
+2	3	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo')
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo') /* xpath: testroot/*[jcr:contains(@prop1, 'foo') or jcr:contains(@prop2, 'foo') or jcr:contains(@prop3, 'foo')] order by @jcr:score descending */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo') 
+9	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo')
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo') /* xpath: testroot/*[jcr:contains(@prop3, 'foo') or jcr:contains(@prop1, 'foo') or jcr:contains(@prop2, 'foo')] order by @jcr:score descending */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo') 
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo')
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo') /* xpath: testroot/*[jcr:contains(@prop3, 'foo') or jcr:contains(@prop1, 'foo') or jcr:contains(@prop2, 'foo')] order by @jcr:score descending */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo') 
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo')
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo') /* xpath: testroot/*[jcr:contains(@prop3, 'foo') or jcr:contains(@prop1, 'foo') or jcr:contains(@prop2, 'foo')] order by @jcr:score descending */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo') 
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo')
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo') /* xpath: testroot/*[jcr:contains(@prop2, 'foo') or jcr:contains(@prop3, 'foo') or jcr:contains(@prop1, 'foo')] order by @jcr:score descending */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo') 
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo')
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo') /* xpath: testroot/*[jcr:contains(@prop2, 'foo') or jcr:contains(@prop3, 'foo') or jcr:contains(@prop1, 'foo')] order by @jcr:score descending */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop2], 'foo') 
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop3], 'foo')
+1	4	select [jcr:path], [jcr:score], * from [nt:base] as a where ischildnode(a, '/testroot') and contains([prop1], 'foo') /* xpath: testroot/*[jcr:contains(@prop2, 'foo') or jcr:contains(@prop3, 'foo') or jcr:contains(@prop1, 'foo')] order by @jcr:score descending */
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'max&moritz') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'max&moritz')] */
+0	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'max&moritz')
+0	1	SELECT * FROM [nt:base] WHERE [nt:base].prop1 IS NOT NULL
+0	1	SELECT * FROM [nt:unstructured] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'fox test')
+2	1	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, '"three two"') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, '"three two"')]/rep:excerpt(.) */
+1	1	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'foo') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'foo')]/rep:excerpt(.) */
+1	1	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, '"two four"') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, '"two four"')]/rep:excerpt(.) */
+1	3	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'ipsu*') and isdescendantnode(a, '/testroot/node1') /* xpath: testroot/node1//*[jcr:contains(*, 'ipsu*')]/rep:excerpt(.) */
+1	1	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'ipsu*') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'ipsu*')]/rep:excerpt(.) */
+1	1	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'lorem ipsu*') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'lorem ipsu*')]/rep:excerpt(.) */
+1	1	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'ipsu* dolor') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'ipsu* dolor')]/rep:excerpt(.) */
+1	4	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'jackrabbit') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'jackrabbit')]/rep:excerpt(.) */
+3	4	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'jackrabbit') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'jackrabbit')]/rep:excerpt(.) */
+3	1	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, '"five six"') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, '"five six"')]/rep:excerpt(.) */
+2	2	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'apache jackrabbit') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'apache jackrabbit')]/rep:excerpt(.) */
+2	1	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'テスト') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'テスト')]/rep:excerpt(.) */
+1	4	select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a where contains(*, 'jackrabbit') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(*, 'jackrabbit')]/rep:excerpt(.) */
+1	1	SELECT * FROM [nt:unstructured] WHERE ISCHILDNODE([/testroot]) AND CONTAINS(mytext, 'fox')
+0	0	SELECT * FROM [nt:base] as NODE WHERE contains([NODE].[*], 'SQL2NODELOCALNAMETEST')
+0	0	SELECT * FROM [nt:base] as NODE WHERE contains([NODE].[*], 'sql2nodelocalnametest')
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'AE502DBEA2C411DEBD340AD156D89593') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'AE502DBEA2C411DEBD340AD156D89593')] */
+0	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'AE502DBEA2C411DEBD340AD156D89593')
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains(*, 'quick brown fox') and ischildnode(a, '/testroot') /* xpath: /jcr:root/testroot/*[jcr:contains(*, 'quick brown fox')] */
+0	1	SELECT * FROM [nt:base] WHERE [jcr:path] LIKE '/testroot/%' AND contains(*, 'quick brown fox')
+1	1	select [jcr:path], [jcr:score], * from [nt:base] as a where contains([jcr:content/*], 'lazy') and ischildnode(a, '/testroot') /* xpath: testroot/*[jcr:contains(jcr:content, 'lazy')] */

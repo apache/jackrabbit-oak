@@ -62,6 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -84,6 +85,8 @@ public class RDBDocumentStoreJDBC {
     private final RDBDocumentSerializer ser;
     private final int queryHitsLimit, queryTimeLimit;
 
+    private static final Long INITIALMODCOUNT = Long.valueOf(1);
+    
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
         this.ser = ser;
@@ -280,10 +283,10 @@ public class RDBDocumentStoreJDBC {
                     stmt.setObject(si++, document.get(NodeDocument.SD_MAX_REV_TIME_IN_SECS));
                 }
                 if (data.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
-                    stmt.setString(si++, data);
+                    setDataInStatement(tmd, stmt, si++, data);
                     stmt.setBinaryStream(si++, null, 0);
                 } else {
-                    stmt.setString(si++, "\"blob\"");
+                    setDataInStatement(tmd, stmt, si++, "\"blob\"");
                     byte[] bytes = asBytes(data);
                     stmt.setBytes(si++, bytes);
                 }
@@ -333,6 +336,7 @@ public class RDBDocumentStoreJDBC {
 
         Set<String> successfulUpdates = new HashSet<String>();
         List<String> updatedKeys = new ArrayList<String>();
+        List<Long> modCounts = LOG.isTraceEnabled() ? new ArrayList<>() : null;
         int[] batchResults = new int[0];
 
         PreparedStatement stmt = connection.prepareStatement("update " + tmd.getName()
@@ -342,7 +346,7 @@ public class RDBDocumentStoreJDBC {
             boolean batchIsEmpty = true;
             for (T document : sortDocuments(documents)) {
                 Long modcount = (Long) document.get(MODCOUNT);
-                if (modcount == 1) {
+                if (INITIALMODCOUNT.equals(modcount)) {
                     continue; // This is a new document. We'll deal with the inserts later.
                 }
 
@@ -360,10 +364,10 @@ public class RDBDocumentStoreJDBC {
                 stmt.setObject(si++, data.length(), Types.BIGINT);
 
                 if (data.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
-                    stmt.setString(si++, data);
+                    setDataInStatement(tmd, stmt, si++, data);
                     stmt.setBinaryStream(si++, null, 0);
                 } else {
-                    stmt.setString(si++, "\"blob\"");
+                    setDataInStatement(tmd, stmt, si++, "\"blob\"");
                     byte[] bytes = asBytes(data);
                     stmt.setBytes(si++, bytes);
                 }
@@ -372,6 +376,9 @@ public class RDBDocumentStoreJDBC {
                 stmt.setObject(si++, modcount - 1, Types.BIGINT);
                 stmt.addBatch();
                 updatedKeys.add(document.getId());
+                if (modCounts != null) {
+                    modCounts.add(modcount);
+                }
 
                 batchIsEmpty = false;
             }
@@ -386,6 +393,20 @@ public class RDBDocumentStoreJDBC {
             stmt.close();
         }
 
+        if (!updatedKeys.isEmpty() && LOG.isTraceEnabled()) {
+            StringBuilder br = new StringBuilder(String.format("update: batch result on '%s' (sent: %d, received: %d):", tmd.getName(),
+                    updatedKeys.size(), batchResults.length));
+            String delim = " ";
+            for (int i = 0; i < batchResults.length; i++) {
+                br.append(delim).append(batchResults[i]);
+                if (i < updatedKeys.size()) {
+                    br.append(String.format(" (for %s (%d))", updatedKeys.get(i), modCounts.get(i) - 1));
+                }
+                delim = ", ";
+            }
+            LOG.trace(br.toString());
+        }
+
         for (int i = 0; i < batchResults.length; i++) {
             int result = batchResults[i];
             if (result == 1 || result == Statement.SUCCESS_NO_INFO) {
@@ -396,7 +417,7 @@ public class RDBDocumentStoreJDBC {
         if (upsert) {
             List<T> toBeInserted = new ArrayList<T>(documents.size());
             for (T doc : documents) {
-                if ((Long) doc.get(MODCOUNT) == 1) {
+                if (INITIALMODCOUNT.equals(doc.get(MODCOUNT))) {
                     toBeInserted.add(doc);
                 }
             }
@@ -460,7 +481,7 @@ public class RDBDocumentStoreJDBC {
                 byte[] bdata = rs.getBytes(field++);
                 result.add(new RDBRow(id, hasBinary, deletedOnce, modified, modcount, cmodcount, schemaVersion, sdType,
                         sdMaxRevTime, data, bdata));
-                dataTotal += data.length();
+                dataTotal += data == null ? 0 : data.length();
                 bdataTotal += bdata == null ? 0 : bdata.length;
                 PERFLOG.end(pstart, 10, "queried: table={} -> id={}, modcount={}, modified={}, data={}, bdata={}", tmd.getName(), id,
                         modcount, modified, (data == null ? 0 : data.length()), (bdata == null ? 0 : bdata.length));
@@ -912,10 +933,10 @@ public class RDBDocumentStoreJDBC {
             stmt.setObject(si++, data.length(), Types.BIGINT);
 
             if (data.length() < tmd.getDataLimitInOctets() / CHAR2OCTETRATIO) {
-                stmt.setString(si++, data);
+                setDataInStatement(tmd, stmt, si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
-                stmt.setString(si++, "\"blob\"");
+                setDataInStatement(tmd, stmt, si++, "\"blob\"");
                 byte[] bytes = asBytes(data);
                 stmt.setBytes(si++, bytes);
             }
@@ -1058,6 +1079,14 @@ public class RDBDocumentStoreJDBC {
         }
     }
 
+    private static void setDataInStatement(RDBTableMetaData tmd, PreparedStatement stmt, int idx, String id) throws SQLException {
+        if (tmd.isDataNChar()) {
+            stmt.setNString(idx, id);
+        } else {
+            stmt.setString(idx, id);
+        }
+    }
+
     private static long readLongFromResultSet(ResultSet res, int index) throws SQLException {
         long v = res.getLong(index);
         return res.wasNull() ? RDBRow.LONG_UNSET : v;
@@ -1093,7 +1122,7 @@ public class RDBDocumentStoreJDBC {
         Collections.sort(result, new Comparator<T>() {
             @Override
             public int compare(T o1, T o2) {
-                return o1.getId().compareTo(o2.getId());
+                return Strings.nullToEmpty(o1.getId()).compareTo(Strings.nullToEmpty(o2.getId()));
             }
         });
         return result;

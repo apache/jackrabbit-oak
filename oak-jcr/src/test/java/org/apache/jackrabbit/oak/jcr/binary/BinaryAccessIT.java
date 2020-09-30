@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.binary;
 
-import static junit.framework.TestCase.assertNull;
-import static junit.framework.TestCase.assertTrue;
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.getBinary;
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.httpGet;
 import static org.apache.jackrabbit.oak.jcr.binary.util.BinaryAccessTestUtils.httpPut;
@@ -32,17 +30,21 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitValueFactory;
@@ -61,8 +63,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Integration test for direct binary GET/PUT via HTTP, that requires a fully working data store
@@ -367,6 +367,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedName = "beautiful landscape.png";
+        String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withFileName(expectedName)
@@ -376,7 +377,6 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
         assertEquals(
                 String.format("inline; filename=\"%s\"; filename*=UTF-8''%s",
                         expectedName, encodedName),
@@ -397,6 +397,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         Binary binary = storeBinaryAndRetrieve(getAdminSession(), FILE_PATH, content);
 
         String expectedName = "beautiful landscape.png";
+        String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withFileName(expectedName)
@@ -407,7 +408,6 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         HttpURLConnection conn = (HttpURLConnection) downloadURI.toURL().openConnection();
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
         assertEquals(
                 String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
                         expectedName, encodedName),
@@ -467,6 +467,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         String expectedMediaType = "image/png";
         String expectedCharacterEncoding = "utf-8";
         String expectedName = "beautiful landscape.png";
+        String encodedName = "beautiful%20landscape.png";
         BinaryDownloadOptions downloadOptions = BinaryDownloadOptions
                 .builder()
                 .withMediaType(expectedMediaType)
@@ -485,7 +486,6 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
 
         String contentDisposition = conn.getHeaderField("Content-Disposition");
         assertNotNull(contentDisposition);
-        String encodedName = new String(expectedName.getBytes(StandardCharsets.UTF_8));
         assertEquals(
                 String.format("attachment; filename=\"%s\"; filename*=UTF-8''%s",
                         expectedName, encodedName),
@@ -554,8 +554,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
         Content content = Content.createRandom(256);
         BinaryUpload upload = uploadProvider.initiateBinaryUpload(content.size(), 10);
 
-        assertNotNull(upload);
-        assertFalse(upload.getUploadURIs().iterator().hasNext());
+        assertNull(upload);
     }
 
     // A2 - disable get URIs entirely
@@ -634,7 +633,7 @@ public class BinaryAccessIT extends AbstractBinaryAccessIT {
                 uri.getQuery())
         );
         int code = content.httpPUT(changedURI);
-        assertTrue(isFailedHttpPut(code));
+        assertTrue("Expected failed request but got " + String.valueOf(code), isFailedHttpPut(code));
     }
 
     // A1 - get put URI, upload, then try reading from the same URI

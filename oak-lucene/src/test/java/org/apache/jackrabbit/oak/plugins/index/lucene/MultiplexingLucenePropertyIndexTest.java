@@ -57,7 +57,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
+import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -94,11 +95,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -109,7 +106,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
     private NodeState initialContent = INITIAL_CONTENT;
     private NodeBuilder builder = EMPTY_NODE.builder();
     private MountInfoProvider mip = Mounts.newBuilder()
-        .mount("foo", "/libs", "/apps").build();
+            .mount("foo", "/libs", "/apps").build();
     private NodeStore nodeStore;
 
     @Override
@@ -121,27 +118,27 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
             throw new RuntimeException(e);
         }
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
-            new ExtractedTextCache(10*FileUtils.ONE_MB, 100),
-            null,
-            mip);
+                new ExtractedTextCache(10*FileUtils.ONE_MB, 100),
+                null,
+                mip);
         LuceneIndexProvider provider = new LuceneIndexProvider(new IndexTracker(new DefaultIndexReaderFactory(mip, copier)));
         nodeStore = new MemoryNodeStore();
         return new Oak(nodeStore)
-            .with(new InitialContent())
-            .with(new OpenSecurityProvider())
-            .with((QueryIndexProvider) provider)
-            .with((Observer) provider)
-            .with(editorProvider)
-            .with(new PropertyIndexEditorProvider())
-            .with(new NodeTypeIndexProvider())
-            .createContentRepository();
+                .with(new InitialContent())
+                .with(new OpenSecurityProvider())
+                .with((QueryIndexProvider) provider)
+                .with((Observer) provider)
+                .with(editorProvider)
+                .with(new PropertyIndexEditorProvider())
+                .with(new NodeTypeIndexProvider())
+                .createContentRepository();
     }
 
     // OAK-8001
     @Test
     public void emptyIndex() throws Exception {
         NodeBuilder defnBuilder = builder.child("oak:index").child("foo");
-        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(defnBuilder).noAsync();
+        IndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder(defnBuilder).noAsync();
         idxBuilder.indexRule("nt:base").property("propa").propertyIndex();
         idxBuilder.build();
 
@@ -152,7 +149,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         DefaultIndexWriterFactory factory = new DefaultIndexWriterFactory(mip,
                 new DefaultDirectoryFactory(null, null),
                 new LuceneIndexWriterConfig());
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
         writer.close(0);
 
         //2. Construct the readers
@@ -173,7 +170,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         //1. Have 2 reader created by writes in 2 diff mounts
         DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
         DefaultIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, new LuceneIndexWriterConfig());
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         Document doc = newDoc("/content/en");
         doc.add(new StringField("foo", "bar", Field.Store.NO));
@@ -269,7 +266,7 @@ public class MultiplexingLucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] asc, [baz] desc",
-            LucenePropertyIndexTest.getSortedPaths(tuples));
+                LucenePropertyIndexTest.getSortedPaths(tuples));
     }
 
     private List<String> getIndexDirNames(String indexName){

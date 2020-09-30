@@ -40,10 +40,11 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles.CleanupResult;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -77,6 +78,7 @@ public class TarFilesTest {
             .withIOMonitor(new IOMonitorAdapter())
             .withFileStoreMonitor(new FileStoreMonitorAdapter())
             .withMaxFileSize(MAX_FILE_SIZE)
+            .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
             .build();
     }
 

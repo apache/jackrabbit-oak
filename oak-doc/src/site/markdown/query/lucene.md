@@ -40,6 +40,7 @@
     * [Mime type mapping](#mime-type-mapping)
 * [Non Root Index Definitions](#non-root-index)
 * [Function-Based Indexing](#function-based-indexing)
+* [Dynamic Boost](#dynamic-boost)
 * [Native Query and Index Selection](#native-query)
 * [Persisting indexes](#persisting-indexes)
 * [CopyOnRead](#copy-on-read)
@@ -54,6 +55,7 @@
     * [Facets](#facets)
     * [Score Explanation](#score-explanation)
     * [Custom hooks](#custom-hooks)
+    * [Search by similar feature vectors](#similar-fv)
 * [Design Considerations](#design-considerations)
 * [Limits](#limits)
 * [Lucene Index vs Property Index](#lucene-vs-property)
@@ -78,8 +80,8 @@ Following index definition would allow using Lucene index for above query
 ```
 /oak:index/assetType
   - jcr:primaryType = "oak:QueryIndexDefinition"
-  - compatVersion = 2
   - type = "lucene"
+  - compatVersion = 2
   - async = "async"
   + indexRules
     - jcr:primaryType = "nt:unstructured"
@@ -110,8 +112,8 @@ The Lucene index needs to be configured to index all properties
 
     /oak:index/assetType
       - jcr:primaryType = "oak:QueryIndexDefinition"
-      - compatVersion = 2
       - type = "lucene"
+      - compatVersion = 2
       - async = "async"
       + indexRules
         - jcr:primaryType = "nt:unstructured"
@@ -140,18 +142,20 @@ Below is the canonical index definition structure
 
     luceneIndex (oak:QueryIndexDefinition)
       - type (string) = 'lucene' mandatory
+      - compatVersion (long) = 2
       - async (string) = 'async' mandatory
       - blobSize (long) = 32768
       - maxFieldLength (long) = 10000
       - evaluatePathRestrictions (boolean) = false
       - name (string)
-      - compatVersion (long) = 2
       - includedPaths (string) multiple
       - excludedPaths (string) multiple
       - queryPaths (string) multiple = ['/']
       - indexPath (string)
       - codec (string)
       - refresh (boolean)
+      - functionName (string)
+      - useIfExists (string)
       + indexRules (nt:unstructured)
       + aggregates (nt:unstructured)
       + analyzers (nt:unstructured)
@@ -162,6 +166,19 @@ level
 
 type
 : Required and should always be `lucene`
+
+compatVersion
+: Required integer property and should be set to 2
+: By default Oak uses older Lucene index implementation which does not
+  supports property restrictions, index time aggregation etc.
+  To make use of this feature set it to 2.
+  Please note for full text indexing with compatVersion 2,
+  at query time, only the access right of the parent (aggregate) node is checked,
+  and the access right of the child nodes is not checked.
+  If this is a security concern, then compatVersion should not be set,
+  so that query time aggregation is used, in which case the access right
+  of the relevant child is also checked.
+  A compatVersion 2 full text index is usually faster to run queries.
 
 async
 : Required and should always be `async`
@@ -203,25 +220,26 @@ name
 : Optional property
 : Captures the name of the index which is used while logging
 
-compatVersion
-: Required integer property and should be set to 2
-: By default Oak uses older Lucene index implementation which does not
-  supports property restrictions, index time aggregation etc.
-  To make use of this feature set it to 2.
-  Please note for full text indexing with compatVersion 2,
-  at query time, only the access right of the parent (aggregate) node is checked,
-  and the access right of the child nodes is not checked.
-  If this is a security concern, then compatVersion should not be set,
-  so that query time aggregation is used, in which case the access right
-  of the relevant child is also checked.
-  A compatVersion 2 full text index is usually faster to run queries.
-
 [maxFieldLength][OAK-2469]
 : Numbers of terms indexed per field. Defaults to 10000
 
 refresh
 : Optional boolean property
 : Used to refresh the stored index definition. See [Effective Index Definition](#stored-index-definition)
+
+[useIfExists][OAK-7739]
+: Optional string property
+: Only use this index for queries if the given node or property exists.
+  This is specially useful in blue-green deployments, when using the composite node store.
+  For example, if set to `/libs/indexes/acme/@v1`, the index is only used if
+  the given property exists. With a repository where this property is missing,
+  the index is not used. With blue-green deployments, it is possible that
+  two versions of an application are running at the same time, with different `/libs` folders.
+  This settings therefore allows to enable or disable index usage depending on the version in use.
+  (This index is still updated even if the node / property does not exist,
+  so this setting only affects index usage for queries.)
+  This option is supported for indexes of type `lucene` and `property`.
+  `@since Oak 1.10.0`
 
 #### <a name="indexing-rules"></a> Indexing Rules
 
@@ -291,7 +309,7 @@ indexNodeName
 By default, the cost of using this index is calculated follows: For each query,
 the overhead is one operation. For each entry in the index, the cost is one.
 The following only applies to `compatVersion` 2 only:
-To use use a lower or higher cost, you can set the following optional properties
+To use a lower or higher cost, you can set the following optional properties
 in the index definition:
 
     - costPerExecution (Double) = 1.0
@@ -337,7 +355,8 @@ structure
       - notNullCheckEnabled (boolean) = false
       - nullCheckEnabled (boolean) = false
       - excludeFromAggregation (boolean) = false
-      - weight (long) = -1
+      - weight (long) = 5
+      - function (string)
 
 Following are the details about the above mentioned config options which can be
 defined at the property definition level
@@ -447,6 +466,10 @@ function
 : Since 1.5.11, 1.6.0
 : Function, for [function-based indexing](#function-based-indexing).
 
+dynamicBoost
+: Since 1.28.0
+: Enable [dynamic boost](#dynamic-boost)
+
 <a name="weight"></a>
 weight
 : Allows to override the estimated number of entries per value,
@@ -460,6 +483,18 @@ weight
 : Since 1.10: the default value is now `5`.
   See [OAK-7379][OAK-7379] for details.
   
+sync
+: Since 1.8.0, [OAK-6535]
+: Changes to the content are available in the index as soon as they are committed.
+  Requires "propertyIndex=true".
+  Relative properties and notNullCheckEnabled are not supported.
+: See [synchronous Lucene property indexes][synchronous-lucene-property-indexes] for details.
+
+unique
+: Since 1.8.0, [OAK-6535]
+: Requires "sync=true". Enforces unique property values in the content.
+: See [synchronous Lucene property indexes][synchronous-lucene-property-indexes] for details.
+
 <a name="property-names"></a>**Property Names**
 
 Property name can be one of following
@@ -702,7 +737,6 @@ The default analyzer can be configured via `analyzers/default` node
       - jcr:primaryType = "oak:QueryIndexDefinition"
       + analyzers
         + default
-        + pathText
           ...
 ```
 
@@ -758,6 +792,30 @@ all the other components (e.g. `charFilters`, `Synonym`) are optional.
           + Synonym
             - synonyms = "synonym.txt"
             + synonym.txt (nt:file)
+```
+
+#### Examples
+
+Adding stemming support
+```
+1. Use an analyzer which has stemming included by default e.g. EnglishAnalyzer which has PorterStemFilter.
+    + analyzers
+      + default
+        - class = "org.apache.lucene.analysis.en.EnglishAnalyzer"
+
+2. Use stemming as part of analyzer composition (using org.apache.lucene.analysis.hunspell.HunspellStemFilterFactory)
+    + analyzers
+      + default
+        + tokenizer
+          - name = "Standard"
+        + filters (nt:unstructured) //The filters needs to be ordered
+          + LowerCase
+          + HunspellStem
+            - dictionary = "en_gb.dic"
+            - affix = "en_gb.aff"
+            + en_gb.aff (nt:file)
+            + en_gb.dic (nt:file)
+
 ```
 
 Points to note
@@ -1039,7 +1097,7 @@ For example using the index definition
       - function = "fn:upper-case(@lastName)"
       - propertyIndex = true
       - ordered = true
-    
+
 This allows to search for, and order by, the lower case version of the property "lastName". Example functions:
 
 * fn:upper-case(@data)
@@ -1054,9 +1112,34 @@ This allows to search for, and order by, the lower case version of the property 
 * length([test/data])
 * length(name())
 
-Indexing multi-valued properties is supported. 
-Relative properties are supported (except for ".." and "."). 
+Indexing multi-valued properties is supported.
+Relative properties are supported (except for ".." and ".").
 Range conditions are supported ('>', '>=', '<=', '<').
+
+### <a name="dynamic-boost"></a>Dynamic Boost
+
+`@since Oak 1.28.0`
+
+To enable the feature, add a property to be indexed, e.g.:
+
+    dynamicBoost
+     - dynamicBoost = true (Boolean)
+     - propertyIndex = true
+     - name = jcr:content/metadata/predictedTags/.* (String)
+     - isRegexp = true (Boolean)
+
+That way, if a node `jcr:content/metadata/predictedTags` is added (for the indexed node type),
+then dynamic boost is used. It will read the child nodes of that node
+(`jcr:content/metadata/predictedTags`) and for each node it will read:
+
+* name (String)
+* confidence (Double)
+
+It will then add a field, for each token of the "name" property,
+with boost set to the confidence.
+This is a replacement for the `IndexFieldProvider`.
+See also [OAK-8971][OAK-8971].
+
 
 ### <a name="native-query"></a>Native Query and Index Selection
 
@@ -1383,21 +1466,34 @@ Specific facet related features for Lucene property index can be configured in a
           - propertyIndex = true
 ```
 
-By default ACL checks are always performed on facets by the Lucene property index however there are a few configuration
-option to configure how ACL checks are done by configuring _secure_ property in the _facets_ configuration node.
+By default, ACL checks are always performed on facets by the Lucene property index.
+This is secure (no information leakage is possible), but can be slow.
+The _secure_ configuration property allows to configure how facet counts are performed.
 `@since Oak 1.6.16, 1.8.10, 1.9.13` `secure` property is a string with allowed values of `secure`, `statistical` and
 `insecure` - `secure` being the default value. Before that `secure` was a boolean property and to maintain compatibility
 `false` maps to `insecure` while `true` (default at the time) maps to `secure`.
+The following configuration options are supported:
 
-For `insecure` facets, the facet counts reported by lucene index are reported back as is.
-For `secure` configuration all results of a query are checked for access permissions and facets returned by index are
-updated accordingly. This can be very bad from performance point of view for large result set.
-As a trade off `statistical` configuration can be used to randomly sample some items (default `1000` configurable via
-`sampleSize`) and check ACL for the random samples. Facet counts returned via index are updated proportionally to the
-percentage of accessible samples that were checked for ACL.
+* `secure` (the default) means all results of a query are checked for access permissions.
+Facets and counts returned by index reflect what is accessible to the given user.
+The query result therefore only reflects information the user has access rights for.
+This can be slow, specially for large result set.
+
+* `insecure` means the facet counts are reported as stored in the index, without performing access rights checks.
+Warning: this setting potentially leaks repository information the user that runs the query may not see.
+It must only be used if either the index is guaranteed to only contain data that is public
+(e.g. a public subtree of the repository), or if the leaked information is not sensitive.
+
+* `statistical` means the data is sampled randomly (default `1000` configurable via
+`sampleSize`), and ACL checks are performed on this sample.
+Facet counts returned are proportional to the percentage of accessible samples that were checked for ACL.
+Warning: this setting potentially leaks repository information the user that runs the query may not see.
+It must only be used if either the index is guaranteed to only contain data that is public
+(e.g. a public subtree of the repository), or if the leaked information is not sensitive.
 Do note that the [beauty of sampling](https://onlinecourses.science.psu.edu/stat100/node/16/) is that a sample size of
-`1000` would have 3% error rate with 95% confidence. But that's a theoretical limit for infinite number of experiments -
-in practice though, a low rate of accessible documents decreases chances to reach that average rate. To have a sense of
+`1000` has an error rate of 3% with 95% confidence, if ACLs are evenly distributed over the sampled data.
+However, often ACLs are not evenly distributed. Also, a low rate of accessible documents
+decreases chances to reach that average rate. To have a sense of
 expectation of error rate, here's how errors looked like in different scenarios of test runs with sample size of 1000
 with error averaged over 1000 random runs for each scenario.
 ```
@@ -1473,9 +1569,39 @@ _Note that showing explanation score is expensive. So, this feature should be us
 
 `@since Oak 1.3.14`
 
+The following features is now deprecated:
 In OSGi enviroment, implementations of `IndexFieldProvider` and `FulltextQueryTermsProvider` under
 `org.apache.jackrabbit.oak.plugins.index.lucene.spi` (see javadoc [here][oak-lucene]) are called during indexing
 and querying as documented in javadocs.
+
+### <a name="similar-fv"></a>Search by similar feature vectors
+
+Oak Lucene index currently supports _rep:similar_ queries via _MoreLikeThis_ for text properties, this allows to search
+for similar nodes by looking at texts.
+This capability extends _rep:similar_ support to feature vectors, typically used to represent binary content like images,
+in order to search for similar nodes by looking at such vectors.
+
+In order to index JCR properties holding vector values for similarity search, either in form of blobs or in form of texts,
+the index definition should have a rule for each such property with the _useInSimilarity_ parameter set to _true_.
+As a result, after (re)indexing, each vector will be indexed so that an approximate nearest neighbour search is possible,
+not requiring brute force nearest neighbour search over the entire set of indexed vectors.
+
+By default another property for feature vector similarity search, called _similarityRerank_, is set to _true_ in order
+to allow reranking of the top 15 results using brute force nearest neighbour.
+Therefore in a first iteration an approximate nearest neighbour search is performed to obtain all the possibly relevant
+results (expecting high recall), then a brute force nearest neighbour over the top 15 search results is performed to
+improve precision (see [OAK-7824](https://issues.apache.org/jira/browse/OAK-7824), [OAK-7962](https://issues.apache.org/jira/browse/OAK-7962),
+[OAK-8119](https://issues.apache.org/jira/browse/OAK-8119)).
+
+As a further improvement for the accuracy of similarity search results if nodes having feature vectors also have properties
+ holding text values that can be used as keywords or tags that well describe the feature vector contents, the
+ _similarityTags_ configuration can be set to _true_ for such properties (see [OAK-8118](https://issues.apache.org/jira/browse/OAK-8118)).
+
+See also [OAK-7575](https://issues.apache.org/jira/browse/OAK-7575).
+
+
+
+`@since Oak 1.8.8`
 
 ### <a name="design-considerations"></a>Design Considerations
 
@@ -1999,7 +2125,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
           - propertyIndex = true
 ```
 
-[1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
+[1]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
 [OAK-1737]: https://issues.apache.org/jira/browse/OAK-1737
 [OAK-2005]: https://issues.apache.org/jira/browse/OAK-2005
@@ -2026,8 +2152,11 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [OAK-4516]: https://issues.apache.org/jira/browse/OAK-4516
 [OAK-5187]: https://issues.apache.org/jira/browse/OAK-5187
 [OAK-5899]: https://issues.apache.org/jira/browse/OAK-5899
+[OAK-6535]: https://issues.apache.org/jira/browse/OAK-6535
 [OAK-6735]: https://issues.apache.org/jira/browse/OAK-6735
 [OAK-7379]: https://issues.apache.org/jira/browse/OAK-7379
+[OAK-7739]: https://issues.apache.org/jira/browse/OAK-7739
+[OAK-8971]: https://issues.apache.org/jira/browse/OAK-8971
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
@@ -2037,7 +2166,8 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [lucene-codec]: https://lucene.apache.org/core/4_7_1/core/org/apache/lucene/codecs/Codec.html
 [tika-download]: https://tika.apache.org/download.html
 [oak-run-tika]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#tika
-[jcr-contains]: http://www.day.com/specs/jcr/1.0/6.6.5.2_jcr_contains_Function.html
+[jcr-contains]: https://docs.adobe.com/docs/en/spec/jcr/1.0/6.6.5.2_jcr_contains_Function.html
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
 [score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
 [oak-lucene]: http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/
+[synchronous-lucene-property-indexes]: http://jackrabbit.apache.org/archive/wiki/JCR/Synchronous-Lucene-Property-Indexes_115513516.html

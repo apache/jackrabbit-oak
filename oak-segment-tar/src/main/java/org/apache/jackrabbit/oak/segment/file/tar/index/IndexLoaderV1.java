@@ -17,12 +17,12 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar.index;
 
-import static org.apache.jackrabbit.oak.segment.spi.persistence.Buffer.wrap;
+import static org.apache.jackrabbit.oak.commons.Buffer.wrap;
 
 import java.io.IOException;
 import java.util.zip.CRC32;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.util.ReaderAtEnd;
 
 class IndexLoaderV1 {

@@ -34,17 +34,24 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerPro
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrServer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.After;
 
 import static org.junit.Assert.assertNotNull;
 
 public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
+    private SolrServerProvider solrServerProvider;
+
     public SolrOakRepositoryStub(Properties settings)
             throws RepositoryException {
         super(settings);
+    }
+
+    @After
+    public void tearDown() throws Exception{
+        solrServerProvider.close();
     }
 
     @Override
@@ -56,10 +63,12 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        SolrServerProvider solrServerProvider = new SolrServerProvider() {
+        solrServerProvider = new SolrServerProvider() {
             @Override
             public void close() throws IOException {
-
+                if (solrServer != null) {
+                    solrServer.close();
+                }
             }
 
             @Nullable

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
-import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_MEMORY_CACHE_SIZE;
@@ -31,7 +30,6 @@ import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.text.ParseException;
@@ -45,13 +43,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -79,16 +77,15 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
-import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCacheStats;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreWrapper;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStoreStatsMBean;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserverMBean;
-import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
@@ -142,6 +139,7 @@ public class DocumentNodeStoreService {
     public static final String CONTINUOUS_RGC_EXPR = "*/5 * * * * ?";
     public static final String CLASSIC_RGC_EXPR = "0 0 2 * * ?";
     public static final long DEFAULT_RGC_TIME_LIMIT_SECS = 3*60*60; // default is 3 hours
+    public static final double DEFAULT_RGC_DELAY_FACTOR = 0;
     private static final String DESCRIPTION = "oak.nodestore.description";
     static final long DEFAULT_JOURNAL_GC_INTERVAL_MILLIS = 5*60*1000; // default is 5min
     static final long DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS = 24*60*60*1000; // default is 24hours
@@ -343,8 +341,7 @@ public class DocumentNodeStoreService {
             String repoId = null;
             try {
                 repoId = ClusterRepositoryInfo.getOrCreateId(nodeStore);
-                ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
-                    SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+                ((SharedDataStore) blobStore).setRepositoryId(repoId);
             } catch (Exception e) {
                 throw new IOException("Could not register a unique repositoryId", e);
             }
@@ -378,7 +375,7 @@ public class DocumentNodeStoreService {
 
         // OAK-2682: time difference detection applied at startup with a default
         // max time diff of 2000 millis (2sec)
-        final long maxDiff = Long.parseLong(System.getProperty("oak.documentMK.maxServerTimeDiffMillis", "2000"));
+        final long maxDiff = SystemPropertySupplier.create("oak.documentMK.maxServerTimeDiffMillis", 2000L).loggingTo(log).get();
         try {
             if (maxDiff>=0) {
                 final long timeDiff = ds.determineServerTimeDifferenceMillis();
@@ -460,7 +457,7 @@ public class DocumentNodeStoreService {
                 setPrefetchExternalChanges(config.prefetchExternalChanges()).
                 setUpdateLimit(config.updateLimit()).
                 setJournalGCMaxAge(config.journalGCMaxAge()).
-                setNodeCachePredicate(createCachePredicate());
+                setNodeCachePathPredicate(createCachePredicate());
 
         if (!Strings.isNullOrEmpty(persistentCache)) {
             builder.setPersistentCache(persistentCache);
@@ -481,7 +478,7 @@ public class DocumentNodeStoreService {
         return customBlobStore && blobStore instanceof BlobStoreWrapper;
     }
 
-    private Predicate<String> createCachePredicate() {
+    private Predicate<Path> createCachePredicate() {
         if (config.persistentCacheIncludes().length == 0) {
             return Predicates.alwaysTrue();
         }
@@ -489,16 +486,24 @@ public class DocumentNodeStoreService {
             return Predicates.alwaysTrue();
         }
 
-        Set<String> paths = new HashSet<>();
+        Set<Path> paths = new HashSet<>();
         for (String p : config.persistentCacheIncludes()) {
             p = p != null ? Strings.emptyToNull(p.trim()) : null;
             if (p != null) {
-                paths.add(p);
+                paths.add(Path.fromString(p));
             }
         }
-        PathFilter pf = new PathFilter(paths, emptyList());
         log.info("Configuring persistent cache to only cache nodes under paths {}", paths);
-        return path -> path != null && pf.filter(path) == PathFilter.Result.INCLUDE;
+        return input -> {
+            if (input != null) {
+                for (Path p : paths) {
+                    if (p.isAncestorOf(input)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
     }
 
     private boolean isNodeStoreProvider() {
@@ -731,7 +736,7 @@ public class DocumentNodeStoreService {
         }
 
         // register persistent cache stats
-        Map<CacheType, PersistentCacheStats> persistenceCacheStats = mkBuilder.getPersistenceCacheStats();
+        Map<String, PersistentCacheStats> persistenceCacheStats = mkBuilder.getPersistenceCacheStats();
         for (PersistentCacheStats pcs: persistenceCacheStats.values()) {
             addRegistration(
                     registerMBean(whiteboard,
@@ -753,7 +758,7 @@ public class DocumentNodeStoreService {
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
-        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0);
+        Runnable startGC = new RevisionGCJob(store, versionGcMaxAgeInSecs, 0, DEFAULT_RGC_DELAY_FACTOR);
         Runnable cancelGC = () -> store.getVersionGarbageCollector().cancel();
         Supplier<String> status = () -> store.getVersionGarbageCollector().getStatus();
         RevisionGC revisionGC = new RevisionGC(startGC, cancelGC, status, executor);
@@ -813,9 +818,10 @@ public class DocumentNodeStoreService {
         props.put("scheduler.expression", expr);
         long versionGcMaxAgeInSecs = config.versionGcMaxAgeInSecs();
         long versionGCTimeLimitInSecs = config.versionGCTimeLimitInSecs();
+        double versionGCDelayFactor = config.versionGCDelayFactor();
         addRegistration(scheduleWithFixedDelay(whiteboard,
                 new RevisionGCJob(nodeStore, versionGcMaxAgeInSecs,
-                        versionGCTimeLimitInSecs),
+                        versionGCTimeLimitInSecs, versionGCDelayFactor),
                 props, MODIFIED_IN_SECS_RESOLUTION, true, true));
     }
 
@@ -895,23 +901,26 @@ public class DocumentNodeStoreService {
         private final DocumentNodeStore nodeStore;
         private final long versionGCMaxAgeInSecs;
         private final long versionGCTimeLimitInSecs;
+        private final double versionGCDelayFactor;
         private volatile Object lastResult = "";
         private long lastLogTime;
         private VersionGCStats stats;
 
         RevisionGCJob(DocumentNodeStore ns,
                       long versionGcMaxAgeInSecs,
-                      long versionGCTimeLimitInSecs) {
+                      long versionGCTimeLimitInSecs,
+                      double versionGCDelayFactor) {
             this.nodeStore = ns;
             this.versionGCMaxAgeInSecs = versionGcMaxAgeInSecs;
             this.versionGCTimeLimitInSecs = versionGCTimeLimitInSecs;
+            this.versionGCDelayFactor = versionGCDelayFactor;
             resetStats();
         }
 
         @Override
         public void run() {
             VersionGarbageCollector gc = nodeStore.getVersionGarbageCollector();
-            gc.setOptions(gc.getOptions().withMaxDuration(TimeUnit.SECONDS, versionGCTimeLimitInSecs));
+            gc.setOptions(gc.getOptions().withMaxDuration(TimeUnit.SECONDS, versionGCTimeLimitInSecs).withDelayFactor(versionGCDelayFactor));
             try {
                 VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);

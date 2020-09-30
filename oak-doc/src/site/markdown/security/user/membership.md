@@ -18,7 +18,7 @@
 Group Membership
 --------------------------------------------------------------------------------
 
-<a href="jcr_api"></a>
+<a name="jcr_api"></a>
 ### Jackrabbit API
 
 The Jackrabbit API extensions provide various methods to edit and explore the
@@ -38,7 +38,7 @@ member relationship of users and groups:
     - `declaredMemberOf() Iterator<Group>`
     - `memberOf() Iterator<Group>`
 
-<a href="default_implementation"></a>
+<a name="default_implementation"></a>
 ### Characteristics of the Default Implementation
 
 #### Member Representation in the Repository
@@ -201,7 +201,7 @@ The following scenarios may leave the cycle unnoticed upon adding members:
 
 See [OAK-3170] for additional information. 
 
-<a href="configuration"></a>
+<a name="configuration"></a>
 ### Configuration
 
 Note that as of Oak 1.0 the implementation is responsible for defining the

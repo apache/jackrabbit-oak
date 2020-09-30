@@ -89,7 +89,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
             // there could be (temporarily) multiple entries
             // we need to remove the right one
             PropertyState s = builder.getProperty("entry");
-            if (s.count() == 1) {
+            if (s == null || s.count() == 1) {
                 builder.remove();
             } else {
                 ArrayList<String> list = new ArrayList<String>();

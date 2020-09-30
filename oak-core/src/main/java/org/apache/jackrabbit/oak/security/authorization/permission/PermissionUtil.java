@@ -106,11 +106,21 @@ public final class PermissionUtil implements PermissionConstants {
         return path;
     }
 
-    public static Tree getReadOnlyTree(@Nullable Tree tree, @NotNull Root readOnlyRoot) {
+    @Nullable
+    public static Tree getReadOnlyTreeOrNull(@Nullable Tree tree, @NotNull Root readOnlyRoot) {
         if (tree instanceof ReadOnly) {
             return tree;
         } else {
             return (tree == null) ? null : readOnlyRoot.getTree(tree.getPath());
+        }
+    }
+
+    @NotNull
+    public static Tree getReadOnlyTree(@NotNull Tree tree, @NotNull Root readOnlyRoot) {
+        if (tree instanceof ReadOnly) {
+            return tree;
+        } else {
+            return readOnlyRoot.getTree(tree.getPath());
         }
     }
 }

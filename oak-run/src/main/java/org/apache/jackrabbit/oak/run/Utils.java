@@ -51,11 +51,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.cli.DummyDataStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
@@ -80,6 +82,7 @@ class Utils {
         public final OptionParser parser;
         public final OptionSpec<String> rdbjdbcuser;
         public final OptionSpec<String> rdbjdbcpasswd;
+        public final OptionSpec<String> rdbtableprefix;
         public final OptionSpec<Integer> clusterId;
         public final OptionSpec<Void> disableBranchesSpec;
         public final OptionSpec<Integer> cacheSizeSpec;
@@ -96,8 +99,11 @@ class Utils {
             rdbjdbcpasswd = parser
                     .accepts("rdbjdbcpasswd", "RDB JDBC password")
                     .withOptionalArg().defaultsTo("");
+            rdbtableprefix = parser
+                    .accepts("rdbtableprefix", "RDB table prefix")
+                    .withOptionalArg();
             clusterId = parser
-                    .accepts("clusterId", "MongoMK clusterId")
+                    .accepts("clusterId", "DocumentMK clusterId")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(0);
             disableBranchesSpec = parser.
                     accepts("disableBranches", "disable branches");
@@ -151,6 +157,10 @@ class Utils {
         public String getRDBJDBCPassword() {
             return rdbjdbcpasswd.value(options);
         }
+
+        public String getRDBTablePrefix() {
+            return rdbtableprefix.value(options);
+        }
     }
 
     public static NodeStore bootstrapNodeStore(String[] args, Closer closer, String h) throws IOException, InvalidFileStoreVersionException {
@@ -158,6 +168,10 @@ class Utils {
     }
 
     public static NodeStore bootstrapNodeStore(NodeStoreOptions options, Closer closer) throws IOException, InvalidFileStoreVersionException {
+        return bootstrapNodeStore(options, closer, false);
+    }
+
+    public static NodeStore bootstrapNodeStore(NodeStoreOptions options, Closer closer, boolean readOnlyMode) throws IOException, InvalidFileStoreVersionException {
         String src = options.getStoreArg();
         if (src == null || src.length() == 0) {
             options.printHelpOn(System.err);
@@ -167,10 +181,21 @@ class Utils {
         if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
             DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
+                if (readOnlyMode) {
+                    builder.setReadOnlyMode();
+                } // otherwise default is read-write
                 DocumentNodeStore store = builder.build();
                 closer.register(asCloseable(store));
                 return store;
             }
+        }
+
+        if (readOnlyMode) {
+            ReadOnlyFileStore fileStore = fileStoreBuilder(new File(src))
+                .withStrictVersionCheck(true)
+                .buildReadOnly();
+            closer.register(fileStore);
+            return SegmentNodeStoreBuilders.builder(fileStore).build();
         }
 
         FileStore fileStore = fileStoreBuilder(new File(src))
@@ -207,9 +232,12 @@ class Utils {
             builder = newMongoDocumentNodeStoreBuilder().setMongoDB(
                     mongo.getMongoClient(), mongo.getDBName());
         } else if (src.startsWith("jdbc")) {
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(src,
-                    options.getRDBJDBCUser(), options.getRDBJDBCPassword());
-            builder = newRDBDocumentNodeStoreBuilder().setRDBConnection(ds);
+            RDBOptions opts = new RDBOptions();
+            if (options.getRDBTablePrefix() != null) {
+                opts = opts.tablePrefix(options.getRDBTablePrefix());
+            }
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(src, options.getRDBJDBCUser(), options.getRDBJDBCPassword());
+            builder = newRDBDocumentNodeStoreBuilder().setRDBConnection(ds, opts);
         } else {
             return null;
         }
@@ -329,6 +357,19 @@ class Utils {
         };
     }
 
+    static Closer createCloserWithShutdownHook() {
+        Closer closer = Closer.create();
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                try {
+                    closer.close();
+                } catch (IOException e) {
+                    e.printStackTrace(System.err);
+                }
+            }
+        });
+        return closer;
+    }
 
     private static Properties loadAndTransformProps(String cfgPath) throws IOException {
         Dictionary dict = ConfigurationHandler.read(new FileInputStream(cfgPath));

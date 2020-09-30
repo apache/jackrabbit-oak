@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -216,7 +216,7 @@ public class DocumentStoreIndexerIT extends AbstractIndexCommandTest {
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder idxb = childBuilder(builder, TEST_INDEX_PATH);
 
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder(idxb);
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder(idxb);
         defnb.indexRule("nt:base").property("foo").propertyIndex();
         defnb.build();
 

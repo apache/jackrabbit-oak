@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.document.util;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 
 /**
@@ -31,12 +32,12 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 public abstract class MapFactory {
     private static MapFactory DEFAULT = new MapFactory() {
         @Override
-        public ConcurrentMap<String, Revision> create() {
-            return new ConcurrentHashMap<String, Revision>();
+        public ConcurrentMap<Path, Revision> create() {
+            return new ConcurrentHashMap<>();
         }
     };
 
-    public abstract ConcurrentMap<String, Revision> create();
+    public abstract ConcurrentMap<Path, Revision> create();
 
     private static MapFactory instance = DEFAULT;
 

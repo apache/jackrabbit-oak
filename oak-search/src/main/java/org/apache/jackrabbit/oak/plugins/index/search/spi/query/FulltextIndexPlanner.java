@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
 import java.util.ArrayList;
@@ -34,6 +33,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
@@ -81,9 +82,9 @@ public class FulltextIndexPlanner {
     private final IndexDefinition definition;
     private final Filter filter;
     private final String indexPath;
-    private final List<OrderEntry> sortOrder;
-    private IndexNode indexNode;
-    private PlanResult result;
+    protected final List<OrderEntry> sortOrder;
+    private final IndexNode indexNode;
+    protected PlanResult result;
     protected static boolean useActualEntryCount;
 
     static {
@@ -152,14 +153,16 @@ public class FulltextIndexPlanner {
         if (wrongIndex()) {
             return null;
         }
-
-        FullTextExpression ft = filter.getFullTextConstraint();
+        if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.ENABLE.name()) && !isPlanWithValidPathFilter()) {
+            return null;
+        }
 
         if (!definition.getVersion().isAtLeast(IndexFormatVersion.V2)){
             log.trace("Index is old format. Not supported");
             return null;
         }
 
+        FullTextExpression ft = filter.getFullTextConstraint();
         //Query Fulltext and Index does not support fulltext
         if (ft != null && !definition.isFullTextEnabled()) {
             return null;
@@ -221,7 +224,7 @@ public class FulltextIndexPlanner {
 
                     PropertyDefinition facetPropDef = indexingRule.getConfig(facetProp);
                     if (facetPropDef == null || !facetPropDef.facet) {
-                        log.warn("{} not backed by index. Opting out", value);
+                        log.debug("{} not backed by index. Opting out", value);
                         return null;
                     }
 
@@ -286,6 +289,11 @@ public class FulltextIndexPlanner {
             costPerEntryFactor += sortOrder.size();
 
             IndexPlan.Builder plan = defaultPlan();
+
+            if (filter.getQueryLimits().getStrictPathRestriction().equals(StrictPathRestriction.WARN.name()) && !isPlanWithValidPathFilter()) {
+                plan.setLogWarningForPathFilterMismatch(true);
+            }
+
             if (plan == null) {
                 return null;
             }
@@ -331,6 +339,12 @@ public class FulltextIndexPlanner {
         //TODO Support for property existence queries
 
         return null;
+    }
+
+    private boolean isPlanWithValidPathFilter() {
+        String pathFilter = filter.getPath();
+        PathFilter definitionPathFilter = definition.getPathFilter();
+        return definitionPathFilter.areAllDescendantsIncluded(pathFilter);
     }
 
     private boolean matchesValuePattern(PropertyRestriction pr, PropertyDefinition pd) {
@@ -470,7 +484,7 @@ public class FulltextIndexPlanner {
 
         // If jcr:score is the only sort order then opt out
         return sortOrder.size() != 1 ||
-            !JCR_SCORE.equals(sortOrder.get(0).getPropertyName());
+                !JCR_SCORE.equals(sortOrder.get(0).getPropertyName());
     }
 
     private boolean canEvalAllFullText(final IndexingRule indexingRule, FullTextExpression ft) {
@@ -552,7 +566,7 @@ public class FulltextIndexPlanner {
         //have jcr:content as parent. So ensure that relPaths size is 1 or 0
         if (!nonIndexedPaths.isEmpty()){
             if (relPaths.size() > 1){
-                log.debug("Following relative  property paths are not index", relPaths);
+                log.debug("Following relative property paths are not index: {}", relPaths);
                 return false;
             }
             result.setParentPath(Iterables.getOnlyElement(relPaths, ""));
@@ -706,8 +720,8 @@ public class FulltextIndexPlanner {
         //NO_RESTRICTION
         if (filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
                 || (filter.getPathRestriction() == Filter.PathRestriction.ALL_CHILDREN
-                        && PathUtils.denotesRoot(filter.getPath()))
-                ){
+                && PathUtils.denotesRoot(filter.getPath()))
+        ){
             return false;
         }
         //If no other restrictions is provided and query is pure
@@ -784,8 +798,8 @@ public class FulltextIndexPlanner {
     private int getNumDocs() {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         if (indexStatistics == null) {
-           log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
-           return Integer.MAX_VALUE;
+            log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
+            return Integer.MAX_VALUE;
         }
         return indexStatistics.numDocs();
     }
@@ -793,8 +807,8 @@ public class FulltextIndexPlanner {
     private int getMaxPossibleNumDocs(Map<String, PropertyDefinition> propDefns, Filter filter) {
         IndexStatistics indexStatistics = indexNode.getIndexStatistics();
         if (indexStatistics == null) {
-           log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
-           return Integer.MAX_VALUE;
+            log.warn("Statistics not available - possibly index is corrupt? Returning high doc count");
+            return Integer.MAX_VALUE;
         }
         int minNumDocs = indexStatistics.numDocs();
         for (Map.Entry<String, PropertyDefinition> propDef : propDefns.entrySet()) {
@@ -849,7 +863,7 @@ public class FulltextIndexPlanner {
         return pr.first != null && pr.first == pr.last;
     }
 
-    private List<OrderEntry> createSortOrder(IndexDefinition.IndexingRule rule) {
+    protected List<OrderEntry> createSortOrder(IndexDefinition.IndexingRule rule) {
         if (sortOrder == null) {
             return Collections.emptyList();
         }
@@ -868,7 +882,7 @@ public class FulltextIndexPlanner {
                 orderEntries.add(IndexDefinition.NATIVE_SORT_ORDER);
             }
             for (PropertyDefinition functionIndex : rule.getFunctionRestrictions()) {
-                if (o.getPropertyName().equals(functionIndex.function)) {
+                if (functionIndex.ordered && o.getPropertyName().equals(functionIndex.function)) {
                     // can manage any order desc/asc
                     orderEntries.add(o);
                     result.sortedProperties.add(functionIndex);
@@ -918,7 +932,7 @@ public class FulltextIndexPlanner {
                 }
             }
             log.trace("No applicable IndexingRule found for any of the superTypes {}",
-                filter.getSupertypes());
+                    filter.getSupertypes());
         }
         return null;
     }
@@ -1012,6 +1026,14 @@ public class FulltextIndexPlanner {
             return relativize;
         }
 
+        public int getParentDepth() {
+            return parentDepth;
+        }
+
+        public String getParentPathSegment() {
+            return parentPathSegment;
+        }
+
         public boolean isUniquePathsRequired() {
             return uniquePathsRequired;
         }
@@ -1027,10 +1049,13 @@ public class FulltextIndexPlanner {
         @Nullable
         public String transformPath(String path){
             if (isPathTransformed()){
-                // get the base path
-                // ensure the path ends with the given
-                // relative path
-                if (!path.endsWith(parentPathSegment)) {
+                // get the base path ensure the path ends with the given relative path
+                // for fulltext constraint.
+                // For non-fulltext constraint where query engine can evaluate the relative path
+                // condition, we shall take leeway and allow other features of query engine
+                // (like wildcard as a path element) get supported
+                if ( (!nonFullTextConstraints && !path.endsWith(parentPathSegment))
+                        || (nonFullTextConstraints && getDepth(path) < parentDepth) ) {
                     return null;
                 }
                 return getAncestorPath(path, parentDepth);

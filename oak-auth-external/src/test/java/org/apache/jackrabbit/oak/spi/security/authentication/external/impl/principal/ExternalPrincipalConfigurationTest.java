@@ -43,9 +43,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfigImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModuleFactory;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.SyncHandlerMapping;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -57,6 +60,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest {
 
@@ -185,6 +189,12 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
     }
 
     @Test
+    public void testDeactivateWithNullTrackers() {
+        ExternalPrincipalConfiguration epc = new ExternalPrincipalConfiguration(getSecurityProvider());
+        MockOsgi.deactivate(epc, context.bundleContext(), Collections.emptyMap());
+    }
+
+    @Test
     public void testAddingSyncHandler() {
         Map<String, Object> enableProps =  ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true);
         Map<String, Object> disableProps =  ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false);
@@ -227,10 +237,10 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
         ServiceRegistration registration = bundleContext.registerService(DefaultSyncHandler.class.getName(), sh, disableProps);
         assertIsEnabled(externalPrincipalConfiguration, false);
 
-        registration.setProperties(enableProps);
+        MockOsgi.modified(sh, bundleContext, enableProps);
         assertIsEnabled(externalPrincipalConfiguration, true);
 
-        registration.setProperties(disableProps);
+        MockOsgi.modified(sh, bundleContext, disableProps);
         assertIsEnabled(externalPrincipalConfiguration, false);
     }
 
@@ -256,6 +266,18 @@ public class ExternalPrincipalConfigurationTest extends AbstractExternalAuthTest
 
         registration3.unregister();
         assertIsEnabled(externalPrincipalConfiguration, false);
+    }
+
+    @Test
+    public void testAddingIncompleteSyncHandlerMapping() {
+        SyncHandlerMapping mapping = mock(SyncHandlerMapping.class);
+
+        context.registerService(SyncHandlerMapping.class, mapping);
+
+        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(ExternalLoginModuleFactory.PARAM_IDP_NAME, "idpName"));
+
+        context.registerService(SyncHandlerMapping.class, mapping, ImmutableMap.of(ExternalLoginModuleFactory.PARAM_SYNC_HANDLER_NAME, "syncHandlerName"));
+
     }
 
     private static final class TestSyncHandler implements SyncHandler {

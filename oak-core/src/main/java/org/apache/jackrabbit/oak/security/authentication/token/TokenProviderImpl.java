@@ -187,7 +187,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             if (tokenInfo != null) {
                 // also set the new token to the credentials.
                 if (!credentialsSupport.setAttributes(creds, ImmutableMap.of(TOKEN_ATTRIBUTE, tokenInfo.getToken()))) {
-                    log.debug("Cannot set token attribute to " + creds);
+                    log.debug("Cannot set token attribute to {}", creds);
                 }
             }
         }
@@ -207,6 +207,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      * @return A new {@code TokenInfo} or {@code null} if the token could not
      *         be created.
      */
+    @Nullable
     @Override
     public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
         String error = "Failed to create login token. {}";
@@ -239,11 +240,8 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
                 }
                 cleanupExpired(userId, tokenParent, creationTime, tokenInfo.getToken());
                 return tokenInfo;
-            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
-                // error while generating login token
-                log.error(error, e.getMessage());
-            } catch (CommitFailedException | RepositoryException e) {
-                // conflict while committing changes
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException | CommitFailedException | RepositoryException e) {
+                // error while generating login token or while committing changes
                 log.error(error, e.getMessage());
             }
         } else {
@@ -262,6 +260,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
      *         {@code null} of the corresponding information does not exist or is not
      *         associated with a valid user.
      */
+    @Nullable
     @Override
     public TokenInfo getTokenInfo(@NotNull String token) {
         int pos = token.indexOf(DELIM);
@@ -365,7 +364,7 @@ class TokenProviderImpl implements TokenProvider, TokenConstants {
             if (user != null && !user.isGroup()) {
                 return (User) user;
             } else {
-                log.debug("Cannot create login token: No corresponding node for User " + userId + '.');
+                log.debug("Cannot create login token: No corresponding node for User {}.", userId);
             }
         } catch (RepositoryException e) {
             // error while accessing user.

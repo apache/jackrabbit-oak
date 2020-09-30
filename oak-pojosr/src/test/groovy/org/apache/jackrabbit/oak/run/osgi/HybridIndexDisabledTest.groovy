@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.run.osgi
 
 import org.apache.felix.connect.launch.PojoServiceRegistry
 import org.apache.jackrabbit.commons.JcrUtils
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.junit.After
@@ -75,7 +75,7 @@ class HybridIndexDisabledTest extends AbstractRepositoryFactoryTest {
                     if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)) {
                         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
 
-                        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder();
+                        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
                         idxBuilder.async("async", "sync")
                         idxBuilder.indexRule("nt:base").property("foo").propertyIndex()
                         index.setChildNode("fooIndex", idxBuilder.build())

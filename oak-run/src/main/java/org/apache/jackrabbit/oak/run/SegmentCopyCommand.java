@@ -17,7 +17,9 @@
 
 package org.apache.jackrabbit.oak.run;
 
+import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
+import org.apache.jackrabbit.oak.segment.aws.tool.AwsSegmentCopy;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
 
 import java.io.IOException;
@@ -31,6 +33,11 @@ class SegmentCopyCommand implements Command {
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
+
+        OptionSpec<Integer> last = parser.accepts("last", "define the number of revisions to be copied (default: 1)")
+                .withOptionalArg()
+                .ofType(Integer.class);
+
         OptionSet options = parser.parse(args);
 
         PrintWriter out = new PrintWriter(System.out, true);
@@ -43,14 +50,31 @@ class SegmentCopyCommand implements Command {
         String source = options.nonOptionArguments().get(0).toString();
         String destination = options.nonOptionArguments().get(1).toString();
 
-        int statusCode = SegmentCopy.builder()
-                .withSource(source)
-                .withDestination(destination)
-                .withOutWriter(out)
-                .withErrWriter(err)
-                .build()
-                .run();
-        System.exit(statusCode);
+        if (AwsSegmentCopy.canExecute(source, destination)) {
+            AwsSegmentCopy.Builder builder = AwsSegmentCopy.builder()
+                    .withSource(source)
+                    .withDestination(destination)
+                    .withOutWriter(out)
+                    .withErrWriter(err);
+    
+            if (options.has(last)) {
+                builder.withRevisionsCount(last.value(options) != null ? last.value(options) : 1);
+            }
+
+            System.exit(builder.build().run());
+        } else {
+            SegmentCopy.Builder builder = SegmentCopy.builder()
+                    .withSource(source)
+                    .withDestination(destination)
+                    .withOutWriter(out)
+                    .withErrWriter(err);
+    
+            if (options.has(last)) {
+                builder.withRevisionsCount(last.value(options) != null ? last.value(options) : 1);
+            }
+
+            System.exit(builder.build().run());
+        }
     }
 
     private void printUsage(OptionParser parser, PrintWriter err, String... messages) throws IOException {

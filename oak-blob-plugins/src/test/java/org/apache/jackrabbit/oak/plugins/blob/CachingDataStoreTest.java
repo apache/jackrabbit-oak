@@ -330,6 +330,30 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     }
 
     /**
+     * Add sync and delete temp
+     * @throws Exception
+     */
+    @Test
+    public void syncAddTempDelete() throws Exception {
+        LOG.info("Starting syncAddTempDelete");
+
+        File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        String id = getIdForInputStream(f);
+        FileInputStream fin = new FileInputStream(f);
+        closer.register(fin);
+
+        DataRecord rec = dataStore.addRecord(fin, new BlobOptions().setUpload(SYNCHRONOUS));
+        assertEquals(id, rec.getIdentifier().toString());
+        assertFile(rec.getStream(), f, folder);
+
+        Collection<File> files =
+            FileUtils.listFiles(new File(dsPath, "tmp"), FileFilterUtils.prefixFileFilter("upload"), null);
+        assertEquals(0, files.size());
+
+        LOG.info("Finished syncAddTempDelete");
+    }
+
+    /**
      * {@link CompositeDataStoreCache#getIfPresent(String)} when no record.
      */
     @Test

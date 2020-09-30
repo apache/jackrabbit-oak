@@ -19,23 +19,29 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Set;
 import java.util.UUID;
+import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
@@ -89,22 +95,62 @@ public class ImpersonationImplTest extends ImpersonationImplEmptyTest {
 
     @Test
     public void testAllows() throws Exception {
-        Subject s = new Subject(true, ImmutableSet.of(impersonator.getPrincipal()), ImmutableSet.of(), ImmutableSet.of());
-        assertTrue(impersonation.allows(s));
+        assertTrue(impersonation.allows(createSubject(impersonator.getPrincipal())));
+    }
+
+    @Test
+    public void testAllowsIncludingGroup() throws Exception {
+        Group gr = getUserManager(root).createGroup("gId");
+        assertTrue(impersonation.allows(createSubject(impersonator.getPrincipal(), gr.getPrincipal())));
+    }
+
+    @Test
+    public void testAllowsExistingGroup() throws Exception {
+        Group gr = getUserManager(root).createGroup("gId");
+        try {
+            root.commit();
+            assertFalse(impersonation.allows(createSubject(new PrincipalImpl(gr.getPrincipal().getName()))));
+        } finally {
+            gr.remove();
+            root.commit();
+        }
     }
 
     @Test
     public void testAllowsIncludingNonExistingGroup() throws Exception {
-        Subject s = new Subject(true, ImmutableSet.of(impersonator.getPrincipal(), groupPrincipal), ImmutableSet.of(), ImmutableSet.of());
-        assertTrue(impersonation.allows(s));
+        assertTrue(impersonation.allows(createSubject(impersonator.getPrincipal(), groupPrincipal)));
     }
 
     @Test
     public void testAllowsImpersonatorRemoved() throws Exception {
-        Subject s = new Subject(true, ImmutableSet.of(impersonator.getPrincipal()), ImmutableSet.of(), ImmutableSet.of());
-
+        Subject s = createSubject(impersonator.getPrincipal());
         impersonator.remove();
         assertTrue(impersonation.allows(s));
+    }
+
+    @Test
+    public void testAllowsNonExistingUser() {
+        assertFalse(impersonation.allows(createSubject(new PrincipalImpl("nonExisting"))));
+    }
+
+    @Test
+    public void testAllowsUserLookupFails() throws Exception {
+        Principal nonExisting = new PrincipalImpl("nonExisting");
+        UserManagerImpl uMgr = spy((UserManagerImpl) getUserManager(root));
+        when(uMgr.getAuthorizable(nonExisting)).thenThrow(new RepositoryException());
+
+        ImpersonationImpl imp = new ImpersonationImpl(new UserImpl(user.getID(), user.getTree(), uMgr));
+        assertFalse(imp.allows(createSubject(nonExisting)));
+    }
+
+    @Test
+    public void testGrantImpersonationUserLookupFails() throws Exception {
+        Principal nonExisting = new TreeBasedPrincipal("nonExisting", user.getTree(), getNamePathMapper());
+        UserManagerImpl uMgr = spy((UserManagerImpl) getUserManager(root));
+        when(uMgr.getAuthorizable(nonExisting)).thenThrow(new RepositoryException());
+
+        ImpersonationImpl imp = new ImpersonationImpl(new UserImpl(user.getID(), user.getTree(), uMgr));
+        assertFalse(imp.grantImpersonation(nonExisting));
     }
 
     @Test

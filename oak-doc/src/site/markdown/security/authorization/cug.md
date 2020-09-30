@@ -20,7 +20,7 @@ Managing Access with "Closed User Groups" (CUG)
 
 ### General
 
-The `oak-authorization-cug` module provides a alternative authorization model
+The `oak-authorization-cug` module provides an alternative authorization model
 intended to limit read access to certain paths for a selected, small set of
 `Principal`s.
 
@@ -58,7 +58,7 @@ intended to grant the ability to perform certain actions to a set of
 
 - `PrincipalSetPolicy`
 
-See [Jackrabbit API](http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/authorization/PrincipalSetPolicy.java) 
+See [Jackrabbit API](http://jackrabbit.apache.org/api/2.12/index.html?org/apache/jackrabbit/api/security/authorization/PrincipalSetPolicy.html) 
 for details and the methods exposed by the interface.
 
 <a name="api_extensions"></a>
@@ -106,7 +106,7 @@ See also section [Pluggability](#pluggability) below.
 #### Access Control Management
 
 The access control management part of the CUG authorization models follows the
-requirements defined by JSR 283 the extensions defined by Jackrabbit API (see section 
+requirements defined by JSR 283 and the extensions defined by Jackrabbit API (see section 
 [Access Control Management](../accesscontrol.html) with the following characterstics:
 
 ##### Supported Privileges
@@ -164,6 +164,13 @@ node (access control content) is consequently delegated to other
 authorization modules. In case there was no module dealing with these permissions, 
 access will be denied (see in section _Combining Multiple Authorization Models_ for [details](composite.html#details)). 
 
+#### Permission Evaluation with Multiplexed Stores
+
+The CUG authorization module is not designed to be used in combination with non-default mounts. If any of the configured 
+supported paths (see below) is found to be an ancestor of any non-default mount or included therein the activation/modification 
+of the `CugConfiguration` will fail with immediately and log an error.
+
+<a name="representation"></a>
 ### Representation in the Repository
 
 CUG policies defined by this module in a dedicate node name `rep:cugPolicy` of 
@@ -333,6 +340,6 @@ in the `org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfigu
 
 <!-- hidden references -->
 [Principal]: http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html
-[AccessControlPolicy]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/security/AccessControlPolicy.html
+[AccessControlPolicy]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/security/AccessControlPolicy.html
 [CugPolicy]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugPolicy.html
 [CugExclude]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/cug/CugExclude.html

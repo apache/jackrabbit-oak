@@ -16,18 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Credentials;
-import javax.security.auth.Subject;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
-
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.credentials.CredentialsSupport;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
+
+import javax.jcr.Credentials;
+import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.LoginException;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 public class TestLoginModule extends AbstractLoginModule {
 
@@ -49,7 +53,17 @@ public class TestLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean login() throws LoginException {
+    public boolean logout() throws LoginException {
+        if (credentials != null) {
+            Set<? extends Principal> s = Collections.singleton(EveryonePrincipal.getInstance());
+            return logout(ImmutableSet.of(credentials), s);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean login() {
         credentials = getCredentials();
         if (credentials != null) {
             userId = credentialsSupport.getUserId(credentials);
@@ -62,12 +76,14 @@ public class TestLoginModule extends AbstractLoginModule {
     }
 
     @Override
-    public boolean commit() throws LoginException {
+    public boolean commit() {
         if (userId != null) {
             subject.getPrincipals().add(EveryonePrincipal.getInstance());
-            setAuthInfo(new AuthInfoImpl(userId, credentialsSupport.getAttributes(credentials), subject.getPrincipals()), subject);
+            AuthInfo info = new AuthInfoImpl(userId, credentialsSupport.getAttributes(credentials), subject.getPrincipals());
+            setAuthInfo(info, subject);
             return true;
         } else {
+            clearState();
             return false;
         }
     }

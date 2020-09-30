@@ -43,6 +43,8 @@ public class AbstractBlobTest {
         Blob a2 = new TestBlob(data, "id1", true);
         Blob b2 = new TestBlob(data, "id2", true);
         assertTrue("Blobs with different id but same content should match", AbstractBlob.equal(a2, b2));
+        assertFalse(a2.isInlined());
+        assertFalse(b2.isInlined());
     }
 
     @Test

@@ -22,6 +22,7 @@ import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument
+import org.apache.jackrabbit.oak.plugins.document.Path
 import org.apache.jackrabbit.oak.plugins.document.util.Utils
 import org.codehaus.groovy.tools.shell.CommandSupport
 import org.codehaus.groovy.tools.shell.Groovysh
@@ -40,7 +41,7 @@ class LsdDocumentCommand extends CommandSupport{
     Object execute(List<String> args) {
         assert session.store instanceof DocumentNodeStore
         PrintWriter writer = io.out
-        String path = session.getWorkingPath();
+        Path path = Path.fromString(session.getWorkingPath());
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
         int num = 0;

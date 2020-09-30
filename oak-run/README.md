@@ -5,30 +5,33 @@ This jar contains everything you need for a simple Oak installation.
 
 The following runmodes are currently available:
 
-    * backup          : Backup an existing Oak repository.
+    * backup          : Backup an existing Oak repository
     * check           : Check the FileStore for inconsistencies
     * checkpoints     : Manage checkpoints
-    * compact         : Segment compaction on a TarMK repository.
-    * console         : Start an interactive console.
+    * clusternodes    : Display DocumentMK cluster node information
+    * compact         : Segment compaction on a TarMK repository
+    * console         : Start an interactive console
     * datastorecacheupgrade : Upgrades the JR2 DataStore cache
     * datastorecheck  : Consistency checker for data store 
     * datastore       : Maintenance operations for the for data store 
-    * debug           : Print status information about an Oak repository.
-    * explore         : Starts a GUI browser based on java swing.
+    * debug           : Print status information about an Oak repository
+    * explore         : Starts a GUI browser based on java swing
+    * export          : Export repository content as json
+    * frozennoderefsbyscanning : Scan for nt:frozenNode references via query
+    * frozennoderefsusingindex : Scan for nt:frozenNode references via /oak:index
     * garbage         : Identifies blob garbage on a DocumentMK repository
     * help            : Print a list of available runmodes
     * history         : Trace the history of a node
-    * recovery        : Run a _lastRev recovery on a MongoMK repository
+    * iotrace         : Collect a trace of segment store read accesses 
+    * recovery        : Run a _lastRev recovery on a DocumentMK repository
     * resetclusterid  : Resets the cluster id
-    * restore         : Restore a backup of an Oak repository.
+    * restore         : Restore a backup of an Oak repository
     * revisions       : Revision GC on a DocumentMK
-    * server          : Run the Oak Server.
+    * server          : Run the Oak Server
     * tarmkdiff       : Show changes between revisions on TarMk
     * tika            : Performs text extraction
     * unlockUpgrade   : Unlock a DocumentMK upgrade to a newer version
-    * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak.
-    * export          : Export repository content as json
-    * iotrace         : Collect a trace of segment store read accesses 
+    * upgrade         : Migrate existing Jackrabbit 2.x repository to Oak
     
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
@@ -100,9 +103,7 @@ To start the console for a DocumentMK/Mongo repository, use:
 
     $ java -jar oak-run-*.jar console mongodb://host
 
-To start the console for a DocumentMK/RDB repository, use:
-
-    $ java -jar oak-run-*.jar --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
+To start the console for a DocumentMK/RDB repository, see the [documention for oak-run on RDB](https://jackrabbit.apache.org/oak/docs/nodestore/document/rdb-document-store.html#oak-run).
     
 To start the console connecting to a repository in read-write mode, use either of:
 
@@ -135,7 +136,47 @@ Explore
 The 'explore' mode starts a desktop browser GUI based on java swing which allows for read-only
 browsing of an existing oak repository.
 
-    $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
+    $ java -jar oak-run-*.jar explore /path/to/oak/repository [--skip-size-check]
+
+Microsoft Azure node stores are also supported using the following command.  The secret key must be supplied as an environment variable `AZURE_SECRET_KEY`.  
+
+    $ java -jar oak-run-*.jar explore az:https://myaccount.blob.core.windows.net/container/repository [--skip-size-check]
+
+frozennoderefsbyscanning
+------------------------
+
+This command executes a potentially expensive (!) traversing query searching for
+all properties formatted as a UUID (incl String, Reference types) and verifies
+if they represent (potential) references to nt:frozenNode.
+
+Since this is a rather expensive command, consider using frozennoderefsusingindex
+(at least first) instead.
+
+If this is used eg on a MongoDB, consider running the command against
+a secondary MongoDB node, such as to not overload the primary MongoDB node.
+
+This tool is part of the effort to change the default nt:frozenNode node type
+definition to no longer be a mix:referenceable (see OAK-9134). Even though
+existing definitions aren't modified, the tool can be used to verify if
+an existing repository would potentially be in violation of OAK-9134 - ie if
+there are existing use cases of nt:frozenNode being a mix:referenceable.
+
+
+frozennoderefsusingindex
+------------------------
+
+This command browses through /oak:index/references and verifies if they
+represent references to nt:frozenNode.
+
+If this is used eg on a MongoDB, consider running the command against
+a secondary MongoDB node, such as to not overload the primary MongoDB node.
+
+This tool is part of the effort to change the default nt:frozenNode node type
+definition to no longer be a mix:referenceable (see OAK-9134). Even though
+existing definitions aren't modified, the tool can be used to verify if
+an existing repository would potentially be in violation of OAK-9134 - ie if
+there are existing use cases of nt:frozenNode being a mix:referenceable.
+
 
 History
 -------
@@ -368,33 +409,68 @@ Examples:
 See the documentation in the `oak-http` component for details about the available functionality.
 
 
+Cluster Nodes
+=============
+
+The clusternodes mode displays information about the status of the cluster nodes
+in a DocumentMK repository. It can be invoked like this:
+
+    $ java -jar oak-run-*.jar clusternodes [options] mongodb://host:port/database
+
+(or, for RDBMK instances, use "jdbc:...").
+
+The following clusternodes options (with default values) are currently supported:
+
+    --clusterId         - DocumentMK clusterId (no default)
+    --raw               - List raw entries in JSON format
+    --verbose           - Be more verbose
+
+Example output for `--verbose`:
+
+~~~
+Id    State          Started LeaseEnd Left RecoveryBy      LastRootRev    OakVersion
+ 1 INACTIVE 20190125T110237Z        -    -          - r16884ad047c-0-1 1.12-SNAPSHOT
+~~~
+
+Note that `RecoveryBy` will display the cluster node id of the node which
+currently recovers this node, or `!` when recovery is needed.
+
+`LeaseEnd` and `Left` will be displayed for active nodes (where `Left` is
+the remaining time for the lease update in seconds; when it gets negative,
+the system is in trouble).
+
+
 Recovery Mode
 =============
 
 The recovery mode can be used to check the consistency of `_lastRev` fields
-of a MongoMK repository. It can be invoked like this:
+of a DocumentMK repository. It can be invoked like this:
 
-    $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun]
+    $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun] --clusterId id
+    
+(or, for RDBMK instances, use "jdbc:...").
 
-The following recovery options (with default values) are currently supported:
+The following recovery options are currently supported:
 
-    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+    --clusterId         - DocumentMK clusterId (no default)
 
 The recovery tool will only perform the check and fix for the given clusterId.
-It is therefore recommended to explicitly specify a clusterId. The tool will
-fix the documents it identified, unless the `dryRun` keyword is specified.
+The tool will fix the documents it identified, unless the `dryRun` keyword is
+specified.
 
 Garbage
 =======
 
 The garbage mode can the used to identify blob garbage still referenced by
-documents in a MongoMK repository. It can be invoked like this:
+documents in a DocumentMK repository. It can be invoked like this:
 
     $ java -jar oak-run-*.jar garbage [options] mongodb://host:port/database
 
+(or, for RDBMK instances, use "jdbc:...").
+
 The following recovery options (with default values) are currently supported:
 
-    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+    --clusterId         - DocumentMK clusterId (default: 0 -> automatic)
 
 The tool will scan the store for documents with blob references and print a
 report with the top 100 documents with blob references considered garbage. The
@@ -457,6 +533,7 @@ Use the following command:
             [--repoHome <local_repository_root>]
             [--track]
             [--verbose]
+            [--verboseRootPath]
 
 The following options are available:
 
@@ -468,6 +545,7 @@ The following options are available:
     --store          - Path to the segment store of mongo uri (Required for --ref & --consistency option above)
     --dump           - Path where to dump the files (Optional). Otherwise, files will be dumped in the user tmp directory.
     --s3ds           - Path to the S3DataStore configuration file
+    --azureblobds    - Path to the AzureDataStore configuration file
     --fds            - Path to the FileDataStore configuration file ('path' property is mandatory)
     --nods           - To check for misconfigured external references when no data store should be there (Use instead of --s3ds or --fds)
     --repoHome       - Path of the local reposity home folder. Mandatory for --consistency & --track options 
@@ -475,6 +553,9 @@ The following options are available:
     --verbose        - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
                        This options would typically be a slower option since, it requires the whole repo traversal.  
                        Adds the sub-directories created in FDS and the changes done for S3/Azure when stored in the respective container.
+    --verboseRootPath- Paths under which backend friendly blobids are required (Optional). If not specified, then --verbose uses "/" as the default path. For example,
+                       to list all blobids under /oak:index and /content/oak:index, use --verboseRootPath /oak:index,/content/oak:index (If providing more than one arguments to this option, 
+                       use comma as a delimiter).
 Note:
 
 The command to be executed for S3DataStore
@@ -516,13 +597,18 @@ Maintenance commands for the DataStore:
             [--work-dir <temporary_path>] \
             [--max-age <seconds>] \
             [--verbose] \
+            [--verboseRootPath]
             [<store_path>|<mongo_uri>]
             [--metrics] [--export-metrics]
 
 The following operations are available:
     
-    --collect-garbage       - Execute garbage collection on the data store. If only mark phase to be run specify a true parameter.
-    --check-consistency     - List all the missing blobs by doing a consistency check.
+    --collect-garbage          - Execute garbage collection on the data store. If only mark phase to be run specify a true parameter.
+    --check-consistency        - List all the missing blobs by doing a consistency check.
+    --dump-ref                 - List all the blob references in the node store
+    --dump-id                  - List all the ids in the data store
+    --get-metadata             - Retrieves a machine readable format GC datastore metadata
+                                 e.g. <repoId>|<earliestRef_start_timestamp_secs>|<earliestRef_mark_timestamp_secs>|[*-] * for local repo id
 
 The following options are available:
 
@@ -537,14 +623,26 @@ The following options are available:
     --verbose               - Outputs backend friendly blobids and also adds the node path (for SegmentNodeStore) from where referred. 
                                This options would typically be a slower option since, it requires the whole repo traversal.  
                                Adds the sub-directories created in FDS to the id path and the changes done to the id for S3/Azure when stored in the respective container.
-    <store_path|mongo_uri>  - Path to the tar segment store or the segment azure uri as specified in 
-                               http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
-                               or if Mongo NodeStore then the mongo uri.
+    --verboseRootPath       - Paths under which backend friendly blobids are required (Optional). If not specified, then --verbose uses "/" as the default path. For example,
+                              to list all blobids under /oak:index and /content/oak:index, use --verboseRootPath /oak:index,/content/oak:index (If providing more than one arguments to this option, 
+                                 use comma as a delimiter).
+                                 This option is NOT available for the collect-garbage operation. If specified with collect-garbage, the command execution will throw
+                                 an exception.
+    --verbosePathInclusionRegex- A Regex that can be used to limit the scan during traversal to a specific inclusion list of nodes identified by the regex.
+                                 For example , to look for blob refrences under specific paths such as /b1/b2/foo, /c1/c2/foo under the rootPath /a
+                                 use --verboseRootPath /a --verbosePathInclusionRegex /*/*/foo
+                                 This option is only available when --verboseRootPath is used.
+    <store_path|mongo_uri>     - Path to the tar segment store or the segment azure uri as specified in 
+                                 http://jackrabbit.apache.org/oak/docs/nodestore/segment/overview.html#remote-segment-stores
+                                 or if Mongo NodeStore then the mongo uri.
     --metrics                - If metrics are to be captured.
     --export-metrics         - Option to export the captured metrics. The format of the command is type;URL;key1=value1,key2=value2
                               Currently only [Prometheus Pushgateway](https://github.com/prometheus/pushgateway) is supported
                               e.g. --export-metrics "pushgateway;localhost:9091;key1=value1,key2=value2" 
-
+    --sweep-only-refs-past-retention - Sweep only if the earliest references from all repositories are past the retention period which is govered by the max-age parameter.
+                                       Boolean (Optional). Defaults to False. Only applicable for --collect-garbage
+    --check-consistency-gc    - Performs a consistency check immediately after the GC.        
+                                Boolean (Optional). Defaults to False. Only applicable for --collect-garbage                           
 Note:
 
 Note: When using --export-metrics the following additional jars have to be downloaded to support Prometheus Pushgatway
@@ -590,7 +688,7 @@ Reset Cluster Id
 Resets the cluster id generated internally. Use the following command after stopping the server
 
     $ java -jar oak-run-*.jar resetclusterid \
-            { /path/to/oak/repository | mongodb://host:port/database }
+            { /path/to/oak/repository | mongodb://host:port/database | jdbc:...}
 
 The cluster id will be removed and will be generated on next server start up.
 
@@ -613,7 +711,7 @@ See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore
 Revisions
 ---------
 
-See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revisionGC).
+See the [official documentation](http://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#revision-gc).
 
 Export
 ------

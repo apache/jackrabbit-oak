@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -25,16 +27,20 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
@@ -44,10 +50,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_AUTHORIZABLE_FOLDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @since OAK 1.0
@@ -76,7 +91,7 @@ public class UserProviderTest {
         defaultUserPath = defaultConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
         defaultGroupPath = defaultConfig.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
 
-        customOptions = new HashMap<String, Object>();
+        customOptions = new HashMap<>();
         customOptions.put(UserConstants.PARAM_GROUP_PATH, customGroupPath);
         customOptions.put(UserConstants.PARAM_USER_PATH, customUserPath);
     }
@@ -92,13 +107,13 @@ public class UserProviderTest {
     }
 
     private UserProvider createUserProvider(int defaultDepth) {
-        Map<String, Object> options = new HashMap<String, Object>(customOptions);
+        Map<String, Object> options = new HashMap<>(customOptions);
         options.put(UserConstants.PARAM_DEFAULT_DEPTH, defaultDepth);
         return new UserProvider(root, ConfigurationParameters.of(options));
     }
 
     private UserProvider createUserProviderRFC7612() {
-        Map<String, Object> options = new HashMap<String, Object>(customOptions);
+        Map<String, Object> options = new HashMap<>(customOptions);
         options.put(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, true);
         return new UserProvider(root, ConfigurationParameters.of(options));
     }
@@ -119,7 +134,7 @@ public class UserProviderTest {
         userTree = up.createUser("b", null);
         assertEquals(defaultUserPath + "/b/bb/b", userTree.getPath());
 
-        Map<String, String> m = new HashMap<String,String>();
+        Map<String, String> m = new HashMap<>();
         m.put("bb",     "/b/bb/bb");
         m.put("bbb",    "/b/bb/bbb");
         m.put("bbbb",   "/b/bb/bbbb");
@@ -144,6 +159,18 @@ public class UserProviderTest {
         assertTrue(Text.isDescendant(customUserPath, userTree.getPath()));
         String userPath = customUserPath + "/a/b/c/nadine";
         assertEquals(userPath, userTree.getPath());
+    }
+
+    @Test(expected = AccessDeniedException.class)
+    public void testCreateUserMissingAccessOnFolders() throws RepositoryException {
+        Tree t = mock(Tree.class);
+        when(t.getParent()).thenReturn(t);
+        when(t.exists()).thenReturn(false);
+        when(t.isRoot()).thenReturn(false, false, true);
+        Root r = when(mock(Root.class).getTree(anyString())).thenReturn(t).getMock();
+
+        UserProvider up = new UserProvider(r, ConfigurationParameters.EMPTY);
+        up.createUser("uid", null);
     }
 
     @Test
@@ -178,7 +205,7 @@ public class UserProviderTest {
         Tree userTree = userProvider.createUser("b", null);
         assertEquals(customUserPath + "/b/bb/bbb/b", userTree.getPath());
 
-        Map<String, String> m = new HashMap<String,String>();
+        Map<String, String> m = new HashMap<>();
         m.put("bb",     "/b/bb/bbb/bb");
         m.put("bbb",    "/b/bb/bbb/bbb");
         m.put("bbbb",   "/b/bb/bbb/bbbb");
@@ -197,17 +224,17 @@ public class UserProviderTest {
     public void testCreateWithCollision() throws Exception {
         UserProvider userProvider = createUserProvider();
 
-        Tree userTree = userProvider.createUser("AmaLia", null);
+        userProvider.createUser("AmaLia", null);
 
-        Map<String, String> colliding = new HashMap<String, String>();
+        Map<String, String> colliding = new HashMap<>();
         colliding.put("AmaLia", null);
-        colliding.put("AmaLia", "s/ome/path");
+        colliding.put("AmalIa", "s/ome/path");
         colliding.put("amalia", null);
         colliding.put("Amalia", "a/b/c");
 
         for (String uid : colliding.keySet()) {
             try {
-                Tree c = userProvider.createUser(uid, colliding.get(uid));
+                userProvider.createUser(uid, colliding.get(uid));
                 root.commit();
                 fail("userID collision must be detected");
             } catch (CommitFailedException e) {
@@ -217,13 +244,35 @@ public class UserProviderTest {
 
         for (String uid : colliding.keySet()) {
             try {
-                Tree c = userProvider.createGroup(uid, colliding.get(uid));
+                userProvider.createGroup(uid, colliding.get(uid));
                 root.commit();
                 fail("userID collision must be detected");
             } catch (CommitFailedException e) {
                 // success
             }
         }
+    }
+
+    @Test
+    public void testCreateWithCollidingFolder() throws Exception {
+        Tree ut = mock(Tree.class);
+
+        Tree t = mock(Tree.class);
+        when(t.getParent()).thenReturn(t);
+        when(t.exists()).thenReturn(true);
+        when(t.isRoot()).thenReturn(true);
+        when(t.hasChild("uid")).thenReturn(true, false);
+        when(t.addChild("uid")).thenReturn(ut);
+        when(t.getChild(anyString())).thenReturn(t);
+        when(t.getPath()).thenReturn(UserConstants.DEFAULT_USER_PATH);
+        when(t.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_AUTHORIZABLE_FOLDER, Type.NAME));
+
+        Root r = when(mock(Root.class).getTree(anyString())).thenReturn(t).getMock();
+        when(r.getContentSession()).thenReturn(root.getContentSession());
+
+        UserProvider up = new UserProvider(r, ConfigurationParameters.EMPTY);
+        Tree tree = up.createUser("uid", null);
+        assertSame(ut, tree);
     }
 
     @Test
@@ -264,7 +313,7 @@ public class UserProviderTest {
     public void testIllegalChars() throws Exception {
         UserProvider userProvider = createUserProvider();
 
-        Map<String, String> m = new HashMap<String, String>();
+        Map<String, String> m = new HashMap<>();
         m.put("z[x]", "/z/" + Text.escapeIllegalJcrChars("z[") + '/' + Text.escapeIllegalJcrChars("z[x]"));
         m.put("z*x", "/z/" + Text.escapeIllegalJcrChars("z*") + '/' + Text.escapeIllegalJcrChars("z*x"));
         m.put("z/x", "/z/" + Text.escapeIllegalJcrChars("z/") + '/' + Text.escapeIllegalJcrChars("z/x"));
@@ -318,6 +367,43 @@ public class UserProviderTest {
     }
 
     @Test
+    public void testGetAuthorizableByPrincipal() throws Exception {
+        UserProvider up = createUserProvider();
+        up.createUser("uid", null);
+        TreeBasedPrincipal tbp = new TreeBasedPrincipal("uid", "/path", NamePathMapper.DEFAULT) {
+            @Override
+            @NotNull String getOakPath() {
+                return "/path";
+            }
+        };
+        // changes not yet persisted -> query returns no result.
+        assertNotNull(up.getAuthorizableByPrincipal(tbp));
+    }
+
+    @Test
+    public void testGetAuthorizableByPrincipal2() throws Exception {
+        UserProvider up = createUserProvider();
+        up.createUser("uid", null);
+        TreeBasedPrincipal tbp = new TreeBasedPrincipal("uid", "/path", NamePathMapper.DEFAULT) {
+            @Override
+            @NotNull String getOakPath() throws RepositoryException {
+                throw new RepositoryException();
+            }
+        };
+        // changes not yet persisted -> query returns no result.
+        assertNull(up.getAuthorizableByPrincipal(tbp));
+    }
+
+    @Test
+    public void testGetAuthorizableByPrincipalQueryFails() throws Exception {
+        QueryEngine qe = mock(QueryEngine.class);
+        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class), any(Map.class))).thenThrow(new ParseException("err",0));
+        Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
+        UserProvider up = new UserProvider(r, ConfigurationParameters.EMPTY);
+        assertNull(up.getAuthorizableByPrincipal(new PrincipalImpl("name")));
+    }
+
+    @Test
     public void testGetAuthorizableId() throws Exception {
         UserProvider up = createUserProvider();
 
@@ -350,13 +436,7 @@ public class UserProviderTest {
 
     @Test
     public void testCollisions() throws Exception {
-        ConfigurationParameters config = ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, new AuthorizableNodeName() {
-            @NotNull
-            @Override
-            public String generateNodeName(@NotNull String authorizableId) {
-                return "aaa";
-            }
-        });
+        ConfigurationParameters config = ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, (AuthorizableNodeName) authorizableId -> "aaa");
         UserProvider up = new UserProvider(root, config);
 
         try {

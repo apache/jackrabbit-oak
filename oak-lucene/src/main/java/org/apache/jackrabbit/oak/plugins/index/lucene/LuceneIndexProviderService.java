@@ -32,8 +32,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.management.NotCompliantMBeanException;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -60,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.index.fulltext.PreExtractedTextProvider
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexFileSystemStatistics;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LuceneIndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.ExternalObserverBuilder;
@@ -68,7 +67,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LuceneJournalProper
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.PropertyIndexCleaner;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.TextExtractionStatsMBean;
@@ -85,9 +83,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.apache.lucene.analysis.util.CharFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.analysis.util.TokenizerFactory;
@@ -241,6 +237,15 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_HYBRID_QUEUE_SIZE = "hybridQueueSize";
 
+    public static final long PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT = 100;
+    @Property(
+            longValue = PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT,
+            label = "Queue timeout",
+            description = "Maximum time to wait for adding entries to the queue used for storing Lucene Documents which need to be " +
+                    "added to local index"
+    )
+    private static final String PROP_HYBRID_QUEUE_TIMEOUT = "hybridQueueTimeout";
+
     private static final boolean PROP_DISABLE_DEFN_STORAGE_DEFAULT = false;
     @Property(
             boolValue = PROP_DISABLE_DEFN_STORAGE_DEFAULT,
@@ -261,6 +266,14 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_NAME_DELETED_BLOB_COLLECTION_DEFAULT_ENABLED = "deletedBlobsCollectionEnabled";
 
+    private static final int LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT = 300;
+    @Property(
+            intValue = LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT,
+            label = "Lucene index stats update interval (seconds)",
+            description = "Delay in seconds after which Lucene stats are updated in async index update cycle."
+    )
+    private static final String LUCENE_INDEX_STATS_UPDATE_INTERVAL = "luceneIndexStatsUpdateInterval";
+
     private static final int PROP_INDEX_CLEANER_INTERVAL_DEFAULT = 10*60;
     @Property(
             intValue = PROP_INDEX_CLEANER_INTERVAL_DEFAULT,
@@ -279,6 +292,14 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_NAME_ENABLE_SINGLE_BLOB_PER_INDEX_FILE = "enableSingleBlobIndexFiles";
 
+    private static final long PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT = 300;
+    @Property(
+            longValue = PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT,
+            label = "Lucene Index File System Stats Interval (seconds)",
+            description = "Interval (in seconds) for calculation of File System metrics for Lucene Index such as Local Index Directory Size"
+    )
+    private static final String PROP_INDEX_FILESYSTEM_STATS_INTERVAL = "propIndexFSStatsIntervalInSecs";
+
     private final Clock clock = Clock.SIMPLE;
 
     private Whiteboard whiteboard;
@@ -286,9 +307,6 @@ public class LuceneIndexProviderService {
     private BackgroundObserver backgroundObserver;
 
     private BackgroundObserver externalIndexObserver;
-
-    @Reference
-    ScorerProviderFactory scorerFactory;
 
     @Reference
     private IndexAugmentorFactory augmentorFactory;
@@ -348,10 +366,13 @@ public class LuceneIndexProviderService {
     private IndexTracker tracker;
 
     private PropertyIndexCleaner cleaner;
+    private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
 
     @Activate
-    private void activate(BundleContext bundleContext, Map<String, ?> config)
-            throws NotCompliantMBeanException, IOException {
+    private void activate(BundleContext bundleContext, Map<String, ?> config) throws IOException {
+        asyncIndexesSizeStatsUpdate = new AsyncIndexesSizeStatsUpdateImpl(
+                PropertiesUtil.toLong(config.get(LUCENE_INDEX_STATS_UPDATE_INTERVAL),
+                        LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT) * 1000); // convert seconds to millis
         boolean disabled = PropertiesUtil.toBoolean(config.get(PROP_DISABLED), PROP_DISABLED_DEFAULT);
         hybridIndex = PropertiesUtil.toBoolean(config.get(PROP_HYBRID_INDEXING), PROP_DISABLED_DEFAULT);
 
@@ -374,9 +395,9 @@ public class LuceneIndexProviderService {
         whiteboard = new OsgiWhiteboard(bundleContext);
         threadPoolSize = PropertiesUtil.toInteger(config.get(PROP_THREAD_POOL_SIZE), PROP_THREAD_POOL_SIZE_DEFAULT);
         initializeIndexDir(bundleContext, config);
-        initializeExtractedTextCache(bundleContext, config);
+        initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
-        indexProvider = new LuceneIndexProvider(tracker, scorerFactory, augmentorFactory);
+        indexProvider = new LuceneIndexProvider(tracker, augmentorFactory);
         initializeActiveBlobCollector(whiteboard, config);
         initializeLogging(config);
         initialize();
@@ -398,6 +419,9 @@ public class LuceneIndexProviderService {
         registerGCMonitor(whiteboard, tracker);
 
         registerIndexEditor(bundleContext, tracker, mBean, config);
+
+        LuceneIndexFileSystemStatistics luceneIndexFSStats = new LuceneIndexFileSystemStatistics(statisticsProvider, indexCopier);
+        registerLuceneFileSystemStats(luceneIndexFSStats, PropertiesUtil.toLong(config.get(PROP_INDEX_FILESYSTEM_STATS_INTERVAL),PROP_INDEX_FILESYSTEM_STATS_INTERVAL_DEFAULT));
     }
 
     private File getIndexCheckDir() {
@@ -508,12 +532,13 @@ public class LuceneIndexProviderService {
                     mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
         }
         editorProvider.setBlobStore(blobStore);
+        editorProvider.withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
 
         if (hybridIndex){
             editorProvider.setIndexingQueue(checkNotNull(documentQueue));
         }
 
-        Dictionary<String, Object> props = new Hashtable<String, Object>();
+        Dictionary<String, Object> props = new Hashtable<>();
         props.put("type", TYPE_LUCENE);
         regs.add(bundleContext.registerService(IndexEditorProvider.class.getName(), editorProvider, props));
         oakRegs.add(registerMBean(whiteboard,
@@ -571,14 +596,9 @@ public class LuceneIndexProviderService {
 
     private ExecutorService createExecutor() {
         ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 60L, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(), new ThreadFactory() {
+                new LinkedBlockingQueue<>(), new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger();
-            private final Thread.UncaughtExceptionHandler handler = new Thread.UncaughtExceptionHandler() {
-                @Override
-                public void uncaughtException(Thread t, Throwable e) {
-                    log.warn("Error occurred in asynchronous processing ", e);
-                }
-            };
+            private final Thread.UncaughtExceptionHandler handler = (t, e) -> log.warn("Error occurred in asynchronous processing ", e);
             @Override
             public Thread newThread(@NotNull Runnable r) {
                 Thread thread = new Thread(r, createName());
@@ -620,7 +640,8 @@ public class LuceneIndexProviderService {
         }
 
         int queueSize = PropertiesUtil.toInteger(config.get(PROP_HYBRID_QUEUE_SIZE), PROP_HYBRID_QUEUE_SIZE_DEFAULT);
-        documentQueue = new DocumentQueue(queueSize, tracker, getExecutorService(), statisticsProvider);
+        long queueOfferTimeoutMillis = PropertiesUtil.toLong(config.get(PROP_HYBRID_QUEUE_TIMEOUT), PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT);
+        documentQueue = new DocumentQueue(queueSize, queueOfferTimeoutMillis, tracker, getExecutorService(), statisticsProvider);
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(documentQueue, statisticsProvider);
         regs.add(bundleContext.registerService(Observer.class.getName(), localIndexObserver, null));
 
@@ -680,7 +701,7 @@ public class LuceneIndexProviderService {
         log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
     }
 
-    private void initializeExtractedTextCache(BundleContext bundleContext, Map<String, ?> config) {
+    private void initializeExtractedTextCache(BundleContext bundleContext, Map<String, ?> config, StatisticsProvider statisticsProvider) {
         int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_EXTRACTED_TEXT_CACHE_SIZE),
                 PROP_EXTRACTED_TEXT_CACHE_SIZE_DEFAULT);
         int cacheExpiryInSecs = PropertiesUtil.toInteger(config.get(PROP_EXTRACTED_TEXT_CACHE_EXPIRY),
@@ -692,7 +713,7 @@ public class LuceneIndexProviderService {
                 cacheSizeInMB * ONE_MB,
                 cacheExpiryInSecs,
                 alwaysUsePreExtractedCache,
-                indexDir);
+                indexDir, statisticsProvider);
         if (extractedTextProvider != null){
             registerExtractedTextProvider(extractedTextProvider);
         }
@@ -804,6 +825,14 @@ public class LuceneIndexProviderService {
         log.info("Property index cleaner configured to run every [{}] seconds", cleanerInterval);
     }
 
+    private void registerLuceneFileSystemStats(LuceneIndexFileSystemStatistics luceneIndexFSStats, long delayInSeconds) {
+        Map<String, Object> config = ImmutableMap.of(
+                "scheduler.name", LuceneIndexFileSystemStatistics.class.getName()
+        );
+        oakRegs.add(scheduleWithFixedDelay(whiteboard, luceneIndexFSStats, config, delayInSeconds, false, true));
+        log.info("Lucene FileSystem Statistics calculator configured to run every [{}] seconds", delayInSeconds);
+    }
+
 
     protected void bindNodeAggregator(QueryIndex.NodeAggregator aggregator) {
         this.nodeAggregator = aggregator;
@@ -824,4 +853,5 @@ public class LuceneIndexProviderService {
         this.extractedTextProvider = null;
         registerExtractedTextProvider(null);
     }
+
 }

@@ -430,5 +430,5 @@ Below is an example of how the missing binaries are reported in the logs:
 on how to execute the command and the different parameters can be checked in the readme for the oak-run module. 
 
 [1]: http://serverfault.com/questions/52861/how-does-dropbox-version-upload-large-files
-[2]: http://wiki.apache.org/jackrabbit/DataStore
+[2]: https://jackrabbit.apache.org/archive/wiki/JCR/DataStore_115513387.html
 [3]: http://jclouds.apache.org/start/blobstore/

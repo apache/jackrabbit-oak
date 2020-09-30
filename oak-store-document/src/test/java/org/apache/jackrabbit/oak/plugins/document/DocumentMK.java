@@ -16,17 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.base.Suppliers.ofInstance;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 
-import javax.sql.DataSource;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -34,20 +29,16 @@ import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.JsopDiff;
-import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilderBase;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobReferenceIterator;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * A JSON-based wrapper around the NodeStore implementation that stores the
@@ -79,6 +70,11 @@ public class DocumentMK {
 
     DocumentMK(Builder builder) {
         this.nodeStore = builder.getNodeStore();
+        this.store = nodeStore.getDocumentStore();
+    }
+
+    DocumentMK(DocumentNodeStore documentNodeStore) {
+        this.nodeStore = documentNodeStore;
         this.store = nodeStore.getDocumentStore();
     }
 
@@ -126,8 +122,9 @@ public class DocumentMK {
         }
         RevisionVector fromRev = RevisionVector.fromString(fromRevisionId);
         RevisionVector toRev = RevisionVector.fromString(toRevisionId);
-        final DocumentNodeState before = nodeStore.getNode(path, fromRev);
-        final DocumentNodeState after = nodeStore.getNode(path, toRev);
+        Path p = Path.fromString(path);
+        final DocumentNodeState before = nodeStore.getNode(p, fromRev);
+        final DocumentNodeState after = nodeStore.getNode(p, toRev);
         if (before == null || after == null) {
             String msg = String.format("Diff is only supported if the node exists in both cases. " +
                             "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
@@ -149,7 +146,7 @@ public class DocumentMK {
         RevisionVector rev = RevisionVector.fromString(revisionId);
         DocumentNodeState n;
         try {
-            n = nodeStore.getNode(path, rev);
+            n = nodeStore.getNode(Path.fromString(path), rev);
         } catch (DocumentStoreException e) {
             throw new DocumentStoreException(e);
         }
@@ -165,7 +162,7 @@ public class DocumentMK {
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
         RevisionVector rev = RevisionVector.fromString(revisionId);
         try {
-            DocumentNodeState n = nodeStore.getNode(path, rev);
+            DocumentNodeState n = nodeStore.getNode(Path.fromString(path), rev);
             if (n == null) {
                 return null;
             }
@@ -183,7 +180,7 @@ public class DocumentMK {
                 long m = ((long) maxChildNodes) + offset;
                 max = (int) Math.min(m, Integer.MAX_VALUE);
             }
-            Children c = nodeStore.getChildren(n, null, max);
+            Children c = nodeStore.getChildren(n, "", max);
             for (long i = offset; i < c.children.size(); i++) {
                 if (maxChildNodes-- <= 0) {
                     break;
@@ -330,7 +327,7 @@ public class DocumentMK {
                     added.add(path);
                     break;
                 case '-':
-                    DocumentNodeState toRemove = nodeStore.getNode(path, commit.getBaseRevision());
+                    DocumentNodeState toRemove = nodeStore.getNode(Path.fromString(path), commit.getBaseRevision());
                     if (toRemove == null) {
                         throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     }
@@ -345,11 +342,11 @@ public class DocumentMK {
                         value = t.readRawValue().trim();
                     }
                     String p = PathUtils.getParentPath(path);
-                    if (!added.contains(p) && nodeStore.getNode(p, commit.getBaseRevision()) == null) {
+                    if (!added.contains(p) && nodeStore.getNode(Path.fromString(p), commit.getBaseRevision()) == null) {
                         throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     }
                     String propertyName = PathUtils.getName(path);
-                    commit.updateProperty(p, propertyName, value);
+                    commit.updateProperty(Path.fromString(p), propertyName, value);
                     break;
                 case '>': {
                     t.read(':');
@@ -357,7 +354,7 @@ public class DocumentMK {
                     if (!PathUtils.isAbsolute(targetPath)) {
                         targetPath = PathUtils.concat(rootPath, targetPath);
                     }
-                    DocumentNodeState source = nodeStore.getNode(path, baseRev);
+                    DocumentNodeState source = nodeStore.getNode(Path.fromString(path), baseRev);
                     if (source == null) {
                         throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     } else if (nodeExists(targetPath, baseRevId)) {
@@ -372,7 +369,7 @@ public class DocumentMK {
                     if (!PathUtils.isAbsolute(targetPath)) {
                         targetPath = PathUtils.concat(rootPath, targetPath);
                     }
-                    DocumentNodeState source = nodeStore.getNode(path, baseRev);
+                    DocumentNodeState source = nodeStore.getNode(Path.fromString(path), baseRev);
                     if (source == null) {
                         throw new DocumentStoreException("Node not found: " + path + " in revision " + baseRevId);
                     } else if (nodeExists(targetPath, baseRevId)) {
@@ -403,7 +400,7 @@ public class DocumentMK {
             } while (t.matches(','));
             t.read('}');
         }
-        DocumentNodeState n = new DocumentNodeState(nodeStore, path,
+        DocumentNodeState n = new DocumentNodeState(nodeStore, Path.fromString(path),
                 new RevisionVector(commit.getRevision()), props, false, null);
         commit.addNode(n);
     }
@@ -421,7 +418,7 @@ public class DocumentMK {
 
         if (subTreeAlso) {
             // recurse down the tree
-            for (DocumentNodeState child : nodeStore.getChildNodes(node, null, Integer.MAX_VALUE)) {
+            for (DocumentNodeState child : nodeStore.getChildNodes(node, "", Integer.MAX_VALUE)) {
                 markAsDeleted(child, commit, true);
             }
         }
@@ -432,15 +429,15 @@ public class DocumentMK {
                                 String targetPath,
                                 CommitBuilder commit) {
         RevisionVector destRevision = commit.getBaseRevision().update(commit.getRevision());
-        DocumentNodeState newNode = new DocumentNodeState(nodeStore, targetPath, destRevision,
+        DocumentNodeState newNode = new DocumentNodeState(nodeStore, Path.fromString(targetPath), destRevision,
                 source.getProperties(), false, null);
 
         commit.addNode(newNode);
         if (move) {
             markAsDeleted(source, commit, false);
         }
-        for (DocumentNodeState child : nodeStore.getChildNodes(source, null, Integer.MAX_VALUE)) {
-            String childName = PathUtils.getName(child.getPath());
+        for (DocumentNodeState child : nodeStore.getChildNodes(source, "", Integer.MAX_VALUE)) {
+            String childName = child.getPath().getName();
             String destChildPath = concat(targetPath, childName);
             moveOrCopyNode(move, child, destChildPath, commit);
         }
@@ -450,7 +447,7 @@ public class DocumentMK {
                                JsopWriter json,
                                boolean includeId) {
         if (includeId) {
-            json.key(":id").value(node.getId());
+            json.key(":id").value(node.getPath() + "@" + node.getLastRevision());
         }
         for (String name : node.getPropertyNames()) {
             json.key(name).encodedValue(node.getPropertyAsString(name));
@@ -476,70 +473,11 @@ public class DocumentMK {
         public Builder() {
         }
 
-        /**
-         * Sets a {@link DataSource} to use for the RDB document and blob
-         * stores.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(DataSource ds) {
-            setRDBConnection(ds, new RDBOptions());
-            return this;
-        }
-
-        /**
-         * Sets a {@link DataSource} to use for the RDB document and blob
-         * stores, including {@link RDBOptions}.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(DataSource ds, RDBOptions options) {
-            this.documentStoreSupplier = ofInstance(new RDBDocumentStore(ds, this, options));
-            if(blobStore == null) {
-                GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
-                setGCBlobStore(s);
-            }
-            return this;
-        }
-
-        /**
-         * Sets a {@link DataSource}s to use for the RDB document and blob
-         * stores.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-            this.documentStoreSupplier = ofInstance(new RDBDocumentStore(documentStoreDataSource, this));
-            if(blobStore == null) {
-                GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
-                setGCBlobStore(s);
-            }
-            return this;
-        }
-
         public DocumentNodeStore getNodeStore() {
             if (nodeStore == null) {
                 nodeStore = build();
             }
             return nodeStore;
-        }
-
-        public VersionGCSupport createVersionGCSupport() {
-            DocumentStore store = getDocumentStore();
-            if (store instanceof RDBDocumentStore) {
-                return new RDBVersionGCSupport((RDBDocumentStore) store);
-            } else {
-                return super.createVersionGCSupport();
-            }
-        }
-
-        public Iterable<ReferencedBlob> createReferencedBlobs(DocumentNodeStore ns) {
-            final DocumentStore store = getDocumentStore();
-            if (store instanceof RDBDocumentStore) {
-                return () -> new RDBBlobReferenceIterator(ns, (RDBDocumentStore) store);
-            } else {
-                return super.createReferencedBlobs(ns);
-            }
         }
 
         /**

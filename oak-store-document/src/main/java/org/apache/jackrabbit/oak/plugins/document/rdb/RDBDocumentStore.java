@@ -41,7 +41,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -83,6 +82,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterator;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -369,14 +369,22 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
-        if (!BATCHUPDATES) {
+        // fall back to sequential mode if batches are turned off using system
+        // property, or the number of update operations is small
+        if (!BATCHUPDATES || updateOps.size() < MINIMALBULKUPDATESIZE) {
             List<T> results = new ArrayList<T>(updateOps.size());
             for (UpdateOp update : updateOps) {
                 results.add(createOrUpdate(collection, update));
             }
             return results;
+        } else {
+            return internalCreateOrUpdate(collection, updateOps);
         }
+    }
 
+    private static int MINIMALBULKUPDATESIZE = 3;
+
+    private <T extends Document> List<T> internalCreateOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
         final Stopwatch watch = startWatch();
         Map<UpdateOp, T> results = new LinkedHashMap<UpdateOp, T>();
         Map<String, UpdateOp> operationsToCover = new LinkedHashMap<String, UpdateOp>();
@@ -402,9 +410,7 @@ public class RDBDocumentStore implements DocumentStore {
 
         int i = 0; // iteration count
 
-        // bulk update requires two DB requests, so if we have <= 2 operations
-        // it's better to send them sequentially
-        while (operationsToCover.size() > 2) {
+        while (operationsToCover.size() >= MINIMALBULKUPDATESIZE) {
             // We should try to insert documents only during the first
             // iteration. In the 2nd and 3rd iterations we only deal with
             // conflicting documents, so they already exist in the database
@@ -429,10 +435,10 @@ public class RDBDocumentStore implements DocumentStore {
             UpdateOp conflictedOp = operationsToCover.remove(updateOp.getId());
             if (conflictedOp != null) {
                 if (collection == Collection.NODES) {
-                    LOG.debug("update conflict on {}, invalidating cache and retrying...", updateOp.getId());
+                    LOG.debug("createOrUpdate: update conflict on {}, invalidating cache and retrying...", updateOp.getId());
                     nodesCache.invalidate(updateOp.getId());
                 } else {
-                    LOG.debug("update conflict on {}, retrying...", updateOp.getId());
+                    LOG.debug("createOrUpdate: update conflict on {}, retrying...", updateOp.getId());
                 }
                 results.put(conflictedOp, createOrUpdate(collection, updateOp));
             } else if (duplicates.contains(updateOp)) {
@@ -524,7 +530,16 @@ public class RDBDocumentStore implements DocumentStore {
                 missingDocs.add(op.getId());
             }
         }
-        oldDocs.putAll(readDocumentsUncached(collection, missingDocs));
+
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("bulkUpdate: cached docs to be updated: {}", dumpKeysAndModcounts(oldDocs));
+        }
+
+        Map<String, T> freshDocs = readDocumentsUncached(collection, missingDocs);
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("bulkUpdate: fresh docs to be updated: {}", dumpKeysAndModcounts(freshDocs));
+        }
+        oldDocs.putAll(freshDocs);
 
         try (CacheChangesTracker tracker = obtainTracker(collection, Sets.union(oldDocs.keySet(), missingDocs) )) {
             List<T> docsToUpdate = new ArrayList<T>(updates.size());
@@ -553,6 +568,10 @@ public class RDBDocumentStore implements DocumentStore {
 
                 Set<String> failedUpdates = Sets.difference(keysToUpdate, successfulUpdates);
                 oldDocs.keySet().removeAll(failedUpdates);
+
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("bulkUpdate: success for {}, failure for {}", successfulUpdates, failedUpdates);
+                }
 
                 if (collection == Collection.NODES) {
                     List<NodeDocument> docsToCache = new ArrayList<>();
@@ -677,6 +696,7 @@ public class RDBDocumentStore implements DocumentStore {
         private final String catalog;
         private final String name;
         private boolean idIsBinary = false;
+        private boolean dataIsNChar = false;
         private boolean hasVersion = false;
         private boolean hasSplitDocs = false;
         private int dataLimitInOctets = 16384;
@@ -718,6 +738,10 @@ public class RDBDocumentStore implements DocumentStore {
             return this.schemaInfo;
         }
 
+        public boolean isDataNChar() {
+            return this.dataIsNChar;
+        }
+
         public boolean isIdBinary() {
             return this.idIsBinary;
         }
@@ -728,6 +752,10 @@ public class RDBDocumentStore implements DocumentStore {
 
         public boolean hasVersion() {
             return this.hasVersion;
+        }
+
+        public void setDataIsNChar(boolean dataIsNChar) {
+            this.dataIsNChar = dataIsNChar;
         }
 
         public void setIdIsBinary(boolean idIsBinary) {
@@ -814,7 +842,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private <T extends Document> T getIfCached(Collection<T> collection, String id, long modCount) {
         T doc = getIfCached(collection, id);
-        if (doc != null && doc.getModCount() == modCount) {
+        if (doc != null && doc.getModCount() != null && doc.getModCount() == modCount) {
             return doc;
         } else {
             return null;
@@ -937,9 +965,11 @@ public class RDBDocumentStore implements DocumentStore {
 
     private DocumentStoreStatsCollector stats;
 
+    private boolean readOnly;
+
     // VERSION column mapping in queries used by RDBVersionGCSupport
     public static String VERSIONPROP = "__version";
-    
+
     // set of supported indexed properties
     private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS, VERSIONPROP }));
@@ -966,6 +996,8 @@ public class RDBDocumentStore implements DocumentStore {
         this.stats = builder.getDocumentStoreStatsCollector();
 
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
+
+        this.readOnly = builder.getReadOnlyMode();
 
         this.ch = new RDBConnectionHandler(ds);
         Connection con = this.ch.getRWConnection();
@@ -1062,10 +1094,10 @@ public class RDBDocumentStore implements DocumentStore {
             tableDiags.insert(0, ", ");
         }
 
-        String diag = dbInfo.getAdditionalDiagnostics(this.ch, this.tableMeta.get(Collection.NODES).getName());
+        Map<String, String> diag = dbInfo.getAdditionalDiagnostics(this.ch, this.tableMeta.get(Collection.NODES).getName());
 
         LOG.info("RDBDocumentStore (" + getModuleVersion() + ") instantiated for database " + dbDesc + ", using driver: "
-                + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag))
+                + driverDesc + ", connecting to: " + dbUrl + (diag.isEmpty() ? "" : (", properties: " + diag.toString()))
                 + ", transaction isolation level: " + isolationDiags + tableDiags);
         if (!tablesPresent.isEmpty()) {
             LOG.info("Tables present upon startup: " + tablesPresent);
@@ -1080,6 +1112,10 @@ public class RDBDocumentStore implements DocumentStore {
         return sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY;
     }
 
+    private static boolean isNChar(int sqlType) {
+        return sqlType == Types.NCHAR || sqlType == Types.NVARCHAR || sqlType == Types.LONGNVARCHAR;
+    }
+
     private static void obtainFlagsFromResultSetMeta(ResultSetMetaData met, RDBTableMetaData tmd) throws SQLException {
 
         for (int i = 1; i <= met.getColumnCount(); i++) {
@@ -1089,6 +1125,7 @@ public class RDBDocumentStore implements DocumentStore {
             }
             if ("data".equals(lcName)) {
                 tmd.setDataLimitInOctets(met.getPrecision(i));
+                tmd.setDataIsNChar(isNChar(met.getColumnType(i)));
             }
             if ("version".equals(lcName)) {
                 tmd.setHasVersion(true);
@@ -1132,8 +1169,7 @@ public class RDBDocumentStore implements DocumentStore {
         ResultSet rs = null;
         try {
             // if the result set metadata provides a table name, use that (the
-            // other one
-            // might be inaccurate due to case insensitivity issues
+            // other one might be inaccurate due to case insensitivity issues)
             String rmetTableName = Strings.nullToEmpty(rmet.getTableName(1)).trim();
             if (!rmetTableName.isEmpty()) {
                 tableName = rmetTableName;
@@ -1143,7 +1179,7 @@ public class RDBDocumentStore implements DocumentStore {
 
             rs = met.getIndexInfo(null, null, tableName, false, true);
 
-            Map<String, Map<String, Object>> indices = getIndexInformation(rs, rmetSchemaName);
+            Map<String, IndexInformation> indices = getIndexInformation(rs, rmetSchemaName);
             if (indices.isEmpty() && !tableName.equals(tableName.toUpperCase(Locale.ENGLISH))) {
                 // might have failed due to the DB's handling on ucase/lcase,
                 // retry ucase
@@ -1151,90 +1187,98 @@ public class RDBDocumentStore implements DocumentStore {
                 indices = getIndexInformation(rs, rmetSchemaName);
             }
             if (indexedColumns != null) {
-                for (Map<String, Object> map : indices.values()) {
-                    if (map.containsKey("columns")) {
-                        indexedColumns.addAll((Set<String>) (map.get("columns")));
-                    }
+                for (IndexInformation idata : indices.values()) {
+                    indexedColumns.addAll(idata.columns);
                 }
             }
             return dumpIndexData(indices);
         } catch (SQLException ex) {
             // well it was best-effort
-            return String.format("/* exception while retrieving index information: %s, code %d, state %s */", ex.getMessage(),
+            String message = String.format("exception while retrieving index information: %s, code %d, state %s", ex.getMessage(),
                     ex.getErrorCode(), ex.getSQLState());
+            LOG.debug(message, ex);
+            return "/* " + message + "*/";
         } finally {
             closeResultSet(rs);
         }
     }
 
-    private static String dumpIndexData(Map<String, Map<String, Object>> indices) {
+    private static String dumpIndexData(Map<String, IndexInformation> indices) {
         StringBuilder sb = new StringBuilder();
-        for (Entry<String, Map<String, Object>> index : indices.entrySet()) {
+        for (Entry<String, IndexInformation> index : indices.entrySet()) {
             String indexName = index.getKey();
-            Map<String, Object> info = index.getValue();
-            boolean nonUnique = ((Boolean) index.getValue().get("nonunique"));
-            Map<Integer, String> fields = (Map<Integer, String>) info.get("fields");
-            if (!fields.isEmpty()) {
+            IndexInformation info = index.getValue();
+            if (!info.fields.isEmpty()) {
                 if (sb.length() != 0) {
                     sb.append(", ");
                 }
-                sb.append(String.format("%sindex %s on %s (", nonUnique ? "" : "unique ", indexName, info.get("tname")));
+                sb.append(String.format("%sindex %s on %s (", info.nonunique ? "" : "unique ", indexName, info.tname));
                 String delim = "";
-                for (String field : fields.values()) {
+                for (String field : info.fields.values()) {
                     sb.append(delim);
                     delim = ", ";
                     sb.append(field);
                 }
                 sb.append(")");
-                sb.append(" ").append(info.get("type"));
+                sb.append(" ").append(info.type);
             }
-            Object filterCondition = info.get("filterCondition");
-            if (filterCondition != null) {
-                sb.append(" where ").append(filterCondition.toString());
+            if (info.filterCondition != null) {
+                sb.append(" where ").append(info.filterCondition);
             }
-            sb.append(String.format(" (#%s, p%s)", info.get("cardinality").toString(), info.get("pages").toString()));
+            sb.append(String.format(" (#%d, p%d)", info.cardinality, info.pages));
         }
         return sb.toString();
     }
 
     // see https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getIndexInfo(java.lang.String,%20java.lang.String,%20java.lang.String,%20boolean,%20boolean)
-    private static Map<String, Map<String, Object>> getIndexInformation(ResultSet rs, String rmetSchemaName) throws SQLException {
-        Map<String, Map<String, Object>> result = new TreeMap<String, Map<String, Object>>();
+    private static Map<String, IndexInformation> getIndexInformation(ResultSet rs, String rmetSchemaName) throws SQLException {
+        Map<String, IndexInformation> result = new TreeMap<>();
         while (rs.next()) {
             String name = asQualifiedDbName(rs.getString("INDEX_QUALIFIER"), rs.getString("INDEX_NAME"));
             if (name != null) {
-                Map<String, Object> info = result.get(name);
+                IndexInformation info = result.get(name);
                 if (info == null) {
-                    info = new HashMap<String, Object>();
+                    info = new IndexInformation();
                     result.put(name, info);
-                    info.put("fields", new TreeMap<Integer, String>());
+                    info.fields = new TreeMap<>();
                 }
-                info.put("nonunique", rs.getBoolean("NON_UNIQUE"));
-                info.put("type", indexTypeAsString(rs.getInt("TYPE")));
+                info.nonunique = rs.getBoolean("NON_UNIQUE");
+                info.type = indexTypeAsString(rs.getInt("TYPE"));
                 String inSchema = rs.getString("TABLE_SCHEM");
                 inSchema = Strings.nullToEmpty(inSchema).trim();
                 String filterCondition = Strings.nullToEmpty(rs.getString("FILTER_CONDITION")).trim();
                 if (!filterCondition.isEmpty()) {
-                    info.put("filterCondition", filterCondition);
+                    info.filterCondition = filterCondition;
                 }
-                info.put("cardinality", rs.getInt("CARDINALITY"));
-                info.put("pages", rs.getInt("PAGES"));
-                Set<String> columns = new HashSet<String>();
-                info.put("columns", columns);
+                info.cardinality = rs.getInt("CARDINALITY");
+                info.pages = rs.getInt("PAGES");
+                Set<String> columns = new HashSet<>();
+                info.columns = columns;
                 // skip indices on tables in other schemas in case we have that information
                 if (rmetSchemaName.isEmpty() || inSchema.isEmpty() || rmetSchemaName.equals(inSchema)) {
                     String tname = asQualifiedDbName(inSchema, rs.getString("TABLE_NAME"));
-                    info.put("tname", tname);
+                    info.tname = tname;
                     String cname = rs.getString("COLUMN_NAME");
                     if (cname != null) {
                         columns.add(cname.toUpperCase(Locale.ENGLISH));
                         String order = "A".equals(rs.getString("ASC_OR_DESC")) ? " ASC" : ("D".equals(rs.getString("ASC_OR_DESC")) ? " DESC" : "");
-                        ((Map<Integer, String>) info.get("fields")).put(rs.getInt("ORDINAL_POSITION"), cname + order);
+                        info.fields.put(rs.getInt("ORDINAL_POSITION"), cname + order);
                     }
                 }
             }
         }
         return result;
+    }
+    
+    private static class IndexInformation {
+        public Map<Integer, String> fields;
+        public boolean nonunique;
+        public String type;
+        public String filterCondition;
+        public int cardinality;
+        public int pages;
+        public Set<String> columns;
+        public String tname;
     }
 
     private void createTableFor(Connection con, Collection<? extends Document> col, RDBTableMetaData tmd, List<String> tablesCreated,
@@ -1302,16 +1346,21 @@ public class RDBDocumentStore implements DocumentStore {
             closeResultSet(checkResultSet);
             boolean dbWasChanged = false;
 
-            if (!hasVersionColumn && upgradeToSchema >= 1) {
-                dbWasChanged |= upgradeTable(con, tableName, 1);
+            if (this.readOnly) {
+                LOG.debug("Skipping table update code because store is initialized in readOnly mode");
             }
+            else {
+                if (!hasVersionColumn && upgradeToSchema >= 1) {
+                    dbWasChanged |= upgradeTable(con, tableName, 1);
+                }
 
-            if (!hasSDTypeColumn && upgradeToSchema >= 2) {
-                dbWasChanged |= upgradeTable(con, tableName, 2);
-            }
+                if (!hasSDTypeColumn && upgradeToSchema >= 2) {
+                    dbWasChanged |= upgradeTable(con, tableName, 2);
+                }
 
-            if (!indexOn.contains("MODIFIED") && col == Collection.NODES) {
-                dbWasChanged |= addModifiedIndex(con, tableName);
+                if (!indexOn.contains("MODIFIED") && col == Collection.NODES) {
+                    dbWasChanged |= addModifiedIndex(con, tableName);
+                }
             }
 
             tablesPresent.add(tableName);
@@ -1322,6 +1371,12 @@ public class RDBDocumentStore implements DocumentStore {
         } catch (SQLException ex) {
             // table does not appear to exist
             con.rollback();
+
+            LOG.debug("trying to read from '" + tableName + "'", ex);
+            if (this.readOnly) {
+                throw new SQLException("Would like to create table '" + tableName
+                        + "', but RDBDocumentStore has been initialized in 'readonly' mode");
+            }
 
             try {
                 creatStatement = con.createStatement();
@@ -1349,7 +1404,7 @@ public class RDBDocumentStore implements DocumentStore {
                 getTableMetaData(con, col, tmd);
             }
             catch (SQLException ex2) {
-                LOG.error("Failed to create table " + tableName + " in " + dbname, ex2);
+                LOG.error("Failed to create table '" + tableName + "' in '" + dbname + "'", ex2);
                 throw ex2;
             }
         }
@@ -1439,6 +1494,10 @@ public class RDBDocumentStore implements DocumentStore {
             closeResultSet(checkResultSet);
             closeStatement(checkStatement);
         }
+    }
+
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     @Override
@@ -2069,7 +2128,8 @@ public class RDBDocumentStore implements DocumentStore {
 
     private static void continueIfStringOverflow(SQLException ex) throws SQLException {
         String state = ex.getSQLState();
-        if ("22001".equals(state) /* everybody */|| ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */) {
+        if ("22001".equals(state) /* everybody */|| ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */
+        		|| ("S0001".equals(state) && 2628 == ex.getErrorCode()) /* MSSQL update*/) {
             // ok
         } else {
             throw (ex);
@@ -2145,23 +2205,34 @@ public class RDBDocumentStore implements DocumentStore {
     // configuration
 
     // Whether to use GZIP compression
-    private static final boolean NOGZIP = Boolean
-            .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
+    private static final boolean NOGZIP = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP", Boolean.FALSE).loggingTo(LOG).get();
+
     // Whether to use append operations (string concatenation) in the DATA column
-    private static final boolean NOAPPEND = Boolean
-            .getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOAPPEND");
+    private static final boolean NOAPPEND = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOAPPEND", Boolean.FALSE).loggingTo(LOG).get();
+
     // Number of documents to insert at once for batch create
-    private static final int CHUNKSIZE = Integer.getInteger(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64);
+    private static final int CHUNKSIZE = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64).loggingTo(LOG)
+            .validateWith(value -> value > 0).get();
+
     // Number of query hits above which a diagnostic warning is generated
-    private static final int QUERYHITSLIMIT = Integer.getInteger(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYHITSLIMIT", 4096);
+    private static final int QUERYHITSLIMIT = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYHITSLIMIT", 4096).loggingTo(LOG)
+            .validateWith(value -> value > 0).get();
+
     // Number of elapsed ms in a query above which a diagnostic warning is generated
-    private static final int QUERYTIMELIMIT = Integer.getInteger(
-            "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000);
-    // Whether to use JDBC batch commands for the createOrUpdate (default: true).
-    private static final boolean BATCHUPDATES = Boolean.parseBoolean(System
-            .getProperty("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.BATCHUPDATES", "true"));
+    private static final int QUERYTIMELIMIT = SystemPropertySupplier
+            .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.QUERYTIMELIMIT", 10000).loggingTo(LOG)
+            .validateWith(value -> value > 0).get();
+
+    // Whether to use JDBC batch commands for the createOrUpdate (default: true)
+    private static final boolean BATCHUPDATES = SystemPropertySupplier
+            .create(RDBDocumentStore.class.getName() + ".BATCHUPDATES", Boolean.TRUE).loggingTo(LOG)
+            .formatSetMessage((name, value) -> {
+                return String.format("Batch updates disabled (system property %s set to '%s')", name, value);
+            }).get();
 
     public static byte[] asBytes(@NotNull String data) {
         byte[] bytes;
@@ -2275,6 +2346,23 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
+    @NotNull
+    private static <T extends Document> String dumpKeysAndModcounts(Map<String, T> docs) {
+        if (docs.isEmpty()) {
+            return "-";
+        } else {
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, T> e : docs.entrySet()) {
+                Long mc = e.getValue().getModCount();
+                if (sb.length() != 0) {
+                    sb.append(", ");
+                }
+                sb.append(String.format("%s (%s)", e.getKey(), mc == null ? "" : mc.toString()));
+            }
+            return sb.toString();
+        }
+    }
+
     // keeping track of CLUSTER_NODES updates
     private Map<String, Long> cnUpdates = new ConcurrentHashMap<String, Long>();
 
@@ -2292,13 +2380,8 @@ public class RDBDocumentStore implements DocumentStore {
         if (cnUpdates.isEmpty()) {
             return "";
         } else {
-            List<Map.Entry<String, Long>> tmp = new ArrayList<Map.Entry<String, Long>>();
-            tmp.addAll(cnUpdates.entrySet());
-            Collections.sort(tmp, new Comparator<Map.Entry<String, Long>>() {
-                @Override
-                public int compare(Entry<String, Long> o1, Entry<String, Long> o2) {
-                    return o1.getKey().compareTo(o2.getKey());
-                }});
+            List<Map.Entry<String, Long>> tmp = new ArrayList<>(cnUpdates.entrySet());
+            Collections.sort(tmp, (Entry<String, Long> o1, Entry<String, Long> o2) -> o1.getKey().compareTo(o2.getKey()));
             return " (Cluster Node updates: " + tmp.toString() + ")";
         }
     }

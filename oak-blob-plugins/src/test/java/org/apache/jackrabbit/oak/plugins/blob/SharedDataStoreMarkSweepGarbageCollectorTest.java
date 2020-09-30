@@ -90,6 +90,8 @@ public class SharedDataStoreMarkSweepGarbageCollectorTest {
       MarkSweepGarbageCollector.TEMP_DIR,
       1,
       0L,
+      false,
+      false,
       "repo",
       whiteboard,
       new DefaultStatisticsProvider(executor)

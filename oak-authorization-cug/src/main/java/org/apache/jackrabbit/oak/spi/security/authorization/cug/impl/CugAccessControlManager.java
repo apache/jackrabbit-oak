@@ -16,17 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.Privilege;
-
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -40,15 +30,16 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.RootProvider;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
-import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
-import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -57,6 +48,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.TreeSet;
 
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
@@ -72,12 +77,13 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
     private final CugExclude cugExclude;
     private final ConfigurationParameters config;
     private final PrincipalManager principalManager;
+    private final RootProvider rootProvider;
 
     CugAccessControlManager(@NotNull Root root,
                             @NotNull NamePathMapper namePathMapper,
                             @NotNull SecurityProvider securityProvider,
                             @NotNull Set<String> supportedPaths,
-                            @NotNull CugExclude cugExclude) {
+                            @NotNull CugExclude cugExclude, RootProvider rootProvider) {
         super(root, namePathMapper, securityProvider);
 
         this.supportedPaths = supportedPaths;
@@ -85,6 +91,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
         config = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters();
         principalManager = securityProvider.getConfiguration(PrincipalConfiguration.class).getPrincipalManager(root, namePathMapper);
+        this.rootProvider = rootProvider;
     }
 
     //-----------------------------------------------< AccessControlManager >---
@@ -118,11 +125,11 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
         boolean enabled = config.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
         if (enabled) {
-            Root r = getRoot().getContentSession().getLatestRoot();
+            Root r = getLatestRoot();
             List<AccessControlPolicy> effective = new ArrayList<>();
             while (oakPath != null) {
-                if (isSupportedPath(oakPath)) {
-                    CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath));
+                if (CugUtil.isSupportedPath(oakPath, supportedPaths)) {
+                    CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath), true);
                     if (cug != null) {
                         effective.add(cug);
                     }
@@ -167,7 +174,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
                 if (mixins.remove(MIX_REP_CUG_MIXIN)) {
                     tree.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, NAMES);
                 } else {
-                    log.debug("Cannot remove mixin type " + MIX_REP_CUG_MIXIN);
+                    log.debug("Cannot remove mixin type {}", MIX_REP_CUG_MIXIN);
                 }
                 cug.remove();
             }
@@ -204,22 +211,43 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     //-------------------------------------< JackrabbitAccessControlManager >---
 
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@NotNull Principal principal) {
         // editing by 'principal' is not supported
         return new JackrabbitAccessControlPolicy[0];
     }
 
+    @NotNull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) {
+    public JackrabbitAccessControlPolicy[] getPolicies(@NotNull Principal principal) {
         // editing by 'principal' is not supported
         return new JackrabbitAccessControlPolicy[0];
     }
 
+    @NotNull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) {
-        // editing by 'principal' is not supported
-        return new AccessControlPolicy[0];
+    public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) {
+        if (!config.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false)) {
+            return new AccessControlPolicy[0];
+        }
+        Root r = getLatestRoot();
+        Set<String> candidates = collectEffectiveCandidates(r, Iterables.transform(principals, Principal::getName));
+        if (candidates.isEmpty()) {
+            return new AccessControlPolicy[0];
+        } else {
+            List<AccessControlPolicy> effective = new ArrayList<>();
+            for (String path : candidates) {
+                Tree t = r.getTree(path);
+                if (t.exists()) {
+                    CugPolicy cug = getCugPolicy(path, t, true);
+                    if (cug != null) {
+                        effective.add(cug);
+                    }
+                }
+            }
+            return effective.toArray(new AccessControlPolicy[0]);
+        }
     }
 
     //--------------------------------------------------------< PolicyOwner >---
@@ -243,28 +271,28 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     @Nullable
     private CugPolicy getCugPolicy(@NotNull String oakPath) throws RepositoryException {
-        return getCugPolicy(oakPath, getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true));
+        return getCugPolicy(oakPath, getTree(oakPath, Permissions.READ_ACCESS_CONTROL, true), false);
     }
 
     @Nullable
-    private CugPolicy getCugPolicy(@NotNull String oakPath, @NotNull Tree tree) {
+    private CugPolicy getCugPolicy(@NotNull String oakPath, @NotNull Tree tree, boolean isEffective) {
         Tree cug = tree.getChild(REP_CUG_POLICY);
         if (CugUtil.definesCug(cug)) {
-            return new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config), cugExclude, getPrincipals(cug));
+            return new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config), cugExclude, getPrincipals(cug), isEffective);
         } else {
             return null;
         }
     }
 
-    private Set<Principal> getPrincipals(@NotNull Tree cugTree) {
+    private Iterable<Principal> getPrincipals(@NotNull Tree cugTree) {
         PropertyState property = cugTree.getProperty(REP_PRINCIPAL_NAMES);
         if (property == null) {
             return Collections.emptySet();
         } else {
-            return ImmutableSet.copyOf(Iterables.transform(property.getValue(Type.STRINGS), principalName -> {
+            return ImmutableList.copyOf(Iterables.transform(property.getValue(Type.STRINGS), principalName -> {
                 Principal principal = principalManager.getPrincipal(principalName);
                 if (principal == null) {
-                    log.debug("Unknown principal " + principalName);
+                    log.debug("Unknown principal {}", principalName);
                     principal = new PrincipalImpl(principalName);
                 }
                 return principal;
@@ -285,5 +313,35 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         if (!cug.getPath().equals(absPath)) {
             throw new AccessControlException("Path mismatch: Expected " + cug.getPath() + ", Found: " + absPath);
         }
+    }
+
+    private Set<String> collectEffectiveCandidates(@NotNull Root r, @NotNull Iterable<String> principalNames) {
+        Root immutableRoot = rootProvider.createReadOnlyRoot(r);
+        Set<String> candidates = new TreeSet<>();
+
+        Queue<String> eval = new LinkedList<>();
+        eval.add(PathUtils.ROOT_PATH);
+        while (!eval.isEmpty()) {
+            String path = eval.remove();
+            Tree t = immutableRoot.getTree(path);
+            if (PathUtils.denotesRoot(path)) {
+                Iterables.addAll(eval, nestedCugPaths(t));
+            }
+            if (CugUtil.isSupportedPath(path, supportedPaths)) {
+                Tree cug = CugUtil.getCug(t);
+                if (cug != null) {
+                    if (!Collections.disjoint(ImmutableSet.copyOf(principalNames), ImmutableSet.copyOf(cug.getProperty(REP_PRINCIPAL_NAMES).getValue(Type.STRINGS)))) {
+                        candidates.add(path);
+                    }
+                    Iterables.addAll(eval, nestedCugPaths(cug));
+                }
+            }
+        }
+        return candidates;
+    }
+
+    private static Iterable<String> nestedCugPaths(@NotNull Tree t) {
+        PropertyState nested = t.getProperty(HIDDEN_NESTED_CUGS);
+        return (nested != null) ? nested.getValue(Type.STRINGS) : Collections.emptySet();
     }
 }

@@ -426,6 +426,21 @@ NRT indexing expose a few configuration options as part of the [LuceneIndexProvi
   to hold Lucene documents for indexing in the `nrt` mode. 
   The default size is 10000.
 
+## <a name="superseding"></a> Superseding an Index
+This helps in replacing one index with another. Suppose we have the following indices:
+
+```
+   jcr:root
+      + oak:index
+           + sampleIndex1
+                - jcr:primaryType = "oak:QueryIndexDefinition"
+           + sampleIndex2
+                - jcr:primaryType = "oak:QueryIndexDefinition"
+```
+
+We add the properties `supersedes = ["/oak:index/sampleIndex1"]` and `reindex=true` to `sampleIndex2` and save those. As a
+result, the superseded index `sampleIndex1` would be disabled (by setting type=disabled property) during the next indexing cycle.
+
 ## <a name="reindexing"></a> Reindexing
 
 Reindexing rarely solves problems. 

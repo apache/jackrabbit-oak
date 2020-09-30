@@ -54,9 +54,9 @@ public class MountPermissionProvider extends PermissionProviderImpl {
         this.mountInfoProvider = providerCtx.getMountInfoProvider();
     }
 
+    @NotNull
     @Override
-    protected PermissionStore getPermissionStore(Root root, String workspaceName,
-            RestrictionProvider restrictionProvider) {
+    protected PermissionStore getPermissionStore(@NotNull Root root, @NotNull String workspaceName, @NotNull RestrictionProvider restrictionProvider) {
         List<PermissionStoreImpl> stores = newArrayList();
         stores.add(new PermissionStoreImpl(root, workspaceName, restrictionProvider));
         for (Mount m : mountInfoProvider.getNonDefaultMounts()) {

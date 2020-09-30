@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search;
 
+import java.util.Locale;
+
 /**
  * Internal constants used in index definition, and index implementations.
  */
@@ -25,11 +27,11 @@ public interface FulltextIndexConstants {
         SYNC, NRT, ASYNC;
 
         public String asyncValueName() {
-            return name().toLowerCase();
+            return name().toLowerCase(Locale.ENGLISH);
         }
 
         public static IndexingMode from(String indexingMode) {
-            return valueOf(indexingMode.toUpperCase());
+            return valueOf(indexingMode.toUpperCase(Locale.ENGLISH));
         }
     }
 
@@ -49,7 +51,7 @@ public interface FulltextIndexConstants {
 
     String PERSISTENCE_OAK = "repository";
 
-  String TEST_MODE = "testMode";
+    String TEST_MODE = "testMode";
 
     String PERSISTENCE_FILE = "file";
 
@@ -136,6 +138,8 @@ public interface FulltextIndexConstants {
 
     String PROP_WEIGHT = "weight";
 
+    String PROP_DYNAMIC_BOOST = "dynamicBoost";
+
     /**
      * Boolean property in property definition to mark sync properties
      */
@@ -148,6 +152,13 @@ public interface FulltextIndexConstants {
 
 
     String EVALUATE_PATH_RESTRICTION = "evaluatePathRestrictions";
+
+    /**
+     * The property name to specify a regular expression for property value in index definition. If this property is present
+     * in index definition, then only those properties would be added to index whose value matches the regex defined by
+     * this property.
+     */
+    String PROP_VALUE_REGEX = "valueRegex";
 
     /**
      * Experimental config to restrict which property type gets indexed at
@@ -204,7 +215,7 @@ public interface FulltextIndexConstants {
     String TIKA_MAX_EXTRACT_LENGTH = "maxExtractLength";
 
     /**
-     *  Config node under tika which defines mime type mappings
+     * Config node under tika which defines mime type mappings
      */
     String TIKA_MIME_TYPES = "mimeTypes";
 
@@ -306,6 +317,16 @@ public interface FulltextIndexConstants {
     String COMPAT_MODE = "compatVersion";
 
     /**
+     * Name of the codec to be used for indexing
+     */
+    String CODEC_NAME = "codec";
+
+    /**
+     * Name of the merge policy to be used while indexing
+     */
+    String MERGE_POLICY_NAME = "mergePolicy";
+
+    /**
      * Optional (index definition) property indicating whether facets should be ACL checked.
      * Default is true
      */
@@ -366,5 +387,5 @@ public interface FulltextIndexConstants {
      * index is used for queries; otherwise, it is not used (returns infinite
      * cost). The value is: nodes, the path. For properties, the path of the node, then '@' property.
      */
-     String USE_IF_EXISTS = "useIfExists";
+    String USE_IF_EXISTS = "useIfExists";
 }

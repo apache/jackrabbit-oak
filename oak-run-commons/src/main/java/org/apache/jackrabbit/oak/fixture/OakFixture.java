@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.fixture;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +31,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.fixture.SegmentTarFixture.SegmentTarFixtureBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -69,6 +71,7 @@ public abstract class OakFixture {
     public static final String OAK_RDB_DS = "Oak-RDB-DS";
 
     public static final String OAK_SEGMENT_TAR = "Oak-Segment-Tar";
+    public static final String OAK_SEGMENT_AWS = "Oak-Segment-Aws";
     public static final String OAK_SEGMENT_AZURE = "Oak-Segment-Azure";
     public static final String OAK_SEGMENT_TAR_DS = "Oak-Segment-Tar-DS";
     public static final String OAK_SEGMENT_TAR_COLD = "Oak-Segment-Tar-Cold";
@@ -222,7 +225,12 @@ public abstract class OakFixture {
                 if (blobStore != null) {
                     builder.setBlobStore(blobStore);
                 }
-                return newOak(builder.build());
+                Oak oak = newOak(builder.build());
+                if (blobStore instanceof BlobAccessProvider) {
+                    oak.getWhiteboard()
+                        .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
+                }
+                return oak;
             }
 
             @Override
@@ -243,6 +251,10 @@ public abstract class OakFixture {
                     }
                     nodeStores[i] = builder.build();
                     cluster[i] = newOak(nodeStores[i]);
+                    if (blobStore instanceof BlobAccessProvider) {
+                        cluster[i].getWhiteboard()
+                            .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
+                    }
                 }
                 if (vgcMaxAge > 0 && nodeStores.length >= 1) {
                     versionGarbageCollectionJob = new VersionGarbageCollectionJob(nodeStores[0], vgcMaxAge);
@@ -351,6 +363,15 @@ public abstract class OakFixture {
                 dsCacheInMB, true, syncInterval, shareBlobStore, secure, oneShotRun);
     }
 
+    public static OakFixture getSegmentTarWithAwsSegmentStore(final File base, final String awsBucketName,
+            final String awsRootPath, final String awsJournalTableName, final String awsLockTableName,
+            final int maxFileSizeMB, final int cacheSizeMB, final boolean useBlobStore, final int dsCacheInMB) {
+        return SegmentTarFixtureBuilder.segmentTarFixtureBuilder(OakFixture.OAK_SEGMENT_AWS, base)
+                .withAws(awsBucketName, awsRootPath, awsJournalTableName, awsLockTableName)
+                .withMaxFileSize(maxFileSizeMB).withSegmentCacheSize(cacheSizeMB).withBlobStore(useBlobStore)
+                .withDSCacheSize(dsCacheInMB).build();
+    }
+
     public static OakFixture getSegmentTarWithAzureSegmentStore(final File base, final String azureConnectionString, final String azureContainerName, final String azureRootPath,
                                                                 final int maxFileSizeMB, final int cacheSizeMB, final boolean useBlobStore, final int dsCacheInMB) {
         return SegmentTarFixtureBuilder
@@ -363,22 +384,19 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getCompositeStore(final String name, final File base,
-                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping,
-                                               final int mounts, final int pathsPerMount) {
-        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, mounts, pathsPerMount);
+                                               final int maxFileSizeMB, final int cacheSizeMB, final boolean memoryMapping) {
+        return newCompositeSegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping);
     }
 
-    public static OakFixture getCompositeMemoryStore(final String name, final int mounts, final int pathsPerMount) {
-        return newCompositeMemoryFixture(name, mounts, pathsPerMount);
+    public static OakFixture getCompositeMemoryStore(final String name) {
+        return newCompositeMemoryFixture(name);
     }
 
     public static OakFixture getCompositeMongoStore(String name,
                                                     String uri,
                                                     long cacheSize,
-                                                    boolean dropDBAfterTest,
-                                                    int mounts,
-                                                    int pathsPerMount) {
-        return newCompositeMongoFixture(name, uri, dropDBAfterTest, cacheSize, mounts, pathsPerMount);
+                                                    boolean dropDBAfterTest) {
+        return newCompositeMongoFixture(name, uri, dropDBAfterTest, cacheSize);
     }
 
 
@@ -403,6 +421,7 @@ public abstract class OakFixture {
 
         private List<DocumentNodeStore> nodeStores = new ArrayList<>();
         private BlobStoreFixture blobStoreFixture;
+        private BlobStore blobStore;
 
         public MongoFixture(final String name, final String uri,
                             final boolean dropDBAfterTest, final long cacheSize,
@@ -438,13 +457,22 @@ public abstract class OakFixture {
 
         @Override
         public Oak getOak(int clusterId) throws Exception {
-            return newOak(getBuilder(clusterId).build());
+            Oak oak = newOak(getBuilder(clusterId).build());
+            if (this.blobStore instanceof BlobAccessProvider) {
+                oak.getWhiteboard()
+                    .register(BlobAccessProvider.class, (BlobAccessProvider) this.blobStore, Collections.EMPTY_MAP);
+            }
+            return oak;
         }
 
         public Oak[] setUpCluster(DocumentNodeStoreBuilder<?>[] builders, StatisticsProvider statsProvider) throws Exception {
             Oak[] cluster = new Oak[builders.length];
             for (int i = 0; i < cluster.length; i++) {
                 cluster[i] = newOak(builders[i].build());
+                if (this.blobStore instanceof BlobAccessProvider) {
+                    cluster[i].getWhiteboard()
+                        .register(BlobAccessProvider.class, (BlobAccessProvider) this.blobStore, Collections.EMPTY_MAP);
+                }
             }
             return cluster;
         }
@@ -482,7 +510,8 @@ public abstract class OakFixture {
         private void setupBlobStore(DocumentNodeStoreBuilder<?> builder, StatisticsProvider statsProvider) {
             initializeBlobStoreFixture(statsProvider);
             if (blobStoreFixture != null) {
-                builder.setBlobStore(blobStoreFixture.setUp());
+                this.blobStore = blobStoreFixture.setUp();
+                builder.setBlobStore(this.blobStore);
             }
         }
 

@@ -16,14 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -33,6 +29,12 @@ import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.junit.Test;
 
+import java.security.Principal;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_DEFAULT_DEPTH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -77,38 +79,56 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testUserConfigurationWithConstructor() throws Exception {
+    public void testGetConflictHandlers() {
+        UserConfigurationImpl configuration = new UserConfigurationImpl();
+
+        List<ThreeWayConflictHandler> conflictHandlers = configuration.getConflictHandlers();
+        assertEquals(1, conflictHandlers.size());
+        assertTrue(conflictHandlers.get(0) instanceof RepMembersConflictHandler);
+    }
+
+    @Test
+    public void testGetProtectedItemImporters() {
+        UserConfigurationImpl configuration = new UserConfigurationImpl(getSecurityProvider());
+
+        List<ProtectedItemImporter> importers = configuration.getProtectedItemImporters();
+        assertEquals(1, importers.size());
+        assertTrue(importers.get(0) instanceof UserImporter);
+    }
+
+    @Test
+    public void testUserConfigurationWithConstructor() {
         UserConfigurationImpl userConfiguration = new UserConfigurationImpl(getSecurityProvider());
         testConfigurationParameters(userConfiguration.getParameters());
     }
 
     @Test
-    public void testUserConfigurationWithSetParameters() throws Exception {
+    public void testUserConfigurationWithSetParameters() {
         UserConfigurationImpl userConfiguration = new UserConfigurationImpl();
         userConfiguration.setParameters(getParams());
         testConfigurationParameters(userConfiguration.getParameters());
     }
     
-    private void testConfigurationParameters(ConfigurationParameters parameters) throws Exception {
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH), USER_PATH);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH), GROUP_PATH);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH), DEFAULT_DEPTH);
-        assertEquals(parameters.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE), IMPORT_BEHAVIOR);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, PasswordUtil.DEFAULT_ALGORITHM), HASH_ALGORITHM);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, PasswordUtil.DEFAULT_ITERATIONS), HASH_ITERATIONS);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_SALT_SIZE, PasswordUtil.DEFAULT_SALT_SIZE), SALT_SIZE);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_SUPPORT_AUTOSAVE, false), SUPPORT_AUTOSAVE);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_MAX_AGE, UserConstants.DEFAULT_PASSWORD_MAX_AGE), MAX_AGE);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE), INITIAL_PASSWORD_CHANGE);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE), PASSWORD_HISTORY_SIZE);
-        assertEquals(parameters.getConfigValue(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, UserConstants.DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE), ENABLE_RFC7613_USERCASE_MAPPED_PROFILE);
+    private void testConfigurationParameters(ConfigurationParameters parameters) {
+        assertEquals(USER_PATH, parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH));
+        assertEquals(GROUP_PATH, parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH));
+        assertEquals(DEFAULT_DEPTH, parameters.getConfigValue(PARAM_DEFAULT_DEPTH, UserConstants.DEFAULT_DEPTH));
+        assertEquals(IMPORT_BEHAVIOR, parameters.getConfigValue(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE));
+        assertEquals(HASH_ALGORITHM, parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, PasswordUtil.DEFAULT_ALGORITHM));
+        assertEquals(HASH_ITERATIONS, parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, PasswordUtil.DEFAULT_ITERATIONS));
+        assertEquals(SALT_SIZE, parameters.getConfigValue(UserConstants.PARAM_PASSWORD_SALT_SIZE, PasswordUtil.DEFAULT_SALT_SIZE));
+        assertEquals(SUPPORT_AUTOSAVE, parameters.getConfigValue(UserConstants.PARAM_SUPPORT_AUTOSAVE, false));
+        assertEquals(MAX_AGE, parameters.getConfigValue(UserConstants.PARAM_PASSWORD_MAX_AGE, UserConstants.DEFAULT_PASSWORD_MAX_AGE));
+        assertEquals(INITIAL_PASSWORD_CHANGE, parameters.getConfigValue(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE));
+        assertEquals(PASSWORD_HISTORY_SIZE, parameters.getConfigValue(UserConstants.PARAM_PASSWORD_HISTORY_SIZE, UserConstants.PASSWORD_HISTORY_DISABLED_SIZE));
+        assertEquals(ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, parameters.getConfigValue(UserConstants.PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE, UserConstants.DEFAULT_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE));
     }
 
     private ConfigurationParameters getParams() {
         ConfigurationParameters params = ConfigurationParameters.of(new HashMap<String, Object>() {{
             put(UserConstants.PARAM_USER_PATH, USER_PATH);
             put(UserConstants.PARAM_GROUP_PATH, GROUP_PATH);
-            put(UserConstants.PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
+            put(PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
             put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, IMPORT_BEHAVIOR);
             put(UserConstants.PARAM_PASSWORD_HASH_ALGORITHM, HASH_ALGORITHM);
             put(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, HASH_ITERATIONS);

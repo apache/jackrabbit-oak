@@ -51,7 +51,8 @@ for the following tasks:
 Oak 1.0 provides a default implementation of the user synchronization API that allow
 to plug additional `SyncHandler` implementations. 
 
-Default implementation is described in section [User and Group Synchronization : The Default Implementation](external/defaultusersync.html).
+Default implementation is described in section [User and Group Synchronization : The Default Implementation](external/defaultusersync.html) 
+and [User and Group Synchronization : Dynamic Membership](external/dynamic.html).
 
 ### Pluggability
 

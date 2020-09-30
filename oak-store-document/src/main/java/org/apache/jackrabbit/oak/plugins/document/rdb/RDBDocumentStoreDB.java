@@ -16,15 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeResultSet;
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.closeStatement;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,6 +32,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.PreparedStatementComponent;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,7 +121,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    POSTGRES("PostgreSQL") {
+    POSTGRES("PostgreSQL", RDBCommonVendorSpecificCode.POSTGRES) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             String result = RDBJDBCTools.versionCheck(md, 9, 5, 9, 4, description);
@@ -167,33 +164,6 @@ public enum RDBDocumentStoreDB {
                     + (schema >= 1 ? "VERSION smallint, " : "")
                     + (schema >= 2 ? "SDTYPE smallint, SDMAXREVTIME bigint, " : "")
                     + "DATA varchar(16384), BDATA bytea)");
-        }
-
-        @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
-            try {
-                con = ch.getROConnection();
-                String cat = con.getCatalog();
-                stmt = con.prepareStatement("SELECT pg_encoding_to_char(encoding), datcollate FROM pg_database WHERE datname=?");
-                stmt.setString(1, cat);
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    result.put("pg_encoding_to_char(encoding)", rs.getString(1));
-                    result.put("datcollate", rs.getString(2));
-                }
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result.toString();
         }
 
         @Override
@@ -257,7 +227,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    DB2("DB2") {
+    DB2("DB2", RDBCommonVendorSpecificCode.DB2) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 10, 5, description);
@@ -288,50 +258,6 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
-            try {
-                con = ch.getROConnection();
-
-                // schema name will only be available with JDK 1.7
-                String conSchema = ch.getSchema(con);
-
-                StringBuilder sb = new StringBuilder();
-                sb.append("SELECT CODEPAGE, COLLATIONSCHEMA, COLLATIONNAME, TABSCHEMA FROM SYSCAT.COLUMNS WHERE COLNAME=? and COLNO=0 AND UPPER(TABNAME)=UPPER(?)");
-                if (conSchema != null) {
-                    conSchema = conSchema.trim();
-                    sb.append(" AND UPPER(TABSCHEMA)=UPPER(?)");
-                }
-                stmt = con.prepareStatement(sb.toString());
-                stmt.setString(1, "ID");
-                stmt.setString(2, tableName);
-                if (conSchema != null) {
-                    stmt.setString(3, conSchema);
-                }
-
-                rs = stmt.executeQuery();
-                while (rs.next() && result.size() < 20) {
-                    String schema = rs.getString("TABSCHEMA").trim();
-                    result.put(schema + ".CODEPAGE", rs.getString("CODEPAGE").trim());
-                    result.put(schema + ".COLLATIONSCHEMA", rs.getString("COLLATIONSCHEMA").trim());
-                    result.put(schema + ".COLLATIONNAME", rs.getString("COLLATIONNAME").trim());
-                }
-                stmt.close();
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result.toString();
-        }
-
-        @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
 
             Map<String, String> result = new HashMap<String, String>();
@@ -339,8 +265,9 @@ public enum RDBDocumentStoreDB {
             Connection con = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".DB2.TABLE_STATS",
-                    "card npages mpages fpages overflow pctfree avgrowsize stats_time");
+            String tableStats = SystemPropertySupplier
+                    .create(SYSPROP_PREFIX + ".DB2.TABLE_STATS", "card npages mpages fpages overflow pctfree avgrowsize stats_time")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -362,8 +289,9 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".DB2.INDEX_STATS",
-                    "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time");
+            String indexStats = SystemPropertySupplier.create(SYSPROP_PREFIX + ".DB2.INDEX_STATS",
+                    "indextype colnames pctfree clusterratio nleaf nlevels fullkeycard density indcard numrids numrids_deleted avgleafkeysize avgnleafkeysize remarks stats_time")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -394,7 +322,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    ORACLE("Oracle") {
+    ORACLE("Oracle", RDBCommonVendorSpecificCode.ORACLE) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 12, 1, 12, 2, description);
@@ -423,32 +351,6 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            Statement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
-            try {
-                con = ch.getROConnection();
-                stmt = con.createStatement();
-                rs = stmt
-                        .executeQuery("SELECT PARAMETER, VALUE from NLS_DATABASE_PARAMETERS WHERE PARAMETER IN ('NLS_COMP', 'NLS_CHARACTERSET')");
-                while (rs.next()) {
-                    result.put(rs.getString(1), rs.getString(2));
-                }
-                stmt.close();
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result.toString();
-        }
-
-        @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
 
             Map<String, String> result = new HashMap<String, String>();
@@ -456,8 +358,9 @@ public enum RDBDocumentStoreDB {
             Connection con = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS",
-                    "num_rows blocks avg_row_len sample_size last_analyzed");
+            String tableStats = SystemPropertySupplier
+                    .create(SYSPROP_PREFIX + ".ORACLE.TABLE_STATS", "num_rows blocks avg_row_len sample_size last_analyzed")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -478,8 +381,9 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".ORACLE.INDEX_STATS",
-                    "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed");
+            String indexStats = SystemPropertySupplier.create(SYSPROP_PREFIX + ".ORACLE.INDEX_STATS",
+                    "blevel leaf_blocks distinct_keys avg_leaf_blocks_per_key avg_data_blocks_per_key clustering_factor num_rows sample_size last_analyzed")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -514,7 +418,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    MYSQL("MySQL") {
+    MYSQL("MySQL", RDBCommonVendorSpecificCode.MYSQL) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 5, 5, description);
@@ -558,41 +462,6 @@ public enum RDBDocumentStoreDB {
         }
 
         @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
-            try {
-                con = ch.getROConnection();
-                stmt = con.prepareStatement("SHOW TABLE STATUS LIKE ?");
-                stmt.setString(1, tableName);
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    result.put("collation", rs.getString("Collation"));
-                }
-                rs.close();
-                stmt.close();
-                stmt = con.prepareStatement(
-                        "SHOW VARIABLES WHERE variable_name LIKE 'character\\_set\\_%' OR variable_name LIKE 'collation%' OR variable_name = 'max_allowed_packet'");
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    result.put(rs.getString(1), rs.getString(2));
-                }
-                rs.close();
-                stmt.close();
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result.toString();
-        }
-
-        @Override
         public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
 
             Map<String, String> result = new HashMap<String, String>();
@@ -600,8 +469,10 @@ public enum RDBDocumentStoreDB {
             Connection con = null;
 
             // table data
-            String tableStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
-                    "engine version row_format rows avg_row_length data_length index_length data_free collation");
+            String tableStats = SystemPropertySupplier
+                    .create(SYSPROP_PREFIX + ".MYSQL.TABLE_STATS",
+                            "engine version row_format rows avg_row_length data_length index_length data_free collation")
+                    .loggingTo(LOG).get();
 
             try {
                 con = ch.getROConnection();
@@ -622,8 +493,9 @@ public enum RDBDocumentStoreDB {
             }
 
             // index data
-            String indexStats = System.getProperty(SYSPROP_PREFIX + ".MYSQL.INDEX_STATS",
-                    "column_name cardinality index_type sub_part");
+            String indexStats = SystemPropertySupplier
+                    .create(SYSPROP_PREFIX + ".MYSQL.INDEX_STATS", "column_name cardinality index_type sub_part").loggingTo(LOG)
+                    .get();
 
             try {
                 con = ch.getROConnection();
@@ -647,7 +519,7 @@ public enum RDBDocumentStoreDB {
         }
     },
 
-    MSSQL("Microsoft SQL Server") {
+    MSSQL("Microsoft SQL Server", RDBCommonVendorSpecificCode.MSSQL) {
         @Override
         public String checkVersion(DatabaseMetaData md) throws SQLException {
             return RDBJDBCTools.versionCheck(md, 11, 0, description);
@@ -692,34 +564,6 @@ public enum RDBDocumentStoreDB {
         @Override
         public String getCurrentTimeStampInSecondsSyntax() {
             return "select datediff(second, dateadd(second, datediff(second, getutcdate(), getdate()), '1970-01-01'), getdate())";
-        }
-
-        @Override
-        public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-            Connection con = null;
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            Map<String, String> result = new HashMap<String, String>();
-            try {
-                con = ch.getROConnection();
-                String cat = con.getCatalog();
-                stmt = con.prepareStatement("SELECT collation_name FROM sys.databases WHERE name=?");
-                stmt.setString(1, cat);
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    result.put("collation_name", rs.getString(1));
-                }
-                rs.close();
-                stmt.close();
-                con.commit();
-            } catch (SQLException ex) {
-                LOG.debug("while getting diagnostics", ex);
-            } finally {
-                closeResultSet(rs);
-                closeStatement(stmt);
-                ch.closeConnection(con);
-            }
-            return result.toString();
         }
 
         private long parseSize(String readable) {
@@ -771,15 +615,16 @@ public enum RDBDocumentStoreDB {
             try {
                 con = ch.getROConnection();
                 try (PreparedStatement stmt = con.prepareStatement(
-                        "SELECT i.[name] AS name, SUM(s.[row_count]) as rows, SUM(s.[used_page_count] * 8) as usedKB, SUM(s.[reserved_page_count] * 8) as reservedKB "
+                        "SELECT i.[name] AS name, i.[fill_factor] as fill_factor, i.[type_desc] as type_desc, SUM(s.[row_count]) as rows, SUM(s.[used_page_count] * 8) as usedKB, SUM(s.[reserved_page_count] * 8) as reservedKB "
                                 + "FROM sys.dm_db_partition_stats AS s "
                                 + "INNER JOIN sys.indexes AS i ON s.[object_id] = i.[object_id] "
-                                + "    AND s.[index_id] = i.[index_id] WHERE i.[object_id]=OBJECT_ID(?) " + "GROUP BY i.[name]")) {
+                                + "AND s.[index_id] = i.[index_id] WHERE i.[object_id]=OBJECT_ID(?) "
+                                + "GROUP BY i.[name], i.[fill_factor], i.[type_desc]")) {
                     stmt.setString(1, tableName.toLowerCase(Locale.ENGLISH));
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
                             String index = rs.getString("name");
-                            String data = extractFields(rs, "rows usedKB reservedKB");
+                            String data = extractFields(rs, "rows usedKB reservedKB type_desc fill_factor");
                             result.put("index." + index + "._data", data);
                         }
                     }
@@ -895,6 +740,11 @@ public enum RDBDocumentStoreDB {
         return result;
     }
 
+    @NotNull
+    public Map<String, String> getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
+        return vendorCode.getAdditionalDiagnostics(ch, tableName);
+    }
+
     /**
      * Returns additional DB-specific statistics, augmenting the return value of
      * {@link RDBDocumentStore#getStats()}.
@@ -963,10 +813,6 @@ public enum RDBDocumentStoreDB {
      * "http://db.apache.org/derby/docs/10.14/ref/rrefsyscsdiagspacetable.html">SYSCS_DIAG.SPACE_TABLE diagnostic table function</a>
      * </ul>
      */
-    public String getAdditionalDiagnostics(RDBConnectionHandler ch, String tableName) {
-        return "";
-    }
-
     public Map<String, String> getAdditionalStatistics(RDBConnectionHandler ch, String catalog, String tableName) {
         return Collections.emptyMap();
     }
@@ -1012,6 +858,8 @@ public enum RDBDocumentStoreDB {
 
     protected String description;
 
+    protected RDBCommonVendorSpecificCode vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
+
     protected String extractFields(ResultSet rs, String indexStats) throws SQLException {
         StringBuilder data = new StringBuilder();
         for (String f : indexStats.split(" ")) {
@@ -1029,6 +877,12 @@ public enum RDBDocumentStoreDB {
 
     private RDBDocumentStoreDB(String description) {
         this.description = description;
+        this.vendorCode = RDBCommonVendorSpecificCode.DEFAULT;
+    }
+
+    private RDBDocumentStoreDB(String description, RDBCommonVendorSpecificCode vendorCode) {
+        this.description = description;
+        this.vendorCode = vendorCode;
     }
 
     @Override

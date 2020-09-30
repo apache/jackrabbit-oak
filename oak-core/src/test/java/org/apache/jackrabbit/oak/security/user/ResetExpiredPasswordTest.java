@@ -30,10 +30,13 @@ import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -43,6 +46,7 @@ import static org.junit.Assert.fail;
 public class ResetExpiredPasswordTest extends AbstractSecurityTest implements UserConstants {
 
     private String userId;
+    private SimpleCredentials creds;
 
     @Before
     public void before() throws Exception {
@@ -63,11 +67,16 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
     }
 
     private void authenticate(String expiredPw, Object newPw) throws LoginException {
-        SimpleCredentials creds = new SimpleCredentials(userId, expiredPw.toCharArray());
+        creds = new SimpleCredentials(userId, expiredPw.toCharArray());
         creds.setAttribute(UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD, newPw);
 
         Authentication a = new UserAuthentication(getUserConfiguration(), root, userId);
         a.authenticate(creds);
+    }
+
+    private static void assertCredentials(@Nullable SimpleCredentials sc) {
+        assertNotNull(sc);
+        assertNull(sc.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD));
     }
 
     @Test
@@ -78,11 +87,13 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
         Root rootBasedOnSeparateSession = login(getAdminCredentials()).getLatestRoot();
         Tree userTree = rootBasedOnSeparateSession.getTree(getTestUser().getPath());
         assertTrue(PasswordUtil.isSame(userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), "newPw"));
+        assertCredentials(creds);
     }
 
     @Test
     public void testAuthenticatePasswordExpiredThenChanged() throws Exception {
         authenticate(userId, userId);
+        assertCredentials(creds);
     }
 
     @Test
@@ -96,13 +107,14 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
             Tree userTree = root.getTree(getTestUser().getPath());
             assertTrue(PasswordUtil.isSame(userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), userId));
             assertEquals(0, userTree.getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED).getValue(Type.LONG).longValue());
+            assertCredentials(creds);
         }
     }
 
     @Test
     public void testChangeWithNonStringAttribute() throws Exception {
         try {
-            authenticate(userId, new Long(1));
+            authenticate(userId, 1L);
             fail("Authentication with non-string attribute should fail.");
         } catch (CredentialExpiredException e) {
             // success
@@ -110,6 +122,7 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
             Tree userTree = root.getTree(getTestUser().getPath());
             assertTrue(PasswordUtil.isSame(userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING), userId));
             assertEquals(0, userTree.getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED).getValue(Type.LONG).longValue());
+            assertCredentials(creds);
         }
     }
 }

@@ -16,54 +16,39 @@
  */
 package org.apache.jackrabbit.oak.security.user.action;
 
-import java.util.List;
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.ConstraintViolationException;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.action.AbstractAuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import javax.jcr.nodetype.ConstraintViolationException;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     private final PasswordValidationAction pwAction = new PasswordValidationAction();
-    private final TestAction testAction = new TestAction();
-    private final AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-        @NotNull
-        @Override
-        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-            return ImmutableList.of(pwAction, testAction);
-        }
-    };
-
-    private User user;
+    private final AuthorizableAction testAction = mock(AuthorizableAction.class);
+    private final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(pwAction, testAction);
 
     @Before
     public void before() throws Exception {
         super.before();
-        testAction.reset();
         pwAction.init(getSecurityProvider(), ConfigurationParameters.of(
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*"));
 
@@ -71,11 +56,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     @After
     public void after() throws Exception {
-        if (user != null) {
-            user.remove();
-            root.commit();
-        }
-        root = null;
+        root.refresh();
         super.after();
     }
 
@@ -89,64 +70,36 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     @Test
     public void testActionIsCalled() throws Exception {
-        user = getUserManager(root).createUser("testUser", "testUser12345");
-        root.commit();
-        assertEquals(1, testAction.onCreateCalled);
+        User user = getUserManager(root).createUser("testUser", "testUser12345");
+        verify(testAction, times(1)).onCreate(user, "testUser12345", root, getNamePathMapper());
 
         user.changePassword("pW12345678");
-        assertEquals(1, testAction.onPasswordChangeCalled);
+        verify(testAction, times(1)).onPasswordChange(user, "pW12345678", root, getNamePathMapper());
 
         user.changePassword("pW1234567890", "pW12345678");
-        assertEquals(2, testAction.onPasswordChangeCalled);
+        verify(testAction, times(1)).onPasswordChange(user, "pW12345678", root, getNamePathMapper());
     }
 
     @Test
     public void testPasswordValidationActionOnCreate() throws Exception {
         String hashed = PasswordUtil.buildPasswordHash("DWkej32H");
-        user = getUserManager(root).createUser("testuser", hashed);
-        root.commit();
+        User user = getUserManager(root).createUser("testuser", hashed);
 
         String pwValue = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
         assertFalse(PasswordUtil.isPlainTextPassword(pwValue));
         assertTrue(PasswordUtil.isSame(pwValue, hashed));
     }
 
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void testPasswordValidationActionOnChange() throws Exception {
-        user = getUserManager(root).createUser("testuser", "testPw123456");
-        root.commit();
+        User user = getUserManager(root).createUser("testuser", "testPw123456");
+        String hashed = PasswordUtil.buildPasswordHash("abc");
         try {
             pwAction.init(getSecurityProvider(), ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "abc"));
-
-            String hashed = PasswordUtil.buildPasswordHash("abc");
             user.changePassword(hashed);
-
-            fail("Password change must always enforce password validation.");
-
-        } catch (ConstraintViolationException e) {
-            // success
-        }
-    }
-
-    //--------------------------------------------------------------------------
-    private class TestAction extends AbstractAuthorizableAction {
-
-        private int onCreateCalled = 0;
-        private int onPasswordChangeCalled = 0;
-
-        void reset() {
-            onCreateCalled = 0;
-            onPasswordChangeCalled = 0;
-        }
-
-        @Override
-        public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
-            onCreateCalled++;
-        }
-
-        @Override
-        public void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
-            onPasswordChangeCalled++;
+        } finally {
+            verify(testAction, times(1)).onCreate(user, "testPw123456", root, getNamePathMapper());
+            verify(testAction, never()).onPasswordChange(user, hashed, root, getNamePathMapper());
         }
     }
 }

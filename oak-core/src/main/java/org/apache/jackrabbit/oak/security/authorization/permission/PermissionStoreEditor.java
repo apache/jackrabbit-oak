@@ -20,13 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.tree.TreeProvider;
+import org.apache.jackrabbit.oak.security.authorization.accesscontrol.ValidationEntry;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -80,19 +80,21 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         int index = 0;
         for (String childName : orderedChildNames) {
             NodeState ace = node.getChildNode(childName);
-            if (isACE.apply(ace)) {
-                boolean isAllow = isGrantACE.apply(ace);
+            if (isACE.test(ace)) {
+                boolean isAllow = isGrantACE.test(ace);
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
                 Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), treeProvider.createReadOnlyTree(ace));
 
-                AcEntry entry = new AcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions);
-                List<AcEntry> list = entries.computeIfAbsent(entry.principalName, k -> new ArrayList<>());
+                String principalName = Text.escapeIllegalJcrChars(ace.getString(REP_PRINCIPAL_NAME));
+                AcEntry entry = new AcEntry(principalName, index, isAllow, privilegeBits, restrictions);
+                List<AcEntry> list = entries.computeIfAbsent(principalName, k -> new ArrayList<>());
                 list.add(entry);
                 index++;
             }
         }
     }
 
+    @NotNull
     String getPath() {
         return accessControlledPath;
     }
@@ -101,7 +103,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         return entries.isEmpty();
     }
 
-    void removePermissionEntries(PermissionStoreEditor otherEditor) {
+    void removePermissionEntries(@NotNull PermissionStoreEditor otherEditor) {
         entries.keySet().removeAll(otherEditor.entries.keySet());
     }
 
@@ -215,7 +217,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         }
     }
 
-    private void updateEntries(NodeBuilder parent, List<AcEntry> list) {
+    private void updateEntries(@NotNull NodeBuilder parent, @NotNull List<AcEntry> list) {
         // remove old entries
         for (String childName : parent.getChildNodeNames()) {
             if (childName.charAt(0) != 'c') {
@@ -237,36 +239,22 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
         long numEntries = ((ps == null) ? 0 : ps.getValue(Type.LONG)) + cnt;
         if  (numEntries < 0) {
             // numEntries unexpectedly turned negative
-            log.error("NumEntries counter for principal '"+principalName+"' turned negative -> removing 'rep:numPermissions' property.");
+            log.error("NumEntries counter for principal '{}' turned negative -> removing 'rep:numPermissions' property.", principalName);
             principalRoot.removeProperty(REP_NUM_PERMISSIONS);
         } else {
             principalRoot.setProperty(REP_NUM_PERMISSIONS, numEntries, Type.LONG);
         }
     }
 
-    private class AcEntry {
+    private class AcEntry extends ValidationEntry {
 
-        private final String accessControlledPath;
-        private final String principalName;
-        private final PrivilegeBits privilegeBits;
-        private final boolean isAllow;
-        private final Set<Restriction> restrictions;
-        private final int index;
-        private int hashCode = -1;
-
-        AcEntry(@NotNull NodeState node, @NotNull String accessControlledPath, int index,
+        AcEntry(@NotNull String principalName, int index,
                 boolean isAllow, @NotNull PrivilegeBits privilegeBits,
                 @NotNull Set<Restriction> restrictions) {
-            this.accessControlledPath = accessControlledPath;
-            this.index = index;
-
-            this.principalName = Text.escapeIllegalJcrChars(node.getString(REP_PRINCIPAL_NAME));
-            this.privilegeBits = privilegeBits;
-            this.isAllow = isAllow;
-            this.restrictions = restrictions;
+            super(principalName, privilegeBits, isAllow, restrictions, index);
         }
 
-        private void writeToPermissionStore(NodeBuilder parent) {
+        private void writeToPermissionStore(@NotNull NodeBuilder parent) {
             NodeBuilder n = parent.child(String.valueOf(index))
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS, Type.NAME)
                     .setProperty(REP_IS_ALLOW, isAllow)
@@ -276,44 +264,9 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             }
         }
 
-        PropertyState getPrivilegeBitsProperty() {
+        @NotNull
+        private PropertyState getPrivilegeBitsProperty() {
             return JcrAllUtil.asPropertyState(REP_PRIVILEGE_BITS, privilegeBits, bitsProvider);
-        }
-
-        //-------------------------------------------------------------< Object >---
-        @Override
-        public int hashCode() {
-            if (hashCode == -1) {
-                hashCode = Objects.hashCode(accessControlledPath, principalName, privilegeBits, isAllow, restrictions);
-            }
-            return hashCode;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            }
-            if (o instanceof AcEntry) {
-                AcEntry other = (AcEntry) o;
-                return isAllow == other.isAllow
-                        && privilegeBits.equals(other.privilegeBits)
-                        && principalName.equals(other.principalName)
-                        && accessControlledPath.equals(other.accessControlledPath)
-                        && restrictions.equals(other.restrictions);
-            }
-            return false;
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append(accessControlledPath);
-            sb.append(';').append(principalName);
-            sb.append(';').append(isAllow ? "allow" : "deny");
-            sb.append(';').append(privilegeBits);
-            sb.append(';').append(restrictions);
-            return sb.toString();
         }
     }
 }

@@ -21,6 +21,7 @@ The Oak Security Layer
 ### General
 
  * [Introduction to Oak Security](introduction.html)
+ * [Security Reports](reports.html)
 
 ### Authentication
 
@@ -41,7 +42,7 @@ The Oak Security Layer
 
  * [Overview](authorization.html)
      * [Access Control Management](accesscontrol.html)
-     * [Permission Evalution](permission.html)
+     * [Permission Evaluation](permission.html)
      * [Combining Multiple Authorization Models](authorization/composite.html)
   
 #### Access Control Management
@@ -72,11 +73,13 @@ The Oak Security Layer
 
  * [Restriction Management](authorization/restriction.html)
  * [Managing Access with Closed User Groups (CUG)](authorization/cug.html)
+ * [Managing Access by Principal](authorization/principalbased.html)
 
 ### Principal Management
 
  * [Overview](principal.html)
  * [Differences wrt Jackrabbit 2.x](principal/differences.html)
+ * [Principal Management : The Default Implementation](principal.html#default_implementation)
 
 ### User Management
 

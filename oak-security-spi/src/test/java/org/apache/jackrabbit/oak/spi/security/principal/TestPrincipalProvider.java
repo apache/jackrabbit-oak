@@ -21,7 +21,6 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -35,8 +34,6 @@ import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.jcr.RepositoryException;
 
 public final class TestPrincipalProvider implements PrincipalProvider {
 
@@ -57,6 +54,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     public TestPrincipalProvider(String... principalNames) {
         this.exposesEveryone = true;
         this.principals = Maps.toMap(ImmutableSet.copyOf(principalNames), input -> new ItemBasedPrincipal() {
+            @NotNull
             @Override
             public String getPath() {
                 return "/path/to/principal/" + input;
@@ -74,7 +72,7 @@ public final class TestPrincipalProvider implements PrincipalProvider {
     }
 
     public Iterable<Principal> all() {
-        Set<Principal> all = Sets.newHashSet(principals.values());
+        Set<Principal> all = Sets.newLinkedHashSet(principals.values());
         all.add(EveryonePrincipal.getInstance());
         return all;
     }
@@ -178,10 +176,11 @@ public final class TestPrincipalProvider implements PrincipalProvider {
         }
 
         @Override
-        public boolean isMember(Principal member) {
+        public boolean isMember(@NotNull Principal member) {
             throw new UnsupportedOperationException();
         }
 
+        @NotNull
         @Override
         public Enumeration<? extends Principal> members() {
             return members;

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import joptsimple.OptionException;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -56,7 +58,7 @@ import org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
-import org.apache.jackrabbit.oak.plugins.blob.BlobGCTest.MemoryBlobStoreNodeStore;
+import org.apache.jackrabbit.oak.plugins.blob.MemoryBlobStoreNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
@@ -87,7 +89,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -107,6 +108,9 @@ import static org.apache.jackrabbit.oak.run.DataStoreCommand.VerboseIdLogger.fil
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 /**
  * Tests for {@link DataStoreCommand}
@@ -140,6 +144,11 @@ public class DataStoreCommandTest {
 
     @Before
     public void setup() throws Exception {
+        if (storeFixture instanceof StoreFixture.AzureSegmentStoreFixture) {
+            assumeFalse("Environment variable \"AZURE_SECRET_KEY\" must be set to run Azure Segment fixture",
+                    Strings.isNullOrEmpty(System.getenv("AZURE_SECRET_KEY")));
+        }
+
         setupDataStore = blobFixture.init(temporaryFolder);
         store = storeFixture.init(setupDataStore, temporaryFolder.newFolder());
         additionalParams = "--ds-read-write";
@@ -150,7 +159,12 @@ public class DataStoreCommandTest {
     }
 
     private static Data prepareData(StoreFixture storeFixture, DataStoreFixture blobFixture, int numBlobs,
-        int numMaxDeletions, int missingDataStore) throws Exception {
+                                    int numMaxDeletions, int missingDataStore) throws Exception{
+        return prepareData(storeFixture, blobFixture, numBlobs, numMaxDeletions, missingDataStore, false);
+    }
+
+    private static Data prepareData(StoreFixture storeFixture, DataStoreFixture blobFixture, int numBlobs,
+        int numMaxDeletions, int missingDataStore, boolean createMultiLevelNodes) throws Exception {
 
         DataStoreBlobStore blobStore = blobFixture.getDataStore();
         NodeStore store = storeFixture.getNodeStore();
@@ -168,27 +182,54 @@ public class DataStoreCommandTest {
         }
 
         NodeBuilder a = store.getRoot().builder();
+        Map<String, NodeBuilder> map = new HashMap<String, NodeBuilder>();
+        map.put("/",a);
+        if (createMultiLevelNodes) {
+            NodeBuilder a1 = a.child("foo");
+            NodeBuilder a2 = a.child("bar");
+
+            for (int j = 0 ; j < 5 ; j ++) {
+                NodeBuilder a11 = a1.child("foo" + j).child("test");
+                map.put("/foo/foo" + j + "/test", a11);
+                NodeBuilder a22 = a2.child("bar" + j).child("test");
+                map.put("/bar/bar" + j + "/test", a22);
+            }
+        }
         for (int i = 0; i < numBlobs; i++) {
+            List<String> valuesList = new ArrayList<String>(map.keySet());
+            int randomIndex = new Random().nextInt(valuesList.size());
+
+
+            String pathRoot = valuesList.get(randomIndex);
+
             Blob b = store.createBlob(randomStream(i, 18342));
             Iterator<String> idIter = blobStore.resolveChunks(b.getContentIdentity());
             while (idIter.hasNext()) {
                 String chunk = idIter.next();
                 data.added.add(chunk);
-                data.idToPath.put(chunk, "/c" + i);
-                if (toBeDeleted.contains(i)) {
+                data.idToPath.put(chunk, (createMultiLevelNodes ? pathRoot : "") + "/c" + i);
+                if (!createMultiLevelNodes && toBeDeleted.contains(i)) {
                     data.deleted.add(chunk);
                 }
             }
-            a.child("c" + i).setProperty("x", b);
+            if (createMultiLevelNodes) {
+                map.get(pathRoot).child("c" + i).setProperty("x", b);
+            } else {
+                a.child("c" + i).setProperty("x", b);
+            }
         }
 
         store.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.info("Created Data : {}", data);
 
-        for (int id : toBeDeleted) {
-            delete("c" + id, store);
+        // Not deleting nodes in case of multi level nodes
+        // Probably  change/improve this in future.
+        if (!createMultiLevelNodes) {
+            for (int id : toBeDeleted) {
+                delete("c" + id, store);
+            }
+            log.info("Deleted nodes : {}", toBeDeleted.size());
         }
-        log.info("Deleted nodes : {}", toBeDeleted.size());
 
         int missing = 0;
         Iterator<String> iterator = data.added.iterator();
@@ -228,6 +269,38 @@ public class DataStoreCommandTest {
     public void tearDown() {
         storeFixture.after();
         blobFixture.after();
+    }
+
+    @Test
+    public void testNoSensitiveParams() throws Exception {
+        storeFixture.close();
+        File dump = temporaryFolder.newFolder();
+        List<String> argsList = Lists
+            .newArrayList("--check-consistency", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(), "--out-dir",
+                dump.getAbsolutePath(), storeFixture.getConnectionString(), "--reset-log-config", "false", "--work-dir",
+                temporaryFolder.newFolder().getAbsolutePath());
+        if (!Strings.isNullOrEmpty(additionalParams)) {
+            argsList.add(additionalParams);
+        }
+
+        log.info("Running testNoSensitiveParams: {}", argsList);
+        LogCustomizer customLogs = LogCustomizer
+            .forLogger(DataStoreCommand.class.getName())
+            .enable(Level.INFO)
+            .filter(Level.INFO)
+            .matchesRegex(".*mongodb:.*|.*az:.*")
+            .create();
+        customLogs.starting();
+
+        DataStoreCommand cmd = new DataStoreCommand();
+        try {
+            cmd.execute(argsList.toArray(new String[0]));
+        } catch (Exception e) {
+            log.error("", e);
+        }
+
+        Assert.assertEquals(0, customLogs.getLogs().size());
+        customLogs.finished();
     }
 
     @Test
@@ -286,6 +359,160 @@ public class DataStoreCommandTest {
     }
 
     @Test
+    public void testConsistencyVerboseRootPathNoMissing() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 0, 0);
+        storeFixture.close();
+        additionalParams += " --verboseRootPath /c1,/c2";
+
+
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+                data.addedSubset.add(id);
+            }
+        }
+        testConsistency(dump, data, true, true);
+    }
+
+    @Test
+    public void testConsistencyVerboseRootPathWithDeleted() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1);
+        storeFixture.close();
+        additionalParams += " --verboseRootPath /c1,/c2";
+
+
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+                data.addedSubset.add(id);
+            }
+        }
+        testConsistency(dump, data, true, true);
+    }
+
+    @Test
+    public void testConsistencyVerboseRootPath() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 0, 2);
+        storeFixture.close();
+        additionalParams += " --verboseRootPath /c1,/c2";
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+                data.addedSubset.add(id);
+            }
+        }
+        testConsistency(dump, data, true, true);
+    }
+
+    @Test
+    public void testConsistencyVerboseRootPathWithoutVerbose() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
+        storeFixture.close();
+
+        additionalParams += " --verboseRootPath /a";
+        try {
+            // Create exec command without --verbose - It should throw an exception
+            // since we used --verboseRootPath without --verbose
+            testConsistency(dump, data, false, true);
+        } catch (OptionException e) {
+            assertTrue(e.getMessage().equals("Option(s) [verboseRootPath] are unavailable " +
+                    "given other options on the command line"));
+            return;
+        }
+        assertFalse(true);
+    }
+
+    @Test
+    public void testDumpRefWithVerboseRootPath() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1);
+        storeFixture.close();
+        additionalParams += " --verboseRootPath /c1,/c2";
+
+
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).equals("/c1") || data.idToPath.get(id).equals("/c2")) {
+                data.addedSubset.add(id);
+            }
+        }
+        testDumpRef(dump, data, true, true);
+    }
+
+    @Test
+    public void testDumpRef() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1);
+        storeFixture.close();
+
+        testDumpRef(dump, data, true, false);
+    }
+
+    @Test
+    public void testDumpRefWithoutVerbose() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1);
+        storeFixture.close();
+
+        testDumpRef(dump, data, false, false);
+    }
+
+    @Test
+    public void testDumpRefVerboseRootPathRegex() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1, true);
+        storeFixture.close();
+
+        additionalParams += " --verboseRootPath /foo --verbosePathInclusionRegex /*/test";
+
+        for (String id : data.idToPath.keySet()) {
+            if (data.idToPath.get(id).contains("/foo")) {
+                data.addedSubset.add(id);
+            }
+        }
+
+        testDumpRef(dump, data, true, true);
+    }
+
+    @Test
+    public void testDumpRefVerboseRegexWithoutVerboseRootPath() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1);
+        storeFixture.close();
+
+        additionalParams += " --verbosePathInclusionRegex /*/*";
+
+        try {
+            // Create exec command without --verboseRootPath - It should throw an exception
+            // since we used --verbosePathInclusionRegex without --verboseRootPath
+            testDumpRef(dump, data, true, false);
+        } catch (OptionException e) {
+            assertTrue(e.getMessage().equals("Option(s) [verbosePathInclusionRegex] are unavailable " +
+                    "given other options on the command line"));
+            return;
+        }
+        assertFalse(true);
+    }
+
+    @Test
+    public void testDumpId() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1);
+        storeFixture.close();
+
+        testDumpIds(dump, data, true);
+    }
+
+    @Test
+    public void testDumpIdWithoutVerbose() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 4, 1);
+        storeFixture.close();
+
+        testDumpIds(dump, data, false);
+    }
+
+    @Test
     public void testConsistencyNoMissing() throws Exception {
         File dump = temporaryFolder.newFolder();
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
@@ -294,6 +521,37 @@ public class DataStoreCommandTest {
         testConsistency(dump, data, false);
     }
 
+    @Test
+    public void gcWithConsistency() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
+        storeFixture.close();
+        additionalParams += " --check-consistency-gc true";
+        testGc(dump, data, 0, false, false);
+
+        assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
+
+        // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
+        assertFileEquals(dump, "consistencyCandidatesAfterGC", data.missingDataStore);
+    }
+
+    @Test
+    public void gcSweepRefsOld() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
+        storeFixture.close();
+        additionalParams += " --check-consistency-gc true --sweep-only-refs-past-retention true";
+        testGc(dump, data, 0, false, false);
+    }
+
+    @Test
+    public void gcSweepRefsNotOld() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
+        storeFixture.close();
+        additionalParams += " --check-consistency-gc true --sweep-only-refs-past-retention true";
+        testGc(dump, data, 1000, false, true);
+    }
 
     @Test
     public void gc() throws Exception {
@@ -301,7 +559,27 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testGc(dump, data, 0, false);
+        testGc(dump, data, 0, false, false);
+    }
+    /*
+    Command should throw and exception if --verboseRootPath specified
+    with --collect-garbage
+     */
+    @Test
+    public void gcWithVerboseRootPathOption() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
+        storeFixture.close();
+
+        additionalParams += " --verboseRootPath /a";
+        try {
+            testGc(dump, data, 0, false, false);
+        } catch (OptionException e) {
+            assertTrue(e.getMessage().equals("Option(s) [verboseRootPath] are unavailable " +
+                    "given other options on the command line"));
+            return;
+        }
+        assertFalse(true);
     }
 
     @Test
@@ -310,7 +588,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 0, 1);
         storeFixture.close();
 
-        testGc(dump, data, 0, false);
+        testGc(dump, data, 0, false, false);
     }
 
     @Test
@@ -319,7 +597,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testGc(dump, data, 10000, false);
+        testGc(dump, data, 10000, false, false);
     }
 
     @Test
@@ -328,7 +606,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testGc(dump, data, 10000, true);
+        testGc(dump, data, 10000, true, false);
     }
 
     @Test
@@ -347,7 +625,7 @@ public class DataStoreCommandTest {
 
         storeFixture.close();
 
-        testGc(dump, data, 0, false);
+        testGc(dump, data, 0, false, false);
     }
 
     @Test
@@ -400,13 +678,18 @@ public class DataStoreCommandTest {
         assertFileEquals(dump, "marked-", Sets.difference(data.added, data.deleted));
     }
 
+
     private void testConsistency(File dump, Data data, boolean verbose) throws Exception {
+        testConsistency(dump, data, verbose, false);
+    }
+
+    private void testConsistency(File dump, Data data, boolean verbose, boolean verboseRootPath) throws Exception {
         List<String> argsList = Lists
             .newArrayList("--check-consistency", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath());
         if (!Strings.isNullOrEmpty(additionalParams)) {
-            argsList.add(additionalParams);
+            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
 
         if (verbose) {
@@ -417,41 +700,89 @@ public class DataStoreCommandTest {
 
         assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
 
-        // Only verbose or Document would have paths suffixed
-        assertFileEquals(dump, "marked-", (verbose || storeFixture instanceof StoreFixture.MongoStoreFixture) ?
-            encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
-            Sets.difference(data.added, data.deleted));
+        // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
+        assertFileEquals(dump, "marked-", verbose ?
+                encodedIdsAndPath(Sets.difference(verboseRootPath ? data.addedSubset :
+                        data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
+                (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
+                        encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
+                        Sets.difference(data.added, data.deleted));
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "gccand-", verbose ?
-            encodedIdsAndPath(data.missingDataStore, blobFixture.getType(), data.idToPath, true) :
+            encodedIdsAndPath(verboseRootPath ? Sets.intersection(data.addedSubset, data.missingDataStore) :
+                    data.missingDataStore, blobFixture.getType(), data.idToPath, true) :
             (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
                 encodedIdsAndPath(data.missingDataStore, blobFixture.getType(), data.idToPath, false) :
                 data.missingDataStore);
     }
 
+    private void testDumpRef(File dump, Data data, boolean verbose, boolean verboseRootPath) throws Exception {
+        List<String> argsList = Lists
+                .newArrayList("--dump-ref", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+                        storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
+                        temporaryFolder.newFolder().getAbsolutePath());
+        if (!Strings.isNullOrEmpty(additionalParams)) {
+            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
+        }
 
-    private void testGc(File dump, Data data, long maxAge, boolean markOnly) throws Exception {
+        if (verbose) {
+            argsList.add("--verbose");
+        }
+        DataStoreCommand cmd = new DataStoreCommand();
+        cmd.execute(argsList.toArray(new String[0]));
+
+        // Verbose would have paths as well as ids changed, otherwise only ids would be listed as it is.
+        assertFileEquals(dump, "dump-ref-", verbose ?
+                encodedIdsAndPath(Sets.difference(verboseRootPath ? data.addedSubset :
+                        data.added, data.deleted), blobFixture.getType(), data.idToPath, true) :
+                Sets.difference(data.added, data.deleted), "dump");
+
+    }
+
+    private void testDumpIds(File dump, Data data, boolean verbose) throws Exception {
+        List<String> argsList = Lists
+                .newArrayList("--dump-id", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+                        storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
+                        temporaryFolder.newFolder().getAbsolutePath());
+        if (!Strings.isNullOrEmpty(additionalParams)) {
+            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
+        }
+
+        if (verbose) {
+            argsList.add("--verbose");
+        }
+        DataStoreCommand cmd = new DataStoreCommand();
+        cmd.execute(argsList.toArray(new String[0]));
+
+        // Verbose would have backend friendly encoded ids
+        assertFileEquals(dump, "dump-id-", verbose ?
+                encodeIds(Sets.difference(data.added, data.missingDataStore), blobFixture.getType()) :
+                        Sets.difference(data.added, data.missingDataStore), "dump");
+
+    }
+
+    private void testGc(File dump, Data data, long maxAge, boolean markOnly, boolean refsOld) throws Exception {
         List<String> argsList = Lists
             .newArrayList("--collect-garbage", String.valueOf(markOnly), "--max-age", String.valueOf(maxAge),
                 "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath());
         if (!Strings.isNullOrEmpty(additionalParams)) {
-            argsList.add(additionalParams);
+            argsList.addAll(Splitter.on(" ").splitToList(additionalParams));
         }
 
         DataStoreCommand cmd = new DataStoreCommand();
         cmd.execute(argsList.toArray(new String[0]));
 
-        if (!markOnly) {
+        if (!markOnly && !refsOld) {
             assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
         } else {
             assertFileNull(dump, "avail-");
         }
 
         assertFileEquals(dump, "marked-", Sets.difference(data.added, data.deleted));
-        if (!markOnly) {
+        if (!markOnly && !refsOld) {
             assertFileEquals(dump, "gccand-", data.deleted);
         } else {
             assertFileNull(dump, "gccand-");
@@ -509,9 +840,13 @@ public class DataStoreCommandTest {
         return idMapping;
     }
 
-    private static void assertFileEquals(File dump, String prefix, Set<String> blobsAdded)
+    private static void assertFileEquals(File dump, String prefix, Set<String> blobsAdded) throws IOException{
+        assertFileEquals(dump, prefix, blobsAdded, null);
+    }
+
+    private static void assertFileEquals(File dump, String prefix, Set<String> blobsAdded, String dirPrefix)
         throws IOException {
-        File file = filterFiles(dump, prefix);
+        File file = (dirPrefix == null) ? filterFiles(dump, prefix) : filterFiles(dump, dirPrefix, prefix);
         Assert.assertNotNull(file);
         Assert.assertTrue(file.exists());
         assertEquals(blobsAdded,
@@ -556,6 +891,15 @@ public class DataStoreCommandTest {
         }));
     }
 
+    private static Set<String> encodeIds(Set<String> ids, Type dsOption) {
+        return Sets.newHashSet(Iterators.transform(ids.iterator(), new Function<String, String>() {
+            @Nullable @Override public String apply(@Nullable String input) {
+                return encodeId(input, dsOption);
+            }
+        }));
+    }
+
+
     static String encodeId(String id, Type dsType) {
         List<String> idLengthSepList = Splitter.on(HASH).trimResults().omitEmptyStrings().splitToList(id);
         String blobId = idLengthSepList.get(0);
@@ -569,7 +913,7 @@ public class DataStoreCommandTest {
         return id;
     }
 
-    private static String getOption(Type dsOption) {
+    protected static String getOption(Type dsOption) {
         if (dsOption == Type.FDS) {
             return "fds";
         } else if (dsOption == Type.S3) {
@@ -582,16 +926,24 @@ public class DataStoreCommandTest {
     }
 
     static class Data {
+        // Set of blob ids created
         private Set<String> added;
+        // Mapping of id to the path on which their ref exists
         private Map<String, String> idToPath;
+        // Set of deleted paths
         private Set<String> deleted;
+        // Set of blobs that will be deleted from datastore
         private Set<String> missingDataStore;
+        // A subset of added blobs - use this to test the --verboseRootPath option
+        // (In case of getting the blob refs only under a specific path)
+        private Set<String> addedSubset;
 
         public Data() {
             added = Sets.newHashSet();
             idToPath = Maps.newHashMap();
             deleted = Sets.newHashSet();
             missingDataStore = Sets.newHashSet();
+            addedSubset = Sets.newHashSet();
         }
     }
 
@@ -670,8 +1022,13 @@ public class DataStoreCommandTest {
             }
 
             @Override public void after() {
-                MongoUtils.dropCollections(c.getDBName());
-                nodeStore.dispose();
+                String dbName = c.getDBName();
+                try {
+                    nodeStore.dispose();
+                } catch (Exception e) {
+                    log.warn("dispose failed with exception", e);
+                }
+                MongoUtils.dropCollections(dbName);
             }
         }
 
@@ -780,8 +1137,6 @@ public class DataStoreCommandTest {
                 builder.append("AccountName=").append(accountName).append(";");
                 builder.append("DefaultEndpointsProtocol=https;");
                 builder.append("BlobEndpoint=https://").append(accountName).append(".blob.core.windows.net").append(";");
-                builder.append("ContainerName=").append(container).append(";");
-                builder.append("Directory=").append(directory).append(";");
                 builder.append("AccountKey=").append(secret);
 
                 return builder.toString();

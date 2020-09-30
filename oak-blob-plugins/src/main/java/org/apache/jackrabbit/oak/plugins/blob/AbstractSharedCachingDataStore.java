@@ -253,6 +253,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                 LOG.info("Added blob [{}] to backend", identifier);
                 // offer to download cache
                 cache.getDownloadCache().put(identifier.toString(), tmpFile);
+
+                // Attempt deleting the temporary file
+                boolean deletedTemp = FileUtils.deleteQuietly(tmpFile);
+                LOG.trace("Temporary file deleted {}", deletedTemp);
             }
 
             return getRecordIfStored(identifier);

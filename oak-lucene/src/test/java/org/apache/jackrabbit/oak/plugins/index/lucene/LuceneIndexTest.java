@@ -61,22 +61,22 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import ch.qos.logback.classic.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DefaultDirectoryFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
@@ -95,7 +95,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -109,26 +108,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.AtomicReader;
-import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.queries.CustomScoreProvider;
-import org.apache.lucene.queries.CustomScoreQuery;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.store.Directory;
+import org.hamcrest.core.IsCollectionContaining;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 @SuppressWarnings("ConstantConditions")
@@ -231,12 +223,8 @@ public class LuceneIndexTest {
         List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
         Cursor cursor = queryIndex.query(plans.get(0), indexed);
 
-        List<String> paths = copyOf(transform(cursor, new Function<IndexRow, String>() {
-            public String apply(IndexRow input) {
-                return input.getPath();
-            }
-        }));
-        assertTrue(!paths.isEmpty());
+        List<String> paths = copyOf(transform(cursor, IndexRow::getPath));
+        assertFalse(paths.isEmpty());
         assertEquals(LuceneIndex.LUCENE_QUERY_BATCH_SIZE + 1, paths.size());
     }
 
@@ -371,7 +359,7 @@ public class LuceneIndexTest {
 
         Set<String> uniquePaths = Sets.newHashSet(resultPaths);
         assertEquals(resultPaths.size(), uniquePaths.size());
-        assertTrue(!uniquePaths.isEmpty());
+        assertFalse(uniquePaths.isEmpty());
     }
 
     private void purgeDeletedDocs(NodeBuilder idx, LuceneIndexDefinition definition) throws IOException {
@@ -493,7 +481,7 @@ public class LuceneIndexTest {
 
         filter = createFilter(NT_TEST);
         filter.restrictProperty("jcr:content/bar", Operator.EQUAL, null);
-        assertFilter(filter, queryIndex, indexed, Collections.<String>emptyList());
+        assertFilter(filter, queryIndex, indexed, Collections.emptyList());
     }
 
     @Test
@@ -594,7 +582,7 @@ public class LuceneIndexTest {
 
         //No stop word configured so default analyzer would also check for 'was'
         filter.setFullTextConstraint(new FullTextTerm(null, "fox was jumping", false, false, null));
-        assertFilter(filter, queryIndex, indexed, Collections.<String>emptyList());
+        assertFilter(filter, queryIndex, indexed, Collections.emptyList());
 
         //Change the default analyzer to use the default stopword set
         //and trigger a reindex such that new analyzer is used
@@ -616,71 +604,6 @@ public class LuceneIndexTest {
         //Now this should get passed as the analyzer would ignore 'was'
         filter.setFullTextConstraint(new FullTextTerm(null, "fox was jumping", false, false, null));
         assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
-    }
-
-    @Test
-    public void customScoreQuery() throws Exception{
-        NodeBuilder nb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene",
-            of(TYPENAME_STRING));
-        TestUtil.useV2(nb);
-        nb.setProperty(FulltextIndexConstants.PROP_SCORER_PROVIDER, "testScorer");
-
-        NodeState before = builder.getNodeState();
-        builder.child("a").setProperty("jcr:createdBy", "bar bar");
-        builder.child("b").setProperty("jcr:createdBy", "foo bar");
-        NodeState after = builder.getNodeState();
-        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
-        tracker = new IndexTracker();
-        tracker.update(indexed);
-
-        SimpleScorerFactory factory = new SimpleScorerFactory();
-        ScorerProvider provider = new ScorerProvider() {
-
-            String scorerName = "testScorer";
-            @Override
-            public String getName() {
-                return scorerName;
-            }
-            @Override
-            public CustomScoreQuery createCustomScoreQuery(Query query) {
-                return new ModifiedCustomScoreQuery(query);
-            }
-
-            class ModifiedCustomScoreQuery extends CustomScoreQuery {
-                private Query query;
-                public ModifiedCustomScoreQuery(Query query) {
-                    super(query);
-                    this.query = query;
-                }
-
-                @Override
-                public CustomScoreProvider getCustomScoreProvider(AtomicReaderContext context) {
-                    return new CustomScoreProvider(context) {
-                        public float customScore(int doc, float subQueryScore, float valSrcScore) {
-                            AtomicReader atomicReader = context.reader();
-                            try {
-                                Document document = atomicReader.document(doc);
-                                // boosting docs created by foo
-                                String fieldValue = document.get("full:jcr:createdBy");
-                                if (fieldValue != null && fieldValue.contains("foo")) {
-                                    valSrcScore *= 2.0;
-                                }
-                            } catch (IOException e) {
-                                return subQueryScore * valSrcScore;
-                            }
-                            return subQueryScore * valSrcScore;
-                        }
-                    };
-                }
-            }
-        };
-
-        factory.providers.put(provider.getName(), provider);
-        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, factory);
-
-        FilterImpl filter = createFilter(NT_BASE);
-        filter.setFullTextConstraint(new FullTextTerm(null, "bar", false, false, null));
-        assertFilter(filter, queryIndex, indexed, asList("/b", "/a"), true);
     }
 
     @Test
@@ -716,12 +639,7 @@ public class LuceneIndexTest {
         //entering
         NodeStore nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
         tracker = new IndexTracker();
-        ((Observable)nodeStore).addObserver(new Observer() {
-            @Override
-            public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
-                tracker.update(root);
-            }
-        });
+        ((Observable)nodeStore).addObserver((root, info) -> tracker.update(root));
         builder = nodeStore.getRoot().builder();
 
         //Also initialize the NodeType registry required for Lucene index to work
@@ -884,7 +802,7 @@ public class LuceneIndexTest {
         NodeBuilder dir = builder.child("oak:index").child("lucene").child(":data");
 
         //Mutate the blob to fail on access i.e. create corrupt index
-        List<Blob> blobs = new ArrayList<Blob>();
+        List<Blob> blobs = new ArrayList<>();
         Blob b = dir.child("segments_1").getProperty(JCR_DATA).getValue(Type.BINARY, 0);
         FailingBlob fb = new FailingBlob(IOUtils.toByteArray(b.getNewStream()));
         blobs.add(fb);
@@ -914,6 +832,92 @@ public class LuceneIndexTest {
 
         assertEquals(indexPath, defn.getIndexName());
         assertEquals(indexPath, defn.getIndexPath());
+    }
+    
+    /**
+     * Given a lucene index with a config error, it should not block other
+     * indexes to index content and should log a meaningful Exception. Once
+     * fixed and reindexed - it should reindex content as expected.
+     */
+    @Test
+    public void testConfigErrorInIndexDefintion() throws Exception {
+        LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+
+        // Create 2 index def - one with config related error and one without
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLucenePropertyIndexDefinition(index, "luceneTest", ImmutableSet.of("foo"), null);
+        newLucenePropertyIndexDefinition(index, "luceneTest2", ImmutableSet.of("foo2"), null);
+
+        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest").setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, ImmutableList.of(2L), Type.LONGS);
+
+        NodeState before = builder.getNodeState();
+        // Add some content that qualifies to be indexed by both of the above indexes (separately)
+        builder.child("a").setProperty("foo", "bar");
+        builder.child("a").child("b").setProperty("foo", "bar");
+        builder.child("a").child("b").child("c").setProperty("foo2", "bar");
+
+        NodeState after = builder.getNodeState();
+        NodeState indexed;
+        try {
+            customLogs.starting();
+            String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/luceneTest . " +
+                    "Please correct the index definition and reindex after correction. " +
+                    "Additional Info : java.lang.IllegalStateException: Multiple values provided for property entryCount in index definition . Single value was expected";
+            indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+            tracker = new IndexTracker();
+            tracker.update(indexed);
+            Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+
+        } finally {
+            customLogs.finished();
+        }
+
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+        FilterImpl filter = createFilter(NT_BASE);
+        filter.restrictProperty("foo", Operator.EQUAL,
+                PropertyValues.newString("bar"));
+        List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
+
+        // Since the index serving property foo has a config error, no plan should be available
+        assertEquals(0, plans.size());
+
+        // Now we check the config error in index1 should not impact the query results and content getting indexed for index 2
+        FilterImpl filter2 = createFilter(NT_BASE);
+        filter2.restrictProperty("foo2", Operator.EQUAL,
+                PropertyValues.newString("bar"));
+        List<IndexPlan> plans2 = queryIndex.getPlans(filter2, null, indexed);
+        Cursor cursor2 = queryIndex.query(plans2.get(0), indexed);
+
+        assertTrue(cursor2.hasNext());
+        assertEquals("/a/b/c", cursor2.next().getPath());
+        assertFalse(cursor2.hasNext());
+
+        // Now let's fix the config error in index1 and check it now indexes the correct data
+
+        before = builder.getNodeState();
+        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest").setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 2L, Type.LONG);
+        builder.child(INDEX_DEFINITIONS_NAME).child("luceneTest").setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+
+        after = builder.getNodeState();
+        try {
+            customLogs.starting();
+            indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+            tracker.update(indexed);
+            // Since the config error is now fixed - there should not be any more errors here
+            assertEquals(0, customLogs.getLogs().size());
+        } finally {
+           customLogs.finished();
+        }
+
+
+        plans = queryIndex.getPlans(filter, null, indexed);
+        Cursor cursor = queryIndex.query(plans.get(0), indexed);
+
+        assertTrue(cursor.hasNext());
+        assertEquals("/a/b", cursor.next().getPath());
+        assertEquals("/a", cursor.next().getPath());
+        assertFalse(cursor.hasNext());
+
     }
 
 
@@ -965,38 +969,10 @@ public class LuceneIndexTest {
         return paths;
     }
 
-    private static List<String> assertFilter(Filter filter, AdvancedQueryIndex queryIndex,
-                                             NodeState indexed, List<String> expected, boolean ordered) {
-        if (!ordered) {
-            return assertFilter(filter, queryIndex, indexed, expected);
-        }
-
-        List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
-        Cursor cursor = queryIndex.query(plans.get(0), indexed);
-
-        List<String> paths = newArrayList();
-        while (cursor.hasNext()) {
-            paths.add(cursor.next().getPath());
-        }
-        for (String p : expected) {
-            assertTrue("Expected path " + p + " not found", paths.contains(p));
-        }
-        assertEquals("Result set size is different", expected.size(), paths.size());
-        return paths;
-    }
-
     private String getIndexDir(){
         File dir = new File("target", "indexdir"+System.nanoTime());
         dirs.add(dir);
         return dir.getAbsolutePath();
-    }
-
-    private static class SimpleScorerFactory implements ScorerProviderFactory {
-        final Map<String,ScorerProvider> providers = Maps.newHashMap();
-        @Override
-        public ScorerProvider getScorerProvider(String name) {
-            return providers.get(name);
-        }
     }
 
     private static class FailingBlob extends ArrayBasedBlob {

@@ -284,10 +284,17 @@ public class UnionQueryImpl implements Query {
         prepare();
         if (explain) {
             String plan = getPlan();
-            columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
+            columns = new ColumnImpl[] {
+                    new ColumnImpl("explain", "plan", "plan"),
+                    new ColumnImpl("explain", "statement", "statement")
+            };
             ResultRowImpl r = new ResultRowImpl(this,
                     Tree.EMPTY_ARRAY,
-                    new PropertyValue[] { PropertyValues.newString(plan)},
+                    new PropertyValue[] {
+                            PropertyValues.newString(plan),
+                            // retrieve the original statement from either of the unioned subqueries, i.e., the left one
+                            PropertyValues.newString(left.getStatement().replaceFirst("(?i)\\bexplain\\s+", ""))
+                    },
                     null, null);
             return Arrays.asList(r).iterator();
         }
@@ -314,15 +321,15 @@ public class UnionQueryImpl implements Query {
             leftIter = ((MeasuringIterator) leftRows).getDelegate();
             rightIter = ((MeasuringIterator) rightRows).getDelegate();
         }
-        // Since sorted by index use a merge iterator
-        if (isSortedByIndex()) {
-            it = FilterIterators
-                .newCombinedFilter(Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy), distinct,
-                    limit, offset, null, settings);
+        if (orderBy == null) {
+            it = Iterators.concat(leftIter, rightIter);
         } else {
-            it = FilterIterators
-            .newCombinedFilter(Iterators.concat(leftIter, rightIter), distinct, limit, offset, orderBy, settings);
+            // This would suggest either the sub queries are sorted by index or explicitly by QueryImpl (in case of traversing index)
+            // So use mergeSorted here.
+            it = Iterators.mergeSorted(ImmutableList.of(leftIter, rightIter), orderBy);
         }
+
+        it = FilterIterators.newCombinedFilter(it, distinct, limit, offset, null, settings);
 
         if (measure) {
             // return the measuring iterator for the union
@@ -414,6 +421,10 @@ public class UnionQueryImpl implements Query {
     public void verifyNotPotentiallySlow() {
         left.verifyNotPotentiallySlow();
         right.verifyNotPotentiallySlow();
+    }
+    
+    public Query[] getChildren() {
+        return new Query[] { left, right };
     }
     
     public QueryExecutionStats getQueryExecutionStats() {

@@ -48,7 +48,7 @@ public class FilterIterators {
             String message = "The query read more than " + 
                     maxMemoryEntries + " nodes in memory.";
             UnsupportedOperationException e = new UnsupportedOperationException(
-                    message + 
+                    message +
                     " To avoid running out of memory, processing was stopped.");
             LOG.warn(message, e);
             throw e;
@@ -60,14 +60,14 @@ public class FilterIterators {
      * 
      * @param count the number of read operations
      * @param settings the query engine settings
-     * @throws UnsupportedOperationException if the limit was exceeded
+     * @throws RuntimeNodeTraversalException if the limit was exceeded
      */
     public static void checkReadLimit(long count, QueryLimits settings) {
         long maxReadEntries = settings.getLimitReads();
         if (count > maxReadEntries) {
             String message = "The query read or traversed more than " + 
                     maxReadEntries + " nodes.";
-            UnsupportedOperationException e = new UnsupportedOperationException(
+            RuntimeNodeTraversalException e = new RuntimeNodeTraversalException(
                     message + 
                     " To avoid affecting other tasks, processing was stopped.");
             LOG.warn(message, e);

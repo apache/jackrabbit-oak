@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import org.junit.Before;
@@ -27,6 +29,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,29 +48,51 @@ public class AzureJournalFileTest {
     @Before
     public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
-        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", 10);
+        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", 50);
     }
 
     @Test
-    public void testSplitJournalFiles() throws IOException {
+    public void testSplitJournalFiles() throws IOException, URISyntaxException, StorageException {
         assertFalse(journal.exists());
 
-        JournalFileWriter writer = journal.openJournalWriter();
-        for (int i = 0; i < 100; i++) {
-            writer.writeLine("line " + i);
-        }
-
+        int index = 0;
+        index = writeNLines(index, 10); // 10
         assertTrue(journal.exists());
+        assertEquals(1, countJournalBlobs());
 
-        writer = journal.openJournalWriter();
-        for (int i = 100; i < 200; i++) {
-            writer.writeLine("line " + i);
-        }
+        index = writeNLines(index, 20); // 30
+        assertEquals(1, countJournalBlobs());
 
-        JournalFileReader reader = journal.openJournalReader();
-        for (int i = 199; i >= 0; i--) {
-            assertEquals("line " + i, reader.readLine());
+        index = writeNLines(index, 30); // 60
+        assertEquals(2, countJournalBlobs());
+
+        index = writeNLines(index, 100); // 160
+        assertEquals(4, countJournalBlobs());
+
+        try (JournalFileReader reader = journal.openJournalReader()) {
+            for (int i = index - 1; i >= 0; i--) {
+                assertEquals("line " + i, reader.readLine());
+            }
         }
+    }
+
+    private int countJournalBlobs() throws URISyntaxException, StorageException {
+        List<CloudAppendBlob> result = new ArrayList<>();
+        for (ListBlobItem b : container.getDirectoryReference("journal").listBlobs("journal.log")) {
+            if (b instanceof CloudAppendBlob) {
+                result.add((CloudAppendBlob) b);
+            }
+        }
+        return result.size();
+    }
+
+    private int writeNLines(int index, int n) throws IOException {
+        try (JournalFileWriter writer = journal.openJournalWriter()) {
+            for (int i = 0; i < n; i++) {
+                writer.writeLine("line " + (index++));
+            }
+        }
+        return index;
     }
 
     @Test

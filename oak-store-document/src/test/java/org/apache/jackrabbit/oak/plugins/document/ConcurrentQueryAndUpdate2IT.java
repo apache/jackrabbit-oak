@@ -105,7 +105,7 @@ public class ConcurrentQueryAndUpdate2IT extends AbstractDocumentStoreTest {
             Thread.sleep(0, ThreadLocalRandom.current().nextInt(1000, 10000));
         } catch (InterruptedException ignore) {
         }
-        ds.query(NODES, getKeyLowerLimit("/"), getKeyUpperLimit("/"), 100);
+        ds.query(NODES, getKeyLowerLimit(Path.ROOT), getKeyUpperLimit(Path.ROOT), 100);
     }
 
     private void updateDocuments() {

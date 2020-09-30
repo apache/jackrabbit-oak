@@ -400,7 +400,8 @@ class ValueImpl implements JackrabbitValue, OakValue {
                             downloadOptions.getMediaType(),
                             downloadOptions.getCharacterEncoding(),
                             downloadOptions.getFileName(),
-                            downloadOptions.getDispositionType())
+                            downloadOptions.getDispositionType(),
+                            downloadOptions.isDownloadDomainIgnored())
                     );
         }
     }

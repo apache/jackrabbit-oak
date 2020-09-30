@@ -33,6 +33,7 @@ public class Statement {
     private static final UnsupportedOperationException TOO_MANY_UNION = 
             new UnsupportedOperationException("Too many union queries");
     private final static int MAX_UNION = Integer.getInteger("oak.xpathMaxUnion", 1000);
+    private final static boolean KEEP_UNION_ORDER = Boolean.getBoolean("oak.xpath.keepUnionOrder");
 
     boolean explain;
     boolean measure;
@@ -59,7 +60,7 @@ public class Statement {
     QueryOptions queryOptions;
     
     public Statement optimize() {
-        ignoreOrderByScoreDesc();
+        ignoreOrderByScoreDesc(orderList);
         if (where == null) {
             return this;
         }
@@ -232,7 +233,12 @@ public class Statement {
         return buff.toString();        
     }
     
-    private void ignoreOrderByScoreDesc() {
+    /**
+     * Remove "[jcr:score] descending" from the list if this is the only element.
+     *
+     * @param orderList - the list (modified in-place)
+     */
+    private static void ignoreOrderByScoreDesc(ArrayList<Order> orderList) {
         if (orderList.size() != 1) {
             return;
         }
@@ -295,6 +301,9 @@ public class Statement {
         
         @Override
         public Statement optimize() {
+            if (!KEEP_UNION_ORDER) {
+                ignoreOrderByScoreDesc(orderList);
+            }
             Statement s1b = s1.optimize();
             Statement s2b = s2.optimize();
             if (s1 == s1b && s2 == s2b) {

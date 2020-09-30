@@ -104,7 +104,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
 
     @Nullable
     @Override
-    public Value getRestriction(String restrictionName) throws RepositoryException {
+    public Value getRestriction(@NotNull String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
             String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {
@@ -124,7 +124,7 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
 
     @Nullable
     @Override
-    public Value[] getRestrictions(String restrictionName) {
+    public Value[] getRestrictions(@NotNull String restrictionName) {
         for (Restriction restriction : restrictions) {
             String jcrName = getJcrName(restriction);
             if (jcrName.equals(restrictionName)) {

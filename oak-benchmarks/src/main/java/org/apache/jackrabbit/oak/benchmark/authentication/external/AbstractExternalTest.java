@@ -101,7 +101,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
     final DefaultSyncConfig syncConfig = new DefaultSyncConfig();
     final SyncHandler syncHandler = new DefaultSyncHandler(syncConfig);
 
-    final ExternalIdentityProvider idp;
+    final TestIdentityProvider idp;
     final long delay;
 
     SyncManagerImpl syncManager;
@@ -272,7 +272,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         @Override
         public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) {
             String id = ref.getId();
-            long index = Long.valueOf(id.substring(1));
+            long index = Long.parseLong(id.substring(1));
             if (id.charAt(0) == 'u') {
                 return new TestUser(index);
             } else {
@@ -290,7 +290,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         @Nullable
         @Override
         public ExternalUser getUser(@NotNull String userId) {
-            return new TestUser(Long.valueOf(userId.substring(1)));
+            return new TestUser(Long.parseLong(userId.substring(1)));
         }
 
         @Nullable
@@ -302,7 +302,7 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         @Nullable
         @Override
         public ExternalGroup getGroup(@NotNull String name) {
-            return new TestGroup(Long.valueOf(name.substring(1)));
+            return new TestGroup(Long.parseLong(name.substring(1)));
         }
 
         @NotNull

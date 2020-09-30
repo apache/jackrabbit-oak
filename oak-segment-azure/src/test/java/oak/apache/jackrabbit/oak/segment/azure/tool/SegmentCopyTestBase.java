@@ -29,6 +29,7 @@ import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
@@ -36,11 +37,9 @@ import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.*;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
@@ -48,7 +47,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -88,11 +86,12 @@ public abstract class SegmentCopyTestBase {
         assertEquals(0, code);
 
         IOMonitor ioMonitor = new IOMonitorAdapter();
+        RemoteStoreMonitor remoteStoreMonitor = new RemoteStoreMonitorAdapter();
         FileStoreMonitor fileStoreMonitor = new FileStoreMonitorAdapter();
         SegmentArchiveManager srcArchiveManager = srcPersistence.createArchiveManager(false, false, ioMonitor,
-                fileStoreMonitor);
+                fileStoreMonitor, remoteStoreMonitor);
         SegmentArchiveManager destArchiveManager = destPersistence.createArchiveManager(false, false, ioMonitor,
-                fileStoreMonitor);
+                fileStoreMonitor, remoteStoreMonitor);
 
         checkArchives(srcArchiveManager, destArchiveManager);
         checkJournal(srcPersistence, destPersistence);
@@ -105,7 +104,7 @@ public abstract class SegmentCopyTestBase {
         // Repeatedly add content and close FileStore to obtain a new tar file each time
         for (int i = 0; i < 10; i++) {
             try (FileStore fileStore = newFileStore(srcPersistence, folder.getRoot(), true,
-                    SegmentCache.DEFAULT_SEGMENT_CACHE_MB, 150_000L)) {
+                    SegmentCache.DEFAULT_SEGMENT_CACHE_MB, 150_000L, CompactorType.CHECKPOINT_COMPACTOR)) {
                 SegmentNodeStore sns = SegmentNodeStoreBuilders.builder(fileStore).build();
                 addContent(sns, i);
 

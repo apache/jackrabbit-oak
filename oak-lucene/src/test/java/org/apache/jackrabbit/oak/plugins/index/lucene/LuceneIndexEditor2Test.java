@@ -33,10 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
-import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -77,7 +74,7 @@ public class LuceneIndexEditor2Test {
 
     @Test
     public void basics() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
 
         NodeState defnState = defnb.build();
@@ -96,7 +93,7 @@ public class LuceneIndexEditor2Test {
 
     @Test
     public void simplePropertyUpdateCallback() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("foo").propertyIndex();
 
         NodeState defnState = defnb.build();
@@ -144,7 +141,7 @@ public class LuceneIndexEditor2Test {
 
     @Test
     public void relativeProperties() throws Exception{
-        IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
         defnb.indexRule("nt:base").property("jcr:content/metadata/foo").propertyIndex();
         defnb.aggregateRule("nt:base").include("*");
 
@@ -189,7 +186,7 @@ public class LuceneIndexEditor2Test {
         propCallback.reset();
     }
 
-    private void updateBefore(IndexDefinitionBuilder defnb) {
+    private void updateBefore(LuceneIndexDefinitionBuilder defnb) {
         NodeBuilder builder = before.builder();
         NodeBuilder cb = TestUtil.child(builder, PathUtils.getParentPath(indexPath));
         cb.setChildNode(PathUtils.getName(indexPath), defnb.build());
@@ -201,8 +198,7 @@ public class LuceneIndexEditor2Test {
             @Nullable
             @Override
             public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition,
-                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback)
-                    throws CommitFailedException {
+                                         @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
                 if (TYPE_LUCENE.equals(type)) {
                     return new LuceneIndexEditor(context);
                 }
@@ -285,10 +281,10 @@ public class LuceneIndexEditor2Test {
     }
 
 
-    private class TestWriterFactory implements FulltextIndexWriterFactory {
+    private class TestWriterFactory implements FulltextIndexWriterFactory<Iterable<? extends IndexableField>> {
         @Override
-        public LuceneIndexWriter newInstance(IndexDefinition definition,
-                                             NodeBuilder definitionBuilder, boolean reindex) {
+        public LuceneIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
+                                             CommitInfo commitInfo, boolean reindex) {
             return writer;
         }
     }

@@ -44,7 +44,7 @@ public class AdminPrincipalsBestEffortTest extends AdminPrincipalsBaseTest {
     }
 
     @Override
-    void assertException() throws Exception {
+    void assertException() {
         fail("Adding entry for administrative principal should succeed without throwing an exception");
     }
 }

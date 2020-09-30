@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,6 +44,7 @@ import javax.management.openmbean.TabularType;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Monitor;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnWriteDirectory;
@@ -56,6 +58,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.NoLockFactory;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,6 +100,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     private final AtomicLong downloadTime = new AtomicLong();
     private final AtomicLong uploadTime = new AtomicLong();
 
+    private final Monitor copyCompletionMonitor = new Monitor();
 
     private final Map<String, String> indexPathVersionMapping = newConcurrentMap();
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
@@ -124,11 +128,17 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return new CopyOnReadDirectory(this, remote, local, prefetchEnabled, indexPath, executor);
     }
 
-    public Directory wrapForWrite(LuceneIndexDefinition definition, Directory remote, boolean reindexMode, String dirName) throws IOException {
-        Directory local = createLocalDirForIndexWriter(definition, dirName);
+    public Directory wrapForWrite(LuceneIndexDefinition definition, Directory remote,
+                                  boolean reindexMode, String dirName,
+                                  COWDirectoryTracker cowDirectoryTracker) throws IOException {
+        Directory local = createLocalDirForIndexWriter(definition, dirName, reindexMode, cowDirectoryTracker);
         String indexPath = definition.getIndexPath();
         checkIntegrity(indexPath, local, remote);
-        return new CopyOnWriteDirectory(this, remote, local, reindexMode, indexPath, executor);
+
+        CopyOnWriteDirectory cowDirectory = new CopyOnWriteDirectory(this, remote, local, reindexMode, indexPath, executor);
+        cowDirectoryTracker.registerOpenedDirectory(cowDirectory);
+
+        return cowDirectory;
     }
 
     @Override
@@ -148,9 +158,15 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return indexRootDirectory;
     }
 
-    protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName) throws IOException {
+    protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName,
+                                                     boolean reindexMode,
+                                                     COWDirectoryTracker cowDirectoryTracker) throws IOException {
         String indexPath = definition.getIndexPath();
         File indexWriterDir = getIndexDir(definition, indexPath, dirName);
+
+        if (reindexMode) {
+            cowDirectoryTracker.registerReindexingLocalDirectory(indexWriterDir);
+        }
 
         //By design indexing in Oak is single threaded so Lucene locking
         //can be disabled
@@ -343,8 +359,62 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return copyInProgressFiles.contains(file);
     }
 
+    /**
+     * Waits for maximum of {@code timeoutMillis} while checking if {@code file} isn't being copied already.
+     * The method can return before {@code timeoutMillis} if it got interrupted. So, if required then the
+     * caller should check using {@code isCopyInProgress} and wait again.
+     * @param file
+     * @param timeoutMillis
+     */
+    public void waitForCopyCompletion(LocalIndexFile file, long timeoutMillis) {
+        final Monitor.Guard notCopyingGuard = new Monitor.Guard(copyCompletionMonitor) {
+            @Override
+            public boolean isSatisfied() {
+                return !isCopyInProgress(file);
+            }
+        };
+        long localLength = file.actualSize();
+        long lastLocalLength = localLength;
+
+        boolean notCopying = !isCopyInProgress(file);
+        while (!notCopying) {
+            try {
+                if (log.isDebugEnabled()) {
+                    log.debug("Checking for copy completion of {} - {}", file.getKey(), file.copyLog());
+                }
+                notCopying = copyCompletionMonitor.enterWhen(notCopyingGuard, timeoutMillis, TimeUnit.MILLISECONDS);
+                if (notCopying) {
+                    copyCompletionMonitor.leave();
+                }
+            } catch (InterruptedException e) {
+                // ignore and reset interrupt flag
+                Thread.currentThread().interrupt();
+            }
+
+            localLength = file.actualSize();
+
+            // Break out if local file length hasn't changed since last we checked.
+            // Do note that our assumption is that our monitor would return false only on timeout.
+            // BUT that's not true and the monitor could be interrupted as well. We are ignoring that
+            // gotcha explicitly as we don't really want to over complicate here for a rare race of
+            // concurrent copying and avoid reading from remote.
+            if (localLength <= lastLocalLength) {
+                log.warn("Breaking out of waiting for copy to finish as current local length ({})" +
+                                " hasn't increased from {}",
+                        localLength, lastLocalLength);
+                break;
+            }
+            lastLocalLength = localLength;
+        }
+    }
+
     public void doneCopy(LocalIndexFile file, long start) {
-        copyInProgressFiles.remove(file);
+        copyCompletionMonitor.enter();
+        try {
+            copyInProgressFiles.remove(file);
+        } finally {
+            copyCompletionMonitor.leave();
+        }
         copyInProgressCount.decrementAndGet();
         copyInProgressSize.addAndGet(-file.getSize());
 
@@ -453,7 +523,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         TabularDataSupport tds;
         try{
             TabularType tt = new TabularType(IndexMappingData.class.getName(),
-                    "Lucene Index Stats", IndexMappingData.TYPE, new String[]{"jcrPath"});
+                    "Lucene Index Stats", IndexMappingData.TYPE, new String[]{"fsPath"});
             tds = new TabularDataSupport(tt);
             for (LocalIndexDir indexDir : indexRootDirectory.getAllLocalIndexes()){
                 String size = humanReadableByteCount(indexDir.size());
@@ -531,6 +601,11 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String getLocalIndexSize() {
         return humanReadableByteCount(indexRootDirectory.getSize());
+    }
+
+    @Override
+    public long getLocalIndexDirSize() {
+        return indexRootDirectory.getSize();
     }
 
     @Override
@@ -636,5 +711,18 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    public interface COWDirectoryTracker {
+        void registerOpenedDirectory(@NotNull CopyOnWriteDirectory directory);
+        void registerReindexingLocalDirectory(@NotNull File dir);
+
+        COWDirectoryTracker NOOP = new COWDirectoryTracker() {
+            @Override
+            public void registerOpenedDirectory(CopyOnWriteDirectory directory) {}
+
+            @Override
+            public void registerReindexingLocalDirectory(File dir) {}
+        };
     }
 }

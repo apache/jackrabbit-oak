@@ -294,5 +294,8 @@ public abstract class AbstractActiveDeletedBlobTest extends AbstractQueryTest {
             }
             return Type.DEFAULT;
         }
+
+        @Override public void close() throws Exception {
+        }
     }
 }

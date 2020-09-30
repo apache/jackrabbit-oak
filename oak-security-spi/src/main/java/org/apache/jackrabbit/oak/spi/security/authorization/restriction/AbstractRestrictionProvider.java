@@ -67,7 +67,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         Type<?> requiredType = definition.getRequiredType();
         int tag = requiredType.tag();
         if (tag != PropertyType.UNDEFINED && tag != value.getType()) {
-            throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType);
+            throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType + " for " + oakName);
         }
         PropertyState propertyState;
         if (requiredType.isArray()) {
@@ -85,7 +85,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
         Type<?> requiredType = definition.getRequiredType();
         for (Value v : values) {
             if (requiredType.tag() != PropertyType.UNDEFINED && requiredType.tag() != v.getType()) {
-                throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType);
+                throw new AccessControlException("Unsupported restriction: Expected value of type " + requiredType + " for " + oakName);
             }
         }
 
@@ -94,7 +94,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
             propertyState = PropertyStates.createProperty(oakName, Arrays.asList(values), requiredType.tag());
         } else {
             if (values.length != 1) {
-                throw new AccessControlException("Unsupported restriction: Expected single value.");
+                throw new AccessControlException("Unsupported restriction: Expected single value for " + oakName);
             }
             propertyState = PropertyStates.createProperty(oakName, values[0]);
         }
@@ -151,7 +151,7 @@ public abstract class AbstractRestrictionProvider implements RestrictionProvider
                 }
                 Type<?> type = entry.getValue().getType();
                 if (type != def.getRequiredType()) {
-                    throw new AccessControlException("Invalid restriction type '" + type + "'. Expected " + def.getRequiredType());
+                    throw new AccessControlException("Invalid restriction type '" + type + "' for " + restrName + ". Expected " + def.getRequiredType());
                 }
             }
             for (RestrictionDefinition def : supported.values()) {

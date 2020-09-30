@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -102,5 +104,20 @@ public class DocumentNodeStoreBranchTest {
         } catch (IllegalStateException e) {
             // expected
         }
+    }
+
+    @Test
+    public void noopChanges() throws Exception {
+        DocumentNodeStore ns = builderProvider.newBuilder().setUpdateLimit(10).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a").setProperty("p", 1);
+        merge(ns, builder);
+        NodeState root = ns.getRoot();
+        builder = root.builder();
+        builder.child("b");
+        for (int i = 0; i < ns.getUpdateLimit() * 2000; i++) {
+            builder.child("a").setProperty("p", 1);
+        }
+        builder.getNodeState().compareAgainstBaseState(root, new JsopDiff());
     }
 }

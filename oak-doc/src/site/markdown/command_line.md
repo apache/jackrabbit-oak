@@ -21,6 +21,13 @@
 
 This tool supports maintenance operations such as backup and compaction.
 
+Some of the documentation of this tool is found at
+https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run
+and some at
+http://jackrabbit.apache.org/oak/docs/query/pre-extract-text.html
+and some at
+http://jackrabbit.apache.org/oak/docs/query/oak-run-indexing.html
+
 #### Compatibility
 
 We recommend to use the same version of `oak-run` as the one of `oak-core`
@@ -88,5 +95,5 @@ with the file.
 
     wget https://s.apache.org/oak-mongo.js
     mongo --shell oak-mongo.js
-    
+
 Now the MongoDB shell has an `oak` namespace with [additional functions](oak-mongo-js/oak.html).

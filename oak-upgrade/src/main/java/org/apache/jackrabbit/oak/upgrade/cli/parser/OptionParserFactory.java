@@ -51,12 +51,20 @@ public class OptionParserFactory {
     public static final String SRC_S3 = "src-s3datastore";
 
     public static final String SRC_S3_CONFIG = "src-s3config";
+    
+    public static final String SRC_AZURE = "src-azuredatastore";
+
+    public static final String SRC_AZURE_CONFIG = "src-azureconfig";
 
     public static final String SRC_EXTERNAL_BLOBS = "src-external-ds";
 
     public static final String DST_FDS = "datastore";
 
     public static final String DST_FBS = "fileblobstore";
+    
+    public static final String DST_AZURE = "azuredatastore";
+
+    public static final String DST_AZURE_CONFIG = "azureconfig";
 
     public static final String DST_S3 = "s3datastore";
 
@@ -110,12 +118,18 @@ public class OptionParserFactory {
         op.accepts(SRC_S3, "Datastore directory to be used for the source S3").withRequiredArg().ofType(String.class);
         op.accepts(SRC_S3_CONFIG, "Configuration file for the source S3DataStore").withRequiredArg()
                 .ofType(String.class);
+        op.accepts(SRC_AZURE, "Datastore directory to be used for the source Azure").withRequiredArg().ofType(String.class);
+        op.accepts(SRC_AZURE_CONFIG, "Configuration file for the source AzureDataStore").withRequiredArg()
+                .ofType(String.class);
         op.accepts(DST_FDS, "Datastore directory to be used as a target FileDataStore").withRequiredArg()
                 .ofType(String.class);
         op.accepts(DST_FBS, "Datastore directory to be used as a target FileBlobStore").withRequiredArg()
                 .ofType(String.class);
         op.accepts(DST_S3, "Datastore directory to be used for the target S3").withRequiredArg().ofType(String.class);
         op.accepts(DST_S3_CONFIG, "Configuration file for the target S3DataStore").withRequiredArg()
+                .ofType(String.class);
+        op.accepts(DST_AZURE, "Datastore directory to be used for the target Azure").withRequiredArg().ofType(String.class);
+        op.accepts(DST_AZURE_CONFIG, "Configuration file for the target AzureBlobStore").withRequiredArg()
                 .ofType(String.class);
         op.accepts(IGNORE_MISSING_BINARIES, "Don't break the migration if some binaries are missing");
         op.accepts(SRC_EXTERNAL_BLOBS, "Flag specifying if the source Store has external references or not")

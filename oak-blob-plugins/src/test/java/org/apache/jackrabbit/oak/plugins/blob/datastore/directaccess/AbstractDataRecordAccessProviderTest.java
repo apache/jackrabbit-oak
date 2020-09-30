@@ -29,11 +29,14 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -47,6 +50,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.util.Base64;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +59,7 @@ public abstract class AbstractDataRecordAccessProviderTest {
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractDataRecordAccessProviderTest.class);
 
     protected abstract ConfigurableDataRecordAccessProvider getDataStore();
+    protected abstract ConfigurableDataRecordAccessProvider getDataStore(@NotNull Properties overrideProperties) throws Exception;
     protected abstract long getProviderMinPartSize();
     protected abstract long getProviderMaxPartSize();
     protected abstract long getProviderMaxSinglePutSize();
@@ -81,14 +86,41 @@ public abstract class AbstractDataRecordAccessProviderTest {
     // Direct download tests
     //
     @Test
-    public void testGetDownloadURIProvidesValidURI() {
-        DataIdentifier id = new DataIdentifier("testIdentifier");
-        URI uri = getDataStore().getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
-        assertNotNull(uri);
+    public void testGetDownloadURIProvidesValidURIIT() throws DataStoreException {
+        DataRecord record = null;
+        ConfigurableDataRecordAccessProvider dataStore = getDataStore();
+        try {
+            InputStream testStream = randomStream(0, 256);
+            record = doSynchronousAddRecord((DataStore) dataStore, testStream);
+            DataIdentifier id = record.getIdentifier();
+            URI uri = getDataStore().getDownloadURI(id, DataRecordDownloadOptions.DEFAULT);
+            assertNotNull(uri);
+        }
+        finally {
+            if (null != record) {
+                doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+            }
+        }
     }
 
     @Test
-    public void testGetDownloadURIRequiresValidIdentifier() {
+    public void testGetDownloadURIWithExistsDisabled() throws Exception {
+        DataIdentifier id = new DataIdentifier("identifier");
+        Properties overrideProperties = new Properties();
+        overrideProperties.put("presignedHttpDownloadURIVerifyExists", "false");
+        ConfigurableDataRecordAccessProvider ds = getDataStore(overrideProperties);
+        assertNotNull(ds.getDownloadURI(id, DataRecordDownloadOptions.DEFAULT));
+    }
+
+    @Test
+    public void testGetDownloadURIRequiresValidIdentifierByDefault() {
+        DataIdentifier id = new DataIdentifier("identifier");
+        ConfigurableDataRecordAccessProvider ds = getDataStore();
+        assertNull(ds.getDownloadURI(id, DataRecordDownloadOptions.DEFAULT));
+    }
+
+    @Test
+    public void testGetDownloadURIRequiresNonNullIdentifier() {
         try {
             getDataStore().getDownloadURI(null, DataRecordDownloadOptions.DEFAULT);
             fail();
@@ -168,19 +200,10 @@ public abstract class AbstractDataRecordAccessProviderTest {
             assertEquals(200, conn.getResponseCode());
 
             assertEquals(mimeType, conn.getHeaderField("Content-Type"));
-//            This proper behavior is disabled due to https://github.com/Azure/azure-sdk-for-java/issues/2900
-//            (see also https://issues.apache.org/jira/browse/OAK-8013).  We can re-enable the full test
-//            once the issue is resolved.  -MR
-//            assertEquals(
-//                    String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-//                            dispositionType, fileName,
-//                            new String(encodedFileName.getBytes(StandardCharsets.UTF_8))
-//                    ),
-//                    conn.getHeaderField("Content-Disposition")
-//            );
             assertEquals(
-                    String.format("%s; filename=\"%s\"",
-                            dispositionType, fileName
+                    String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
+                            dispositionType, fileName,
+                            encodedFileName
                     ),
                     conn.getHeaderField("Content-Disposition")
             );
@@ -217,6 +240,20 @@ public abstract class AbstractDataRecordAccessProviderTest {
             }
             dataStore.setDirectDownloadURIExpirySeconds(expirySeconds);
         }
+    }
+
+    @Test
+    public void testGetDownloadURINonexistentBlobFailsIT() throws DataStoreException {
+        ConfigurableDataRecordAccessProvider dataStore = getDataStore();
+        InputStream testStream = randomStream(0, 256);
+
+        DataRecord record = doSynchronousAddRecord((DataStore) dataStore, testStream);
+
+        doDeleteRecord((DataStore) dataStore, record.getIdentifier());
+
+        URI uri = dataStore.getDownloadURI(record.getIdentifier(), DataRecordDownloadOptions.DEFAULT);
+
+        assertNull(uri);
     }
 
     //
@@ -293,11 +330,8 @@ public abstract class AbstractDataRecordAccessProviderTest {
         ConfigurableDataRecordAccessProvider ds = getDataStore();
         try {
             ds.setDirectUploadURIExpirySeconds(0);
-            DataRecordUpload uploadContext = ds.initiateDataRecordUpload(TWENTY_MB, 10);
-            assertEquals(0, uploadContext.getUploadURIs().size());
-
-            uploadContext = ds.initiateDataRecordUpload(20, 1);
-            assertEquals(0, uploadContext.getUploadURIs().size());
+            assertNull(ds.initiateDataRecordUpload(TWENTY_MB, 10));
+            assertNull(ds.initiateDataRecordUpload(20, 1));
         }
         finally {
             ds.setDirectUploadURIExpirySeconds(expirySeconds);
@@ -461,6 +495,35 @@ public abstract class AbstractDataRecordAccessProviderTest {
             fail();
         }
         catch (IllegalArgumentException e) { }
+    }
+
+    @Test
+    public void testCompleteAlreadyUploadedBinaryReturnsSameBinaryIT() throws DataStoreException, DataRecordUploadException, IOException {
+        DataRecordAccessProvider ds = getDataStore();
+        DataRecord uploadedRecord = null;
+        try {
+            DataRecordUpload uploadContext = ds.initiateDataRecordUpload(ONE_MB, 1);
+            InputStream uploadStream = randomStream(0, ONE_MB);
+            URI uploadURI = uploadContext.getUploadURIs().iterator().next();
+            doHttpsUpload(uploadStream, ONE_MB, uploadURI);
+            uploadedRecord = ds.completeDataRecordUpload(uploadContext.getUploadToken());
+            assertEquals(ONE_MB, uploadedRecord.getLength());
+
+            DataRecord secondRecord = ds.completeDataRecordUpload(uploadContext.getUploadToken());
+
+            assertEquals(uploadedRecord.getIdentifier(), secondRecord.getIdentifier());
+            assertEquals(uploadedRecord.getLength(), secondRecord.getLength());
+            StringWriter original = new StringWriter();
+            IOUtils.copy(uploadedRecord.getStream(), original, Charset.forName("UTF-8"));
+            StringWriter second = new StringWriter();
+            IOUtils.copy(secondRecord.getStream(), second, Charset.forName("UTF-8"));
+            assertEquals(original.toString(), second.toString());
+        }
+        finally {
+            if (null != uploadedRecord) {
+                doDeleteRecord((DataStore) ds, uploadedRecord.getIdentifier());
+            }
+        }
     }
 
     @Test

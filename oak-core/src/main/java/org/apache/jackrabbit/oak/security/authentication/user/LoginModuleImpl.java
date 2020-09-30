@@ -16,20 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.NameCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
-import javax.security.auth.login.LoginException;
-
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -47,6 +34,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginException;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Default login module implementation that authenticates JCR {@code Credentials}
@@ -112,6 +113,8 @@ public final class LoginModuleImpl extends AbstractLoginModule {
     private String userId;
     private Principal principal;
     private boolean success;
+    private Set<? extends Principal> principals;
+    private AuthInfo authInfo;
 
     //--------------------------------------------------------< LoginModule >---
 
@@ -160,21 +163,31 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             clearState();
             return false;
         } else {
+            principals = Collections.emptySet();
+            if (principal != null) {
+                principals = getPrincipals(principal);
+            } else if (userId != null) {
+                principals = getPrincipals(userId);
+            }
+            authInfo = createAuthInfo(principals);
             if (!subject.isReadOnly()) {
-                Set<Principal> principals = subject.getPrincipals();
-                if (principal != null) {
-                    principals.addAll(getPrincipals(principal));
-                } else if (userId != null) {
-                    principals.addAll(getPrincipals(userId));
+                subject.getPrincipals().addAll(principals);
+                if (credentials != null) {
+                    subject.getPublicCredentials().add(credentials);
                 }
-                subject.getPublicCredentials().add(credentials);
-                setAuthInfo(createAuthInfo(principals), subject);
+                setAuthInfo(authInfo, subject);
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
-            clearState();
+            closeSystemSession();
             return true;
         }
+    }
+
+    @Override
+    public boolean logout() throws LoginException {
+        Set creds = Stream.of(credentials, authInfo).filter(Objects::nonNull).collect(Collectors.toSet());
+        return logout((creds.isEmpty() ? null : creds), principals);
     }
 
     //------------------------------------------------< AbstractLoginModule >---
@@ -191,6 +204,8 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         credentials = null;
         userId = null;
         principal = null;
+        principals = null;
+        authInfo = null;
     }
 
     //--------------------------------------------------------------------------
@@ -201,27 +216,16 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         }
 
         String uid = null;
-        if (credentials != null) {
-            if (credentials instanceof SimpleCredentials) {
-                uid = ((SimpleCredentials) credentials).getUserID();
-            } else if (credentials instanceof GuestCredentials) {
-                uid = getAnonymousId();
-            } else if (credentials instanceof ImpersonationCredentials) {
-                Credentials bc = ((ImpersonationCredentials) credentials).getBaseCredentials();
-                if (bc instanceof SimpleCredentials) {
-                    uid = ((SimpleCredentials) bc).getUserID();
-                }
-            } else {
-                try {
-                    NameCallback callback = new NameCallback("User-ID: ");
-                    callbackHandler.handle(new Callback[] { callback });
-                    uid = callback.getName();
-                } catch (IOException | UnsupportedCallbackException e) {
-                    onError();
-                    log.error(e.getMessage(), e);
-                }
+        if (credentials instanceof SimpleCredentials) {
+            uid = ((SimpleCredentials) credentials).getUserID();
+        } else if (credentials instanceof GuestCredentials) {
+            uid = getAnonymousId();
+        } else if (credentials instanceof ImpersonationCredentials) {
+            Credentials bc = ((ImpersonationCredentials) credentials).getBaseCredentials();
+            if (bc instanceof SimpleCredentials) {
+                uid = ((SimpleCredentials) bc).getUserID();
             }
-        }
+        } // null or other (unsupported) type of credentials (see SUPPORTED_CREDENTIALS)
 
         if (uid == null) {
             uid = getSharedLoginName();
@@ -229,6 +233,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
         return uid;
     }
 
+    @Nullable
     private String getAnonymousId() {
         SecurityProvider sp = getSecurityProvider();
         if (sp == null) {
@@ -272,6 +277,6 @@ public final class LoginModuleImpl extends AbstractLoginModule {
                 attributes.put(attrName, sc.getAttribute(attrName));
             }
         }
-        return new AuthInfoImpl(userId, attributes, principals);
+        return new AuthInfoImpl(userId, attributes, Iterables.concat(principals, subject.getPrincipals()));
     }
 }

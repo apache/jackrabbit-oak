@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.RevisionsKey;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
@@ -98,20 +97,9 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             "oak.documentMK.manyChildren", 50);
 
     /**
-     * Enable or disable the LIRS cache (null to use the default setting for this configuration).
+     * Whether to use the CacheLIRS (default) or the Guava cache implementation.
      */
-    private static final Boolean LIRS_CACHE;
-
-    static {
-        String s = System.getProperty("oak.documentMK.lirsCache");
-        LIRS_CACHE = s == null ? null : Boolean.parseBoolean(s);
-    }
-
-    /**
-     * Enable fast diff operations.
-     */
-    static final boolean FAST_DIFF = Boolean.parseBoolean(
-            System.getProperty("oak.documentMK.fastDiff", "true"));
+    private static final boolean LIRS_CACHE = !Boolean.getBoolean("oak.documentMK.guavaCache");
 
     /**
      * Number of content updates that need to happen before the updates
@@ -120,12 +108,13 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     static final int UPDATE_LIMIT = Integer.getInteger("update.limit", DEFAULT_UPDATE_LIMIT);
 
     protected Supplier<DocumentStore> documentStoreSupplier = ofInstance(new MemoryDocumentStore());
-    protected BlobStore blobStore;
+    protected Supplier<BlobStore> blobStoreSupplier;
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
     private int asyncDelay = 1000;
     private boolean timing;
     private boolean logging;
+    private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
@@ -151,17 +140,18 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private CacheStats blobStoreCacheStats;
     private DocumentStoreStatsCollector documentStoreStatsCollector;
     private DocumentNodeStoreStatsCollector nodeStoreStatsCollector;
-    private Map<CacheType, PersistentCacheStats> persistentCacheStats =
-            new EnumMap<CacheType, PersistentCacheStats>(CacheType.class);
+    private Map<String, PersistentCacheStats> persistentCacheStats = new HashMap<>();
     private boolean bundlingDisabled;
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory =
             new JournalPropertyHandlerFactory();
     private int updateLimit = UPDATE_LIMIT;
     private int commitValueCacheSize = 10000;
+    private boolean cacheEmptyCommitValue = false;
     private long maxRevisionAgeMillis = DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
     private GCMonitor gcMonitor = new LoggingGCMonitor(
             LoggerFactory.getLogger(VersionGarbageCollector.class));
-    private Predicate<String> nodeCachePredicate = Predicates.alwaysTrue();
+    private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
+    private boolean clusterInvisible;
 
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
@@ -221,6 +211,22 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public boolean getLogging() {
         return logging;
+    }
+
+    /**
+     * Sets a custom prefix for the logger.
+     * 
+     * @param prefix to be used in the logs output.
+     * @return this
+     */
+    public T setLoggingPrefix(String prefix) {
+        this.loggingPrefix = prefix;
+        return thisBuilder();
+    }
+
+    @Nullable
+    String getLoggingPrefix() {
+        return loggingPrefix;
     }
 
     /**
@@ -306,15 +312,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      * @return this
      */
     public T setBlobStore(BlobStore blobStore) {
-        this.blobStore = blobStore;
+        this.blobStoreSupplier = ofInstance(blobStore);
         return thisBuilder();
     }
 
     public BlobStore getBlobStore() {
-        if (blobStore == null) {
-            blobStore = new MemoryBlobStore();
-            configureBlobStore(blobStore);
+        if (blobStoreSupplier == null) {
+            blobStoreSupplier = ofInstance(new MemoryBlobStore());
         }
+        BlobStore blobStore = blobStoreSupplier.get();
+        configureBlobStore(blobStore);
         return blobStore;
     }
 
@@ -330,6 +337,18 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
+    /**
+     * Set the cluster as invisible to the discovery lite service. By default
+     * it is visible.
+     *
+     * @return this
+     * @see DocumentDiscoveryLiteService
+     */
+    public T setClusterInvisible(boolean invisible) {
+        this.clusterInvisible = invisible;
+        return thisBuilder();
+    }
+    
     public T setCacheSegmentCount(int cacheSegmentCount) {
         this.cacheSegmentCount = cacheSegmentCount;
         return thisBuilder();
@@ -342,6 +361,10 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public int getClusterId() {
         return clusterId;
+    }
+
+    public boolean isClusterInvisible() {
+        return clusterInvisible;
     }
 
     /**
@@ -479,7 +502,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     @NotNull
-    public Map<CacheType, PersistentCacheStats> getPersistenceCacheStats() {
+    public Map<String, PersistentCacheStats> getPersistenceCacheStats() {
         return persistentCacheStats;
     }
 
@@ -551,6 +574,28 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return commitValueCacheSize;
     }
 
+    /**
+     * Controls whether caching of empty commit values (negative cache) is
+     * enabled. This cache is disabled by default. The cache can only be enabled
+     * on a {@link #setReadOnlyMode() read-only} store. In read-write mode, the
+     * cache is always be disabled.
+     *
+     * @param enable {@code true} to enable the empty commit value cache.
+     * @return this builder.
+     */
+    public T setCacheEmptyCommitValue(boolean enable) {
+        this.cacheEmptyCommitValue = enable;
+        return thisBuilder();
+    }
+
+    /**
+     * @return {@code true} when caching of empty commit values is enabled,
+     *      {@code false} otherwise.
+     */
+    public boolean getCacheEmptyCommitValue() {
+        return cacheEmptyCommitValue;
+    }
+
     public T setJournalGCMaxAge(long maxRevisionAgeMillis) {
         this.maxRevisionAgeMillis = maxRevisionAgeMillis;
         return thisBuilder();
@@ -591,11 +636,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return buildCache(CacheType.NODE, getNodeCacheSize(), store, null);
     }
 
-    public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache(DocumentNodeStore store) {
+    public Cache<NamePathRev, DocumentNodeState.Children> buildChildrenCache(DocumentNodeStore store) {
         return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), store, null);
     }
 
-    public Cache<PathRev, StringValue> buildMemoryDiffCache() {
+    public Cache<CacheValue, StringValue> buildMemoryDiffCache() {
         return buildCache(CacheType.DIFF, getMemoryDiffCacheSize(), null, null);
     }
 
@@ -621,12 +666,29 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return new NodeDocumentCache(nodeDocumentsCache, nodeDocumentsCacheStats, prevDocumentsCache, prevDocumentsCacheStats, locks);
     }
 
+    /**
+     * @deprecated Use {@link #setNodeCachePathPredicate(Predicate)} instead.
+     */
+    @Deprecated
     public T setNodeCachePredicate(Predicate<String> p){
+        this.nodeCachePredicate = input -> input != null && p.apply(input.toString());
+        return thisBuilder();
+    }
+
+    /**
+     * @deprecated Use {@link #getNodeCachePathPredicate()} instead.
+     */
+    @Deprecated
+    public Predicate<String> getNodeCachePredicate() {
+        return input -> input != null && nodeCachePredicate.apply(Path.fromString(input));
+    }
+
+    public T setNodeCachePathPredicate(Predicate<Path> p){
         this.nodeCachePredicate = p;
         return thisBuilder();
     }
 
-    public Predicate<String> getNodeCachePredicate() {
+    public Predicate<Path> getNodeCachePathPredicate() {
         return nodeCachePredicate;
     }
 
@@ -654,7 +716,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             }
             PersistentCacheStats stats = PersistentCache.getPersistentCacheStats(cache);
             if (stats != null) {
-                persistentCacheStats.put(cacheType, stats);
+                persistentCacheStats.put(cacheType.name(), stats);
             }
         }
         return cache;
@@ -694,15 +756,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
             String module,
             long maxWeight,
             final Set<EvictionListener<K, V>> listeners) {
-        // by default, use the LIRS cache when using the persistent cache,
-        // but don't use it otherwise
-        boolean useLirs = persistentCacheURI != null;
-        // allow to override this by using the system property
-        if (LIRS_CACHE != null) {
-            useLirs = LIRS_CACHE;
-        }
         // do not use LIRS cache when maxWeight is zero (OAK-6953)
-        if (useLirs && maxWeight > 0) {
+        if (LIRS_CACHE && maxWeight > 0) {
             return CacheLIRS.<K, V>newBuilder().
                     module(module).
                     weigher(new Weigher<K, V>() {
@@ -740,11 +795,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
                     }
                 }).
                 build();
-    }
-
-    protected void setGCBlobStore(GarbageCollectableBlobStore s) {
-        configureBlobStore(s);
-        this.blobStore = s;
     }
 
     /**

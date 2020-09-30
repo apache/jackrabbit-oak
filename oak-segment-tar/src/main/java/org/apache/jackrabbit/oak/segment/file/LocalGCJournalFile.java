@@ -61,4 +61,9 @@ public class LocalGCJournalFile implements GCJournalFile {
         }
         return new ArrayList<String>();
     }
+
+    @Override
+    public void truncate() throws IOException {
+        file.delete();
+    }
 }

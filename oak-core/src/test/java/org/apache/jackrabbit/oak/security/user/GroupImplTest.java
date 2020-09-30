@@ -34,9 +34,12 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.jcr.nodetype.ConstraintViolationException;
+
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -66,6 +69,17 @@ public class GroupImplTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
+    public void testIsGroup() {
+        assertTrue(group.isGroup());
+    }
+
+    @Test
+    public void testRemove() throws Exception {
+        group.remove();
+        assertNull(uMgr.getAuthorizable(groupId, Group.class));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testCheckValidTree() throws Exception {
         new GroupImpl(getTestUser().getID(), root.getTree(getTestUser().getPath()), uMgr);
@@ -85,6 +99,13 @@ public class GroupImplTest extends AbstractSecurityTest {
     @Test
     public void testAddMemberItself() throws Exception {
         assertFalse(group.addMember(group));
+    }
+
+    @Test(expected = ConstraintViolationException.class)
+    public void testAddMemberWithCycle() throws Exception {
+        Group g2 = uMgr.createGroup("group2");
+        g2.addMember(group);
+        group.addMember(g2);
     }
 
     @Test

@@ -75,7 +75,7 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
                 AppConfigurationEntry tokenEntry = new AppConfigurationEntry(
                         TokenLoginModule.class.getName(),
                         AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        Collections.<String, Object>emptyMap());
+                        Collections.emptyMap());
 
                 AppConfigurationEntry testEntry = new AppConfigurationEntry(
                         TestLoginModule.class.getName(),
@@ -85,7 +85,7 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
                 AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
                         LoginModuleImpl.class.getName(),
                         AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        Collections.<String, Object>emptyMap());
+                        Collections.emptyMap());
 
                 return new AppConfigurationEntry[] {tokenEntry, testEntry, defaultEntry};
             }
@@ -95,21 +95,17 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
     @Test
     public void testCustomCredentials() throws Exception {
         TestCredentialsSupport.Creds credentials = new TestCredentialsSupport.Creds();
-
-        ContentSession cs = login(credentials);
-        try {
+        String token;
+        try (ContentSession cs = login(credentials)) {
             assertEquals(userId, cs.getAuthInfo().getUserID());
 
             Map<String, ?> attributes = credentialsSupport.getAttributes(credentials);
-            String token = attributes.get(TokenConstants.TOKEN_ATTRIBUTE).toString();
+            token = attributes.get(TokenConstants.TOKEN_ATTRIBUTE).toString();
             assertFalse(token.isEmpty());
+        }
 
-            cs.close();
-
-            cs = login(new TokenCredentials(token));
+        try (ContentSession cs = login(new TokenCredentials(token))) {
             assertEquals(userId, cs.getAuthInfo().getUserID());
-        } finally {
-            cs.close();
         }
     }
 
@@ -118,18 +114,10 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
         SimpleCredentials credentials = (SimpleCredentials) getAdminCredentials();
         credentials.setAttribute(TokenConstants.TOKEN_ATTRIBUTE, "");
 
-        ContentSession cs = null;
-        try {
-            cs = login(credentials);
+        try (ContentSession cs = login(credentials)) {
             assertEquals(credentials.getUserID(), cs.getAuthInfo().getUserID());
             String token = credentials.getAttribute(TokenConstants.TOKEN_ATTRIBUTE).toString();
             assertFalse(token.isEmpty());
-            cs.close();
-        } finally {
-
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 }

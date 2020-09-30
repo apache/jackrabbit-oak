@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user.whiteboard;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.user.whiteboard.WhiteboardUserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -27,6 +24,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -41,7 +41,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
         return new WhiteboardUserAuthenticationFactory(defaultFactory) {
             @Override
             protected List<UserAuthenticationFactory> getServices() {
-                List<UserAuthenticationFactory> factories = new ArrayList<UserAuthenticationFactory>(userIds.length);
+                List<UserAuthenticationFactory> factories = new ArrayList<>(userIds.length);
                 for (String uid : userIds) {
                     factories.add(new TestUserAuthenticationFactory(uid));
                 }
@@ -56,7 +56,13 @@ public class WhiteboardUserAuthenticationFactoryTest {
     }
 
     @Test
-    public void testSingleService() throws Exception {
+    public void testNoServiceNoDefault() {
+        WhiteboardUserAuthenticationFactory factory = new WhiteboardUserAuthenticationFactory(null);
+        assertNull(factory.getAuthentication(getUserConfiguration(), root, "userId"));
+    }
+
+    @Test
+    public void testSingleService() {
         WhiteboardUserAuthenticationFactory factory = createFactory(null, "test");
 
         assertNotNull(factory.getAuthentication(getUserConfiguration(), root, "test"));
@@ -64,7 +70,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
     }
 
     @Test
-    public void testMultipleService() throws Exception {
+    public void testMultipleService() {
         WhiteboardUserAuthenticationFactory factory = createFactory(null, "test", "test2");
 
         assertNotNull(factory.getAuthentication(getUserConfiguration(), root, "test"));
@@ -73,7 +79,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
     }
 
     @Test
-    public void testDefault() throws Exception {
+    public void testDefault() {
         WhiteboardUserAuthenticationFactory factory = createFactory(new TestUserAuthenticationFactory("abc"));
 
         assertNotNull(factory.getAuthentication(getUserConfiguration(), root, "abc"));
@@ -83,7 +89,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
     }
 
     @Test
-    public void testMultipleServiceAndDefault() throws Exception {
+    public void testMultipleServiceAndDefault() {
         WhiteboardUserAuthenticationFactory factory = createFactory(new TestUserAuthenticationFactory("abc"), "test", "test2");
 
         assertNull(factory.getAuthentication(getUserConfiguration(), root, "abc"));

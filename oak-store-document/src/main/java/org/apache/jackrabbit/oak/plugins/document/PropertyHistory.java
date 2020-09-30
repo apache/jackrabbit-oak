@@ -47,7 +47,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
     private final NodeDocument doc;
     private final String property;
     // path of the main document
-    private final String mainPath;
+    private final Path mainPath;
 
     public PropertyHistory(@NotNull NodeDocument doc,
                            @NotNull String property) {

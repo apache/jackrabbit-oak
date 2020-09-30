@@ -20,15 +20,16 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
+import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -129,7 +130,7 @@ public class WhiteboardUtils {
      */
     @NotNull
     public static <T> List<T> getServices(@NotNull Whiteboard wb, @NotNull Class<T> type) {
-        return getServices(wb, type, null);
+        return getServices(wb, type, (java.util.function.Predicate<T>) null);
     }
 
     /**
@@ -141,7 +142,7 @@ public class WhiteboardUtils {
      */
     @Nullable
     public static <T> T getService(@NotNull Whiteboard wb, @NotNull Class<T> type) {
-        return getService(wb, type, null);
+        return getService(wb, type, (java.util.function.Predicate<T>) null);
     }
 
     /**
@@ -162,11 +163,22 @@ public class WhiteboardUtils {
             if (predicate == null) {
                 return tracker.getServices();
             } else {
-                return ImmutableList.copyOf(Iterables.filter(tracker.getServices(), predicate));
+                return ImmutableList.copyOf(Iterables.filter(tracker.getServices(), (input) -> predicate.test(input)));
             }
         } finally {
             tracker.stop();
         }
+    }
+
+
+    /**
+     * @deprecated use {@link #getServices(Whiteboard, Class, java.util.function.Predicate)} instead
+     */
+    @NotNull
+    @Deprecated public static <T> List<T> getServices(@NotNull Whiteboard wb, @NotNull Class<T> type,
+            @Nullable com.google.common.base.Predicate<T> predicate) {
+        GuavaDeprecation.handleCall("OAK-8685");
+        return getServices(wb, type, (java.util.function.Predicate<T>) (input) -> predicate.apply(input));
     }
 
     /**
@@ -185,7 +197,7 @@ public class WhiteboardUtils {
         Tracker<T> tracker = wb.track(type);
         try {
             for (T service : tracker.getServices()) {
-                if (predicate == null || predicate.apply(service)) {
+                if (predicate == null || predicate.test(service)) {
                     return service;
                 }
             }
@@ -196,4 +208,14 @@ public class WhiteboardUtils {
 
     }
 
+    /**
+     * @deprecated use {@link #getService(Whiteboard, Class, Predicate)} instead
+     */
+    @Nullable
+    @Deprecated
+    public static <T> T getService(@NotNull Whiteboard wb, @NotNull Class<T> type,
+            @Nullable com.google.common.base.Predicate<T> predicate) {
+        GuavaDeprecation.handleCall("OAK-8685");
+        return getService(wb, type, (Predicate<T>) (input) -> predicate.apply(input));
+    }
 }

@@ -27,67 +27,65 @@ import org.jetbrains.annotations.Nullable;
  * Predicate used to evaluation if a given {@code PermissionEntry} matches
  * the specified tree, property or path.
  */
-final class EntryPredicate implements Predicate<PermissionEntry> {
-
-    private final Tree tree;
-    private final PropertyState property;
-    private final String path;
-
-    private final String parentPath;
-    private final Tree parent;
-    private final boolean respectParent;
-
-    EntryPredicate() {
-        this(null, null, null, false);
-    }
-
-    EntryPredicate(@NotNull Tree tree, @Nullable PropertyState property, boolean respectParent) {
-        this(tree, property, tree.getPath(), respectParent);
-    }
-
-    EntryPredicate(@NotNull String path, boolean respectParent) {
-        this(null, null, path, respectParent);
-    }
-
-    private EntryPredicate(@Nullable Tree tree, @Nullable PropertyState property,
-                           @Nullable String path, boolean respectParent) {
-        this.tree = tree;
-        this.property = property;
-        this.path = path;
-
-        if (respectParent) {
-            parentPath = (path == null || "/".equals(path)) ? null : PathUtils.getParentPath(path);
-            parent = (tree == null || tree.isRoot()) ? null : tree.getParent();
-        } else {
-            parentPath = null;
-            parent = null;
-        }
-        this.respectParent = parent != null || parentPath != null;
-    }
+interface EntryPredicate extends Predicate<PermissionEntry> {
 
     @Nullable
-    String getPath() {
-        return path;
+    String getPath();
+
+    default boolean apply(@Nullable PermissionEntry entry) {
+        return entry != null && apply(entry, true);
     }
 
-    //----------------------------------------------------------< Predicate >---
-    @Override
-    public boolean apply(@Nullable PermissionEntry entry) {
-        return apply(entry, true);
+    boolean apply(@NotNull PermissionEntry entry, boolean respectParent);
+
+    static EntryPredicate create() {
+        return new EntryPredicate() {
+            @Nullable
+            @Override
+            public String getPath() {
+                return null;
+            }
+
+            @Override
+            public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
+                return entry.matches();
+            }
+        };
     }
 
-    public boolean apply(@Nullable PermissionEntry entry, boolean respectParent) {
-        if (entry == null) {
-            return false;
-        }
-        respectParent &= this.respectParent;
+    static EntryPredicate create(@NotNull Tree tree, @Nullable PropertyState property, boolean respectParent) {
+        Tree parent = (!respectParent || tree.isRoot()) ? null : tree.getParent();
+        boolean rp = respectParent && parent != null;
+        return new EntryPredicate() {
+            @NotNull
+            @Override
+            public String getPath() {
+                return tree.getPath();
+            }
 
-        if (tree != null) {
-            return entry.matches(tree, property) || (respectParent && parent != null && entry.matches(parent, null));
-        } else if (path != null) {
-            return entry.matches(path) || (respectParent && parentPath != null && entry.matches(parentPath));
-        } else {
-            return entry.matches();
-        }
+            @Override
+            public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
+                respectParent &= rp;
+                return entry.matches(tree, property) || (respectParent && entry.matches(parent, null));
+            }
+        };
+    }
+
+    static EntryPredicate create(@NotNull String path, boolean respectParent) {
+        String parentPath = (!respectParent || PathUtils.ROOT_PATH.equals(path)) ? null : PathUtils.getParentPath(path);
+        boolean rp = respectParent && parentPath != null;
+        return new EntryPredicate() {
+            @NotNull
+            @Override
+            public String getPath() {
+                return path;
+            }
+
+            @Override
+            public boolean apply(@NotNull PermissionEntry entry, boolean respectParent) {
+                respectParent &= rp;
+                return entry.matches(path) || (respectParent && entry.matches(parentPath));
+            }
+        };
     }
 }

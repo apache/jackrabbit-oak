@@ -73,6 +73,7 @@ public class ReadOnlyFileStore extends AbstractFileStore {
                 .withDirectory(directory)
                 .withTarRecovery(recovery)
                 .withIOMonitor(ioMonitor)
+                .withRemoteStoreMonitor(remoteStoreMonitor)
                 .withMemoryMapping(memoryMapping)
                 .withReadOnly()
                 .withPersistence(builder.getPersistence())

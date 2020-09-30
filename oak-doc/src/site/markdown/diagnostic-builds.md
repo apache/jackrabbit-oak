@@ -24,13 +24,61 @@ environment in order to assess whether it actually solves the issues.
 What you are aiming is to eventually produce a bundle in the format
 of, for example, `oak-core-1.0.22-R2707077`.
 
-Let's see it through an example.
+Let's see it through examples. We'll consider the case for **Branches** 
+and **Trunk**.
+
+## Trunk
+
+We want to produce a diagnostic build of `oak-core` for what it will
+be Oak **1.16.0**. It means we currently have in our `pom.xml` a
+version of `<version>1.16-SNAPSHOT</version>`.
+
+### What version shall I use?
+
+Open the svn directory where trunk is and issue a
+
+    $ svn up
+    $ svn info
+
+you will see something like
+
+    Working Copy Root Path: /apache/oak-svn-1.0
+    URL: https://svn.apache.org/repos/asf/jackrabbit/oak/branches/1.0
+    Repository Root: https://svn.apache.org/repos/asf
+    Repository UUID: 13f79535-47bb-0310-9956-ffa450edef68
+    Revision: 1708581
+    Node Kind: directory
+    Schedule: normal
+    Last Changed Author: chetanm
+    Last Changed Rev: 1708547
+    Last Changed Date: 2015-10-14 06:56:40 +0100 (Wed, 14 Oct 2015)
+
+what you're interested is the revision number. In our case: `1708581`.
+
+This means you'll produce a bundle with a version of
+`1.15-R2708581`.
+
+**Note that the produced version is lower then the official release
+  you're working on. 1.15 vs 1.16.0**
+  
+**Note to use the '-R' (uppercase) instead of '-r' (lowercase) as it
+  will be lower than '-SNAPSHOT'. Doing otherwise will result in
+  troubles when trying to apply a '-SNAPSHOT' version on top of the
+  internal build**
+
+If you're in doubt about what versioning and how OSGi or Maven will
+behave have a look at the
+[Versionatorr App](http://versionatorr.appspot.com/). You want your
+diagnostic build to be **always less than** the oak version where your
+fix is going to be released.
+
+## Branches
 
 We want to produce a diagnostic build of `oak-core` for what it will
 be Oak **1.0.23**. It means we currently have in our `pom.xml` a
 version of `<version>1.0.23-SNAPSHOT</version>`.
 
-## What version shall I use?
+### What version shall I use?
 
 Open the svn directory where the 1.0 branch is and issue a
 
@@ -69,10 +117,13 @@ behave have a look at the
 diagnostic build to be **always less than** the oak version where your
 fix is going to be released.
 
-## Changing the version in all the poms.
+## Both Branches and Trunk (same process)
 
-Now that you know you want to produce `1.0.22-R2708581` you have to
-change all the poms accordingly.
+### Changing the version in all the poms.
+
+Now. From our examples above you either want to produce `1.0.22-R2708581` 
+or `1.15-R2708581`. For sake of simplicty we'll detail only the `1.0.22-R2708581` 
+case. For `1.15-R2708581` you simply have to change the version.
 
 Go into `oak-parent` and issue the following maven command.
 
@@ -83,7 +134,7 @@ went wrong.
 
     java.io.FileNotFoundException: /oak-svn-1.0/oak-parent/oak-parent (No such file or directory)
 
-## Building the release
+### Building the release
 
 Now you can build the release as usual
 
@@ -93,7 +144,7 @@ and you'll have a full oak build with the version
 `1.0.22-R2708581`. Go into `oak-core/target` and take the produced
 jar.
 
-## Re-setting the svn branch
+### Re-setting the svn branch
 
 You don't want to commit the changes back to svn so we reset the
 branch as the original state

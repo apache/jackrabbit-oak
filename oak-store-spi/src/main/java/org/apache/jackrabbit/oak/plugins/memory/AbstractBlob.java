@@ -79,6 +79,11 @@ public abstract class AbstractBlob implements Blob {
                 public long length() {
                     return blob.length();
                 }
+
+                @Override public boolean isInlined() {
+                    return blob.isInlined();
+                }
+
                 @NotNull
                 @Override
                 public InputStream getNewStream() {

@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.nodetype.ConstraintViolationException;
 
 class PasswordHistoryException extends ConstraintViolationException {
 
-    PasswordHistoryException(String message) {
+    PasswordHistoryException(@NotNull String message) {
         super(message);
     }
 }

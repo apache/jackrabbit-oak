@@ -20,12 +20,18 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -173,6 +179,27 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         return findPrincipals(null, searchType);
     }
 
+    @NotNull
+    @Override
+    public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType,
+            long offset, long limit) {
+        Iterator<? extends Principal> principals = findPrincipals(nameHint, searchType);
+        if (!principals.hasNext()) {
+            return Collections.emptyIterator();
+        }
+
+        Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(principals, 0);
+        Stream<? extends Principal> stream = StreamSupport.stream(spliterator, false);
+        stream = stream.sorted(Comparator.comparing(Principal::getName));
+        if (offset > 0) {
+            stream = stream.skip(offset);
+        }
+        if (limit >= 0) {
+            stream = stream.limit(limit);
+        }
+        return stream.iterator();
+    }
+
     //------------------------------------------------------------< private >---
     @Nullable
     private String getIdpName(@NotNull Tree userTree) {
@@ -194,7 +221,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
 
     private Set<Principal> getGroupPrincipals(@NotNull Tree userTree) {
-        if (userTree.exists() && UserUtil.isType(userTree, AuthorizableType.USER) && userTree.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES)) {
+        if (userTree.exists() && UserUtil.isType(userTree, AuthorizableType.USER)) {
             PropertyState ps = userTree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (ps != null) {
                 // we have an 'external' user that has been synchronized with the dynamic-membership option
@@ -271,7 +298,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      * identities that are <strong>not</strong> represented as authorizable group
      * in the repository's user management.
      */
-    private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal, java.security.acl.Group {
+    private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
 
         private ExternalGroupPrincipal(String principalName) {
             super(principalName);
@@ -279,25 +306,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
 
         @Override
-        public boolean addMember(Principal user) {
-            if (isMember(user)) {
-                return false;
-            } else {
-                throw new UnsupportedOperationException("Adding members to external group principals is not supported.");
-            }
-        }
-
-        @Override
-        public boolean removeMember(Principal user) {
-            if (!isMember(user)) {
-                return false;
-            } else {
-                throw new UnsupportedOperationException("Removing members from external group principals is not supported.");
-            }
-        }
-
-        @Override
-        public boolean isMember(Principal member) {
+        public boolean isMember(@NotNull Principal member) {
             if (GroupPrincipals.isGroup(member)) {
                 return false;
             }
@@ -328,6 +337,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             return false;
         }
 
+        @NotNull
         @Override
         public Enumeration<? extends Principal> members() {
             Result result = findPrincipals(getName(), true);
@@ -370,14 +380,14 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         protected Principal getNext() {
             if (!propValues.hasNext()) {
                 if (rows.hasNext()) {
-                    propValues = rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator();
+                    propValues = Iterators.filter(rows.next().getValue(REP_EXTERNAL_PRINCIPAL_NAMES).getValue(Type.STRINGS).iterator(), Predicates.notNull());
                 } else {
                     propValues = Collections.emptyIterator();
                 }
             }
             while (propValues.hasNext()) {
                 String principalName = propValues.next();
-                if (principalName != null && !processed.contains(principalName) && matchesQuery(principalName) ) {
+                if (!processed.contains(principalName) && matchesQuery(principalName) ) {
                     processed.add(principalName);
                     return new ExternalGroupPrincipal(principalName);
                 }

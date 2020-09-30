@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Interface to be implemented by a shared data store.
@@ -115,5 +116,21 @@ public interface SharedDataStore {
      * @return the type
      */
     Type getType();
+
+    /**
+     * Returns the repository id (identifier for the repository in the DataStore)
+     * @return repository id
+     */
+    @Nullable
+    default String getRepositoryId() {
+        return null;
+    }
+
+    /**
+     * Sets the repository id to identify repository in the DataStore
+     * @param repositoryId
+     * @throws DataStoreException
+     */
+    default void setRepositoryId(String repositoryId) throws DataStoreException {}
 }
 

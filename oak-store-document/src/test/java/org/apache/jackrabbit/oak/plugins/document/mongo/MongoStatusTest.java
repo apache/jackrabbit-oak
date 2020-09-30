@@ -205,7 +205,10 @@ public class MongoStatusTest {
                     response.put("code", new BsonInt32(13));
                     response.put("codeName", new BsonString("Unauthorized"));
                     ServerAddress address = getAddress();
-                    assertNotNull(address);
+                    if (address == null) {
+                        // OAK-8459: use dummy/default address instead
+                        address = new ServerAddress();
+                    }
                     throw new MongoCommandException(response, address);
                 }
             }

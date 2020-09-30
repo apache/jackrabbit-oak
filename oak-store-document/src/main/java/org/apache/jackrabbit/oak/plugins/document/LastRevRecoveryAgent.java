@@ -22,15 +22,17 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.filterKeys;
 import static java.util.Collections.singletonList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -40,10 +42,12 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
+import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +75,8 @@ public class LastRevRecoveryAgent {
     private final MissingLastRevSeeker missingLastRevUtil;
 
     private final Consumer<Integer> afterRecovery;
+
+    private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
 
     public LastRevRecoveryAgent(DocumentStore store,
                                 RevisionContext revisionContext,
@@ -152,6 +158,15 @@ public class LastRevRecoveryAgent {
                 if (sweepRev != null && sweepRev.getTimestamp() < startTime) {
                     startTime = sweepRev.getTimestamp();
                     reason = "sweepRev: " + sweepRev.toString();
+                }
+                // are there branch commits that were merged right before the
+                // process crashed and the recovery needs to go further back?
+                // go through branch commits before startTime and check if their
+                // merge revision is newer than startTime
+                Revision bc = getEarliestBranchCommitMergedAround(root, startTime, clusterId);
+                if (bc != null) {
+                    startTime = bc.getTimestamp();
+                    reason = "branchRev: " + bc.toString();
                 }
 
                 return recoverCandidates(nodeInfo, startTime, waitUntil, reason);
@@ -239,7 +254,7 @@ public class LastRevRecoveryAgent {
             final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
             sweeper.sweep(suspects, new NodeDocumentSweepListener() {
                 @Override
-                public void sweepUpdate(Map<String, UpdateOp> updates)
+                public void sweepUpdate(Map<Path, UpdateOp> updates)
                         throws DocumentStoreException {
                     if (dryRun) {
                         log.info("Dry run of sweeper identified [{}] documents for " +
@@ -269,6 +284,14 @@ public class LastRevRecoveryAgent {
                     log.info("Sweeper updated {}", updates.keySet());
                 }
             });
+
+            if (sweepRev.get() != null) {
+                // One or more journal entries were created by the sweeper.
+                // Make sure the sweep revision is different / newer than the
+                // last journal entry written so far. UnsavedModification
+                // further down needs a new revision for its journal entry.
+                sweepRev.set(Utils.max(sweepRev.get(), context.newRevision()));
+            }
         }
 
         // now deal with missing _lastRev updates
@@ -276,14 +299,37 @@ public class LastRevRecoveryAgent {
         UnsavedModifications unsavedParents = new UnsavedModifications();
 
         //Map of known last rev of checked paths
-        Map<String, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
+        Map<Path, Revision> knownLastRevOrModification = MapFactory.getInstance().create();
         final JournalEntry changes = JOURNAL.newDocument(store);
 
-        long count = 0;
+        Clock clock = revisionContext.getClock();
+
+        long totalCount = 0;
+        long lastCount = 0;
+        long startOfScan = clock.getTime();
+        long lastLog = startOfScan;
+
         for (NodeDocument doc : suspects) {
-            count++;
-            if (count % 100000 == 0) {
-                log.info("Scanned {} suspects so far...", count);
+            totalCount++;
+            lastCount++;
+
+            long now = clock.getTime();
+            long lastElapsed = now - lastLog;
+            if (lastElapsed >= LOGINTERVALMS) {
+                TimeDurationFormatter df = TimeDurationFormatter.forLogging();
+
+                long totalElapsed = now - startOfScan;
+                long totalRateMin = (totalCount * TimeUnit.MINUTES.toMillis(1)) / totalElapsed;
+                long lastRateMin = (lastCount * TimeUnit.MINUTES.toMillis(1)) / lastElapsed;
+
+                String message = String.format(
+                        "Recovery for cluster node [%d]: %d nodes scanned in %s (~%d/m) - last interval %d nodes in %s (~%d/m)",
+                        clusterId, totalCount, df.format(totalElapsed, TimeUnit.MILLISECONDS), totalRateMin, lastCount,
+                        df.format(lastElapsed, TimeUnit.MILLISECONDS), lastRateMin);
+
+                log.info(message);
+                lastLog = now;
+                lastCount = 0;
             }
 
             Revision currentLastRev = doc.getLastRev().get(clusterId);
@@ -308,33 +354,39 @@ public class LastRevRecoveryAgent {
 
             //2. Update lastRev for parent paths aka rollup
             if (lastRevForParents != null) {
-                String path = doc.getPath();
+                Path path = doc.getPath();
                 changes.modified(path); // track all changes
                 while (true) {
-                    if (PathUtils.denotesRoot(path)) {
+                    path = path.getParent();
+                    if (path == null) {
                         break;
                     }
-                    path = PathUtils.getParentPath(path);
                     unsavedParents.put(path, lastRevForParents);
                 }
             }
         }
 
-        for (String parentPath : unsavedParents.getPaths()) {
+        for (Path parentPath : unsavedParents.getPaths()) {
             Revision calcLastRev = unsavedParents.get(parentPath);
             Revision knownLastRev = knownLastRevOrModification.get(parentPath);
             if (knownLastRev == null) {
+                List<Path> missingDocuments = new ArrayList<>();
                 // we don't know when the document was last modified with
                 // the given clusterId. need to read from store
-                String id = Utils.getIdFromPath(parentPath);
-                NodeDocument doc = store.find(NODES, id);
+                NodeDocument doc = findNearestAncestorOrSelf(parentPath, missingDocuments);
                 if (doc != null) {
                     Revision lastRev = doc.getLastRev().get(clusterId);
                     Revision lastMod = determineLastModification(doc, clusterId);
                     knownLastRev = Utils.max(lastRev, lastMod);
-                } else {
-                    log.warn("Unable to find document: {}", id);
-                    continue;
+
+                    if (!missingDocuments.isEmpty()
+                            && doc.getLocalMap(DocumentBundlor.META_PROP_PATTERN).isEmpty()) {
+                        // there are missing document and the returned document
+                        // does not have bundled nodes
+                        for (Path p : missingDocuments) {
+                            log.warn("Unable to find document: {}", Utils.getIdFromPath(p));
+                        }
+                    }
                 }
             }
 
@@ -348,11 +400,11 @@ public class LastRevRecoveryAgent {
         }
 
         if (sweepRev.get() != null) {
-            unsaved.put(ROOT_PATH, sweepRev.get());
+            unsaved.put(Path.ROOT, sweepRev.get());
         }
 
         // take the root's lastRev
-        final Revision lastRootRev = unsaved.get(ROOT_PATH);
+        final Revision lastRootRev = unsaved.get(Path.ROOT);
 
         //Note the size before persist as persist operation
         //would empty the internal state
@@ -364,7 +416,7 @@ public class LastRevRecoveryAgent {
                     "cluster node [{}]: {}", size, clusterId, updates);
         } else {
             // check deadline before the update
-            if (revisionContext.getClock().getTime() > deadline) {
+            if (clock.getTime() > deadline) {
                 String msg = String.format("Cluster node %d was unable to " +
                         "perform lastRev recovery for clusterId %d within " +
                         "deadline: %s", clusterId, clusterId,
@@ -408,11 +460,16 @@ public class LastRevRecoveryAgent {
                         // journal entry, then died.
                         // in this case, don't write it again.
                         // hence: nothing to be done here. return.
+                        log.warn("Journal entry {} already exists", id);
                         return;
                     }
 
                     // otherwise store a new journal entry now
-                    store.create(JOURNAL, singletonList(changes.asUpdateOp(lastRootRev)));
+                    if (store.create(JOURNAL, singletonList(changes.asUpdateOp(lastRootRev)))) {
+                        log.info("Recovery created journal entry {}", id);
+                    } else {
+                        log.warn("Unable to create journal entry {} (already exists).", id);
+                    }
                 }
             }, new ReentrantLock());
 
@@ -424,6 +481,56 @@ public class LastRevRecoveryAgent {
     }
 
     //--------------------------< internal >------------------------------------
+
+    /**
+     * Get the earliest branch commit before {@code timeMillis} that has been
+     * merged after {@code timeMillis}. This method only considers branch
+     * commits performed by {@code clusterId}.
+     *
+     * @param doc the document to check for branch commits.
+     * @param timeMillis a time in milliseconds since start of the epoch.
+     * @param clusterId a clusterId.
+     * @return earliest branch commit or {@code null} if there is none matching
+     *          the criteria.
+     */
+    @Nullable
+    private Revision getEarliestBranchCommitMergedAround(@NotNull NodeDocument doc,
+                                                         long timeMillis,
+                                                         int clusterId) {
+        Revision earliest = null;
+        for (Revision bc : doc.getLocalBranchCommits()) {
+            if (bc.getClusterId() != clusterId) {
+                continue;
+            }
+            String cv = revisionContext.getCommitValue(bc, doc);
+            if (isCommitted(cv)) {
+                Revision mergeRevision = resolveCommitRevision(bc, cv);
+                if (mergeRevision.getTimestamp() > timeMillis
+                        && bc.getTimestamp() < timeMillis) {
+                    earliest = Utils.min(earliest, bc);
+                }
+            }
+        }
+        return earliest;
+    }
+
+    @Nullable
+    private NodeDocument findNearestAncestorOrSelf(@NotNull Path path,
+                                                   @NotNull List<Path> missingDocuments) {
+        NodeDocument ancestor;
+        for (;;) {
+            ancestor = store.find(NODES, Utils.getIdFromPath(path));
+            if (ancestor != null) {
+                break;
+            }
+            missingDocuments.add(path);
+            path = path.getParent();
+            if (path == null) {
+                break;
+            }
+        }
+        return ancestor;
+    }
 
     /**
      * Retrieves possible candidates which have been modified after the given

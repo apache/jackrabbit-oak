@@ -631,6 +631,10 @@ public class ActiveDeletedBlobCollectorTest {
             return Iterators.forArray(blobId + "-1", blobId + "-2");
         }
 
+        @Override
+        public void close() throws Exception {
+        }
+
         private void resetLists() {
             deletedChunkIds.clear();
             failWithDSEForChunkIds.clear();

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.jcr.Credentials;
@@ -50,7 +49,7 @@ public class TestCredentialsSupport implements CredentialsSupport {
     @NotNull
     @Override
     public Set<Class> getCredentialClasses() {
-        return ImmutableSet.<Class>of(Creds.class);
+        return ImmutableSet.of(Creds.class);
     }
 
     @Nullable

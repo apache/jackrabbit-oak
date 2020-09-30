@@ -18,28 +18,24 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.*;
-import javax.swing.UIManager.LookAndFeelInfo;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.io.IOUtils;
 
+import javax.swing.*;
+import javax.swing.UIManager.LookAndFeelInfo;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.util.List;
+
 /**
  * NodeStore explorer
- * 
- * GUI based on Swing, for now it is tailored to the TarMK
- * 
+ * <p>
+ * GUI based on Swing, for now it is tailored to the TarMK and Azure Segment Store.
  */
 public class Explorer {
 
@@ -60,7 +56,7 @@ public class Explorer {
     public static void main(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
         OptionSpec skipSizeCheck = parser.accepts("skip-size-check", "Don't compute the size of the records");
-        OptionSpec<File> nonOptions = parser.nonOptions().ofType(File.class);
+        OptionSpec<String> nonOptions = parser.nonOptions("path to repository").ofType(String.class);
         OptionSet options = parser.parse(args);
 
         if (options.valuesOf(nonOptions).isEmpty()) {
@@ -68,16 +64,20 @@ public class Explorer {
             System.exit(1);
         }
 
-        File path = options.valuesOf(nonOptions).get(0);
+        String path = options.valuesOf(nonOptions).get(0);
 
-        ExplorerBackend backend = new SegmentTarExplorerBackend(path);
-
+        ExplorerBackend backend;
+        if (path.startsWith("az:")) {
+            backend = new AzureSegmentStoreExplorerBackend(path);
+        } else {
+            backend = new SegmentTarExplorerBackend(path);
+        }
         new Explorer(path, backend, options.has(skipSizeCheck));
     }
 
     private final ExplorerBackend backend;
 
-    private Explorer(final File path, ExplorerBackend backend, final boolean skipSizeCheck) throws IOException {
+    private Explorer(final String path, ExplorerBackend backend, final boolean skipSizeCheck) throws IOException {
         this.backend = backend;
 
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
@@ -92,7 +92,7 @@ public class Explorer {
         });
     }
 
-    private void createAndShowGUI(final File path, boolean skipSizeCheck) throws IOException {
+    private void createAndShowGUI(final String path, boolean skipSizeCheck) throws IOException {
         JTextArea log = new JTextArea(5, 20);
         log.setMargin(new Insets(5, 5, 5, 5));
         log.setLineWrap(true);
@@ -159,13 +159,7 @@ public class Explorer {
         menuRefs.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
-                List<String> tarFiles = new ArrayList<String>();
-                for (File f : path.listFiles()) {
-                    if (f.getName().endsWith(".tar")) {
-                        tarFiles.add(f.getName());
-                    }
-                }
-
+                List<String> tarFiles = backend.getTarFiles();
                 String s = (String) JOptionPane.showInputDialog(frame,
                         "Choose a tar file", "Tar File Info",
                         JOptionPane.PLAIN_MESSAGE, null, tarFiles.toArray(),

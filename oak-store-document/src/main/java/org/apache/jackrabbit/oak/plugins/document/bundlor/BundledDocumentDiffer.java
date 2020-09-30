@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -103,7 +104,7 @@ public class BundledDocumentDiffer {
             //and from there traverse down to the actual child node
             checkState(BundlorUtils.isBundledChild(state));
             String bundlingPath = state.getString(DocumentBundlor.META_PROP_BUNDLING_PATH);
-            String bundlingRootPath = PathUtils.getAncestorPath(state.getPath(), PathUtils.getDepth(bundlingPath));
+            Path bundlingRootPath = state.getPath().getAncestor(PathUtils.getDepth(bundlingPath));
             DocumentNodeState bundlingRoot = nodeStore.getNode(bundlingRootPath, state.getLastRevision());
             result = (DocumentNodeState) NodeStateUtils.getNode(bundlingRoot, bundlingPath);
         } else {

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -191,5 +192,14 @@ public class TopLevelPathTest extends AbstractCugTest {
             tp = getTreePermission(readOnlyRoot, p, cugPermProvider);
             assertSame(p, TreePermission.NO_RECOURSE, tp);
         }
+    }
+
+    @Test
+    public void testMissingHiddenNestedCugProperty() {
+        MemoryNodeBuilder nb = new MemoryNodeBuilder(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
+        nb.setProperty(HIDDEN_TOP_CUG_CNT, 4);
+
+        TopLevelPaths tlp = new TopLevelPaths(getRootProvider().createReadOnlyRoot(nb.getNodeState()));
+        assertFalse(tlp.contains(SUPPORTED_PATH));
     }
 }

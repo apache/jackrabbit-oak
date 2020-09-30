@@ -28,13 +28,10 @@ import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.storeTypeFr
 import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
-import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.text.MessageFormat;
 
 /**
  * Perform a full-copy of repository data at segment level.
@@ -65,6 +62,8 @@ public class SegmentCopy {
         private PrintWriter outWriter;
 
         private PrintWriter errWriter;
+
+        private Integer revisionsCount = Integer.MAX_VALUE;
 
         private Builder() {
             // Prevent external instantiation.
@@ -144,6 +143,18 @@ public class SegmentCopy {
         }
 
         /**
+         * The last {@code revisionsCount} revisions to be copied.
+         * This parameter is not required and defaults to {@code 1}.
+         *
+         * @param revisionsCount number of revisions to copied.
+         * @return this builder.
+         */
+        public Builder withRevisionsCount(Integer revisionsCount) {
+            this.revisionsCount = revisionsCount;
+            return this;
+        }
+
+        /**
          * Create an executable version of the {@link Check} command.
          *
          * @return an instance of {@link Runnable}.
@@ -153,6 +164,7 @@ public class SegmentCopy {
                 checkNotNull(source);
                 checkNotNull(destination);
             }
+
             return new SegmentCopy(this);
         }
     }
@@ -165,6 +177,8 @@ public class SegmentCopy {
 
     private final PrintWriter errWriter;
 
+    private final Integer revisionCount;
+
     private SegmentNodeStorePersistence srcPersistence;
 
     private SegmentNodeStorePersistence destPersistence;
@@ -175,13 +189,13 @@ public class SegmentCopy {
         this.destination = builder.destination;
         this.srcPersistence = builder.srcPersistence;
         this.destPersistence = builder.destPersistence;
+        this.revisionCount = builder.revisionsCount;
         this.outWriter = builder.outWriter;
         this.errWriter = builder.errWriter;
     }
 
     public int run() {
         Stopwatch watch = Stopwatch.createStarted();
-        RepositoryLock srcRepositoryLock = null;
 
         SegmentStoreType srcType = storeTypeFromPathOrUri(source);
         SegmentStoreType destType = storeTypeFromPathOrUri(destination);
@@ -199,17 +213,10 @@ public class SegmentCopy {
             printMessage(outWriter, "Source: {0}", srcDescription);
             printMessage(outWriter, "Destination: {0}", destDescription);
 
-            try {
-                srcRepositoryLock = srcPersistence.lockRepository();
-            } catch (Exception e) {
-                throw new Exception(MessageFormat.format(
-                        "Cannot lock source segment store {0} for starting copying process. Giving up!",
-                        srcDescription));
-            }
-
             SegmentStoreMigrator migrator = new SegmentStoreMigrator.Builder()
                     .withSourcePersistence(srcPersistence, srcDescription)
                     .withTargetPersistence(destPersistence, destDescription)
+                    .withRevisionCount(revisionCount)
                     .build();
 
             migrator.migrate();
@@ -218,15 +225,6 @@ public class SegmentCopy {
             printMessage(errWriter, "A problem occured while copying archives from {0} to {1} ", source, destination);
             e.printStackTrace(errWriter);
             return 1;
-        } finally {
-            if (srcRepositoryLock != null) {
-                try {
-                    srcRepositoryLock.unlock();
-                } catch (IOException e) {
-                    printMessage(errWriter, "A problem occured while unlocking source repository {0} ", srcDescription);
-                    e.printStackTrace(errWriter);
-                }
-            }
         }
 
         watch.stop();

@@ -56,12 +56,12 @@ public class BranchTest {
         Branch b = branches.create(base, c1, null);
 
         BranchCommit bc1 = b.getCommit(c1);
-        bc1.track("/foo");
+        bc1.track(Path.fromString("/foo"));
 
         Revision c2 = Revision.newRevision(1).asBranchRevision();
         b.addCommit(c2);
         BranchCommit bc2 = b.getCommit(c2);
-        bc2.track("/bar");
+        bc2.track(Path.fromString("/bar"));
 
         Revision c3 = Revision.newRevision(1).asBranchRevision();
         b.rebase(c3, new RevisionVector(Revision.newRevision(1)));
@@ -69,7 +69,7 @@ public class BranchTest {
         Revision c4 = Revision.newRevision(1).asBranchRevision();
         b.addCommit(c4);
         BranchCommit bc4 = b.getCommit(c4);
-        bc4.track("/baz");
+        bc4.track(Path.fromString("/baz"));
 
         Revision c5 = Revision.newRevision(1).asBranchRevision();
 
@@ -138,7 +138,11 @@ public class BranchTest {
         assertEquals("a", state.getString("p"));
     }
 
-    private void assertModifiedPaths(Iterable<String> actual, String... expected) {
-        assertEquals(Sets.newHashSet(expected), Sets.newHashSet(actual));
+    private void assertModifiedPaths(Iterable<Path> actual, String... expected) {
+        Set<Path> expectedSet = Sets.newHashSet();
+        for (String p : expected) {
+            expectedSet.add(Path.fromString(p));
+        }
+        assertEquals(expectedSet, Sets.newHashSet(actual));
     }
 }

@@ -21,13 +21,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.UUID;
+
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.test.AbstractJCRTest;
+
+import static org.junit.Assert.assertNotEquals;
 
 public class ImportTest extends AbstractJCRTest {
 
@@ -225,5 +230,40 @@ public class ImportTest extends AbstractJCRTest {
         } catch (ItemExistsException e) {
             // success
         }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-8212">OAK-8212</a>
+     */
+    public void testNoMatchingPropertyDefinition() throws Exception {
+        // jcr:data must be BINARY not BOOLEAN -> should fail
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<sv:node sv:name=\"resourceName\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                    "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>oak:Resource</sv:value></sv:property>" +
+                    "<sv:property sv:name=\"jcr:data\" sv:type=\"Boolean\"><sv:value>true</sv:value></sv:property>" +
+                "</sv:node>";
+        try {
+            superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            fail("ConstraintViolationException expected");
+        } catch (ConstraintViolationException e) {
+            // success
+            assertEquals("No matching property definition found for jcr:data", e.getMessage());
+        }
+    }
+
+    public void testNewNamespaceWithPrefixConflict() throws Exception {
+        String ns1 = "urn:uuid:" + UUID.randomUUID().toString();
+        String ns2 = "urn:uuid:" + UUID.randomUUID().toString();
+        String xml = "<sv:node sv:name='resourceName' xmlns:sv='http://www.jcp.org/jcr/sv/1.0'>" + "<sv:property xmlns:foo='" + ns1
+                + "' sv:name='foo:test' sv:type='String'><sv:value>a</sv:value></sv:property>" + "<sv:property xmlns:foo='" + ns2
+                + "' sv:name='foo:test' sv:type='String'><sv:value>b</sv:value></sv:property>" + "</sv:node>";
+        superuser.importXML(path, new ByteArrayInputStream(xml.getBytes()), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        Node n = superuser.getNode(path);
+        n = n.getNode("resourceName");
+        Property p1 = n.getProperty("{" + ns1 + "}test");
+        assertEquals("a", p1.getString());
+        Property p2 = n.getProperty("{" + ns2 + "}test");
+        assertEquals("b", p2.getString());
+        assertNotEquals(p1.getName(), p2.getName());
     }
 }

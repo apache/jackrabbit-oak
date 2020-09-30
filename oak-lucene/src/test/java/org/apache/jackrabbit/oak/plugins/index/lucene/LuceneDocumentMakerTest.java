@@ -20,9 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -35,7 +33,7 @@ import static org.junit.Assert.assertNull;
 
 public class LuceneDocumentMakerTest {
     private NodeState root = INITIAL_CONTENT;
-    private IndexDefinitionBuilder builder = new IndexDefinitionBuilder();
+    private LuceneIndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
 
     @Test
     public void excludeSingleProperty() throws Exception{

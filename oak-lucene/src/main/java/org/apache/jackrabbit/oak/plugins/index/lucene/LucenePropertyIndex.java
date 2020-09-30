@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,9 +53,9 @@ import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.FacetHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
@@ -92,7 +93,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queries.CustomScoreQuery;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
@@ -192,9 +192,17 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
 public class LucenePropertyIndex extends FulltextIndex {
 
 
+    private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
+    private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
     private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+    public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
+    private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
+    public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
+    private final boolean CACHE_FACET_RESULTS =
+            Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
 
     private static double MIN_COST = 2.1;
+    private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
 
     private static final Logger LOG = LoggerFactory
         .getLogger(LucenePropertyIndex.class);
@@ -208,8 +216,6 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     protected final IndexTracker tracker;
 
-    private final ScorerProviderFactory scorerProviderFactory;
-
     private final Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter("<strong>", "</strong>"),
         new SimpleHTMLEncoder(), null);
 
@@ -218,17 +224,21 @@ public class LucenePropertyIndex extends FulltextIndex {
     private final IndexAugmentorFactory augmentorFactory;
 
     public LucenePropertyIndex(IndexTracker tracker) {
-        this(tracker, ScorerProviderFactory.DEFAULT);
+        this(tracker,null);
     }
 
-    public LucenePropertyIndex(IndexTracker tracker, ScorerProviderFactory factory) {
-        this(tracker, factory, null);
-    }
-
-    public LucenePropertyIndex(IndexTracker tracker, ScorerProviderFactory factory, IndexAugmentorFactory augmentorFactory) {
+    public LucenePropertyIndex(IndexTracker tracker, IndexAugmentorFactory augmentorFactory) {
         this.tracker = tracker;
-        this.scorerProviderFactory = factory;
         this.augmentorFactory = augmentorFactory;
+        logConfigsOnce();
+    }
+
+    private void logConfigsOnce() {
+        if (FLAG_CACHE_FACET_RESULTS_CHANGE) {
+            LOG.info(OLD_FACET_PROVIDER_CONFIG_NAME + " = " + OLD_FACET_PROVIDER);
+            LOG.info(CACHE_FACET_RESULTS_NAME + " = " + CACHE_FACET_RESULTS);
+            FLAG_CACHE_FACET_RESULTS_CHANGE = false;
+        }
     }
 
     @Override
@@ -259,7 +269,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             private boolean noDocs = false;
             private IndexSearcher indexSearcher;
             private int indexNodeId = -1;
-            private LuceneFacetProvider facetProvider = null;
+            private FacetProvider facetProvider;
             private int rewoundCount = 0;
 
             @Override
@@ -277,7 +287,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             }
 
             private FulltextResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher, Map<String, String> excerpts,
-                                                   LuceneFacetProvider facetProvider,
+                                                   FacetProvider facetProvider,
                                                    String explanation) throws IOException {
                 IndexReader reader = searcher.getIndexReader();
                 //TODO Look into usage of field cache for retrieving the path
@@ -335,15 +345,20 @@ public class LucenePropertyIndex extends FulltextIndex {
                     if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
                         Query query = (Query) luceneRequestFacade.getLuceneRequest();
 
-                        CustomScoreQuery customScoreQuery = getCustomScoreQuery(plan, query);
-
-                        if (customScoreQuery != null) {
-                            query = customScoreQuery;
-                        }
-
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
-                        while (true) {
+                        long startLoop = System.currentTimeMillis();
+                        for (int repeated = 0;; repeated++) {
+                            if (repeated > 0) {
+                                long now = System.currentTimeMillis();
+                                if (now > startLoop + LOAD_DOCS_WARN) {
+                                    LOG.warn("loadDocs lastDoc {} repeated {} times for query {}", lastDoc, repeated, query);
+                                    if (repeated > 1 && now > startLoop + LOAD_DOCS_STOP) {
+                                        LOG.error("loadDocs stops", new Exception());
+                                        break;
+                                    }
+                                }
+                            }
                             if (lastDoc != null) {
                                 LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
                                 if (sort == null) {
@@ -362,11 +377,18 @@ public class LucenePropertyIndex extends FulltextIndex {
                             PERF_LOGGER.end(start, -1, "{} ...", docs.scoreDocs.length);
                             nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
-                            long f = PERF_LOGGER.start();
                             if (facetProvider == null) {
-                                facetProvider = new LuceneFacetProvider(
-                                        FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
-                                );
+                                long f = PERF_LOGGER.start();
+                                if (OLD_FACET_PROVIDER) {
+                                    // here the current searcher gets referenced for later
+                                    // but the searcher might get closed in the meantime
+                                    facetProvider = new LuceneFacetProvider(
+                                            FacetHelper.getFacets(searcher, query, plan, indexNode.getDefinition().getSecureFacetConfiguration())
+                                    );
+                                } else {
+                                    // a new searcher is opened and closed when needed
+                                    facetProvider = new DelayedLuceneFacetProvider(LucenePropertyIndex.this, query, plan, indexNode.getDefinition().getSecureFacetConfiguration());
+                                }
                                 PERF_LOGGER.end(f, -1, "facets retrieved");
                             }
 
@@ -618,7 +640,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         final boolean requireNodeLevelExcerpt = nodeExcerptColumns.size() > 0;
 
         int docID = doc.doc;
-        List<String> names = new LinkedList<String>();
+        List<String> names = new LinkedList<>();
 
         for (IndexableField field : searcher.getIndexReader().document(docID).getFields()) {
             String name = field.name();
@@ -634,9 +656,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
         if (names.size() > 0) {
             int[] maxPassages = new int[names.size()];
-            for (int i = 0; i < maxPassages.length; i++) {
-                maxPassages[i] = 1;
-            }
+            Arrays.fill(maxPassages, 1);
             try {
                 Map<String, String[]> stringMap = postingsHighlighter.highlightFields(names.toArray(new String[names.size()]),
                         query, searcher, new int[]{docID}, maxPassages);
@@ -684,7 +704,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                             }
                         }
                     } catch (InvalidTokenOffsetsException e) {
-                        LOG.error("higlighting failed", e);
+                        LOG.error("highlighting failed", e);
                     }
                 }
             }
@@ -693,9 +713,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (requireNodeLevelExcerpt) {
             String nodeExcerpt = Joiner.on("...").join(columnNameToExcerpts.values());
 
-            nodeExcerptColumns.forEach( nodeExcerptColumnName -> {
-                columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt);
-            });
+            nodeExcerptColumns.forEach( nodeExcerptColumnName -> columnNameToExcerpts.put(nodeExcerptColumnName, nodeExcerpt));
         }
 
         columnNameToExcerpts.keySet().retainAll(excerptFields);
@@ -719,6 +737,11 @@ public class LucenePropertyIndex extends FulltextIndex {
     @Override
     protected String getType() {
         return TYPE_LUCENE;
+    }
+
+    @Override
+    protected boolean filterReplacedIndexes() {
+        return tracker.getMountInfoProvider().hasNonDefaultMounts();
     }
 
     @Override
@@ -792,7 +815,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (original == null || original.isEmpty()) {
             return original;
         }
-        ArrayList<OrderEntry> result = new ArrayList<OrderEntry>();
+        ArrayList<OrderEntry> result = new ArrayList<>();
         for(OrderEntry oe : original) {
             if (!isNativeSort(oe)) {
                 result.add(oe);
@@ -838,7 +861,7 @@ public class LucenePropertyIndex extends FulltextIndex {
      */
     private static LuceneRequestFacade getLuceneRequest(IndexPlan plan, IndexAugmentorFactory augmentorFactory, IndexReader reader) {
         FulltextQueryTermsProvider augmentor = getIndexAgumentor(plan, augmentorFactory);
-        List<Query> qs = new ArrayList<Query>();
+        List<Query> qs = new ArrayList<>();
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         PlanResult planResult = getPlanResult(plan);
@@ -884,12 +907,12 @@ public class LucenePropertyIndex extends FulltextIndex {
             } else if (query.startsWith("spellcheck?")) {
                 String spellcheckQueryString = query.replace("spellcheck?", "");
                 if (reader != null) {
-                    return new LuceneRequestFacade<SpellcheckHelper.SpellcheckQuery>(SpellcheckHelper.getSpellcheckQuery(spellcheckQueryString, reader));
+                    return new LuceneRequestFacade<>(SpellcheckHelper.getSpellcheckQuery(spellcheckQueryString, reader));
                 }
             } else if (query.startsWith("suggest?")) {
                 String suggestQueryString = query.replace("suggest?", "");
                 if (reader != null) {
-                    return new LuceneRequestFacade<SuggestHelper.SuggestQuery>(SuggestHelper.getSuggestQuery(suggestQueryString));
+                    return new LuceneRequestFacade<>(SuggestHelper.getSuggestQuery(suggestQueryString));
                 }
             } else {
                 try {
@@ -965,7 +988,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                     ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
                 }
             }
-            return new LuceneRequestFacade<Query>(qs.get(0));
+            return new LuceneRequestFacade<>(qs.get(0));
         }
         BooleanQuery bq = new BooleanQuery();
         for (Query q : qs) {
@@ -978,7 +1001,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 bq.add(q, MUST);
             }
         }
-        return new LuceneRequestFacade<Query>(bq);
+        return new LuceneRequestFacade<>(bq);
     }
 
     /**
@@ -1011,16 +1034,6 @@ public class LucenePropertyIndex extends FulltextIndex {
         return unwrapped;
     }
 
-    private CustomScoreQuery getCustomScoreQuery(IndexPlan plan, Query subQuery) {
-        PlanResult planResult = getPlanResult(plan);
-        IndexDefinition idxDef = planResult.indexDefinition;
-        String providerName = idxDef.getScorerProviderName();
-        if (scorerProviderFactory != null && providerName != null) {
-            return scorerProviderFactory.getScorerProvider(providerName)
-                    .createCustomScoreQuery(subQuery);
-        }
-        return null;
-    }
     private static FulltextQueryTermsProvider getIndexAgumentor(IndexPlan plan, IndexAugmentorFactory augmentorFactory) {
         PlanResult planResult = getPlanResult(plan);
 
@@ -1054,12 +1067,21 @@ public class LucenePropertyIndex extends FulltextIndex {
                 if (defn.evaluatePathRestrictions()) {
                     BooleanQuery bq = new BooleanQuery();
                     bq.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
-                    bq.add(new BooleanClause(newDepthQuery(path), BooleanClause.Occur.MUST));
+                    bq.add(new BooleanClause(newDepthQuery(path, planResult), BooleanClause.Occur.MUST));
                     qs.add(bq);
                 }
                 break;
             case EXACT:
-                qs.add(new TermQuery(newPathTerm(path)));
+                // For transformed paths, we can only add path restriction if absolute path to property can be
+                // deduced
+                if (planResult.isPathTransformed()) {
+                    String parentPathSegment = planResult.getParentPathSegment();
+                    if ( ! Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
+                        qs.add(new TermQuery(newPathTerm(path + parentPathSegment)));
+                    }
+                } else {
+                    qs.add(new TermQuery(newPathTerm(path)));
+                }
                 break;
             case PARENT:
                 if (denotesRoot(path)) {
@@ -1068,7 +1090,16 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // is no way to say "match no documents" in Lucene
                     qs.add(new TermQuery(new Term(FieldNames.PATH, "///")));
                 } else {
-                    qs.add(new TermQuery(newPathTerm(getParentPath(path))));
+                    // For transformed paths, we can only add path restriction if absolute path to property can be
+                    // deduced
+                    if (planResult.isPathTransformed()) {
+                        String parentPathSegment = planResult.getParentPathSegment();
+                        if ( ! Iterables.any(PathUtils.elements(parentPathSegment), "*"::equals)) {
+                            qs.add(new TermQuery(newPathTerm(getParentPath(path) + parentPathSegment)));
+                        }
+                    } else {
+                        qs.add(new TermQuery(newPathTerm(getParentPath(path))));
+                    }
                 }
                 break;
             case NO_RESTRICTION:
@@ -1353,7 +1384,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         final PlanResult pr = getPlanResult(plan);
         // a reference to the query, so it can be set in the visitor
         // (a "non-local return")
-        final AtomicReference<Query> result = new AtomicReference<Query>();
+        final AtomicReference<Query> result = new AtomicReference<>();
         ft.accept(new FullTextVisitor() {
 
             @Override
@@ -1505,8 +1536,8 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
     }
 
-    private static Query newDepthQuery(String path) {
-        int depth = PathUtils.getDepth(path) + 1;
+    private static Query newDepthQuery(String path, PlanResult planResult) {
+        int depth = PathUtils.getDepth(path) + planResult.getParentDepth() + 1;
         return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
     }
 
@@ -1518,7 +1549,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 NodeStateUtils.getNode(rootState, pr.indexPath), plan.getPathPrefix(), false);
         PropertyIndexResult pir = pr.getPropertyIndexResult();
 
-        FluentIterable<String> paths = null;
+        FluentIterable<String> paths;
         if (pir != null) {
             Iterable<String> queryResult = lookup.query(plan.getFilter(), pir.propertyName, pir.pr);
             paths = FluentIterable.from(queryResult)
@@ -1541,6 +1572,62 @@ public class LucenePropertyIndex extends FulltextIndex {
         return Iterators.concat(propIndex.iterator(), itr);
     }
 
+    class DelayedLuceneFacetProvider implements FacetProvider {
+        private final LucenePropertyIndex index;
+        private final Query query;
+        private final IndexPlan plan;
+        private final SecureFacetConfiguration config;
+        private final Map<String, List<Facet>> cachedResults = new HashMap<>();
+
+        DelayedLuceneFacetProvider(LucenePropertyIndex index, Query query, IndexPlan plan, SecureFacetConfiguration config) {
+            this.index = index;
+            this.query = query;
+            this.plan = plan;
+            this.config = config;
+        }
+
+        @Override
+        public List<Facet> getFacets(int numberOfFacets, String columnName) throws IOException {
+            if (!CACHE_FACET_RESULTS) {
+                LOG.trace("{} = {} getting uncached results for columnName = {}", CACHE_FACET_RESULTS_NAME, CACHE_FACET_RESULTS, columnName );
+                return getFacetsUncached(numberOfFacets, columnName);
+            }
+            String cacheKey = columnName + "/" + numberOfFacets;
+            if (cachedResults.containsKey(cacheKey)) {
+                LOG.trace("columnName = {} returning Facet Data from cache.", columnName);
+                return cachedResults.get(cacheKey);
+            }
+            LOG.trace("columnName = {} facet Data not present in cache...", columnName);
+            List<Facet> result = getFacetsUncached(numberOfFacets, columnName);
+            cachedResults.put(cacheKey, result);
+            return result;
+        }
+
+        private List<Facet> getFacetsUncached(int numberOfFacets, String columnName) throws IOException {
+            LuceneIndexNode indexNode = index.acquireIndexNode(plan);
+            try {
+                IndexSearcher searcher = indexNode.getSearcher();
+                String facetFieldName = FulltextIndex.parseFacetField(columnName);
+                Facets facets = FacetHelper.getFacets(searcher, query, plan, config);
+                if (facets != null) {
+                    ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                    FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
+                    if (topChildren != null) {
+                        for (LabelAndValue lav : topChildren.labelValues) {
+                            res.add(new Facet(
+                                    lav.label, lav.value.intValue()
+                            ));
+                        }
+                        return res.build();
+                    }
+                }
+                return null;
+            } finally {
+                indexNode.release();
+            }
+        }
+    }
+
     static class LuceneFacetProvider implements FacetProvider {
 
         private final Facets facets;
@@ -1554,7 +1641,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             String facetFieldName = FulltextIndex.parseFacetField(columnName);
 
             if (facets != null) {
-                ImmutableList.Builder res = new ImmutableList.Builder<Facet>();
+                ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
                 FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
 
                 if (topChildren != null) {
@@ -1697,4 +1784,5 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     static abstract class LuceneResultRowIterator extends AbstractIterator<FulltextResultRow> implements IteratorRewoundStateProvider {
     }
+
 }

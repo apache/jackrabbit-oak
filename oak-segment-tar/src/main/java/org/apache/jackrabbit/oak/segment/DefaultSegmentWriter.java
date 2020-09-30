@@ -64,11 +64,11 @@ import com.google.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.RecordWriters.RecordWriter;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -92,6 +92,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
      */
     private static final int CHILD_NODE_UPDATE_LIMIT = Integer
             .getInteger("child.node.update.limit", 10000);
+
+    protected static final String MAX_MAP_RECORD_SIZE_KEY = "oak.segmentNodeStore.maxMapRecordSize";
 
     @NotNull
     private final WriterCacheManager cacheManager;
@@ -211,6 +213,8 @@ public class DefaultSegmentWriter implements SegmentWriter {
 
         private final Cache<String, RecordId> nodeCache;
 
+        private long lastLogTime;
+
         SegmentWriteOperation(@NotNull GCGeneration gcGeneration) {
             int generation = gcGeneration.getGeneration();
             this.gcGeneration = gcGeneration;
@@ -223,10 +227,51 @@ public class DefaultSegmentWriter implements SegmentWriter {
             return writer -> recordWriter.write(writer, store);
         }
 
-        private RecordId writeMap(@Nullable MapRecord base,
-                @NotNull Map<String, RecordId> changes
-        )
-                throws IOException {
+        private boolean shouldLog() {
+            long now = System.currentTimeMillis();
+            if (now - lastLogTime > 1000) {
+                lastLogTime = now;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        private RecordId writeMap(@Nullable MapRecord base, @NotNull Map<String, RecordId> changes) throws IOException {
+            if (base != null) {
+                if (base.size() >= MapRecord.WARN_SIZE) {
+                    int maxMapRecordSize = Integer.getInteger(MAX_MAP_RECORD_SIZE_KEY, 0);
+                    if (base.size() > maxMapRecordSize) {
+                        System.setProperty(MAX_MAP_RECORD_SIZE_KEY, String.valueOf(base.size()));
+                    }
+
+                    if (base.size() >= MapRecord.ERROR_SIZE_HARD_STOP) {
+                        throw new UnsupportedOperationException("Map record has more than " + MapRecord.ERROR_SIZE_HARD_STOP
+                                        + " direct entries. Writing is not allowed. Please remove entries.");
+                    } else if (base.size() >= MapRecord.ERROR_SIZE_DISCARD_WRITES) {
+                        if (!Boolean.getBoolean("oak.segmentNodeStore.allowWritesOnHugeMapRecord")) {
+                            if (shouldLog()) {
+                                LOG.error(
+                                        "Map entry has more than {} entries. Writing more than {} entries (up to the hard limit of {}) is only allowed "
+                                                + "if the system property \"oak.segmentNodeStore.allowWritesOnHugeMapRecord\" is set",
+                                        MapRecord.ERROR_SIZE, MapRecord.ERROR_SIZE_DISCARD_WRITES, MapRecord.ERROR_SIZE_HARD_STOP);
+                            }
+
+                            throw new UnsupportedOperationException("Map record has more than " + MapRecord.ERROR_SIZE_DISCARD_WRITES
+                                            + " direct entries. Writing is not allowed. Please remove entries.");
+                        }
+                    } else if (base.size() >=  MapRecord.ERROR_SIZE) {
+                        if (shouldLog()) {
+                            LOG.error("Map entry has more than {} entries. Please remove entries.", MapRecord.ERROR_SIZE);
+                        }
+                    } else {
+                        if (shouldLog()) {
+                            LOG.warn("Map entry has more than {} entries. Please remove entries.", MapRecord.WARN_SIZE);
+                        }
+                    }
+                }
+            }
+
             if (base != null && base.isDiff()) {
                 Segment segment = base.getSegment();
                 RecordId key = segment.readRecordId(base.getRecordNumber(), 8);
@@ -289,6 +334,7 @@ public class DefaultSegmentWriter implements SegmentWriter {
         }
 
         private RecordId writeMapBranch(int level, int size, MapRecord... buckets) throws IOException {
+            checkElementIndex(size, MapRecord.MAX_SIZE);
             int bitmap = 0;
             List<RecordId> bucketIds = newArrayListWithCapacity(buckets.length);
             for (int i = 0; i < buckets.length; i++) {

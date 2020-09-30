@@ -22,6 +22,7 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
@@ -39,10 +40,12 @@ import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
@@ -112,6 +115,22 @@ public class Utils {
             if (path.charAt(i) == '/') {
                 depth++;
             }
+        }
+        return depth;
+    }
+
+    /**
+     * Calculates the depth prefix of the id for the given {@code path}. The is
+     * the same as {@link #pathDepth(String)}, but takes a {@link Path}
+     * argument.
+     *
+     * @param path a path.
+     * @return the id depth prefix for the given {@code path}.
+     */
+    public static int getIdDepth(Path path) {
+        int depth = path.getDepth();
+        if (!path.isAbsolute()) {
+            depth--;
         }
         return depth;
     }
@@ -232,25 +251,40 @@ public class Utils {
         return !key.startsWith("_") || key.startsWith("__") || key.startsWith("_$");
     }
 
-    public static String getIdFromPath(String path) {
-        if (isLongPath(path)) {
-            MessageDigest digest;
-            try {
-                digest = MessageDigest.getInstance("SHA-256");
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
-            }
-            int depth = Utils.pathDepth(path);
-            String parent = PathUtils.getParentPath(path);
-            byte[] hash = digest.digest(parent.getBytes(UTF_8));
-            String name = PathUtils.getName(path);
-            StringBuilder sb = new StringBuilder(digest.getDigestLength() * 2 + name.length() + 6);
-            sb.append(depth).append(":h");
-            encodeHexString(hash, sb).append("/").append(name);
-            return sb.toString();
-        }
+    public static String getIdFromPath(@NotNull String path) {
         int depth = Utils.pathDepth(path);
+        if (isLongPath(path)) {
+            String parent = PathUtils.getParentPath(path);
+            byte[] hash = createSHA256Digest(parent);
+            return createHashedId(depth, hash, PathUtils.getName(path));
+        }
         return depth + ":" + path;
+    }
+
+    public static String getIdFromPath(@NotNull Path path) {
+        checkNotNull(path);
+        int depth = getIdDepth(path);
+        Path parent = path.getParent();
+        if (parent != null && isLongPath(path)) {
+            byte[] hash = createSHA256Digest(parent.toString());
+            return createHashedId(depth, hash, path.getName());
+        }
+        return depth + ":" + path;
+    }
+
+    private static String createHashedId(int depth, byte[] hash, String name) {
+        StringBuilder sb = new StringBuilder(hash.length * 2 + name.length() + 6);
+        sb.append(depth).append(":h");
+        encodeHexString(hash, sb).append("/").append(name);
+        return sb.toString();
+    }
+
+    private static byte[] createSHA256Digest(String input) {
+        try {
+            return MessageDigest.getInstance("SHA-256").digest(input.getBytes(UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -298,7 +332,7 @@ public class Utils {
         return Utils.getIdFromPath(parentPath);
     }
 
-    public static boolean isLongPath(String path) {
+    private static boolean isLongPath(String path) {
         // the most common case: a short path
         // avoid calculating the parent path
         if (path.length() < PATH_SHORT) {
@@ -315,12 +349,33 @@ public class Utils {
         }
         return true;
     }
-    
+
+    public static boolean isLongPath(Path path) {
+        // the most common case: a short path
+        // avoid calculating the parent path
+        if (path.length() < PATH_SHORT) {
+            return false;
+        }
+        // check if the parent path is long
+        Path parent = path.getParent();
+        if (parent == null) {
+            return false;
+        }
+        if (parent.toString().getBytes(UTF_8).length < PATH_LONG) {
+            return false;
+        }
+        if (path.getName().getBytes(UTF_8).length > NODE_NAME_LIMIT) {
+            throw new IllegalArgumentException("Node name is too long: " + path);
+        }
+        return true;
+    }
+
     public static boolean isIdFromLongPath(String id) {
         int index = id.indexOf(':');
         return index != -1 && index < id.length() - 1 && id.charAt(index + 1) == 'h';
     }
 
+    // TODO deprecate?
     public static String getPathFromId(String id) {
         if (isIdFromLongPath(id)) {
             throw new IllegalArgumentException("Id is hashed: " + id);
@@ -341,20 +396,19 @@ public class Utils {
         throw new IllegalArgumentException("Invalid id: " + id);
     }
 
-    public static String getPreviousPathFor(String path, Revision r, int height) {
-        if (!PathUtils.isAbsolute(path)) {
+    public static Path getPreviousPathFor(Path path, Revision r, int height) {
+        if (!path.isAbsolute()) {
             throw new IllegalArgumentException("path must be absolute: " + path);
         }
-        StringBuilder sb = new StringBuilder(path.length() + REVISION_LENGTH + 3);
-        sb.append("p").append(path);
-        if (sb.charAt(sb.length() - 1) != '/') {
-            sb.append('/');
+        Path prev = new Path("p");
+        for (String name : path.elements()) {
+            prev = new Path(prev, name);
         }
-        r.toStringBuilder(sb).append("/").append(height);
-        return sb.toString();
+        prev = new Path(prev, r.toString());
+        return new Path(prev, String.valueOf(height));
     }
 
-    public static String getPreviousIdFor(String path, Revision r, int height) {
+    public static String getPreviousIdFor(Path path, Revision r, int height) {
         return getIdFromPath(getPreviousPathFor(path, r, height));
     }
 
@@ -416,9 +470,8 @@ public class Utils {
      * @param path a path.
      * @return the lower key limit.
      */
-    public static String getKeyLowerLimit(String path) {
-        String from = PathUtils.concat(path, "a");
-        from = getIdFromPath(from);
+    public static String getKeyLowerLimit(Path path) {
+        String from = getIdFromPath(new Path(path, "a"));
         from = from.substring(0, from.length() - 1);
         return from;
     }
@@ -430,9 +483,8 @@ public class Utils {
      * @param path a path.
      * @return the upper key limit.
      */
-    public static String getKeyUpperLimit(String path) {
-        String to = PathUtils.concat(path, "z");
-        to = getIdFromPath(to);
+    public static String getKeyUpperLimit(Path path) {
+        String to = getIdFromPath(new Path(path, "z"));
         to = to.substring(0, to.length() - 2) + "0";
         return to;
     }
@@ -608,7 +660,7 @@ public class Utils {
      */
     @NotNull
     public static NodeDocument getRootDocument(@NotNull DocumentStore store) {
-        String rootId = Utils.getIdFromPath("/");
+        String rootId = Utils.getIdFromPath(Path.ROOT);
         NodeDocument root = store.find(Collection.NODES, rootId);
         if (root == null) {
             throw new IllegalStateException("missing root document");
@@ -762,6 +814,24 @@ public class Utils {
         } else {
             return n.longValue();
         }
+    }
+
+    /**
+     * Returns a revision vector that contains a revision for each of the passed
+     * cluster nodes with a revision timestamp that corresponds to the last
+     * known time when the cluster node was started.
+     *
+     * @param clusterNodes the cluster node information.
+     * @return revision vector representing the last known time when the cluster
+     *      nodes were started.
+     */
+    @NotNull
+    public static RevisionVector getStartRevisions(@NotNull Iterable<ClusterNodeInfoDocument> clusterNodes) {
+        List<Revision> revs = new ArrayList<>();
+        for (ClusterNodeInfoDocument doc : clusterNodes) {
+            revs.add(new Revision(doc.getStartTime(), 0, doc.getClusterId()));
+        }
+        return new RevisionVector(revs);
     }
 
     /**
@@ -950,7 +1020,7 @@ public class Utils {
                                         ClusterNodeInfo info,
                                         Clock clock)
             throws DocumentStoreException {
-        NodeDocument root = store.find(Collection.NODES, getIdFromPath("/"));
+        NodeDocument root = store.find(Collection.NODES, getIdFromPath(Path.ROOT));
         if (root == null) {
             return;
         }

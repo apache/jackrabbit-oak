@@ -21,7 +21,9 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.net.ServerSocket;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,11 +37,15 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
+import org.apache.jackrabbit.oak.segment.aws.AwsContext;
+import org.apache.jackrabbit.oak.segment.aws.AwsPersistence;
+import org.apache.jackrabbit.oak.segment.aws.Configuration;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -77,6 +83,12 @@ public class SegmentTarFixture extends OakFixture {
         private boolean memoryMapping;
         private boolean useBlobStore;
         private int dsCacheSize;
+
+        private String awsBucketName;
+        private String awsRootPath;
+        private String awsJournalTableName;
+        private String awsLockTableName;
+
         private String azureConnectionString;
         private String azureContainerName;
         private String azureRootPath;
@@ -109,9 +121,17 @@ public class SegmentTarFixture extends OakFixture {
             this.useBlobStore = useBlobStore;
             return this;
         }
-        
+
         public SegmentTarFixtureBuilder withDSCacheSize(int dsCacheSize) {
             this.dsCacheSize = dsCacheSize;
+            return this;
+        }
+
+        public SegmentTarFixtureBuilder withAws(String awsBucketName, String awsRootPath, String awsJournalTableName, String awsLockTableName) {
+            this.awsBucketName = awsBucketName;
+            this.awsRootPath = awsRootPath;
+            this.awsJournalTableName = awsJournalTableName;
+            this.awsLockTableName = awsLockTableName;
             return this;
         }
 
@@ -139,6 +159,11 @@ public class SegmentTarFixture extends OakFixture {
     private final boolean shareBlobStore;
     private final boolean oneShotRun;
     private final boolean secure;
+
+    private final String awsBucketName;
+    private final String awsRootPath;
+    private final String awsJournalTableName;
+    private final String awsLockTableName;
 
     private final String azureConnectionString;
     private final String azureContainerName;
@@ -174,6 +199,12 @@ public class SegmentTarFixture extends OakFixture {
         this.memoryMapping = builder.memoryMapping;
         this.useBlobStore = builder.useBlobStore;
         this.dsCacheSize = builder.dsCacheSize;
+
+        this.awsBucketName = builder.awsBucketName;
+        this.awsRootPath = builder.awsRootPath;
+        this.awsJournalTableName = builder.awsJournalTableName;
+        this.awsLockTableName = builder.awsLockTableName;
+
         this.azureConnectionString = builder.azureConnectionString;
         this.azureContainerName = builder.azureContainerName;
         this.azureRootPath = builder.azureRootPath;
@@ -185,12 +216,67 @@ public class SegmentTarFixture extends OakFixture {
         this.secure = secure;
     }
 
+    private static Configuration getAwsConfig(String awsBucketName, String awsRootPath, String awsJournalTableName, String awsLockTableName) {
+        return new Configuration() {
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return null;
+            }
+        
+            @Override
+            public String sessionToken() {
+                return null;
+            }
+        
+            @Override
+            public String secretKey() {
+                return null;
+            }
+        
+            @Override
+            public String rootDirectory() {
+                return awsRootPath;
+            }
+        
+            @Override
+            public String region() {
+                return null;
+            }
+        
+            @Override
+            public String lockTableName() {
+                return awsLockTableName;
+            }
+        
+            @Override
+            public String journalTableName() {
+                return awsJournalTableName;
+            }
+        
+            @Override
+            public String bucketName() {
+                return awsBucketName;
+            }
+        
+            @Override
+            public String accessKey() {
+                return null;
+            }
+        };
+    }
+
     @Override
     public Oak getOak(int clusterId) throws Exception {
         FileStoreBuilder fileStoreBuilder = fileStoreBuilder(parentPath)
                 .withMaxFileSize(maxFileSize)
                 .withSegmentCacheSize(segmentCacheSize)
                 .withMemoryMapping(memoryMapping);
+
+        if (awsBucketName != null) {
+            Configuration config = getAwsConfig(awsBucketName, awsRootPath, awsJournalTableName, awsLockTableName);
+            AwsContext awsContext = AwsContext.create(config);
+            fileStoreBuilder.withCustomPersistence(new AwsPersistence(awsContext));
+        }
 
         if (azureConnectionString != null) {
             CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
@@ -199,18 +285,25 @@ public class SegmentTarFixture extends OakFixture {
             CloudBlobDirectory directory = container.getDirectoryReference(azureRootPath);
             fileStoreBuilder.withCustomPersistence(new AzurePersistence(directory));
         }
-        
+
+        BlobStore blobStore = null;
         if (useBlobStore) {
             FileDataStore fds = new FileDataStore();
             fds.setMinRecordLength(4092);
             fds.init(parentPath.getAbsolutePath());
-            BlobStore blobStore = new DataStoreBlobStore(fds);
+            blobStore = new DataStoreBlobStore(fds);
             
             fileStoreBuilder.withBlobStore(blobStore);
         }
         
         FileStore fs = fileStoreBuilder.build();
-        return newOak(SegmentNodeStoreBuilders.builder(fs).build());
+        Oak oak = newOak(SegmentNodeStoreBuilders.builder(fs).build());
+        if (blobStore != null) {
+            oak.getWhiteboard()
+                .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
+        }
+
+        return oak;
     }
 
     @Override
@@ -227,6 +320,12 @@ public class SegmentTarFixture extends OakFixture {
             }
 
             FileStoreBuilder builder = fileStoreBuilder(new File(parentPath, "primary-" + i));
+
+            if (awsBucketName != null) {
+                Configuration config = getAwsConfig(awsBucketName + "-" + i, awsRootPath, awsJournalTableName + "-" + i, awsLockTableName + "-" + i);
+                AwsContext awsContext = AwsContext.create(config);
+                builder.withCustomPersistence(new AwsPersistence(awsContext));
+            }
 
             if (azureConnectionString != null) {
                 CloudStorageAccount cloud = CloudStorageAccount.parse(azureConnectionString);
@@ -254,6 +353,10 @@ public class SegmentTarFixture extends OakFixture {
             }
             
             cluster[i] = newOak(SegmentNodeStoreBuilders.builder(stores[i]).build());
+            if (blobStore != null) {
+                cluster[i].getWhiteboard()
+                    .register(BlobAccessProvider.class, (BlobAccessProvider) blobStore, Collections.EMPTY_MAP);
+            }
         }
         return cluster;
     }

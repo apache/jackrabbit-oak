@@ -41,7 +41,7 @@ public class DocumentBroadcastConfig implements DynamicBroadcastConfig {
     public List<Map<String, String>> getClientInfo() {
         ArrayList<Map<String, String>> list = new ArrayList<Map<String, String>>();
         for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(documentNodeStore.getDocumentStore())) {
-            if (!doc.isActive()) {
+            if (!doc.isActive() || doc.isInvisible()) {
                 continue;
             }
             Object broadcastId = doc.get(DynamicBroadcastConfig.ID);

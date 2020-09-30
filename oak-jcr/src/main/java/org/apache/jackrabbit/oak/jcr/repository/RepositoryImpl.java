@@ -47,6 +47,7 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -55,6 +56,7 @@ import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
+import org.apache.jackrabbit.oak.jcr.version.FrozenNodeLogger;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
@@ -127,6 +129,8 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     private final StatisticManager statisticManager;
 
+    private final FrozenNodeLogger frozenNodeLogger;
+
     /**
      * Constructor used for backward compatibility.
      */
@@ -157,6 +161,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.fastQueryResultSize = fastQueryResultSize;
         this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
         this.blobAccessProvider = WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class);
+        this.frozenNodeLogger = new FrozenNodeLogger(clock, whiteboard);
     }
 
     //---------------------------------------------------------< Repository >---
@@ -312,6 +317,11 @@ public class RepositoryImpl implements JackrabbitRepository {
             ScheduledFuture<?> scheduledTask = scheduledExecutor.schedule(registrationTask, 1, TimeUnit.MINUTES);
 
             @Override
+            protected void treeLookedUpByIdentifier(@NotNull Tree tree) {
+                frozenNodeLogger.lookupById(tree);
+            }
+
+            @Override
             public void logout() {
                 refreshOnGC.close();
                 // Cancel session MBean registration
@@ -326,6 +336,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     public void shutdown() {
         statisticManager.dispose();
         gcMonitorRegistration.unregister();
+        frozenNodeLogger.close();
         clock.close();
         new ExecutorCloser(scheduledExecutor).close();
         if (contentRepository instanceof Closeable) {

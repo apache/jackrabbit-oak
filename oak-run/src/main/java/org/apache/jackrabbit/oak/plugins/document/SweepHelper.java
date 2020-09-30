@@ -62,7 +62,7 @@ public final class SweepHelper {
         sweeper.sweep(seeker.getCandidates(sweepRev.get().getTimestamp()),
                 new NodeDocumentSweepListener() {
             @Override
-            public void sweepUpdate(Map<String, UpdateOp> updates)
+            public void sweepUpdate(Map<Path, UpdateOp> updates)
                     throws DocumentStoreException {
                 // create an invalidate entry
                 JournalEntry inv = JOURNAL.newDocument(store);

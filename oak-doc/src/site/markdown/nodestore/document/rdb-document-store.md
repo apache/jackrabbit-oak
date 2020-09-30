@@ -57,6 +57,53 @@ will attempt to start anyway):
 ~~~
 
 
+## <a name="initialization"></a> Initialization
+
+The recommended method to initialize a `DocumentNodeStore` with an
+`RDBDocumentStore` is using an OSGi container and configure the
+`DocumentNodeStoreService`. See corresponding [Repository OSGi Configuration](../../osgi_config.html#document-node-store).
+
+This will also require deploying the [Sling DataSource provider](https://sling.apache.org/documentation/bundles/datasource-providers.html)
+and furthermore the associated JDBC driver as OSGi bundle. The details of the
+latter vary by database:
+
+1. If the JDBC driver already is an OSGI bundle, it can be deployed as is. This
+   is the case for Apache Derby, H2DB, IBM DB2, Microsoft SQL Server, MySQL,
+   and PostgreSQL. Some of these drivers also implement the [OSGi Data Service Specification for JDBC](https://osgi.org/specification/osgi.cmpn/7.0.0/service.jdbc.html) ,
+   in which case `org.osgi.service.jdbc-1.0.0.jar` needs to be deployed as well (this is the case for IBM DB2, Microsoft SQL Server, and PostgreSQL).
+2. Otherwise (e.g., Oracle), an OSGi wrapper needs to be built. See [below](#wrap-osgi).
+
+
+
+Alternatively an RDB based DocumentNodeStore can be created with the help of
+a `RDBDocumentNodeStoreBuilder`.
+
+    DataSource dataSource = RDBDataSourceFactory.forJdbcUrl(jdbcurl, user, pw);
+    DocumentNodeStore store = RDBDocumentNodeStoreBuilder().newRDBDocumentNodeStoreBuilder()
+        .setRDBConnection(dataSource).build();
+    // do something with the store
+    NodeState root = store.getRoot();
+
+    // dispose it when done
+    store.dispose();
+
+### <a name="wrap-osgi"></a> Example: Creating OSGi Bundle for Oracle JDBC driver
+
+1. Make sure to have a local copy of the JDBC driver, for instance `ojdbc8-12.2.0.1.jar`.
+2. Get BND command line tool from https://repo1.maven.org/maven2/biz/aQute/bnd/biz.aQute.bnd/4.3.1/biz.aQute.bnd-4.3.1.jar
+3. Create BND `ora.bnd` below:
+~~~
+ -classpath: ojdbc8-12.2.0.1.jar
+ Bundle-SymbolicName: com.oracle.jdbc.ojdbc8
+ ver: 12.2.0.1
+ -output: ${bsn}-${ver}.jar
+ Bundle-Version: ${ver}
+ Include-Resource: @ojdbc8-12.2.0.1.jar
+ Import-Package: *;resolution:=optional
+~~~
+Then run `java -jar biz.aQute.bnd-4.3.1.jar ora.bnd`; this should create the OSGi bundle `com.oracle.jdbc.ojdbc8-12.2.0.1.jar`.
+
+
 ## <a name="database-creation"></a> Database Creation
 
 `RDBDocumentStore` relies on JDBC, and thus, in general, can not create
@@ -113,7 +160,7 @@ upon startup. For example:
 
 Creating a database called `OAK`:
 
-(to be done)
+...is different compared to other databases. See https://docs.oracle.com/cd/B28359_01/server.111/b28310/create003.htm for more information. Defaults should work.
 
 To verify, check the INFO level log message written by `RDBDocumentStore`
 upon startup. For example:
@@ -305,4 +352,103 @@ older than 1.8 to 1.8 or newer).
   create table DATASTORE_META (ID varchar(64) not null primary key, LVL int, LASTMOD bigint)
   create table DATASTORE_DATA (ID varchar(64) not null primary key, DATA blob(2097152))
 ~~~
+
+## <a name="oak-run"></a> Using oak-run
+
+The `oak-run` JAR file does not include the JDBC driver needed to access the
+database. Thus, a small amount of classpath surgery is needed.
+
+Assuming the following two JAR files are in the current directory:
+
+- oak-run-1.14.0.jar
+- db2-4.19.77.jar
+
+...the invocation would be:
+
+~~~
+$ java -cp "oak-run-1.14.0.jar:db2-4.19.77.jar" org.apache.jackrabbit.oak.run.Main
+~~~
+
+(where the path separator under Windows would be ";").
+
+In general, all commands applicable to a `MongoDocumentStore` should be available
+for `RDBDocumentStore` as well. Simply substitute the "mongdb:..." identifier
+by the JDBC "URL", and also specify DB credentials using `--rdbjdbcuser` and
+`--rdbjdbcpasswd`.
+
+Like that:
+
+~~~
+$ java -cp "oak-run-1.14.0.jar:db2-4.19.77.jar" org.apache.jackrabbit.oak.run.Main clusternodes jdbc:db2://localhost:50276/OAK --rdbjdbcuser user --rdbjdbcpasswd passwd --verbose
+
+Apache Jackrabbit Oak 1.14.0
+Id    State          Started LeaseEnd Left RecoveryBy      LastRootRev    OakVersion
+ 1 INACTIVE 20190125T110237Z        -    -          - r16884ad047c-0-1 1.12-SNAPSHOT
+~~~
+
+Note that in Oak versions prior to June 2019, `oak-run` also does not contain
+the artefacts `tomcat-jdbc` and `tomcat-juli`, which thus need to be added to
+the classpath as well (see OAK-8341 for details).
+
+
+## <a name="reading-log-files"></a> Reading Log Files
+
+There are certain log messages to look out for when investigating problems,
+and also some that may cause unneeded confusion.
+
+See below.
+
+### <a name="startup-messages"></a> Startup Message
+
+Such as:
+
+~~~
+16:26:28.172 INFO  [main] RDBDocumentStore.java:1065        RDBDocumentStore (SNAPSHOT) instantiated for database PostgreSQL 10.6 (10.6), using driver: PostgreSQL JDBC Driver 42.2.5 (42.2), connecting to: jdbc:postgresql:oak, properties: {datcollate=C, pg_encoding_to_char(encoding)=UTF8}, transaction isolation level: TRANSACTION_READ_COMMITTED (2), .nodes: id varchar(512), modified int8, hasbinary int2, deletedonce int2, modcount int8, cmodcount int8, dsize int8, version int2, sdtype int2, sdmaxrevtime int8, data varchar(16384), bdata bytea(2147483647) /* {bytea=-2, int2=5, int8=-5, varchar=12} */ /* index nodes_mod on public.nodes (modified ASC) other (#0, p1), unique index nodes_pkey on public.nodes (id ASC) other (#0, p1), index nodes_sdm on public.nodes (sdmaxrevtime ASC) other (#0, p1), index nodes_sdt on public.nodes (sdtype ASC) other (#0, p1), index nodes_vsn on public.nodes (version ASC) other (#0, p1) */
+~~~
+
+The information dumped here is essential for diagnosing issues and should be
+included in all bug reports. It includes:
+
+- Oak's version number
+- Database type and version
+- JDBC driver and version
+- JDBC "URL"
+- certain DB-specific properties
+- JDBC transaction isolation level
+- schema for "NODES" table (other tables are not reported; they ought to be the same)
+- information on database indices
+
+### <a name="long-running-queries"></a> "Long Running Queries"
+
+RDBDocumentStore will log an INFO message when a query takes longer than 10s,
+which frequently indicates a configuration problem.
+
+~~~
+INFO  ... org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStoreJDBC - Long running query on NODES with 100 hits (limited to 100), elapsed time 11361ms (configured QUERYTIMELIMIT 10000), params minid 'null' maxid 'null' excludeKeyPatterns [] conditions [_modified >= 1554909530] limit 100. Result range: '0:/'...'12:/...'. Read 26126 chars from DATA and 0 bytes from BDATA. Check calling method.
+java.lang.Exception: call stack
+~~~
+
+The call stack is dumped to identify the piece of code that executed the query.
+It is important to understand that this is not an error, it is just logged
+for diagnostic purposes.
+
+
+### <a name="tomcat-jdbc-pool-interceptor"></a> Tomcat JDBC Pool Interceptor Messages
+
+When using the Tomcat JDBC connection pool, by default "slow" and "failed"
+queries will be logged on WARN level. The latter category is a bit problematic,
+as what Tomcat thinks is a failure might be completely normal and expected
+behavior. For instance:
+
+~~~
+WARN [...] org.apache.tomcat.jdbc.pool.interceptor.SlowQueryReport Failed Query Report SQL=update NODES set MODIFIED = case when ? > MODIFIED then ? else MODIFIED end, HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, VERSION = 2, DATA = CASE WHEN LEN(DATA) < ? THEN (DATA + CAST(? AS nvarchar(4000))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END where ID = ? and MODCOUNT = ?; time=1 ms;
+~~~
+
+This just indicates that an update operation that was made conditional did not
+happen because the condition was not met.
+
+Another example are insert operations, which are done "optimistically", and will
+automatically be retried as updates upon failure.
+
+
 

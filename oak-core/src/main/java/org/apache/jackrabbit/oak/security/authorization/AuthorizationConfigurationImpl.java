@@ -29,10 +29,12 @@ import org.apache.jackrabbit.oak.security.authorization.permission.VersionablePa
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlImporter;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.authorization.accesscontrol.AccessControlValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.permission.AllPermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.MountPermissionProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionUtil;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -199,6 +201,9 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
     public PermissionProvider getPermissionProvider(@NotNull Root root, @NotNull String workspaceName,
                                                     @NotNull Set<Principal> principals) {
         Context ctx = getSecurityProvider().getConfiguration(AuthorizationConfiguration.class).getContext();
+        if (PermissionUtil.isAdminOrSystem(principals, getParameters())) {
+            return new AllPermissionProviderImpl(root, this);
+        }
 
         if (mountInfoProvider.hasNonDefaultMounts()) {
             return new MountPermissionProvider(root, workspaceName, principals, getRestrictionProvider(),

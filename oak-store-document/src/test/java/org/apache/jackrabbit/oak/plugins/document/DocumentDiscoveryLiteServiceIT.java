@@ -31,7 +31,7 @@ public class DocumentDiscoveryLiteServiceIT extends BaseDocumentDiscoveryLiteSer
     @Test
     public void testLargeStartStopFiesta() throws Throwable {
         logger.info("testLargeStartStopFiesta: start, seed="+SEED);
-        final int LOOP_CNT = 50; // with too many loops have also seen mongo
+        final int LOOP_CNT = 40; // with too many loops have also seen mongo
                                  // connections becoming starved thus test
                                  // failed
         doStartStopFiesta(LOOP_CNT);

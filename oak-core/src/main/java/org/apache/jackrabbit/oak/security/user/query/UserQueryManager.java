@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
+import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
 
 /**
  * Query manager for user specific searches.
@@ -97,13 +98,7 @@ public class UserQueryManager {
             if (groupId == null) {
                 return result;
             } else {
-                return Iterators.filter(result, authorizable -> {
-                    try {
-                        return authorizable != null && !groupId.equals(authorizable.getID());
-                    } catch (RepositoryException e) {
-                        return false;
-                    }
-                });
+                return Iterators.filter(result, authorizable -> !groupId.equals(getID(authorizable)));
             }
         } else {
             // filtering by group name included in query -> enforce offset and limit on the result set.
@@ -175,11 +170,8 @@ public class UserQueryManager {
     private String buildXPathStatement(@NotNull String relPath,
                                        @Nullable String value,
                                        @NotNull AuthorizableType type, boolean exact) {
-        StringBuilder stmt = new StringBuilder();
         String searchRoot = namePathMapper.getJcrPath(QueryUtil.getSearchRoot(type, config));
-        if (!"/".equals(searchRoot)) {
-            stmt.append(searchRoot);
-        }
+        StringBuilder stmt = new StringBuilder().append(searchRoot);
 
         String propName = Text.getName(relPath);
         String path;
@@ -212,7 +204,7 @@ public class UserQueryManager {
             stmt.append(ISO9075.encode(propName));
             if (exact) {
                 stmt.append("='");
-                stmt.append(value.replaceAll("'", "''"));
+                stmt.append(value.replace("'", "''"));
                 stmt.append('\'');
             } else {
                 stmt.append(",'%");
@@ -233,7 +225,7 @@ public class UserQueryManager {
 
         if (bound != null) {
             if (sortCol == null) {
-                log.warn("Ignoring bound {} since no sort order is specified");
+                log.warn("Ignoring bound {} since no sort order is specified", bound);
             } else {
                 Condition boundCondition = builder.property(sortCol, QueryUtil.getCollation(sortDir), bound);
                 if (condition == null) {
@@ -284,8 +276,7 @@ public class UserQueryManager {
             Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager, root, type));
             return Iterators.filter(authorizables, new UniqueResultPredicate());
         } catch (ParseException e) {
-            log.warn("Invalid user query: " + statement, e);
-            throw new RepositoryException(e);
+            throw new RepositoryException("Invalid user query "+statement, e);
         }
     }
 
@@ -334,14 +325,8 @@ public class UserQueryManager {
 
         @Override
         public boolean apply(@Nullable Authorizable input) {
-            try {
-                if (input != null) {
-                    return authorizableIds.add(input.getID());
-                }
-            } catch (RepositoryException e) {
-                log.debug("Failed to retrieve authorizable ID " + e.getMessage());
-            }
-            return false;
+            String id = getID(input);
+            return id != null && authorizableIds.add(id);
         }
     }
 }

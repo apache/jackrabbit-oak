@@ -42,7 +42,7 @@ import javax.jcr.RepositoryException;
 public class TestAzureDS extends AbstractDataStoreTest {
 
   protected static final Logger LOG = LoggerFactory.getLogger(TestAzureDS.class);
-  protected Properties props;
+  protected Properties props = new Properties();
   protected String container;
 
   @BeforeClass
@@ -53,7 +53,7 @@ public class TestAzureDS extends AbstractDataStoreTest {
   @Override
   @Before
   public void setUp() throws Exception {
-    props = AzureDataStoreUtils.getAzureConfig();
+    props.putAll(AzureDataStoreUtils.getAzureConfig());
     container = String.valueOf(randomGen.nextInt(9999)) + "-" + String.valueOf(randomGen.nextInt(9999))
                 + "-test";
     props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, container);

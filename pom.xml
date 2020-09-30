@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.12-SNAPSHOT</version>
+    <version>1.35-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -37,6 +37,7 @@
 
   <modules>
     <module>oak-parent</module>
+    <module>oak-jackrabbit-api</module>
     <module>oak-commons</module>
     <module>oak-api</module>
     <module>oak-core-spi</module>
@@ -67,12 +68,19 @@
     <module>oak-it-osgi</module>
     <module>oak-pojosr</module>
     <module>oak-authorization-cug</module>
+    <module>oak-authorization-principalbased</module>
     <module>oak-exercise</module>
     <module>oak-examples</module>
     <module>oak-it</module>
     <module>oak-segment-tar</module>
+    <module>oak-segment-remote</module>
+    <module>oak-segment-aws</module>
     <module>oak-segment-azure</module>
     <module>oak-benchmarks</module>
+    <module>oak-search-elastic</module>
+    <module>oak-benchmarks-lucene</module>
+    <module>oak-benchmarks-solr</module>
+    <module>oak-benchmarks-elastic</module>
   </modules>
 
   <scm>
@@ -119,7 +127,6 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.0.1</version>
             <executions>
               <execution>
                 <id>aggregate</id>
@@ -147,7 +154,6 @@
         <plugins>
           <plugin>
             <artifactId>maven-assembly-plugin</artifactId>
-            <version>3.1.0</version>
             <executions>
               <execution>
                 <goals>

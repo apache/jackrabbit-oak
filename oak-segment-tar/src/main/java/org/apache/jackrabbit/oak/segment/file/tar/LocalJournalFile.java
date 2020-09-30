@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.List;
 
 import static java.nio.charset.Charset.defaultCharset;
 
@@ -98,6 +99,13 @@ public class LocalJournalFile implements JournalFile {
         public void writeLine(String line) throws IOException {
             journalFile.writeBytes(line + "\n");
             journalFile.getChannel().force(false);
+        }
+
+        @Override
+        public void batchWriteLines(List<String> lines) throws IOException {
+            for (String line : lines) {
+                this.writeLine(line);
+            }
         }
 
         @Override

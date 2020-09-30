@@ -31,11 +31,13 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
+import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -117,6 +119,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.hamcrest.number.OrderingComparison;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
@@ -295,9 +298,9 @@ public class DocumentNodeStoreTest {
             @Override
             public void run() {
                 Commit c = new CommitBuilder(store, store.newRevision(), head)
-                        .addNode("/newConflictingNode")
-                        .addNode("/deletedNode")
-                        .updateProperty("/updateNode", "foo", "baz")
+                        .addNode(Path.fromString("/newConflictingNode"))
+                        .addNode(Path.fromString("/deletedNode"))
+                        .updateProperty(Path.fromString("/updateNode"), "foo", "baz")
                         .build();
                 try {
                     c.apply();
@@ -316,8 +319,8 @@ public class DocumentNodeStoreTest {
         // commit will succeed and add collision marker to writer commit
         Revision r = store.newRevision();
         Commit c = new CommitBuilder(store, r, head)
-                .addNode("/newConflictingNode")
-                .addNode("/newNonConflictingNode")
+                .addNode(Path.fromString("/newConflictingNode"))
+                .addNode(Path.fromString("/newNonConflictingNode"))
                 .build();
         c.apply();
         // allow writer to continue
@@ -686,6 +689,112 @@ public class DocumentNodeStoreTest {
         assertTrue(active[0].startsWith(cId2 + "="));
     }
 
+    //OAK-8449
+    @Test
+    public void lastRevisionRecovery() throws Exception {
+        DocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(1).setDocumentStore(docStore)
+                .getNodeStore();
+        int cId1 = ns1.getClusterId();
+        NodeBuilder builder = ns1.getRoot().builder();
+
+        //Validating null path
+        try {
+            ns1.getMBean().recover(null, cId1);
+            fail("must fail with NullPointerException");
+        } catch (NullPointerException expected) {}
+
+        //Validating empty path
+        try {
+            ns1.getMBean().recover("", cId1);
+            fail("must fail with IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {}
+
+        //Validating negative clusterId
+        try {
+            ns1.getMBean().recover("/foo", -1);
+            fail("must fail with IllegalArgumentException");
+        } catch (IllegalArgumentException expected) {}
+
+        //Validating recovery on active node
+        try {
+            ns1.getMBean().recover("/foo", cId1);
+            fail("must fail with IllegalStateException");
+        } catch (IllegalStateException expected) {}
+
+        builder.child("foo").child("bar");
+        merge(ns1, builder);
+
+        builder = ns1.getRoot().builder();
+        builder.child("foo").child("bar").setProperty("key", "value");
+        merge(ns1, builder);
+        ns1.dispose();
+
+        UpdateOp op = new UpdateOp(Utils.getIdFromPath("/foo"), false);
+        op.removeMapEntry("_lastRev", new Revision(0, 0, cId1));
+        assertNotNull(docStore.findAndUpdate(Collection.NODES, op));
+
+        //Validate no. of affected paths in readOnlyMode
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(2).setDocumentStore(docStore).setReadOnlyMode()
+                .getNodeStore();
+        assertEquals(1, ns2.getMBean().recover("/foo", cId1));
+
+        //Validate no. of recovered paths
+        DocumentNodeStore ns3 = builderProvider.newBuilder().setAsyncDelay(0)
+                .setClusterId(3).setDocumentStore(docStore)
+                .getNodeStore();
+        assertEquals(1, ns3.getMBean().recover("/foo", cId1));
+
+        //Validating recovery on non existing path
+        try {
+            ns2.getMBean().recover("/foo1", cId1);
+            fail("must fail with DocumentStoreException");
+        } catch (DocumentStoreException expected) {}
+    }
+
+    //OAK-8466
+    @Test
+    public void lastRevisionUpdateOnNodeRestart() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+
+        int clusterId = 1;
+        DocumentNodeStore dns1 = builderProvider.newBuilder()
+                .setDocumentStore(store)
+                .setAsyncDelay(0).setClusterId(clusterId)
+                .getNodeStore();
+        dns1.dispose();
+
+        NodeDocument beforeRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(beforeRootDoc);
+        Revision beforeLastRev = beforeRootDoc.getLastRev().get(clusterId);
+
+        Clock clock = new Clock.Virtual();
+        long now = System.currentTimeMillis();
+        // DocumentNodeStore refreshes the head revision and _lastRev
+        // when there was no commit for one minute
+        clock.waitUntil( now + TimeUnit.MINUTES.toMillis(1));
+        long timeBeforeStartup = clock.getTime();
+        ClusterNodeInfo.setClock(clock);
+        Revision.setClock(clock);
+
+        builderProvider.newBuilder()
+                .setDocumentStore(store).clock(clock)
+                .setAsyncDelay(0).setClusterId(clusterId)
+                .getNodeStore();
+
+        NodeDocument afterRootDoc = store.find(NODES, Utils.getIdFromPath(ROOT));
+        assertNotNull(afterRootDoc);
+        Revision afterLastRev = afterRootDoc.getLastRev().get(clusterId);
+
+        assertThat("lastRev must be greater or equal '" + Utils.timestampToString(timeBeforeStartup) + "', but was '" 
+            + Utils.timestampToString(afterLastRev.getTimestamp()) + "'", afterLastRev.getTimestamp(), 
+            OrderingComparison.greaterThanOrEqualTo(timeBeforeStartup));
+        assertNotEquals("Last revision should be updated after 1 minute even if background thread is not running",
+                beforeLastRev, afterLastRev);
+    }
+
     // OAK-2288
     @Test
     public void mergedBranchVisibility() throws Exception {
@@ -843,7 +952,7 @@ public class DocumentNodeStoreTest {
         for (String id : Sets.newHashSet(readSet)) {
             doc = store.find(NODES, id);
             assertNotNull(doc);
-            if (doc.isSplitDocument() && !doc.getMainPath().equals("/")) {
+            if (doc.isSplitDocument() && !doc.getMainPath().equals(Path.ROOT)) {
                 fail("must not access previous document: " + id);
             }
         }
@@ -2144,7 +2253,7 @@ public class DocumentNodeStoreTest {
         RevisionVector to = ns.getHeadRevision();
 
         DiffCache.Entry entry = ns.getDiffCache().newEntry(from, to, true);
-        entry.append("/", "-\"foo\"");
+        entry.append(Path.ROOT, "-\"foo\"");
         entry.done();
 
         ns.compare(ns.getRoot(), ns.getRoot(from), new DefaultNodeStateDiff() {
@@ -2928,7 +3037,7 @@ public class DocumentNodeStoreTest {
 
         RevisionVector headRev = ns.getHeadRevision();
         Iterable<DocumentNodeState> nodes = ns.getChildNodes(
-                asDocumentNodeState(ns.getRoot().getChildNode("foo")), null, 10);
+                asDocumentNodeState(ns.getRoot().getChildNode("foo")), "", 10);
         assertEquals(2, Iterables.size(nodes));
         for (DocumentNodeState c : nodes) {
             assertEquals(headRev, c.getRootRevision());
@@ -3259,7 +3368,7 @@ public class DocumentNodeStoreTest {
         Revision rev = ns.newRevision();
         RevisionVector after = new RevisionVector(ns.newRevision());
 
-        String path = "/foo";
+        Path path = Path.fromString("/foo");
         ns.getNode(path, before);
         assertNotNull(ns.getNodeCache().getIfPresent(new PathRev(path, before)));
 
@@ -3282,7 +3391,7 @@ public class DocumentNodeStoreTest {
         RevisionVector head = ns.getHeadRevision();
 
         // simulate an incorrect cache entry
-        PathRev key = new PathRev("/", head);
+        NamePathRev key = new NamePathRev("", Path.ROOT, head);
         DocumentNodeState.Children c = new DocumentNodeState.Children();
         c.children.add("a");
         c.children.add("b");
@@ -3853,6 +3962,85 @@ public class DocumentNodeStoreTest {
         ClusterNodeInfoDocument info = store.find(CLUSTER_NODES, "1");
         assertNotNull(info);
         assertFalse(info.isActive());
+    }
+
+    @Test
+    public void readOnlyOnEmptyDocumentStore() {
+        DocumentStore store = new MemoryDocumentStore();
+        try {
+            builderProvider.newBuilder().setDocumentStore(store)
+                    .setReadOnlyMode().build();
+            fail("must fail with DocumentStoreException");
+        } catch (Exception e) {
+            // must not hit last line of defence (ReadOnlyDocumentStoreWrapper)
+            assertFalse(Throwables.getRootCause(e) instanceof UnsupportedOperationException);
+        }
+    }
+
+    @Test
+    public void partitionedUpdates() throws Exception {
+        AtomicInteger maxBatchSize = new AtomicInteger(0);
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
+                maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
+                return super.createOrUpdate(collection, updateOps);
+            }
+        };
+        // set batch size to half the update limit
+        int batchSize = DocumentNodeStoreBuilder.UPDATE_LIMIT / 2;
+        System.setProperty("oak.documentMK.createOrUpdateBatchSize",
+                String.valueOf(batchSize));
+        try {
+            DocumentNodeStore ns = builderProvider.newBuilder()
+                    .setAsyncDelay(0).setDocumentStore(store).build();
+            NodeBuilder builder = ns.getRoot().builder();
+            for (int i = 0; i < DocumentNodeStoreBuilder.UPDATE_LIMIT; i++) {
+                builder.child("c-" + i);
+            }
+            merge(ns, builder);
+            assertThat(maxBatchSize.get(), greaterThan(0));
+            assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
+        } finally {
+            System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
+        }
+    }
+
+    @Test
+    public void partitionedReset() {
+        AtomicInteger maxBatchSize = new AtomicInteger(0);
+        DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+            @Override
+            public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
+                                                               List<UpdateOp> updateOps) {
+                maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
+                return super.createOrUpdate(collection, updateOps);
+            }
+        };
+        // set batch size to half the update limit
+        int batchSize = DocumentNodeStoreBuilder.UPDATE_LIMIT / 2;
+        System.setProperty("oak.documentMK.createOrUpdateBatchSize",
+                String.valueOf(batchSize));
+        try {
+            DocumentNodeStore ns = builderProvider.newBuilder()
+                    .setAsyncDelay(0).setDocumentStore(store).build();
+            DocumentNodeStoreBranch branch = ns.createBranch(ns.getRoot());
+            NodeBuilder builder = branch.getBase().builder();
+            for (int i = 0; i < DocumentNodeStoreBuilder.UPDATE_LIMIT * 2; i++) {
+                builder.child("c-" + i).setProperty("p", "a");
+            }
+            branch.setRoot(builder.getNodeState());
+            branch.persist();
+
+            maxBatchSize.set(0);
+            ns.reset(asDocumentNodeState(branch.getHead()).getRootRevision(),
+                    asDocumentNodeState(branch.getBase()).getRootRevision().asBranchRevision(ns.getClusterId()));
+            assertThat(maxBatchSize.get(), greaterThan(0));
+            assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
+        } finally {
+            System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
+        }
     }
 
     private void getChildNodeCountTest(int numChildren,

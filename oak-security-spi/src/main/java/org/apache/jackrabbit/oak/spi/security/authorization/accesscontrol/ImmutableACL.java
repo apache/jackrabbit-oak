@@ -79,18 +79,18 @@ public class ImmutableACL extends AbstractAccessControlList {
     //----------------------------------------< JackrabbitAccessControlList >---
 
     @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges,
-                            boolean isAllow, Map<String, Value> restrictions) throws AccessControlException {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges,
+                            boolean isAllow, @Nullable Map<String, Value> restrictions) throws AccessControlException {
         throw new AccessControlException("Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicies in order to obtain an modifiable ACL.");
     }
 
     @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions, Map<String, Value[]> mvRestrictions) throws AccessControlException {
+    public boolean addEntry(@NotNull Principal principal, @NotNull Privilege[] privileges, boolean isAllow, @Nullable Map<String, Value> restrictions, @Nullable Map<String, Value[]> mvRestrictions) throws AccessControlException {
         throw new AccessControlException("Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicies in order to obtain an modifiable ACL.");
     }
 
     @Override
-    public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws AccessControlException {
+    public void orderBefore(@NotNull AccessControlEntry srcEntry, @Nullable AccessControlEntry destEntry) throws AccessControlException {
         throw new AccessControlException("Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicy in order to obtain a modifiable ACL.");
     }
 

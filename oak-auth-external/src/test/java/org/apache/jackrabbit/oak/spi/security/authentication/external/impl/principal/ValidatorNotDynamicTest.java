@@ -19,13 +19,12 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.prin
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.junit.Assert.fail;
 
 public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
@@ -49,7 +48,7 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
     }
 
     @Override
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testRemoveExternalPrincipalNames() throws Exception {
         setExternalPrincipalNames();
 
@@ -65,7 +64,7 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
     }
 
     @Override
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testModifyExternalPrincipalNames() throws Exception {
         setExternalPrincipalNames();
 
@@ -82,8 +81,8 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
 
 
     @Override
-    @Test
-    public void testRemoveRepExternalId() {
+    @Test(expected = CommitFailedException.class)
+    public void testRemoveRepExternalId() throws Exception {
         try {
             root.getTree(externalUserPath).removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
             root.commit();
@@ -91,8 +90,7 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
             fail("Removal of rep:externalId must be detected in the default setup.");
         } catch (CommitFailedException e) {
             // success: verify nature of the exception
-            assertTrue(e.isConstraintViolation());
-            assertEquals(74, e.getCode());
+            assertException(e, CONSTRAINT, 74);
         }
     }
 
@@ -100,9 +98,9 @@ public class ValidatorNotDynamicTest extends ExternalIdentityValidatorTest {
     @Test
     public void testRemoveRepExternalIdAsSystem() throws Exception {
         Root systemRoot = getSystemRoot();
-        NodeUtil n = new NodeUtil(systemRoot.getTree(externalUserPath));
+        Tree userTree = systemRoot.getTree(externalUserPath);
 
-        n.removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
+        userTree.removeProperty(ExternalIdentityConstants.REP_EXTERNAL_ID);
         systemRoot.commit();
     }
 }

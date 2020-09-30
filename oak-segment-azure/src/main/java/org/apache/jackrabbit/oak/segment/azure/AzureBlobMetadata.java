@@ -16,50 +16,33 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import java.util.HashMap;
+import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
+import org.apache.jackrabbit.oak.segment.remote.RemoteBlobMetadata;
+import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
+
 import java.util.Map;
-import java.util.UUID;
 
-public final class AzureBlobMetadata {
+/**
+ * Provides access to the blob metadata.
+ * <p>
+ * In azure blob metadata keys are case-insensitive. A bug in the tool azcopy v10 make each key to start with
+ * an uppercase letter.  To avoid future bugs we should be tolerant in what we read.
+ * <p>
+ * Azure Blobs metadata can not store multiple entries with the same key where only the case differs. Therefore it is
+ * safe to use the same concept in java, see {@link CaseInsensitiveKeysMapAccess}
+ */
+public final class AzureBlobMetadata extends RemoteBlobMetadata {
 
-    private static final String METADATA_TYPE = "type";
+    public static RemoteSegmentArchiveEntry toIndexEntry(Map<String, String> metadata, int length) {
+        Map<String, String> caseInsensitiveMetadata = CaseInsensitiveKeysMapAccess.convert(metadata);
 
-    private static final String METADATA_SEGMENT_UUID = "uuid";
-
-    private static final String METADATA_SEGMENT_POSITION = "position";
-
-    private static final String METADATA_SEGMENT_GENERATION = "generation";
-
-    private static final String METADATA_SEGMENT_FULL_GENERATION = "fullGeneration";
-
-    private static final String METADATA_SEGMENT_COMPACTED = "compacted";
-
-    private static final String TYPE_SEGMENT = "segment";
-
-    public static HashMap<String, String> toSegmentMetadata(AzureSegmentArchiveEntry indexEntry) {
-        HashMap<String, String> map = new HashMap<>();
-        map.put(METADATA_TYPE, TYPE_SEGMENT);
-        map.put(METADATA_SEGMENT_UUID, new UUID(indexEntry.getMsb(), indexEntry.getLsb()).toString());
-        map.put(METADATA_SEGMENT_POSITION, String.valueOf(indexEntry.getPosition()));
-        map.put(METADATA_SEGMENT_GENERATION, String.valueOf(indexEntry.getGeneration()));
-        map.put(METADATA_SEGMENT_FULL_GENERATION, String.valueOf(indexEntry.getFullGeneration()));
-        map.put(METADATA_SEGMENT_COMPACTED, String.valueOf(indexEntry.isCompacted()));
-        return map;
-    }
-
-    public static AzureSegmentArchiveEntry toIndexEntry(Map<String, String> metadata, int length) {
-        UUID uuid = UUID.fromString(metadata.get(METADATA_SEGMENT_UUID));
-        long msb = uuid.getMostSignificantBits();
-        long lsb = uuid.getLeastSignificantBits();
-        int position = Integer.parseInt(metadata.get(METADATA_SEGMENT_POSITION));
-        int generation = Integer.parseInt(metadata.get(METADATA_SEGMENT_GENERATION));
-        int fullGeneration = Integer.parseInt(metadata.get(METADATA_SEGMENT_FULL_GENERATION));
-        boolean compacted = Boolean.parseBoolean(metadata.get(METADATA_SEGMENT_COMPACTED));
-        return new AzureSegmentArchiveEntry(msb, lsb, position, length, generation, fullGeneration, compacted);
+        return RemoteBlobMetadata.toIndexEntry(caseInsensitiveMetadata, length);
     }
 
     public static boolean isSegment(Map<String, String> metadata) {
-        return metadata != null && TYPE_SEGMENT.equals(metadata.get(METADATA_TYPE));
+        Map<String, String> caseInsensitiveMetadata = CaseInsensitiveKeysMapAccess.convert(metadata);
+
+        return RemoteBlobMetadata.isSegment(caseInsensitiveMetadata);
     }
 
 }

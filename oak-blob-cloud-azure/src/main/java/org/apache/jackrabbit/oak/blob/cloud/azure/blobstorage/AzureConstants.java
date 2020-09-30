@@ -51,6 +51,11 @@ public final class AzureConstants {
     public static final String AZURE_BLOB_CONTAINER_NAME = "container";
 
     /**
+     * Azure create container if doesn't exist
+     */
+    public static final String AZURE_CREATE_CONTAINER = "azureCreateContainer";
+
+    /**
      * Azure blob storage request timeout
      */
     public static final String AZURE_BLOB_REQUEST_TIMEOUT = "socketTimeout";
@@ -89,6 +94,30 @@ public final class AzureConstants {
      * Maximum size of presigned HTTP download URI cache - default is 0 (no cache)
      */
     public static final String PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE = "presignedHttpDownloadURICacheMaxSize";
+
+    /**
+     * Boolean flag to allow disabling of verification check on download URI
+     * generation.  Default is true (the existence check is performed).
+     *
+     * Some installations may prefer to disable async uploads, in which case it
+     * is possible to disable the existence check and thus greatly speed up the
+     * generation of presigned download URIs.  See OAK-7998 which describes why
+     * the existence check was added to understand how async uploading relates
+     * to this feature.
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS = "presignedHttpDownloadURIVerifyExists";
+
+    /**
+     * Domain name to use for direct downloads instead of the default Azure blob storage domain.
+     * This is usually used when an installation has configured a CDN domain for binary downloads.
+     */
+    public static final String PRESIGNED_HTTP_DOWNLOAD_URI_DOMAIN_OVERRIDE = "presignedHttpDownloadURIDomainOverride";
+
+    /**
+     * Domain name to use for direct uploads instead of the default Azure blob storage domain.
+     * This is usually used when an installation has configured a CDN domain for binary uploads.
+     */
+    public static final String PRESIGNED_HTTP_UPLOAD_URI_DOMAIN_OVERRIDE = "presignedHttpUploadURIDomainOverride";
 
     private AzureConstants() { }
 }

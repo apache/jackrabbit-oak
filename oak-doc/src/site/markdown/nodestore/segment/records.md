@@ -292,6 +292,8 @@ only a "diff" of the map is stored. This prevents the full storage of the
 modified map, which can save a considerable amount of space if the original map
 was big.
 
+_Warning: A map record can store up to 2^29 - 1 (i.e. 536.870.911) entries! In order to avoid reaching this number and possibly running into issues from surpassing it, log messages are printed after reaching 400.000.000 entries and writing beyond 500.000.000 entries is not allowed unless the boolean system property `oak.segmentNodeStore.allowWritesOnHugeMapRecord` is set. Finally, the segment store does not allow writing map records with more than 536.000.000 entries._
+
 ### Template records
 
 A template record stores metadata about nodes that, on average, don't change so

@@ -23,14 +23,14 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -55,8 +55,8 @@ public class DocumentRdbFixture extends NodeStoreFixture {
         this.jdbcUrl = pUrl.replace("{fname}", fname);
         DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, pUser, pPasswd);
 
-        NodeStore result = new DocumentMK.Builder().setPersistentCache("target/persistentCache,time")
-                .setRDBConnection(ds, options).getNodeStore();
+        NodeStore result = new RDBDocumentNodeStoreBuilder().setPersistentCache("target/persistentCache,time")
+                .setRDBConnection(ds, options).build();
         this.dataSources.put(result, ds);
         return result;
     }
@@ -78,6 +78,6 @@ public class DocumentRdbFixture extends NodeStoreFixture {
 
     @Override
     public String toString() {
-        return "DocumentNodeStore[RDB] on " + StringUtils.defaultString(this.jdbcUrl, this.pUrl);
+        return "DocumentNodeStore[RDB] on " + Objects.toString(this.jdbcUrl, this.pUrl);
     }
 }

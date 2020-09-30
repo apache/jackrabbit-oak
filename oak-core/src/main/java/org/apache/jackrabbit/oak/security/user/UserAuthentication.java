@@ -103,28 +103,10 @@ class UserAuthentication implements Authentication, UserConstants {
 
         boolean success = false;
         try {
-            UserManager userManager = config.getUserManager(root, NamePathMapper.DEFAULT);
-            Authorizable authorizable = userManager.getAuthorizable(loginId);
-            if (authorizable == null) {
-                // best effort prevent user enumeration timing attacks
-                try {
-                    String hash = PasswordUtil.buildPasswordHash("oak");
-                    PasswordUtil.isSame(hash, "oak");
-                } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
-                    // ignore
-                }
+            User user = getValidUser(config.getUserManager(root, NamePathMapper.DEFAULT), loginId);
+            if (user == null) {
                 return false;
             }
-
-            if (authorizable.isGroup()) {
-                throw new AccountNotFoundException("Not a user " + loginId);
-            }
-
-            User user = (User) authorizable;
-            if (user.isDisabled()) {
-                throw new AccountLockedException("User with ID " + loginId + " has been disabled: "+ user.getDisabledReason());
-            }
-
             if (credentials instanceof SimpleCredentials) {
                 SimpleCredentials creds = (SimpleCredentials) credentials;
                 Credentials userCreds = user.getCredentials();
@@ -133,12 +115,9 @@ class UserAuthentication implements Authentication, UserConstants {
                 }
                 checkSuccess(success, "UserId/Password mismatch.");
 
-                if (isPasswordExpired(user)) {
-                    // change the password if the credentials object has the
-                    // UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD attribute set
-                    if (!changePassword(user, creds)) {
-                        throw new CredentialExpiredException("User password has expired");
-                    }
+                // change the password if the credentials object has the UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD attribute set
+                if (isPasswordExpired(user) && !changePassword(user, creds)) {
+                    throw new CredentialExpiredException("User password has expired");
                 }
             } else if (credentials instanceof ImpersonationCredentials) {
                 ImpersonationCredentials ipCreds = (ImpersonationCredentials) credentials;
@@ -153,6 +132,8 @@ class UserAuthentication implements Authentication, UserConstants {
             principal = user.getPrincipal();
         } catch (RepositoryException e) {
             throw new LoginException(e.getMessage());
+        } finally {
+            removeNewPwAttribute(credentials);
         }
         return success;
     }
@@ -177,6 +158,29 @@ class UserAuthentication implements Authentication, UserConstants {
 
 
     //--------------------------------------------------------------------------
+    @Nullable
+    private static User getValidUser(@NotNull UserManager userManager, @NotNull String loginId) throws RepositoryException, AccountNotFoundException, AccountLockedException {
+        Authorizable authorizable = userManager.getAuthorizable(loginId);
+        if (authorizable == null) {
+            // best effort prevent user enumeration timing attacks
+            try {
+                PasswordUtil.isSame(PasswordUtil.buildPasswordHash("oak"), "oak");
+            } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
+                // ignore
+            }
+            return null;
+        }
+
+        if (authorizable.isGroup()) {
+            throw new AccountNotFoundException("Not a user " + loginId);
+        }
+        User user = (User) authorizable;
+        if (user.isDisabled()) {
+            throw new AccountLockedException("User with ID " + loginId + " has been disabled: "+ user.getDisabledReason());
+        }
+        return user;
+    }
+
     private static void checkSuccess(boolean success, String msg) throws LoginException {
         if (!success) {
             throw new FailedLoginException(msg);
@@ -195,33 +199,35 @@ class UserAuthentication implements Authentication, UserConstants {
                 if (newPasswordObject instanceof String) {
                     user.changePassword((String) newPasswordObject);
                     root.commit();
-                    log.debug("User " + loginId + ": changed user password");
+                    log.debug("User {}: changed user password", loginId);
                     return true;
                 } else {
-                    log.warn("Aborted password change for user " + loginId
-                            + ": provided new password is of incompatible type "
-                            + newPasswordObject.getClass().getName());
+                    log.warn("Aborted password change for user {}: provided new password is of incompatible type {}", loginId, newPasswordObject.getClass().getName());
                 }
             }
         } catch (PasswordHistoryException e) {
             credentials.setAttribute(e.getClass().getSimpleName(), e.getMessage());
-            log.error("Failed to change password for user " + loginId, e.getMessage());
-        } catch (RepositoryException e) {
-            log.error("Failed to change password for user " + loginId, e.getMessage());
-        } catch (CommitFailedException e) {
+            log.error("Failed to change password for user {}: {}", loginId, e.getMessage());
+        } catch (RepositoryException | CommitFailedException e) {
             root.refresh();
-            log.error("Failed to change password for user " + loginId, e.getMessage());
+            log.error("Failed to change password for user {}: {}", loginId, e.getMessage());
         }
         return false;
+    }
+
+    private static void removeNewPwAttribute(@NotNull Credentials credentials) {
+        if (credentials instanceof SimpleCredentials) {
+            ((SimpleCredentials) credentials).removeAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD);
+        }
     }
 
     private boolean impersonate(AuthInfo info, User user) {
         try {
             if (user.getID().equals(info.getUserID())) {
-                log.debug("User " + info.getUserID() + " wants to impersonate himself -> success.");
+                log.debug("User {} wants to impersonate himself -> success.", info.getUserID());
                 return true;
             } else {
-                log.debug("User " + info.getUserID() + " wants to impersonate " + user.getID());
+                log.debug("User {} wants to impersonate {}", info.getUserID(), user.getID());
                 Subject subject = new Subject(true, info.getPrincipals(), Collections.emptySet(), Collections.emptySet());
                 return user.getImpersonation().allows(subject);
             }

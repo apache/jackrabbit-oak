@@ -36,7 +36,7 @@ public abstract class AbstractDocumentNodeState extends AbstractNodeState {
             LoggerFactory.getLogger(AbstractDocumentNodeState.class.getName()
                     + ".perf"));
 
-    public abstract String getPath();
+    public abstract Path getPath();
 
     public abstract RevisionVector getLastRevision();
 

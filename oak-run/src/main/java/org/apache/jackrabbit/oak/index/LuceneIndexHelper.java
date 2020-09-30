@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirectoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
@@ -55,7 +56,8 @@ public class LuceneIndexHelper implements Closeable {
                     indexHelper.getMountInfoProvider()
             ) {
                 @Override
-                protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback) {
+                protected DirectoryFactory newDirectoryFactory(BlobDeletionCallback blobDeletionCallback,
+                                                               COWDirectoryTracker cowDirectoryTracker) {
                     return directoryFactory;
                 }
             };

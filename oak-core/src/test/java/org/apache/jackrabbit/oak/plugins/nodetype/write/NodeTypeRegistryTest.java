@@ -182,12 +182,14 @@ public class NodeTypeRegistryTest {
         registerNodeType(root, "oak6440-1.cnd");
         NodeTypeManager readOnlyNtMgr = new ReadOnlyNodeTypeManager() {
             private Root r = session.getLatestRoot();
+            @NotNull
             @Override
             protected Tree getTypes() {
                 return r.getTree(NODE_TYPES_PATH);
             }
         };
         NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
+            @NotNull
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);
@@ -234,6 +236,7 @@ public class NodeTypeRegistryTest {
     @Test
     public void reRegisterNtResource() throws Exception {
         NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
+            @NotNull
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);

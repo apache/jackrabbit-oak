@@ -348,6 +348,10 @@ public interface QueryIndex {
          * @return if it is deprecated
          */
         boolean isDeprecated();
+        
+        default boolean logWarningForPathFilterMismatch() {
+            return false;
+        }
 
         /**
          * A builder for index plans.
@@ -369,6 +373,7 @@ public interface QueryIndex {
             protected Map<String, Object> attributes = Maps.newHashMap();
             protected String planName;
             protected boolean deprecated;
+            protected boolean logWarningForPathFilterMismatch;
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -392,6 +397,11 @@ public interface QueryIndex {
 
             public Builder setDelayed(boolean isDelayed) {
                 this.isDelayed = isDelayed;
+                return this;
+            }
+            
+            public Builder setLogWarningForPathFilterMismatch(boolean value) {
+                this.logWarningForPathFilterMismatch = value;
                 return this;
             }
 
@@ -480,6 +490,7 @@ public interface QueryIndex {
                     private final String planName = Builder.this.planName;
                     private final boolean deprecated =
                             Builder.this.deprecated;
+                    private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
 
                     @Override
                     public String toString() {
@@ -496,7 +507,8 @@ public interface QueryIndex {
                             + " propertyRestriction : %s,"
                             + " pathPrefix : %s,"
                             + " deprecated : %s,"
-                            + " supportsPathRestriction : %s }",
+                            + " supportsPathRestriction : %s," 
+                            + " logWarningForPathFilterMismatch : %s }",
                             costPerExecution,
                             costPerEntry,
                             estimatedEntryCount,
@@ -509,7 +521,8 @@ public interface QueryIndex {
                             propRestriction,
                             pathPrefix,
                             deprecated,
-                            supportsPathRestriction
+                            supportsPathRestriction,
+                            logWarningForPathFilterMismatch
                             );
                     }
 
@@ -605,6 +618,11 @@ public interface QueryIndex {
                     @Override
                     public boolean isDeprecated() {
                         return deprecated;
+                    }
+                    
+                    @Override
+                    public boolean logWarningForPathFilterMismatch() {
+                        return logWarningForPathFilterMismatch;
                     }
 
                 };

@@ -55,14 +55,11 @@ public class ConcurrentHasPermissionTest extends ConcurrentReadDeepTreeTest {
         try {
             int allows = 0;
             int denies = 0;
-            int size = allPaths.size();
             long start = System.currentTimeMillis();
             for (int i = 0; i < cnt; i++) {
-                double rand = size * Math.random();
-                int index = (int) Math.floor(rand);
-                String path = allPaths.get(index);
+                String path = getRandom(allPaths);
 
-                String actions = getRandomActions();
+                String actions = getRandom(ACTIONS);
                 if (testSession.hasPermission(path, actions)) {
                     allows++;
                 } else {
@@ -78,10 +75,5 @@ public class ConcurrentHasPermissionTest extends ConcurrentReadDeepTreeTest {
                 logout(testSession);
             }
         }
-    }
-
-    private static String getRandomActions() {
-        int index = (int) Math.floor(10 * Math.random());
-        return ACTIONS.get(index);
     }
 }

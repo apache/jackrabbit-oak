@@ -63,6 +63,7 @@ Most of the operations on repository data generate a certain amount of garbage.
 This garbage is a byproduct of the repository operations and consists of leftover data that is not usable by the user.
 If left unchecked, this garbage would just pile up, consume disk space and pollute in-memory data structures.
 To avoid this, Oak Segment Tar defines garbage collection procedures to eliminate unnecessary data.
+The implementation of garbage collection in Oak evolved heavily between Oak 1.0 and Oak 1.8. See [Memoirs in Garbage Collection](onrc-memoirs.html) for an historical account.
 
 ### <a name="generational-garbage-collection"/> Generational Garbage Collection
 
@@ -673,22 +674,54 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 
 * **Microsoft Azure** The `cloud-prefix` for MS Azure is `az`, therefore a valid connection argument would be `az:https://myaccount.blob.core.windows.net/container/repository`, where the part after `:` is the Azure URL identifier for the _repository_ directory inside the specified _container_ of the _myaccount_ Azure storage account. The last missing piece is the secret key which will be supplied as an environment variable, i.e. `AZURE_SECRET_KEY`.
 
+* **Amazon AWS** The `cloud-prefix` for Amazon AWS is `aws`, therefore a valid connection argument would be `aws:bucket;root_directory;journal_table;lock_table` where the part after `:` defines the _root_directory_ inside the specified _bucket_ in S3 and the _journal_table_ and _lock_table_ tables within DynamoDB services. The other portion to connect to AWS is the credentials which will be supplied by placing a credentials file with ~/.aws folder.
+
 ### <a name="segment-copy"/> Segment-Copy
 ```
-java -jar oak-run.jar segment-copy [--verbose] SOURCE DESTINATION
+java -jar oak-run.jar segment-copy SOURCE DESTINATION [--last <REV_COUNT>]
 ```
 
-The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure Segment Store), saving the resulted Segment Store at `DESTINATION`. 
+The `segment-copy` command allows the "translation" of the Segment Store at `SOURCE` from one persistence type (e.g. local TarMK Segment Store) to a different persistence type (e.g. remote Azure or AWS Segment Store), saving the resulted Segment Store at `DESTINATION`. 
 Unlike a sidegrade peformed with `oak-upgrade` (see [Repository Migration](#../../migration.md)) which includes only the current head state, this translation includes __all previous revisions persisted in the Segment Store__, therefore retaining the entire history.
+If `--last` option is present, the tool will start with the most recent revision and will copy at most <REV_COUNT> journal revisions.
 
 `SOURCE` must be a valid path/uri to an existing Segment Store. 
 `DESTINATION` must be a valid path/uri for the resulting Segment Store. 
+
+The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be copied from the journal (default is 1).
+
 Both are specified as `PATH | cloud-prefix:URI`. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
-If the `--verbose` option is specified, the command will print detailed progress information messages. 
-These include individual segments being transfered from `SOURCE` to `DESTINATION` at a certain point in time.
-If not specified, progress information messages will be disabled.
+To enable logging during segment copy a Logback configuration file has to be injected via the `logback.configurationFile` property.
+
+##### Example
+
+The following command uses `logback-segment-copy.xml` to configure Logback logging for segment-copy to the console.
+
+```
+java -Dlogback.configurationFile=logback-segment-copy.xml -jar oak-run.jar segment-copy cloud-prefix:URI some/local/path
+```
+
+logback-segment-copy.xml:
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator" level="INFO"/>
+
+  <root level="warn">
+    <appender-ref ref="console"/>
+  </root>
+</configuration>
+```
 
 
 ### <a name="backup"/> Backup
@@ -726,14 +759,15 @@ This tool is the counterpart of `backup`.
 ### <a name="check"/> Check
 
 ```
-java -jar oak-run.jar check PATH [--journal JOURNAL] [--notify SECS] [--bin] [--head] [--checkpoints all | cp1[,cp2,..,cpn]]  [--filter PATH1[,PATH2,..,PATHn]] [--io-stats]
+java -jar oak-run.jar check PATH [--mmap] [--journal JOURNAL] [--notify SECS] [--bin] [--last <REV_COUNT>] [--head] [--checkpoints all | cp1[,cp2,..,cpn]]  [--filter PATH1[,PATH2,..,PATHn]] [--io-stats]
 ```
 
 The `check` tool inspects an existing Segment Store at `PATH` for eventual inconsistencies. 
-The algorithm implemented by this tool traverses every revision in the journal, from the most recent to the oldest.
-For every revision, the actual nodes and properties are traversed, verifying that every piece of data is reachable and undamaged. Moreover, if `--head` and `--checkpoints` options are used, the scope of the traversal can be limited to head state and/or a subset of checkpoints.
-A deep scan of the content tree, traversing every node and every property will be performed by default. The default scope includes head state and all checkpoints.
+The algorithm implemented by this tool traverses every revision in the journal, from the most recent to the oldest, stopping at the first consistent occurence. The actual nodes and properties are traversed, verifying that every piece of data is reachable and undamaged. If `--last` option is present, the tool will start with the most recent revision and will go back in the history at most `<REV_COUNT>` revisions. Moreover, if `--head` and `--checkpoints` options are used, the scope of the traversal can be limited to head state and/or a subset of checkpoints. A deep scan of the content tree, traversing every node and every property will be performed by default. The default scope includes head state and all checkpoints.
   
+The optional `--mmap [Boolean]` argument can be used to control the file access mode. Set
+to `true` for memory mapped access and `false` for file access (default is `true`).
+
 If the `--journal` option is specified, the tool will use the journal file at `JOURNAL` instead of picking up the one contained in `PATH`. 
 `JOURNAL` must be a path to a valid journal file for the Segment Store. 
 
@@ -744,6 +778,8 @@ If `SECS` equals `0`, every progress information message is printed.
 If the `--bin` option is specified, the tool will scan the full content of binary properties.
 If not specified, the binary properties will not be traversed.
 The `--bin` option has no effect on binary properties stored in an external Blob Store.
+
+The optional `--last [Integer]` argument can be used to control the maximum number of revisions to be verified (default is `1`).
 
 If the `--head` option is specified, the tool will scan **only** the head state, ignoring any available checkpoints.
 
@@ -765,11 +801,11 @@ This option is optional and is disabled by default.
 ### <a name="compact"/> Compact
 
 ```
-java -jar oak-run.jar compact [--force] [--mmap] PATH | cloud-prefix:URI
+java -jar oak-run.jar compact [--force] [--mmap] [--compactor] PATH | cloud-prefix:URI
 ```
 
 The `compact` command performs offline compaction of the local/remote Segment Store at `PATH`/`URI`. 
-`PATH`/`URI` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store is the only supported remote Segment Store. 
+`PATH`/`URI` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store and AWS Segment Store the supported remote Segment Stores. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
 If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non 
@@ -781,6 +817,8 @@ The optional `--mmap [Boolean]` argument can be used to control the file access 
 to `true` for memory mapped access and `false` for file access. If not specified, memory 
 mapped access is used on 64 bit systems and file access is used on 32 bit systems. On
 Windows, regular file access is always enforced and this option is ignored.
+
+The optional `--compactor [String]` argument can be used to pick the compactor type to be used. Valid choices are *classic* and *diff*. While the former is slower, it might be more stable, due to lack of optimisations employed by the *diff* compactor which compacts the checkpoints on top of each other. If not specified, *diff* compactor is used.
 
 To enable logging during offline compaction a Logback configuration file has to be injected 
 via the `logback.configurationFile` property. In addition the `compaction-progress-log`

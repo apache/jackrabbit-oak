@@ -194,13 +194,13 @@ public class DocumentNodeStoreHelper {
 
     private static class BlobReferences {
 
-        final String path;
+        final Path path;
         final long blobSize;
         final long garbageSize;
         final int numBlobs;
         final boolean exists;
 
-        public BlobReferences(String path,
+        public BlobReferences(Path path,
                               long blobSize,
                               int numBlobs,
                               long garbageSize,

@@ -17,26 +17,17 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Set;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.jetbrains.annotations.NotNull;
-
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
 
 /**
  * Helper class to deal with the migration between the 2 types of groups
  *
  */
 public final class GroupPrincipals {
-
-    private static final GroupTransformer TRANSFORMER = new GroupTransformer();
 
     private GroupPrincipals() {
     }
@@ -50,7 +41,7 @@ public final class GroupPrincipals {
      * @return true if the principal is of type group.
      */
     public static boolean isGroup(@NotNull Principal principal) {
-        return principal instanceof Group || principal instanceof GroupPrincipal;
+        return principal instanceof GroupPrincipal;
     }
 
     /**
@@ -58,10 +49,8 @@ public final class GroupPrincipals {
      * @param principal the principal whose membership is listed.
      * @return an enumeration of the group members.
      */
+    @NotNull
     public static Enumeration<? extends Principal> members(@NotNull Principal principal) {
-        if (principal instanceof Group) {
-            return ((Group) principal).members();
-        }
         if (principal instanceof GroupPrincipal) {
             return ((GroupPrincipal) principal).members();
         }
@@ -75,37 +64,9 @@ public final class GroupPrincipals {
      * @return true if the principal is a member of this group, false otherwise.
      */
     public static boolean isMember(@NotNull Principal principal, @NotNull Principal member) {
-        if (principal instanceof Group) {
-            return ((Group) principal).isMember(member);
-        }
         if (principal instanceof GroupPrincipal) {
             return ((GroupPrincipal) principal).isMember(member);
         }
         return false;
-    }
-
-    public static Set<Principal> transform(Set<Group> groups) {
-        ImmutableSet.Builder<Principal> g2 = ImmutableSet.builder();
-        for (Group g : groups) {
-            g2.add(new GroupPrincipalWrapper(g));
-        }
-        return g2.build();
-    }
-
-    public static Enumeration<? extends Principal> transform(Enumeration<? extends Principal> members) {
-        Iterator<Principal> m2 = Iterators.transform(Iterators.forEnumeration(members), TRANSFORMER);
-        return Iterators.asEnumeration(m2);
-    }
-
-    private static class GroupTransformer implements Function<Principal, Principal> {
-
-        @Override
-        public Principal apply(Principal input) {
-            if (input instanceof Group) {
-                return new GroupPrincipalWrapper((Group) input);
-            } else {
-                return input;
-            }
-        }
     }
 }

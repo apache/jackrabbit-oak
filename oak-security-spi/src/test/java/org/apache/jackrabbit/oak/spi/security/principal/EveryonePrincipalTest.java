@@ -21,6 +21,7 @@ import java.util.Enumeration;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -32,7 +33,7 @@ import static org.junit.Assert.assertTrue;
 
 public class EveryonePrincipalTest  {
 
-    private final Principal everyone = EveryonePrincipal.getInstance();
+    private final EveryonePrincipal everyone = EveryonePrincipal.getInstance();
 
     @Test
     public void testGetName() {
@@ -41,12 +42,12 @@ public class EveryonePrincipalTest  {
 
     @Test
     public void testIsMember() {
-        assertTrue(EveryonePrincipal.getInstance().isMember(new PrincipalImpl("test")));
+        assertTrue(everyone.isMember(new PrincipalImpl("test")));
     }
 
     @Test
     public void testIsMemberSelf() {
-        assertFalse(EveryonePrincipal.getInstance().isMember(everyone));
+        assertFalse(everyone.isMember(everyone));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -66,7 +67,7 @@ public class EveryonePrincipalTest  {
 
     @Test
     public void testHashCode() {
-        assertTrue(everyone.hashCode() == EveryonePrincipal.getInstance().hashCode());
+        assertEquals(everyone.hashCode(), EveryonePrincipal.getInstance().hashCode());
     }
 
     @Test
@@ -76,13 +77,13 @@ public class EveryonePrincipalTest  {
                 return EveryonePrincipal.NAME;
             }
         };
-        assertFalse(everyone.equals(someotherEveryone));
+        assertNotEquals(everyone, someotherEveryone);
     }
 
     @Test
     public void testEqualsOtherJackrabbitPrincipal() {
         Principal someotherEveryone = new OtherEveryone();
-        assertFalse(everyone.equals(someotherEveryone));
+        assertNotEquals(everyone, someotherEveryone);
     }
 
     @Test
@@ -119,10 +120,11 @@ public class EveryonePrincipalTest  {
     private class OtherEveryoneGroup extends OtherEveryone implements GroupPrincipal {
 
         @Override
-        public boolean isMember(Principal principal) {
+        public boolean isMember(@NotNull Principal principal) {
             return true;
         }
 
+        @NotNull
         @Override
         public Enumeration<? extends Principal> members() {
             throw new UnsupportedOperationException();

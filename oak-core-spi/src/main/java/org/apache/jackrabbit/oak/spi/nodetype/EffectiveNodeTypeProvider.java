@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.nodetype;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -36,11 +39,37 @@ public interface EffectiveNodeTypeProvider {
      * type or mixin type, or a subtype thereof respecting the effective node
      * type of the {@code tree}. Returns {@code false} otherwise.
      *
+     * Note: caution must be taken while calling this api because it doesn't
+     * offer the same strict guarantees as the {@code Node#isNodeType(String)}
+     * method in the case where the session doesn't have access to the
+     * {@code jcr:mixinTypes} property.
+     *
      * @param tree The tree to be tested.
      * @param nodeTypeName The internal oak name of the node type to be tested.
      * @return true if the specified node is of the given node type.
      */
-    boolean isNodeType(Tree tree, String nodeTypeName);
+    boolean isNodeType(@NotNull Tree tree, @NotNull String nodeTypeName);
+
+    /**
+     * Returns {@code true} if {@code typeName} is of the specified primary node
+     * type or mixin type, or a subtype thereof. Returns {@code false} otherwise.
+     *
+     * @param primaryTypeName  the internal oak name of the node to test
+     * @param mixinTypes the internal oak names of the node to test.
+     * @param nodeTypeName The internal oak name of the node type to be tested.
+     * @return {@code true} if the specified node type is of the given node type.
+     * @throws NoSuchNodeTypeException If the specified node type name doesn't
+     * refer to an existing node type.
+     * @throws RepositoryException If the given node type name is invalid or if
+     * some other error occurs.
+     * @deprecated use {@link #isNodeType(String, Iterable, String)} instead
+     */
+    @Deprecated
+    default boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterator<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException {
+        List<String> mixins = new ArrayList<>();
+        mixinTypes.forEachRemaining(mixins::add);
+        return isNodeType(primaryTypeName, mixins, nodeTypeName);
+    }
 
     /**
      * Returns {@code true} if {@code typeName} is of the specified primary node
@@ -55,7 +84,7 @@ public interface EffectiveNodeTypeProvider {
      * @throws RepositoryException If the given node type name is invalid or if
      * some other error occurs.
      */
-    boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterator<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
+    boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterable<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
 
     /**
      * Returns {@code true} if {@code typeName} is of the specified primary node
@@ -65,7 +94,7 @@ public interface EffectiveNodeTypeProvider {
      * @param superName The internal oak name of the super type to be tested for.
      * @return {@code true} if the specified node type is of the given node type.
      */
-    boolean isNodeType(String typeName, String superName);
+    boolean isNodeType(@NotNull String typeName, @NotNull String superName);
 
     /**
      * Calculates and returns the effective node types of the given node.
@@ -77,7 +106,8 @@ public interface EffectiveNodeTypeProvider {
      * @throws RepositoryException if the type information can not be accessed
      * @see <a href="http://www.jcp.org/en/jsr/detail?id=283">JCR 2.0 Specification, Section 3.7.6.5</a>
      */
-    EffectiveNodeType getEffectiveNodeType(Node targetNode) throws RepositoryException;
+    @NotNull
+    EffectiveNodeType getEffectiveNodeType(@NotNull Node targetNode) throws RepositoryException;
 
     /**
      * Calculates and returns the effective node types of the given tree.
@@ -89,5 +119,6 @@ public interface EffectiveNodeTypeProvider {
      * @throws RepositoryException if the type information can not be accessed,
      * @see <a href="http://www.jcp.org/en/jsr/detail?id=283">JCR 2.0 Specification, Section 3.7.6.5</a>
      */
-    EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException;
+    @NotNull
+    EffectiveNodeType getEffectiveNodeType(@NotNull Tree tree) throws RepositoryException;
 }

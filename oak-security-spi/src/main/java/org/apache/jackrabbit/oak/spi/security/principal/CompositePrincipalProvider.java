@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -90,12 +89,6 @@ public class CompositePrincipalProvider implements PrincipalProvider {
 
     @NotNull
     @Override
-    public Set<Group> getGroupMembership(@NotNull Principal principal) {
-        return Collections.emptySet();
-    }
-
-    @NotNull
-    @Override
     public Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
         Set<Principal> groups = new HashSet<>();
         for (PrincipalProvider provider : providers) {
@@ -135,11 +128,13 @@ public class CompositePrincipalProvider implements PrincipalProvider {
         return findPrincipals(null, searchType);
     }
 
+    @NotNull
+    @Override
     public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, boolean fullText, int searchType,
             long offset, long limit) {
 
         List<Iterator<? extends Principal>> all = providers.stream()
-                .map((p) -> p.findPrincipals(nameHint, fullText, searchType, 0, limit)).collect(Collectors.toList());
+                .map((p) -> p.findPrincipals(nameHint, fullText, searchType, 0, limit + offset)).collect(Collectors.toList());
         Iterator<? extends Principal> principals = Iterators.mergeSorted(all, Comparator.comparing(Principal::getName));
 
         Spliterator<? extends Principal> spliterator = Spliterators.spliteratorUnknownSize(principals, 0);

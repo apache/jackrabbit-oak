@@ -41,9 +41,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public abstract class MembershipBaseTest extends AbstractSecurityTest implements UserConstants {
 
@@ -55,8 +55,8 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
     UserManagerImpl userMgr;
     MembershipProvider mp;
 
-    private Set<String> testUsers = new HashSet<String>();
-    private Set<String> testGroups = new HashSet<String>();
+    private Set<String> testUsers = new HashSet<>();
+    private Set<String> testGroups = new HashSet<>();
 
     @Before
     public void before() throws Exception {
@@ -104,7 +104,7 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
 
     @NotNull
     List<String> createMembers(@NotNull Group g, int cnt) throws Exception {
-        List<String> memberPaths = new ArrayList();
+        List<String> memberPaths = new ArrayList<>();
         for (int i = 0; i <= cnt; i++) {
             User u = createUser();
             Group gr = createGroup();
@@ -141,12 +141,12 @@ public abstract class MembershipBaseTest extends AbstractSecurityTest implements
     }
 
     @NotNull
-    Tree getTree(@NotNull String path) throws Exception {
+    Tree getTree(@NotNull String path) {
         return root.getTree(path);
     }
 
     static void assertMembers(Group grp, Set<String> ms) throws RepositoryException {
-        Set<String> members = new HashSet<String>(ms);
+        Set<String> members = new HashSet<>(ms);
         Iterator<Authorizable> iter = grp.getMembers();
         while (iter.hasNext()) {
             Authorizable member = iter.next();

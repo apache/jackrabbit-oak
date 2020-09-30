@@ -20,6 +20,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -28,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
@@ -71,8 +71,9 @@ public class CugUtilTest extends AbstractCugTest {
             assertFalse(CugUtil.hasCug(root.getTree(path)));
         }
 
-        new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
-        assertTrue(CugUtil.hasCug(root.getTree(SUPPORTED_PATH2)));
+        Tree t = root.getTree(SUPPORTED_PATH2);
+        TreeUtil.addChild(t, REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertTrue(CugUtil.hasCug(t));
     }
 
     @Test
@@ -85,7 +86,7 @@ public class CugUtilTest extends AbstractCugTest {
             assertFalse(CugUtil.hasCug(getNodeState(root.getTree(path))));
         }
 
-        new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(root.getTree(SUPPORTED_PATH2), REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertTrue(CugUtil.hasCug(getNodeState(root.getTree(SUPPORTED_PATH2))));
     }
 
@@ -98,7 +99,7 @@ public class CugUtilTest extends AbstractCugTest {
             assertFalse(CugUtil.hasCug(getNodeState(root.getTree(path)).builder()));
         }
 
-        new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(root.getTree(SUPPORTED_PATH2), REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertTrue(CugUtil.hasCug(getNodeState(root.getTree(SUPPORTED_PATH2)).builder()));
     }
 
@@ -110,7 +111,7 @@ public class CugUtilTest extends AbstractCugTest {
             assertNull(CugUtil.getCug(root.getTree(path)));
         }
 
-        new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(root.getTree(SUPPORTED_PATH2), REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertNull(CugUtil.getCug(root.getTree(SUPPORTED_PATH2)));
     }
 
@@ -119,7 +120,7 @@ public class CugUtilTest extends AbstractCugTest {
         assertFalse(CugUtil.definesCug(root.getTree(PathUtils.concat(INVALID_PATH, REP_CUG_POLICY))));
         assertTrue(CugUtil.definesCug(root.getTree(PathUtils.concat(SUPPORTED_PATH, REP_CUG_POLICY))));
 
-        Tree invalid = new NodeUtil(root.getTree(SUPPORTED_PATH2)).addChild(REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED).getTree();
+        Tree invalid = TreeUtil.addChild(root.getTree(SUPPORTED_PATH2), REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         assertFalse(CugUtil.definesCug(invalid));
     }
 

@@ -19,9 +19,18 @@
 
 package org.apache.jackrabbit.oak.jcr.binary.fixtures.datastore;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Properties;
 import java.util.UUID;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
+import com.amazonaws.services.s3.model.BucketAccelerateStatus;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.SetBucketAccelerateConfigurationRequest;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.blob.cloud.s3.S3Backend;
@@ -34,14 +43,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.BucketAccelerateConfiguration;
-import com.amazonaws.services.s3.model.BucketAccelerateStatus;
-import com.amazonaws.services.s3.model.CreateBucketRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.SetBucketAccelerateConfigurationRequest;
 
 /**
  * Fixture for S3DataStore based on an aws.properties config file. It creates
@@ -100,6 +101,7 @@ public class S3DataStoreFixture implements DataStoreFixture {
         log.info("Creating S3 test bucket {}", bucketName);
         CreateBucketRequest createBucket = new CreateBucketRequest(bucketName);
         s3Client.createBucket(createBucket);
+        assertTrue("Failed to create test bucket [" + bucketName + "]", Utils.waitForBucket(s3Client, bucketName));
 
         log.info("Enabling S3 acceleration for bucket {}", bucketName);
         s3Client.setBucketAccelerateConfiguration(
@@ -133,6 +135,8 @@ public class S3DataStoreFixture implements DataStoreFixture {
                 dataStore.close();
             } catch (DataStoreException e) {
                 log.warn("Issue while disposing DataStore", e);
+            } catch (IllegalStateException e) {
+                log.warn("IllegalStateException trying to close S3 connection", e);
             }
 
             S3DataStore s3DataStore = (S3DataStore) dataStore;

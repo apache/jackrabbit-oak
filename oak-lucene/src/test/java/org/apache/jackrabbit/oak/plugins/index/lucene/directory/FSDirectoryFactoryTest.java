@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.store.Directory;
@@ -44,7 +44,7 @@ public class FSDirectoryFactoryTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
     private NodeState root = INITIAL_CONTENT;
-    private NodeBuilder idx = new IndexDefinitionBuilder().build().builder();
+    private NodeBuilder idx = new LuceneIndexDefinitionBuilder().build().builder();
 
     @Test
     public void singleIndex() throws Exception{

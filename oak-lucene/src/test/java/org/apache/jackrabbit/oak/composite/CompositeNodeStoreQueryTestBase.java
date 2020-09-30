@@ -31,14 +31,15 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.jcr.Repository;
 import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
@@ -52,9 +53,11 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
@@ -102,8 +105,8 @@ import com.google.common.collect.Lists;
 @RunWith(Parameterized.class)
 public class CompositeNodeStoreQueryTestBase {
 
-    private final NodeStoreKind nodeStoreRoot;
-    private final NodeStoreKind mounts;
+    protected final NodeStoreKind nodeStoreRoot;
+    protected final NodeStoreKind mounts;
 
     private final List<NodeStoreRegistration> registrations = newArrayList();
 
@@ -135,13 +138,14 @@ public class CompositeNodeStoreQueryTestBase {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
-    @Parameters(name="Root: {0}, Mounts: {1}")
+    @Parameters(name = "Root: {0}, Mounts: {1}")
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-            { NodeStoreKind.MEMORY, NodeStoreKind.MEMORY },
-            { NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
-//            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
-//            { NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT}
+        return Arrays.asList(new Object[][]{
+                {NodeStoreKind.MEMORY, NodeStoreKind.MEMORY},
+                {NodeStoreKind.SEGMENT, NodeStoreKind.SEGMENT},
+                {NodeStoreKind.DOCUMENT_H2, NodeStoreKind.DOCUMENT_H2},
+                {NodeStoreKind.DOCUMENT_H2, NodeStoreKind.SEGMENT},
+                {NodeStoreKind.DOCUMENT_MEMORY, NodeStoreKind.DOCUMENT_MEMORY}
         });
     }
 
@@ -265,6 +269,52 @@ public class CompositeNodeStoreQueryTestBase {
         return oak;
     }
 
+    protected ContentRepository createRepository(NodeStore store, MountInfoProvider mip) {
+        return getOakRepo(store, mip).createContentRepository();
+    }
+
+    protected Repository createJCRRepository(NodeStore store, MountInfoProvider mip) {
+        return new Jcr(getOakRepo(store, mip)).createRepository();
+    }
+
+    Oak getOakRepo(NodeStore store, MountInfoProvider mip) {
+
+        try {
+            indexCopier = new IndexCopier(executorService, temporaryFolder.getRoot());
+        } catch (IOException e) {
+            throw new RuntimeException();
+        }
+        DefaultIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, indexCopier);
+        indexTracker = new IndexTracker(indexReaderFactory);
+
+        LuceneIndexProvider luceneIndexProvider =
+                new LuceneIndexProvider(indexTracker);
+        LuceneIndexEditorProvider luceneIndexEditor;
+
+        if (mip == null ){
+            luceneIndexEditor = new LuceneIndexEditorProvider();
+            return new Oak(store).with(new InitialContent())
+                    .with(new OpenSecurityProvider())
+                    .with(luceneIndexEditor)
+                    .with((QueryIndexProvider) luceneIndexProvider)
+                    .with((Observer) luceneIndexProvider);
+        } else {
+            luceneIndexEditor = new LuceneIndexEditorProvider(indexCopier, indexTracker, null, null, mip);
+            return new Oak(store).with(new InitialContent())
+                    .with(new OpenSecurityProvider())
+                    .with(new PropertyIndexEditorProvider().with(mip))
+                    .with(new NodeCounterEditorProvider().with(mip))
+                    .with(new PropertyIndexProvider().with(mip))
+                    .with(luceneIndexEditor)
+                    .with((QueryIndexProvider) luceneIndexProvider)
+                    .with((Observer) luceneIndexProvider)
+                    .with(new NodeTypeIndexProvider().with(mip))
+                    .with(new ReferenceEditorProvider().with(mip))
+                    .with(new ReferenceIndexProvider().with(mip));
+        }
+
+    }
+
     protected List<String> executeQuery(String query, String language) {
         boolean pathsOnly = false;
         if (language.equals("xpath")) {
@@ -358,13 +408,13 @@ public class CompositeNodeStoreQueryTestBase {
     }
 
     @After
-    public void closeRepositories() throws Exception {
+    public final void baseTearDown() throws Exception {
         for ( NodeStoreRegistration reg : registrations ) {
             reg.close();
         }
     }
 
-    static enum NodeStoreKind {
+    enum NodeStoreKind {
         MEMORY {
             @Override
             public NodeStoreRegistration create(String name) {
@@ -373,7 +423,7 @@ public class CompositeNodeStoreQueryTestBase {
                     private MemoryNodeStore instance;
 
                     @Override
-                    public NodeStore get() {
+                    public NodeStore get(TemporaryFolder temporaryFolder) {
 
                         if (instance != null) {
                             throw new IllegalStateException("instance already created");
@@ -406,18 +456,18 @@ public class CompositeNodeStoreQueryTestBase {
                     private String blobStorePath;
 
                     @Override
-                    public NodeStore get() throws Exception {
+                    public NodeStore get(TemporaryFolder temporaryFolder) throws Exception {
 
                         if (instance != null) {
                             throw new IllegalStateException("instance already created");
                         }
 
-                        // TODO - don't use Unix directory separators
                         String directoryName = name != null ? "segment-" + name : "segment";
-                        storePath = new File("target/classes/" + directoryName);
+                        storePath = temporaryFolder.newFolder(directoryName);
 
-                        String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
-                        blobStorePath = "target/classes/" + blobStoreDirectoryName;
+                        //String blobStoreDirectoryName = name != null ? "blob-" + name : "blob";
+                        String blobStoreDirectoryName = "blob" ;
+                        blobStorePath = temporaryFolder.getRoot().getAbsolutePath() + blobStoreDirectoryName;
 
                         BlobStore blobStore = new FileBlobStore(blobStorePath);
 
@@ -438,27 +488,28 @@ public class CompositeNodeStoreQueryTestBase {
             }
         }, DOCUMENT_H2 {
 
-            // TODO - copied from DocumentRdbFixture
-
-            private DataSource ds;
-
             @Override
             public NodeStoreRegistration create(final String name) {
 
                 return new NodeStoreRegistration() {
 
                     private DocumentNodeStore instance;
+                    private String dbPath;
+
+                    // TODO - copied from DocumentRdbFixture
+
+                    private DataSource ds;
 
                     @Override
-                    public NodeStore get() throws Exception {
+                    public NodeStore get(TemporaryFolder temporaryFolder) throws Exception {
                         RDBOptions options = new RDBOptions().dropTablesOnClose(true);
-                        String jdbcUrl = "jdbc:h2:file:./target/classes/document";
+                        dbPath = temporaryFolder.getRoot().getAbsolutePath() + "/document";
                         if ( name != null ) {
-                            jdbcUrl += "-" + name;
+                            dbPath += "-" + name;
                         }
-                        ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, "sa", "");
+                        ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + dbPath, "sa", "");
 
-                        instance = new DocumentMK.Builder()
+                        instance = new RDBDocumentNodeStoreBuilder()
                                 .setRDBConnection(ds, options).build();
                         instance.setMaxBackOffMillis(0);
 
@@ -472,8 +523,33 @@ public class CompositeNodeStoreQueryTestBase {
                         if ( ds instanceof Closeable ) {
                             ((Closeable) ds).close();
                         }
+                        FileUtils.deleteQuietly(new File(dbPath));
                     }
 
+                };
+
+            }
+        }, DOCUMENT_MEMORY {
+            @Override
+            public NodeStoreRegistration create(final String name) {
+
+                return new NodeStoreRegistration() {
+
+                    private DocumentNodeStore instance;
+
+                    @Override
+                    public NodeStore get(TemporaryFolder temporaryFolder) throws Exception {
+                        DocumentNodeStoreBuilder<?> documentNodeStoreBuilder = DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder();
+
+                        instance = documentNodeStoreBuilder.build();
+
+                        return instance;
+                    }
+
+                    @Override
+                    public void close() {
+                        instance.dispose();
+                    }
                 };
 
             }
@@ -487,15 +563,16 @@ public class CompositeNodeStoreQueryTestBase {
     }
 
     private interface NodeStoreRegistration {
-        NodeStore get() throws Exception;
+        NodeStore get(TemporaryFolder temporaryFolder) throws Exception;
 
         void close() throws Exception;
     }
 
-    private NodeStore register(NodeStoreRegistration reg) throws Exception {
+    protected NodeStore register(NodeStoreRegistration reg) throws Exception {
         registrations.add(reg);
 
-        return reg.get();
+        return reg.get(temporaryFolder);
     }
+
 
 }

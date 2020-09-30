@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.spi.persistence;
 
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

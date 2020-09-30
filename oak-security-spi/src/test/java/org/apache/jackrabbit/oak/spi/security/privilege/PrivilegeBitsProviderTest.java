@@ -49,7 +49,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
 
     private static final String KNOWN_PRIV_NAME = "prefix:known";
 
-    private final PropertyState ps = PropertyStates.createProperty(REP_BITS, Long.valueOf(5000), Type.LONG);
+    private final PropertyState ps = PropertyStates.createProperty(REP_BITS, 5000L, Type.LONG);
     private final PrivilegeBits bits = PrivilegeBits.getInstance(ps);
 
     private Tree privTree;
@@ -283,7 +283,7 @@ public class PrivilegeBitsProviderTest implements PrivilegeConstants {
         when(anotherPriv.getName()).thenReturn("name2");
         when(anotherPriv.hasProperty(REP_AGGREGATES)).thenReturn(true);
         when(anotherPriv.getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(KNOWN_PRIV_NAME), Type.NAMES));
-        PropertyState bits2 = PropertyStates.createProperty(REP_BITS, Long.valueOf(7500));
+        PropertyState bits2 = PropertyStates.createProperty(REP_BITS, 7500L);
         when(anotherPriv.getProperty(REP_BITS)).thenReturn(bits2);
 
         when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree, anotherPriv));

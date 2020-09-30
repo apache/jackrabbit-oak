@@ -21,7 +21,6 @@ import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
-import org.apache.jackrabbit.oak.plugins.index.lucene.score.ScorerProviderFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -40,8 +39,6 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     protected volatile QueryIndex.NodeAggregator aggregator = null;
 
-    ScorerProviderFactory scorerFactory;
-
     IndexAugmentorFactory augmentorFactory;
 
     public LuceneIndexProvider() {
@@ -53,12 +50,11 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     }
 
     public LuceneIndexProvider(IndexTracker tracker) {
-        this(tracker, ScorerProviderFactory.DEFAULT, null);
+        this(tracker, null);
     }
 
-    public LuceneIndexProvider(IndexTracker tracker, ScorerProviderFactory scorerFactory, IndexAugmentorFactory augmentorFactory) {
+    public LuceneIndexProvider(IndexTracker tracker, IndexAugmentorFactory augmentorFactory) {
         this.tracker = tracker;
-        this.scorerFactory = scorerFactory;
         this.augmentorFactory = augmentorFactory;
     }
 
@@ -77,7 +73,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     @Override @NotNull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex> of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
+        return ImmutableList.of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
     }
 
     protected LuceneIndex newLuceneIndex() {
@@ -85,7 +81,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     }
 
     protected LucenePropertyIndex newLucenePropertyIndex() {
-        return new LucenePropertyIndex(tracker, scorerFactory, augmentorFactory);
+        return new LucenePropertyIndex(tracker, augmentorFactory);
     }
 
     /**

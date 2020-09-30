@@ -35,14 +35,12 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.writer.DefaultIndexWriterF
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriterConfig;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.IndexReader;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -73,7 +71,7 @@ public class DefaultIndexReaderFactoryTest {
     @Test
     public void indexDir() throws Exception{
         LuceneIndexWriterFactory factory = newDirectoryFactory();
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
         writer.close(0);
@@ -90,12 +88,7 @@ public class DefaultIndexReaderFactoryTest {
         assertEquals(1, reader.getReader().numDocs());
 
         final AtomicBoolean closed = new AtomicBoolean();
-        reader.getReader().addReaderClosedListener(new IndexReader.ReaderClosedListener() {
-            @Override
-            public void onClose(IndexReader reader) {
-                closed.set(true);
-            }
-        });
+        reader.getReader().addReaderClosedListener(reader1 -> closed.set(true));
 
         reader.close();
 
@@ -106,12 +99,12 @@ public class DefaultIndexReaderFactoryTest {
     public void indexDirWithBlobStore() throws Exception {
         /* Register a blob store */
         CachingFileDataStore ds = DataStoreUtils
-            .createCachingFDS(folder.newFolder().getAbsolutePath(),
-                folder.newFolder().getAbsolutePath());
+                .createCachingFDS(folder.newFolder().getAbsolutePath(),
+                        folder.newFolder().getAbsolutePath());
 
         DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, new DataStoreBlobStore(ds));
         LuceneIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, writerConfig);
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
         writer.close(0);
@@ -128,12 +121,7 @@ public class DefaultIndexReaderFactoryTest {
         assertEquals(1, reader.getReader().numDocs());
 
         final AtomicBoolean closed = new AtomicBoolean();
-        reader.getReader().addReaderClosedListener(new IndexReader.ReaderClosedListener() {
-            @Override
-            public void onClose(IndexReader reader) {
-                closed.set(true);
-            }
-        });
+        reader.getReader().addReaderClosedListener(reader1 -> closed.set(true));
 
         reader.close();
 
@@ -145,7 +133,7 @@ public class DefaultIndexReaderFactoryTest {
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         enabledSuggestorForSomeProp();
         defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         Document doc = newDoc("/content/en");
         doc.add(new StringField(FieldNames.SUGGEST, "test", null));
@@ -163,7 +151,7 @@ public class DefaultIndexReaderFactoryTest {
     @Test
     public void multipleReaders() throws Exception{
         LuceneIndexWriterFactory factory = newDirectoryFactory();
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         writer.updateDocument("/content/en", newDoc("/content/en"));
         writer.updateDocument("/libs/config", newDoc("/libs/config"));
@@ -179,7 +167,7 @@ public class DefaultIndexReaderFactoryTest {
         LuceneIndexWriterFactory factory = newDirectoryFactory();
         enabledSuggestorForSomeProp();
         defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-        LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+        LuceneIndexWriter writer = factory.newInstance(defn, builder, null, true);
 
         //Suggester field is only present for document in default mount
         Document doc = newDoc("/content/en");

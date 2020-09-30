@@ -38,7 +38,7 @@ public interface GCMonitor {
     void info(String message, Object... arguments);
 
     /**
-     * Warning about a condition that might have advert effects on the overall
+     * Warning about a condition that might have adverse effects on the overall
      * garbage collection process but does not prevent the process from running.
      * @param message  The message with {} place holders for the {@code arguments}
      * @param arguments
@@ -70,7 +70,7 @@ public interface GCMonitor {
      * @param currentSize    number of bytes after garbage collection
      */
     void cleaned(long reclaimedSize, long currentSize);
-    
+
     /**
      * The garbage collection entered a new phase e.g. idle, estimation, etc.
      * @param status short summary of the GC phase
@@ -78,10 +78,10 @@ public interface GCMonitor {
     void updateStatus(String status);
 
     class Empty implements GCMonitor {
-        @Override public void info(String message, Object[] arguments) { }
-        @Override public void warn(String message, Object[] arguments) { }
+        @Override public void info(String message, Object... arguments) { }
+        @Override public void warn(String message, Object... arguments) { }
         @Override public void error(String message, Exception e) { }
-        @Override public void skipped(String reason, Object[] arguments) { }
+        @Override public void skipped(String reason, Object... arguments) { }
         @Override public void compacted() { }
         @Override public void cleaned(long reclaimedSize, long currentSize) { }
         @Override public void updateStatus(String status) { }

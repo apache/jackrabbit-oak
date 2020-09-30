@@ -106,12 +106,9 @@ public class CugOakTest extends CugTest {
             int nodeCnt = 0;
             int propertyCnt = 0;
             int noAccess = 0;
-            int size = allPaths.size();
             long start = System.currentTimeMillis();
             for (int i = 0; i < itemsToRead; i++) {
-                double rand = size * Math.random();
-                int index = (int) Math.floor(rand);
-                String path = allPaths.get(index);
+                String path = getRandom(allPaths);
                 TreeLocation treeLocation = TreeLocation.create(root, path);
                 if (treeLocation.exists()) {
                     PropertyState ps = treeLocation.getProperty();

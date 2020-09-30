@@ -199,10 +199,27 @@ public class PrincipalPermissionEntriesTest {
         assertEquals(2, ppe.getSize());
     }
 
-    private static final long inspectExpectedSize(@NotNull PrincipalPermissionEntries ppe) throws Exception {
+    @Test
+    public void testEmptyPathsWithMaxSize() throws Exception {
+        PrincipalPermissionEntries ppe = new PrincipalPermissionEntries();
+        assertEquals(0, inspectEmptyPathSize(ppe));
+        for (int i = 0; i<1010; i++) {
+            ppe.rememberNotAccessControlled("/path" +i);
+        }
+        assertEquals(1000, inspectEmptyPathSize(ppe));
+    }
+
+    private static long inspectExpectedSize(@NotNull PrincipalPermissionEntries ppe) throws Exception {
         Field f = PrincipalPermissionEntries.class.getDeclaredField("expectedSize");
         f.setAccessible(true);
 
         return (long) f.get(ppe);
+    }
+
+    private static int inspectEmptyPathSize(@NotNull PrincipalPermissionEntries ppe) throws Exception {
+        Field f = PrincipalPermissionEntries.class.getDeclaredField("emptyPaths");
+        f.setAccessible(true);
+
+        return ((Map)f.get(ppe)).size();
     }
 }

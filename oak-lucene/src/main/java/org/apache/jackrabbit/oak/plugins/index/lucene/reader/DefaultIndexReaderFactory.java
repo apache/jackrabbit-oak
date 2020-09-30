@@ -126,4 +126,9 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
         }
         return null;
     }
+
+    @Override
+    public MountInfoProvider getMountInfoProvider() {
+        return mountInfoProvider;
+    }
 }

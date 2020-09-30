@@ -17,15 +17,14 @@
 package org.apache.jackrabbit.oak.security.user.action;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class GroupActionBestEffortTest extends GroupActionTest {
 
@@ -33,18 +32,17 @@ public class GroupActionBestEffortTest extends GroupActionTest {
     public void testMembersAddedNonExisting() throws Exception {
         Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
-        testGroup.addMembers(nonExisting.toArray(new String[nonExisting.size()]));
-        assertTrue(Iterables.elementsEqual(nonExisting, groupAction.memberIds));
-        assertFalse(groupAction.failedIds.iterator().hasNext());
+        testGroup.addMembers(nonExisting.toArray(new String[0]));
+
+        verify(groupAction, times(1)).onMembersAdded(testGroup, nonExisting, Collections.emptySet(), root, getNamePathMapper());
     }
 
     @Test
     public void testMembersRemovedNonExisting() throws Exception {
         Set<String> nonExisting = ImmutableSet.of("blinder", "passagier");
 
-        testGroup.removeMembers(nonExisting.toArray(new String[nonExisting.size()]));
-        assertFalse(groupAction.memberIds.iterator().hasNext());
-        assertEquals(nonExisting, groupAction.failedIds);
+        testGroup.removeMembers(nonExisting.toArray(new String[0]));
+        verify(groupAction, times(1)).onMembersRemoved(testGroup, Collections.emptySet(), nonExisting, root, getNamePathMapper());
     }
 
     @Override

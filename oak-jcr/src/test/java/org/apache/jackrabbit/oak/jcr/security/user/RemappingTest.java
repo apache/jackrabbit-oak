@@ -32,6 +32,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 /**
@@ -147,7 +148,7 @@ public class RemappingTest extends AbstractUserTest {
     @Test
     public void testQuery() throws Exception {
         Iterator<Authorizable> result = getUserManager(session).findAuthorizables(new Query() {
-            public <T> void build(QueryBuilder<T> builder) {
+            public <T> void build(@NotNull QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                             eq("@my:property", vf.createValue("value")));
             }

@@ -18,13 +18,14 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import static com.google.common.base.StandardSystemProperty.USER_HOME;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -34,7 +35,6 @@ import java.util.Properties;
 import javax.net.ssl.HttpsURLConnection;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
@@ -42,10 +42,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.StandardSystemProperty.USER_HOME;
 
 /**
  * Extension to {@link DataStoreUtils} to enable Azure extensions for cleaning and initialization.
@@ -124,6 +126,48 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         ds.init(homeDir);
 
         return ds;
+    }
+
+    public static <T extends DataStore> T setupDirectAccessDataStore(
+            @NotNull final TemporaryFolder homeDir,
+            int directDownloadExpirySeconds,
+            int directUploadExpirySeconds)
+            throws Exception {
+        return setupDirectAccessDataStore(homeDir, directDownloadExpirySeconds, directUploadExpirySeconds, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends DataStore> T setupDirectAccessDataStore(
+            @NotNull final TemporaryFolder homeDir,
+            int directDownloadExpirySeconds,
+            int directUploadExpirySeconds,
+            @Nullable final Properties overrideProperties)
+            throws Exception {
+        assumeTrue(isAzureConfigured());
+        DataStore ds = (T) getAzureDataStore(getDirectAccessDataStoreProperties(overrideProperties), homeDir.newFolder().getAbsolutePath());
+        if (ds instanceof ConfigurableDataRecordAccessProvider) {
+            ((ConfigurableDataRecordAccessProvider) ds).setDirectDownloadURIExpirySeconds(directDownloadExpirySeconds);
+            ((ConfigurableDataRecordAccessProvider) ds).setDirectUploadURIExpirySeconds(directUploadExpirySeconds);
+        }
+        return (T) ds;
+    }
+
+    public static Properties getDirectAccessDataStoreProperties() {
+        return getDirectAccessDataStoreProperties(null);
+    }
+
+    public static Properties getDirectAccessDataStoreProperties(@Nullable final Properties overrideProperties) {
+        Properties mergedProperties = new Properties();
+        mergedProperties.putAll(getAzureConfig());
+        if (null != overrideProperties) {
+            mergedProperties.putAll(overrideProperties);
+        }
+
+        // set properties needed for direct access testing
+        if (null == mergedProperties.getProperty("cacheSize", null)) {
+            mergedProperties.put("cacheSize", "0");
+        }
+        return mergedProperties;
     }
 
     public static void deleteContainer(String containerName) throws Exception {

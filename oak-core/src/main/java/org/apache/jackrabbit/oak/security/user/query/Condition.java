@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -25,72 +27,94 @@ import javax.jcr.Value;
 
 interface Condition {
 
-    void accept(ConditionVisitor visitor) throws RepositoryException;
+    void accept(@NotNull ConditionVisitor visitor) throws RepositoryException;
 
     //-----------------------------------------------------< Node Condition >---
     class Node implements Condition {
 
         private final String pattern;
 
-        public Node(String pattern) {
+        public Node(@NotNull String pattern) {
             this.pattern = pattern;
         }
 
+        @NotNull
         public String getPattern() {
             return pattern;
         }
 
-        public void accept(ConditionVisitor visitor) {
+        public void accept(@NotNull ConditionVisitor visitor) {
             visitor.visit(this);
         }
     }
 
     //-------------------------------------------------< Property Condition >---
-    class Property implements Condition {
+    abstract class Property implements Condition {
 
         private final String relPath;
         private final RelationOp op;
-        private final Value value;
-        private final String pattern;
 
-        public Property(String relPath, RelationOp op, Value value) {
+        private Property(@NotNull String relPath, @NotNull RelationOp op) {
             this.relPath = relPath;
             this.op = op;
-            this.value = value;
-            pattern = null;
         }
 
-        public Property(String relPath, RelationOp op, String pattern) {
-            this.relPath = relPath;
-            this.op = op;
-            value = null;
-            this.pattern = pattern;
-        }
-
-        public Property(String relPath, RelationOp op) {
-            this.relPath = relPath;
-            this.op = op;
-            value = null;
-            pattern = null;
-        }
-
+        @NotNull
         public String getRelPath() {
             return relPath;
         }
 
+        @NotNull
         public RelationOp getOp() {
             return op;
         }
+    }
 
+    class PropertyValue extends Property {
+
+        private final Value value;
+
+        PropertyValue(@NotNull String relPath, @NotNull RelationOp op, @NotNull Value value) {
+            super(relPath, op);
+            this.value = value;
+        }
+
+        @NotNull
         public Value getValue() {
             return value;
         }
 
+        public void accept(@NotNull ConditionVisitor visitor) throws RepositoryException {
+            visitor.visit(this);
+        }
+    }
+
+    class PropertyLike extends Property {
+
+        private final String pattern;
+
+        PropertyLike(@NotNull String relPath, @NotNull String pattern) {
+            super(relPath, RelationOp.LIKE);
+            this.pattern = pattern;
+        }
+
+        @NotNull
         public String getPattern() {
             return pattern;
         }
 
-        public void accept(ConditionVisitor visitor) throws RepositoryException {
+        public void accept(@NotNull ConditionVisitor visitor) throws RepositoryException {
+            visitor.visit(this);
+        }
+    }
+
+    class PropertyExists extends Property {
+
+        PropertyExists(@NotNull String relPath) {
+            super(relPath, RelationOp.EX);
+        }
+
+        public void accept(@NotNull ConditionVisitor visitor) throws RepositoryException {
             visitor.visit(this);
         }
     }
@@ -101,20 +125,22 @@ interface Condition {
         private final String relPath;
         private final String searchExpr;
 
-        public Contains(String relPath, String searchExpr) {
+        public Contains(@NotNull String relPath, @NotNull String searchExpr) {
             this.relPath = relPath;
             this.searchExpr = searchExpr;
         }
 
+        @NotNull
         public String getRelPath() {
             return relPath;
         }
 
+        @NotNull
         public String getSearchExpr() {
             return searchExpr;
         }
 
-        public void accept(ConditionVisitor visitor) {
+        public void accept(@NotNull ConditionVisitor visitor) {
             visitor.visit(this);
         }
     }
@@ -124,15 +150,16 @@ interface Condition {
 
         private final String name;
 
-        public Impersonation(String name) {
+        public Impersonation(@NotNull String name) {
             this.name = name;
         }
 
+        @NotNull
         public String getName() {
             return name;
         }
 
-        public void accept(ConditionVisitor visitor) {
+        public void accept(@NotNull ConditionVisitor visitor) {
             visitor.visit(this);
         }
     }
@@ -142,15 +169,16 @@ interface Condition {
 
         private final Condition condition;
 
-        public Not(Condition condition) {
+        public Not(@NotNull Condition condition) {
             this.condition = condition;
         }
 
+        @NotNull
         public Condition getCondition() {
             return condition;
         }
 
-        public void accept(ConditionVisitor visitor) throws RepositoryException {
+        public void accept(@NotNull ConditionVisitor visitor) throws RepositoryException {
             visitor.visit(this);
         }
     }
@@ -160,11 +188,12 @@ interface Condition {
 
         private final List<Condition> conditions = new ArrayList<>();
 
-        Compound(Condition condition1, Condition condition2) {
+        Compound(@NotNull Condition condition1, @NotNull Condition condition2) {
             conditions.add(condition1);
             conditions.add(condition2);
         }
 
+        @NotNull
         public Iterator<Condition> iterator() {
             return conditions.iterator();
         }
@@ -173,11 +202,11 @@ interface Condition {
     //------------------------------------------------------< And Condition >---
     class And extends Compound {
 
-        public And(Condition condition1, Condition condition2) {
+        public And(@NotNull Condition condition1, @NotNull Condition condition2) {
             super(condition1, condition2);
         }
 
-        public void accept(ConditionVisitor visitor) throws RepositoryException {
+        public void accept(@NotNull ConditionVisitor visitor) throws RepositoryException {
             visitor.visit(this);
         }
     }
@@ -185,11 +214,11 @@ interface Condition {
     //-------------------------------------------------------< Or Condition >---
     class Or extends Compound {
 
-        public Or(Condition condition1, Condition condition2) {
+        public Or(@NotNull Condition condition1, @NotNull Condition condition2) {
             super(condition1, condition2);
         }
 
-        public void accept(ConditionVisitor visitor) throws RepositoryException {
+        public void accept(@NotNull ConditionVisitor visitor) throws RepositoryException {
             visitor.visit(this);
         }
     }

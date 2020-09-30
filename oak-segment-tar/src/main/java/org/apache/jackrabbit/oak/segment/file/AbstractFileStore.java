@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.CachingSegmentReader;
 import org.apache.jackrabbit.oak.segment.RecordType;
 import org.apache.jackrabbit.oak.segment.Revisions;
@@ -52,8 +53,8 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarRecovery;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.jetbrains.annotations.NotNull;
@@ -128,6 +129,8 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
 
     protected final IOMonitor ioMonitor;
 
+    protected final RemoteStoreMonitor remoteStoreMonitor;
+
     AbstractFileStore(final FileStoreBuilder builder) {
         this.directory = builder.getDirectory();
         this.tracker = new SegmentTracker(new SegmentIdFactory() {
@@ -148,6 +151,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         this.memoryMapping = builder.getMemoryMapping();
         this.offHeapAccess = builder.getOffHeapAccess();
         this.ioMonitor = builder.getIOMonitor();
+        this.remoteStoreMonitor = builder.getRemoteStoreMonitor();
         this.segmentBufferMonitor = new SegmentBufferMonitor(builder.getStatsProvider());
     }
 

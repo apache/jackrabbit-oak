@@ -57,6 +57,7 @@ public class JcrUUIDTest extends AbstractOakCoreTest {
                 return root;
             }
 
+            @NotNull
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);

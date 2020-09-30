@@ -422,6 +422,13 @@ public class JournalTest extends AbstractJournalTest {
                             ready.countDown();
                             start.await();
                             recovery.recover(Lists.newArrayList(x1,z1), c2Id);
+                        } catch (DocumentStoreException e) {
+                            if (e.getMessage().matches("Update of root document to _lastRev .* failed. Detected concurrent update")) {
+                                // we have to accept this exception to happen
+                                end.countDown();
+                            } else {
+                                exceptions.add(e);
+                            }
                         } catch (Exception e) {
                             exceptions.add(e);
                         } finally {

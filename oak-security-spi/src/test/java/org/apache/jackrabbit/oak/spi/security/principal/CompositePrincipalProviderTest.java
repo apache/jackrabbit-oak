@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -37,9 +38,8 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
@@ -112,7 +112,7 @@ public class CompositePrincipalProviderTest {
     }
 
     @Test
-    public void getGroupMembership() {
+    public void testGetMembershipPrincipals() {
         for (Principal principal : testPrincipals()) {
             boolean atleastEveryone = cpp.getMembershipPrincipals(principal).contains(EveryonePrincipal.getInstance());
             assertTrue("All principals (except everyone) must be member of the everyone group. Violation: "+principal.getName(), atleastEveryone);
@@ -120,7 +120,7 @@ public class CompositePrincipalProviderTest {
     }
 
     @Test
-    public void getGroupMembershipUnknown() {
+    public void testGetMembershipPrincipalsUnknown() {
         assertTrue(cpp.getMembershipPrincipals(TestPrincipalProvider.UNKNOWN).isEmpty());
     }
 
@@ -228,41 +228,60 @@ public class CompositePrincipalProviderTest {
         int inputSize = 3;
         Random r = new Random(seed);
 
-        Comparator<Principal> comparator = Comparator.comparing(Principal::getName);
         List<String> expected = new ArrayList<>();
-        Collection<Iterator<Principal>> input = new ArrayList<>();
+        Collection<Collection<String>> input = new ArrayList<>();
         for (int i = 0; i < inputSize; i++) {
-            List<Principal> l = new ArrayList<>();
+            Set<String> l = new TreeSet<>();
             int size = r.nextInt(bound);
-            for (int s = 0; s < size; s++) {
+            while (size > 0) {
                 int v = r.nextInt(bound);
-                Principal p = new PrincipalImpl("p" + v);
-                expected.add(p.getName());
-                l.add(p);
+                String n = "p" + v;
+                if (l.add(n)) {
+                    expected.add(n);
+                    size--;
+                }
             }
-            Collections.sort(l, comparator);
-            input.add(l.iterator());
+            input.add(l);
         }
-        Principal pb = new PrincipalImpl("p" + bound);
-        expected.add(pb.getName());
-        input.add(Collections.singleton(pb).iterator());
-        input.add(Collections.<Principal>emptyIterator());
+        input.add(Collections.emptyList());
+        String pb = "p" + bound;
+        expected.add(pb);
+        input.add(Collections.singleton(pb));
 
         List<PrincipalProvider> in = new ArrayList<>();
-        for (Iterator<Principal> i : input) {
-            PrincipalProvider pp = mock(PrincipalProvider.class);
-            when(pp.findPrincipals(null, true, 1, 0, -1)).thenAnswer(new Answer<Iterator<Principal>>() {
-                @Override
-                public Iterator<Principal> answer(InvocationOnMock invocation) throws Throwable {
-                    return i;
-                }
-            });
-            in.add(pp);
+        for (Collection<String> i : input) {
+            TestPrincipalProvider t = new TestPrincipalProvider(i.toArray(new String[0]));
+            in.add(t);
         }
-
         PrincipalProvider cpp = CompositePrincipalProvider.of(in);
+
+        List<String> out = getNames(cpp.findPrincipals("p", true, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
         Collections.sort(expected);
-        List<String> out = getNames(cpp.findPrincipals(null, true, 1, 0, -1));
         assertEquals(expected, out);
+    }
+
+    @Test
+    public void testFindPrincipalsRange() {
+        TestPrincipalProvider t0 = new TestPrincipalProvider("p2", "p3", "p4");
+        TestPrincipalProvider t1 = new TestPrincipalProvider("p1");
+        PrincipalProvider cpp = CompositePrincipalProvider.of(Arrays.asList(t0, t1));
+        List<String> out = getNames(cpp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 3, 1));
+        assertArrayEquals(new String[] {"p4"}, out.toArray(new String[0]));
+    }
+
+    @Test
+    public void testFindWithOffsetLimit() {
+        Iterator principals = new TestPrincipalProvider("p1", "p2", "p3", "p4").getTestPrincipals().iterator();
+        PrincipalProvider pp = mock(PrincipalProvider.class);
+        // NOTE: CompositePrincipalProvider passes 0 offset to the aggregated provider!
+        when(pp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 0, 3)).thenReturn(principals);
+
+        PrincipalProvider cpp = CompositePrincipalProvider.of(ImmutableList.of(pp, EmptyPrincipalProvider.INSTANCE));
+
+        Iterator<? extends Principal> it = cpp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 2, 1);
+        assertTrue(it.hasNext());
+        Principal p = it.next();
+        assertEquals("p3", p.getName());
+        assertFalse(it.hasNext());
     }
 }

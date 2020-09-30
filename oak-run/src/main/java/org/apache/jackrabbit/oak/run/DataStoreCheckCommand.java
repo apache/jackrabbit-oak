@@ -69,7 +69,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator;
+import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
@@ -89,6 +89,10 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Command to check data store consistency and also optionally retrieve ids
  * and references.
+ *
+ * NOTE - OAK-7671 plans on deprecating this command to delegate internally to use
+ * @see org.apache.jackrabbit.oak.run.DataStoreCommand instead. So
+ * any new support around Datastore should be added to @see org.apache.jackrabbit.oak.run.DataStoreCommand
  */
 public class DataStoreCheckCommand implements Command {
     private static final String DELIM = ",";
@@ -117,9 +121,10 @@ public class DataStoreCheckCommand implements Command {
         String helpStr =
             "datastorecheck [--id] [--ref] [--consistency] [--store <path>|<mongo_uri>] "
                 + "[--s3ds <s3ds_config>|--fds <fds_config>|--azureblobds <azureblobds_config>|--nods]"
-                + " [--dump <path>] [--repoHome <repo_home>] [--track] [--verbose]";
+                + " [--dump <path>] [--repoHome <repo_home>] [--track] " +
+                    "[--verbose] [--verboseRootPath <verbose_root_path>]";
 
-        try (Closer closer = Closer.create()) {
+        try (Closer closer = Utils.createCloserWithShutdownHook()) {
             // Options for operations requested
             OptionSpecBuilder idOp = parser.accepts("id", "Get ids");
             OptionSpecBuilder refOp = parser.accepts("ref", "Get references");
@@ -141,6 +146,11 @@ public class DataStoreCheckCommand implements Command {
 
             // Optional argument to specify tracking
             OptionSpecBuilder verbose = parser.accepts("verbose", "Output backend formatted ids/paths");
+
+            // Optional argument to specify root path under which tracking if to be done. Defaults to "/" if not specified
+            ArgumentAcceptingOptionSpec verboseRootPath = parser.accepts("verboseRootPath",
+                    "Root path to output backend formatted ids/paths")
+                    .withRequiredArg().withValuesSeparatedBy(DELIM).ofType(String.class);
 
             OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
@@ -242,12 +252,19 @@ public class DataStoreCheckCommand implements Command {
             }
 
             if (options.has(refOp) || options.has(consistencyOp)) {
-                if (options.has(verbose) &&
+
+                // Find blob ids by traversal for verbose mode + Segment Store or if verboseRootPath option
+                // is present (find blob references under a specific root path.)
+                if ((options.has(verbose) &&
                     (nodeStore instanceof SegmentNodeStore ||
-                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) {
+                        nodeStore instanceof org.apache.jackrabbit.oak.segment.SegmentNodeStore)) ||
+                        options.has(verboseRootPath)) {
                     NodeTraverser traverser = new NodeTraverser(nodeStore, dsType);
                     closer.register(traverser);
-                    traverser.traverse();
+
+                    List<String> rootPathList = options.valuesOf(verboseRootPath);
+                    traverser.traverse((String[]) rootPathList.toArray(new String[rootPathList.size()]));
+
                     FileUtils.copyFile(traverser.references, register.createFile(refOp, dumpPath));
                 } else {
                     retrieveBlobReferences(blobStore, marker,
@@ -279,11 +296,8 @@ public class DataStoreCheckCommand implements Command {
             });
 
             // Read and write the converted ids
-            FileIOUtils.writeStrings(idIterator, longIdTemp, false, new Function<String, String>() {
-                @Nullable @Override public String apply(@Nullable String input) {
-                    return encodeId(input, dsType);
-                }
-            }, null, null);
+            FileIOUtils.writeStrings(idIterator, longIdTemp, false,
+                    (java.util.function.Function<String, String>) ((input) -> encodeId(input, dsType)), null, null);
             FileUtils.copyFile(longIdTemp, writeFile);
         } finally {
             if (idIterator != null) {
@@ -364,7 +378,7 @@ public class DataStoreCheckCommand implements Command {
         System.out.println("Starting consistency check");
         Stopwatch watch = createStarted();
 
-        FileLineDifferenceIterator iter = new FileLineDifferenceIterator(ids, refs, new Function<String, String>() {
+        FileLineDifferenceIterator iter = new FileLineDifferenceIterator(ids, refs, new java.util.function.Function<String, String>() {
             @Nullable
             @Override
             public String apply(@Nullable String input) {
@@ -389,7 +403,7 @@ public class DataStoreCheckCommand implements Command {
                 // If a delete file is present filter the tracked deleted ids
                 if (!files.isEmpty()) {
                     File delFile = files.iterator().next();
-                    FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(delFile, candTemp, new Function<String, String>() {
+                    FileLineDifferenceIterator filteringIter = new FileLineDifferenceIterator(delFile, candTemp, new java.util.function.Function<String, String>() {
                         @Nullable @Override public String apply(@Nullable String input) {
                             if (input != null) {
                                 return encodeId(decodeId(input.split(DELIM)[0]), dsType);
@@ -489,18 +503,30 @@ public class DataStoreCheckCommand implements Command {
             for (PropertyState p : state.getProperties()) {
                 String propPath = PathUtils.concat(path, p.getName());
                 try {
+                    String id ;
                     if (p.getType() == Type.BINARY) {
-                        count.incrementAndGet();
+                        id = p.getValue(Type.BINARY).getContentIdentity();
+                        // Ignore inline encoded binaries in document mk and null references in segment mk
+                        if (id == null || p.getValue(Type.BINARY).isInlined()) {
+                            continue;
+                        }
                         writeAsLine(writer,
-                            getLine(p.getValue(Type.BINARY).getContentIdentity(), propPath), false);
+                                getLine(id, propPath), false);
+                        count.incrementAndGet();
+
                     } else if (p.getType() == Type.BINARIES && p.count() > 0) {
                         Iterator<Blob> iterator = p.getValue(Type.BINARIES).iterator();
                         while (iterator.hasNext()) {
-                            count.incrementAndGet();
 
-                            String id = iterator.next().getContentIdentity();
+                            Blob blob = iterator.next();
+                            id = blob.getContentIdentity();
+                            // Ignore inline encoded binaries in document mk
+                            if (id == null || blob.isInlined()) {
+                                continue;
+                            }
                             writeAsLine(writer,
                                 getLine(id, propPath), false);
+                            count.incrementAndGet();
                         }
                     }
                 } catch (Exception e) {
@@ -520,7 +546,7 @@ public class DataStoreCheckCommand implements Command {
             }
         }
 
-        public void traverse() throws IOException {
+        public void traverse(String ... paths) throws IOException {
             BufferedWriter writer = null;
             final AtomicInteger count = new AtomicInteger();
             boolean threw = true;
@@ -529,7 +555,18 @@ public class DataStoreCheckCommand implements Command {
 
             try {
                 writer = Files.newWriter(references, Charsets.UTF_8);
-                traverseChildren(nodeStore.getRoot(), "/", writer, count);
+                if (paths.length == 0) {
+                    traverseChildren(nodeStore.getRoot(), "/", writer, count);
+                } else {
+                    for (String path: paths ) {
+                        Iterable<String> nodeList = PathUtils.elements(path);
+                        NodeState state = nodeStore.getRoot();
+                        for (String node: nodeList) {
+                            state = state.getChildNode(node);
+                        }
+                        traverseChildren(state, path, writer, count);
+                    }
+                }
 
                 writer.flush();
                 sort(references, idComparator);

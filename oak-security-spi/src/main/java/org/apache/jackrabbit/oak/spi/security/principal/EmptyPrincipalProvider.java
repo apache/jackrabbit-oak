@@ -17,10 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,12 +37,6 @@ public final class EmptyPrincipalProvider implements PrincipalProvider {
     @Override
     public Principal getPrincipal(@NotNull String principalName) {
         return null;
-    }
-
-    @NotNull
-    @Override
-    public Set<Group> getGroupMembership(@NotNull Principal principal) {
-        return Collections.emptySet();
     }
 
     @NotNull

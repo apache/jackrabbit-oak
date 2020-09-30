@@ -145,7 +145,7 @@ public class CompositeTokenConfigurationTest extends AbstractCompositeConfigurat
 
         @NotNull
         @Override
-        public TokenProvider getTokenProvider(Root root) {
+        public TokenProvider getTokenProvider(@NotNull Root root) {
             return Mockito.mock(TokenProvider.class);
         }
     }

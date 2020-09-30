@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
 import org.apache.jackrabbit.oak.spi.blob.stats.BlobStatsCollector;
@@ -99,6 +101,9 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
         //Check for BlobStore methods
         assertEquals(maxInlineSize, ds.getBlobLength(dr.getIdentifier().toString()));
         assertEquals(dr.getIdentifier().toString(), BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
+
+        BlobStoreBlob blob = new BlobStoreBlob(ds, dr.getIdentifier().toString());
+        assertTrue(blob.isInlined());
     }
 
     @Test
@@ -133,6 +138,9 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 //        assertTrue(ds.getInputStream(dr.getIdentifier().toString()) instanceof BufferedInputStream);
         assertEquals(actualSize, ds.getBlobLength(dr.getIdentifier().toString()));
         assertEquals(testDI.toString(), BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
+
+        BlobStoreBlob blob = new BlobStoreBlob(ds, dr.getIdentifier().toString());
+        assertFalse(blob.isInlined());
     }
 
     @Test
@@ -218,6 +226,18 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
 
         String id = ds.writeBlob(new ByteArrayInputStream(data));
         assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data), ds.getInputStream(id)));
+    }
+
+    @Test
+    public void testAddRepositoryId() throws DataStoreException {
+        String repoId = UUID.randomUUID().toString();
+        ((DataStoreBlobStore) store).setRepositoryId(repoId);
+        assertEquals(repoId, ((DataStoreBlobStore) store).getRepositoryId());
+        DataRecord metadataRecord = ((DataStoreBlobStore) store)
+            .getMetadataRecord(SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+
+        assertEquals(repoId, SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY
+            .getIdFromName(metadataRecord.getIdentifier().toString()));
     }
 
     @Override

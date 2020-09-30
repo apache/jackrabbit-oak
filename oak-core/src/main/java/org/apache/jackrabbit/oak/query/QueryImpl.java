@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
+import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -132,8 +134,17 @@ public class QueryImpl implements Query {
     SourceImpl source;
     private String statement;
     final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
+    
+    /**
+     * The map of indexes (each selector uses one index)
+     */
     final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
+    
+    /**
+     * The list of selectors of this query. For a join, there can be multiple selectors.
+     */
     final ArrayList<SelectorImpl> selectors = new ArrayList<SelectorImpl>();
+    
     ConstraintImpl constraint;
 
     /**
@@ -491,18 +502,57 @@ public class QueryImpl implements Query {
         return new ResultImpl(this);
     }
 
+    /**
+     * If one of the indexes wants a warning to be logged due to path mismatch,
+     * then get the warning message. Otherwise, return null.
+     * 
+     * @return null (in the normal case) or the list of index plan names (if
+     *         some index wants a warning to be logged)
+     */
+    private String getWarningForPathFilterMismatch() {
+        StringBuilder buff = null;
+        for (SelectorImpl s : selectors) {
+            if (s.getExecutionPlan() != null &&
+                    s.getExecutionPlan().getIndexPlan() != null &&
+                    s.getExecutionPlan().getIndexPlan().logWarningForPathFilterMismatch()) {
+                if (buff == null) {
+                    buff = new StringBuilder();
+                }
+                if (buff.length() > 0) {
+                    buff.append(", ");
+                }
+                buff.append(s.getExecutionPlan().getIndexPlanName());
+            }
+        }
+        return buff == null ? null : buff.toString();
+    }
+    
     @Override
     public Iterator<ResultRowImpl> getRows() {
         prepare();
+        String warn = getWarningForPathFilterMismatch();
+        if (warn != null) {
+            LOG.warn("Index definition of index used have path restrictions and query won't return nodes from " +
+             "those restricted paths; query={}, plan={}", statement, warn);
+        }
+        
         if (explain) {
             String plan = getPlan();
             if (measure) {
                 plan += " cost: { " + getIndexCostInfo() + " }";
             }
-            columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
+            columns = new ColumnImpl[] {
+                    new ColumnImpl("explain", "plan", "plan"),
+                    new ColumnImpl("explain", "statement", "statement")
+            };
             ResultRowImpl r = new ResultRowImpl(this,
                     Tree.EMPTY_ARRAY,
-                    new PropertyValue[] { PropertyValues.newString(plan)},
+                    new PropertyValue[] {
+                            PropertyValues.newString(plan),
+                            // remove "explain" keyword from query statement to produce explained statement
+                            PropertyValues.newString(getStatement()
+                                    .replaceFirst("(?i)\\bexplain\\s+", ""))
+                    },
                     null, null);
             return Arrays.asList(r).iterator();
         }
@@ -575,19 +625,16 @@ public class QueryImpl implements Query {
                         OrderEntry e = list.get(i);
                         OrderingImpl o = orderings[i];
                         DynamicOperandImpl op = o.getOperand();
-                        if (!(op instanceof PropertyValueImpl)) {
-                            // ordered by a function: currently not supported
-                            canSortByIndex = false;
-                            break;
-                        }
                         // we only have one selector, so no need to check that
                         // TODO support joins
-                        String pn = ((PropertyValueImpl) op).getPropertyName();
-                        if (!pn.equals(e.getPropertyName())) {
+                        String pn = op.getOrderEntryPropertyName(selectors.get(0));
+
+                        if (pn == null || !pn.equals(e.getPropertyName())) {
                             // ordered by another property
                             canSortByIndex = false;
                             break;
                         }
+
                         if (o.isDescending() != (e.getOrder() == Order.DESCENDING)) {
                             // ordered ascending versus descending
                             canSortByIndex = false;
@@ -1180,10 +1227,7 @@ public class QueryImpl implements Query {
                 }
                 break;
             case FAIL:
-                if (!potentiallySlowTraversalQueryLogged) {
-                    LOG.warn(message);
-                    potentiallySlowTraversalQueryLogged = true;
-                }
+                LOG.debug(message);
                 throw new IllegalArgumentException(message);
             }
         }
@@ -1371,10 +1415,10 @@ public class QueryImpl implements Query {
                             right = left;
                         }
                     }
-                    
+
                     // cloning original query
                     left = (QueryImpl) this.copyOf();
-                    
+
                     // cloning the constraints and assigning to new query
                     left.constraint = (ConstraintImpl) copyElementAndCheckReference(c);
                     // re-composing the statement for better debug messages
@@ -1391,7 +1435,7 @@ public class QueryImpl implements Query {
     private static String recomposeStatement(@NotNull QueryImpl query) {
         checkNotNull(query);
         String original = query.getStatement();
-        String origUpper = original.toUpperCase();
+        String origUpper = original.toUpperCase(Locale.ENGLISH);
         StringBuilder recomputed = new StringBuilder();
         final String where = " WHERE ";
         final String orderBy = " ORDER BY ";
@@ -1425,6 +1469,8 @@ public class QueryImpl implements Query {
         u.setExplain(explain);
         u.setMeasure(measure);
         u.setInternal(isInternal);
+        u.setQueryOptions(queryOptions);
+        u.setOrderings(orderings);
         return u;
     }
     
@@ -1448,8 +1494,11 @@ public class QueryImpl implements Query {
             this.settings,
             this.stats);
         copy.explain = this.explain;
+        copy.measure = this.measure;
+        copy.isInternal = this.isInternal;
         copy.distinct = this.distinct;
-        
+        copy.queryOptions = this.queryOptions;
+
         return copy;        
     }
 

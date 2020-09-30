@@ -17,16 +17,16 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.security.acl.Group;
 import java.util.Enumeration;
 
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Built-in principal group that has every other principal as member.
  */
-public final class EveryonePrincipal implements JackrabbitPrincipal, Group, GroupPrincipal {
+public final class EveryonePrincipal implements JackrabbitPrincipal, GroupPrincipal {
 
     public static final String NAME = "everyone";
 
@@ -44,23 +44,13 @@ public final class EveryonePrincipal implements JackrabbitPrincipal, Group, Grou
         return NAME;
     }
 
-    //--------------------------------------------------------------< Group >---
-    @Override
-    public boolean addMember(Principal user) {
-        return false;
-    }
-
-    @Override
-    public boolean removeMember(Principal user) {
-        throw new UnsupportedOperationException("Cannot remove a member from the everyone group.");
-    }
-
     //------------------------------------------------------< GroupPrincipal >---
     @Override
-    public boolean isMember(Principal member) {
+    public boolean isMember(@NotNull Principal member) {
         return !member.equals(this);
     }
 
+    @NotNull
     @Override
     public Enumeration<? extends Principal> members() {
         throw new UnsupportedOperationException("Not implemented.");

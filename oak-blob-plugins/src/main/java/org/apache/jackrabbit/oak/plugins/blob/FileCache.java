@@ -61,6 +61,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      */
     private static final Logger LOG = LoggerFactory.getLogger(FileCache.class);
 
+    private static final int SEGMENT_COUNT = Integer.getInteger("oak.blob.fileCache.segmentCount", 1);
+
     protected static final String DOWNLOAD_DIR = "download";
 
     /**
@@ -79,12 +81,15 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
 
     private ExecutorService executor;
 
+    private CacheLoader<String, File> cacheLoader;
+
     /**
      * Convert the size calculation to KB to support max file size of 2 TB
      */
     private static final Weigher<String, File> weigher = new Weigher<String, File>() {
         @Override public int weigh(String key, File value) {
-            return Math.round(value.length() / (4 * 1024)); // convert to KB
+            // convert to number of 4 KB blocks
+            return Math.round(value.length() / (4 * 1024));
         }};
 
     //Rough estimate of the in-memory key, value pair
@@ -100,13 +105,38 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
         this.parent = root;
         this.cacheRoot = new File(root, DOWNLOAD_DIR);
 
-        /* convert to 4 KB block */
+        // convert to number of 4 KB blocks
         long size = Math.round(maxSize / (1024L * 4));
+
+        cacheLoader = new CacheLoader<String, File>() {
+            @Override public File load(String key) throws Exception {
+                // Fetch from local cache directory and if not found load from backend
+                File cachedFile = DataStoreCacheUtils.getFile(key, cacheRoot);
+                if (cachedFile.exists()) {
+                    return cachedFile;
+                } else {
+                    InputStream is = null;
+                    boolean threw = true;
+                    try {
+                        is = loader.load(key);
+                        copyInputStreamToFile(is, cachedFile);
+                        threw = false;
+                    } catch (Exception e) {
+                        LOG.warn("Error reading object for id [{}] from backend", key, e);
+                        throw e;
+                    } finally {
+                        Closeables.close(is, threw);
+                    }
+                    return cachedFile;
+                }
+            }
+        };
 
         cache = new CacheLIRS.Builder<String, File>()
             .maximumWeight(size)
             .recordStats()
             .weigher(weigher)
+            .segmentCount(SEGMENT_COUNT)
             .evictionCallback(new EvictionCallback<String, File>() {
                 @Override
                 public void evicted(@NotNull String key, @Nullable File cachedFile,
@@ -122,30 +152,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
                         LOG.info("Cached file deletion failed after eviction", e);
                     }
                 }})
-            .build(new CacheLoader<String, File>() {
-                @Override
-                public File load(String key) throws Exception {
-                    // Fetch from local cache directory and if not found load from backend
-                    File cachedFile = DataStoreCacheUtils.getFile(key, cacheRoot);
-                    if (cachedFile.exists()) {
-                        return cachedFile;
-                    } else {
-                        InputStream is = null;
-                        boolean threw = true;
-                        try {
-                            is = loader.load(key);
-                            copyInputStreamToFile(is, cachedFile);
-                            threw = false;
-                        } catch (Exception e) {
-                            LOG.warn("Error reading object for id [{}] from backend", key, e);
-                            throw e;
-                        } finally {
-                            Closeables.close(is, threw);
-                        }
-                        return cachedFile;
-                    }
-                }
-            });
+            .build();
+
         this.cacheStats =
             new FileCacheStats(cache, weigher, memWeigher, maxSize);
 
@@ -221,7 +229,8 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
             }
             cache.put(key, cached);
         } catch (IOException e) {
-            LOG.error("Exception adding id [{}] with file [{}] to cache", key, file);
+            LOG.error("Exception adding id [{}] with file [{}] to cache, root cause: {}", key, file, e.getMessage());
+            LOG.debug("Root cause", e);
         }
     }
 
@@ -254,7 +263,7 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
     public File get(String key) throws IOException {
         try {
             // get from cache and download if not available
-            return cache.get(key);
+            return cache.get(key, () -> cacheLoader.load(key));
         } catch (ExecutionException e) {
             LOG.error("Error loading [{}] from cache", key);
             throw new IOException(e);

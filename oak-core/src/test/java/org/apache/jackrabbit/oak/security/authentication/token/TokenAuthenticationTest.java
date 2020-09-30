@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import javax.jcr.Credentials;
@@ -27,13 +26,10 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConstants;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -44,19 +40,22 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-public class TokenAuthenticationTest extends AbstractSecurityTest {
+public class TokenAuthenticationTest extends AbstractTokenTest {
 
-    TokenAuthentication authentication;
-    TokenProviderImpl tokenProvider;
-    String userId;
+    private TokenAuthentication authentication;
+    private TokenProviderImpl tokenProvider;
+    private String userId;
 
     @Before
     public void before() throws Exception {
         super.before();
-        tokenProvider = new TokenProviderImpl(root,
-                ConfigurationParameters.EMPTY,
-                getUserConfiguration());
+        tokenProvider = createTokenProvider(root, getUserConfiguration());
 
         root.commit();
         authentication = new TokenAuthentication(tokenProvider);
@@ -64,15 +63,8 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testAuthenticateWithoutTokenProvider() throws Exception {
-        Authentication authentication = new TokenAuthentication(null);
-
-        assertFalse(authentication.authenticate(new TokenCredentials("token")));
-    }
-
-    @Test
     public void testAuthenticateWithInvalidCredentials() throws Exception {
-        List<Credentials> invalid = new ArrayList<Credentials>();
+        List<Credentials> invalid = new ArrayList<>();
         invalid.add(new GuestCredentials());
         invalid.add(new SimpleCredentials(userId, new char[0]));
 
@@ -82,7 +74,7 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testAuthenticateWithInvalidTokenCredentials() throws Exception {
+    public void testAuthenticateWithInvalidTokenCredentials() {
         try {
             authentication.authenticate(new TokenCredentials(UUID.randomUUID().toString()));
             fail("LoginException expected");
@@ -93,7 +85,7 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticate() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(authentication.authenticate(new TokenCredentials(info.getToken())));
     }
 
@@ -109,7 +101,7 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testGetTokenInfoAfterAuthenticate() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         authentication.authenticate(new TokenCredentials(info.getToken()));
 
         TokenInfo info2 = authentication.getTokenInfo();
@@ -118,8 +110,9 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testAuthenticateNotMatchingToken() throws Exception {
+    public void testAuthenticateNotMatchingToken() {
         TokenInfo info = tokenProvider.createToken(userId, ImmutableMap.of(TokenConstants.TOKEN_ATTRIBUTE + "_mandatory", "val"));
+        assertNotNull(info);
         try {
             authentication.authenticate(new TokenCredentials(info.getToken()));
             fail("LoginException expected");
@@ -129,12 +122,12 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testAuthenticateExpiredToken() throws Exception {
+    public void testAuthenticateExpiredToken() {
         TokenProvider tp = new TokenProviderImpl(root,
                 ConfigurationParameters.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 1),
                 getUserConfiguration());
 
-        TokenInfo info = tp.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tp, userId);
         waitUntilExpired(info);
 
         try {
@@ -148,13 +141,6 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
         assertNull(tp.getTokenInfo(info.getToken()));
     }
 
-    private void waitUntilExpired(@NotNull TokenInfo info) {
-        long now = System.currentTimeMillis();
-        while (!info.isExpired(now)) {
-            now = waitForSystemTimeIncrement(now);
-        }
-    }
-
     @Test(expected = IllegalStateException.class)
     public void testGetUserIdBeforeLogin() {
         authentication.getUserId();
@@ -162,7 +148,7 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testGetUserId() throws LoginException {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(authentication.authenticate(new TokenCredentials(info.getToken())));
         assertEquals(userId, authentication.getUserId());
     }
@@ -174,59 +160,72 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testGetUserPrincipal() throws Exception {
-        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+        TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertTrue(authentication.authenticate(new TokenCredentials(info.getToken())));
         assertEquals(getTestUser().getPrincipal(), authentication.getUserPrincipal());
     }
 
     @Test
-    public void testAuthenticateRefreshToken() throws Exception {
-        TokenCredentials tc = new TokenCredentials("token");
-        TokenProvider tp = Mockito.mock(TokenProvider.class);
-        TokenInfo ti = Mockito.mock(TokenInfo.class);
+    public void testGetUserPrincipalNonDefaultProvider() throws Exception {
+        TokenInfo info = mock(TokenInfo.class);
+        when(info.isExpired(anyLong())).thenReturn(false);
+        when(info.matches(any(TokenCredentials.class))).thenReturn(true);
 
-        Mockito.when(tp.getTokenInfo(Mockito.anyString())).thenReturn(ti);
-        Mockito.when(ti.isExpired(Mockito.anyLong())).thenReturn(false);
-        Mockito.when(ti.matches(tc)).thenReturn(true);
+        TokenProvider tp = when(mock(TokenProvider.class).getTokenInfo(anyString())).thenReturn(info).getMock();
+        TokenAuthentication ta = new TokenAuthentication(tp);
+
+        assertTrue(ta.authenticate(new TokenCredentials("token")));
+        assertNull(ta.getUserPrincipal());
+    }
+
+    @Test
+    public void testAuthenticateRefreshToken() {
+        TokenCredentials tc = new TokenCredentials("token");
+        TokenProvider tp = mock(TokenProvider.class);
+        TokenInfo ti = mock(TokenInfo.class);
+
+        when(tp.getTokenInfo(anyString())).thenReturn(ti);
+        when(ti.isExpired(anyLong())).thenReturn(false);
+        when(ti.matches(tc)).thenReturn(true);
 
         TokenAuthentication auth = new TokenAuthentication(tp);
         try {
             assertTrue(auth.authenticate(tc));
-            Mockito.verify(ti).resetExpiration(Mockito.anyLong());
+            Mockito.verify(ti).resetExpiration(anyLong());
         } catch (LoginException e) {
             fail(e.getMessage());
         }
     }
 
     @Test
-    public void testAuthenticateSkipRefreshToken() throws Exception {
+    public void testAuthenticateSkipRefreshToken() {
         TokenCredentials tc = new TokenCredentials("token");
         tc.setAttribute(TokenConstants.TOKEN_SKIP_REFRESH, "");
 
-        TokenProvider tp = Mockito.mock(TokenProvider.class);
-        TokenInfo ti = Mockito.mock(TokenInfo.class);
+        TokenProvider tp = mock(TokenProvider.class);
+        TokenInfo ti = mock(TokenInfo.class);
 
-        Mockito.when(tp.getTokenInfo(Mockito.anyString())).thenReturn(ti);
-        Mockito.when(ti.isExpired(Mockito.anyLong())).thenReturn(false);
-        Mockito.when(ti.matches(tc)).thenReturn(true);
+        when(tp.getTokenInfo(anyString())).thenReturn(ti);
+        when(ti.isExpired(anyLong())).thenReturn(false);
+        when(ti.matches(tc)).thenReturn(true);
 
         TokenAuthentication auth = new TokenAuthentication(tp);
         try {
             assertTrue(auth.authenticate(tc));
-            Mockito.verify(ti, Mockito.never()).resetExpiration(Mockito.anyLong());
+            Mockito.verify(ti, Mockito.never()).resetExpiration(anyLong());
         } catch (LoginException e) {
             fail(e.getMessage());
         }
     }
 
     @Test
-    public void testAuthenticateExpiredTokenMock() throws Exception {
+    public void testAuthenticateExpiredTokenMock() {
         TokenCredentials tc = new TokenCredentials("token");
-        TokenProvider tp = Mockito.mock(TokenProvider.class);
-        TokenInfo ti = Mockito.mock(TokenInfo.class);
+        TokenProvider tp = mock(TokenProvider.class);
+        TokenInfo ti = mock(TokenInfo.class);
 
-        Mockito.when(tp.getTokenInfo(Mockito.anyString())).thenReturn(ti);
-        Mockito.when(ti.isExpired(Mockito.anyLong())).thenReturn(true);
+        when(tp.getTokenInfo(anyString())).thenReturn(ti);
+        when(ti.isExpired(anyLong())).thenReturn(true);
 
         TokenAuthentication auth = new TokenAuthentication(tp);
         try {
@@ -236,7 +235,7 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
             // success
         }
 
-        Mockito.verify(ti, Mockito.never()).matches(Mockito.any());
-        Mockito.verify(ti, Mockito.never()).resetExpiration(Mockito.anyLong());
+        Mockito.verify(ti, Mockito.never()).matches(any());
+        Mockito.verify(ti, Mockito.never()).resetExpiration(anyLong());
     }
 }

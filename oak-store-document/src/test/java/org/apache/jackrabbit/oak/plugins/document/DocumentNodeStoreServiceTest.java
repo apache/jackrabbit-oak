@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.function.Supplier;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import com.mongodb.MongoClient;
 
@@ -184,7 +184,7 @@ public class DocumentNodeStoreServiceTest {
         }
         assertNotNull(rgcJob);
         assertTrue(rgcJob instanceof Supplier);
-        assertNotNull(((Supplier) rgcJob).get());
+        assertNotNull(((Supplier<String>) rgcJob).get());
     }
 
     @Test
@@ -195,10 +195,10 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.activate(service, context.bundleContext());
 
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
-        assertTrue(dns.getNodeCachePredicate().apply("/a/b/c"));
-        assertTrue(dns.getNodeCachePredicate().apply("/c/d/e"));
+        assertTrue(dns.getNodeCachePredicate().apply(Path.fromString("/a/b/c")));
+        assertTrue(dns.getNodeCachePredicate().apply(Path.fromString("/c/d/e")));
 
-        assertFalse(dns.getNodeCachePredicate().apply("/x"));
+        assertFalse(dns.getNodeCachePredicate().apply(Path.fromString("/x")));
     }
 
     @Test
@@ -257,6 +257,25 @@ public class DocumentNodeStoreServiceTest {
 
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
         assertEquals(LeaseCheckMode.LENIENT, dns.getClusterInfo().getLeaseCheckMode());
+    }
+
+    @Test
+    public void revisionGcDelayFactorCheckMode() {
+        Map<String, Object> config = newConfig(repoHome);
+        double delayFactor = 0.25;
+        config.put("versionGCDelayFactor", delayFactor);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+        Runnable rgcJob = null;
+        for (Runnable r : context.getServices(Runnable.class, null)) {
+            if (r.getClass().equals(DocumentNodeStoreService.RevisionGCJob.class)) {
+                rgcJob = r;
+            }
+        }
+        assertNotNull(rgcJob);
+        rgcJob.run(); //Need to trigger run method explicitly as delay-factor is set in this method
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertEquals(delayFactor, dns.getVersionGarbageCollector().getOptions().delayFactor, 0.001);
     }
 
     @NotNull

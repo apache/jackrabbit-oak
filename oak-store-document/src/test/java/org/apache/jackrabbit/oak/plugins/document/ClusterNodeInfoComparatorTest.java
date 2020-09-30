@@ -82,9 +82,9 @@ public class ClusterNodeInfoComparatorTest {
     private ClusterNodeInfo newClusterNodeInfo(int id, String instanceId) {
         try {
             Constructor<ClusterNodeInfo> ctr = ClusterNodeInfo.class.getDeclaredConstructor(
-                    int.class, DocumentStore.class, String.class, String.class, boolean.class);
+                    int.class, DocumentStore.class, String.class, String.class, boolean.class, boolean.class);
             ctr.setAccessible(true);
-            return ctr.newInstance(id, store, MACHINE_ID, instanceId, true);
+            return ctr.newInstance(id, store, MACHINE_ID, instanceId, true, false);
         } catch (Exception e) {
             fail(e.getMessage());
         }

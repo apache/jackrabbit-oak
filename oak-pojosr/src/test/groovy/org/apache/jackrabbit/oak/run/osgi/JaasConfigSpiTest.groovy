@@ -122,5 +122,10 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
             }
             return false;
         }
+
+        @Override
+        boolean logout() throws LoginException {
+            return super.logout(ImmutableSet.of(credentials), principals);
+        }
     }
 }

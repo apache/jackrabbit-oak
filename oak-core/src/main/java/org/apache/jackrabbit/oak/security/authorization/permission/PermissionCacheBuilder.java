@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.LongUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,16 +29,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.LongUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.jetbrains.annotations.NotNull;
-
 import static com.google.common.base.Preconditions.checkState;
 
 final class PermissionCacheBuilder {
-
-    private static final long MAX_PATHS_SIZE = 10;
 
     private final PermissionStore store;
     private final PermissionEntryCache peCache;
@@ -48,11 +46,11 @@ final class PermissionCacheBuilder {
         this.peCache = new PermissionEntryCache();
     }
 
-    boolean init(@NotNull Set<String> principalNames, long maxSize) {
+    boolean init(@NotNull Set<String> principalNames, @NotNull CacheStrategy cacheStrategy) {
         existingNames = new HashSet<>();
         long cnt = 0;
         for (String name : principalNames) {
-            NumEntries ne = store.getNumEntries(name, maxSize);
+            NumEntries ne = store.getNumEntries(name, cacheStrategy.maxSize());
             long n = ne.size;
             /*
             if getNumEntries (n) returns a number bigger than 0, we
@@ -60,7 +58,7 @@ final class PermissionCacheBuilder {
             */
             if (n > 0) {
                 existingNames.add(name);
-                if (n <= MAX_PATHS_SIZE) {
+                if (cacheStrategy.loadFully(n, cnt)) {
                     peCache.getFullyLoadedEntries(store, name);
                 } else {
                     long expectedSize = (ne.isExact) ? n : Long.MAX_VALUE;
@@ -84,11 +82,12 @@ final class PermissionCacheBuilder {
             }
         }
 
-        usePathEntryMap = (cnt > 0 && cnt < maxSize);
+        usePathEntryMap = cacheStrategy.usePathEntryMap(cnt);
         initialized = true;
         return existingNames.isEmpty();
     }
 
+    @NotNull
     PermissionCache build() {
         checkState(initialized);
         if (existingNames.isEmpty()) {
@@ -120,7 +119,6 @@ final class PermissionCacheBuilder {
         } else {
             return new DefaultPermissionCache(store, peCache, existingNames);
         }
-
     }
 
     //------------------------------------< PermissionCache Implementations >---
@@ -140,6 +138,7 @@ final class PermissionCacheBuilder {
             this.existingNames = existingNames;
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull String path) {
             Collection<PermissionEntry> ret = new TreeSet<>();
@@ -149,11 +148,12 @@ final class PermissionCacheBuilder {
             return ret;
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             return (accessControlledTree.hasChild(AccessControlConstants.REP_POLICY)) ?
                     getEntries(accessControlledTree.getPath()) :
-                    Collections.<PermissionEntry>emptyList();
+                    Collections.emptyList();
         }
     }
 
@@ -166,20 +166,22 @@ final class PermissionCacheBuilder {
     private static final class PathEntryMapCache implements PermissionCache {
         private final Map<String, Collection<PermissionEntry>> pathEntryMap;
 
-        PathEntryMapCache(Map<String, Collection<PermissionEntry>> pathEntryMap) {
+        PathEntryMapCache(@NotNull Map<String, Collection<PermissionEntry>> pathEntryMap) {
             this.pathEntryMap = pathEntryMap;
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull String path) {
             Collection<PermissionEntry> entries = pathEntryMap.get(path);
-            return (entries != null) ? entries : Collections.<PermissionEntry>emptyList();
+            return (entries != null) ? entries : Collections.emptyList();
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
             Collection<PermissionEntry> entries = pathEntryMap.get(accessControlledTree.getPath());
-            return (entries != null) ? entries : Collections.<PermissionEntry>emptyList();
+            return (entries != null) ? entries : Collections.emptyList();
         }
     }
 
@@ -192,14 +194,16 @@ final class PermissionCacheBuilder {
 
         private static final PermissionCache INSTANCE = new EmptyCache();
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull String path) {
-            return Collections.<PermissionEntry>emptyList();
+            return Collections.emptyList();
         }
 
+        @NotNull
         @Override
         public Collection<PermissionEntry> getEntries(@NotNull Tree accessControlledTree) {
-            return Collections.<PermissionEntry>emptyList();
+            return Collections.emptyList();
         }
     }
 

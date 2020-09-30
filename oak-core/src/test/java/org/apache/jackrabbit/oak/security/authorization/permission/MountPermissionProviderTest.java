@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.security.Principal;
-
-import javax.jcr.security.AccessControlManager;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -32,20 +24,23 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
-import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.jcr.security.AccessControlManager;
+import java.security.Principal;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class MountPermissionProviderTest extends AbstractSecurityTest
         implements AccessControlConstants, PrivilegeConstants, PermissionConstants {
@@ -111,14 +106,11 @@ public class MountPermissionProviderTest extends AbstractSecurityTest
             assertTrue(mps.hasChild(p.getName()));
         }
 
-        ContentSession testSession = createTestSession();
-        try {
+        try (ContentSession testSession = createTestSession()) {
             Root r = testSession.getLatestRoot();
             assertFalse(r.getTree("/").exists());
             assertTrue(r.getTree(test.getPath()).exists());
             assertFalse(r.getTree(content.getPath()).exists());
-        } finally {
-            testSession.close();
         }
     }
 
@@ -135,14 +127,11 @@ public class MountPermissionProviderTest extends AbstractSecurityTest
         setPrivileges(p, test.getPath(), false, JCR_READ);
         setPrivileges(p, content.getPath(), true, JCR_READ);
 
-        ContentSession testSession = createTestSession();
-        try {
+        try (ContentSession testSession = createTestSession()) {
             Root r = testSession.getLatestRoot();
             assertTrue(r.getTree("/").exists());
             assertFalse(test.getPath(), r.getTree(test.getPath()).exists());
             assertTrue(r.getTree(content.getPath()).exists());
-        } finally {
-            testSession.close();
         }
     }
 

@@ -173,7 +173,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     /**
      * @return  {@code true} iff this is the root builder
      */
-    protected final boolean isRoot() {
+    public final boolean isRoot() {
         return this == rootBuilder;
     }
 

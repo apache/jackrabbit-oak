@@ -21,6 +21,7 @@ import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -110,6 +112,10 @@ public class AzureJournalFile implements JournalFile {
 
         private ReverseFileReader reader;
 
+        private boolean metadataFetched;
+
+        private boolean firstLineReturned;
+
         private AzureJournalReader(CloudBlob blob) {
             this.blob = blob;
         }
@@ -118,7 +124,19 @@ public class AzureJournalFile implements JournalFile {
         public String readLine() throws IOException {
             if (reader == null) {
                 try {
+                    if (!metadataFetched) {
+                        blob.downloadAttributes();
+                        metadataFetched = true;
+                        Map<String, String> metadata = CaseInsensitiveKeysMapAccess.convert(blob.getMetadata());
+                        if (metadata.containsKey("lastEntry")) {
+                            firstLineReturned = true;
+                            return metadata.get("lastEntry");
+                        }
+                    }
                     reader = new ReverseFileReader(blob);
+                    if (firstLineReturned) {
+                        while("".equals(reader.readLine())); // the first line was already returned, let's fast-forward it
+                    }
                 } catch (StorageException e) {
                     throw new IOException(e);
                 }
@@ -143,11 +161,17 @@ public class AzureJournalFile implements JournalFile {
                 try {
                     currentBlob = directory.getAppendBlobReference(getJournalFileName(1));
                     currentBlob.createOrReplace();
+                    currentBlob.downloadAttributes();
                 } catch (URISyntaxException | StorageException e) {
                     throw new IOException(e);
                 }
             } else {
                 currentBlob = blobs.get(0);
+            }
+            try {
+                currentBlob.downloadAttributes();
+            } catch (StorageException e) {
+                throw new IOException(e);
             }
             Integer bc = currentBlob.getProperties().getAppendBlobCommittedBlockCount();
             blockCount = bc == null ? 0 : bc;
@@ -174,9 +198,18 @@ public class AzureJournalFile implements JournalFile {
             }
             try {
                 currentBlob.appendText(line + "\n");
+                currentBlob.getMetadata().put("lastEntry", line);
+                currentBlob.uploadMetadata();
                 blockCount++;
             } catch (StorageException e) {
                 throw new IOException(e);
+            }
+        }
+
+        @Override
+        public void batchWriteLines(List<String> lines) throws IOException {
+            for (String line : lines) {
+                this.writeLine(line);
             }
         }
 

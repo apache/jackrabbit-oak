@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.apache.jackrabbit.oak.api.blob.BlobUpload;
+import org.apache.jackrabbit.oak.api.blob.BlobUploadOptions;
 import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
@@ -265,6 +266,13 @@ public class PartialValueFactory {
         @Override
         public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes,
                                              int maxNumberOfURIs) {
+            return initiateBlobUpload(maxUploadSizeInBytes, maxNumberOfURIs, BlobUploadOptions.DEFAULT);
+        }
+
+        @Nullable
+        public BlobUpload initiateBlobUpload(long maxUploadSizeInBytes,
+                                             int maxNumberOfURIs,
+                                             @NotNull final BlobUploadOptions options) {
             return null;
         }
 

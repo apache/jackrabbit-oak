@@ -22,6 +22,7 @@ import static java.util.Arrays.asList;
 import static javax.jcr.ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW;
 import static javax.jcr.Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED;
 import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -29,7 +30,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-import static org.junit.matchers.JUnitMatchers.containsString;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -50,6 +50,7 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemExistsException;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
@@ -373,6 +374,26 @@ public class RepositoryTest extends AbstractRepositoryTest {
         String id = node.getIdentifier();
         Node node2 = getAdminSession().getNodeByIdentifier(id);
         assertTrue(node.isSame(node2));
+    }
+
+    @Test
+    public void getNodeByIncorrectIdentifier() throws RepositoryException {
+        Node node = getNode("/foo");
+        String id = node.getIdentifier() + "foofoofoo";
+        try {
+            getAdminSession().getNodeByIdentifier(id);
+            fail("should not get here");
+        } catch (ItemNotFoundException expected) {
+        }
+    }
+
+    @Test
+    public void getNodeByEmptyIdentifier() throws RepositoryException {
+        try {
+            getAdminSession().getNodeByIdentifier("");
+            fail("should not get here");
+        } catch (RepositoryException expected) {
+        }
     }
 
     @Test

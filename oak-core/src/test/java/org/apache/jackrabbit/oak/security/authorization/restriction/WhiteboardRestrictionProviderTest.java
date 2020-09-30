@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
@@ -28,7 +30,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.jcr.Value;
+
 import static org.junit.Assert.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class WhiteboardRestrictionProviderTest {
@@ -37,7 +44,7 @@ public class WhiteboardRestrictionProviderTest {
 
     private final WhiteboardRestrictionProvider restrictionProvider = new WhiteboardRestrictionProvider();
 
-    private final Tree tree = Mockito.mock(Tree.class);
+    private final Tree tree = mock(Tree.class);
 
     private final class RestrictionException extends RuntimeException {}
 
@@ -45,8 +52,11 @@ public class WhiteboardRestrictionProviderTest {
 
     @Before
     public void before() {
-        registered = Mockito.mock(RestrictionProvider.class);
+        registered = mock(RestrictionProvider.class);
         when(registered.getPattern(PathUtils.ROOT_PATH, tree)).thenThrow(new RestrictionException());
+
+        restrictionProvider.start(whiteboard);
+        whiteboard.register(RestrictionProvider.class, registered, ImmutableMap.of());
     }
 
     @After
@@ -55,21 +65,62 @@ public class WhiteboardRestrictionProviderTest {
     }
 
     @Test
+    public void testCreateRestriction() throws Exception {
+        Value value = mock(Value.class);
+        restrictionProvider.createRestriction("/testPath", "name", value);
+        restrictionProvider.createRestriction("/testPath", "name", new Value[] {value});
+
+        verify(registered, times(1)).createRestriction("/testPath", "name", value);
+        verify(registered, times(1)).createRestriction("/testPath", "name", new Value[] {value});
+    }
+
+    @Test
+    public void testReadRestrictions() {
+        Tree tree = mock(Tree.class);
+        restrictionProvider.readRestrictions("/testPath", tree);
+
+        verify(registered, times(1)).readRestrictions("/testPath", tree);
+    }
+
+    @Test
+    public void testWriteRestrictions() throws Exception {
+        Tree tree = mock(Tree.class);
+        restrictionProvider.writeRestrictions("/testPath", tree, ImmutableSet.of());
+
+        verify(registered, times(1)).writeRestrictions("/testPath", tree, ImmutableSet.of());
+    }
+
+    @Test
+    public void testValidateRestrictions() throws Exception {
+        Tree tree = mock(Tree.class);
+        restrictionProvider.validateRestrictions("/testPath", tree);
+
+        verify(registered, times(1)).validateRestrictions("/testPath", tree);
+    }
+
+    @Test
     public void testDefaultGetPattern() {
-        assertSame(RestrictionPattern.EMPTY, restrictionProvider.getPattern(PathUtils.ROOT_PATH, tree));
+        assertSame(RestrictionPattern.EMPTY, new WhiteboardRestrictionProvider().getPattern(PathUtils.ROOT_PATH, tree));
     }
 
     @Test
     public void testStartedGetPattern() {
-        restrictionProvider.start(whiteboard);
-        assertSame(RestrictionPattern.EMPTY, restrictionProvider.getPattern(PathUtils.ROOT_PATH, tree));
+        Whiteboard wb = new DefaultWhiteboard();
+        WhiteboardRestrictionProvider wrp = new WhiteboardRestrictionProvider();
+        wrp.start(wb);
+        assertSame(RestrictionPattern.EMPTY, wrp.getPattern(PathUtils.ROOT_PATH, tree));
     }
 
     @Test(expected = RestrictionException.class)
     public void testRegisteredGetPattern() {
-        restrictionProvider.start(whiteboard);
-        whiteboard.register(RestrictionProvider.class, registered, ImmutableMap.of());
-
         registered.getPattern(PathUtils.ROOT_PATH, tree);
+    }
+
+    @Test
+    public void testGetPatternFromRestrictions() {
+        Restriction r = mock(Restriction.class);
+        restrictionProvider.getPattern("/testPath", ImmutableSet.of(r));
+
+        verify(registered, times(1)).getPattern("/testPath", ImmutableSet.of(r));
     }
 }

@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class EmptyPrincipalProviderTest {
 
@@ -38,7 +38,7 @@ public class EmptyPrincipalProviderTest {
     }
 
     @Test
-    public void testGetGroupMembership() {
+    public void testGetMembershipPrincipals() {
         assertTrue(principalProvider.getMembershipPrincipals(EveryonePrincipal.getInstance()).isEmpty());
         assertTrue(principalProvider.getMembershipPrincipals(new PrincipalImpl(EveryonePrincipal.NAME)).isEmpty());
         assertTrue(principalProvider.getMembershipPrincipals(testPrincipal).isEmpty());

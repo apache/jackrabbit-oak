@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBean;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsMBeanImpl;
@@ -76,12 +77,16 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     public static final boolean DEFAULT_FAST_QUERY_SIZE = Boolean.getBoolean(OAK_FAST_QUERY_SIZE);
     private boolean fastQuerySize = DEFAULT_FAST_QUERY_SIZE;
 
-    private QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
+    private StrictPathRestriction strictPathRestriction = StrictPathRestriction.DISABLE;
+
+    private final QueryStatsMBeanImpl queryStats = new QueryStatsMBeanImpl(this);
 
     /**
      * StatisticsProvider used to record query side metrics.
      */
     private final StatisticsProvider statisticsProvider;
+
+    private final QueryValidator queryValidator = new QueryValidator();
 
     public QueryEngineSettings() {
         statisticsProvider = StatisticsProvider.NOOP;
@@ -132,6 +137,14 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
         System.setProperty(OAK_FAST_QUERY_SIZE, String.valueOf(fastQuerySize));
     }
 
+    public String getStrictPathRestriction() {
+        return strictPathRestriction.name();
+    }
+
+    public void setStrictPathRestriction(String strictPathRestriction) {
+        this.strictPathRestriction = StrictPathRestriction.stringToEnum(strictPathRestriction);
+    }
+
     public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
         this.fullTextComparisonWithoutIndex = fullTextComparisonWithoutIndex;
     }
@@ -154,6 +167,20 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
 
     public StatisticsProvider getStatisticsProvider() {
         return statisticsProvider;
+    }
+
+    @Override
+    public void setQueryValidatorPattern(String key, String pattern, String comment, boolean failQuery) {
+        queryValidator.setPattern(key, pattern, comment, failQuery);
+    }
+
+    @Override
+    public String getQueryValidatorJson() {
+        return queryValidator.getJson();
+    }
+
+    public QueryValidator getQueryValidator() {
+        return queryValidator;
     }
 
     @Override

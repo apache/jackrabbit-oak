@@ -38,6 +38,8 @@ import java.util.function.Consumer;
 import com.google.common.base.Supplier;
 import com.google.common.io.Closer;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Segment;
 import org.apache.jackrabbit.oak.segment.SegmentId;
@@ -52,7 +54,7 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -79,6 +81,7 @@ public class FileStore extends AbstractFileStore {
      * Name of the {@link CounterStats counter} exposing the number of segments.
      */
     private static final String SEGMENT_COUNT = "SEGMENT_COUNT";
+
 
     private static GarbageCollectionStrategy newGarbageCollectionStrategy() {
         if (Boolean.getBoolean("gc.classic")) {
@@ -159,6 +162,7 @@ public class FileStore extends AbstractFileStore {
                 .withMemoryMapping(memoryMapping)
                 .withTarRecovery(recovery)
                 .withIOMonitor(ioMonitor)
+                .withRemoteStoreMonitor(remoteStoreMonitor)
                 .withFileStoreMonitor(stats)
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
                 .withPersistence(builder.getPersistence())
@@ -500,8 +504,15 @@ public class FileStore extends AbstractFileStore {
         try (ShutDownCloser ignored = shutDown.keepAlive()) {
             return segmentCache.getSegment(id, () -> readSegmentUncached(tarFiles, id));
         } catch (ExecutionException | UncheckedExecutionException e) {
+            if (e.getCause() instanceof RepositoryNotReachableException) {
+                RepositoryNotReachableException re = (RepositoryNotReachableException) e.getCause();
+                log.warn("Unable to access repository", re);
+                throw re;
+            }
+
             SegmentNotFoundException snfe = asSegmentNotFoundException(e, id);
             snfeListener.notify(id, snfe);
+            stats.notify(id, snfe);
             throw snfe;
         }
     }

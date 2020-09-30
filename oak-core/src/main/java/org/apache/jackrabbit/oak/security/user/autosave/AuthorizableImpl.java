@@ -23,6 +23,8 @@ import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class AuthorizableImpl implements Authorizable {
 
@@ -43,6 +45,7 @@ class AuthorizableImpl implements Authorizable {
     }
 
     //-------------------------------------------------------< Authorizable >---
+    @NotNull
     @Override
     public String getID() throws RepositoryException {
         return dlg.getID();
@@ -53,16 +56,19 @@ class AuthorizableImpl implements Authorizable {
         return dlg.isGroup();
     }
 
+    @NotNull
     @Override
     public Principal getPrincipal() throws RepositoryException {
         return dlg.getPrincipal();
     }
 
+    @NotNull
     @Override
     public Iterator<Group> declaredMemberOf() throws RepositoryException {
         return AuthorizableWrapper.createGroupIterator(dlg.declaredMemberOf(), mgr);
     }
 
+    @NotNull
     @Override
     public Iterator<Group> memberOf() throws RepositoryException {
         return AuthorizableWrapper.createGroupIterator(dlg.memberOf(), mgr);
@@ -77,24 +83,26 @@ class AuthorizableImpl implements Authorizable {
         }
     }
 
+    @NotNull
     @Override
     public Iterator<String> getPropertyNames() throws RepositoryException {
         return dlg.getPropertyNames();
     }
 
+    @NotNull
     @Override
-    public Iterator<String> getPropertyNames(String s) throws RepositoryException {
+    public Iterator<String> getPropertyNames(@NotNull String s) throws RepositoryException {
         return dlg.getPropertyNames(s);
 
     }
 
     @Override
-    public boolean hasProperty(String s) throws RepositoryException {
+    public boolean hasProperty(@NotNull String s) throws RepositoryException {
         return dlg.hasProperty(s);
     }
 
     @Override
-    public void setProperty(String s, Value value) throws RepositoryException {
+    public void setProperty(@NotNull String s, @Nullable Value value) throws RepositoryException {
         try {
             dlg.setProperty(s, value);
         } finally {
@@ -103,7 +111,7 @@ class AuthorizableImpl implements Authorizable {
     }
 
     @Override
-    public void setProperty(String s, Value[] values) throws RepositoryException {
+    public void setProperty(@NotNull String s, @Nullable Value[] values) throws RepositoryException {
         try {
             dlg.setProperty(s, values);
         } finally {
@@ -111,13 +119,14 @@ class AuthorizableImpl implements Authorizable {
         }
     }
 
+    @Nullable
     @Override
-    public Value[] getProperty(String s) throws RepositoryException {
+    public Value[] getProperty(@NotNull String s) throws RepositoryException {
         return dlg.getProperty(s);
     }
 
     @Override
-    public boolean removeProperty(String s) throws RepositoryException {
+    public boolean removeProperty(@NotNull String s) throws RepositoryException {
         try {
             return dlg.removeProperty(s);
         } finally {
@@ -125,6 +134,7 @@ class AuthorizableImpl implements Authorizable {
         }
     }
 
+    @NotNull
     @Override
     public String getPath() throws RepositoryException {
         return dlg.getPath();

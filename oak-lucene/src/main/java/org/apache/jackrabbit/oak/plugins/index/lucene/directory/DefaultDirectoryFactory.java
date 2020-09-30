@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier.COWDirectoryTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
@@ -41,15 +42,18 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
     private final IndexCopier indexCopier;
     private final GarbageCollectableBlobStore blobStore;
     private final BlobDeletionCallback blobDeletionCallback;
+    private final COWDirectoryTracker cowDirectoryTracker;
 
     public DefaultDirectoryFactory(@Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore) {
-        this(indexCopier, blobStore, BlobDeletionCallback.NOOP);
+        this(indexCopier, blobStore, BlobDeletionCallback.NOOP, COWDirectoryTracker.NOOP);
     }
     public DefaultDirectoryFactory(@Nullable IndexCopier indexCopier, @Nullable GarbageCollectableBlobStore blobStore,
-                                   @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback) {
+                                   @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback,
+                                   @NotNull IndexCopier.COWDirectoryTracker cowDirectoryTracker) {
         this.indexCopier = indexCopier;
         this.blobStore = blobStore;
         this.blobDeletionCallback = blobDeletionCallback;
+        this.cowDirectoryTracker = cowDirectoryTracker;
     }
 
     @Override
@@ -62,10 +66,22 @@ public class DefaultDirectoryFactory implements DirectoryFactory {
                 // (copy from the remote directory to the local directory)
                 // to avoid having to stream it when merging
                 String indexPath = definition.getIndexPath();
-                Directory d = indexCopier.wrapForRead(indexPath, definition, directory, dirName);
+
+                // Here we create a new index directory, because
+                // re-using the existing directory (opened above) would
+                // mean that the directory returned by the method
+                // shares the same OakDirectory instance.
+                // That in turn could result in concurrently changing
+                // the NodeBuilder on close, as d.close() closes the directory
+                // _asynchronously_ (after the method returned).
+                // With newIndexDirectory, the internal OakDirectory is not shared
+                Directory readerDir = newIndexDirectory(definition, builder, dirName);
+                Directory d = indexCopier.wrapForRead(indexPath, definition, readerDir, dirName);
+                
+                // closing is done asynchronously
                 d.close();
             }
-            directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName);
+            directory = indexCopier.wrapForWrite(definition, directory, reindex, dirName, cowDirectoryTracker);
         }
         return directory;
     }

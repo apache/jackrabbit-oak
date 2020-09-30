@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFiles;
 import org.apache.jackrabbit.oak.segment.file.tar.TarFilesTest;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.junit.Before;
 import org.junit.ClassRule;
 
@@ -42,6 +43,7 @@ public class AzureTarFilesTest extends TarFilesTest {
                 })
                 .withIOMonitor(new IOMonitorAdapter())
                 .withFileStoreMonitor(new FileStoreMonitorAdapter())
+                .withRemoteStoreMonitor(new RemoteStoreMonitorAdapter())
                 .withMaxFileSize(MAX_FILE_SIZE)
                 .withPersistence(new AzurePersistence(container.getDirectoryReference("oak")))
                 .build();

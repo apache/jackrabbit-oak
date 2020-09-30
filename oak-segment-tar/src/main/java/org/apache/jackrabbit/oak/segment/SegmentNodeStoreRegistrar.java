@@ -25,15 +25,8 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.RETA
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 import static org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo.getOrCreateId;
 
-import java.io.ByteArrayInputStream;
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import com.google.common.io.Closer;
+
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
@@ -48,7 +41,6 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobTrackingStore;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGC;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentRevisionGCMBean;
@@ -58,9 +50,12 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreGCMonitor;
 import org.apache.jackrabbit.oak.segment.file.FileStoreStatsMBean;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.MetricsIOMonitor;
+import org.apache.jackrabbit.oak.segment.file.MetricsRemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.split.SplitPersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.CachingPersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
+import org.apache.jackrabbit.oak.segment.spi.persistence.split.SplitPersistence;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.cluster.ClusterRepositoryInfo;
@@ -82,6 +77,13 @@ import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 class SegmentNodeStoreRegistrar {
 
@@ -143,6 +145,8 @@ class SegmentNodeStoreRegistrar {
 
         boolean hasSplitPersistence();
 
+        boolean hasCachePersistence();
+
         boolean registerDescriptors();
 
         boolean dispatchChanges();
@@ -166,6 +170,8 @@ class SegmentNodeStoreRegistrar {
         BlobStore getBlobStore();
 
         SegmentNodeStorePersistence getSegmentNodeStorePersistence();
+
+        PersistentCache getPersistentCache();
 
         BundleContext getBundleContext();
 
@@ -228,6 +234,7 @@ class SegmentNodeStoreRegistrar {
             .withMemoryMapping(cfg.getMemoryMapping())
             .withGCMonitor(gcMonitor)
             .withIOMonitor(new MetricsIOMonitor(cfg.getStatisticsProvider()))
+            .withRemoteStoreMonitor(new MetricsRemoteStoreMonitor(cfg.getStatisticsProvider()))
             .withStatisticsProvider(cfg.getStatisticsProvider())
             .withGCOptions(gcOptions);
 
@@ -237,16 +244,22 @@ class SegmentNodeStoreRegistrar {
         }
 
         if (cfg.hasCustomSegmentStore() && cfg.getSegmentNodeStorePersistence() != null) {
+            SegmentNodeStorePersistence customPersistence = cfg.getSegmentNodeStorePersistence();
+
+            if (cfg.hasCachePersistence()) {
+                cfg.getLogger().info("Using persistent cache for the custom persistence [{}]", customPersistence);
+                customPersistence = new CachingPersistence(cfg.getPersistentCache(), customPersistence);
+            }
+
             if (cfg.hasSplitPersistence()) {
-                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}] and local writes", cfg.getSegmentNodeStorePersistence());
+                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}] and local writes", customPersistence);
                 cfg.getSplitPersistenceDirectory().mkdirs();
-                SegmentNodeStorePersistence roPersistence = cfg.getSegmentNodeStorePersistence();
                 SegmentNodeStorePersistence rwPersistence = new TarPersistence(cfg.getSplitPersistenceDirectory());
-                SegmentNodeStorePersistence persistence = new SplitPersistence(roPersistence, rwPersistence);
+                SegmentNodeStorePersistence persistence = new SplitPersistence(customPersistence, rwPersistence);
                 builder.withCustomPersistence(persistence);
             } else {
-                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}]", cfg.getSegmentNodeStorePersistence());
-                builder.withCustomPersistence(cfg.getSegmentNodeStorePersistence());
+                cfg.getLogger().info("Initializing SegmentNodeStore with custom persistence [{}]", customPersistence);
+                builder.withCustomPersistence(customPersistence);
             }
         }
 
@@ -407,7 +420,7 @@ class SegmentNodeStoreRegistrar {
         if (!cfg.isSecondarySegmentStore() && cfg.hasCustomBlobStore() && isShared(cfg.getBlobStore())) {
             SharedDataStore sharedDataStore = (SharedDataStore) cfg.getBlobStore();
             try {
-                sharedDataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]), SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(getOrCreateId(segmentNodeStore)));
+                sharedDataStore.setRepositoryId(getOrCreateId(segmentNodeStore));
             } catch (Exception e) {
                 throw new IOException("Could not register a unique repositoryId", e);
             }

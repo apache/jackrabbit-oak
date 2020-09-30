@@ -16,34 +16,44 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.internal.stubbing.answers.ThrowsException;
+
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AccountLockedException;
 import javax.security.auth.login.AccountNotFoundException;
 import javax.security.auth.login.FailedLoginException;
 import javax.security.auth.login.LoginException;
-
-import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
-import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
-import org.junit.Test;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 /**
  * UserAuthenticationTest...
@@ -68,7 +78,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticateInvalidCredentials() throws Exception {
-        List<Credentials> invalid = new ArrayList<Credentials>();
+        List<Credentials> invalid = new ArrayList<>();
         invalid.add(new TokenCredentials("token"));
         invalid.add(new Credentials() {});
 
@@ -85,25 +95,22 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
         assertFalse(a.authenticate(sc));
     }
 
-    @Test
+    @Test(expected = AccountNotFoundException.class)
     public void testAuthenticateResolvesToGroup() throws Exception {
         Group g = getUserManager(root).createGroup("g1");
         SimpleCredentials sc = new SimpleCredentials(g.getID(), "pw".toCharArray());
         Authentication a = new UserAuthentication(getUserConfiguration(), root, sc.getUserID());
 
         try {
+            // authenticating group should fail
             a.authenticate(sc);
-            fail("Authenticating Group should fail");
-        } catch (LoginException e) {
-            // success
-            assertTrue(e instanceof AccountNotFoundException);
         } finally {
             g.remove();
             root.commit();
         }
     }
 
-    @Test
+    @Test(expected = AccountLockedException.class)
     public void testAuthenticateResolvesToDisabledUser() throws Exception {
         User testUser = getTestUser();
         SimpleCredentials sc = new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray());
@@ -113,11 +120,8 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             getTestUser().disable("disabled");
             root.commit();
 
+            // authenticating disabled user should fail
             a.authenticate(sc);
-            fail("Authenticating disabled user should fail");
-        } catch (LoginException e) {
-            // success
-            assertTrue(e instanceof AccountLockedException);
         } finally {
             getTestUser().disable(null);
             root.commit();
@@ -125,8 +129,8 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testAuthenticateInvalidSimpleCredentials() throws Exception {
-        List<Credentials> invalid = new ArrayList<Credentials>();
+    public void testAuthenticateInvalidSimpleCredentials() {
+        List<Credentials> invalid = new ArrayList<>();
         invalid.add(new SimpleCredentials(userId, "wrongPw".toCharArray()));
         invalid.add(new SimpleCredentials(userId, "".toCharArray()));
         invalid.add(new SimpleCredentials("unknownUser", "pw".toCharArray()));
@@ -142,15 +146,9 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
         }
     }
 
-    @Test
+    @Test(expected = FailedLoginException.class)
     public void testAuthenticateIdMismatch() throws Exception {
-        try {
-            authentication.authenticate(new SimpleCredentials("unknownUser", "pw".toCharArray()));
-            fail("LoginException expected");
-        } catch (LoginException e) {
-            // success
-            assertTrue(e instanceof FailedLoginException);
-        }
+        authentication.authenticate(new SimpleCredentials("unknownUser", "pw".toCharArray()));
     }
 
     @Test
@@ -159,12 +157,12 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testAuthenticateInvalidImpersonationCredentials() throws Exception {
-       List<Credentials> invalid = new ArrayList<Credentials>();
+    public void testAuthenticateInvalidImpersonationCredentials() {
+       List<Credentials> invalid = new ArrayList<>();
         invalid.add(new ImpersonationCredentials(new GuestCredentials(), adminSession.getAuthInfo()));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials(adminSession.getAuthInfo().getUserID(), new char[0]), new TestAuthInfo()));
+        invalid.add(new ImpersonationCredentials(new SimpleCredentials(adminSession.getAuthInfo().getUserID(), new char[0]), mockAuthInfo(userId)));
         invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), adminSession.getAuthInfo()));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), new TestAuthInfo()));
+        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), mockAuthInfo(userId)));
 
         for (Credentials creds : invalid) {
             try {
@@ -186,7 +184,27 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @Test
     public void testAuthenticateImpersonationCredentials2() throws Exception {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
-        assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, new TestAuthInfo())));
+        assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, mockAuthInfo(userId))));
+    }
+
+    @Test
+    public void testAuthenticateGuestCredentials() throws Exception {
+        UserAuthentication ua = new UserAuthentication(getUserConfiguration(), root, getUserConfiguration().getParameters().getConfigValue(UserConstants.PARAM_ANONYMOUS_ID, UserConstants.DEFAULT_ANONYMOUS_ID));
+        assertTrue(ua.authenticate(new GuestCredentials()));
+    }
+
+    @Test
+    public void testAuthenticatePreAuthCredentials() throws Exception {
+        assertTrue(authentication.authenticate(PreAuthenticatedLogin.PRE_AUTHENTICATED));
+    }
+
+    @Test(expected = LoginException.class)
+    public void testAuthenticateWithFailingUserLookup() throws Exception {
+        UserManager um = mock(UserManager.class, withSettings().defaultAnswer(new ThrowsException(new RepositoryException())));
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(any(Root.class), any(NamePathMapper.class))).thenReturn(um).getMock();
+
+        UserAuthentication ua = new UserAuthentication(uc, root, userId);
+        ua.authenticate(new SimpleCredentials(userId, userId.toCharArray()));
     }
 
     @Test(expected = IllegalStateException.class)
@@ -224,25 +242,10 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     //--------------------------------------------------------------------------
 
-    private final class TestAuthInfo implements AuthInfo {
-
-        @Override
-            public String getUserID() {
-                return userId;
-            }
-            @NotNull
-            @Override
-            public String[] getAttributeNames() {
-                return new String[0];
-            }
-            @Override
-            public Object getAttribute(String attributeName) {
-                return null;
-            }
-            @NotNull
-            @Override
-            public Set<Principal> getPrincipals() {
-                return null;
-            }
+    private static AuthInfo mockAuthInfo(@NotNull String uid) {
+        AuthInfo ai = mock(AuthInfo.class);
+        when(ai.getUserID()).thenReturn(uid);
+        when(ai.getAttributeNames()).thenReturn(new String[0]);
+        return ai;
     }
 }

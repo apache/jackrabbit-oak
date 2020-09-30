@@ -404,7 +404,7 @@ public class SessionContext implements NamePathMapper {
     }
 
     @NotNull
-    public AccessManager getAccessManager() throws RepositoryException {
+    public AccessManager getAccessManager() {
         if (accessManager == null) {
             accessManager = new AccessManager(delegate, delegate.getPermissionProvider());
         }

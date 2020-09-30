@@ -35,6 +35,7 @@ import javax.jcr.security.Privilege;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_POLICY;
 import static org.junit.Assert.assertEquals;
@@ -61,7 +62,7 @@ public class RemappedPrivilegeNamesTest extends AbstractAccessControlTest {
     }
 
     protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> jcrNames = Iterables.transform(Arrays.asList(privilegeNames), s -> getNamePathMapper().getJcrName(s));
+        Iterable<String> jcrNames = Arrays.stream(privilegeNames).map(s -> getNamePathMapper().getJcrName(s)).collect(Collectors.toList());
         return super.privilegesFromNames(jcrNames);
     }
 

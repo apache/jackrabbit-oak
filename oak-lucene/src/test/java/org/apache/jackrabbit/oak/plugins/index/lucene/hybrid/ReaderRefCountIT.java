@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -72,7 +72,7 @@ public class ReaderRefCountIT {
 
     @Test
     public void syncIndex() throws Exception{
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "sync");
 
@@ -82,7 +82,7 @@ public class ReaderRefCountIT {
 
     @Test
     public void nrtIndex() throws Exception{
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "nrt");
 
@@ -98,7 +98,7 @@ public class ReaderRefCountIT {
      */
     @Test
     public void indexTrackerUpdatesAndNRT() throws Exception{
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule("nt:base").property("foo").propertyIndex();
         idx.async("async", "nrt");
 
@@ -107,7 +107,7 @@ public class ReaderRefCountIT {
         runMultiReaderScenario(idx, nrtFactory, true);
     }
 
-    private void runMultiReaderScenario(IndexDefinitionBuilder defnb,
+    private void runMultiReaderScenario(LuceneIndexDefinitionBuilder defnb,
                                        NRTIndexFactory nrtFactory, boolean updateIndex) throws Exception{
         NodeBuilder builder = root.builder();
         builder.child("oak:index").setChildNode("fooIndex", defnb.build());

@@ -198,7 +198,7 @@ public class NodeDocumentSweeperTest {
         Iterable<NodeDocument> docs = seeker.getCandidates(startRev.getTimestamp());
         return sweeper.sweep(docs, new NodeDocumentSweepListener() {
             @Override
-            public void sweepUpdate(Map<String, UpdateOp> updates)
+            public void sweepUpdate(Map<Path, UpdateOp> updates)
                     throws DocumentStoreException {
                 ops.addAll(updates.values());
             }

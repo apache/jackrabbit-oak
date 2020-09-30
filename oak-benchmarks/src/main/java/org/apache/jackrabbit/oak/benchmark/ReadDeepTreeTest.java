@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import java.io.InputStream;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Item;
@@ -31,19 +32,25 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
-
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.util.Text;
+import java.io.InputStream;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Randomly read 1000 items from the deep tree.
  */
 public class ReadDeepTreeTest extends AbstractTest {
 
+    public static final int DEFAULT_ITEMS_TD_READ = 1000;
+    public static final int DEFAULT_REPEATED_READ = 1;
+
     protected final boolean runAsAdmin;
     protected final int itemsToRead;
+    protected final int repeatedRead;
     protected final boolean doReport;
 
     protected final boolean singleSession;
@@ -54,16 +61,22 @@ public class ReadDeepTreeTest extends AbstractTest {
     protected Session testSession;
 
     protected List<String> allPaths = new ArrayList<String>();
+    protected List<String> nodePaths = new ArrayList<>();
 
     protected ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
         this(runAsAdmin, itemsToRead, doReport, true);
     }
 
     public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport, boolean singleSession) {
+        this(runAsAdmin, itemsToRead, doReport, singleSession, DEFAULT_REPEATED_READ);
+    }
+
+    public ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport, boolean singleSession, int repeatedRead) {
         this.runAsAdmin = runAsAdmin;
         this.itemsToRead = itemsToRead;
         this.doReport = doReport;
         this.singleSession = singleSession;
+        this.repeatedRead = repeatedRead;
     }
 
     @Override
@@ -114,7 +127,11 @@ public class ReadDeepTreeTest extends AbstractTest {
     }
 
     protected void visitingNode(Node node, int i) throws RepositoryException {
-        allPaths.add(node.getPath());
+        String path = node.getPath();
+        allPaths.add(path);
+        if (!path.contains(AccessControlConstants.REP_POLICY)) {
+            nodePaths.add(path);
+        }
     }
 
     protected void visitingProperty(Property property, int i) throws RepositoryException {
@@ -139,33 +156,33 @@ public class ReadDeepTreeTest extends AbstractTest {
             logout = true;
         }
         try {
-            int nodeCnt = 0;
-            int propertyCnt = 0;
-            int noAccess = 0;
-            int size = allPaths.size();
+            Cnt accessCnt = new Cnt();
             long start = System.currentTimeMillis();
             for (int i = 0; i < cnt; i++) {
-                double rand = size * Math.random();
-                int index = (int) Math.floor(rand);
-                String path = allPaths.get(index);
-                if (testSession.itemExists(path)) {
-                    Item item = testSession.getItem(path);
-                    if (item.isNode()) {
-                        nodeCnt++;
-                    } else {
-                        propertyCnt++;
-                    }
-                } else {
-                    noAccess++;
-                }
+                readItem(testSession, getRandom(allPaths), accessCnt);
             }
             long end = System.currentTimeMillis();
             if (doReport) {
-                System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-noAccess) + " (Nodes: "+ nodeCnt +"; Properties: "+propertyCnt+") completed in " + (end - start));
+                System.out.println("Session " + testSession.getUserID() + " reading " + (cnt-accessCnt.noAccess) + " (Nodes: "+ accessCnt.nodeCnt +"; Properties: "+accessCnt.propertyCnt+") completed in " + (end - start));
             }
         } finally {
             if (logout) {
                 logout(testSession);
+            }
+        }
+    }
+
+    private void readItem(Session testSession, String path, Cnt cnt) throws RepositoryException {
+        for (int i = 0; i < repeatedRead; i++) {
+            if (testSession.itemExists(path)) {
+                Item item = testSession.getItem(path);
+                if (item.isNode()) {
+                    cnt.nodeCnt++;
+                } else {
+                    cnt.propertyCnt++;
+                }
+            } else {
+                cnt.noAccess++;
             }
         }
     }
@@ -210,4 +227,15 @@ public class ReadDeepTreeTest extends AbstractTest {
         return path;
     }
 
+    @NotNull
+    protected static String getRandom(@NotNull List<String> strings) {
+        int index = (int) Math.floor(strings.size() * Math.random());
+        return strings.get(index);
+    }
+
+    private static final class Cnt {
+        private int nodeCnt = 0;
+        private int propertyCnt = 0;
+        private int noAccess = 0;
+    }
 }

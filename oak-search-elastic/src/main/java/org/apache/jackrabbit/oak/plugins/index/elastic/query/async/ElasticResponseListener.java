@@ -1,0 +1,83 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
+
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.aggregations.Aggregations;
+
+import java.util.Collections;
+import java.util.Set;
+
+/**
+ * Generic listener of Elastic response
+ */
+public interface ElasticResponseListener {
+
+    Set<String> DEFAULT_SOURCE_FIELDS = Collections.singleton(FieldNames.PATH);
+
+    /**
+     * Returns the source fields this listener is interested on
+     *
+     * @return the list of fields to listen to (only PATH as default)
+     */
+    default Set<String> sourceFields() {
+        return DEFAULT_SOURCE_FIELDS;
+    }
+
+    /**
+     * This method is invoked when there is no more data to process.
+     */
+    void endData();
+
+    /**
+     * {@link ElasticResponseListener} extension to subscribe on {@link SearchHit} events
+     */
+    interface SearchHitListener extends ElasticResponseListener {
+
+        /**
+         * Returns {@code true} if the listener is interested in the entire result set
+         */
+        default boolean isFullScan() {
+            return false;
+        }
+
+        /**
+         * This method is invoked at the beginning of the listener lifecycle to notify the number of hits this
+         * listener could receive
+         * @param totalHits the total number of hits
+         */
+        default void startData(long totalHits) { /*empty*/ }
+
+        /**
+         * This method is called for each {@link SearchHit} retrieved
+         */
+        void on(SearchHit searchHit);
+    }
+
+    /**
+     * {@link ElasticResponseListener} extension to subscribe on {@link Aggregations} events
+     */
+    interface AggregationListener extends ElasticResponseListener {
+
+        /**
+         * This method is called once when the {@link Aggregations} are retrieved
+         * @param aggregations the {@link Aggregations} or {@code null} if there are no results
+         */
+        void on(Aggregations aggregations);
+    }
+}

@@ -25,7 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 
-import com.google.common.base.Predicate;
 import com.google.common.cache.RemovalCause;
 import com.google.common.collect.Lists;
 
@@ -39,12 +38,13 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStateCache;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.NamePathRev;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Counting;
@@ -57,9 +57,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -74,7 +71,7 @@ public class NodeCacheTest {
     private DocumentStore store;
     private DocumentNodeStore ns;
     private NodeCache<PathRev, DocumentNodeState> nodeCache;
-    private NodeCache<PathRev, DocumentNodeState.Children> nodeChildren;
+    private NodeCache<NamePathRev, DocumentNodeState.Children> nodeChildren;
     private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
 
@@ -93,8 +90,8 @@ public class NodeCacheTest {
         builder.child("c").child("d");
         AbstractDocumentNodeState root = (AbstractDocumentNodeState) ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        PathRev prc = new PathRev("/c", root.getRootRevision());
-        PathRev pra = new PathRev("/a", root.getRootRevision());
+        PathRev prc = new PathRev(Path.fromString("/c"), root.getRootRevision());
+        PathRev pra = new PathRev(Path.fromString("/a"), root.getRootRevision());
         Counting counter = nodeCache.getPersistentCacheStats().getPutRejectedAsCachedInSecCounter();
         long count0 = counter.getCount();
 
@@ -121,7 +118,7 @@ public class NodeCacheTest {
 
         assertContains(nodeCache, "/a/b");
         assertContains(nodeCache, "/a");
-        assertContains(nodeChildren, "/a");
+        assertPathNameRevs(nodeChildren, "/a", true);
 
         ns.setNodeStateCache(new PathExcludingCache("/c"));
 
@@ -131,14 +128,15 @@ public class NodeCacheTest {
         ns.getRoot().getChildNode("c").getChildNode("d");
         assertNotContains(nodeCache, "/c/d");
         assertNotContains(nodeCache, "/c");
-        assertNotContains(nodeChildren, "/c");
+        assertPathNameRevs(nodeChildren, "/c", false);
     }
 
     @Test
     public void cachePredicateSync() throws Exception{
-        PathFilter pf = new PathFilter(asList("/a"), emptyList());
-        Predicate<String> p = path -> pf.filter(path) == PathFilter.Result.INCLUDE;
-        initializeNodeStore(false, b -> b.setNodeCachePredicate(p));
+        Path a = Path.fromString("/a");
+        initializeNodeStore(false, b -> b.setNodeCachePathPredicate(
+                path -> path != null && (a.equals(path) || a.isAncestorOf(path))
+        ));
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("a").child("c1");
@@ -158,9 +156,10 @@ public class NodeCacheTest {
     // OAK-7153
     @Test
     public void persistentCacheAccessForIncludedPathOnly() throws Exception {
-        PathFilter pf = new PathFilter(singletonList("/a"), emptyList());
-        Predicate<String> p = path -> pf.filter(path) == PathFilter.Result.INCLUDE;
-        initializeNodeStore(false, b -> b.setNodeCachePredicate(p));
+        Path a = Path.fromString("/a");
+        initializeNodeStore(false, b -> b.setNodeCachePathPredicate(
+                path -> path != null && (a.equals(path) || a.isAncestorOf(path))
+        ));
 
         NodeBuilder builder = ns.getRoot().builder();
         builder.child("x");
@@ -234,7 +233,7 @@ public class NodeCacheTest {
 
         ns = builder.getNodeStore();
         nodeCache = (NodeCache<PathRev, DocumentNodeState>) ns.getNodeCache();
-        nodeChildren = (NodeCache<PathRev, DocumentNodeState.Children>) ns.getNodeChildrenCache();
+        nodeChildren = (NodeCache<NamePathRev, DocumentNodeState.Children>) ns.getNodeChildrenCache();
     }
 
 
@@ -264,10 +263,38 @@ public class NodeCacheTest {
         }
     }
 
+    private static <V extends CacheValue> void assertPathNameRevs(NodeCache<NamePathRev, V> cache, String path, boolean contains) {
+        List<NamePathRev> revs = getPathNameRevs(cache, path);
+        List<NamePathRev> matchingRevs = Lists.newArrayList();
+        for (NamePathRev pr : revs) {
+            if (cache.getGenerationalMap().containsKey(pr)) {
+                matchingRevs.add(pr);
+            }
+        }
+
+        if (contains && matchingRevs.isEmpty()) {
+            fail(String.format("Expecting entry for [%s]. Did not found in %s", path, matchingRevs));
+        }
+
+        if (!contains && !matchingRevs.isEmpty()) {
+            fail(String.format("Expecting entry for [%s]. Found %s", path, revs));
+        }
+    }
+
     private static <V extends CacheValue> List<PathRev> getPathRevs(NodeCache<PathRev, V> cache, String path) {
         List<PathRev> revs = Lists.newArrayList();
         for (PathRev pr : cache.asMap().keySet()) {
-            if (pr.getPath().equals(path)) {
+            if (pr.getPath().toString().equals(path)) {
+                revs.add(pr);
+            }
+        }
+        return revs;
+    }
+
+    private static <V extends CacheValue> List<NamePathRev> getPathNameRevs(NodeCache<NamePathRev, V> cache, String path) {
+        List<NamePathRev> revs = Lists.newArrayList();
+        for (NamePathRev pr : cache.asMap().keySet()) {
+            if (pr.getPath().toString().equals(path)) {
                 revs.add(pr);
             }
         }
@@ -282,14 +309,14 @@ public class NodeCacheTest {
         }
 
         @Override
-        public AbstractDocumentNodeState getDocumentNodeState(String path, RevisionVector rootRevision,
+        public AbstractDocumentNodeState getDocumentNodeState(Path path, RevisionVector rootRevision,
                                                               RevisionVector lastRev) {
             return null;
         }
 
         @Override
-        public boolean isCached(String path) {
-            if (path.startsWith(excludeRoot)) {
+        public boolean isCached(Path path) {
+            if (path.toString().startsWith(excludeRoot)) {
                 return true;
             }
             return false;

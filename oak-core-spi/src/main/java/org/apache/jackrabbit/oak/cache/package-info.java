@@ -14,7 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.1.0")
+
+/**
+ * <em>For Oak internal use only. Do not use outside Oak components.</em>
+ */
+@Internal(since = "1.1.1")
+@Version("1.1.1")
 package org.apache.jackrabbit.oak.cache;
 
+import org.apache.jackrabbit.oak.commons.annotations.Internal;
 import org.osgi.annotation.versioning.Version;

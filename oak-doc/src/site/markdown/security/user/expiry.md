@@ -39,7 +39,7 @@ to obtain a session/login and the password needs to be changed prior
 to a next attempt. For specifying the new password, the initial password 
 has to be provided.
 
-<a href="configuration"></a>
+<a name="configuration"></a>
 ### Configuration
 
 An administrator may enable password expiry and initial password change 
@@ -59,7 +59,7 @@ Note:
 - Maximum Password Age (`maxPasswordAge`) will only be enabled when a value greater 0 is set (expiration time in days).
 - Change Password On First Login (`initialPasswordChange`): When enabled, forces users to change their password upon first login.
 
-<a href="how"></a>
+<a name="how"></a>
 ### How it works
 
 #### Definition of Expired Password
@@ -170,7 +170,7 @@ is fitted with an additional attribute with name `PasswordHistoryException`.
 This attribute may contain the following two values:
 
 - _"New password was found in password history."_ or 
-- _""New password is identical to the current password."_
+- _"New password is identical to the current password."_
 
 #### XML Import
 
@@ -195,8 +195,17 @@ potential need to enable password expiry/force initial password change for the
 imported data to make sense, and/or the effect on already existing/overwritten
 data.
 
+With the changes made in the light of [OAK-8408](https://issues.apache.org/jira/browse/OAK-8408) 
+the following rules apply when importing a user without an extra `rep:pw` node:
+
+- if `initialPasswordChange` is enabled, `rep:passwordLastModified` will never be set irrespective if the user node is 
+  new or modified. i.e. the user will be force to change the pw upon login.
+- if `pw-expiry` is enabled, `rep:passwordLastModified` will only be set for a new user node (but not if node gets modified).
+  this ensures that the password will expire but doesn't reset the expiry when changing an existing user with XML import.
+- if both `initialPasswordChange` and `pw-expiry` are enabled, the rules for `initialPasswordChange` apply.
+
 <!-- hidden references -->
-[SimpleCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
+[SimpleCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
 [CredentialExpiredException]: https://docs.oracle.com/javase/7/docs/api/javax/security/auth/login/CredentialExpiredException.html
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
 [Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -38,7 +38,7 @@ public class LuceneIndexerTest {
 
     @Test
     public void nodeIndexed_WithIncludedPaths() throws Exception{
-        IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder();
         idxb.indexRule("nt:base").property("foo").propertyIndex();
         idxb.includedPaths("/content");
 

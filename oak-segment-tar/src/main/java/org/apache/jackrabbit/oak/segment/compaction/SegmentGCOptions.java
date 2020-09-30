@@ -44,6 +44,42 @@ public class SegmentGCOptions {
     }
 
     /**
+     * The compactor type
+     */
+    public enum CompactorType {
+        /**
+         * Simple compactor implementation
+         */
+        CLASSIC_COMPACTOR("classic"),
+
+        /**
+         * Checkpoints aware compaction implementation
+         */
+        CHECKPOINT_COMPACTOR("diff");
+
+        private final String description;
+
+        CompactorType(String description) {
+            this.description = description;
+        }
+
+        public static CompactorType fromDescription(String description) {
+            switch (description) {
+            case "classic":
+                return CLASSIC_COMPACTOR;
+            case "diff":
+                return CHECKPOINT_COMPACTOR;
+            default:
+                throw new IllegalArgumentException("Unrecongnized compactor type " + description);
+            }
+        }
+
+        public String description() {
+            return description;
+        }
+    }
+
+    /**
      * Default value for {@link #isPaused()}
      */
     public static final boolean PAUSE_DEFAULT = false;
@@ -112,6 +148,8 @@ public class SegmentGCOptions {
      * -1 for never.
      */
     private long gcLogInterval = -1;
+
+    private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
 
     public SegmentGCOptions(boolean paused, int retryCount, int forceTimeout) {
         this.paused = paused;
@@ -235,7 +273,9 @@ public class SegmentGCOptions {
         if (offline) {
             return getClass().getSimpleName() + "{" +
                     "offline=" + offline +
-                    ", retainedGenerations=" + retainedGenerations + "}";
+                    ", retainedGenerations=" + retainedGenerations +
+                    ", compactorType=" + compactorType +
+                    "}";
         } else {
             return getClass().getSimpleName() + "{" +
                     "paused=" + paused +
@@ -244,7 +284,9 @@ public class SegmentGCOptions {
                     ", retryCount=" + retryCount +
                     ", forceTimeout=" + forceTimeout +
                     ", retainedGenerations=" + retainedGenerations +
-                    ", gcType=" + gcType + "}";
+                    ", gcType=" + gcType +
+                    ", compactorType=" + compactorType +
+                    "}";
         }
     }
 
@@ -341,4 +383,19 @@ public class SegmentGCOptions {
         return gcLogInterval;
     }
 
+    /**
+     * @return the current compactor type (i.e. classic or checkpoint-aware)
+     */
+    public CompactorType getCompactorType() {
+        return compactorType;
+    }
+
+    /**
+     * Sets the compactor type to be used for compaction
+     * @param compactorType
+     */
+    public SegmentGCOptions setCompactorType(CompactorType compactorType) {
+        this.compactorType = compactorType;
+        return this;
+    }
 }

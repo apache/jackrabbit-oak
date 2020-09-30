@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static com.google.common.base.Suppliers.ofInstance;
+import static com.google.common.base.Suppliers.memoize;
 
 import javax.sql.DataSource;
 
@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
@@ -59,11 +58,7 @@ public class RDBDocumentNodeStoreBuilder
      * @return this
      */
     public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource ds, RDBOptions options) {
-        this.documentStoreSupplier = ofInstance(new RDBDocumentStore(ds, this, options));
-        if(blobStore == null) {
-            GarbageCollectableBlobStore s = new RDBBlobStore(ds, options);
-            setGCBlobStore(s);
-        }
+        setRDBConnection(ds, ds, options);
         return thisBuilder();
     }
 
@@ -74,10 +69,20 @@ public class RDBDocumentNodeStoreBuilder
      * @return this
      */
     public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-        this.documentStoreSupplier = ofInstance(new RDBDocumentStore(documentStoreDataSource, this));
-        if(blobStore == null) {
-            GarbageCollectableBlobStore s = new RDBBlobStore(blobStoreDataSource);
-            setGCBlobStore(s);
+        setRDBConnection(documentStoreDataSource, blobStoreDataSource, new RDBOptions());
+        return thisBuilder();
+    }
+
+    /**
+     * Sets a {@link DataSource}s to use for the RDB document and blob
+     * stores, including {@link RDBOptions}.
+     *
+     * @return this
+     */
+    public RDBDocumentNodeStoreBuilder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource, RDBOptions options) {
+        this.documentStoreSupplier = memoize(() -> new RDBDocumentStore(documentStoreDataSource, this, options));
+        if (this.blobStoreSupplier == null) {
+            this.blobStoreSupplier = memoize(() -> new RDBBlobStore(blobStoreDataSource, this, options));
         }
         return thisBuilder();
     }

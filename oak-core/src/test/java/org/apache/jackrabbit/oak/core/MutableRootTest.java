@@ -20,8 +20,10 @@ import java.security.Principal;
 import java.util.Set;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -40,13 +42,19 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class MutableRootTest {
 
     private final NodeStore store = new MemoryNodeStore();
-    private final TestPermissionProvider permissionProvider = new TestPermissionProvider();
+    private final TestPermissionProvider permissionProvider = spy(new TestPermissionProvider());
 
     private MutableRoot root;
 
@@ -98,6 +106,29 @@ public class MutableRootTest {
 
         assertEquals(canReadRootTree(t2), nb.exists());
         assertEquals(nb2.exists(), nb.exists());
+    }
+
+    @Test
+    public void testPermissionAware() throws CommitFailedException {
+        PermissionProvider pp = root.getPermissionProvider();
+        assertNotNull(pp);
+        assertSame(permissionProvider, pp);
+        assertSame(permissionProvider, root.getPermissionProvider());
+        root.refresh();
+        assertSame(permissionProvider, root.getPermissionProvider());
+        root.rebase();
+        assertSame(permissionProvider, root.getPermissionProvider());
+        root.commit();
+        assertSame(permissionProvider, root.getPermissionProvider());
+        verify(permissionProvider, times(3)).refresh();
+    }
+
+    @Test
+    public void testPermissionAwareNoValue() throws CommitFailedException {
+        root.refresh();
+        root.rebase();
+        root.commit();
+        verify(permissionProvider, never()).refresh();
     }
 
     private boolean canReadRootTree(@NotNull Tree t) {

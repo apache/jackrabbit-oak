@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import java.io.IOException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,7 +27,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
+import javax.security.auth.DestroyFailedException;
+import javax.security.auth.Destroyable;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -35,13 +39,15 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
@@ -50,9 +56,11 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.Repository
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.UserManagerCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.WhiteboardCallback;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TestPrincipalProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -60,42 +68,85 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-import org.mockito.Mockito;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule.SHARED_KEY_CREDENTIALS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 public class AbstractLoginModuleTest {
 
-    private static AbstractLoginModule initLoginModule(Class<?> supportedCredentials, Map<String, ?> sharedState) {
+    private static AbstractLoginModule initLoginModule(@NotNull Class<?> supportedCredentials, @NotNull  Map<String, ?> sharedState) {
         AbstractLoginModule lm = new TestLoginModule(supportedCredentials);
-        lm.initialize(new Subject(), null, sharedState, null);
+        initialize(lm, new Subject(), null, sharedState);
         return lm;
     }
 
-    private static AbstractLoginModule initLoginModule(Class<?> supportedCredentials, CallbackHandler cbh) {
-        AbstractLoginModule lm = new TestLoginModule(supportedCredentials);
-        lm.initialize(new Subject(), cbh, Collections.<String, Object>emptyMap(), null);
+    private static AbstractLoginModule initLoginModule(@Nullable CallbackHandler cbh) {
+        AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
+        initialize(lm, new Subject(), cbh, Collections.emptyMap());
         return lm;
+    }
+
+    private static AbstractLoginModule initLoginModule(@NotNull CallbackHandler cbh, @NotNull LoginModuleMonitor monitor) {
+        AbstractLoginModule lm = new TestLoginModule(TestCredentials.class, monitor);
+        initialize(lm, new Subject(), cbh, Collections.emptyMap());
+        return lm;
+    }
+
+    private static AbstractLoginModule initLoginModule(@NotNull Subject subject) {
+        AbstractLoginModule lm = new TestLoginModule(TestCredentials.class, null);
+        initialize(lm, subject, mock(CallbackHandler.class), Collections.emptyMap());
+        return lm;
+    }
+
+    private static void initialize(@NotNull AbstractLoginModule loginModule, @NotNull Subject subject, @Nullable CallbackHandler cbh, @NotNull Map<String, ?> sharedState) {
+        loginModule.initialize(subject, cbh, sharedState, null);
+    }
+
+    private static ContentRepository mockContentRepository(@Nullable ContentSession contentSession) throws Exception {
+        ContentSession cs = (contentSession == null) ? mock(ContentSession.class) : contentSession;
+        Root r = when(mock(Root.class).getContentSession()).thenReturn(cs).getMock();
+        when(cs.getLatestRoot()).thenReturn(r);
+        return when(mock(ContentRepository.class).login(null, null)).thenReturn(cs).getMock();
     }
 
     @Test
-    public void testLogout() {
+    public void testInitializeWithOptions() {
+        AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
+        Map options = ImmutableMap.of("key", "value");
+        lm.initialize(new Subject(), null, Collections.emptyMap(), options);
+
+        assertNotSame(options, lm.options);
+        assertEquals(options, lm.options);
+
+        ConfigurationParameters options2 = ConfigurationParameters.of(options);
+        lm.initialize(new Subject(), null, Collections.emptyMap(), options2);
+
+        assertSame(options2, lm.options);
+    }
+
+    @Test
+    public void testLogout() throws Exception {
         AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
 
         assertFalse(loginModule.logout());
     }
 
     @Test
-    public void testLogoutSuccess() {
+    public void testLogoutSuccessClearsSubject() throws Exception {
         Subject subject = new Subject(false, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), ImmutableSet.of(new TestCredentials()), ImmutableSet.of());
-
-        AbstractLoginModule loginModule = new TestLoginModule(TestCredentials.class);
-        loginModule.initialize(subject, null, ImmutableMap.<String, Object>of(), null);
+        AbstractLoginModule loginModule = initLoginModule(subject);
 
         assertTrue(loginModule.logout());
 
@@ -104,11 +155,9 @@ public class AbstractLoginModuleTest {
     }
 
     @Test
-    public void testLogoutSuccess2() {
+    public void testLogoutSuccessReadOnlySubject() throws Exception {
         Subject subject = new Subject(true, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), ImmutableSet.of(new TestCredentials()), ImmutableSet.of());
-
-        AbstractLoginModule loginModule = new TestLoginModule(TestCredentials.class);
-        loginModule.initialize(subject, null, ImmutableMap.<String, Object>of(), null);
+        AbstractLoginModule loginModule = initLoginModule(subject);
 
         assertTrue(loginModule.logout());
 
@@ -117,22 +166,224 @@ public class AbstractLoginModuleTest {
     }
 
     @Test
+    public void testLogoutSubjectWithoutCredentials() throws Exception {
+        Subject subject = new Subject(false, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), ImmutableSet.of("stringNotCredentials"), ImmutableSet.of());
+        AbstractLoginModule loginModule = initLoginModule(subject);
+        loginModule.logout();
+
+        assertFalse(subject.getPublicCredentials().isEmpty());
+        assertFalse(subject.getPrincipals().isEmpty());
+
+        subject = new Subject(false, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), ImmutableSet.of(), ImmutableSet.of());
+        loginModule = initLoginModule(subject);
+        loginModule.logout();
+
+        assertTrue(subject.getPublicCredentials().isEmpty());
+        assertFalse(subject.getPrincipals().isEmpty());
+    }
+
+    @Test
+    public void testLogoutSubjectWithoutPrincipals() throws Exception {
+        Subject subject = new Subject(false, ImmutableSet.<Principal>of(), ImmutableSet.of(new TestCredentials()), ImmutableSet.of());
+        AbstractLoginModule loginModule = initLoginModule(subject);
+        loginModule.logout();
+
+        assertFalse(subject.getPublicCredentials().isEmpty());
+        assertTrue(subject.getPrincipals().isEmpty());
+    }
+
+    @Test
+    public void testLogoutCPIgnored() throws LoginException {
+        AbstractLoginModule loginModule = initLoginModule(new Subject());
+        assertFalse(loginModule.logout(null, null));
+    }
+
+    @Test
+    public void testLogoutCPSuccess() throws LoginException {
+        PrincipalProvider pp = new TestPrincipalProvider("user");
+        Principal p = pp.getPrincipal("user");
+        Principal foreignPrincipal = TestPrincipalProvider.UNKNOWN;
+
+        String userId = TestPrincipalProvider.getIDFromPrincipal(p);
+        Set<? extends Principal> principals = pp.getPrincipals(userId);
+        Set<Principal> all = ImmutableSet.<Principal>builder().add(p).add(foreignPrincipal).addAll(principals).build();
+
+
+        AuthInfo authInfo = new AuthInfoImpl(userId, null, all);
+        Credentials foreign1 = new GuestCredentials();
+        Credentials foreign2 = new TokenCredentials("token");
+
+        Subject subject = new Subject(false,
+                ImmutableSet.of(foreignPrincipal, p),
+                ImmutableSet.of(authInfo, foreign1, foreign2), ImmutableSet.of());
+
+        TestLoginModule loginModule = new TestLoginModule(SimpleCredentials.class);
+        loginModule.initialize(subject, new TestCallbackHandler(pp), Collections.emptyMap(), null);
+
+        assertTrue(loginModule.logout(ImmutableSet.of(authInfo), principals));
+
+        Set publicCreds = subject.getPublicCredentials();
+        assertFalse(publicCreds.contains(authInfo));
+        assertTrue(publicCreds.contains(foreign1));
+        assertTrue(publicCreds.contains(foreign2));
+
+        assertFalse(subject.getPrincipals().contains(p));
+        assertTrue(Collections.disjoint(subject.getPrincipals(), principals));
+        assertTrue(subject.getPrincipals().contains(foreignPrincipal));
+    }
+
+    @Test
+    public void testLogoutCPDestroyable() throws Exception {
+        Credentials creds = mock(TestCredentials.class, withSettings().extraInterfaces(Destroyable.class));
+        Credentials foreign1 = new GuestCredentials();
+        Credentials foreign2 = new TokenCredentials("token");
+
+        Subject subject = new Subject(true,
+                ImmutableSet.<Principal>of(new PrincipalImpl("pName")),
+                ImmutableSet.of(creds, foreign1, foreign2), ImmutableSet.of());
+
+        AbstractLoginModule loginModule = initLoginModule(subject);
+        assertTrue(loginModule.logout(ImmutableSet.of(creds), Collections.emptySet()));
+
+        verify(((Destroyable) creds), times(1)).destroy();
+    }
+
+    @Test(expected = LoginException.class)
+    public void testLogoutCPDestroyFails() throws Exception {
+        Credentials creds = mock(TestCredentials.class, withSettings().extraInterfaces(Destroyable.class));
+        doThrow(new DestroyFailedException()).when((Destroyable)creds).destroy();
+
+        Subject subject = new Subject(true, ImmutableSet.of(), ImmutableSet.of(creds), ImmutableSet.of());
+        AbstractLoginModule loginModule = initLoginModule(subject);
+        loginModule.logout(ImmutableSet.of(creds), null);
+    }
+
+    @Test
+    public void testLogoutCPNotDestroyable() throws LoginException {
+        Credentials creds = new TestCredentials();
+        Subject subject = new Subject(true,
+                ImmutableSet.of(),
+                ImmutableSet.of(creds), ImmutableSet.of());
+
+        TestLoginModule loginModule = (TestLoginModule) initLoginModule(subject);
+        assertTrue(loginModule.logout(null, Collections.emptySet()));
+    }
+
+    @Test
+    public void testLogoutCPNullParams() throws LoginException {
+        Credentials creds = new TestCredentials();
+        Principal unknownPrincipal = TestPrincipalProvider.UNKNOWN;
+        TestPrincipalProvider pp = new TestPrincipalProvider("principal");
+
+        Subject subject = new Subject(false, ImmutableSet.of(unknownPrincipal), ImmutableSet.of(creds), ImmutableSet.of());
+
+        TestLoginModule loginModule = new TestLoginModule(SimpleCredentials.class);
+        loginModule.initialize(subject, new TestCallbackHandler(pp), Collections.emptyMap(), null);
+
+        assertFalse(loginModule.logout(null, null));
+        // subject must not be altered by logout
+        assertTrue(subject.getPublicCredentials().contains(creds));
+        assertTrue(subject.getPrincipals().contains(unknownPrincipal));
+    }
+
+    @Test
+    public void testLogoutCPMissingCredentials() throws LoginException {
+        Credentials creds = new TestCredentials();
+        Principal unknownPrincipal = TestPrincipalProvider.UNKNOWN;
+        TestPrincipalProvider pp = new TestPrincipalProvider("principal");
+        Principal p = pp.getPrincipal("principal");
+
+        Subject subject = new Subject(false, ImmutableSet.of(unknownPrincipal, p), ImmutableSet.of(creds), ImmutableSet.of());
+
+        TestLoginModule loginModule = new TestLoginModule(SimpleCredentials.class);
+        loginModule.initialize(subject, new TestCallbackHandler(pp), Collections.emptyMap(), null);
+
+        assertTrue(loginModule.logout(null, ImmutableSet.of(p)));
+
+        // only credentials/principals passed to logout must be removed
+        assertTrue(subject.getPublicCredentials().contains(creds));
+        assertTrue(subject.getPrincipals().contains(unknownPrincipal));
+        assertFalse(subject.getPrincipals().contains(p));
+    }
+
+    @Test
+    public void testLogoutCPMissingCredentialsReadOnly() throws LoginException {
+        Credentials creds = new TestCredentials();
+        Principal unknownPrincipal = TestPrincipalProvider.UNKNOWN;
+        TestPrincipalProvider pp = new TestPrincipalProvider("principal");
+        Principal p = pp.getPrincipal("principal");
+
+        Set<? extends Principal> principals = ImmutableSet.of(unknownPrincipal, p);
+        AuthInfo authInfo = new AuthInfoImpl(null, null, principals);
+        Subject subject = new Subject(true, principals, ImmutableSet.of(creds, authInfo), ImmutableSet.of());
+
+        TestLoginModule loginModule = new TestLoginModule(SimpleCredentials.class);
+        loginModule.initialize(subject, new TestCallbackHandler(pp), Collections.emptyMap(), null);
+
+        assertTrue(loginModule.logout(ImmutableSet.of(creds, authInfo), Collections.singleton(p)));
+        // read-only subject must not be altered by logout
+        assertTrue(subject.getPublicCredentials().contains(creds));
+        assertTrue(subject.getPrincipals().contains(unknownPrincipal));
+        assertTrue(subject.getPrincipals().contains(p));
+    }
+
+    @Test
+    public void testLogoutCPMissingPrincipals() throws LoginException {
+        Credentials creds = new TestCredentials();
+        Principal preExisting = new PrincipalImpl("pName");
+
+        Subject subject = new Subject(false, ImmutableSet.of(preExisting), ImmutableSet.of(creds), ImmutableSet.of());
+        TestLoginModule loginModule = (TestLoginModule) initLoginModule(subject);
+        assertTrue(loginModule.logout(ImmutableSet.of(creds), null));
+
+        assertFalse(subject.getPublicCredentials().contains(creds));
+        assertTrue(subject.getPrincipals().contains(preExisting));
+    }
+
+    @Test
     public void testAbort() throws LoginException {
         AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, ImmutableMap.of());
 
         assertTrue(loginModule.abort());
-
-        loginModule.login();
-        assertTrue(loginModule.abort());
     }
 
     @Test
-    public void testAbortWithFailedSystemLogout() throws LoginException {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new TestContentRepository(), null, null));
+    public void testAbortWithFailedSystemLogout() throws Exception {
+        ContentRepository cr = mockContentRepository(null);
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(cr, null));
 
         // trigger creation of system-session
         loginModule.getRoot();
         assertTrue(loginModule.abort());
+    }
+
+    @Test
+    public void testClearStateWithSessionCloseFailing() throws Exception {
+        ContentSession cs = mock(ContentSession.class);
+        ContentRepository cr = mockContentRepository(cs);
+        doThrow(IOException.class).when(cs).close();
+
+        LoginModuleStats stats = newLoginModuleStats();
+        CallbackHandler cbh = new TestCallbackHandler(cr, mock(SecurityProvider.class));
+
+        AbstractLoginModule loginModule = initLoginModule(cbh, stats);
+        loginModule.getRoot();
+        loginModule.clearState();
+        assertEquals(1, stats.getLoginErrors());
+        verify(cs, times(1)).close();
+    }
+
+    @Test
+    public void testCloseSystemSession() throws Exception {
+        ContentSession cs = mock(ContentSession.class);
+        ContentRepository cr = mockContentRepository(cs);
+
+        CallbackHandler cbh = new TestCallbackHandler(cr, mock(SecurityProvider.class));
+
+        AbstractLoginModule loginModule = initLoginModule(cbh);
+        loginModule.getRoot();
+        loginModule.closeSystemSession();
+        verify(cs, times(1)).close();
     }
 
     @Test
@@ -152,18 +403,18 @@ public class AbstractLoginModuleTest {
     public void testGetSharedCredentials() {
         Map<String, Object> sharedState = new HashMap<>();
 
-        sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TestCredentials());
+        sharedState.put(SHARED_KEY_CREDENTIALS, new TestCredentials());
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, sharedState);
         assertTrue(lm.getSharedCredentials() instanceof TestCredentials);
 
-        sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new SimpleCredentials("test", "test".toCharArray()));
+        sharedState.put(SHARED_KEY_CREDENTIALS, new SimpleCredentials("test", "test".toCharArray()));
         lm = initLoginModule(TestCredentials.class, sharedState);
         assertTrue(lm.getSharedCredentials() instanceof SimpleCredentials);
 
         lm = initLoginModule(SimpleCredentials.class, sharedState);
         assertTrue(lm.getSharedCredentials() instanceof SimpleCredentials);
 
-        sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, "no credentials object");
+        sharedState.put(SHARED_KEY_CREDENTIALS, "no credentials object");
         lm = initLoginModule(TestCredentials.class, sharedState);
         assertNull(lm.getSharedCredentials());
 
@@ -175,17 +426,17 @@ public class AbstractLoginModuleTest {
     @Test
     public void testGetCredentialsFromSharedState() {
         Map<String, Credentials> sharedState = new HashMap<>();
+        sharedState.put(SHARED_KEY_CREDENTIALS, new TestCredentials());
 
-        sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TestCredentials());
         AbstractLoginModule lm = initLoginModule(TestCredentials.class, sharedState);
         assertTrue(lm.getCredentials() instanceof TestCredentials);
 
         SimpleCredentials sc = new SimpleCredentials("test", "test".toCharArray());
-        sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc);
+        sharedState.put(SHARED_KEY_CREDENTIALS, sc);
         lm = initLoginModule(TestCredentials.class, sharedState);
         assertNull(lm.getCredentials());
 
-        sharedState.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc);
+        sharedState.put(SHARED_KEY_CREDENTIALS, sc);
         lm = initLoginModule(SimpleCredentials.class, sharedState);
         assertTrue(lm.getCredentials() instanceof SimpleCredentials);
 
@@ -197,8 +448,6 @@ public class AbstractLoginModuleTest {
     @Test
     public void testGetCredentialsFromSubject() {
         Subject subject = new Subject();
-
-
         subject.getPublicCredentials().add(new TestCredentials());
 
         AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
@@ -213,40 +462,55 @@ public class AbstractLoginModuleTest {
         subject.getPublicCredentials().add(new SimpleCredentials("userid", new char[0]));
 
         AbstractLoginModule lm = new TestLoginModule(TestCredentials.class);
-        lm.initialize(subject, null, ImmutableMap.<String, Object>of(), null);
+        lm.initialize(subject, null, Collections.emptyMap(), null);
 
         assertNull(lm.getCredentials());
     }
 
     @Test
     public void testGetCredentialsFromCallbackHandler() {
-        CallbackHandler cbh = new CallbackHandler() {
-            @Override
-            public void handle(Callback[] callbacks) {
-                for (Callback cb : callbacks) {
-                    if (cb instanceof CredentialsCallback) {
-                        ((CredentialsCallback) cb).setCredentials(new TestCredentials());
-                    }
+        CallbackHandler cbh = callbacks -> {
+            for (Callback cb : callbacks) {
+                if (cb instanceof CredentialsCallback) {
+                    ((CredentialsCallback) cb).setCredentials(new TestCredentials());
                 }
             }
         };
 
-        AbstractLoginModule lm = initLoginModule(TestCredentials.class, cbh);
+        AbstractLoginModule lm = initLoginModule(cbh);
         assertTrue(lm.getCredentials() instanceof TestCredentials);
 
-        lm = initLoginModule(SimpleCredentials.class, cbh);
+        lm = new TestLoginModule(SimpleCredentials.class);
+        lm.initialize(new Subject(), cbh, Collections.emptyMap(), null);
         assertNull(lm.getCredentials());
     }
 
     @Test
     public void testGetCredentialsIOException() {
-        AbstractLoginModule lm = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+        LoginModuleMonitor monitor = mock(LoginModuleMonitor.class);
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(true), monitor);
         assertNull(lm.getCredentials());
+        verify(monitor, times(1)).loginError();
     }
 
     @Test
     public void testGetCredentialsUnsupportedCallbackException() {
-        AbstractLoginModule lm = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+        LoginModuleMonitor monitor = mock(LoginModuleMonitor.class);
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(false), monitor);
+        assertNull(lm.getCredentials());
+        verify(monitor, times(1)).loginError();
+    }
+
+    @Test
+    public void testGetCredentialsCallbackReturnsNull() {
+        CallbackHandler cbh = callbacks -> {
+            for (Callback cb : callbacks) {
+                if (cb instanceof CredentialsCallback) {
+                    ((CredentialsCallback) cb).setCredentials(null);
+                }
+            }
+        };
+        AbstractLoginModule lm = initLoginModule(cbh);
         assertNull(lm.getCredentials());
     }
 
@@ -279,15 +543,15 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testIncompleteRepositoryCallback() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler());
 
         assertNull(loginModule.getSecurityProvider());
         assertNull(loginModule.getRoot());
     }
 
     @Test
-    public void testGetRoot() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new TestContentRepository(), null, null));
+    public void testGetRoot() throws Exception {
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(mockContentRepository(null), null));
 
         Root root = loginModule.getRoot();
         assertNotNull(root);
@@ -304,9 +568,7 @@ public class AbstractLoginModuleTest {
     @Test
     public void testGetRootIOException() {
         LoginModuleStats stats = newLoginModuleStats();
-        TestLoginModule lm = new TestLoginModule(TestCredentials.class, stats);
-        lm.initialize(new Subject(), new ThrowingCallbackHandler(true), Collections.emptyMap(), null);
-
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(true), stats);
         assertNull(lm.getRoot());
         assertEquals(1, stats.getLoginErrors());
     }
@@ -314,16 +576,20 @@ public class AbstractLoginModuleTest {
     @Test
     public void testGetRootUnsupportedCallbackException() {
         LoginModuleStats stats = newLoginModuleStats();
-        TestLoginModule lm = new TestLoginModule(TestCredentials.class, stats);
-        lm.initialize(new Subject(), new ThrowingCallbackHandler(false), Collections.emptyMap(), null);
-
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(false), stats);
         assertNull(lm.getRoot());
         assertEquals(1, stats.getLoginErrors());
     }
 
     @Test
+    public void testGetRootMissingCallbackHandler() {
+        AbstractLoginModule loginModule = initLoginModule((CallbackHandler) null);
+        assertNull(loginModule.getRoot());
+    }
+
+    @Test
     public void testGetSecurityProvider() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(null, new OpenSecurityProvider(), null));
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(null, new OpenSecurityProvider()));
 
         SecurityProvider securityProvider = loginModule.getSecurityProvider();
         assertNotNull(securityProvider);
@@ -333,21 +599,27 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetSecurityProviderIOException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+        AbstractLoginModule loginModule = initLoginModule(new ThrowingCallbackHandler(true));
 
         assertNull(loginModule.getSecurityProvider());
     }
 
     @Test
     public void testGetSecurityProviderUnsupportedCallbackException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+        AbstractLoginModule loginModule = initLoginModule(new ThrowingCallbackHandler(false));
 
         assertNull(loginModule.getRoot());
     }
 
     @Test
+    public void testGetSecurityProviderMissingCallbackHandler() {
+        AbstractLoginModule loginModule = initLoginModule((CallbackHandler) null);
+        assertNull(loginModule.getSecurityProvider());
+    }
+
+    @Test
     public void testGetWhiteboardFromCallback() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new DefaultWhiteboard()));
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(new DefaultWhiteboard()));
 
         Whiteboard wb = loginModule.getWhiteboard();
         assertNotNull(wb);
@@ -358,28 +630,34 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetWhiteboardFromIncompleteCallback() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler());
 
         assertNull(loginModule.getWhiteboard());
     }
 
     @Test
     public void testGetWhiteboardIOException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+        AbstractLoginModule loginModule = initLoginModule(new ThrowingCallbackHandler(true));
 
         assertNull(loginModule.getWhiteboard());
     }
 
     @Test
     public void testGetWhiteboardUnsupportedCallbackException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+        AbstractLoginModule loginModule = initLoginModule(new ThrowingCallbackHandler(false));
 
         assertNull(loginModule.getWhiteboard());
     }
 
     @Test
+    public void testGetWhiteBoardMissingCallbackHandler() {
+        AbstractLoginModule loginModule = initLoginModule((CallbackHandler) null);
+        assertNull(loginModule.getWhiteboard());
+    }
+
+    @Test
     public void testGetUserManagerFromCallback() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(Mockito.mock(UserManager.class)));
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(mock(UserManager.class)));
 
         UserManager userManager = loginModule.getUserManager();
         assertNotNull(userManager);
@@ -389,28 +667,67 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetUserManagerFromIncompleteCallback() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler());
 
         assertNull(loginModule.getUserManager());
     }
 
     @Test
     public void testGetUserManagerIOException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+        AbstractLoginModule loginModule = initLoginModule(new ThrowingCallbackHandler(true));
 
         assertNull(loginModule.getUserManager());
     }
 
     @Test
     public void testGetUserManagerUnsupportedCallbackException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+        AbstractLoginModule loginModule = initLoginModule(new ThrowingCallbackHandler(false));
 
         assertNull(loginModule.getUserManager());
     }
 
     @Test
+    public void testGetUserManagerWithRepositoryCallbackHandler() throws Exception {
+        Root r = mock(Root.class);
+        ContentSession cs = when(mock(ContentSession.class).getLatestRoot()).thenReturn(r).getMock();
+        ContentRepository cp = when(mock(ContentRepository.class).login(null, null)).thenReturn(cs).getMock();
+        UserManager um = mock(UserManager.class);
+        UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(r, NamePathMapper.DEFAULT)).thenReturn(um).getMock();
+        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
+
+        CallbackHandler cbh = new TestCallbackHandler(cp, sp);
+        AbstractLoginModule loginModule = initLoginModule(cbh);
+        assertEquals(um, loginModule.getUserManager());
+    }
+
+    @Test
+    public void testGetUserManagerMissingCallbackHandler() {
+        AbstractLoginModule loginModule = initLoginModule((CallbackHandler) null);
+        assertNull(loginModule.getUserManager());
+    }
+
+    @Test
+    public void testGetUserManagerMissingRoot() throws Exception {
+        ContentRepository cp = when(mock(ContentRepository.class).login(null, null)).thenReturn(mock(ContentSession.class)).getMock();
+
+        CallbackHandler cbh = new TestCallbackHandler(cp, mock(SecurityProvider.class));
+        AbstractLoginModule loginModule = initLoginModule(cbh);
+        assertNull(loginModule.getUserManager());
+    }
+
+    @Test
+    public void testGetUserManagerMissingSecurityProvider() throws Exception {
+        ContentSession cs = when(mock(ContentSession.class).getLatestRoot()).thenReturn(mock(Root.class)).getMock();
+        ContentRepository cp = when(mock(ContentRepository.class).login(null, null)).thenReturn(cs).getMock();
+
+        CallbackHandler cbh = new TestCallbackHandler(cp, null);
+        AbstractLoginModule loginModule = initLoginModule(cbh);
+        assertNull(loginModule.getUserManager());
+    }
+
+    @Test
     public void testGetPrincipalProviderFromCallback() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(new TestPrincipalProvider()));
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(new TestPrincipalProvider()));
 
         assertNotNull(loginModule.getPrincipalProvider());
 
@@ -422,22 +739,61 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetPrincipalProviderFromIncompleteCallback() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler());
 
         assertNull(loginModule.getPrincipalProvider());
     }
 
     @Test
     public void testGetPrincipalProviderIOException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(true));
+        AbstractLoginModule loginModule = initLoginModule(new ThrowingCallbackHandler(true));
 
         assertNull(loginModule.getPrincipalProvider());
     }
 
     @Test
     public void testGetPrincipalProviderUnsupportedCallbackException() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new ThrowingCallbackHandler(false));
+        AbstractLoginModule loginModule = initLoginModule(new ThrowingCallbackHandler(false));
 
+        assertNull(loginModule.getPrincipalProvider());
+    }
+
+    @Test
+    public void testGetPrincipalProviderWithRepositoryCallbackHandler() throws Exception {
+        Root r = mock(Root.class);
+        ContentSession cs = when(mock(ContentSession.class).getLatestRoot()).thenReturn(r).getMock();
+        ContentRepository cp = when(mock(ContentRepository.class).login(null, null)).thenReturn(cs).getMock();
+        PrincipalProvider pp = mock(PrincipalProvider.class);
+        PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(r, NamePathMapper.DEFAULT)).thenReturn(pp).getMock();
+        SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+
+        CallbackHandler cbh = new TestCallbackHandler(cp, sp);
+        AbstractLoginModule loginModule = initLoginModule(cbh);
+        assertEquals(pp, loginModule.getPrincipalProvider());
+    }
+
+    @Test
+    public void testGetPrincipalProviderMissingCallbackHandler() {
+        AbstractLoginModule loginModule = initLoginModule((CallbackHandler) null);
+        assertNull(loginModule.getPrincipalProvider());
+    }
+
+    @Test
+    public void testGetPrincipalProviderMissingRoot() throws Exception {
+        ContentRepository cp = when(mock(ContentRepository.class).login(null, null)).thenReturn(mock(ContentSession.class)).getMock();
+
+        CallbackHandler cbh = new TestCallbackHandler(cp, mock(SecurityProvider.class));
+        AbstractLoginModule loginModule = initLoginModule(cbh);
+        assertNull(loginModule.getPrincipalProvider());
+    }
+
+    @Test
+    public void testGetPrincipalProviderMissingSecurityProvider() throws Exception {
+        ContentSession cs = when(mock(ContentSession.class).getLatestRoot()).thenReturn(mock(Root.class)).getMock();
+        ContentRepository cp = when(mock(ContentRepository.class).login(null, null)).thenReturn(cs).getMock();
+
+        CallbackHandler cbh = new TestCallbackHandler(cp, null);
+        AbstractLoginModule loginModule = initLoginModule(cbh);
         assertNull(loginModule.getPrincipalProvider());
     }
 
@@ -445,7 +801,7 @@ public class AbstractLoginModuleTest {
     public void testGetPrincipals() {
         PrincipalProvider principalProvider = new TestPrincipalProvider();
 
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(principalProvider));
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(principalProvider));
 
         Principal principal = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).next();
         String userId = TestPrincipalProvider.getIDFromPrincipal(principal);
@@ -458,7 +814,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetPrincipalsMissingProvider() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler());
 
         Set<? extends Principal> principals = loginModule.getPrincipals("userId");
         assertTrue(principals.isEmpty());
@@ -468,7 +824,7 @@ public class AbstractLoginModuleTest {
     public void testGetPrincipalsFromPrincipal() {
         PrincipalProvider principalProvider = new TestPrincipalProvider();
 
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler(principalProvider));
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(principalProvider));
 
         Principal principal = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).next();
         Set<Principal> expected = new HashSet<>();
@@ -483,7 +839,7 @@ public class AbstractLoginModuleTest {
 
     @Test
     public void testGetPrincipalsFromPrincipalMissingProvider() {
-        AbstractLoginModule loginModule = initLoginModule(TestCredentials.class, new TestCallbackHandler());
+        AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler());
 
         Set<? extends Principal> principals = loginModule.getPrincipals(new PrincipalImpl("principalName"));
         assertTrue(principals.isEmpty());
@@ -516,57 +872,53 @@ public class AbstractLoginModuleTest {
     @Test
     public void testOnError() {
         LoginModuleStats stats = newLoginModuleStats();
-
-        CallbackHandler cbh = new CallbackHandler() {
-            @Override
-            public void handle(Callback[] callbacks) {
-                for (Callback cb : callbacks) {
-                    if (cb instanceof RepositoryCallback) {
-                        ((RepositoryCallback) cb).setLoginModuleMonitor(stats);
-                    }
+        CallbackHandler cbh = callbacks -> {
+            for (Callback cb : callbacks) {
+                if (cb instanceof RepositoryCallback) {
+                    ((RepositoryCallback) cb).setLoginModuleMonitor(stats);
                 }
             }
         };
 
-        AbstractLoginModule lm = new AbstractLoginModule() {
-
-            @Override
-            public boolean login() throws LoginException {
-                return false;
-            }
-
-            @Override
-            public boolean commit() throws LoginException {
-                return false;
-            }
-
-            @Override
-            protected Set<Class> getSupportedCredentials() {
-                return Collections.singleton(TestCredentials.class);
-            }
-        };
-        lm.initialize(new Subject(), cbh, Collections.<String, Object>emptyMap(), null);
-
+        AbstractLoginModule lm = initLoginModule(cbh);
         assertTrue(lm.getLoginModuleMonitor() instanceof LoginModuleStats);
         lm.onError();
         assertEquals(1, stats.getLoginErrors());
     }
 
+    @Test
+    public void testNullLoginModuleMonitor() {
+        LoginModuleStats stats = newLoginModuleStats();
+        AbstractLoginModule lm = initLoginModule((CallbackHandler) null);
+        assertNull(lm.getLoginModuleMonitor());
+        lm.onError();
+        assertEquals(0, stats.getLoginErrors());
+    }
+
+    @Test
+    public void testErrorOnGetLoginModuleMonitor() {
+        LoginModuleStats stats = newLoginModuleStats();
+        AbstractLoginModule lm = initLoginModule(new ThrowingCallbackHandler(true));
+
+        assertNull(lm.getLoginModuleMonitor());
+        lm.onError();
+        assertEquals(0, stats.getLoginErrors());
+    }
+
     //--------------------------------------------------------------------------
 
-    private final class TestCredentials implements Credentials {}
+    private class TestCredentials implements Credentials {}
 
     private static final class TestLoginModule extends AbstractLoginModule {
 
         private final Class supportedCredentialsClass;
+        private final LoginModuleMonitor mon;
 
-        private LoginModuleMonitor mon = LoginModuleMonitor.NOOP;
-
-        private TestLoginModule(Class supportedCredentialsClass) {
-            this.supportedCredentialsClass = supportedCredentialsClass;
+        private TestLoginModule(@NotNull Class supportedCredentialsClass) {
+            this(supportedCredentialsClass, null);
         }
 
-        private TestLoginModule(Class supportedCredentialsClass, LoginModuleMonitor mon) {
+        private TestLoginModule(@NotNull Class supportedCredentialsClass, @Nullable LoginModuleMonitor mon) {
             this.supportedCredentialsClass = supportedCredentialsClass;
             this.mon = mon;
         }
@@ -579,17 +931,21 @@ public class AbstractLoginModuleTest {
 
         @Override
         public boolean login() {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public boolean commit() {
-            return true;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         protected LoginModuleMonitor getLoginModuleMonitor() {
-            return mon;
+            if (mon != null) {
+                return mon;
+            } else {
+                return super.getLoginModuleMonitor();
+            }
         }
     }
 
@@ -600,7 +956,6 @@ public class AbstractLoginModuleTest {
         private PrincipalProvider principalProvider = null;
         private ContentRepository contentRepository = null;
         private SecurityProvider securityProvider = null;
-        private String workspaceName = null;
 
         private TestCallbackHandler() {
         }
@@ -617,7 +972,7 @@ public class AbstractLoginModuleTest {
             this.principalProvider = principalProvider;
         }
 
-        private TestCallbackHandler(@Nullable ContentRepository contentRepository, @Nullable SecurityProvider securityProvider, @Nullable String workspaceName) {
+        private TestCallbackHandler(@Nullable ContentRepository contentRepository, @Nullable SecurityProvider securityProvider) {
             this.contentRepository = contentRepository;
             this.securityProvider = securityProvider;
         }
@@ -637,33 +992,11 @@ public class AbstractLoginModuleTest {
                     RepositoryCallback rcb = (RepositoryCallback) cb;
                     rcb.setContentRepository(contentRepository);
                     rcb.setSecurityProvider(securityProvider);
-                    rcb.setWorkspaceName(workspaceName);
                     rcb.setLoginModuleMonitor(LoginModuleMonitor.NOOP);
                 } else {
                     throw new UnsupportedCallbackException(cb);
                 }
             }
-
-        }
-
-    }
-
-    private final class TestContentRepository implements ContentRepository {
-
-        @NotNull
-        @Override
-        public ContentSession login(@Nullable Credentials credentials, @Nullable String workspaceName) {
-            ContentSession cs = Mockito.mock(ContentSession.class);
-            Root root = Mockito.mock(Root.class);
-            Mockito.when(cs.getLatestRoot()).thenReturn(root);
-            return cs;
-
-        }
-
-        @NotNull
-        @Override
-        public Descriptors getDescriptors() {
-            throw new UnsupportedOperationException();
         }
     }
 }

@@ -236,8 +236,36 @@ implementation on various levels:
 2. Within the default authentication setup you replace or extend the set of
    login modules and their individual settings. In an OSGi-base setup is achieved
    by making the modules accessible to the framework and setting their execution
-   order accordingly. In a Non-OSGi setup this is specified in the [JAAS config].
+   order accordingly. In a non-OSGi setup this is specified in the [JAAS config].
 
+##### Examples
+
+###### Custom LoginModule in non-OSGi setup
+
+    import javax.security.auth.login.AppConfigurationEntry
+    import javax.security.auth.login.Configuration;
+    
+    AppConfigurationEntry[] entries = new AppConfigurationEntry[]{new DefaultEntry(options)};
+    Configuration c = new Configuration() {
+         @Override
+         public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
+             Map<String, ?> options = [....];
+             
+             // choose control flag for custom login module (example here: REQUIRED)
+             AppConfigurationEntry.LoginModuleControlFlag flag = LoginModuleControlFlag.SUFFICIENT;
+             
+             // create an entry for your custom login module
+             AppConfigurationEntry customEntry = new AppConfigurationEntry("your.org.LoginModuleClassName", flag, options)
+             
+             // additionally use the oak default login module
+             AppConfigurationEntry defaultEntry = new AppConfigurationEntry(("org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl", LoginModuleControlFlag.REQUIRED, options)
+             
+             // define array of all entries in the correct order according to your needs
+             return new AppConfigurationEntry[]{customEntry, defaultEntry};
+         }
+    };
+    Configuration.setConfiguration(c);
+    
 <a name="further_reading"></a>
 ### Further Reading
 
@@ -253,9 +281,9 @@ implementation on various levels:
 <!-- references -->
 [javax.security.auth.spi.LoginModule]: http://docs.oracle.com/javase/6/docs/api/javax/security/auth/spi/LoginModule.html
 [javax.security.auth.login.Configuration]: http://docs.oracle.com/javase/6/docs/api/javax/security/auth/login/Configuration.html
-[javax.jcr.GuestCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
-[javax.jcr.SimpleCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
-[javax.jcr.Repository]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Repository.html
+[javax.jcr.GuestCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
+[javax.jcr.SimpleCredentials]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
+[javax.jcr.Repository]: https://docs.adobe.com/docs/en/spec/javax.jcr/javadocs/jcr-2.0/javax/jcr/Repository.html
 [org.apache.jackrabbit.api.JackrabbitRepository]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/JackrabbitRepository.java
 [AuthInfoImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthInfoImpl.html
 [AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/AuthInfo.html

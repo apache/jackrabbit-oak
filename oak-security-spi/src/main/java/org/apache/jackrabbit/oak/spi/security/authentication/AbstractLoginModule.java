@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
+import javax.security.auth.DestroyFailedException;
+import javax.security.auth.Destroyable;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -33,6 +35,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -185,14 +188,36 @@ public abstract class AbstractLoginModule implements LoginModule {
         this.options = (options == null) ? ConfigurationParameters.EMPTY : ConfigurationParameters.of(options);
     }
 
+    /**
+     * Besteffort default implementation of {@link LoginModule#logout()}, which removes all principals and all public
+     * credentials of type {@link Credentials} and {@link AuthInfo} from the subject.
+     * It will return {@code false}, if either principal set or credentials set is empty.
+     *
+     * Note, that this implementation is not able to only remove those principals/credentials that have been added
+     * by {@code this} very login module instance. Therefore subclasses should overwrite this method to provide a fully
+     * compliant solution of {@link #logout()}. They may however take advantage of {@link #logout(Set, Set)}
+     * in order to simplify the implementation of a logout that is compatible with the {@link LoginModule#logout()}
+     * contract incorporating the additional recommendations highlighted at
+     * <a href="https://docs.oracle.com/en/java/javase/13/security/java-authentication-and-authorization-service-jaas-loginmodule-developers-guide1.html#GUID-E9C5810B-ADB6-4454-869D-B269ECA8145F__LOGINMODULE.LOGOUTMETHOD-21144F6A">JAAS LoginModule Dev Guide</a>
+     *
+     * @return {@code true} if neither principals nor public credentials of type {@link Credentials} or {@link AuthInfo}
+     * stored in the {@link Subject} are empty; {@code false} otherwise
+     * @throws LoginException if the subject is readonly and destroying {@link Destroyable} credentials fails
+     * with {@link DestroyFailedException}.
+     */
     @Override
-    public boolean logout() {
+    public boolean logout() throws LoginException {
         boolean success = false;
-        if (!subject.getPrincipals().isEmpty() && !subject.getPublicCredentials(Credentials.class).isEmpty()) {
+        Set<Object> creds = ImmutableSet.builder()
+                .addAll(subject.getPublicCredentials(Credentials.class))
+                .addAll(subject.getPublicCredentials(AuthInfo.class)).build();
+        if (!subject.getPrincipals().isEmpty() && !creds.isEmpty()) {
             // clear subject if not readonly
             if (!subject.isReadOnly()) {
                 subject.getPrincipals().clear();
-                subject.getPublicCredentials().clear();
+                subject.getPublicCredentials().removeAll(creds);
+            } else {
+                destroyCredentials(creds);
             }
             success = true;
         }
@@ -212,7 +237,15 @@ public abstract class AbstractLoginModule implements LoginModule {
      */
     protected void clearState() {
         securityProvider = null;
-        root = null;
+        closeSystemSession();
+    }
+
+    /**
+     * Close the system session acquired upon {@link #getRoot()} and reset the associated root field.
+     * This method should be used instead of {@link #clearState()}, if {@link #login()} and {@link #commit()} were
+     * successfully completed but the system session is not needed for a successful {@link #logout()}
+     */
+    protected void closeSystemSession() {
         if (systemSession != null) {
             try {
                 systemSession.close();
@@ -221,6 +254,52 @@ public abstract class AbstractLoginModule implements LoginModule {
                 log.error(e.getMessage(), e);
             }
             systemSession = null;
+            root = null;
+        }
+    }
+
+    /**
+     * General logout-helper that will return {@code false} if both {@code credentials} and {@code principals} are {@code null}.
+     * Note, that this implementation will only throw {@code LoginException} if the {@code subject} is marked readonly
+     * and destroying {@link Destroyable} credentials fails.
+     *
+     * @param credentials The set of credentials extracted by this instance during login/commit to be removed from {@link Subject#getPublicCredentials()}
+     * @param principals A set of principals extracted by this instance during login/commit to be removed from {@link Subject#getPrincipals()}
+     * @return {@code true} if either the credential set or the principal set is not {@code null}, {@code false} otherwise.
+     * @throws LoginException If the subject is readonly and an error occurs while destroying any of the given credentials.
+     * @see <a href="https://docs.oracle.com/en/java/javase/13/security/java-authentication-and-authorization-service-jaas-loginmodule-developers-guide1.html#GUID-E9C5810B-ADB6-4454-869D-B269ECA8145F__LOGINMODULE.LOGOUTMETHOD-21144F6A">JAASLMDevGuide</a>
+     */
+    protected boolean logout(@Nullable Set<Object> credentials, @Nullable Set<? extends Principal> principals) throws LoginException {
+        if (credentials != null || principals != null) {
+            if (!subject.isReadOnly()) {
+                if (credentials != null) {
+                    subject.getPublicCredentials().removeAll(credentials);
+                }
+                if (principals != null) {
+                    subject.getPrincipals().removeAll(principals);
+                }
+            } else if (credentials != null) {
+                destroyCredentials(credentials);
+            }
+            return true;
+        } else {
+            // this login module didn't add credentials/authinfo/principals to the subject upon commit
+            // -> logout of this LoginModule should be ignored
+            return false;
+        }
+    }
+
+    private static void destroyCredentials(@NotNull Iterable<Object> credentials) throws LoginException {
+        for (Object cred : credentials) {
+            if (cred instanceof Destroyable) {
+                try {
+                    ((Destroyable) cred).destroy();
+                } catch (DestroyFailedException e) {
+                    throw new LoginException(e.getMessage());
+                }
+            } else {
+                log.debug("Unable to destroy credentials ({}) of read-only subject.", credentials.getClass().getName());
+            }
         }
     }
 
@@ -293,7 +372,7 @@ public abstract class AbstractLoginModule implements LoginModule {
             if (sc instanceof Credentials) {
                 shared = (Credentials) sc;
             } else {
-                log.debug("Login: Invalid value for share state entry " + SHARED_KEY_CREDENTIALS + ". Credentials expected.");
+                log.debug("Login: Invalid value for share state entry {}. Credentials expected.", SHARED_KEY_CREDENTIALS);
             }
         }
 
@@ -401,7 +480,7 @@ public abstract class AbstractLoginModule implements LoginModule {
                     });
                     root = systemSession.getLatestRoot();
                 } else {
-                    log.debug("Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
+                    log.error("Unable to retrieve the Root via RepositoryCallback; ContentRepository not available.");
                 }
             } catch (IOException | UnsupportedCallbackException | PrivilegedActionException e) {
                 onError();

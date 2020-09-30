@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -62,6 +63,7 @@ public class DocumentTraverserTest extends AbstractDocumentStoreTest {
         CloseableIterable<NodeDocument> itr = traverser.getAllDocuments(Collection.NODES, id -> getPathFromId(id).startsWith("/a"));
         Set<String> paths = StreamSupport.stream(itr.spliterator(), false)
                 .map(NodeDocument::getPath)
+                .map(Path::toString)
                 .collect(Collectors.toSet());
 
         itr.close();

@@ -501,8 +501,9 @@ public class JsonIndexCommand implements Command {
                 (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(5));
         StatisticsProvider statsProvider = StatisticsProvider.NOOP;
         int queueSize = Integer.getInteger("queueSize", 1000);
+        long queueTimeout = Long.getLong("queueTimeoutMillis", 100);
         IndexTracker tracker = new IndexTracker();
-        DocumentQueue queue = new DocumentQueue(queueSize, tracker, executorService, statsProvider);
+        DocumentQueue queue = new DocumentQueue(queueSize, queueTimeout, tracker, executorService, statsProvider);
         ep.setIndexingQueue(queue);
         return ep;
     }

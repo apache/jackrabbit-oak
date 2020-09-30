@@ -32,6 +32,6 @@ interface NodeDocumentSweepListener {
      *                of the documents to update.
      * @throws DocumentStoreException if the operation fails.
      */
-    void sweepUpdate(Map<String, UpdateOp> updates) throws DocumentStoreException;
+    void sweepUpdate(Map<Path, UpdateOp> updates) throws DocumentStoreException;
 
 }

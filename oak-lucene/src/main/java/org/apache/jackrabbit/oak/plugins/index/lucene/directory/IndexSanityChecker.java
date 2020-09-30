@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -76,12 +77,26 @@ public class IndexSanityChecker {
     }
 
     private boolean isThereASizeMismatch() throws IOException {
-        for (String fileName : remote.listAll()){
+        for (String fileName : remote.listAll()) {
             long localLength = DirectoryUtils.getFileLength(local, fileName);
-            long remoteLength = remote.fileLength(fileName);
+            long remoteLength = 0;
+            try {
+                /*
+                Remote file may not be present when we ask for file length after retrieving remote file list.
+                 */
+                remoteLength = remote.fileLength(fileName);
+            } catch (FileNotFoundException ignore) {
+              /*
+              DirectoryUtils return -1 in case local file is not present
+               */
+                if (localLength == -1) {
+                    log.info("{} is not present on remote as well as local", fileName);
+                    continue;
+                }
+            }
 
             //This is a weak check based on length.
-            if (localLength > 0 && localLength != remoteLength){
+            if (localLength > 0 && localLength != remoteLength) {
                 log.warn("[{}] Found local copy for {} in {} but size of local {} differs from remote {}. ",
                         indexPath, fileName, local, localLength, remoteLength);
                 return true;

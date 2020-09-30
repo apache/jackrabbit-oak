@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -31,25 +34,53 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.TokenProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TokenLoginModuleTest extends AbstractSecurityTest {
+
+    private static TokenProvider mockTokenProvider(@NotNull String userId) {
+        TokenInfo info = mock(TokenInfo.class);
+        when(info.isExpired(anyLong())).thenReturn(false);
+        when(info.matches(any(TokenCredentials.class))).thenReturn(true);
+        when(info.getUserId()).thenReturn(userId);
+
+        return when(mock(TokenProvider.class).getTokenInfo(anyString())).thenReturn(info).getMock();
+    }
 
     @Override
     protected Configuration getConfiguration() {
@@ -68,31 +99,19 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testNullLogin() throws Exception {
-        ContentSession cs = null;
-        try {
-            cs = login(null);
+        try (ContentSession cs = login(null)) {
             fail("Null login should fail");
         } catch (LoginException e) {
             // success
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
     @Test
     public void testGuestLogin() throws Exception {
-        ContentSession cs = null;
-        try {
-            cs = login(new GuestCredentials());
+        try (ContentSession cs = login(new GuestCredentials())) {
             fail("GuestCredentials login should fail");
         } catch (LoginException e) {
             // success
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
@@ -132,21 +151,15 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testInvalidTokenCredentials() throws Exception {
-        ContentSession cs = null;
-        try {
-            cs = login(new TokenCredentials("invalid"));
+        try (ContentSession cs = login(new TokenCredentials("invalid"))) {
             fail("Invalid token credentials login should fail");
         } catch (LoginException e) {
             // success
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
         }
     }
 
     @Test
-    public void testValidTokenCredentials() throws Exception {
+    public void testTokenCredentials() throws Exception {
         Root root = adminSession.getLatestRoot();
         TokenConfiguration tokenConfig = getSecurityProvider().getConfiguration(TokenConfiguration.class);
         TokenProvider tp = tokenConfig.getTokenProvider(root);
@@ -154,11 +167,24 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
         TokenInfo info = tp.createToken(sc.getUserID(), Collections.<String, Object>emptyMap());
 
-        ContentSession cs = login(new TokenCredentials(info.getToken()));
-        try {
+        try (ContentSession cs = login(new TokenCredentials(info.getToken()))) {
             assertEquals(sc.getUserID(), cs.getAuthInfo().getUserID());
-        } finally {
-            cs.close();
+        }
+    }
+
+    @Test
+    public void testTokenCredentialsWithPublicAttributes() throws Exception {
+        Root root = adminSession.getLatestRoot();
+        TokenConfiguration tokenConfig = getSecurityProvider().getConfiguration(TokenConfiguration.class);
+        TokenProvider tp = tokenConfig.getTokenProvider(root);
+
+        SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
+        TokenInfo info = tp.createToken(sc.getUserID(), ImmutableMap.of("public", "value"));
+
+        TokenCredentials tc = new TokenCredentials(info.getToken());
+        try (ContentSession cs = login(tc)) {
+            assertEquals(sc.getUserID(), cs.getAuthInfo().getUserID());
+            assertEquals("value", cs.getAuthInfo().getAttribute("public"));
         }
     }
 
@@ -168,6 +194,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), null, ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -176,6 +204,21 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), new TestCallbackHandler(null), ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
+    }
+
+
+    @Test
+    public void testMissingTokenProvider3() throws Exception {
+        TokenLoginModule lm = new TokenLoginModule();
+        lm.initialize(new Subject(), new TestCallbackHandler(null),
+                ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, mock(Credentials.class)),
+                ImmutableMap.of());
+
+        assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -186,6 +229,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), new TestCallbackHandler(tp), ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -194,6 +239,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), new ThrowingCallbackHandler(UnsupportedCallbackException.class), ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
     @Test
@@ -202,57 +249,208 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         lm.initialize(new Subject(), new ThrowingCallbackHandler(IOException.class), ImmutableMap.<String, Object>of(), ImmutableMap.<String, Object>of());
 
         assertFalse(lm.login());
+        assertFalse(lm.commit());
+        assertFalse(lm.logout());
     }
 
-    @Test
-    public void testCreateTokenFailed() throws Exception {
-        TokenProvider tp = new TokenProvider() {
-
-            @Override
-            public boolean doCreateToken(@NotNull Credentials credentials) {
-                return true;
-            }
-
-            @Nullable
-            @Override
-            public TokenInfo createToken(@NotNull Credentials credentials) {
-                return null;
-            }
-
-            @Nullable
-            @Override
-            public TokenInfo createToken(@NotNull String userId, @NotNull Map<String, ?> attributes) {
-                return null;
-            }
-
-            @Nullable
-            @Override
-            public TokenInfo getTokenInfo(@NotNull String token) {
-                return null;
-            }
-        };
+    @Test(expected = LoginException.class)
+    public void testCreateTokenFailure() throws Exception {
+        TokenProvider tp = mock(TokenProvider.class);
+        when(tp.doCreateToken(any(Credentials.class))).thenReturn(true);
+        when(tp.createToken(any(Credentials.class))).thenReturn(null);
+        when(tp.createToken(anyString(), any(Map.class))).thenReturn(null);
 
         TokenLoginModule lm = new TokenLoginModule();
         lm.initialize(new Subject(), new TestCallbackHandler(tp),
                 ImmutableMap.<String, Object>of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new Credentials() {}),
                 ImmutableMap.<String, Object>of());
 
-        lm.login();
+        assertFalse(lm.login());
         try {
             lm.commit();
-            fail("LoginException expected");
-        } catch (LoginException e) {
-            // success
+        } finally {
+            verify(tp, times(1)).doCreateToken(any(Credentials.class));
+            assertFalse(lm.logout());
         }
+    }
+
+    @Test
+    public void testMissingUserPrincipal() throws Exception {
+        TokenProvider tp = mockTokenProvider(getTestUser().getID());
+        TokenCredentials tc = new TokenCredentials("token");
+
+        TokenLoginModule lm = new TokenLoginModule();
+        Map sharedState = Maps.newHashMap(ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, tc));
+
+        Subject subject = new Subject();
+        CallbackHandler cbh = callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof PrincipalProviderCallback) {
+                    ((PrincipalProviderCallback) callback).setPrincipalProvider(getConfig(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper()));
+                }
+            }
+        };
+        lm.initialize(subject, new TestCallbackHandler(tp, cbh),
+                sharedState,
+                ImmutableMap.<String, Object>of());
+
+        assertTrue(lm.login());
+        assertTrue(lm.commit());
+
+        assertEquals(ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance()), subject.getPrincipals());
+        assertFalse(subject.getPublicCredentials(AuthInfo.class).isEmpty());
+        assertFalse(subject.getPublicCredentials(TokenCredentials.class).isEmpty());
+
+        assertTrue(lm.logout());
+        assertTrue(subject.getPublicCredentials().isEmpty());
+        assertTrue(subject.getPrincipals().isEmpty());
+    }
+
+    @Test
+    public void testReadOnlySubject() throws Exception {
+        User u = getTestUser();
+        Subject subject = new Subject();
+        subject.setReadOnly();
+
+        TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
+
+        SimpleCredentials sc = new SimpleCredentials(u.getID(), u.getID().toCharArray());
+        sc.setAttribute(".token", "");
+
+        TokenLoginModule lm = new TokenLoginModule();
+        Map sharedState = Maps.newHashMap(ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
+        lm.initialize(subject, new TestCallbackHandler(tp),
+                sharedState,
+                ImmutableMap.<String, Object>of());
+
+        assertFalse(lm.login());
+        assertFalse(lm.commit());
+        verify(tp, times(1)).createToken(sc);
+        assertTrue(subject.getPublicCredentials(TokenCredentials.class).isEmpty());
+
+        assertFalse(lm.logout());
+    }
+
+    @Test
+    public void testInvalidShareCredentialsObject() throws Exception {
+        TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
+
+        TokenLoginModule lm = new TokenLoginModule();
+        lm.initialize(new Subject(), new TestCallbackHandler(tp),
+                ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, "notCredentialsObject"),
+                ImmutableMap.of());
+
+        assertFalse(lm.login());
+        assertFalse(lm.commit());
+        verify(tp, never()).createToken(any(Credentials.class));
+        assertFalse(lm.logout());
+    }
+
+    @Test
+    public void testMissingShareCredentials() throws Exception {
+        TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
+
+        TokenLoginModule lm = new TokenLoginModule();
+        lm.initialize(new Subject(), new TestCallbackHandler(tp),
+                ImmutableMap.of(),
+                ImmutableMap.of());
+
+        assertFalse(lm.login());
+        assertFalse(lm.commit());
+        verify(tp, never()).doCreateToken(any(Credentials.class));
+        assertFalse(lm.logout());
+    }
+
+    @Test
+    public void testMissingSecurityProvider() throws Exception {
+        CallbackHandler cbh = callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof RepositoryCallback) {
+                    ((RepositoryCallback) callback).setSecurityProvider(null);
+                    ((RepositoryCallback) callback).setContentRepository(getContentRepository());
+                }
+            }
+        };
+
+        SimpleCredentials sc = new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray());
+        sc.setAttribute(".token", "");
+        Map sharedState = Maps.newHashMap(ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
+
+        TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
+        TokenLoginModule lm = new TokenLoginModule();
+        lm.initialize(new Subject(), new TestCallbackHandler(tp, cbh),
+                sharedState,
+                ImmutableMap.of());
+
+        assertFalse(lm.login());
+        assertFalse(lm.commit());
+        verify(tp, times(1)).createToken(sc);
+        assertFalse(lm.logout());
+    }
+
+    @Test
+    public void testMissingRoot() throws Exception {
+        CallbackHandler cbh = callbacks -> {
+            for (Callback callback : callbacks) {
+                if (callback instanceof RepositoryCallback) {
+                    ((RepositoryCallback) callback).setSecurityProvider(getSecurityProvider());
+                    ((RepositoryCallback) callback).setContentRepository(null);
+                }
+            }
+        };
+
+        SimpleCredentials sc = new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray());
+        sc.setAttribute(".token", "");
+        Map sharedState = Maps.newHashMap(ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
+
+        TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
+        TokenLoginModule lm = new TokenLoginModule();
+        lm.initialize(new Subject(), new TestCallbackHandler(tp, cbh),
+                sharedState,
+                ImmutableMap.of());
+
+        assertFalse(lm.login());
+        assertFalse(lm.commit());
+        verify(tp, times(1)).createToken(sc);
+        assertFalse(lm.logout());
+    }
+
+    @Test
+    public void testSuccessCommitRespectsSubjectPrincipals() throws Exception {
+        Principal principal = new PrincipalImpl("subjetPrincipal");
+        Subject subject = new Subject();
+        subject.getPrincipals().add(principal);
+
+        Map<String, Object> shared = Maps.newHashMap();
+        shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TokenCredentials("token"));
+
+        TokenLoginModule lm = new TokenLoginModule();
+        lm.initialize(subject, new TestCallbackHandler(mockTokenProvider("userId")), shared, new HashMap<>());
+
+        assertTrue(lm.login());
+        assertTrue(lm.commit());
+
+        Set<AuthInfo> authInfoSet = subject.getPublicCredentials(AuthInfo.class);
+        assertFalse(authInfoSet.isEmpty());
+        AuthInfo info = authInfoSet.iterator().next();
+        assertTrue(info.getPrincipals().contains(principal));
     }
 
     private final class TestCallbackHandler implements CallbackHandler {
 
         private final TokenProvider tokenProvider;
+        private final CallbackHandler base;
         private final Class<? extends Exception> e;
 
         private TestCallbackHandler(@Nullable TokenProvider tokenProvider) {
             this.tokenProvider = tokenProvider;
+            this.base = null;
+            this.e = null;
+        }
+
+        private TestCallbackHandler(@Nullable TokenProvider tokenProvider, @NotNull CallbackHandler base) {
+            this.tokenProvider = tokenProvider;
+            this.base = base;
             this.e = null;
         }
 
@@ -261,6 +459,8 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
             for (Callback cb : callbacks) {
                 if (cb instanceof TokenProviderCallback) {
                     ((TokenProviderCallback) cb).setTokenProvider(tokenProvider);
+                } else if (base != null) {
+                    base.handle(callbacks);
                 } else {
                     throw new UnsupportedCallbackException(cb);
                 }

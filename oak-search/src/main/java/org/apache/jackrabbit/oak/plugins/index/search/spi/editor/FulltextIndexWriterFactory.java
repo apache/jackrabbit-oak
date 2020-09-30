@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
@@ -31,9 +32,11 @@ public interface FulltextIndexWriterFactory<D> {
      * create a new index writer instance
      * @param definition the index definition
      * @param definitionBuilder the node builder associated with the index definition
+     * @param commitInfo metadata associated with the commit for this writer
      * @param reindex whether or not reindex should be performed
      * @return an index writer
      */
-    FulltextIndexWriter<D> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex);
+    FulltextIndexWriter<D> newInstance(IndexDefinition definition, NodeBuilder definitionBuilder,
+                                       CommitInfo commitInfo, boolean reindex);
 
 }

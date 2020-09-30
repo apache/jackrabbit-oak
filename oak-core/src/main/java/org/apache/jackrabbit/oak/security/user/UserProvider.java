@@ -216,7 +216,12 @@ class UserProvider extends AuthorizableBaseProvider {
     @Nullable
     Tree getAuthorizableByPrincipal(@NotNull Principal principal) {
         if (principal instanceof TreeBasedPrincipal) {
-            return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
+            try {
+                return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
+            } catch (RepositoryException e) {
+                // getting oakpath fails -> try searching below
+                log.debug(e.getMessage());
+            }
         }
 
         // NOTE: in contrast to JR2 the extra shortcut for ID==principalName
@@ -285,8 +290,8 @@ class UserProvider extends AuthorizableBaseProvider {
      * @throws RepositoryException If an error occurs
      */
     private Tree createFolderNodes(@NotNull String nodeName,
-                                       boolean isGroup,
-                                       @Nullable String intermediatePath) throws RepositoryException {
+                                   boolean isGroup,
+                                   @Nullable String intermediatePath) throws RepositoryException {
         String authRoot = (isGroup) ? groupPath : userPath;
         String folderPath = new StringBuilder()
                 .append(authRoot)
@@ -311,7 +316,7 @@ class UserProvider extends AuthorizableBaseProvider {
             Tree colliding = folder.getChild(nodeName);
             String primaryType = TreeUtil.getPrimaryTypeName(colliding);
             if (NT_REP_AUTHORIZABLE_FOLDER.equals(primaryType)) {
-                log.debug("Existing folder node collides with user/group to be created. Expanding path by: " + colliding.getName());
+                log.debug("Existing folder node collides with user/group to be created. Expanding path by: {}", colliding.getName());
                 folder = colliding;
             } else {
                 break;

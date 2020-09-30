@@ -71,6 +71,7 @@ import org.slf4j.LoggerFactory;
 public class IndexUpdate implements Editor, PathSource {
 
     private static final Logger log = LoggerFactory.getLogger(IndexUpdate.class);
+    private static final String TYPE_ELASTICSEARCH = "elasticsearch";
 
     /**
      * <p>
@@ -212,13 +213,17 @@ public class IndexUpdate implements Editor, PathSource {
 
     private boolean shouldReindex(NodeBuilder definition, NodeState before,
             String name) {
+        PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
+
         //Async indexes are not considered for reindexing for sync indexing
-        if (!isMatchingIndexMode(definition)){
+        // Skip this check for elastic index
+        // TODO : See if the check to skip elastic can be handled in a better way - maybe move isMatchingIndexNode to IndexDefinition ? 
+        if (!TYPE_ELASTICSEARCH.equals(type.getValue(Type.STRING)) && !isMatchingIndexMode(definition)){
             return false;
         }
 
         //Do not attempt reindex of disabled indexes
-        PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
+
         if (type != null && TYPE_DISABLED.equals(type.getValue(Type.STRING))) {
             return false;
         }
@@ -231,6 +236,11 @@ public class IndexUpdate implements Editor, PathSource {
         // might be set to 'false' (possible via content import).
         // However if its already indexed i.e. has some hidden nodes (containing hidden data)
         // then no need to reindex
+        
+        // WARNING: If there is _any_ hidden node, then it is assumed that
+        // no reindex is needed. Even if the hidden node is completely unrelated
+        // and doesn't contain index data (for example the node ":status").
+        // See also OAK-7991.
         boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)
                 && !hasAnyHiddenNodes(definition);
         if (result) {
@@ -242,7 +252,7 @@ public class IndexUpdate implements Editor, PathSource {
 
     private static boolean hasAnyHiddenNodes(NodeBuilder builder){
         for (String name : builder.getChildNodeNames()) {
-            if (NodeStateUtils.isHidden(name)){
+            if (NodeStateUtils.isHidden(name)) {
                 NodeBuilder childNode = builder.getChildNode(name);
                 if (childNode.getBoolean(IndexConstants.REINDEX_RETAIN)) {
                     continue;
@@ -272,8 +282,18 @@ public class IndexUpdate implements Editor, PathSource {
                     continue;
                 }
 
-                Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
-                        rootState.newCallback(indexPath, shouldReindex, getEstimatedCount(definition)));
+                Editor editor = null;
+                try {
+                    editor = rootState.provider.getIndexEditor(type, definition, rootState.root,
+                            rootState.newCallback(indexPath, shouldReindex, getEstimatedCount(definition)));
+                } catch (IllegalStateException e) {
+                    // This will be caught here in case there is any config related error in the index definition
+                    // where multiple values are assigned to a property that is supposed to be single valued
+                    // We log an error message here and continue - this way the bad index defintion is ignored and doesn't block the async index update
+                    log.error("Unable to get Index Editor for index at {} . Please correct the index definition " +
+                            "and reindex after correction. Additional Info : {}", indexPath, e.getMessage(), e);
+                    continue;
+                }
                 if (editor == null) {
                     // if this isn't an async cycle AND definition has "async" property
                     // (and implicitly isIncluded method allows async def in non-async cycle only for nrt/sync defs)

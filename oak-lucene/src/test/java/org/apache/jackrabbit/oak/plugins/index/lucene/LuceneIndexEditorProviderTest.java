@@ -27,14 +27,9 @@ import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorContext;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.DocumentQueue;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexEditorContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -42,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.document.Document;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -102,7 +98,7 @@ public class LuceneIndexEditorProviderTest {
         NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
         Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
         LuceneIndexEditor luceneEditor = (LuceneIndexEditor) editor;
-        LuceneIndexEditorContext context = luceneEditor.getContext();
+        FulltextIndexEditorContext<Document> context = luceneEditor.getContext();
 
         //Definition should reflect the marker property
         assertEquals("bar", context.getDefinition().getDefinitionNodeState().getString("foo"));

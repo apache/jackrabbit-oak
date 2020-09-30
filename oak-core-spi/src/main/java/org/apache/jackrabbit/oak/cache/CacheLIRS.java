@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.cache;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,12 +40,17 @@ import com.google.common.cache.Weigher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+
+import org.apache.jackrabbit.oak.commons.annotations.Internal;
+import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * <em>For Oak internal use only. Do not use outside Oak components.</em>
+ * <p>
  * A scan resistant cache. It is meant to cache objects that are relatively
  * costly to acquire, for example file content.
  * <p>
@@ -72,13 +79,19 @@ import org.slf4j.LoggerFactory;
  * @param <K> the key type
  * @param <V> the value type
  */
+@Internal(since = "1.1.1")
 public class CacheLIRS<K, V> implements LoadingCache<K, V> {
 
     static final Logger LOG = LoggerFactory.getLogger(CacheLIRS.class);
     static final ThreadLocal<Integer> CURRENTLY_LOADING = new ThreadLocal<Integer>();
     private static final AtomicInteger NEXT_CACHE_ID = new AtomicInteger();
     private static final boolean PUT_HOT = Boolean.parseBoolean(System.getProperty("oak.cacheLIRS.putHot", "true"));
-    
+
+    // see OAK-8702
+    private static final List<String> ALLOWED_USERS = Collections.unmodifiableList(
+            Arrays.asList(new String[] { "org.apache.jackrabbit.oak.plugins.blob.", "org.apache.jackrabbit.oak.plugins.document.",
+                    "org.apache.jackrabbit.oak.segment.", "org.apache.jackrabbit.oak.plugins.segment." }));
+
     /**
      * Listener for items that are evicted from the cache. The listener
      * is called for both, resident and non-resident items. In the
@@ -167,6 +180,7 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     CacheLIRS(Weigher<K, V> weigher, long maxMemory, int averageMemory,
             int segmentCount, int stackMoveDistance, final CacheLoader<K, V> loader,
             EvictionCallback<K, V> evicted, String module) {
+        GuavaDeprecation.handleCall("OAK-8702", CacheLIRS.class.getName(), ALLOWED_USERS);
         LOG.debug("Init #{}, module={}, maxMemory={}, segmentCount={}, stackMoveDistance={}",
                 cacheId, module, maxMemory, segmentCount, segmentCount);
         this.weigher = weigher;

@@ -16,40 +16,74 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
+
+import com.microsoft.azure.storage.OperationContext;
+import com.microsoft.azure.storage.RequestCompletedEvent;
+import com.microsoft.azure.storage.RetryLinearRetry;
+import com.microsoft.azure.storage.StorageEvent;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
-import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.EnumSet;
-
 public class AzurePersistence implements SegmentNodeStorePersistence {
+
+    private static int RETRY_ATTEMPTS = Integer.getInteger("segment.azure.retry.attempts", 5);
+
+    private static int RETRY_BACKOFF_SECONDS = Integer.getInteger("segment.azure.retry.backoff", 5);
+
+    private static int TIMEOUT_EXECUTION = Integer.getInteger("segment.timeout.execution", 30);
+
+    private static int TIMEOUT_INTERVAL = Integer.getInteger("segment.timeout.interval", 1);
 
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
-    private final CloudBlobDirectory segmentstoreDirectory;
+    protected final CloudBlobDirectory segmentstoreDirectory;
 
-    public AzurePersistence(CloudBlobDirectory segmentstoreDirectory) {
-        this.segmentstoreDirectory = segmentstoreDirectory;
+    public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
+        this.segmentstoreDirectory = segmentStoreDirectory;
+
+        BlobRequestOptions defaultRequestOptions = segmentStoreDirectory.getServiceClient().getDefaultRequestOptions();
+        if (defaultRequestOptions.getRetryPolicyFactory() == null) {
+            if (RETRY_ATTEMPTS > 0) {
+                defaultRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(RETRY_BACKOFF_SECONDS), RETRY_ATTEMPTS));
+            }
+        }
+        if (defaultRequestOptions.getMaximumExecutionTimeInMs() == null) {
+            if (TIMEOUT_EXECUTION > 0) {
+                defaultRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_EXECUTION));
+            }
+        }
+        if (defaultRequestOptions.getTimeoutIntervalInMs() == null) {
+            if (TIMEOUT_INTERVAL > 0) {
+                defaultRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_INTERVAL));
+            }
+        }
     }
 
     @Override
-    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
+    public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
+        attachRemoteStoreMonitor(remoteStoreMonitor);
         return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor);
     }
 
@@ -110,5 +144,34 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
             throw new IOException(e);
         }
     }
+
+    private static void attachRemoteStoreMonitor(RemoteStoreMonitor remoteStoreMonitor) {
+        OperationContext.getGlobalRequestCompletedEventHandler().addListener(new StorageEvent<RequestCompletedEvent>() {
+
+            @Override
+            public void eventOccurred(RequestCompletedEvent e) {
+                Date startDate = e.getRequestResult().getStartDate();
+                Date stopDate = e.getRequestResult().getStopDate();
+
+                if (startDate != null && stopDate != null) {
+                    long requestDuration = stopDate.getTime() - startDate.getTime();
+                    remoteStoreMonitor.requestDuration(requestDuration, TimeUnit.MILLISECONDS);
+                }
+
+                Exception exception = e.getRequestResult().getException();
+
+                if (exception == null) {
+                    remoteStoreMonitor.requestCount();
+                } else {
+                    remoteStoreMonitor.requestError();
+                }
+            }
+
+        });
+    }
+
+        public CloudBlobDirectory getSegmentstoreDirectory() {
+            return segmentstoreDirectory;
+        }
 
 }

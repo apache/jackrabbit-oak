@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.scalability;
 
-import static java.util.Arrays.asList;
-
-import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -35,38 +34,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.CSVResultGenerator;
-import org.apache.jackrabbit.oak.benchmark.util.Date;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.AggregateNodeSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.ConcurrentReader;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.ConcurrentWriter;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.FacetSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.FormatSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.FullTextSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.LastModifiedSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderByKeysetPageSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderByOffsetPageSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterOrderBySearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterSplitOrderByKeysetPageSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterSplitOrderByOffsetPageSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.MultiFilterSplitOrderBySearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.NodeTypeSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderByDate;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderByKeysetPageSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderByOffsetPageSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.OrderBySearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.SplitOrderByKeysetPageSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.SplitOrderByOffsetPageSearcher;
-import org.apache.jackrabbit.oak.scalability.benchmarks.search.SplitOrderBySearcher;
 import org.apache.jackrabbit.oak.scalability.benchmarks.segment.standby.StandbyBulkTransferBenchmark;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityBlobSearchSuite;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeRelationshipSuite;
-import org.apache.jackrabbit.oak.scalability.suites.ScalabilityNodeSuite;
 import org.apache.jackrabbit.oak.scalability.suites.ScalabilityStandbySuite;
 
 /**
@@ -77,144 +50,82 @@ public class ScalabilityRunner {
 
     private static final long MB = 1024 * 1024L;
 
-    public static void main(String[] args) throws Exception {
-        OptionParser parser = new OptionParser();
-        OptionSpec<File> base = parser.accepts("base", "Base directory")
-                .withRequiredArg().ofType(File.class)
-                .defaultsTo(new File("target"));
-        OptionSpec<String> host = parser.accepts("host", "MongoDB host")
-                .withRequiredArg().defaultsTo("localhost");
-        OptionSpec<Integer> port = parser.accepts("port", "MongoDB port")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
-        OptionSpec<String> dbName = parser.accepts("db", "MongoDB database")
-                .withRequiredArg();
-        OptionSpec<Boolean> dropDBAfterTest =
-                parser.accepts("dropDBAfterTest",
-                        "Whether to drop the MongoDB database after the test")
-                        .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
-        OptionSpec<String> rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI")
-            .withOptionalArg().defaultsTo("jdbc:h2:./target/benchmark");
-        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user")
-            .withOptionalArg().defaultsTo("");
-        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
-            .withOptionalArg().defaultsTo("");
-        OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
-            .withOptionalArg().defaultsTo("");
-        OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
-        OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(100);
-        OptionSpec<Integer> fdsCache = parser.accepts("blobCache", "cache size (MB)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(32);
-        OptionSpec<Boolean> withStorage = parser
-                .accepts("storage", "Index storage enabled").withOptionalArg()
-                .ofType(Boolean.class);
-        OptionSpec<File> csvFile =
-                parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
-                        .withOptionalArg().ofType(File.class);
-        OptionSpec<Integer> coldSyncInterval = parser.accepts("coldSyncInterval", "interval between sync cycles in sec (Segment-Tar-Cold only)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(5);
-        OptionSpec<Boolean> coldUseDataStore = parser
-                .accepts("useDataStore",
-                        "Whether to use a datastore in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.TRUE);
-        OptionSpec<Boolean> coldShareDataStore = parser
-                .accepts("shareDataStore",
-                        "Whether to share the datastore for primary and standby in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
-        OptionSpec<Boolean> coldOneShotRun = parser
-                .accepts("oneShotRun",
-                        "Whether to do a continuous sync between client and server or sync only once (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.TRUE);
-        OptionSpec<Boolean> coldSecure = parser
-                .accepts("secure",
-                        "Whether to enable secure communication between primary and standby in the cold standby topology (Segment-Tar-Cold only)")
-                .withOptionalArg().ofType(Boolean.class)
-                .defaultsTo(Boolean.FALSE);
-        
-        OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
-        OptionSpec<String> nonOption = parser.nonOptions();
+    protected static List<ScalabilitySuite> allSuites = Lists.newArrayList();
+    private static OptionParser parser = new OptionParser();
+    protected static ScalabilityOptions scalabilityOptions = null;
+    protected static OptionSet options;
+    private static boolean initFlag = false;
 
+    public static void main(String[] args) throws Exception {
+        initOptionSet(args);
         OptionSet options = parser.parse(args);
 
-        if (options.has(help)) {
+        if (options.has(scalabilityOptions.getHelp())) {
             parser.printHelpOn(System.out);
             System.exit(0);
         }
 
-        int cacheSize = cache.value(options);
+        int cacheSize = scalabilityOptions.getCache().value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
-                new JackrabbitRepositoryFixture(base.value(options), cacheSize),
+                new JackrabbitRepositoryFixture(scalabilityOptions.getBase().value(options), cacheSize),
                 OakRepositoryFixture.getMemoryNS(cacheSize * MB),
                 OakRepositoryFixture.getMongo(
-                    host.value(options), port.value(options),
-                    dbName.value(options), dropDBAfterTest.value(options),
-                    cacheSize * MB),
+                        scalabilityOptions.getHost().value(options),
+                        scalabilityOptions.getPort().value(options),
+                        scalabilityOptions.getDbName().value(options),
+                        scalabilityOptions.getDropDBAfterTest().value(options),
+                        cacheSize * MB),
                 OakRepositoryFixture.getMongoWithDS(
-                    host.value(options), port.value(options),
-                    dbName.value(options), dropDBAfterTest.value(options),
-                    cacheSize * MB,
-                    base.value(options),
-                    fdsCache.value(options)),
+                        scalabilityOptions.getHost().value(options),
+                        scalabilityOptions.getPort().value(options),
+                        scalabilityOptions.getDbName().value(options),
+                        scalabilityOptions.getDropDBAfterTest().value(options),
+                        cacheSize * MB,
+                        scalabilityOptions.getBase().value(options),
+                        scalabilityOptions.getFdsCache().value(options)),
                 OakRepositoryFixture.getMongoNS(
-                    host.value(options), port.value(options),
-                    dbName.value(options), dropDBAfterTest.value(options),
+                        scalabilityOptions.getHost().value(options),
+                        scalabilityOptions.getPort().value(options),
+                        scalabilityOptions.getDbName().value(options),
+                        scalabilityOptions.getDropDBAfterTest().value(options),
                     cacheSize * MB),
                 OakRepositoryFixture.getSegmentTar(
-                    base.value(options), 256, cacheSize, mmap.value(options)),
-                OakRepositoryFixture.getSegmentTarWithDataStore(base.value(options), 256, cacheSize,
-                    mmap.value(options), fdsCache.value(options)),
-                OakRepositoryFixture.getSegmentTarWithColdStandby(base.value(options), 256, cacheSize,
-                        mmap.value(options), coldUseDataStore.value(options), fdsCache.value(options), 
-                        coldSyncInterval.value(options), coldShareDataStore.value(options), coldSecure.value(options), 
-                        coldOneShotRun.value(options)),
-                OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
-                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
-                    dropDBAfterTest.value(options), cacheSize * MB, -1),
-                OakRepositoryFixture.getRDBWithDS(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
-                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options),
-                    dropDBAfterTest.value(options), cacheSize * MB, base.value(options),
-                    fdsCache.value(options), -1)
+                        scalabilityOptions.getBase().value(options), 256, cacheSize,
+                        scalabilityOptions.getMmap().value(options)),
+                OakRepositoryFixture.getSegmentTarWithDataStore(scalabilityOptions.getBase().value(options),
+                        256, cacheSize,
+                        scalabilityOptions.getMmap().value(options),
+                        scalabilityOptions.getFdsCache().value(options)),
+                OakRepositoryFixture.getSegmentTarWithColdStandby(scalabilityOptions.getBase().value(options), 256, cacheSize,
+                        scalabilityOptions.getMmap().value(options),
+                        scalabilityOptions.getColdUseDataStore().value(options),
+                        scalabilityOptions.getFdsCache().value(options),
+                        scalabilityOptions.getColdSyncInterval().value(options),
+                        scalabilityOptions.getColdShareDataStore().value(options),
+                        scalabilityOptions.getColdSecure().value(options),
+                        scalabilityOptions.getColdOneShotRun().value(options)),
+                OakRepositoryFixture.getRDB(scalabilityOptions.getRdbjdbcuri().value(options),
+                        scalabilityOptions.getRdbjdbcuser().value(options),
+                        scalabilityOptions.getRdbjdbcpasswd().value(options),
+                        scalabilityOptions.getRdbjdbctableprefix().value(options),
+                        scalabilityOptions.getDropDBAfterTest().value(options), cacheSize * MB, -1),
+                OakRepositoryFixture.getRDBWithDS(scalabilityOptions.getRdbjdbcuri().value(options),
+                        scalabilityOptions.getRdbjdbcuser().value(options),
+                        scalabilityOptions.getRdbjdbcpasswd().value(options),
+                        scalabilityOptions.getRdbjdbctableprefix().value(options),
+                        scalabilityOptions.getDropDBAfterTest().value(options), cacheSize * MB,
+                        scalabilityOptions.getBase().value(options),
+                        scalabilityOptions.getFdsCache().value(options), -1)
         };
-        ScalabilitySuite[] allSuites =
-                new ScalabilitySuite[] {
-                        new ScalabilityBlobSearchSuite(withStorage.value(options))
-                                .addBenchmarks(new FullTextSearcher(),
-                                        new NodeTypeSearcher(),
-                                        new FormatSearcher(),
-                                        new FacetSearcher(),
-                                        new LastModifiedSearcher(Date.LAST_2_HRS),
-                                        new LastModifiedSearcher(Date.LAST_24_HRS),
-                                        new LastModifiedSearcher(Date.LAST_7_DAYS),
-                                        new LastModifiedSearcher(Date.LAST_MONTH),
-                                        new LastModifiedSearcher(Date.LAST_YEAR),
-                                        new OrderByDate()),
-                        new ScalabilityNodeSuite(withStorage.value(options))
-                                .addBenchmarks(new OrderBySearcher(),
-                                        new SplitOrderBySearcher(),
-                                        new OrderByOffsetPageSearcher(),
-                                        new SplitOrderByOffsetPageSearcher(),
-                                        new OrderByKeysetPageSearcher(),
-                                        new SplitOrderByKeysetPageSearcher(),
-                                        new MultiFilterOrderBySearcher(),
-                                        new MultiFilterSplitOrderBySearcher(),
-                                        new MultiFilterOrderByOffsetPageSearcher(),
-                                        new MultiFilterSplitOrderByOffsetPageSearcher(),
-                                        new MultiFilterOrderByKeysetPageSearcher(),
-                                        new MultiFilterSplitOrderByKeysetPageSearcher(),
-                                        new ConcurrentReader(),
-                                        new ConcurrentWriter()),
-                        new ScalabilityNodeRelationshipSuite(withStorage.value(options))
-                                .addBenchmarks(new AggregateNodeSearcher()),
-                        new ScalabilityStandbySuite()
-                                .addBenchmarks(new StandbyBulkTransferBenchmark())
-                };
 
-        Set<String> argset = Sets.newHashSet(nonOption.values(options));
+        addToScalabilitySuiteList(
+                Arrays.asList(
+                        new ScalabilityStandbySuite()
+                                .addBenchmarks(new StandbyBulkTransferBenchmark()
+                                )
+                ));
+
+        Set<String> argset = Sets.newHashSet(scalabilityOptions.getNonOption().values(options));
         List<RepositoryFixture> fixtures = Lists.newArrayList();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {
@@ -260,9 +171,9 @@ public class ScalabilityRunner {
 
         if (argmap.isEmpty()) {
             PrintStream out = null;
-            if (options.has(csvFile)) {
+            if (options.has(scalabilityOptions.getCsvFile())) {
                 out =
-                    new PrintStream(FileUtils.openOutputStream(csvFile.value(options), true), false,
+                    new PrintStream(FileUtils.openOutputStream(scalabilityOptions.getCsvFile().value(options), true), false,
                                             Charsets.UTF_8.name());
             }
             for (ScalabilitySuite suite : suites) {
@@ -278,4 +189,17 @@ public class ScalabilityRunner {
             System.err.println("Unknown arguments: " + argset);
         }
     }
+
+    protected static void addToScalabilitySuiteList(List<ScalabilitySuite> suites) {
+        allSuites.addAll(suites);
+    }
+
+    protected static void initOptionSet(String[] args) throws IOException {
+        if(!initFlag) {
+            scalabilityOptions = new ScalabilityOptions(parser);
+            options = parser.parse(args);
+            initFlag = true;
+        }
+    }
+
 }

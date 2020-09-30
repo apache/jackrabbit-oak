@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -77,9 +78,10 @@ public class RDBDataSourceFactory {
                 dsclazz.getMethod("setUsername", String.class).invoke(ds, username);
                 dsclazz.getMethod("setPassword", String.class).invoke(ds, passwd);
                 dsclazz.getMethod("setUrl", String.class).invoke(ds, url);
-                String interceptors = System.getProperty(
-                        "org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
-                        "SlowQueryReport(threshold=10000);ConnectionState;StatementCache");
+                String interceptors = SystemPropertySupplier
+                        .create("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory.jdbcInterceptors",
+                                "SlowQueryReport(threshold=10000);ConnectionState;StatementCache")
+                        .loggingTo(LOG).get();
                 if (!interceptors.isEmpty()) {
                     dsclazz.getMethod("setJdbcInterceptors", String.class).invoke(ds, interceptors);
                 }
@@ -134,12 +136,12 @@ public class RDBDataSourceFactory {
 
         @Override
         public boolean isWrapperFor(Class<?> c) throws SQLException {
-            return this.ds.isWrapperFor(c);
+            return c.isInstance(this) || c.isInstance(this.ds) || this.ds.isWrapperFor(c);
         }
 
         @Override
         public <T> T unwrap(Class<T> c) throws SQLException {
-            return this.ds.unwrap(c);
+            return c.isInstance(this) ? (T) this : c.isInstance(this.ds) ? (T) this.ds : this.ds.unwrap(c);
         }
 
         @Override

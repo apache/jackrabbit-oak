@@ -28,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -53,7 +54,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.IndexingQueue;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.DefaultIndexReaderFactory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReaderFactory;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -108,7 +109,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
     private Whiteboard wb;
 
 
-    private IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    private LuceneIndexDefinitionBuilder defnb = new LuceneIndexDefinitionBuilder();
     private String indexPath  = "/oak:index/foo";
     private DelayingIndexEditor delayingEditorProvider = new DelayingIndexEditor();
     private TestUtil.OptionalEditorProvider optionalEditorProvider = new TestUtil.OptionalEditorProvider();
@@ -480,7 +481,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
 
     private void runAsyncIndex() {
         AsyncIndexUpdate async = (AsyncIndexUpdate) WhiteboardUtils.getService(wb,
-                Runnable.class, input -> input instanceof AsyncIndexUpdate);
+                Runnable.class, (Predicate<Runnable>)input -> input instanceof AsyncIndexUpdate);
         assertNotNull(async);
         async.run();
         if (async.isFailing()) {
@@ -494,7 +495,7 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         return executeQuery(explain, "JCR-SQL2").get(0);
     }
 
-    private void addIndex(String indexPath, IndexDefinitionBuilder defnb){
+    private void addIndex(String indexPath, LuceneIndexDefinitionBuilder defnb){
         defnb.build(createPath(indexPath));
     }
 

@@ -68,22 +68,28 @@ public class Check {
 
         private File path;
 
+        private boolean mmap;
+
         private File journal;
 
         private long debugInterval = Long.MAX_VALUE;
 
         private boolean checkBinaries;
-        
+
         private boolean checkHead;
-        
+
+        private Integer revisionsCount;
+
         private Set<String> checkpoints;
-        
+
         private Set<String> filterPaths;
 
         private boolean ioStatistics;
-        
+
+        private RepositoryStatistics repoStatistics;
+
         private PrintWriter outWriter;
-        
+
         private PrintWriter errWriter;
 
         private Builder() {
@@ -98,6 +104,20 @@ public class Check {
          */
         public Builder withPath(File path) {
             this.path = checkNotNull(path);
+            return this;
+        }
+
+        /**
+         * Whether to use memory mapped access or file access.
+         *
+         * @param mmap {@code true} for memory mapped access, {@code false} for
+         *             file access {@code null} to determine the access mode
+         *             from the system architecture: memory mapped on 64 bit
+         *             systems, file access on  32 bit systems.
+         * @return this builder.
+         */
+        public Builder withMmap(boolean mmap) {
+            this.mmap = mmap;
             return this;
         }
 
@@ -140,7 +160,7 @@ public class Check {
             this.checkBinaries = checkBinaries;
             return this;
         }
-        
+
         /**
          * Instruct the command to check head state.
          * This parameter is not required and defaults to {@code true}.
@@ -151,12 +171,23 @@ public class Check {
             this.checkHead = checkHead;
             return this;
         }
-        
+
+        /**
+         * Instruct the command to check only the last {@code revisionsCount} revisions.
+         * This parameter is not required and defaults to {@code 1}.
+         * @param revisionsCount number of revisions to check.
+         * @return this builder.
+         */
+        public Builder withRevisionsCount(Integer revisionsCount){
+            this.revisionsCount = revisionsCount;
+            return this;
+        }
+
         /**
          * Instruct the command to check specified checkpoints.
-         * This parameter is not required and defaults to "/checkpoints", 
+         * This parameter is not required and defaults to "/checkpoints",
          * i.e. will check all checkpoints when not explicitly overridden.
-         * 
+         *
          * @param checkpoints   checkpoints to be checked
          * @return this builder.
          */
@@ -164,11 +195,11 @@ public class Check {
             this.checkpoints = checkpoints;
             return this;
         }
-        
+
         /**
          * Content paths to be checked. This parameter is not required and
          * defaults to "/".
-         * 
+         *
          * @param filterPaths
          *            paths to be checked
          * @return this builder.
@@ -191,7 +222,19 @@ public class Check {
             this.ioStatistics = ioStatistics;
             return this;
         }
-        
+
+        /**
+         * Attach a repository statistics instance to collect info on nodes
+         * and properties checked on head.
+         *
+         * @param repoStatistics instance to collect statistics
+         * @return this builder.
+         */
+        public Builder withRepositoryStatistics(RepositoryStatistics repoStatistics) {
+            this.repoStatistics = repoStatistics;
+            return this;
+        }
+
         /**
          * The text output stream writer used to print normal output.
          * @param outWriter the output writer.
@@ -199,10 +242,10 @@ public class Check {
          */
         public Builder withOutWriter(PrintWriter outWriter) {
             this.outWriter = outWriter;
-            
+
             return this;
         }
-        
+
         /**
          * The text error stream writer used to print erroneous output.
          * @param errWriter the error writer.
@@ -210,7 +253,7 @@ public class Check {
          */
         public Builder withErrWriter(PrintWriter errWriter) {
             this.errWriter = errWriter;
-            
+
             return this;
         }
 
@@ -243,43 +286,69 @@ public class Check {
 
     }
 
+    public static class RepositoryStatistics {
+        int headNodeCount;
+        int headPropertyCount;
+
+        public int getHeadNodeCount() {
+            return headNodeCount;
+        }
+
+        public int getHeadPropertyCount() {
+            return headPropertyCount;
+        }
+    }
+
     private final File path;
+
+    private final boolean mmap;
 
     private final File journal;
 
     private final long debugInterval;
 
     private final boolean checkBinaries;
-    
+
     private final boolean checkHead;
 
+    private final Integer revisionsCount;
+
     private final Set<String> requestedCheckpoints;
-    
+
     private final Set<String> filterPaths;
 
     private final boolean ioStatistics;
+
+    private RepositoryStatistics repoStatistics;
 
     private final PrintWriter out;
 
     private final PrintWriter err;
 
-    private int nodeCount;
+    private int currentNodeCount;
 
-    private int propertyCount;
+    private int currentPropertyCount;
+
+    private int headNodeCount;
+
+    private int headPropertyCount;
 
     private long lastDebugEvent;
 
     private Check(Builder builder) {
         this.path = builder.path;
+        this.mmap = builder.mmap;
         this.debugInterval = builder.debugInterval;
         this.checkHead = builder.checkHead;
         this.checkBinaries = builder.checkBinaries;
         this.requestedCheckpoints = builder.checkpoints;
         this.filterPaths = builder.filterPaths;
         this.ioStatistics = builder.ioStatistics;
+        this.repoStatistics = builder.repoStatistics;
         this.out = builder.outWriter;
         this.err = builder.errWriter;
         this.journal = journalPath(builder.path, builder.journal);
+        this.revisionsCount = revisionsToCheckCount(builder.revisionsCount);
     }
 
     private static File journalPath(File segmentStore, File journal) {
@@ -289,10 +358,15 @@ public class Check {
         return journal;
     }
 
+    private static Integer revisionsToCheckCount(Integer revisionsCount) {
+        return revisionsCount != null ? revisionsCount : Integer.MAX_VALUE;
+    }
+
     public int run() {
         StatisticsIOMonitor ioMonitor = new StatisticsIOMonitor();
 
         FileStoreBuilder builder = fileStoreBuilder(path)
+            .withMemoryMapping(mmap)
             .withCustomPersistence(new TarPersistence(this.path, this.journal));
 
         if (ioStatistics) {
@@ -303,7 +377,7 @@ public class Check {
             ReadOnlyFileStore store = builder.buildReadOnly();
             JournalReader journal = new JournalReader(new LocalJournalFile(this.journal))
         ) {
-            run(store, journal);
+            int result = run(store, journal);
 
             if (ioStatistics) {
                 print("[I/O] Segment read: Number of operations: {0}", ioMonitor.ops.get());
@@ -311,14 +385,19 @@ public class Check {
                 print("[I/O] Segment read: Total time: {0} ns", ioMonitor.time.get());
             }
 
-            return 0;
+            if (repoStatistics != null) {
+                repoStatistics.headNodeCount = headNodeCount;
+                repoStatistics.headPropertyCount = headPropertyCount;
+            }
+
+            return result;
         } catch (Exception e) {
             e.printStackTrace(err);
             return 1;
         }
     }
 
-    private void run(ReadOnlyFileStore store, JournalReader journal) {
+    private int run(ReadOnlyFileStore store, JournalReader journal) {
         Set<String> checkpoints = requestedCheckpoints;
 
         if (requestedCheckpoints.contains("all")) {
@@ -331,7 +410,8 @@ public class Check {
             checkHead,
             checkpoints,
             filterPaths,
-            checkBinaries
+            checkBinaries,
+            revisionsCount
         );
 
         print("\nSearched through {0} revisions and {1} checkpoints", result.getCheckedRevisionsCount(), checkpoints.size());
@@ -355,8 +435,10 @@ public class Check {
             }
             print("\nOverall");
             printOverallRevision(result.getOverallRevision());
+            return 0;
         } else {
             print("No good revision found");
+            return 1;
         }
     }
 
@@ -370,6 +452,8 @@ public class Check {
 
             @Override
             protected void onCheckHead() {
+                headNodeCount = 0;
+                headPropertyCount = 0;
                 print("\nChecking head\n");
             }
 
@@ -404,26 +488,31 @@ public class Check {
             }
 
             @Override
-            protected void onCheckTree(String path) {
-                nodeCount = 0;
-                propertyCount = 0;
+            protected void onCheckTree(String path, boolean head) {
+                currentNodeCount = 0;
+                currentPropertyCount = 0;
                 print("Checking {0}", path);
             }
 
             @Override
-            protected void onCheckTreeEnd() {
-                print("Checked {0} nodes and {1} properties", nodeCount, propertyCount);
+            protected void onCheckTreeEnd(boolean head) {
+                if (head) {
+                    headNodeCount += currentNodeCount;
+                    headPropertyCount += currentPropertyCount;
+                }
+
+                print("Checked {0} nodes and {1} properties", currentNodeCount, currentPropertyCount);
             }
 
             @Override
             protected void onCheckNode(String path) {
                 debug("Traversing {0}", path);
-                nodeCount++;
+                currentNodeCount++;
             }
 
             @Override
             protected void onCheckProperty() {
-                propertyCount++;
+                currentPropertyCount++;
             }
 
             @Override

@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.12-SNAPSHOT</version>
+        <version>1.35-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -43,7 +43,7 @@
                         <Export-Package>
                             !*
                         </Export-Package>
-                        <Embed-Dependency>*;scope=compile</Embed-Dependency>
+                        <Embed-Dependency>*;scope=compile,artifactId=!oak-lucene</Embed-Dependency>
                         <Import-Package>
                             com.ibm.uvm.tools.*;resolution:=optional,
                             com.sun.jdmk.comm.*;resolution:=optional,
@@ -108,7 +108,6 @@
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-lucene</artifactId>
             <version>${project.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.joshua</groupId>
@@ -119,13 +118,6 @@
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
             <version>${lucene.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
             <scope>provided</scope>
         </dependency>
 

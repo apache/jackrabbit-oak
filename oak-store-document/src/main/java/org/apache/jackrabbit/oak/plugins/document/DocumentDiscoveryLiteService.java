@@ -372,19 +372,21 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
 
         for (Iterator<ClusterNodeInfoDocument> it = allClusterNodes.iterator(); it.hasNext();) {
             ClusterNodeInfoDocument clusterNode = it.next();
-            allNodeIds.put(clusterNode.getClusterId(), clusterNode);
-            if (clusterNode.isBeingRecovered()) {
-                recoveringNodes.put(clusterNode.getClusterId(), clusterNode);
-            } else if (!clusterNode.isActive()) {
-                if (hasBacklog(clusterNode)) {
-                    backlogNodes.put(clusterNode.getClusterId(), clusterNode);
+            if (!clusterNode.isInvisible()) {
+                allNodeIds.put(clusterNode.getClusterId(), clusterNode);
+                if (clusterNode.isBeingRecovered()) {
+                    recoveringNodes.put(clusterNode.getClusterId(), clusterNode);
+                } else if (!clusterNode.isActive()) {
+                    if (hasBacklog(clusterNode)) {
+                        backlogNodes.put(clusterNode.getClusterId(), clusterNode);
+                    } else {
+                        inactiveNoBacklogNodes.put(clusterNode.getClusterId(), clusterNode);
+                    }
+                } else if (clusterNode.getLeaseEndTime() < System.currentTimeMillis()) {
+                    activeButTimedOutNodes.put(clusterNode.getClusterId(), clusterNode);
                 } else {
-                    inactiveNoBacklogNodes.put(clusterNode.getClusterId(), clusterNode);
+                    activeNotTimedOutNodes.put(clusterNode.getClusterId(), clusterNode);
                 }
-            } else if (clusterNode.getLeaseEndTime() < System.currentTimeMillis()) {
-                activeButTimedOutNodes.put(clusterNode.getClusterId(), clusterNode);
-            } else {
-                activeNotTimedOutNodes.put(clusterNode.getClusterId(), clusterNode);
             }
         }
 
@@ -471,7 +473,8 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         return null;
     }
 
-    private boolean hasBacklog(ClusterNodeInfoDocument clusterNode) {
+    /** package access only for testing **/
+    boolean hasBacklog(ClusterNodeInfoDocument clusterNode) {
         if (logger.isTraceEnabled()) {
             logger.trace("hasBacklog: start. clusterNodeId: {}", clusterNode.getClusterId());
         }
@@ -509,15 +512,11 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
         if (lastWrittenRootRevStr == null) {
             boolean warn = false;
             Object oakVersion = clusterNode.get(ClusterNodeInfo.OAK_VERSION_KEY);
-            if (oakVersion!=null && (oakVersion instanceof String)) {
-                try{
-                    Version actual = Version.parseVersion((String) oakVersion);
-                    Version introduced = Version.parseVersion("1.3.5");
-                    if (actual.compareTo(introduced)>=0) {
-                        warn = true;
-                    }
-                } catch(Exception e) {
-                    logger.debug("hasBacklog: couldn't parse version "+oakVersion+" : "+e);
+            if (oakVersion != null && (oakVersion instanceof String)) {
+                try {
+                    warn = versionPredates((String) oakVersion, "1.3.5");
+                } catch (Exception e) {
+                    logger.debug("hasBacklog: couldn't parse version " + oakVersion + " : " + e);
                     warn = true;
                 }
             }
@@ -540,6 +539,17 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
                     clusterNode.getClusterId(), lastKnownRevision, lastWrittenRootRev, hasBacklog);
         }
         return hasBacklog;
+    }
+
+    static boolean versionPredates(String base, String compare) {
+        Version one = Version.parseVersion(substSnapshotPrefix(compare));
+        Version two = Version.parseVersion(substSnapshotPrefix(base));
+        return two.compareTo(one) > 0;
+    }
+
+    private static String substSnapshotPrefix(String version) {
+        String snapshot = "-SNAPSHOT";
+        return version.endsWith(snapshot) ? version.substring(0, version.length() - snapshot.length()) + ".999999" : version;
     }
 
     private ClusterViewDocument doCheckView(final Set<Integer> activeNodes, final Set<Integer> recoveringNodes,
@@ -646,7 +656,7 @@ public class DocumentDiscoveryLiteService implements ClusterStateChangeListener,
      * background-read has finished - as it could be waiting for a crashed
      * node's recovery to finish - which it can only do by checking the
      * lastKnownRevision of the crashed instance - and that check is best done
-     * after the background read is just finished (it could optinoally do that
+     * after the background read is just finished (it could optionally do that
      * just purely time based as well, but going via a listener is more timely,
      * that's why this approach has been chosen).
      */

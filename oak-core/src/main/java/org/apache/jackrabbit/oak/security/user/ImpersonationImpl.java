@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +69,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             for (final String pName : impersonators) {
                 Principal p = principalManager.getPrincipal(pName);
                 if (p == null) {
-                    log.debug("Impersonator " + pName + " does not correspond to a known Principal.");
+                    log.debug("Impersonator {} does not correspond to a known Principal.", pName);
                     p = new PrincipalImpl(pName);
                 }
                 s.add(p);
@@ -123,7 +122,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     @Override
-    public boolean allows(@Nullable Subject subject) {
+    public boolean allows(@NotNull Subject subject) {
         if (subject == null) {
             return false;
         }

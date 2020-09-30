@@ -36,6 +36,7 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.CredentialExpiredException;
 import java.util.List;
 
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.CREDENTIALS_ATTRIBUTE_NEWPASSWORD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -59,13 +60,7 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
         pwAction.init(null, ConfigurationParameters.of(
                 PasswordValidationAction.CONSTRAINT, "^.*(?=.{4,}).*"
         ));
-        final AuthorizableActionProvider actionProvider = new AuthorizableActionProvider() {
-            @NotNull
-            @Override
-            public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-                return ImmutableList.of(pwAction);
-            }
-        };
+        final AuthorizableActionProvider actionProvider = securityProvider -> ImmutableList.of(pwAction);
 
         ConfigurationParameters userConfig = ConfigurationParameters.of(
                 ImmutableMap.of(
@@ -103,6 +98,8 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
                         "credentials should contain pw change failure reason",
                         "New password is identical to the current password.",
                         attr);
+            } finally {
+                assertNull(pwChangeCreds.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD));
             }
         }
     }
@@ -134,6 +131,8 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
                         "credentials should contain pw change failure reason",
                         "New password was found in password history.",
                         attr);
+            } finally {
+                assertNull(pwChangeCreds.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD));
             }
         }
     }
@@ -160,6 +159,8 @@ public class PasswordExpiryHistoryTest extends AbstractSecurityTest {
             } catch (CredentialExpiredException c) {
                 // success, pw found in history
                 assertNull(pwChangeCreds.getAttribute(PasswordHistoryException.class.getSimpleName()));
+            } finally {
+                assertNull(pwChangeCreds.getAttribute(CREDENTIALS_ATTRIBUTE_NEWPASSWORD));
             }
         }
     }

@@ -25,7 +25,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -194,7 +194,7 @@ public class ExternalIndexObserverTest {
     }
 
     private static LuceneIndexDefinition createNRTIndex(String ruleName) {
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         idx.indexRule(ruleName).property("foo").propertyIndex();
         idx.async("async", "sync");
         return new LuceneIndexDefinition(INITIAL_CONTENT, idx.build(), "/oak:index/foo");

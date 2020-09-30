@@ -157,11 +157,12 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
      */
     @NotNull
     @Override
-    public TokenProvider getTokenProvider(Root root) {
+    public TokenProvider getTokenProvider(@NotNull Root root) {
         UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
         return new TokenProviderImpl(root, getParameters(), uc, newCredentialsSupport());
     }
 
+    @NotNull
     private CredentialsSupport newCredentialsSupport() {
         int size = credentialsSupport.size();
         if (size == 0) {

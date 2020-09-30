@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.query.plan;
 
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 /**
@@ -55,6 +57,19 @@ public class SelectorExecutionPlan implements ExecutionPlan {
     
     public IndexPlan getIndexPlan() {
         return plan;
+    }
+    
+    /**
+     * Get the index name, or index type (may not always be the exact index name).
+     * 
+     * @return the name
+     */
+    public String getIndexPlanName() {
+        if (plan != null) {
+            return plan.getPlanName();
+        } else {
+            return index.getIndexName();
+        }
     }
 
 }

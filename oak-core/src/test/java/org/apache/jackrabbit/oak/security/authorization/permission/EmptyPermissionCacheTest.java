@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -32,7 +33,7 @@ public class EmptyPermissionCacheTest {
     @Before
     public void before() {
         PermissionCacheBuilder builder = new PermissionCacheBuilder(Mockito.mock(PermissionStore.class));
-        builder.init(ImmutableSet.of(), Long.MAX_VALUE);
+        builder.init(ImmutableSet.of(), new CacheStrategyImpl(ConfigurationParameters.EMPTY, false));
         empty = builder.build();
     }
 

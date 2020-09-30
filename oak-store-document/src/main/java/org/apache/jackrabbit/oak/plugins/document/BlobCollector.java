@@ -45,7 +45,7 @@ public class BlobCollector {
             Map<Revision, String> valueMap = doc.getLocalMap(key);
             for (String v : valueMap.values()) {
                 if (v != null) {
-                    loadValue(v, blobs, doc.getPath());
+                    loadValue(v, blobs, doc.getPath().toString());
                 }
             }
         }

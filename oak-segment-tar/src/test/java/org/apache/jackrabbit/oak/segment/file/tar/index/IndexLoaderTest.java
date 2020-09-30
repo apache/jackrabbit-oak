@@ -21,7 +21,7 @@ import static org.apache.jackrabbit.oak.segment.file.tar.index.IndexLoader.newIn
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import org.apache.jackrabbit.oak.segment.spi.persistence.Buffer;
+import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;
 
 public class IndexLoaderTest {

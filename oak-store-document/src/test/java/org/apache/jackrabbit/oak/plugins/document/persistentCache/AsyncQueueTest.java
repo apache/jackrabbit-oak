@@ -22,6 +22,7 @@ import com.google.common.cache.RemovalCause;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
+import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.PathRev;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -124,7 +125,7 @@ public class AsyncQueueTest {
     }
 
     private PathRev generatePathRev() {
-        return new PathRev("/" + id++, new RevisionVector(new Revision(0, 0, 0)));
+        return new PathRev(Path.fromString("/" + id++), new RevisionVector(new Revision(0, 0, 0)));
     }
 
     private void flush() {

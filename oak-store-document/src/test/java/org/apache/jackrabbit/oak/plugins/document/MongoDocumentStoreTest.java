@@ -229,13 +229,13 @@ public class MongoDocumentStoreTest {
         Revision rev = Revision.newRevision(0);
         List<UpdateOp> inserts = new ArrayList<UpdateOp>();
         for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
-            DocumentNodeState n = new DocumentNodeState(store, "/node-" + i,
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
                     new RevisionVector(rev));
             inserts.add(n.asOperation(rev));
         }
         docStore.create(Collection.NODES, inserts);
         List<NodeDocument> docs = docStore.query(Collection.NODES,
-                Utils.getKeyLowerLimit("/"),  Utils.getKeyUpperLimit("/"),
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT),
                 DocumentMK.MANY_CHILDREN_THRESHOLD);
         assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
         store.dispose();

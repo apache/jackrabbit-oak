@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -197,7 +197,7 @@ public class LocalIndexWriterFactoryTest {
     }
 
     private void createIndexDefinition(String idxName, FulltextIndexConstants.IndexingMode indexingMode) {
-        IndexDefinitionBuilder idx = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder idx = new LuceneIndexDefinitionBuilder();
         TestUtil.enableIndexingMode(idx.getBuilderTree(), indexingMode);
         idx.indexRule("nt:base").property("foo").propertyIndex();
         builder.child("oak:index").setChildNode(idxName, idx.build());

@@ -14,6 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+<<<<<<< HEAD:oak-upgrade/src/main/java/org/apache/jackrabbit/oak/upgrade/cli/node/NodeStoreFactory.java
+package org.apache.jackrabbit.oak.upgrade.cli.node;
+
+import java.io.IOException;
+
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import com.google.common.io.Closer;
+
+public interface NodeStoreFactory {
+
+    NodeStore create(BlobStore blobStore, Closer closer) throws IOException;
+=======
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
@@ -27,5 +41,7 @@ public interface EntryRecovery {
     void recoverGraphEdge(UUID from, UUID to);
 
     void recoverBinaryReference(GCGeneration generation, UUID segmentId, String reference);
+>>>>>>> upstream/trunk:oak-segment-tar/src/main/java/org/apache/jackrabbit/oak/segment/file/tar/EntryRecovery.java
 
+    boolean hasExternalBlobReferences() throws IOException;
 }

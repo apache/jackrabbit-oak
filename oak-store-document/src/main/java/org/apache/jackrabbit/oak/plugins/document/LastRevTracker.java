@@ -27,5 +27,5 @@ public interface LastRevTracker {
      *
      * @param path the path of the document to update.
      */
-    public void track(String path);
+    public void track(Path path);
 }

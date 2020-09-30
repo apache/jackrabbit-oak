@@ -24,7 +24,7 @@ import java.io.File;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfo;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -59,7 +59,7 @@ public class LuceneIndexInfoProviderTest {
 
     @Test
     public void info() throws Exception {
-        IndexDefinitionBuilder defnBuilder = new IndexDefinitionBuilder();
+        LuceneIndexDefinitionBuilder defnBuilder = new LuceneIndexDefinitionBuilder();
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("oak:index").setChildNode("fooIndex", defnBuilder.build());

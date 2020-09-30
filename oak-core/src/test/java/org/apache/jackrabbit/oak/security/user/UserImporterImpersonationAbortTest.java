@@ -19,12 +19,14 @@ package org.apache.jackrabbit.oak.security.user;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
 
 public class UserImporterImpersonationAbortTest extends UserImporterImpersonationIgnoreTest {
 
+    @NotNull
     @Override
     String getImportBehavior() {
         return ImportBehavior.NAME_ABORT;
@@ -38,7 +40,16 @@ public class UserImporterImpersonationAbortTest extends UserImporterImpersonatio
 
     @Test(expected = ConstraintViolationException.class)
     public void testMixedImpersonators() throws Exception {
-        assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_IMPERSONATORS, "impersonator1", testUser.getPrincipal().getName()), mockPropertyDefinition(NT_REP_USER, true)));
-        importer.processReferences();
+        super.testMixedImpersonators();
+    }
+
+    @Test(expected = ConstraintViolationException.class)
+    public void testGrantImpersonationGroupPrincipal() throws Exception {
+        super.testGrantImpersonationGroupPrincipal();
+    }
+
+    @Test(expected = ConstraintViolationException.class)
+    public void testRevokeImpersonationAlreadyRemoved() throws Exception {
+        super.testRevokeImpersonationAlreadyRemoved();
     }
 }

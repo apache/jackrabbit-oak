@@ -23,6 +23,8 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -177,7 +179,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
 
     }
 
-    public void createLuceneIndex(NodeBuilder b) {
+    private void createLuceneIndex(NodeBuilder b) {
         b = b.child(INDEX_DEFINITIONS_NAME).child("lucene");
         b.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME);
         b.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
@@ -194,9 +196,10 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
     }
 
     @Test
-    public void luceneIndex() throws Exception {
+    public void createAndReindex() throws Exception {
         // create an index in both the read-only and the read-write store
         NodeBuilder readOnlyBuilder = readOnlyStore.getRoot().builder();
+
         // add nodes in the read-only area
         for (int i = 0; i < 3; i++) {
             NodeBuilder b = readOnlyBuilder.child("readOnly").child("node-" + i);
@@ -215,13 +218,46 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
         root.commit();
 
+        indexTracker.update(readOnlyStore.getRoot());
+        indexTracker.update(globalStore.getRoot());
+
+        //reindex
+        NodeBuilder builder;
+        builder = store.getRoot().builder();
+
+        builder.child(INDEX_DEFINITIONS_NAME).child("lucene").setProperty(REINDEX_PROPERTY_NAME,true);
+        store.merge(builder, hook, CommitInfo.EMPTY);
+        root.commit();
+
+        assertEquals(builder.child(INDEX_DEFINITIONS_NAME).child("lucene").getProperty(REINDEX_COUNT).getValue(Type.STRING),"2");
+    }
+
+    @Test
+    public void luceneIndex() throws Exception {
+        // create an index in both the read-only and the read-write store
+        NodeBuilder readOnlyBuilder = readOnlyStore.getRoot().builder();
+
+        // add nodes in the read-only area
+        for (int i = 0; i < 3; i++) {
+            NodeBuilder b = readOnlyBuilder.child("readOnly").child("node-" + i);
+            b.setProperty("asyncFoo", "bar");
+            b.setProperty("jcr:primaryType", "nt:base", Type.NAME);
+        }
+
+        createLuceneIndex(readOnlyBuilder);
+
+        NodeBuilder globalBuilder = globalStore.getRoot().builder();
+        createLuceneIndex(globalBuilder);
+
+        LuceneIndexEditorProvider iep = new LuceneIndexEditorProvider(indexCopier, indexTracker, null, null, mip);
+        EditorHook hook = new EditorHook(
+                new IndexUpdateProvider(iep, "async", false));
+
         readOnlyStore.merge(readOnlyBuilder, hook, CommitInfo.EMPTY);
         globalStore.merge(globalBuilder, hook, CommitInfo.EMPTY);
         root.commit();
         indexTracker.update(readOnlyStore.getRoot());
         indexTracker.update(globalStore.getRoot());
-
-        // add nodes in the read-only area
 
         // run a query
         // need to login again to see changes in the read-only area
@@ -238,8 +274,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
                 executeQuery("/jcr:root//*[@asyncFoo = 'bar']", "xpath").toString());
 
         // add nodes in the read-write area
-        NodeBuilder builder;
-        builder = store.getRoot().builder();
+        NodeBuilder builder = store.getRoot().builder();
         for (int i = 0; i < 3; i++) {
             builder.child("content").child("node-" + i).setProperty("asyncFoo", "bar");
         }
