@@ -204,7 +204,7 @@ public class UserQueryManager {
             stmt.append(ISO9075.encode(propName));
             if (exact) {
                 stmt.append("='");
-                stmt.append(value.replaceAll("'", "''"));
+                stmt.append(value.replace("'", "''"));
                 stmt.append('\'');
             } else {
                 stmt.append(",'%");
@@ -276,8 +276,7 @@ public class UserQueryManager {
             Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager, root, type));
             return Iterators.filter(authorizables, new UniqueResultPredicate());
         } catch (ParseException e) {
-            log.warn("Invalid user query: " + statement, e);
-            throw new RepositoryException(e);
+            throw new RepositoryException("Invalid user query "+statement, e);
         }
     }
 

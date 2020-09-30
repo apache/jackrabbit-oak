@@ -183,6 +183,7 @@
                                     <include>org.apache.jackrabbit.oak.security.authorization.permission</include>
                                     <include>org.apache.jackrabbit.oak.security.authorization.restriction</include>
                                     <include>org.apache.jackrabbit.oak.security.internal</include>
+                                    <include>org.apache.jackrabbit.oak.security.user</include>
                                 </includes>
                                 <excludes>
                                     <exclude>*Test</exclude>
@@ -198,7 +199,6 @@
                             <rule>
                                 <element>PACKAGE</element>
                                 <includes>
-                                    <include>org.apache.jackrabbit.oak.security.user</include>
                                     <include>org.apache.jackrabbit.oak.security.authentication.token</include>
                                 </includes>
                                 <excludes>

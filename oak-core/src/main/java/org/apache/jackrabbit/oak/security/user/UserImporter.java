@@ -234,78 +234,15 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
             String propName = propInfo.getName();
             if (REP_AUTHORIZABLE_ID.equals(propName)) {
-                if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
-                    return false;
-                }
-                String id = propInfo.getTextValue().getString();
-                Authorizable existing = userManager.getAuthorizable(id);
-                if (existing == null) {
-                    String msg = "Cannot handle protected PropInfo " + propInfo + ". Invalid rep:authorizableId.";
-                    log.warn(msg);
-                    throw new ConstraintViolationException(msg);
-                }
-
-                if (a.getPath().equals(existing.getPath())) {
-                    parent.setProperty(REP_AUTHORIZABLE_ID, id);
-                } else {
-                    throw new AuthorizableExistsException(id);
-                }
-                return true;
-
+                return importAuthorizableId(parent, a, propInfo, def);
             } else if (REP_PRINCIPAL_NAME.equals(propName)) {
-                if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
-                    return false;
-                }
-
-                String principalName = propInfo.getTextValue().getString();
-                Principal principal = new PrincipalImpl(principalName);
-                userManager.checkValidPrincipal(principal, a.isGroup());
-                userManager.setPrincipal(parent, principal);
-
-                /*
-                 Remember principal of new user/group for further processing
-                 of impersonators
-                 */
-                principals.put(principalName, a.getPrincipal());
-
-                return true;
+                return importPrincipalName(parent, a, propInfo, def);
             } else if (REP_PASSWORD.equals(propName)) {
-                if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
-                    log.warn("Unexpected authorizable or definition for property rep:password");
-                    return false;
-                }
-                if (((User) a).isSystemUser()) {
-                    log.warn("System users may not have a password set.");
-                    return false;
-                }
-
-                String pw = propInfo.getTextValue().getString();
-                userManager.setPassword(parent, a.getID(), pw, true);
-                currentPw = pw;
-
-                return true;
-
+                return importPassword(parent, a, propInfo, def);
             } else if (REP_IMPERSONATORS.equals(propName)) {
-                if (a.isGroup() || !isValid(def, MIX_REP_IMPERSONATABLE, true)) {
-                    log.warn("Unexpected authorizable or definition for property rep:impersonators");
-                    return false;
-                }
-
-                // since impersonators may be imported later on, postpone processing
-                // to the end.
-                // see -> process References
-                referenceTracker.processedReference(new Impersonators(parent.getPath(), propInfo.getTextValues()));
-                return true;
-
+                return importImpersonators(parent, a, propInfo, def);
             } else if (REP_DISABLED.equals(propName)) {
-                if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
-                    log.warn("Unexpected authorizable or definition for property rep:disabled");
-                    return false;
-                }
-
-                ((User) a).disable(propInfo.getTextValue().getString());
-                return true;
-
+                return importDisabled(a, propInfo, def);
             } else if (REP_MEMBERS.equals(propName)) {
                 if (!a.isGroup() || !isValid(def, NT_REP_MEMBER_REFERENCES, true)) {
                     return false;
@@ -389,7 +326,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         Authorizable auth = null;
         if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
-            while (isMemberNode(groupTree) && !groupTree.isRoot()) {
+            while (isMemberNode(groupTree)) {
                 groupTree = groupTree.getParent();
             }
             auth = userManager.getAuthorizable(groupTree);
@@ -458,9 +395,88 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 definition.getDeclaringNodeType().isNodeType(namePathMapper.getJcrName(oakNodeTypeName));
     }
 
+    private boolean importAuthorizableId(@NotNull Tree parent, @NotNull Authorizable a, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
+        if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
+            return false;
+        }
+        String id = propInfo.getTextValue().getString();
+        Authorizable existing = userManager.getAuthorizable(id);
+        if (existing == null) {
+            String msg = "Cannot handle protected PropInfo " + propInfo + ". Invalid rep:authorizableId.";
+            log.warn(msg);
+            throw new ConstraintViolationException(msg);
+        }
+
+        if (a.getPath().equals(existing.getPath())) {
+            parent.setProperty(REP_AUTHORIZABLE_ID, id);
+        } else {
+            throw new AuthorizableExistsException(id);
+        }
+        return true;
+
+    }
+
+    private boolean importPrincipalName(@NotNull Tree parent, @NotNull Authorizable a, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
+        if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
+            return false;
+        }
+
+        String principalName = propInfo.getTextValue().getString();
+        Principal principal = new PrincipalImpl(principalName);
+        userManager.checkValidPrincipal(principal, a.isGroup());
+        userManager.setPrincipal(parent, principal);
+
+                /*
+                 Remember principal of new user/group for further processing
+                 of impersonators
+                 */
+        principals.put(principalName, a.getPrincipal());
+        return true;
+    }
+
+    private boolean importPassword(@NotNull Tree parent, @NotNull Authorizable a, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
+        if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
+            log.warn("Unexpected authorizable or definition for property rep:password");
+            return false;
+        }
+        if (((User) a).isSystemUser()) {
+            log.warn("System users may not have a password set.");
+            return false;
+        }
+
+        String pw = propInfo.getTextValue().getString();
+        userManager.setPassword(parent, a.getID(), pw, true);
+        currentPw = pw;
+
+        return true;
+    }
+
+    private boolean importImpersonators(@NotNull Tree parent, @NotNull Authorizable a, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) {
+        if (a.isGroup() || !isValid(def, MIX_REP_IMPERSONATABLE, true)) {
+            log.warn("Unexpected authorizable or definition for property rep:impersonators");
+            return false;
+        }
+
+        // since impersonators may be imported later on, postpone processing
+        // to the end.
+        // see -> process References
+        referenceTracker.processedReference(new Impersonators(parent.getPath(), propInfo.getTextValues()));
+        return true;
+    }
+
+    private boolean importDisabled(@NotNull Authorizable a, @NotNull PropInfo propInfo, @NotNull PropertyDefinition def) throws RepositoryException {
+        if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
+            log.warn("Unexpected authorizable or definition for property rep:disabled");
+            return false;
+        }
+
+        ((User) a).disable(propInfo.getTextValue().getString());
+        return true;
+    }
+
     private static boolean isMemberNode(@NotNull Tree tree) {
         //noinspection deprecation
-        return tree.exists() && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
+        return tree.exists() && !tree.isRoot() && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     private static boolean isMemberReferencesListNode(@NotNull Tree tree) {
@@ -512,15 +528,13 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      */
     private void handleFailure(String msg) throws ConstraintViolationException {
         switch (importBehavior) {
-            case ImportBehavior.IGNORE:
-            case ImportBehavior.BESTEFFORT:
-                log.warn(msg);
-                break;
             case ImportBehavior.ABORT:
                 throw new ConstraintViolationException(msg);
+            case ImportBehavior.IGNORE:
+            case ImportBehavior.BESTEFFORT:
             default:
-                // no other behavior. nothing to do.
-
+                log.warn(msg);
+                break;
         }
     }
 
@@ -566,37 +580,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 Authorizable dm = declMembers.next();
                 toRemove.put(dm.getID(), dm);
             }
-
-            Map<String, Authorizable> toAdd = Maps.newHashMapWithExpectedSize(members.size());
             Map<String, String> nonExisting = Maps.newHashMap();
-
-            for (String contentId : members) {
-                String remapped = referenceTracker.get(contentId);
-                String memberContentId = (remapped == null) ? contentId : remapped;
-
-                Authorizable member = null;
-                try {
-                    Tree n = getIdentifierManager().getTree(memberContentId);
-                    member = userManager.getAuthorizable(n);
-                } catch (RepositoryException e) {
-                    // no such node or failed to retrieve authorizable
-                    // warning is logged below.
-                }
-                if (member != null) {
-                    if (toRemove.remove(member.getID()) == null) {
-                        toAdd.put(member.getID(), member);
-                    } // else: no need to remove from rep:members
-                } else {
-                    handleFailure("New member of " + gr + ": No such authorizable (NodeID = " + memberContentId + ')');
-                    if (importBehavior == ImportBehavior.BESTEFFORT) {
-                        log.debug("ImportBehavior.BESTEFFORT: Remember non-existing member for processing.");
-                        /* since we ignore the set of failed ids later on and
-                           don't know the real memberId => use fake memberId as
-                           value in the map */
-                        nonExisting.put(contentId, "-");
-                    }
-                }
-            }
+            Map<String, Authorizable> toAdd = getAuthorizablesToAdd(gr, toRemove, nonExisting);
 
             // 2. adjust members of the group
             if (!toRemove.isEmpty()) {
@@ -626,6 +611,39 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
                 userManager.onGroupUpdate(gr, false, true, memberContentIds, failedContentIds);
             }
+        }
+
+        @NotNull
+        Map<String, Authorizable> getAuthorizablesToAdd(@NotNull Group gr, @NotNull Map<String, Authorizable> toRemove,
+                                                        @NotNull Map<String, String> nonExisting) throws RepositoryException {
+            Map<String, Authorizable> toAdd = Maps.newHashMapWithExpectedSize(members.size());
+            for (String contentId : members) {
+                // NOTE: no need to check for re-mapped uuids with the referenceTracker because
+                // ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW is not supported for user/group imports (see line 189)
+                Authorizable member = null;
+                try {
+                    Tree n = getIdentifierManager().getTree(contentId);
+                    member = userManager.getAuthorizable(n);
+                } catch (RepositoryException e) {
+                    // no such node or failed to retrieve authorizable
+                    // warning is logged below.
+                }
+                if (member != null) {
+                    if (toRemove.remove(member.getID()) == null) {
+                        toAdd.put(member.getID(), member);
+                    } // else: no need to remove from rep:members
+                } else {
+                    handleFailure("New member of " + gr + ": No such authorizable (NodeID = " + contentId + ')');
+                    if (importBehavior == ImportBehavior.BESTEFFORT) {
+                        log.debug("ImportBehavior.BESTEFFORT: Remember non-existing member for processing.");
+                        /* since we ignore the set of failed ids later on and
+                           don't know the real memberId => use fake memberId as
+                           value in the map */
+                        nonExisting.put(contentId, "-");
+                    }
+                }
+            }
+            return toAdd;
         }
 
         @NotNull
@@ -680,6 +698,25 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             }
 
             // 2. adjust set of impersonators
+            List<String> nonExisting = updateImpersonators(a, imp, toRemove, toAdd);
+            if (!nonExisting.isEmpty()) {
+                Tree userTree = checkNotNull(root.getTree(a.getPath()));
+                // copy over all existing impersonators to the nonExisting list
+                PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
+                if (impersonators != null) {
+                    for (String existing : impersonators.getValue(STRINGS)) {
+                        nonExisting.add(existing);
+                    }
+                }
+                // and write back the complete list including those principal
+                // names that are unknown to principal provider.
+                userTree.setProperty(REP_IMPERSONATORS, nonExisting, Type.STRINGS);
+            }
+        }
+
+        @NotNull
+        private List<String> updateImpersonators(@NotNull Authorizable a, @NotNull Impersonation imp,
+                                                 @NotNull Map<String, Principal> toRemove, @NotNull List<String> toAdd) throws RepositoryException {
             for (Principal p : toRemove.values()) {
                 if (!imp.revokeImpersonation(p)) {
                     String principalName = p.getName();
@@ -700,20 +737,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                     }
                 }
             }
-
-            if (!nonExisting.isEmpty()) {
-                Tree userTree = checkNotNull(root.getTree(a.getPath()));
-                // copy over all existing impersonators to the nonExisting list
-                PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
-                if (impersonators != null) {
-                    for (String existing : impersonators.getValue(STRINGS)) {
-                        nonExisting.add(existing);
-                    }
-                }
-                // and write back the complete list including those principal
-                // names that are unknown to principal provider.
-                userTree.setProperty(REP_IMPERSONATORS, nonExisting, Type.STRINGS);
-            }
+            return nonExisting;
         }
 
         @NotNull
