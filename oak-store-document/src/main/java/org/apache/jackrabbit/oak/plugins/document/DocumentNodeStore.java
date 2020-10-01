@@ -746,8 +746,8 @@ public final class DocumentNodeStore
             // fix some "_bc" - which before OAK-9176 were missing
             // and which sweep2 would separately fix as well - but this is not a problem.
 
-            // So: acquire sweep2 if one is necessary (check if it necessary)
-            long sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(this, clusterId, true);
+            // So: acquire sweep2 if one is (maybe) necessary
+            long sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(store, clusterId);
 
             // perform an initial document sweep if needed
             // this may be long running if there is no sweep revision
@@ -2550,8 +2550,7 @@ public final class DocumentNodeStore
      */
     boolean backgroundSweep2(long sweep2Lock) throws DocumentStoreException {
         if (sweep2Lock == 0) {
-            sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(this, clusterId,
-                    false /* no check required as we know in backgroundSweep2 that it is necessary */);
+            sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(store, clusterId);
             if (sweep2Lock == 0) {
                 // still not well defined, retry in a minute (done in BackgroundSweep2Operation)
                 return false;
@@ -2561,7 +2560,33 @@ public final class DocumentNodeStore
                 return true;
             }
         }
-        // sweep2Lock > 0
+        // sweep2Lock > 0, the local instance holds the lock
+        Sweep2StatusDocument statusDoc = Sweep2StatusDocument.readFrom(store);
+        if (statusDoc != null /*should never be null as we hold the lock, but let's play safe anyway .. */
+                && statusDoc.isChecking()) {
+            // very likely no 'isSweep2Necessary' might not have been done yet, let's do it now
+            LOG.info("backgroundSweep2: checking whether sweep2 is necessary...");
+            if (!Sweep2Helper.isSweep2Necessary(store)) {
+                LOG.info("backgroundSweep2: sweep2 check determined a sweep2 is NOT necessary. Marking sweep2 status as 'swept'.");
+                if (!Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, clusterId)) {
+                    LOG.error("backgroundSweep2 : failed to update the sweep2 status to 'swept'. Aborting sweep2 for now.");
+                }
+                return true;
+            }
+            LOG.info("backgroundSweep2: sweep2 check determined a sweep2 IS necessary. Marking sweep2 status as 'sweeping'.");
+        }
+        // update the lock status one more time to ensure no check can conclude sweep2 is not necessary anymore
+        sweep2Lock = Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, clusterId,
+                true /* this true here is what's relevant: locks-in the 'sweeping' status */);
+        if (sweep2Lock == 0) {
+            // something came in between, retry later
+            LOG.info("backgroundSweep2: could not update the sweep2 lock to sweeping, someone got in between. Retry later.");
+            return false;
+        } else if (sweep2Lock == -1) {
+            // odd, someone else concluded we're done
+            LOG.info("backgroundSweep2: meanwhile, someone else concluded sweep2 is done.");
+            return true;
+        }
 
         // compile the list of clusterIds for which sweep2 should be done.
         // in an ideal situation sweep(1) would have been done for all clusterIds,

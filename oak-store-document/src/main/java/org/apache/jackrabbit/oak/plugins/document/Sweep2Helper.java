@@ -89,11 +89,10 @@ public class Sweep2Helper {
     }
 
     /**
-     * Acquires a cluster singleton lock for doing a sweep2 if a sweep2 is necessary.
-     * If instructed this will check whether a sweep2 is necessary at all by
-     * inspecting the relevant node document(s).
-     * @param checkIfSweep2Necessary true permits this method to check
-     * whether sweep2 is necessary, false instructs this method to assume a sweep2 is necessary
+     * Acquires a cluster singleton lock for doing a sweep2 unless a sweep2 was already done.
+     * <p/>
+     * 'If necessary' refers to the sweep2 status in the settings collection - no further
+     * check is done based on content in the nodes collection in this method.
      * @return <ul>
      * <li>
      * &gt;0: the lock was successfully acquired and a sweep2 must now be done
@@ -112,30 +111,18 @@ public class Sweep2Helper {
      * </li>
      * </ul>
      */
-    static long acquireSweep2LockIfNecessary(DocumentNodeStore ns, int clusterId, boolean checkIfSweep2Necessary) {
-        Sweep2StatusDocument status = Sweep2StatusDocument.readFrom(ns.getDocumentStore());
+    static long acquireSweep2LockIfNecessary(DocumentStore store, int clusterId) {
+        Sweep2StatusDocument status = Sweep2StatusDocument.readFrom(store);
         if (status != null && status.isSwept()) {
             // nothing left to do.
             // this should be the most frequent case.
             return -1;
         }
     
-        if (status == null || !status.isSweeping()) {
-            // unknown or invalid status, derive from root document if told to check
-            if (checkIfSweep2Necessary && !isSweep2Necessary(ns.getDocumentStore())) {
-                // if no sweep2 is necessary, then mark it so in the settings collection.
-                if (!Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(ns.getDocumentStore(), clusterId)) {
-                    LOG.error("acquireSweep2LockIfNecessary: could not set the sweep2 status. Sweep2 not necessary though.");
-                }
-                // if we concluded that no sweep2 is necessary but failed to update
-                // the status in the settings collection we should continue anyway
-                // (without doing a sweep2 in the background)
-                return -1;
-            } else {
-                return Sweep2StatusDocument.acquireSweep2Lock(ns, clusterId);
-            }
+        if (status == null) {
+            return Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, clusterId, false);
         }
-        // otherwise the status is "sweeping", which could be by ourselves or by another instance
+        // otherwise a status could have been set by ourselves or by another instance
     
         int lockClusterId = status.getLockClusterId();
         if (lockClusterId == clusterId) {
@@ -148,7 +135,7 @@ public class Sweep2Helper {
         }
     
         // another instance marked as sweeping - check to see if it is still active or it might have crashed
-        if (ClusterNodeInfoDocument.all(ns.getDocumentStore()).stream()
+        if (ClusterNodeInfoDocument.all(store).stream()
                 .anyMatch(info -> info.getClusterId() == lockClusterId && info.isActive())) {
             // then another instance is busy sweep2-ing, which is fine.
             // but we should continue monitoring until that other instance is done
@@ -159,7 +146,7 @@ public class Sweep2Helper {
     
         // otherwise the lockClusterId is no longer active, so we
         // try to overwrite/reacquire the lock for us
-        return Sweep2StatusDocument.acquireSweep2Lock(ns, clusterId);
+        return Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, clusterId, false);
     }
 
 }

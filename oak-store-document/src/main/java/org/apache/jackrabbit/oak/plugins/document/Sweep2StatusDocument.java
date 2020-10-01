@@ -33,6 +33,7 @@ public class Sweep2StatusDocument {
     static final String SWEEP2_STATUS_ID = "sweep2Status";
 
     private static final String STATUS_PROPERTY = "status";
+    private static final String STATUS_VALUE_CHECKING = "checking";
     private static final String STATUS_VALUE_SWEEPING = "sweeping";
     private static final String STATUS_VALUE_SWEPT = "swept";
 
@@ -55,31 +56,43 @@ public class Sweep2StatusDocument {
      * Acquires the sweep2 lock.
      * @param documentNodeStore
      * @param clusterId
+     * @param forceSweepingStatus if false uses the default way to set the sweep2-status,
+     * if set to true (force-)sets sweep2-status to 'sweeping'.
+     * the latter can be used if the caller knows a sweeping is necessary and wants to skip the 'checking' phase explicitly
      * @return <ul>
      * <li>
-     * -1 if the lock could not be acquired (another instance got in between)
+     * -1 if a sweep2 is definitely not necessary (already swept)
      * </li>
+     * <li>
+     * 0 if the lock could not be acquired (another instance got in between)
      * <li>
      * &gt; 0 if a lock was acquired (in which case this returned value is the lock value, which is always &gt; 0)
      * </li>
      * </ul>
      */
-    public static long acquireSweep2Lock(DocumentNodeStore documentNodeStore,
-            int clusterId) {
-        DocumentStore documentStore = documentNodeStore.getDocumentStore();
+    public static long acquireOrUpdateSweep2Lock(DocumentStore documentStore,
+            int clusterId, boolean forceSweepingStatus) {
         Document existingStatusDoc = documentStore.find(Collection.SETTINGS, SWEEP2_STATUS_ID,
                 -1 /* -1; avoid caching */);
         UpdateOp updateOp = new UpdateOp(SWEEP2_STATUS_ID, true);
-        updateOp.set(STATUS_PROPERTY, STATUS_VALUE_SWEEPING);
         updateOp.set(LOCK_PROPERTY, clusterId);
         ArrayList<UpdateOp> updateOps = new ArrayList<UpdateOp>();
         updateOps.add(updateOp);
         if (existingStatusDoc == null) {
             updateOp.setNew(true);
+            // the first lock is always created in 'checking' state by default
+            // (unless the caller knows otherwise, which would be odd)
+            if (!forceSweepingStatus) {
+                updateOp.set(STATUS_PROPERTY, STATUS_VALUE_CHECKING);
+            } else {
+                // this is unusual - let's log for debugging
+                LOG.warn("acquireOrUpdateSweep2Lock: forced new sweep2 lock directly to state sweeping");
+                updateOp.set(STATUS_PROPERTY, STATUS_VALUE_SWEEPING);
+            }
             updateOp.set(MOD_COUNT_PROPERTY, 1L);
-            if (!documentNodeStore.getDocumentStore().create(Collection.SETTINGS, updateOps)) {
-                LOG.info("acquireLock: another instance just acquired the (new) sweep2 lock a few moments ago.");
-                return -1;
+            if (!documentStore.create(Collection.SETTINGS, updateOps)) {
+                LOG.info("acquireOrUpdateSweep2Lock: another instance just acquired the (new) sweep2 lock a few moments ago.");
+                return 0;
             } else {
                 return 1;
             }
@@ -90,16 +103,25 @@ public class Sweep2StatusDocument {
                 return -1;
             }
             if (existingStatus.getLockClusterId() == clusterId) {
-                // already locked by local instance => return existing lock value
-                return existingStatus.getLockValue();
+                // the local instance already has the lock - let's check if the phase is correct
+                if (!forceSweepingStatus || existingStatus.isSweeping()) {
+                    // then either the caller wants to go ahead with the default
+                    // or with SWEEPING - which is already the case.
+                    // In both these cases the lock is just fine, nothing to fiddle.
+                    return existingStatus.getLockValue();
+                }
             }
+            // otherwise we need to adjust the lock - either for phase or lock
             updateOp.setNew(false);
+            if (forceSweepingStatus) {
+                updateOp.set(STATUS_PROPERTY, STATUS_VALUE_SWEEPING);
+            }
             updateOp.equals(MOD_COUNT_PROPERTY, existingStatusDoc.getModCount());
             final long newModCount = existingStatusDoc.getModCount() + 1;
             updateOp.set(MOD_COUNT_PROPERTY, newModCount);
-            if (documentNodeStore.getDocumentStore().findAndUpdate(Collection.SETTINGS, updateOp) == null) {
-                LOG.info("acquireLock: another instance just acquired the (expired) sweep2 lock a few moments ago");
-                return -1;
+            if (documentStore.findAndUpdate(Collection.SETTINGS, updateOp) == null) {
+                LOG.info("acquireOrUpdateSweep2Lock: another instance just acquired the (expired) sweep2 lock a few moments ago");
+                return 0;
             } else {
                 return newModCount;
             }
@@ -131,7 +153,7 @@ public class Sweep2StatusDocument {
             ArrayList<UpdateOp> updateOps = new ArrayList<UpdateOp>();
             updateOps.add(updateOp);
             if (!documentStore.create(Collection.SETTINGS, updateOps)) {
-                LOG.info("forceReleaseLockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
+                LOG.info("forceReleaseSweep2LockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
                 return false;
             } else {
                 return true;
@@ -139,7 +161,12 @@ public class Sweep2StatusDocument {
         } else {
             // there was a lock (probably) - at least there was a sweep2 status
             // we don't care about what that status was, we only
-            // (force) mark it as done
+            // (force) mark it as done.
+            // unless it was already marked as swept - in that case we leave it as is.
+            if (new Sweep2StatusDocument(existing).isSwept()) {
+                LOG.info("forceReleaseSweep2LockAndMarkSwept: sweep2 status was already marked swept previously");
+                return true;
+            }
             UpdateOp updateOp = new UpdateOp(SWEEP2_STATUS_ID, false);
             updateOp.set(STATUS_PROPERTY, STATUS_VALUE_SWEPT);
             updateOp.set(MOD_COUNT_PROPERTY, existing.getModCount() + 1);
@@ -148,10 +175,10 @@ public class Sweep2StatusDocument {
                 updateOp.remove(LOCK_PROPERTY);
             }
             if (documentStore.findAndUpdate(Collection.SETTINGS, updateOp) == null) {
-                LOG.info("forceReleaseLockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
+                LOG.info("forceReleaseSweep2LockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
                 Sweep2StatusDocument status = readFrom(documentStore);
                 if (status == null) {
-                    LOG.warn("forceReleaseLockAndMarkSwept: no existing sweep2 status after updating failed");
+                    LOG.warn("forceReleaseSweep2LockAndMarkSwept: no existing sweep2 status after updating failed");
                     return false;
                 } else {
                     // so, someone else force-marked as swept in between, if that succeeded
@@ -178,8 +205,20 @@ public class Sweep2StatusDocument {
         return STATUS_VALUE_SWEEPING.equals(doc.get(STATUS_PROPERTY));
     }
 
+    public boolean isChecking() {
+        return STATUS_VALUE_CHECKING.equals(doc.get(STATUS_PROPERTY));
+    }
+
     public int getLockClusterId() {
         return Integer.parseInt(String.valueOf(doc.get(LOCK_PROPERTY)));
+    }
+
+    public Integer getSweptById() {
+        Object value = doc.get(SWEPT_BY_PROPERTY);
+        if (value == null) {
+            return null;
+        }
+        return Integer.parseInt(String.valueOf(value));
     }
 
     public long getLockValue() {
@@ -188,7 +227,7 @@ public class Sweep2StatusDocument {
 
     @Override
     public String toString() {
-        return "Sweep2StatusDocument(isSwept=" + isSwept() + ",lockClusterId=" + getLockClusterId() + ",lockValue=" + getLockValue()+")";
+        return "Sweep2StatusDocument(status=" + doc.get(STATUS_PROPERTY) + ",lockClusterId=" + getLockClusterId() + ",lockValue=" + getLockValue()+")";
     }
 
 }

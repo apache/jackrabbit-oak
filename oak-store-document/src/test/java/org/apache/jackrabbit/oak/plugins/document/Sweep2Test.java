@@ -238,13 +238,84 @@ public class Sweep2Test {
         merge(ns, builder);
         Sweep2TestHelper.revertToPre18State(store);
         assertFalse(isSweep2Necessary(ns));
-        long lock = acquireSweep2Lock(ns);
+        long lock = acquireOrUpdateSweep2Lock(ns, false);
         // successfully locked => 1
         assertEquals(1, lock);
         assertTrue(forceReleaseSweep2LockAndMarkSwept(store, 1));
-        lock = acquireSweep2Lock(ns);
+        lock = acquireOrUpdateSweep2Lock(ns, false);
         // could not lock, lock not needed => -1
         assertEquals(-1, lock);
+    }
+
+    @Test
+    public void testSweep2LockStates() throws Exception {
+        // normal case without concurrency
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        assertEquals(1, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, false));
+        assertSweep2Status(store, true, false, false, null);
+        assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 1));
+        assertSweep2Status(store, false, false, true, 1);
+
+        // crash case while checking
+        store = new MemoryDocumentStore();
+        assertEquals(1, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, false));
+        assertSweep2Status(store, true, false, false, null);
+        assertEquals(2, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2 /*1 crashed*/, false));
+        assertSweep2Status(store, true, false, false, null);
+        assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 2));
+        assertSweep2Status(store, false, false, true, 2);
+
+        // crash case while sweeping
+        store = new MemoryDocumentStore();
+        assertEquals(1, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, false));
+        assertSweep2Status(store, true, false, false, null);
+        assertEquals(2, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, true));
+        assertSweep2Status(store, false, true, false, null);
+        assertEquals(3, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2 /*1 crashed*/, false));
+        assertSweep2Status(store, false, true, false, null);
+        assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 2));
+        assertSweep2Status(store, false, false, true, 2);
+
+        // concurrency
+        store = new MemoryDocumentStore();
+        assertEquals(1, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, false));
+        assertSweep2Status(store, true, false, false, null);
+        assertEquals(2, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2, false));
+        assertSweep2Status(store, true, false, false, null);
+        assertEquals(3, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, true));
+        assertSweep2Status(store, false, true, false, null);
+        assertEquals(3, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, true));
+        assertSweep2Status(store, false, true, false, null);
+        assertEquals(4, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 3, false));
+        assertSweep2Status(store, false, true, false, null);
+        assertEquals(4, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 3, true));
+        assertSweep2Status(store, false, true, false, null);
+        assertEquals(5, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 4, false));
+        assertSweep2Status(store, false, true, false, null);
+        assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 2));
+        assertSweep2Status(store, false, false, true, 2);
+        assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 2));
+        assertSweep2Status(store, false, false, true, 2);
+        assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 3));
+        assertSweep2Status(store, false, false, true, 2 /* not 3 !*/);
+
+        // unexpected cases
+        store = new MemoryDocumentStore();
+        // normally it wouldn't use "force" first, it would use the default==checking first
+        // but the code should probably still behave nice - hence this test.
+        assertEquals(1, Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 1, true));
+        assertSweep2Status(store, false, true, false, null);
+        assertTrue(Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, 1));
+        assertSweep2Status(store, false, false, true, 1);
+    }
+
+    private void assertSweep2Status(MemoryDocumentStore store,
+            boolean checking, boolean sweeping, boolean swept, Integer sweptById) {
+        Sweep2StatusDocument status = Sweep2StatusDocument.readFrom(store);
+        assertEquals("checking status mismatch, expected " + checking, checking, status.isChecking());
+        assertEquals("sweeping status mismatch, expected " + sweeping, sweeping, status.isSweeping());
+        assertEquals("swept status mismatch, expected " + swept, swept, status.isSwept());
+        assertEquals("swept by clusterId mismatch, expected " + sweptById, sweptById, status.getSweptById());
     }
 
     @Test
@@ -500,8 +571,8 @@ public class Sweep2Test {
         return Sweep2Helper.isSweep2Necessary(ns.getDocumentStore());
     }
 
-    private static long acquireSweep2Lock(DocumentNodeStore ns) {
-        return Sweep2StatusDocument.acquireSweep2Lock(ns, ns.getClusterId());
+    private static long acquireOrUpdateSweep2Lock(DocumentNodeStore ns, boolean forceSweepingStatus) {
+        return Sweep2StatusDocument.acquireOrUpdateSweep2Lock(ns.getDocumentStore(), ns.getClusterId(), forceSweepingStatus);
     }
 
     private static boolean forceReleaseSweep2LockAndMarkSwept(DocumentStore store, int clusterId) {
