@@ -37,6 +37,7 @@ import org.junit.Test;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -53,6 +54,11 @@ public class CugValidatorTest extends AbstractCugTest {
         node = root.getTree(SUPPORTED_PATH);
     }
 
+    @NotNull
+    private Validator createRootValidator(@NotNull NodeState ns) {
+        return checkNotNull(new CugValidatorProvider().getRootValidator(ns, ns, new CommitInfo("sid", "uid")));
+    }
+
     @Test
     public void testChangePrimaryType() {
         node = root.getTree(SUPPORTED_PATH2);
@@ -67,42 +73,42 @@ public class CugValidatorTest extends AbstractCugTest {
         }
     }
 
-    @Test
-    public void testPropertyChangedBeforeWasCug() throws Exception {
+    @Test(expected = CommitFailedException.class)
+    public void testPropertyChangedBeforeWasCug() throws CommitFailedException {
         NodeState ns = mock(NodeState.class);
-        Validator validator = new CugValidatorProvider().getRootValidator(ns, ns, new CommitInfo("sid", "uid"));
+        Validator validator = createRootValidator(ns);
         try {
             PropertyState before = PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_CUG_POLICY);
             PropertyState after = PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED);
 
             validator.propertyChanged(before, after);
-            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
             assertEquals(20, e.getCode());
+            throw e;
         }
     }
 
-    @Test
-    public void testPropertyChangedAfterIsCug() throws Exception {
+    @Test(expected = CommitFailedException.class)
+    public void testPropertyChangedAfterIsCug() throws CommitFailedException {
         NodeState ns = mock(NodeState.class);
-        Validator validator = new CugValidatorProvider().getRootValidator(ns, ns, new CommitInfo("sid", "uid"));
+        Validator validator = createRootValidator(ns);
         try {
             PropertyState before = PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED);
             PropertyState after = PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_CUG_POLICY);
 
             validator.propertyChanged(before, after);
-            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
             assertEquals(20, e.getCode());
+            throw e;
         }
     }
 
     @Test
     public void testPropertyChangedNoCugInvolved() throws Exception {
         NodeState ns = mock(NodeState.class);
-        Validator validator = new CugValidatorProvider().getRootValidator(ns, ns, new CommitInfo("sid", "uid"));
+        Validator validator = createRootValidator(ns);
 
         PropertyState before = PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED);
         PropertyState after = PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED);
@@ -110,7 +116,7 @@ public class CugValidatorTest extends AbstractCugTest {
         validator.propertyChanged(before, after);
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testChangePrimaryTypeOfCug() throws Exception {
         node.setProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN), Type.NAMES);
         Tree cug = TreeUtil.addChild(node, REP_CUG_POLICY, NT_REP_CUG_POLICY);
@@ -120,46 +126,46 @@ public class CugValidatorTest extends AbstractCugTest {
         try {
             cug.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_OAK_UNSTRUCTURED, Type.NAME);
             root.commit();
-            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
             assertEquals(21, e.getCode());
+            throw e;
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testInvalidPrimaryType() throws Exception {
         Tree cug = TreeUtil.addChild(node, REP_CUG_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
 
         try {
             root.commit();
-            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
             assertEquals(21, e.getCode());
+            throw e;
         } finally {
             root.refresh();
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testMissingMixin() throws Exception {
         Tree cug = TreeUtil.addChild(node, REP_CUG_POLICY, NT_REP_CUG_POLICY);
         cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
 
         try {
             root.commit();
-            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
             assertEquals(22, e.getCode());
+            throw e;
         } finally {
             root.refresh();
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testRemoveMixin() throws Exception {
         node.setProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN), Type.NAMES);
         Tree cug = TreeUtil.addChild(node, REP_CUG_POLICY, NT_REP_CUG_POLICY);
@@ -169,26 +175,26 @@ public class CugValidatorTest extends AbstractCugTest {
         try {
             node.removeProperty(JcrConstants.JCR_MIXINTYPES);
             root.commit();
-            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
             assertEquals(22, e.getCode());
+            throw e;
         } finally {
             root.refresh();
         }
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testCugPolicyWithDifferentName() throws Exception {
         node.setProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN), Type.NAMES);
         Tree cug = TreeUtil.addChild(node, "anotherName", NT_REP_CUG_POLICY);
         cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
         try {
             root.commit();
-            fail();
         }  catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
             assertEquals(23, e.getCode());
+            throw e;
         } finally {
             root.refresh();
         }
@@ -218,7 +224,7 @@ public class CugValidatorTest extends AbstractCugTest {
         ntMgr.registerNodeType(ntTemplate, true);
     }
 
-    @Test
+    @Test(expected = CommitFailedException.class)
     public void testJcrNodeTypesOutsideOfSystemIsValidated() throws Exception {
         Tree n = TreeUtil.addChild(node, JCR_NODE_TYPES, NT_OAK_UNSTRUCTURED);
         Tree cug = TreeUtil.addChild(n, REP_CUG_POLICY, NT_REP_CUG_POLICY);
@@ -226,10 +232,10 @@ public class CugValidatorTest extends AbstractCugTest {
 
         try {
             root.commit();
-            fail();
         }  catch (CommitFailedException e) {
             assertTrue(e.isAccessControlViolation());
             assertEquals(22, e.getCode());
+            throw e;
         } finally {
             root.refresh();
         }

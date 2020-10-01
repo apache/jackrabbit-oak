@@ -105,12 +105,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test
     public void testCreateWithDuplicateName() {
-        Set<Principal> duplication = ImmutableSet.of(testPrincipal, new Principal() {
-            @Override
-            public String getName() {
-                return testPrincipal.getName();
-            }
-        });
+        Set<Principal> duplication = ImmutableSet.of(testPrincipal, () -> testPrincipal.getName());
         assertEquals(2, duplication.size());
 
         CugPolicyImpl cugPolicy = createCugPolicy(duplication);
@@ -255,7 +250,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidImportBehavior() {
-        CugPolicy cug = createCugPolicy(-1, principals);
+        createCugPolicy(-1, principals);
     }
 
     @Test
@@ -275,7 +270,7 @@ public class CugPolicyImplTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testExcludedPrincipalAddedBefore() throws Exception {
+    public void testExcludedPrincipalAddedBefore() {
         Principal excluded = getExcludedPrincipal();
         CugPolicyImpl cug = createCugPolicy(ImportBehavior.ABORT, Collections.singleton(excluded));
         assertTrue(Iterables.contains(cug.getPrincipalNames(), excluded.getName()));
