@@ -16,17 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.restriction;
 
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -34,13 +23,31 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * EXERCISE: complete the implementation
  */
-@Component(policy = ConfigurationPolicy.REQUIRE)
-@Service({RestrictionProvider.class})
+@Component(service = RestrictionProvider.class, configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = CustomRestrictionProvider.Configuration.class)
 public class CustomRestrictionProvider implements RestrictionProvider {
+
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak CustomRestrictionProvider (Oak Exercises)")
+    @interface Configuration {
+        // EXERCISE
+    }
 
     @NotNull
     @Override
@@ -99,15 +106,18 @@ public class CustomRestrictionProvider implements RestrictionProvider {
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
+        // EXERCISE
     }
 
     @SuppressWarnings("UnusedDeclaration")
     @Modified
     private void modified(Map<String, Object> properties) {
+        // EXERCISE
     }
 
     @SuppressWarnings("UnusedDeclaration")
     @Deactivate
     private void deactivate(Map<String, Object> properties) {
+        // EXERCISE
     }
 }

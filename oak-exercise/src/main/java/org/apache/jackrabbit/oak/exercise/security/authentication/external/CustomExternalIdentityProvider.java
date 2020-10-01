@@ -16,56 +16,58 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication.external;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.Credentials;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.LoginException;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(metatype = true,
-        label = "Apache Jackrabbit Oak CustomExternalIdentityProvider",
-        immediate = true
-)
-@Service
-@Properties({
-        @Property(name = "externalidentities",
-                label = "External Identities",
-                value = "testUser,a,b,c",
-                cardinality = Integer.MAX_VALUE)
-})
+import javax.jcr.Credentials;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.LoginException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+@Component(service = ExternalIdentityProvider.class, immediate = true, configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = CustomExternalIdentityProvider.Configuration.class)
 public class CustomExternalIdentityProvider implements ExternalIdentityProvider {
+
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak CustomExternalIdentityProvider (Oak Exercises)")
+    @interface Configuration {
+
+        @AttributeDefinition(
+                name = "External Identities",
+                description = "Define external identities in the format: userid [, groupids], where groupids = groupid [, groupids]",
+                cardinality = Integer.MAX_VALUE
+        )
+        String externalidentities() default "testUser,a,b,c";
+    }
 
     private static final Logger log = LoggerFactory.getLogger(CustomExternalIdentityProvider.class);
 
-    private Map<String, Set<String>> userGroupMap = new HashMap<String, Set<String>>();
-    private Set<String> groupIds = new HashSet<String>();
+    private Map<String, Set<String>> userGroupMap = new HashMap<>();
+    private Set<String> groupIds = new HashSet<>();
 
     public CustomExternalIdentityProvider() {};
 
@@ -78,7 +80,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
         for (String entry : config.getConfigValue("externalidentities", Collections.<String>emptySet())) {
             String[] strs = Text.explode(entry, ',', false);
             String uid = strs[0].trim();
-            Set<String> declaredGroups = new HashSet<String>();
+            Set<String> declaredGroups = new HashSet<>();
             if (strs.length > 1) {
                 for (int i = 1; i < strs.length; i++) {
                     groupIds.add(strs[i]);
@@ -88,14 +90,14 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
             }
             userGroupMap.put(uid, declaredGroups);
         }
-        log.info("activated IDP: " + getName());
+        log.info("activated IDP: {}", getName());
     }
 
     @SuppressWarnings("UnusedDeclaration")
     @Modified
     public void modified(Map<String, Object> properties) {
         activate(properties);
-        log.info("modified IDP: " + getName());
+        log.info("modified IDP: {}", getName());
     }
 
     @NotNull
@@ -105,7 +107,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     }
 
     @Override
-    public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) throws ExternalIdentityException {
+    public ExternalIdentity getIdentity(@NotNull ExternalIdentityRef ref) {
         if (getName().equals(ref.getProviderName())) {
             String id = ref.getId();
             ExternalIdentity ei = getUser(id);
@@ -119,7 +121,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     }
 
     @Override
-    public ExternalUser getUser(@NotNull final String userId) throws ExternalIdentityException {
+    public ExternalUser getUser(@NotNull final String userId) {
         if (userGroupMap.containsKey(userId)) {
             return new ExternalUser() {
 
@@ -148,7 +150,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
 
                 @NotNull
                 @Override
-                public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
+                public Iterable<ExternalIdentityRef> getDeclaredGroups() {
                     Set<String> groupIds = userGroupMap.get(userId);
                     if (groupIds == null || groupIds.isEmpty()) {
                         return ImmutableSet.of();
@@ -175,7 +177,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     }
 
     @Override
-    public ExternalUser authenticate(@NotNull Credentials credentials) throws ExternalIdentityException, LoginException {
+    public ExternalUser authenticate(@NotNull Credentials credentials) throws LoginException {
         if (credentials instanceof SimpleCredentials) {
             String userId = ((SimpleCredentials) credentials).getUserID();
             return getUser(userId);
@@ -185,13 +187,13 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
     }
 
     @Override
-    public ExternalGroup getGroup(@NotNull final String name) throws ExternalIdentityException {
+    public ExternalGroup getGroup(@NotNull final String name) {
         if (groupIds.contains(name)) {
             return new ExternalGroup() {
                 @NotNull
                 @Override
-                public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
-                    Set<ExternalIdentityRef> members = new HashSet<ExternalIdentityRef>();
+                public Iterable<ExternalIdentityRef> getDeclaredMembers() {
+                    Set<ExternalIdentityRef> members = new HashSet<>();
                     for (Map.Entry<String, Set<String>> entry : userGroupMap.entrySet()) {
                         if (entry.getValue().contains(name)) {
                             members.add(new ExternalIdentityRef(entry.getKey(), getName()));
@@ -225,7 +227,7 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
 
                 @NotNull
                 @Override
-                public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
+                public Iterable<ExternalIdentityRef> getDeclaredGroups() {
                     return ImmutableSet.of();
                 }
 
@@ -242,13 +244,13 @@ public class CustomExternalIdentityProvider implements ExternalIdentityProvider 
 
     @NotNull
     @Override
-    public Iterator<ExternalUser> listUsers() throws ExternalIdentityException {
+    public Iterator<ExternalUser> listUsers() {
         throw new UnsupportedOperationException("listUsers");
     }
 
     @NotNull
     @Override
-    public Iterator<ExternalGroup> listGroups() throws ExternalIdentityException {
+    public Iterator<ExternalGroup> listGroups() {
         throw new UnsupportedOperationException("listGroups");
     }
 }

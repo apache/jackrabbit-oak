@@ -16,22 +16,9 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.NamedAccessControlPolicy;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -68,6 +55,21 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.NamedAccessControlPolicy;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
@@ -155,18 +157,19 @@ import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_S
  * </ul>
  *
  */
-@org.apache.felix.scr.annotations.Component(metatype = true, policy = org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE)
-@Service({AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class})
-@Properties({
-        @Property(name = CompositeConfiguration.PARAM_RANKING,
-                label = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 300),
-        @Property(name = OAK_SECURITY_NAME,
-                propertyPrivate = true,
-                value = "org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration")
-})
+@Component(service = {AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class},
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.exercise.security.authorization.models.readonly.ReadOnlyAuthorizationConfiguration",
+        configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = ReadOnlyAuthorizationConfiguration.Configuration.class)
 public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase implements AuthorizationConfiguration {
+
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak ReadOnlyAuthorizationConfiguration (Oak Exercises)")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Ranking",
+                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+        int configurationRanking() default 300;
+    }
 
     private static final long READ_PERMISSIONS = Permissions.READ | Permissions.READ_ACCESS_CONTROL;
     private static final Set<String> READ_PRIVILEGE_NAMES = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
@@ -269,6 +272,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
 
                 @Override
                 public void refresh() {
+                    // nop
                 }
 
                 @NotNull
@@ -310,7 +314,7 @@ public final class ReadOnlyAuthorizationConfiguration extends ConfigurationBase 
         }
     }
 
-    private static final boolean onlyReadPermissions(long permissions) {
+    private static boolean onlyReadPermissions(long permissions) {
         return Permissions.diff(permissions, READ_PERMISSIONS) == Permissions.NO_PERMISSION;
     }
 
