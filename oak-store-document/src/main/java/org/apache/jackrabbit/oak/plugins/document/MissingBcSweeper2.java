@@ -133,17 +133,22 @@ final class MissingBcSweeper2 {
                 new Function<NodeDocument, Map.Entry<Path, UpdateOp>>() {
 
             int yieldCnt = 0;
-            long lastYield = System.currentTimeMillis();
+            long lastYield = context.getClock().getTime();
 
             @Override
             public Map.Entry<Path, UpdateOp> apply(NodeDocument doc) {
                 if (++yieldCnt >= YIELD_SIZE) {
                     try {
-                        Thread.sleep(Math.max(1, System.currentTimeMillis() - lastYield));
+                        final long now = context.getClock().getTime();
+                        final long timeSinceLastYield = now - lastYield;
+                        // wait the same amount of time that passed since last yield
+                        // that corresponds to roughly 50% throttle (ignoring the min 1ms sleep)
+                        final long waitUntil = now + Math.max(1, timeSinceLastYield);
+                        context.getClock().waitUntil(waitUntil);
                     } catch (InterruptedException e) {
                         // ignore
                     }
-                    lastYield = System.currentTimeMillis();
+                    lastYield = context.getClock().getTime();
                     yieldCnt = 0;
                 }
                 return immutableEntry(doc.getPath(), sweepOne(doc));
