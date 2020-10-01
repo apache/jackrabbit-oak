@@ -175,10 +175,12 @@ final class MissingBcSweeper2 {
                 Revision rev = entry.getKey();
 
                 if (!includedClusterIds.isEmpty() && !includedClusterIds.contains(rev.getClusterId())) {
-                    // if the normal sweep(1) happened for some clusterIds already,
-                    // then sweep2 is only done for those.
-                    // In this case includedClusterIds contains that list.
-                    // If that list is empty, it's done for all.
+                    // sweep2 is only done for those clusterIds that went through sweep1 (before 1.8).
+                    // includedClusterIds contains the latter list of clusterIds.
+                    // For testing, the code also supports going through all clusterIds.
+                    // (in this case the includedClusterIds list is empty).
+                    // Note that sweep2 is never triggered if "_sweepRev" is empty,
+                    // so the empty case here never applies for production.
                     continue;
                 }
 
