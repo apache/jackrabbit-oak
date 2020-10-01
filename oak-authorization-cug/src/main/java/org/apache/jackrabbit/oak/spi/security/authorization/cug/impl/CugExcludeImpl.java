@@ -21,35 +21,36 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 /**
  * Extension of the default {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}
  * implementation that allow to specify additional principal names to be excluded
  * from CUG evaluation.
  */
-@Component(metatype = true,
-        immediate = true,
-        label = "Apache Jackrabbit Oak CUG Exclude List",
-        description = "Exclude principal(s) from CUG evaluation. In addition to the " +
-                "principals defined by the default CugExclude ('AdminPrincipal', 'SystemPrincipal', 'SystemUserPrincipal' classes), " +
-                "this component allows to optionally configure additional principals by name.")
-@Service({CugExclude.class})
-@Properties({
-        @Property(name = "principalNames",
-                label = "Principal Names",
+@Component(service = CugExclude.class, immediate = true)
+@Designate(ocd = CugExcludeImpl.Configuration.class)
+public class CugExcludeImpl extends CugExclude.Default {
+
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak CUG Exclude List",
+            description = "Exclude principal(s) from CUG evaluation. In addition to the " +
+            "principals defined by the default CugExclude ('AdminPrincipal', 'SystemPrincipal', 'SystemUserPrincipal' classes), " +
+            "this component allows to optionally configure additional principals by name.")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Principal Names",
                 description = "Name(s) of additional principal(s) that are excluded from CUG evaluation.",
                 cardinality = Integer.MAX_VALUE)
-})
-public class CugExcludeImpl extends CugExclude.Default {
+        String[] principalNames() default {};
+    }
 
     private Set<String> principalNames = Collections.emptySet();
 

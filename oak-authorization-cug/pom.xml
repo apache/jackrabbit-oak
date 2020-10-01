@@ -87,6 +87,7 @@
       <artifactId>oak-core</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <!-- General utility libraries -->
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -123,14 +124,17 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.annotation</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.annotation</artifactId>
-      <scope>provided</scope>
+      <artifactId>org.osgi.service.component.annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.metatype.annotations</artifactId>
     </dependency>
 
     <!-- Nullability annotations -->
