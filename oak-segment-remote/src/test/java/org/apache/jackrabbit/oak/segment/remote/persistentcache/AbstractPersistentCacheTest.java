@@ -33,7 +33,7 @@ import static org.junit.Assert.*;
 
 public abstract class AbstractPersistentCacheTest {
 
-    protected static final int SEGMENTS = 1000;
+    protected static final int SEGMENTS = 750;
     protected static final int THREADS = 50;
     protected static final int SEGMENTS_PER_THREAD = SEGMENTS / THREADS;
     protected static final int TIMEOUT_COUNT = 50;

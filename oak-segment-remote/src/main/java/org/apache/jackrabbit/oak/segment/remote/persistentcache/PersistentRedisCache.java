@@ -40,6 +40,8 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
+
 public class PersistentRedisCache extends AbstractPersistentCache {
     private static final Logger logger = LoggerFactory.getLogger(PersistentRedisCache.class);
     public static final int DEFAULT_REDIS_CACHE_EXPIRE_SECONDS = 3600 * 24 * 2;
@@ -133,8 +135,12 @@ public class PersistentRedisCache extends AbstractPersistentCache {
                 long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
                 redisCacheIOMonitor.afterSegmentRead(null, msb, lsb, bytes.length, elapsed);
 
-                Buffer buffer = Buffer.allocateDirect(bytes.length);
-
+                Buffer buffer;
+                if (OFF_HEAP) {
+                    buffer = Buffer.allocateDirect(bytes.length);
+                } else {
+                    buffer = Buffer.allocate(bytes.length);
+                }
                 buffer.put(bytes);
                 buffer.flip();
                 return buffer;

@@ -48,6 +48,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
+import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
+
 public class PersistentDiskCache extends AbstractPersistentCache {
     private static final Logger logger = LoggerFactory.getLogger(PersistentDiskCache.class);
     public static final int DEFAULT_MAX_CACHE_SIZE_MB = 512;
@@ -100,7 +102,12 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                 try (FileInputStream fis = new FileInputStream(segmentFile); FileChannel channel = fis.getChannel()) {
                     int length = (int) channel.size();
 
-                    Buffer buffer = Buffer.allocateDirect(length);
+                    Buffer buffer;
+                    if (OFF_HEAP) {
+                        buffer = Buffer.allocateDirect(length);
+                    } else {
+                        buffer = Buffer.allocate(length);
+                    }
                     if (buffer.readFully(channel, 0) < length) {
                         throw new EOFException();
                     }
