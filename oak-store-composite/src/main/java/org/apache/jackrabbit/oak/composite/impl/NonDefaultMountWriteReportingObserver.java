@@ -44,8 +44,8 @@ import org.slf4j.LoggerFactory;
  * Reports writes to non-default mounts
  * 
  * <p>This is a <em>diagnostic observer</em> and is expected to be used in scenarios where the
- * <tt>CompositeNodeStore</tt> is configured in a 'seed' mode, where the non-default
- * mounts are write-enabled.<p>
+ * <code>CompositeNodeStore</code> is configured in a 'seed' mode, where the non-default
+ * mounts are write-enabled.</p>
  * 
  * <p>In such scenarios it is useful to report writes to non-default mounts from components
  * that are unexpected. For instance, it can report all writes that do not originate

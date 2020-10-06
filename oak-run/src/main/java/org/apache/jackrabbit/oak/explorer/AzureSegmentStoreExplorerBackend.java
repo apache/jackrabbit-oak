@@ -33,7 +33,7 @@ import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreB
  * Backend using a a remote Azure Segment Store.
  * <p>
  * The path must be in the form "{@code az:https://myaccount.blob.core.windows.net/container/repository}".
- * The secret key must be supplied as an environment variable {@codeAZURE_SECRET_KEY}
+ * The secret key must be supplied as an environment variable {@code AZURE_SECRET_KEY}
  */
 public class AzureSegmentStoreExplorerBackend extends AbstractSegmentTarExplorerBackend {
     private final String path;
