@@ -8,7 +8,7 @@ web sites and other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Getting Started
+Getting Started 
 ---------------
 
 To get started with Oak, build the latest sources with
