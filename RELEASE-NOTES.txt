@@ -19,6 +19,7 @@ Changes in Oak 1.22.5
 
 Bug
 
+
     [OAK-9200] - Oak BlobAccessProvider reference in UserConfigurationImpl fails and leads to performance issue
     [OAK-9218] - Fix OSGi wiring after netty update to 4.1.52.Final
     [OAK-9229] - CountingDocumentStore returns documents with incorrect store reference
