@@ -2628,7 +2628,7 @@ public final class DocumentNodeStore
         CommitValueResolver cvr = new CachingCommitValueResolver(
                 0 /* disable caching for sweep2 as caching has a risk of propagating wrong values */,
                 () -> emptySweepRevision);
-        MissingBcSweeper2 sweeper = new MissingBcSweeper2(this, cvr, includedClusterIds);
+        MissingBcSweeper2 sweeper = new MissingBcSweeper2(this, cvr, includedClusterIds, isDisposed);
         LOG.info("Starting document sweep2. Head: {}, starting at 0", getHeadRevision());
         Iterable<NodeDocument> docs = lastRevSeeker.getCandidates(0);
         try {

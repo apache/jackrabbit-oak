@@ -27,11 +27,19 @@ import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -350,6 +358,124 @@ public class Sweep2Test {
         final Cache<Revision, String> commitValueCache = (Cache<Revision, String>) PrivateAccessor.getField(commitValueResolver, "commitValueCache");
         assertNotNull("could not get the commitValueCache from CachingCommitValueResolver", commitValueCache);
         return commitValueCache;
+    }
+
+    /**
+     * This method checks that sweep2 doesn't block the shutdown/dispose().
+     * - phase A : In order to do so, it first has to make sure there's some data for sweep2 to process.
+     * - phase B : Then bring that sweep2 into the right position by using semaphores and such
+     * - phase C : trigger the dispose - which initially should be blocked by above semaphore
+     * @throws Exception
+     */
+    @Test
+    public void disposeTest() throws Exception {
+        // phase A : make sure there's some data for sweep2 to process
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setClusterId(1)
+                .setAsyncDelay(0) // dont run the bg operations
+                .setDocumentStore(store).build();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a1").child("b").child("c").setProperty("p", "v");
+        persistToBranch(builder);
+        merge(ns, builder);
+        ns.dispose();
+        // aging, and keep instance 2 running thereafter - it holds a fake sweep2 lock
+        DocumentNodeStore ns2 = Sweep2TestHelper.applyPre18Aging(store, withAsyncDelay(builderProvider, 0), 2);
+        // add clusterId 1 to the _sweepRev to make sure it gets included in any subsequent sweep2
+        UpdateOp addSweepRev1 = new UpdateOp(Utils.getIdFromPath("/"), false);
+        addSweepRev1.setMapEntry("_sweepRev", new Revision(0, 0, 1), new Revision(0, 0, 1).toString());
+        assertNotNull(store.findAndUpdate(Collection.NODES, addSweepRev1));
+        Sweep2TestHelper.removeSweep2Status(store, false);
+        assertTrue(Sweep2StatusDocument.acquireOrUpdateSweep2Lock(store, 2, true) > 0);
+        assertTrue(Sweep2StatusDocument.readFrom(store).isSweeping());
+        assertEquals(2, Sweep2StatusDocument.readFrom(store).getLockClusterId());
+        // phase B : bring a sweep2 (on instance 3) right before it would be doing its business
+        // start up an instance normally, which should trigger a sweep2
+        DocumentNodeStore ns3 = builderProvider.newBuilder()
+                .setAsyncDelay(1 /*0 would disable sweep2*/)
+                .setClusterId(3)
+                .setDocumentStore(store).build();
+        // now clusterId 3's sweep2 bgthread will wait because instance 2 is sweeping
+        // it will wait until the sweep2 status is either done or instance 2 crashes
+        // let's make sure if instance 3 does do a sweep2 it is paused before it can finish
+        final Semaphore pausing = new Semaphore(-1);
+        final Semaphore doContinue = new Semaphore(2);
+        // the below observer is in charge of blocking sweep2 until we're ready to let go
+        ns3.addObserver(new Observer() {
+            @Override
+            public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+                try {
+                    pausing.release();
+                    if (!doContinue.tryAcquire(5, TimeUnit.SECONDS)) {
+                        fail("timeout acquiring the pause permit");
+                    }
+                } catch (InterruptedException e) {
+                    fail("interrupted acquiring the pause permit");
+                }            }
+        });
+        final AtomicReference<Throwable> failure = new AtomicReference<>();
+        // the blocker thread makes sure the above Observer blocks things
+        final Thread blockerThread = new Thread(() -> {
+            NodeBuilder b = ns3.getRoot().builder();
+            b.child("anotherchild");
+            try {
+                ns3.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            } catch (CommitFailedException e) {
+                failure.set(e);
+            }
+        }, "commit-blocker");
+        blockerThread.setDaemon(true);
+        blockerThread.start();
+        // wait for separate-commit thread to reach pausing
+        assertTrue(pausing.tryAcquire(5, TimeUnit.SECONDS));
+        // then let's crash instance 2 - this should release the lease
+        // which should let instance 3 take notice and continue sweep2
+        ns2.dispose();
+        // wait until instance 3 has the sweep2 lock
+        waitMax(5000, () -> {return Sweep2StatusDocument.readFrom(store).getLockClusterId() == 3;});
+        assertTrue(Sweep2StatusDocument.readFrom(store).isSweeping());
+        // the release thread releases the Observer, thus unblocking the commit
+        // - the latter unblocks the sweep2 (which is what we wanted to achieve in the first place)
+        final Thread releaseThread = new Thread(() -> {
+                // make sure this happens 1sec after ns3.dispose
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    // lets assume this doesn't happen
+                }
+                // let go of the observer-lock
+                doContinue.release(1000);
+            }, "observer-lock-releaser");
+        releaseThread.setDaemon(true);
+        // dispose 3 -> this is the actual test happening here: does dispose now
+        // interrupt sweep2 as expected?
+        final Thread disposeThread = new Thread(() -> {
+                ns3.dispose();
+        }, "disposer");
+        disposeThread.setDaemon(true);
+        disposeThread.start();
+        // the disposeThread should now be blocked, let's check for that
+        // there's not many other options than *actually* waiting a bit to verify that
+        Thread.sleep(500);
+        assertTrue(disposeThread.isAlive());
+        // now release the observer
+        releaseThread.start();
+        // this should now have let the dispose() continue and terminate
+        disposeThread.join(5000);
+        assertFalse(disposeThread.isAlive());
+        assertTrue(Sweep2StatusDocument.readFrom(store).isSweeping());
+        assertEquals("got a failure: " + failure.get(), null, failure.get());
+    }
+
+    private void waitMax(int maxWaitMillis, Supplier<Boolean> r) throws InterruptedException {
+        final long timeout = System.currentTimeMillis() + 5000;
+        while(!r.get()) {
+            if (System.currentTimeMillis() > timeout) {
+                fail("instance 3 did not pick up the sweep2 lock within time");
+            }
+            Thread.sleep(10);
+        }
     }
 
     @Test

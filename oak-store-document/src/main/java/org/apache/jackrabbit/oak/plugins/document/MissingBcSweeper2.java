@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -71,6 +72,8 @@ final class MissingBcSweeper2 {
 
     private final RevisionVector headRevision;
 
+    private final AtomicBoolean isDisposed;
+
     private long totalCount;
     private long lastCount;
     private long startOfScan;
@@ -83,12 +86,14 @@ final class MissingBcSweeper2 {
      */
     MissingBcSweeper2(RevisionContext context,
                     CommitValueResolver commitValueResolver,
-                    List<Integer> includedClusterIds) {
+                    List<Integer> includedClusterIds,
+                    AtomicBoolean isDisposed) {
         this.context = checkNotNull(context);
         this.commitValueResolver = checkNotNull(commitValueResolver);
         this.executingClusterId = context.getClusterId();
         this.includedClusterIds = includedClusterIds == null ? new LinkedList<>() : Collections.unmodifiableList(includedClusterIds);
         this.headRevision= context.getHeadRevision();
+        this.isDisposed = isDisposed;
     }
 
     /**
@@ -123,6 +128,9 @@ final class MissingBcSweeper2 {
                 updates.put(entry.getKey(), entry.getValue());
             }
             listener.sweepUpdate(updates);
+            if (isDisposed.get()) {
+                throw new DocumentStoreException("sweep2 interrupted by shutdown");
+            }
         }
         LOG.debug("Document sweep2 finished");
     }

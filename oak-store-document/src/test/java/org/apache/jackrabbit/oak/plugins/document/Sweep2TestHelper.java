@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -305,7 +306,7 @@ public class Sweep2TestHelper {
         CommitValueResolver cvr = new CachingCommitValueResolver(
                 0 /* to make sure each commit value is calculated explicitly, separately */,
                 () -> emptySweepRevision);
-        MissingBcSweeper2 sweeper = new MissingBcSweeper2(ns, cvr, null);
+        MissingBcSweeper2 sweeper = new MissingBcSweeper2(ns, cvr, null, new AtomicBoolean(false));
         final List<Map<Path, UpdateOp>> updatesList = new LinkedList<>();
         sweeper.sweep2(Arrays.asList(nodeDocument), new NodeDocumentSweepListener() {
 
