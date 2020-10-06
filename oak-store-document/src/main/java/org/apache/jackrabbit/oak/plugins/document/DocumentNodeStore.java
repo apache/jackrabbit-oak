@@ -204,6 +204,10 @@ public final class DocumentNodeStore
     private final int createOrUpdateBatchSize = SystemPropertySupplier.create("oak.documentMK.createOrUpdateBatchSize", 1000)
             .loggingTo(LOG).get();
 
+    public static final String SYS_PROP_DISABLE_SWEEP2 = "oak.documentMK.disableSweep2";
+    private boolean disableSweep2 = SystemPropertySupplier.create(SYS_PROP_DISABLE_SWEEP2, Boolean.FALSE).loggingTo(LOG)
+            .get();
+
     /**
      * The document store without potentially lease checking wrapper.
      */
@@ -746,8 +750,26 @@ public final class DocumentNodeStore
             // fix some "_bc" - which before OAK-9176 were missing
             // and which sweep2 would separately fix as well - but this is not a problem.
 
-            // So: acquire sweep2 if one is (maybe) necessary
-            long sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(store, clusterId);
+            // Note that by setting the SYS_PROP_DISABLE_SWEEP2 system property
+            // the sweep2 is bypassed and the sweep2 status is explicitly stored as "swept".
+            final long sweep2Lock;
+            if (disableSweep2) {
+                try {
+                    final Sweep2StatusDocument sweep2Status = Sweep2StatusDocument.readFrom(store);
+                    if (sweep2Status == null || !sweep2Status.isSwept()) {
+                        // setting the disableSweep2 flag stores this in the repository
+                        Sweep2StatusDocument.forceReleaseSweep2LockAndMarkSwept(store, clusterId);
+                    }
+                } catch(Exception e) {
+                    LOG.warn("<init> sweep2 is diabled as instructed by system property ("
+                            + SYS_PROP_DISABLE_SWEEP2 + "=true) - however, got an Exception"
+                                    + " while storing sweep2 status in the settings collection: " + e, e);
+                }
+                sweep2Lock = -1;
+            } else {
+                // So: unless sweep2 is disabled: acquire sweep2 if one is (maybe) necessary
+                sweep2Lock = Sweep2Helper.acquireSweep2LockIfNecessary(store, clusterId);
+            }
 
             // perform an initial document sweep if needed
             // this may be long running if there is no sweep revision
