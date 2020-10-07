@@ -94,6 +94,8 @@ public class Sweep2StatusDocument {
                 LOG.info("acquireOrUpdateSweep2Lock: another instance just acquired the (new) sweep2 lock a few moments ago.");
                 return 0;
             } else {
+                LOG.info("acquireOrUpdateSweep2Lock: sweep2 status set to "
+                        + (forceSweepingStatus ? "sweeping" : "checking") + ", locked for clusterId=" + clusterId);
                 return 1;
             }
         } else {
@@ -123,6 +125,12 @@ public class Sweep2StatusDocument {
                 LOG.info("acquireOrUpdateSweep2Lock: another instance just acquired the (expired) sweep2 lock a few moments ago");
                 return 0;
             } else {
+                if (forceSweepingStatus) {
+                    LOG.info("acquireOrUpdateSweep2Lock: sweep2 status set to sweeping, relocked for clusterId=" + clusterId);
+                } else {
+                    LOG.info("acquireOrUpdateSweep2Lock: sweep2 status unchanged (is "
+                            + existingStatusDoc.get(STATUS_PROPERTY) + "), relocked for clusterId=" + clusterId);
+                }
                 return newModCount;
             }
         }
@@ -156,6 +164,7 @@ public class Sweep2StatusDocument {
                 LOG.info("forceReleaseSweep2LockAndMarkSwept: another instance just wanted to mark sweep2 as done a few moments ago too.");
                 return false;
             } else {
+                LOG.info("forceReleaseSweep2LockAndMarkSwept: sweep2 status set to swept by clusterId=" + clusterId);
                 return true;
             }
         } else {
@@ -186,6 +195,7 @@ public class Sweep2StatusDocument {
                     return status.isSwept();
                 }
             } else {
+                LOG.info("forceReleaseSweep2LockAndMarkSwept: sweep2 status set to swept by clusterId=" + clusterId);
                 return true;
             }
         }
