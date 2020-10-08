@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 /**
  * A custom login module for test purposes.
  *
- * EXERCISE: complete the implemenation
+ * EXERCISE: complete the implementation
  */
 public class CustomLoginModule implements LoginModule {
 

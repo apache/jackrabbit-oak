@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.exercise.security.authentication;
 
 import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -46,7 +45,7 @@ public class CustomLoginModuleFactory implements LoginModuleFactory {
                 description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
                         "in a descending order (i.e. higher value ranked configurations come first)."
         )
-        int jaasRanking() default 500;
+        int jaas_ranking() default 500;
 
         @AttributeDefinition(
                 name = "JAAS Control Flag",
@@ -54,7 +53,7 @@ public class CustomLoginModuleFactory implements LoginModuleFactory {
                         "OPTIONAL. Refer to the JAAS configuration documentation for more details around the meaning of " +
                         "these flags."
         )
-        String jaasControlFlag() default "OPTIONAL";
+        String jaas_controlFlag() default "OPTIONAL";
 
         @AttributeDefinition(
                 name = "JAAS Realm",
@@ -62,7 +61,7 @@ public class CustomLoginModuleFactory implements LoginModuleFactory {
                         "realm name is provided then LoginModule is registered with a default realm as configured in " +
                         "the Felix JAAS configuration."
         )
-        String jaasRealmName();
+        String jaas_realmName();
     }
 
     // configuration parameters for the login module instances
@@ -85,9 +84,7 @@ public class CustomLoginModuleFactory implements LoginModuleFactory {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * @return a new {@link ExternalLoginModule} instance.
+     * @return a new {@link CustomLoginModule} instance.
      */
     @Override
     public LoginModule createLoginModule() {
