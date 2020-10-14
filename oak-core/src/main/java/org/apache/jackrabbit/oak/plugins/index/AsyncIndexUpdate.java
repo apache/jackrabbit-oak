@@ -77,6 +77,7 @@ import org.apache.jackrabbit.oak.spi.commit.ResetCommitAttributeHook;
 import org.apache.jackrabbit.oak.spi.commit.SimpleCommitContext;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -194,6 +195,13 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      */
     private final int cleanupIntervalMinutes
             = Integer.getInteger("oak.async.checkpointCleanupIntervalMinutes", 5);
+
+    /**
+     * Setting this to true lead to lane execution (node traversal) even if there
+     * is no index assigned to this lane under /oak:index.
+     */
+    private final boolean traverseNodesIfLaneNotPresentInIndex
+            = Boolean.getBoolean("oak.async.traverseNodesIfLaneNotPresentInIndex");
 
     /**
      * The time in minutes since the epoch when the last checkpoint cleanup ran.
@@ -426,6 +434,9 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     @Override
     public synchronized void run() {
+        if (!shouldProceed()){
+            return;
+        }
         boolean permitAcquired = false;
         try{
             if (runPermit.tryAcquire()){
@@ -440,7 +451,6 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
             }
         }
     }
-
 
     @Override
     public void close() {
@@ -611,6 +621,43 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 postAsyncRunStatsStatus(indexStats);
             }
         }
+    }
+
+    private boolean shouldProceed() {
+        NodeState asyncNode = store.getRoot().getChildNode(":async");
+        /*
+            If /:async node already have the lane(under consideration) info, we can proceed ahead, as
+            majorly this change is to stop repository traversal on very first run. If lane had already
+            traversed nodes in repository there is no point stopping this now.
+         */
+        if (asyncNode.exists() && asyncNode.hasProperty(name)) {
+            return true;
+        }
+        return traverseNodesIfLaneNotPresentInIndex || isIndexWithLanePresent();
+    }
+
+    /**
+     *
+     * @return true if there is at least one index present under /oak:index with indexingLane in action.
+     */
+    private boolean isIndexWithLanePresent() {
+        NodeState oakIndexNode = store.getRoot().getChildNode("oak:index");
+        if (!oakIndexNode.exists()) {
+            log.info("lane: {} - no indexes exist under /oak:index", name);
+            return false;
+        }
+        for (ChildNodeEntry childNodeEntry : oakIndexNode.getChildNodeEntries()) {
+            PropertyState async = childNodeEntry.getNodeState().getProperty("async");
+            if (async != null) {
+                for (String s : async.getValue(Type.STRINGS)) {
+                    if (s.equals(name)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        log.info("lane: {} not present for indexes under /oak:index", name);
+        return false;
     }
 
     private void markFailingIndexesAsCorrupt(NodeBuilder builder) {
