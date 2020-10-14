@@ -16,16 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.jcr.AccessDeniedException;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.Privilege;
-
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -34,6 +24,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionAware;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
@@ -41,6 +32,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.AccessDeniedException;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlManager} interface.
@@ -58,6 +58,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     private final PrivilegeManager privilegeManager;
 
     private PermissionProvider permissionProvider;
+    private boolean doRefresh = false;
 
     protected AbstractAccessControlManager(@NotNull Root root,
                                            @NotNull NamePathMapper namePathMapper,
@@ -176,9 +177,16 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
     @NotNull
     protected PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
-            permissionProvider = config.getPermissionProvider(root, workspaceName, getPrincipals());
+            if (root instanceof PermissionAware) {
+                permissionProvider = ((PermissionAware) root).getPermissionProvider();
+            } else {
+                permissionProvider = config.getPermissionProvider(root, workspaceName, getPrincipals());
+                doRefresh = true;
+            }
         } else {
-            permissionProvider.refresh();
+            if (doRefresh) {
+                permissionProvider.refresh();
+            }
         }
         return permissionProvider;
     }

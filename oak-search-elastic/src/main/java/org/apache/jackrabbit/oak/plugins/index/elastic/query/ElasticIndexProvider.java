@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -31,8 +32,8 @@ public class ElasticIndexProvider implements QueryIndexProvider, Observer {
 
     private final ElasticIndexTracker elasticIndexTracker;
 
-    public ElasticIndexProvider(ElasticConnection elasticConnection) {
-        this.elasticIndexTracker = new ElasticIndexTracker(elasticConnection);
+    public ElasticIndexProvider(ElasticConnection elasticConnection, ElasticMetricHandler elasticMetricHandler) {
+        this.elasticIndexTracker = new ElasticIndexTracker(elasticConnection, elasticMetricHandler);
     }
 
     @Override

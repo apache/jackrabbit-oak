@@ -61,24 +61,12 @@ class TopLevelPaths implements CugConstants {
         }
 
         if (cnt == null) {
-            Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
-            PropertyState hiddenTopCnt = rootTree.getProperty(HIDDEN_TOP_CUG_CNT);
-            if (hiddenTopCnt != null) {
-                cnt = hiddenTopCnt.getValue(Type.LONG);
-                if (cnt <= MAX_CNT) {
-                    PropertyState hidden = root.getTree(PathUtils.ROOT_PATH).getProperty(HIDDEN_NESTED_CUGS);
-                    paths = (hidden == null) ? new String[0] : Iterables.toArray(hidden.getValue(Type.STRINGS), String.class);
-                } else {
-                    paths = new String[0];
-                }
-            } else {
-                cnt = NONE;
-            }
+            computeCntAndPaths();
         }
 
         if (cnt == NONE) {
             return false;
-        } if (cnt > MAX_CNT) {
+        } else if (cnt > MAX_CNT) {
             return true;
         } else {
             for (String p : paths) {
@@ -88,5 +76,21 @@ class TopLevelPaths implements CugConstants {
             }
         }
         return false;
+    }
+
+    private void computeCntAndPaths() {
+        Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+        PropertyState hiddenTopCnt = rootTree.getProperty(HIDDEN_TOP_CUG_CNT);
+        if (hiddenTopCnt != null) {
+            cnt = hiddenTopCnt.getValue(Type.LONG);
+            if (cnt <= MAX_CNT) {
+                PropertyState hidden = root.getTree(PathUtils.ROOT_PATH).getProperty(HIDDEN_NESTED_CUGS);
+                paths = (hidden == null) ? new String[0] : Iterables.toArray(hidden.getValue(Type.STRINGS), String.class);
+            } else {
+                paths = new String[0];
+            }
+        } else {
+            cnt = NONE;
+        }
     }
 }

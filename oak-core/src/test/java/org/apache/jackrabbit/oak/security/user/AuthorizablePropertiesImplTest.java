@@ -16,32 +16,46 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Iterator;
-import java.util.Set;
-import java.util.UUID;
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
+import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.version.VersionConstants;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Test;
+
+import javax.jcr.GuestCredentials;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
-
-import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
-import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Test;
+import javax.jcr.security.AccessControlManager;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
@@ -158,6 +172,55 @@ public class AuthorizablePropertiesImplTest extends AbstractSecurityTest {
         assertEquals(expected, ImmutableSet.copyOf(names));
     }
 
+    //--------------------------------------------------------< getProperty >---
+
+    @Test
+    public void testGetProtectedProperty() throws Exception {
+        Tree t = root.getTree(user2.getPath());
+        TreeUtil.addMixin(t, NodeTypeConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        root.commit();
+
+        assertNull(properties.getProperty(VersionConstants.JCR_BASEVERSION));
+    }
+
+    @Test
+    public void testGetProtectedProperty2() throws Exception {
+        assertNull(properties.getProperty(UserConstants.REP_AUTHORIZABLE_ID));
+    }
+
+    @Test
+    public void testGetPropertyDeclaredByDifferentType() throws Exception {
+        Tree t = root.getTree(user2.getPath());
+        TreeUtil.addMixin(t, "mix:language", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+        t.setProperty("jcr:language", "en");
+        root.commit();
+        assertNull(properties.getProperty("jcr:language"));
+    }
+
+    @Test
+    public void testGetPropertyParentNotAccessible() throws Exception {
+        // prevent everyone from reading the relPath intermediate node (but allowing reading the user and the properties)
+        AccessControlManager acMgr = getAccessControlManager(root);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, user2.getPath());
+        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_READ), true);
+        acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.REP_READ_NODES), false,
+                Collections.emptyMap(),
+                Collections.singletonMap(AccessControlConstants.REP_ITEM_NAMES, new Value[] {getValueFactory(root).createValue("relPath", PropertyType.NAME)}));
+        acMgr.setPolicy(acl.getPath(), acl);
+        root.commit();
+
+        try (ContentSession testsession = login(new GuestCredentials())) {
+            Root r = testsession.getLatestRoot();
+            Authorizable u = getUserManager(r).getAuthorizable(user2.getID());
+            AuthorizablePropertiesImpl props = new AuthorizablePropertiesImpl((AuthorizableImpl) u, getPartialValueFactory());
+            assertNull(props.getProperty("relPath/prop"));
+        }
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testGetPropertyAbsolutePath() throws Exception {
+        properties.getProperty("/prop");
+    }
 
     //--------------------------------------------------------< setProperty >---
 

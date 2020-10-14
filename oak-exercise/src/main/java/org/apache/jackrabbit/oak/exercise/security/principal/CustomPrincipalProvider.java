@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
  */
 class CustomPrincipalProvider implements PrincipalProvider {
 
-    private final Set knownPrincipalNames;
+    private final Set<String> knownPrincipalNames;
 
     CustomPrincipalProvider(String[] knownPrincipalNames) {
         this.knownPrincipalNames = ImmutableSet.copyOf(knownPrincipalNames);
@@ -55,7 +55,7 @@ class CustomPrincipalProvider implements PrincipalProvider {
     public Set<Principal> getMembershipPrincipals(@NotNull Principal principal) {
         // EXERCISE : expose the group membership of your known Principals
         // EXERCISE : add every other principal into one of your known-principal-groups to establish dynamic group membership
-        return Collections.EMPTY_SET;
+        return Collections.emptySet();
     }
 
     @NotNull
@@ -63,7 +63,7 @@ class CustomPrincipalProvider implements PrincipalProvider {
     public Set<? extends Principal> getPrincipals(@NotNull String userID) {
         // EXERCISE : expose the principal-sets of your known principals
         // EXERCISE : add every other principal into one of your known-principal-groups to establish dynamic group membership
-        return Collections.EMPTY_SET;
+        return Collections.emptySet();
     }
 
     @NotNull

@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -175,7 +176,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
      * native sort order
      */
     public static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
-        OrderEntry.Order.DESCENDING);
+            OrderEntry.Order.DESCENDING);
 
     protected final boolean fullTextEnabled;
 
@@ -919,6 +920,9 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
          * Case insensitive map of lower cased propertyName to propertyConfigs
          */
         private final Map<String, PropertyDefinition> propConfigs;
+        /**
+         * List of {@code NamePattern}s configured for this rule
+         */
         private final List<NamePattern> namePatterns;
         private final List<PropertyDefinition> nullCheckEnabledProperties;
         private final List<PropertyDefinition> functionRestrictions;
@@ -1065,6 +1069,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             return similarityProperties;
         }
 
+        public Stream<PropertyDefinition> getNamePatternsProperties() {
+            return namePatterns.stream().map(NamePattern::getConfig);
+        }
+
         @Override
         public String toString() {
             String str = "IndexRule: "+ nodeTypeName;
@@ -1144,7 +1152,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         }
 
         public boolean includePropertyType(int type){
-           return IndexDefinition.includePropertyType(propertyTypes, type);
+            return IndexDefinition.includePropertyType(propertyTypes, type);
         }
 
         public Aggregate getAggregate() {
@@ -1182,7 +1190,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
             if (propNode.exists() && !hasOrderableChildren(propNode)){
                 log.warn("Properties node for [{}] does not have orderable " +
-                    "children in [{}]", this, IndexDefinition.this);
+                        "children in [{}]", this, IndexDefinition.this);
             }
 
             //In case of a pure nodetype index we just index primaryType and mixins
@@ -1247,8 +1255,8 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
                     //Include props with name, boosted and nodeScopeIndex
                     if (pd.nodeScopeIndex
-                        && pd.analyzed
-                        && !pd.isRegexp){
+                            && pd.analyzed
+                            && !pd.isRegexp){
                         nodeScopeAnalyzedProps.add(pd);
                     }
 

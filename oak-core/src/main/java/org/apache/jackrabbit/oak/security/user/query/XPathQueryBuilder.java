@@ -99,49 +99,49 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
     @NotNull
     @Override
     public Condition neq(@NotNull String relPath, @NotNull Value value) {
-        return new Condition.Property(relPath, RelationOp.NE, value);
+        return new Condition.PropertyValue(relPath, RelationOp.NE, value);
     }
 
     @NotNull
     @Override
     public Condition eq(@NotNull String relPath, @NotNull Value value) {
-        return new Condition.Property(relPath, RelationOp.EQ, value);
+        return new Condition.PropertyValue(relPath, RelationOp.EQ, value);
     }
 
     @NotNull
     @Override
     public Condition lt(@NotNull String relPath, @NotNull Value value) {
-        return new Condition.Property(relPath, RelationOp.LT, value);
+        return new Condition.PropertyValue(relPath, RelationOp.LT, value);
     }
 
     @NotNull
     @Override
     public Condition le(@NotNull String relPath, @NotNull Value value) {
-        return new Condition.Property(relPath, RelationOp.LE, value);
+        return new Condition.PropertyValue(relPath, RelationOp.LE, value);
     }
 
     @NotNull
     @Override
     public Condition gt(@NotNull String relPath, @NotNull Value value) {
-        return new Condition.Property(relPath, RelationOp.GT, value);
+        return new Condition.PropertyValue(relPath, RelationOp.GT, value);
     }
 
     @NotNull
     @Override
     public Condition ge(@NotNull String relPath, @NotNull Value value) {
-        return new Condition.Property(relPath, RelationOp.GE, value);
+        return new Condition.PropertyValue(relPath, RelationOp.GE, value);
     }
 
     @NotNull
     @Override
     public Condition exists(@NotNull String relPath) {
-        return new Condition.Property(relPath, RelationOp.EX);
+        return new Condition.PropertyExists(relPath);
     }
 
     @NotNull
     @Override
     public Condition like(@NotNull String relPath, @NotNull String pattern) {
-        return new Condition.Property(relPath, RelationOp.LIKE, pattern);
+        return new Condition.PropertyLike(relPath, pattern);
     }
 
     @NotNull
@@ -175,8 +175,8 @@ class XPathQueryBuilder implements QueryBuilder<Condition> {
     }
 
     //-----------------------------------------------------------< internal >---
-    Condition property(String relPath, RelationOp op, Value value) {
-        return new Condition.Property(relPath, op, value);
+    Condition property(@NotNull String relPath, @NotNull RelationOp op, @NotNull Value value) {
+        return new Condition.PropertyValue(relPath, op, value);
     }
 
     AuthorizableType getSelectorType() {

@@ -26,11 +26,11 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.composite.MountInfoProviderService;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderHelper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.AggregationFilterImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.FilterProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.PrincipalBasedAuthorizationConfiguration;
@@ -49,14 +48,12 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
 import org.jetbrains.annotations.NotNull;
 
-import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -77,8 +74,6 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
     private final boolean testDefault;
     private final String compositionType;
     private final boolean useAggregationFilter;
-
-    private List<String> nodePaths = new ArrayList<>();
 
     public PrinicipalBasedReadTest(int itemsToRead, int numberOfACEs, int subjectSize, boolean entriesForEachPrincipal, boolean testDefault, @NotNull String compositionType, boolean useAggregationFilter, boolean doReport) {
         super(false, itemsToRead, doReport, false);
@@ -124,15 +119,6 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
         }
 
         adminSession.save();
-    }
-
-    @Override
-    protected void visitingNode(Node node, int i) throws RepositoryException {
-        super.visitingNode(node, i);
-        String path = node.getPath();
-        if (!path.contains(AccessControlConstants.REP_POLICY)) {
-            nodePaths.add(path);
-        }
     }
 
     private void createForRotatingPrincipal(@NotNull JackrabbitAccessControlManager acMgr, @NotNull List<Privilege> allPrivileges) throws RepositoryException {
@@ -195,14 +181,7 @@ public class PrinicipalBasedReadTest extends ReadDeepTreeTest {
     @Override
     protected void afterSuite() throws Exception {
         try {
-            UserManager userManager = ((JackrabbitSession) adminSession).getUserManager();
-            for (Principal p : subject.getPrincipals()) {
-                Authorizable a = userManager.getAuthorizable(p);
-                if (a != null) {
-                    a.remove();
-                }
-            }
-            adminSession.save();
+            Utils.removePrincipals(subject.getPrincipals(), adminSession);
         }  finally  {
             super.afterSuite();
         }

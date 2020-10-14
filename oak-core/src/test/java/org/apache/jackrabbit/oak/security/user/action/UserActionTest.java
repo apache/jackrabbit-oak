@@ -136,12 +136,12 @@ public class UserActionTest extends AbstractSecurityTest {
         }
 
         @Override
-        public void onGrantImpersonation(@NotNull User user, @NotNull Principal principal, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onGrantImpersonation(@NotNull User user, @NotNull Principal principal, @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
             // nothing to do
         }
 
         @Override
-        public void onRevokeImpersonation(@NotNull User user, @NotNull Principal principal, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        public void onRevokeImpersonation(@NotNull User user, @NotNull Principal principal, @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
             // nothing to do
         }
     }

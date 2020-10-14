@@ -114,7 +114,7 @@ public class AddMembersByIdBestEffortTest extends AbstractAddMembersByIdTest {
         Iterator<Authorizable> members = testGroup.getDeclaredMembers();
         assertFalse(members.hasNext());
 
-        toRemove = new ArrayList<Authorizable>(NON_EXISTING_IDS.length);
+        toRemove = new ArrayList<>(NON_EXISTING_IDS.length);
         for (String id : NON_EXISTING_IDS) {
             toRemove.add(getUserManager(root).createGroup(id));
         }

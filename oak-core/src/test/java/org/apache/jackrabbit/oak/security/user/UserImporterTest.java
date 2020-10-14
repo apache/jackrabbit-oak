@@ -16,31 +16,34 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.ImportUUIDBehavior;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.PropertyDefinition;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.junit.Test;
-import org.mockito.Mockito;
 
+import javax.jcr.ImportUUIDBehavior;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.PropertyDefinition;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.Map;
@@ -51,12 +54,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class UserImporterTest extends UserImporterBaseTest implements UserConstants {
@@ -100,12 +105,11 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         assertFalse(importer.init(mockJackrabbitSession(), root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW, new ReferenceChangeTracker(), getSecurityProvider()));
     }
 
+    //-----------------------------------------------------< handlePropInfo >---
     @Test(expected = IllegalStateException.class)
     public void testHandlePropInfoNotInitialized() throws Exception {
         importer.handlePropInfo(createUserTree(), mock(PropInfo.class), mock(PropertyDefinition.class));
     }
-
-    //-----------------------------------------------------< handlePropInfo >---
 
     @Test
     public void testHandlePropInfoParentNotAuthorizable() throws Exception {
@@ -235,6 +239,36 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         Tree userTree = createUserTree();
         assertFalse(importer.handlePropInfo(userTree, createPropInfo(REP_PASSWORD, PasswordUtil.buildPasswordHash("pw")), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
         assertNull(userTree.getProperty(REP_PASSWORD));
+    }
+
+    @Test
+    public void testHandlePwNodePropertyInvalidDef() throws Exception {
+        init();
+        Tree userTree = createUserTree();
+        Tree pwHistory = TreeUtil.addChild(userTree, REP_PWD, NT_REP_PASSWORD);
+        PropertyDefinition pd = mockPropertyDefinition(NT_REP_PASSWORD, false);
+        when(pd.getName()).thenReturn(NodeTypeConstants.RESIDUAL_NAME);
+        assertFalse(importer.handlePropInfo(pwHistory, createPropInfo(null, PasswordUtil.buildPasswordHash("pw")), pd));
+    }
+
+    @Test
+    public void testHandlePwNodePropertyInvalidDef2() throws Exception {
+        init();
+        Tree userTree = createUserTree();
+        Tree pwHistory = TreeUtil.addChild(userTree, REP_PWD, NT_REP_PASSWORD);
+        PropertyDefinition pd = mockPropertyDefinition(NT_REP_PASSWORD, false);
+        when(pd.getName()).thenReturn(null);
+        assertFalse(importer.handlePropInfo(pwHistory, createPropInfo(null, PasswordUtil.buildPasswordHash("pw")), pd));
+    }
+
+    @Test
+    public void testHandlePwNodePropertyValidDef() throws Exception {
+        init();
+        Tree userTree = createUserTree();
+        Tree pwHistory = TreeUtil.addChild(userTree, REP_PWD, NT_REP_PASSWORD);
+        PropertyDefinition pd = mockPropertyDefinition(NT_REP_PASSWORD, true);
+        when(pd.getName()).thenReturn(REP_PWD_HISTORY);
+        assertTrue(importer.handlePropInfo(pwHistory, createPropInfo(null, PasswordUtil.buildPasswordHash("pw")), pd));
     }
 
     @Test
@@ -421,7 +455,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     @Test
     public void testPropertiesCompletedIdPresent() throws Exception {
         init();
-        testAction = new TestAction();
+        testAction = mock(AuthorizableAction.class);
 
         Tree userTree = createUserTree();
         userTree.setProperty(REP_AUTHORIZABLE_ID, "userId");
@@ -436,7 +470,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     public void testPropertiesCompletedNewUser() throws Exception {
         init(true);
         importer.propertiesCompleted(createUserTree());
-        testAction.checkMethods("onCreate-User");
+        verify(testAction, times(1)).onCreate(any(User.class), nullable(String.class), any(Root.class), any(NamePathMapper.class));
     }
 
     @Test
@@ -444,7 +478,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         init(true);
         importer.propertiesCompleted(createSystemUserTree());
         // create-actions must not be called for system users
-        testAction.checkMethods();
+        verifyNoInteractions(testAction);
     }
 
     @Test
@@ -453,14 +487,14 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
 
         init(true);
         importer.propertiesCompleted(groupTree);
-        testAction.checkMethods("onCreate-Group");
+        verify(testAction, times(1)).onCreate(any(Group.class), any(Root.class), any(NamePathMapper.class));
     }
 
     @Test
     public void testPropertiesCompletedExistingUser() throws Exception {
         init(true);
         importer.propertiesCompleted(root.getTree(testUser.getPath()));
-        testAction.checkMethods();
+        verifyNoInteractions(testAction);
     }
 
     //--------------------------------------------------------------< start >---
@@ -562,7 +596,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
     //-----------------------------------------------------< startChildInfo >---
 
     @Test(expected = IllegalStateException.class)
-    public void testStartChildInfoIllegalState() throws Exception {
+    public void testStartChildInfoIllegalState() {
         importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "member1")));
     }
 
@@ -584,7 +618,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         memberRefList.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBER_REFERENCES_LIST);
 
         importer.start(memberRefList);
-        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.<PropInfo>of());
+        importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of());
     }
 
     @Test
@@ -622,7 +656,7 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         Tree repMembers = groupTree.addChild("memberTree");
         repMembers.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_MEMBERS);
         importer.start(repMembers);
-        importer.startChildInfo(createNodeInfo("memberTree", NT_REP_MEMBERS), ImmutableList.<PropInfo>of(createPropInfo("anyProp", "memberValue")));
+        importer.startChildInfo(createNodeInfo("memberTree", NT_REP_MEMBERS), ImmutableList.of(createPropInfo("anyProp", "memberValue")));
     }
 
     @Test
@@ -658,5 +692,4 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         importer.end(memberRefList);
         assertNull(f.get(importer));
     }
-
 }

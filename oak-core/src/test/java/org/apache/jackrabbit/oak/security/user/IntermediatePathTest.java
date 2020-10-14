@@ -36,6 +36,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -76,14 +77,14 @@ public class IntermediatePathTest extends AbstractSecurityTest {
     @Test
     public void testUserEmptyPath() throws Exception {
         Authorizable authorizable = createAuthorizable(false, "");
-        assertFalse(UserConstants.DEFAULT_USER_PATH.equals(PathUtils.getAncestorPath(authorizable.getPath(), 1)));
+        assertNotEquals(UserConstants.DEFAULT_USER_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_USER_PATH));
     }
 
     @Test
     public void testGroupEmptyPath() throws Exception {
         Authorizable authorizable = createAuthorizable(true, "");
-        assertFalse(UserConstants.DEFAULT_GROUP_PATH.equals(PathUtils.getAncestorPath(authorizable.getPath(), 1)));
+        assertNotEquals(UserConstants.DEFAULT_GROUP_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_GROUP_PATH));
     }
 
@@ -114,14 +115,14 @@ public class IntermediatePathTest extends AbstractSecurityTest {
     @Test
     public void testUserRootPath() throws Exception {
         Authorizable authorizable = createAuthorizable(false, UserConstants.DEFAULT_USER_PATH);
-        assertFalse(UserConstants.DEFAULT_USER_PATH.equals(PathUtils.getAncestorPath(authorizable.getPath(), 1)));
+        assertNotEquals(UserConstants.DEFAULT_USER_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_USER_PATH));
     }
 
     @Test
     public void testGroupRootPath() throws Exception {
         Authorizable authorizable = createAuthorizable(true, UserConstants.DEFAULT_GROUP_PATH);
-        assertFalse(UserConstants.DEFAULT_GROUP_PATH.equals(PathUtils.getAncestorPath(authorizable.getPath(), 1)));
+        assertNotEquals(UserConstants.DEFAULT_GROUP_PATH, PathUtils.getAncestorPath(authorizable.getPath(), 1));
         assertTrue(authorizable.getPath().startsWith(UserConstants.DEFAULT_GROUP_PATH));
     }
 
@@ -185,7 +186,7 @@ public class IntermediatePathTest extends AbstractSecurityTest {
         List<String> invalidPaths = ImmutableList.of("..", "../..", "../../..", "../../../testNode","a/b/../../../c");
         for (String relPath : invalidPaths) {
             try {
-                Authorizable authorizable = createAuthorizable(false, relPath);
+                createAuthorizable(false, relPath);
                 // NOTE: requires commit to detect the violation
                 root.commit();
                 fail("Invalid path " + relPath + " outside of configured scope.");

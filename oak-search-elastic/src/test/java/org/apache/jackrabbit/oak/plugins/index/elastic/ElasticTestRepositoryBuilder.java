@@ -16,17 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index;
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.TestRepository;
+import org.apache.jackrabbit.oak.plugins.index.TestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
-import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnectionRule;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
@@ -40,11 +44,12 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
         this.esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
         this.editorProvider = getIndexEditorProvider();
-        this.indexProvider = new ElasticIndexProvider(esConnection);
+        this.indexProvider = new ElasticIndexProvider(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
                 editorProvider,
                 new NodeCounterEditorProvider()
         )));
+        queryEngineSettings = new QueryEngineSettings();
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
 
@@ -55,7 +60,9 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 .with(editorProvider)
                 .with((Observer) indexProvider)
                 .with(indexProvider)
-                .with(queryIndexProvider);
+                .with(indexEditorProvider)
+                .with(queryIndexProvider)
+                .with(queryEngineSettings);
         if (isAsync) {
             oak.withAsyncIndexing("async", asyncIndexingTimeInSeconds);
         }

@@ -114,8 +114,8 @@ class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
     }
 
     @Override
-    protected boolean isFulltextValuePersisted() {
-        return false;
+    protected boolean isFulltextValuePersistedAtNode(PropertyDefinition pd) {
+        return !pd.analyzed;
     }
 
     @Override
@@ -195,9 +195,11 @@ class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
     }
 
     @Override
-    protected boolean indexDynamicBoost(ElasticDocument doc, PropertyDefinition pd, NodeState nodeState,
-                                        String propertyName) {
-        // TODO : not implemented
+    protected boolean indexDynamicBoost(ElasticDocument doc, String parent, String nodeName, String token, double boost) {
+        if (token.length() > 0) {
+            doc.addDynamicBoostField(nodeName, token, boost);
+            return true;
+        }
         return false;
     }
 }

@@ -78,8 +78,8 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
         return new CugPolicyImpl(path, NamePathMapper.DEFAULT, getPrincipalManager(root), ImportBehavior.ABORT, getExclude());
     }
 
-    private CugPolicy getApplicableCug(@NotNull String path) throws RepositoryException {
-        return (CugPolicy) cugAccessControlManager.getApplicablePolicies(path).nextAccessControlPolicy();
+    private CugPolicy getApplicableCug() throws RepositoryException {
+        return (CugPolicy) cugAccessControlManager.getApplicablePolicies(AbstractCugTest.SUPPORTED_PATH).nextAccessControlPolicy();
     }
 
     @Test
@@ -120,7 +120,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testGetApplicablePoliciesAfterSet() throws Exception {
-        cugAccessControlManager.setPolicy(SUPPORTED_PATH, getApplicableCug(SUPPORTED_PATH));
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, getApplicableCug());
         AccessControlPolicyIterator it = cugAccessControlManager.getApplicablePolicies(SUPPORTED_PATH);
         assertFalse(it.hasNext());
     }
@@ -150,7 +150,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testGetPoliciesAfterSet() throws Exception {
-        cugAccessControlManager.setPolicy(SUPPORTED_PATH, getApplicableCug(SUPPORTED_PATH));
+        cugAccessControlManager.setPolicy(SUPPORTED_PATH, getApplicableCug());
 
         AccessControlPolicy[] policies = cugAccessControlManager.getPolicies(SUPPORTED_PATH);
         assertEquals(1, policies.length);
@@ -284,7 +284,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testSetPolicy() throws Exception {
-        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        CugPolicy cug = getApplicableCug();
         cug.addPrincipals(EveryonePrincipal.getInstance());
 
         cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
@@ -300,7 +300,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testSetPolicyPersisted() throws Exception {
-        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        CugPolicy cug = getApplicableCug();
         cug.addPrincipals(EveryonePrincipal.getInstance());
         cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
         root.commit();
@@ -362,7 +362,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testSetPolicyMixinAlreadyPresent() throws Exception {
-        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        CugPolicy cug = getApplicableCug();
         cug.addPrincipals(EveryonePrincipal.getInstance());
 
         TreeUtil.addMixin(root.getTree(SUPPORTED_PATH), MIX_REP_CUG_MIXIN, root.getTree(NODE_TYPES_PATH), "uid");
@@ -376,7 +376,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testResetPolicy() throws Exception {
-        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        CugPolicy cug = getApplicableCug();
         cug.addPrincipals(EveryonePrincipal.getInstance());
         cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
 
@@ -395,7 +395,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testRemovePolicy() throws Exception {
-        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        CugPolicy cug = getApplicableCug();
         cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
         cugAccessControlManager.removePolicy(SUPPORTED_PATH, cugAccessControlManager.getPolicies(SUPPORTED_PATH)[0]);
 
@@ -404,7 +404,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
 
     @Test
     public void testRemovePolicyPersisted() throws Exception {
-        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        CugPolicy cug = getApplicableCug();
         cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
         root.commit();
         cugAccessControlManager.removePolicy(SUPPORTED_PATH, cugAccessControlManager.getPolicies(SUPPORTED_PATH)[0]);
@@ -418,7 +418,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     public void testRemovePolicyRemovesMixin() throws Exception {
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
 
-        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        CugPolicy cug = getApplicableCug();
         cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
         root.commit();
 
@@ -434,7 +434,7 @@ public class CugAccessControlManagerTest extends AbstractCugTest {
     public void testRemovePolicyMixinAlreadyRemoved() throws Exception {
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
 
-        CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+        CugPolicy cug = getApplicableCug();
         cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
         root.commit();
 

@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.query.facet.FacetResult;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -121,7 +122,8 @@ public class ElasticFacetTest {
                 elasticRule.getElasticConnectionFromString();
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(connection);
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(connection,
+                new ElasticMetricHandler(StatisticsProvider.NOOP));
 
         NodeStore nodeStore = new MemoryNodeStore(INITIAL_CONTENT);
         Oak oak = new Oak(nodeStore)

@@ -16,15 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Enumeration;
-import java.util.Iterator;
-import javax.jcr.RepositoryException;
-
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -34,6 +27,11 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+import java.util.Enumeration;
+import java.util.Iterator;
 
 /**
  * Base class for {@code Group} principals.
@@ -95,19 +93,16 @@ abstract class AbstractGroupPrincipal extends TreeBasedPrincipal implements Grou
             throw new IllegalStateException(msg, e);
         }
 
-        Iterator<Principal> principals = Iterators.transform(members, new Function<Authorizable, Principal>() {
-            @Override
-            public Principal apply(Authorizable authorizable) {
-                if (authorizable == null) {
-                    return null;
-                }
-                try {
-                    return authorizable.getPrincipal();
-                } catch (RepositoryException e) {
-                    String msg = "Internal error while retrieving principal: " + e.getMessage();
-                    log.error(msg);
-                    throw new IllegalStateException(msg, e);
-                }
+        Iterator<Principal> principals = Iterators.transform(members, authorizable -> {
+            if (authorizable == null) {
+                return null;
+            }
+            try {
+                return authorizable.getPrincipal();
+            } catch (RepositoryException e) {
+                String msg = "Internal error while retrieving principal: " + e.getMessage();
+                log.error(msg);
+                throw new IllegalStateException(msg, e);
             }
         });
         return Iterators.asEnumeration(Iterators.filter(principals, Predicates.<Object>notNull()));

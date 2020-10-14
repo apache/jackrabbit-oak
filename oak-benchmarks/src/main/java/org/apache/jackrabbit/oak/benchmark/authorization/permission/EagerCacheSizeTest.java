@@ -19,14 +19,13 @@ package org.apache.jackrabbit.oak.benchmark.authorization.permission;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.ReadDeepTreeTest;
+import org.apache.jackrabbit.oak.benchmark.authorization.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
@@ -36,19 +35,15 @@ import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.Node;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -62,8 +57,6 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
     private final int numberOfACEs;
     private final int subjectSize;
     private final long eagerCacheSize;
-
-    private final List<String> nodePaths = new ArrayList<>();
     private Subject subject;
 
     public EagerCacheSizeTest(int itemsToRead, int repeatedRead,  int numberOfACEs, int subjectSize, long eagerCacheSize, boolean doReport) {
@@ -107,7 +100,7 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
         // grant read at the root
         Principal principal = subject.getPrincipals().iterator().next();
         Privilege[] readPrivs = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ);
-        addEntry(acMgr, principal, PathUtils.ROOT_PATH, readPrivs);
+        Utils.addEntry(acMgr, principal, PathUtils.ROOT_PATH, readPrivs);
 
         // create additional ACEs for each principal in the subject
         List<Privilege> allPrivileges = Lists.newArrayList(acMgr.privilegeFromName(JCR_ALL).getAggregatePrivileges());
@@ -117,20 +110,11 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
             if (!principalIterator.hasNext()) {
                 throw new IllegalStateException("Cannot setup ACE. no principals available.");
             }
-            if (addEntry(acMgr, principalIterator.next(), getRandom(nodePaths), getRandomPrivileges(allPrivileges))) {
+            if (Utils.addEntry(acMgr, principalIterator.next(), getRandom(nodePaths), getRandomPrivileges(allPrivileges))) {
                 cnt++;
             }
         }
         adminSession.save();
-    }
-
-    @Override
-    protected void visitingNode(Node node, int i) throws RepositoryException {
-        super.visitingNode(node, i);
-        String path = node.getPath();
-        if (!path.contains(AccessControlConstants.REP_POLICY)) {
-            nodePaths.add(path);
-        }
     }
 
     @NotNull
@@ -139,29 +123,10 @@ public class EagerCacheSizeTest extends ReadDeepTreeTest {
         return allPrivileges.subList(0, 3).toArray(new Privilege[0]);
     }
 
-    private static boolean addEntry(@NotNull JackrabbitAccessControlManager acMgr, @NotNull Principal principal, @NotNull String path, @NotNull Privilege[] privileges) throws RepositoryException {
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
-        if (acl == null) {
-            throw new IllegalStateException("No policy to setup ACE.");
-        }
-        boolean added = acl.addAccessControlEntry(principal, privileges);
-        if (added) {
-            acMgr.setPolicy(acl.getPath(), acl);
-        }
-        return added;
-    }
-
     @Override
     protected void afterSuite() throws Exception {
         try {
-            UserManager userManager = ((JackrabbitSession) adminSession).getUserManager();
-            for (Principal p : subject.getPrincipals()) {
-                Authorizable a = userManager.getAuthorizable(p);
-                if (a != null) {
-                    a.remove();
-                }
-            }
-            adminSession.save();
+            Utils.removePrincipals(subject.getPrincipals(), adminSession);
         }  finally  {
             super.afterSuite();
         }

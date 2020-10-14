@@ -37,7 +37,6 @@ import java.security.Principal;
 import java.util.UUID;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.ROOT_PATH;
-import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.NestedCugHookTest.assertNestedCugs;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -97,8 +96,8 @@ public class RestoreParentNestedCugTest extends AbstractCugTest {
         ((Group) uMgr.getAuthorizable(testGroupPrincipal3)).addMember(testUser2);
 
         Tree n = root.getTree(SUPPORTED_PATH);
-        createTrees(n, NT_OAK_UNSTRUCTURED, "a", "b1");
-        createTrees(n, NT_OAK_UNSTRUCTURED, "a", "b2");
+        createTrees(n, "a", "b1");
+        createTrees(n, "a", "b2");
 
         // - /content/a     : allow user1 & user2, deny everyone
         // - /content/a/b1  : allow user1, deny everyone

@@ -61,7 +61,9 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable{
     @Override
     public Iterator<NodeStateEntry> iterator() {
         String fileName = new File(storeFile.getParent(), "linkedList").getAbsolutePath();
-        return new FlatFileStoreIterator(blobStore, fileName, createBaseIterator(), preferredPathElements);
+        FlatFileStoreIterator it = new FlatFileStoreIterator(blobStore, fileName, createBaseIterator(), preferredPathElements);
+        closer.register(it::close);
+        return it;
     }
 
     private Iterator<NodeStateEntry> createBaseIterator() {

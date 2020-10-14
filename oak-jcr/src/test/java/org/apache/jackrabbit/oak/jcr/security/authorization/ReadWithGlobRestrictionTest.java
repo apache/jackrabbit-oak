@@ -20,15 +20,28 @@ import java.security.Principal;
 import java.util.HashSet;
 import java.util.Set;
 import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
 public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
+
+    private String ccPath;
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+
+        Node grandchild = superuser.getNode(childNPath).addNode("child");
+        ccPath = grandchild.getPath();
+        superuser.save();
+    }
 
     @Test
     public void testGlobRestriction() throws Exception {
@@ -64,7 +77,7 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
             allow(path, group2.getPrincipal(), readPrivs);
             deny(path, group3.getPrincipal(), readPrivs);
 
-            Set<Principal> principals = new HashSet<Principal>();
+            Set<Principal> principals = new HashSet<>();
             principals.add(getTestGroup().getPrincipal());
             principals.add(group2.getPrincipal());
             principals.add(group3.getPrincipal());
@@ -155,11 +168,7 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-2412">OAK-2412</a>
      */
     @Test
-    public void testEmptyGlobRestriction() throws Exception{
-        Node grandchild = superuser.getNode(childNPath).addNode("child");
-        String ccPath = grandchild.getPath();
-        superuser.save();
-
+    public void testEmptyGlobRestriction() throws Exception {
         // first deny access to 'path' (read-access is granted in the test setup)
         deny(path, readPrivileges);
         assertFalse(canReadNode(testSession, path));
@@ -184,10 +193,6 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
      */
     @Test
     public void testEmptyGlobRestriction2() throws Exception{
-        Node grandchild = superuser.getNode(childNPath).addNode("child");
-        String ccPath = grandchild.getPath();
-        superuser.save();
-
         // first deny access to 'path' (read-access is granted in the test setup)
         deny(path, readPrivileges);
         assertFalse(canReadNode(testSession, path));
@@ -267,5 +272,35 @@ public class ReadWithGlobRestrictionTest extends AbstractEvaluationTest {
         assertTrue(canReadNode(testSession, n120.getPath()));
         assertTrue(canReadNode(testSession, n121.getPath()));
         assertTrue(canReadNode(testSession, n122.getPath()));
+    }
+
+    /**
+     * OAK-9179
+     */
+    @Test
+    public void testGlobTrailingSlash() throws Exception {
+        // first deny access to 'path' (read-access is granted in the test setup)
+        deny(path, readPrivileges);
+        allow(path, readPrivileges, createGlobRestriction("/"+PathUtils.getName(childNPath) + "/"));
+        assertGlobTrailingSlashEffect();
+    }
+
+    /**
+     * OAK-9179
+     */
+    @Test
+    public void testGlobTrailingSlashWildcard() throws Exception {
+        // first deny access to 'path' (read-access is granted in the test setup)
+        deny(path, readPrivileges);
+        allow(path, readPrivileges, createGlobRestriction("/"+PathUtils.getName(childNPath) + "/*"));
+        assertGlobTrailingSlashEffect();
+    }
+
+    private void assertGlobTrailingSlashEffect() throws RepositoryException {
+        assertFalse(canReadNode(testSession, path));
+        assertFalse(canReadNode(testSession, path+"/"));
+        assertFalse(canReadNode(testSession, childNPath));
+        assertTrue(canReadNode(testSession, ccPath));
+        assertTrue(testSession.propertyExists(childchildPPath));
     }
 }

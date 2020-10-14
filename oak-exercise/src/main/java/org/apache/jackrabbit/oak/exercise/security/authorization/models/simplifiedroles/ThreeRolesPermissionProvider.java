@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
-import java.security.Principal;
-import java.util.Set;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -39,6 +36,9 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.security.Principal;
+import java.util.Set;
 
 class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, ThreeRolesConstants {
 
@@ -61,7 +61,7 @@ class ThreeRolesPermissionProvider implements AggregatedPermissionProvider, Thre
                                  @NotNull String supportedPath, @NotNull Context ctx,
                                  @NotNull RootProvider rootProvider) {
         this.root = root;
-        this.principalNames = ImmutableSet.copyOf(Iterables.transform(principals, (Function<Principal, String>) Principal::getName));
+        this.principalNames = ImmutableSet.copyOf(Iterables.transform(principals, Principal::getName));
         this.supportedPath = supportedPath;
         this.ctx = ctx;
         this.rootProvider = rootProvider;

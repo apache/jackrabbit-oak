@@ -47,7 +47,9 @@ import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RoleStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -254,6 +256,12 @@ public class SegmentNodeStoreFactory {
         boolean splitPersistence() default false;
 
         @AttributeDefinition(
+                name = "Cache persistence",
+                description = "Boolean value indicating that the persisted cache should be used for the custom segment store"
+        )
+        boolean cachePersistence() default false;
+
+        @AttributeDefinition(
             name = "Backup directory",
             description = "Directory (relative to current working directory) for storing repository backups. " +
                 "Defaults to 'repository.home/segmentstore-backup'."
@@ -315,6 +323,13 @@ public class SegmentNodeStoreFactory {
     )
     private volatile SegmentNodeStorePersistence segmentStore;
 
+    @Reference(
+        cardinality = ReferenceCardinality.OPTIONAL,
+        policy = ReferencePolicy.STATIC,
+        policyOption = ReferencePolicyOption.GREEDY
+    )
+    private volatile PersistentCache persistentCache;
+
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
@@ -334,6 +349,7 @@ public class SegmentNodeStoreFactory {
             configuration,
             blobStore,
             segmentStore,
+            persistentCache,
             getRoleStatisticsProvider(statisticsProvider, configuration.role()),
             registrations,
             whiteboard,
@@ -376,6 +392,7 @@ public class SegmentNodeStoreFactory {
         Configuration configuration,
         BlobStore blobStore,
         SegmentNodeStorePersistence segmentStore,
+        PersistentCache persistentCache,
         StatisticsProvider statisticsProvider,
         Closer closer,
         Whiteboard whiteboard,
@@ -539,6 +556,11 @@ public class SegmentNodeStoreFactory {
             }
 
             @Override
+            public boolean hasCachePersistence() {
+                return configuration.cachePersistence();
+            }
+
+            @Override
             public boolean registerDescriptors() {
                 return configuration.registerDescriptors();
             }
@@ -607,6 +629,11 @@ public class SegmentNodeStoreFactory {
             }
 
             @Override
+            public PersistentCache getPersistentCache() {
+                return persistentCache;
+            }
+
+            @Override
             public BundleContext getBundleContext() {
                 return context.getBundleContext();
             }
@@ -615,51 +642,6 @@ public class SegmentNodeStoreFactory {
     }
 
     private static StatisticsProvider getRoleStatisticsProvider(StatisticsProvider delegate, String role) {
-        RepositoryStatistics repositoryStatistics = new RepositoryStatistics() {
-
-            @Override
-            public TimeSeries getTimeSeries(Type type) {
-                return getTimeSeries(type.name(), type.isResetValueEachSecond());
-            }
-
-            @Override
-            public TimeSeries getTimeSeries(String type, boolean resetValueEachSecond) {
-                return delegate.getStats().getTimeSeries(addRoleToName(type, role), resetValueEachSecond);
-            }
-        };
-
-        return new StatisticsProvider() {
-
-            @Override
-            public RepositoryStatistics getStats() {
-                return repositoryStatistics;
-            }
-
-            @Override
-            public MeterStats getMeter(String name, StatsOptions options) {
-                return delegate.getMeter(addRoleToName(name, role), options);
-            }
-
-            @Override
-            public CounterStats getCounterStats(String name, StatsOptions options) {
-                return delegate.getCounterStats(addRoleToName(name, role), options);
-            }
-
-            @Override
-            public TimerStats getTimer(String name, StatsOptions options) {
-                return delegate.getTimer(addRoleToName(name, role), options);
-            }
-
-            @Override
-            public HistogramStats getHistogram(String name, StatsOptions options) {
-                return delegate.getHistogram(addRoleToName(name, role), options);
-            }
-
-        };
+        return new RoleStatisticsProvider(delegate, role);
     }
-
-    private static String addRoleToName(String name, String role) {
-        return role + '.' + name;
-    }
-
 }

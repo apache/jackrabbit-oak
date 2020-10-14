@@ -79,8 +79,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         when(info.matches(any(TokenCredentials.class))).thenReturn(true);
         when(info.getUserId()).thenReturn(userId);
 
-        TokenProvider tp = when(mock(TokenProvider.class).getTokenInfo(anyString())).thenReturn(info).getMock();
-        return tp;
+        return when(mock(TokenProvider.class).getTokenInfo(anyString())).thenReturn(info).getMock();
     }
 
     @Override

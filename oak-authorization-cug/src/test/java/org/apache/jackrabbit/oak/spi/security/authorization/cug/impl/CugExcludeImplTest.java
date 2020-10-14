@@ -35,7 +35,7 @@ import static org.junit.Assert.assertTrue;
 public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     private String[] principalNames = new String[] {"a","b","c","test"};
-    private Set<Principal> principals = ImmutableSet.<Principal>of(new PrincipalImpl("test"));
+    private Set<Principal> principals = ImmutableSet.of(new PrincipalImpl("test"));
 
     @Override
     CugExclude createInstance() {
@@ -53,13 +53,13 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     @Test
     public void testEmpty2() {
-        activate(Collections.<String, Object>emptyMap());
+        activate(Collections.emptyMap());
         assertFalse(exclude.isExcluded(principals));
     }
 
     @Test
     public void testExcludeTest() {
-        Map<String, Object> m = ImmutableMap.<String, Object>of("principalNames", principalNames);
+        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
         activate(m);
 
         Set<Principal> all = new HashSet<>();
@@ -74,21 +74,21 @@ public class CugExcludeImplTest extends CugExcludeDefaultTest {
 
     @Test
     public void testExcludeAnother() {
-        Map<String, Object> m = ImmutableMap.<String, Object>of("principalNames", principalNames);
+        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
         activate(m);
-        assertFalse(exclude.isExcluded(ImmutableSet.<Principal>of(new PrincipalImpl("another"))));
+        assertFalse(exclude.isExcluded(ImmutableSet.of(new PrincipalImpl("another"))));
     }
 
     @Test
     public void testModifyExclude() {
-        Map<String, Object> m = ImmutableMap.<String, Object>of("principalNames", principalNames);
+        Map<String, Object> m = ImmutableMap.of("principalNames", principalNames);
         activate(m);
-        ((CugExcludeImpl) exclude).modified(ImmutableMap.<String, Object>of("principalNames", new String[]{"other"}));
+        ((CugExcludeImpl) exclude).modified(ImmutableMap.of("principalNames", new String[]{"other"}));
 
         for (String name : principalNames) {
             Principal p = new PrincipalImpl(name);
             assertFalse(exclude.isExcluded(ImmutableSet.of(p)));
         }
-        assertTrue(exclude.isExcluded(ImmutableSet.<Principal>of(new PrincipalImpl("other"))));
+        assertTrue(exclude.isExcluded(ImmutableSet.of(new PrincipalImpl("other"))));
     }
 }

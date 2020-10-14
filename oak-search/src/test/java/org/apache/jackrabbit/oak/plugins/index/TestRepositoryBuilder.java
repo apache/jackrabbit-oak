@@ -139,4 +139,8 @@ public abstract class TestRepositoryBuilder {
     public void setQueryIndexProvider(QueryIndexProvider queryIndexProvider) {
         this.queryIndexProvider = queryIndexProvider;
     }
+
+    public void setQueryEngineSettings(QueryEngineSettings queryEngineSettings) {
+        this.queryEngineSettings = queryEngineSettings;
+    }
 }

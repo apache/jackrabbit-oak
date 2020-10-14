@@ -28,15 +28,6 @@ import javax.jcr.security.AccessControlManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -50,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -66,44 +56,54 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
-@Component(metatype = true,
-        label = "Apache Jackrabbit Oak CUG Configuration",
-        description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.",
-        policy = ConfigurationPolicy.REQUIRE)
-@Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
-@Properties({
-        @Property(name = CugConstants.PARAM_CUG_SUPPORTED_PATHS,
-                label = "Supported Paths",
-                description = "Paths under which CUGs can be created and will be evaluated.",
-                cardinality = Integer.MAX_VALUE),
-        @Property(name = CugConstants.PARAM_CUG_ENABLED,
-                label = "CUG Evaluation Enabled",
-                description = "Flag to enable the evaluation of the configured CUG policies.",
-                boolValue = false),
-        @Property(name = CompositeConfiguration.PARAM_RANKING,
-                label = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 200),
-        @Property(name = OAK_SECURITY_NAME,
-                propertyPrivate = true,
-                value = "org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration")        
-})
+@Component(
+        service = {AuthorizationConfiguration.class, SecurityConfiguration.class},
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConfiguration",
+        configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = CugConfiguration.Configuration.class)
 public class CugConfiguration extends ConfigurationBase implements AuthorizationConfiguration, CugConstants {
+
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak CUG Configuration",
+            description = "Authorization configuration dedicated to setup and evaluate 'Closed User Group' permissions.")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Supported Paths",
+                description = "Paths under which CUGs can be created and will be evaluated.",
+                cardinality = Integer.MAX_VALUE)
+        String[] cugSupportedPaths() default {};
+
+        @AttributeDefinition(
+                name = "CUG Evaluation Enabled",
+                description = "Flag to enable the evaluation of the configured CUG policies.")
+        boolean cugEnabled() default false;
+
+        @AttributeDefinition(
+                name = "Ranking",
+                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+        int configurationRanking() default 200;
+    }
 
     /**
      * Reference to services implementing {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude}.
      */
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     private CugExclude exclude;
 
     /**
      * Reference to service implementing {@link MountInfoProvider} to make the
      * CUG authorization model multiplexing aware.
      */
-    @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
     private Set<String> supportedPaths = ImmutableSet.of();
@@ -206,6 +206,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         activate(properties);
     }
 
+    @Reference(name="mountInfoProvider")
     public void bindMountInfoProvider(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
     }
@@ -216,6 +217,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
         this.mountInfoProvider = null;
     }
 
+    @Reference(name="exclude", cardinality = ReferenceCardinality.MANDATORY)
     public void bindExclude(CugExclude exclude) {
         this.exclude = exclude;
     }

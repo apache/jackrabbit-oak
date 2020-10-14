@@ -27,26 +27,30 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 class ElasticDocument {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocument.class);
 
     private final String path;
-    private final List<String> fulltext;
-    private final List<String> suggest;
+    private final Set<String> fulltext;
+    private final Set<String> suggest;
     private final List<String> notNullProps;
     private final List<String> nullProps;
     private final Map<String, Object> properties;
+    private final Map<String, Map<String, Double>> dynamicBoostFields;
 
     ElasticDocument(String path) {
         this.path = path;
-        this.fulltext = new ArrayList<>();
-        this.suggest = new ArrayList<>();
+        this.fulltext = new LinkedHashSet<>();
+        this.suggest = new LinkedHashSet<>();
         this.notNullProps = new ArrayList<>();
         this.nullProps = new ArrayList<>();
         this.properties = new HashMap<>();
+        this.dynamicBoostFields = new HashMap<>();
     }
 
     void addFulltext(String value) {
@@ -85,6 +89,11 @@ class ElasticDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
+    void addDynamicBoostField(String propName, String value, double boost) {
+        dynamicBoostFields.computeIfAbsent(propName, s -> new HashMap<>())
+                .putIfAbsent(value, boost);
+    }
+
     public String build() {
         String ret;
         try {
@@ -96,7 +105,11 @@ class ElasticDocument {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }
                 if (suggest.size() > 0) {
-                    builder.startObject(FieldNames.SUGGEST).field("suggestion", suggest).endObject();
+                    builder.startArray(FieldNames.SUGGEST);
+                    for (String val : suggest) {
+                        builder.startObject().field("value", val).endObject();
+                    }
+                    builder.endArray();
                 }
                 if (notNullProps.size() > 0) {
                     builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
@@ -106,6 +119,16 @@ class ElasticDocument {
                 }
                 for (Map.Entry<String, Object> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue());
+                }
+                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
+                    builder.startArray(f.getKey());
+                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
+                        builder.startObject();
+                        builder.field("value", v.getKey());
+                        builder.field("boost", v.getValue());
+                        builder.endObject();
+                    }
+                    builder.endArray();
                 }
             }
             builder.endObject();

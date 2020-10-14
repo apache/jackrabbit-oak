@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
@@ -210,10 +209,10 @@ public class SystemUserImplTest extends AbstractSecurityTest {
         String path = null;
         try {
             Tree t = root.getTree(UserConstants.DEFAULT_USER_PATH);
-            NodeUtil systemUserTree = new NodeUtil(t).addChild("systemUser", UserConstants.NT_REP_SYSTEM_USER);
-            systemUserTree.setString(UserConstants.REP_PRINCIPAL_NAME, "systemUser");
-            systemUserTree.setString(UserConstants.REP_AUTHORIZABLE_ID, "systemUser");
-            path = systemUserTree.getTree().getPath();
+            Tree systemUserTree = TreeUtil.addChild(t, "systemUser", UserConstants.NT_REP_SYSTEM_USER);
+            systemUserTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, "systemUser");
+            systemUserTree.setProperty(UserConstants.REP_AUTHORIZABLE_ID, "systemUser");
+            path = systemUserTree.getPath();
 
             root.commit();
             fail();

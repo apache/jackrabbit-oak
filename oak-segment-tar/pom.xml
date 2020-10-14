@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.33-SNAPSHOT</version>
+        <version>1.35-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -33,7 +33,7 @@
     <name>Oak Segment Tar</name>
 
     <properties>
-        <netty.version>4.1.14.Final</netty.version>
+        <netty.version>4.1.52.Final</netty.version>
         <concurrentlinkedhashmap.version>1.4.2</concurrentlinkedhashmap.version>
     </properties>
 
@@ -48,7 +48,8 @@
                         	org.apache.jackrabbit.oak.segment.spi,
                             org.apache.jackrabbit.oak.segment.spi.monitor,
                             org.apache.jackrabbit.oak.segment.spi.persistence,
-                            org.apache.jackrabbit.oak.segment.spi.persistence.split
+                            org.apache.jackrabbit.oak.segment.spi.persistence.split,
+                            org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache
                         </Export-Package>
                         <Embed-Dependency>
                             netty-*,
@@ -63,15 +64,20 @@
                             com.ning.compress;version="[1.0,2)";resolution:=optional,
                             com.ning.compress.lzf;version="[1.0,2)";resolution:=optional,
                             com.ning.compress.lzf.util;version="[1.0,2)";resolution:=optional,
+                            com.oracle.svm.core.annotate;resolution:=optional,
                             io.netty.internal.tcnative;version="[2.0,3)";resolution:=optional,
                             javax.security.cert;resolution:=optional,
                             lzma.sdk;resolution:=optional,
                             lzma.sdk.lzma;resolution:=optional,
                             net.jpountz.lz4;resolution:=optional,
                             net.jpountz.xxhash;resolution:=optional,
+                            reactor.blockhound;resolution:=optional,
+                            reactor.blockhound.integration;resolution:=optional,
                             org.apache.commons.logging;resolution:=optional;version="[1.2,2)",
                             org.apache.log4j;resolution:=optional;version="[1.2,2)",
                             org.apache.logging.log4j;resolution:=optional;version="[2.6,3)",
+                            org.apache.logging.log4j.message;resolution:=optional,
+                            org.apache.logging.log4j.spi;resolution:=optional,
                             org.bouncycastle.asn1.x500;version="[1.54,2)";resolution:=optional,
                             org.bouncycastle.cert;version="[1.54,2)";resolution:=optional,
                             org.bouncycastle.cert.jcajce;version="[1.54,2)";resolution:=optional,
@@ -84,6 +90,7 @@
                             org.jboss.marshalling;resolution:=optional,
                             sun.misc;resolution:=optional,
                             sun.nio.ch;resolution:=optional,
+                            sun.security.ssl;resolution:=optional,
                             sun.security.util;resolution:=optional,
                             sun.security.x509;resolution:=optional,
                             *

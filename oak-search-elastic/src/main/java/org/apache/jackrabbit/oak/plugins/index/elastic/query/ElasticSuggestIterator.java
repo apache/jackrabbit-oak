@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -25,16 +24,12 @@ import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.PriorityQueue;
 
 /**
@@ -94,7 +89,7 @@ class ElasticSuggestIterator implements Iterator<FulltextResultRow> {
         for (SearchHit doc : res.getHits()) {
             if (responseHandler.isAccessible(responseHandler.getPath(doc))) {
                 for (SearchHit suggestion : doc.getInnerHits().get(FieldNames.SUGGEST).getHits()) {
-                    suggestionPriorityQueue.add(new ElasticSuggestion(((List<String>) suggestion.getSourceAsMap().get("suggestion")).get(0), suggestion.getScore()));
+                    suggestionPriorityQueue.add(new ElasticSuggestion((String) suggestion.getSourceAsMap().get("value"), suggestion.getScore()));
                 }
             }
         }

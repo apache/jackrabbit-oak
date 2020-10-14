@@ -65,8 +65,7 @@ final class PasswordHistory implements UserConstants {
         boolean updated = false;
         if (isEnabled) {
             checkPasswordInHistory(userTree, password);
-            shiftPasswordHistory(userTree);
-            updated = true;
+            updated = shiftPasswordHistory(userTree);
         }
         return updated;
     }
@@ -76,10 +75,11 @@ final class PasswordHistory implements UserConstants {
      * and trim the list of hashes in the list according to the configured maxSize.
      *
      * @param userTree The user tree.
+     * @return true if the history was successfully adjusted, false otherwise
      * @throws AccessDeniedException If the editing session cannot access or
      * create the rep:pwd node.
      */
-    private void shiftPasswordHistory(@NotNull Tree userTree) throws AccessDeniedException {
+    private boolean shiftPasswordHistory(@NotNull Tree userTree) throws AccessDeniedException {
         String currentPasswordHash = TreeUtil.getString(userTree, UserConstants.REP_PASSWORD);
         if (currentPasswordHash != null) {
             Tree passwordTree = getPasswordTree(userTree, true);
@@ -97,6 +97,9 @@ final class PasswordHistory implements UserConstants {
             }
 
             passwordTree.setProperty(UserConstants.REP_PWD_HISTORY, historyEntries, Type.STRINGS);
+            return true;
+        } else {
+            return false;
         }
     }
 

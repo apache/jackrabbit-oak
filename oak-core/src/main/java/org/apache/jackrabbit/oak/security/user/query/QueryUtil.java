@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.api.security.user.QueryBuilder.Direction.ASCENDING;
@@ -41,7 +42,7 @@ import static org.apache.jackrabbit.api.security.user.QueryBuilder.Direction.ASC
  */
 public final class QueryUtil {
 
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(GroupPredicate.class);
+    private static final Logger log = LoggerFactory.getLogger(QueryUtil.class);
 
     private QueryUtil() {}
 

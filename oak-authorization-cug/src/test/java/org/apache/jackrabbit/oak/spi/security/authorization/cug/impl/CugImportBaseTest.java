@@ -21,11 +21,13 @@ import java.io.InputStream;
 import java.util.Set;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.security.AccessControlException;
 
@@ -50,6 +52,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.MIX_REP_CUG_MIXIN;
+import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.NT_REP_CUG_POLICY;
+import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.REP_CUG_POLICY;
+import static org.apache.jackrabbit.oak.spi.security.authorization.cug.impl.CugConstants.REP_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,8 +64,8 @@ import static org.junit.Assert.fail;
 
 public abstract class CugImportBaseTest {
 
-    static final String TEST_NODE_NAME = "testNode";
-    static final String TEST_NODE_PATH = "/testNode";
+    private static final String TEST_NODE_NAME = "testNode";
+    private static final String TEST_NODE_PATH = "/testNode";
     static final String TEST_GROUP_PRINCIPAL_NAME = "testPrincipal";
 
     static final String XML_CUG_POLICY = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
@@ -84,7 +90,7 @@ public abstract class CugImportBaseTest {
                 "</sv:node>" +
             "</sv:node>";
 
-    static final String XML_NESTED_CUG_POLICY = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+    private static final String XML_NESTED_CUG_POLICY = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<sv:node sv:name=\"rep:cugPolicy\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
                 "<sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:CugPolicy</sv:value></sv:property>" +
                 "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\">" +
@@ -122,6 +128,7 @@ public abstract class CugImportBaseTest {
     @After
     public void after() throws Exception {
         try {
+            getImportSession().refresh(false);
             adminSession.refresh(false);
 
             adminSession.getNode(TEST_NODE_PATH).remove();
@@ -166,14 +173,10 @@ public abstract class CugImportBaseTest {
     }
 
     void doImport(String parentPath, String xml) throws Exception {
-        doImport(parentPath, xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+        doImport(getImportSession(), parentPath, xml);
     }
 
-    void doImport(String parentPath, String xml, int importUUIDBehavior) throws Exception {
-        doImport(getImportSession(), parentPath, xml, importUUIDBehavior);
-    }
-
-    void doImport(Session importSession, String parentPath, String xml, int importUUIDBehavior) throws Exception {
+    private void doImport(Session importSession, String parentPath, String xml) throws Exception {
         InputStream in;
         if (xml.charAt(0) == '<') {
             in = new ByteArrayInputStream(xml.getBytes());
@@ -181,7 +184,7 @@ public abstract class CugImportBaseTest {
             in = getClass().getResourceAsStream(xml);
         }
         try {
-            importSession.importXML(parentPath, in, importUUIDBehavior);
+            importSession.importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
         } finally {
             in.close();
         }
@@ -191,7 +194,7 @@ public abstract class CugImportBaseTest {
         assertEquals(expectedPrincipalNames.size(), principalNames.length);
         Set<String> result = ImmutableSet.copyOf(Iterables.transform(ImmutableSet.copyOf(principalNames), principalName -> {
             try {
-                return (principalName == null) ? null : principalName.getString();
+                return principalName.getString();
             } catch (RepositoryException e) {
                 throw new IllegalStateException(e);
             }
@@ -205,12 +208,21 @@ public abstract class CugImportBaseTest {
         adminSession.save();
 
         Node targetNode = getTargetNode();
-        targetNode.addMixin(CugConstants.MIX_REP_CUG_MIXIN);
+        targetNode.addMixin(MIX_REP_CUG_MIXIN);
         doImport(getTargetPath(), XML_CUG_POLICY);
         adminSession.save();
+
+        assertTrue(targetNode.hasNode(REP_CUG_POLICY));
+        Node n = targetNode.getNode(REP_CUG_POLICY);
+        assertEquals(NT_REP_CUG_POLICY, n.getPrimaryNodeType().getName());
+
+        assertTrue(n.hasProperty(REP_PRINCIPAL_NAMES));
+        Property p = n.getProperty(REP_PRINCIPAL_NAMES);
+        ValueFactory vf = adminSession.getValueFactory();
+        assertArrayEquals(new Value[] {vf.createValue(TEST_GROUP_PRINCIPAL_NAME), vf.createValue(EveryonePrincipal.NAME)}, p.getValues());
     }
 
-    @Test
+    @Test(expected = AccessControlException.class)
     public void testCugValidPrincipalsNoMixin() throws Exception {
         testGroup = ((JackrabbitSession) adminSession).getUserManager().createGroup(new PrincipalImpl(TEST_GROUP_PRINCIPAL_NAME));
         adminSession.save();
@@ -218,12 +230,12 @@ public abstract class CugImportBaseTest {
         doImport(getTargetPath(), XML_CUG_POLICY);
         try {
             adminSession.save();
-            fail();
         } catch (AccessControlException e) {
             Throwable cause = e.getCause();
             assertTrue(cause instanceof CommitFailedException);
             assertTrue(((CommitFailedException) cause).isAccessControlViolation());
             assertEquals(22, ((CommitFailedException) cause).getCode());
+            throw e;
         }
 
     }
@@ -235,6 +247,12 @@ public abstract class CugImportBaseTest {
 
         doImport(getTargetPath(), XML_CHILD_WITH_CUG);
         adminSession.save();
+
+        Node targetNode = getTargetNode();
+        assertTrue(targetNode.hasNode("child"));
+
+        Node child = getTargetNode().getNode("child");
+        assertTrue(child.hasNode(REP_CUG_POLICY));
     }
 
     @Test
@@ -245,7 +263,7 @@ public abstract class CugImportBaseTest {
                 "</sv:node>";
         doImport(getTargetPath(), xmlCugPolicyWithoutPrincipals);
 
-        assertFalse(getTargetNode().hasNode(CugConstants.REP_CUG_POLICY));
+        assertFalse(getTargetNode().hasNode(REP_CUG_POLICY));
         getImportSession().save();
     }
 
@@ -257,52 +275,46 @@ public abstract class CugImportBaseTest {
                 "<sv:property sv:name=\"rep:principalNames\" sv:type=\"String\" sv:multiple=\"true\"></sv:property>" +
             "</sv:node>";
 
-        getTargetNode().addMixin(CugConstants.MIX_REP_CUG_MIXIN);
+        getTargetNode().addMixin(MIX_REP_CUG_MIXIN);
         doImport(getTargetPath(), xmlCugPolicyEmptyPrincipals);
         getImportSession().save();
 
-        String propPath = getTargetPath() + "/" + CugConstants.REP_CUG_POLICY + "/" + CugConstants.REP_PRINCIPAL_NAMES;
+        String propPath = getTargetPath() + "/" + REP_CUG_POLICY + "/" + REP_PRINCIPAL_NAMES;
         assertTrue(getImportSession().propertyExists(propPath));
         assertArrayEquals(new Value[0], getImportSession().getProperty(propPath).getValues());
     }
 
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void testNestedCug() throws Exception {
-        try {
-            doImport(getTargetPath(), XML_NESTED_CUG_POLICY);
-            fail();
-        } catch (ConstraintViolationException e) {
-            // success
-        } finally {
-            getImportSession().refresh(false);
-        }
+        doImport(getTargetPath(), XML_NESTED_CUG_POLICY);
     }
 
     @Test
     public void testNestedCugWithMixin() throws Exception {
-        getTargetNode().addMixin(CugConstants.MIX_REP_CUG_MIXIN);
+        getTargetNode().addMixin(MIX_REP_CUG_MIXIN);
         doImport(getTargetPath(), XML_NESTED_CUG_POLICY);
 
-        assertTrue(getTargetNode().hasNode(CugConstants.REP_CUG_POLICY));
+        assertTrue(getTargetNode().hasNode(REP_CUG_POLICY));
 
-        Node cugPolicy = getTargetNode().getNode(CugConstants.REP_CUG_POLICY);
-        assertTrue(cugPolicy.hasProperty(CugConstants.REP_PRINCIPAL_NAMES));
-        assertFalse(cugPolicy.hasNode(CugConstants.REP_CUG_POLICY));
+        Node cugPolicy = getTargetNode().getNode(REP_CUG_POLICY);
+        assertTrue(cugPolicy.hasProperty(REP_PRINCIPAL_NAMES));
+        assertFalse(cugPolicy.hasNode(REP_CUG_POLICY));
     }
 
     @Test
     public void testNestedCugSave() throws Exception {
-        getTargetNode().addMixin(CugConstants.MIX_REP_CUG_MIXIN);
+        getTargetNode().addMixin(MIX_REP_CUG_MIXIN);
         doImport(getTargetPath(), XML_NESTED_CUG_POLICY);
+        getImportSession().save();
 
-        assertTrue(getTargetNode().hasNode(CugConstants.REP_CUG_POLICY));
+        assertTrue(getTargetNode().hasNode(REP_CUG_POLICY));
 
-        Node cugPolicy = getTargetNode().getNode(CugConstants.REP_CUG_POLICY);
-        assertTrue(cugPolicy.hasProperty(CugConstants.REP_PRINCIPAL_NAMES));
-        assertFalse(cugPolicy.hasNode(CugConstants.REP_CUG_POLICY));
+        Node cugPolicy = getTargetNode().getNode(REP_CUG_POLICY);
+        assertTrue(cugPolicy.hasProperty(REP_PRINCIPAL_NAMES));
+        assertFalse(cugPolicy.hasNode(REP_CUG_POLICY));
     }
 
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     public void testCugWithInvalidName() throws Exception {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<sv:node sv:name=\"someOtherNode\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -312,23 +324,16 @@ public abstract class CugImportBaseTest {
                 "</sv:property>" +
             "</sv:node>";
 
-        getTargetNode().addMixin(CugConstants.MIX_REP_CUG_MIXIN);
+        getTargetNode().addMixin(MIX_REP_CUG_MIXIN);
         doImport(getTargetPath(), xml);
 
-        try {
-            getImportSession().save();
-            fail();
-        } catch (ConstraintViolationException e) {
-            // success
-        } finally {
-            getImportSession().refresh(false);
-        }
+        // save must fail
+        getImportSession().save();
     }
 
     @Test
     public void testCugAtUnsupportedPath() throws Exception {
         doImport("/", XML_CHILD_WITH_CUG);
-
         getImportSession().save();
 
         assertTrue(getImportSession().getRootNode().hasNode("child"));

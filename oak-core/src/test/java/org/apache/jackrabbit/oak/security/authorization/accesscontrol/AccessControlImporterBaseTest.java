@@ -16,20 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
-import java.util.ArrayList;
-import java.util.List;
-import javax.jcr.ImportUUIDBehavior;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlList;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -38,11 +24,10 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -56,18 +41,30 @@ import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import javax.jcr.ImportUUIDBehavior;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NT_OAK_UNSTRUCTURED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -77,11 +74,11 @@ import static org.mockito.Mockito.withSettings;
 public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTest implements AccessControlConstants {
 
     final NodeInfo aceGrantInfo = new NodeInfo("grantAceName", NT_REP_GRANT_ACE, ImmutableList.of(), null);
-    final NodeInfo aceDenyInfo = new NodeInfo("denyAceName", NT_REP_DENY_ACE, ImmutableList.of(), null);
-    final NodeInfo restrInfo = new NodeInfo("anyRestrName", NT_REP_RESTRICTIONS, ImmutableList.of(), null);
+    private final NodeInfo aceDenyInfo = new NodeInfo("denyAceName", NT_REP_DENY_ACE, ImmutableList.of(), null);
+    private final NodeInfo restrInfo = new NodeInfo("anyRestrName", NT_REP_RESTRICTIONS, ImmutableList.of(), null);
     final PropInfo unknownPrincipalInfo = new PropInfo(REP_PRINCIPAL_NAME, PropertyType.STRING, createTextValue("unknownPrincipal"));
 
-    Tree accessControlledTree;
+    private Tree accessControlledTree;
     Tree aclTree;
 
     AccessControlImporter importer;
@@ -216,12 +213,8 @@ public abstract class AccessControlImporterBaseTest  extends AbstractSecurityTes
 
     @Test
     public void testInitCausesRepositoryException() {
-        JackrabbitSession s = mock(JackrabbitSession.class, withSettings().defaultAnswer(new Answer() {
-
-            @Override
-            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
-                throw new RepositoryException();
-            }
+        JackrabbitSession s = mock(JackrabbitSession.class, withSettings().defaultAnswer(invocationOnMock -> {
+            throw new RepositoryException();
         }));
         // session methods are only invoked for session-imports
         assertEquals(isWorkspaceImport(), importer.init(s, root, getNamePathMapper(), isWorkspaceImport(), ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING, new ReferenceChangeTracker(), getSecurityProvider()));

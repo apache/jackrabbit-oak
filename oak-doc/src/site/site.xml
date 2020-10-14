@@ -63,6 +63,7 @@ under the License.
         <item href="query/grammar-sql2.html" name="SQL-2 Grammar" />
         <item href="query/query-troubleshooting.html" name="Troubleshooting" />
         <item href="query/indexing.html" name="Indexing" />
+        <item href="query/oak-run-indexing.html" name="Indexing with Oak-Run" />
         <item href="query/lucene.html" name="Lucene Index" />
         <item href="query/property-index.html" name="Property Index" />
         <item href="query/solr.html" name="Solr Index" />

@@ -81,12 +81,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         final Principal p = getTestUser().getPrincipal();
         assertTrue(agp.isMember(p));
         assertTrue(agp.isMember(new PrincipalImpl(p.getName())));
-        assertTrue(agp.isMember(new Principal() {
-            @Override
-            public String getName() {
-                return p.getName();
-            }
-        }));
+        assertTrue(agp.isMember(() -> p.getName()));
 
     }
 
@@ -94,12 +89,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     public void testIsMemberMissingAuthorizable() {
         List<Principal> principals = ImmutableList.of(
                 new PrincipalImpl("name"),
-                new Principal() {
-                    @Override
-                    public String getName() {
-                        return "name";
-                    }
-                }
+                () -> "name"
         );
 
         for (Principal p : principals) {
@@ -112,12 +102,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
         final Principal p = getTestUser().getPrincipal();
         assertTrue(everyoneAgp.isMember(p));
         assertTrue(everyoneAgp.isMember(new PrincipalImpl(p.getName())));
-        assertTrue(everyoneAgp.isMember(new Principal() {
-            @Override
-            public String getName() {
-                return p.getName();
-            }
-        }));
+        assertTrue(everyoneAgp.isMember(() -> p.getName()));
 
     }
 
@@ -125,12 +110,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
     public void testIsMemberOfEveryoneMissingAuthorizable() {
         List<Principal> principals = ImmutableList.of(
                 new PrincipalImpl("name"),
-                new Principal() {
-                    @Override
-                    public String getName() {
-                        return "name";
-                    }
-                }
+                () -> "name"
         );
 
         for (Principal p : principals) {
@@ -151,7 +131,7 @@ public class AbstractGroupPrincipalTest extends AbstractSecurityTest {
 
     @Test
     public void testMembersFiltersNull() throws Exception {
-        List l = new ArrayList();
+        List<Authorizable> l = new ArrayList<>();
         l.add(null);
         AbstractGroupPrincipal agp = mock(AbstractGroupPrincipal.class);
         when(agp.getMembers()).thenReturn(l.iterator());

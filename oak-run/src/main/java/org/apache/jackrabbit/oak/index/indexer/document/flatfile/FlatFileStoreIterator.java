@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import static com.google.common.collect.Iterators.concat;
 import static com.google.common.collect.Iterators.singletonIterator;
 
+import java.io.Closeable;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -36,7 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.AbstractIterator;
 
-class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry> {
+class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry>, Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Iterator<NodeStateEntry> baseItr;
     private final NodeStateEntryList buffer;
@@ -85,7 +86,6 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         current = computeNextEntry();
         if (current == null) {
             log.info("Max buffer size in complete traversal is [{}]", maxBufferSize);
-            buffer.close();
             return endOfData();
         } else {
             return current;
@@ -130,7 +130,6 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
                 if (qitr.hasNext()) {
                     return wrapIfNeeded(qitr.next());
                 }
-                buffer.close();
                 return endOfData();
             }
         };
@@ -147,5 +146,10 @@ class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements 
         // already contains the LazyChildrenNodeState
         // (actually wrapping would work just fine - it's just not needed)
         return e;
+    }
+
+    @Override
+    public void close() {
+        buffer.close();
     }
 }

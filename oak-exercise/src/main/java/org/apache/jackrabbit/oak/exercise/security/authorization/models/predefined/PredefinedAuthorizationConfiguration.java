@@ -16,50 +16,45 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.Set;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-
-import com.google.common.collect.ImmutableSet;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
-@Component(metatype = true, policy = org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE)
-@Service({AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class})
-@Properties({
-        @Property(name = CompositeConfiguration.PARAM_RANKING,
-                label = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 400),
-        @Property(name = OAK_SECURITY_NAME,
-                propertyPrivate = true,
-                value = "org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined.PredefinedAuthorizationConfiguration")
-})
+@Component(service = {AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class},
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.exercise.security.authorization.models.predefined.PredefinedAuthorizationConfiguration",
+        configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = PredefinedAuthorizationConfiguration.Configuration.class)
 public final class PredefinedAuthorizationConfiguration extends ConfigurationBase implements AuthorizationConfiguration {
 
-    private static final long READ_PERMISSIONS = Permissions.READ | Permissions.READ_ACCESS_CONTROL;
-    private static final Set<String> READ_PRIVILEGE_NAMES = ImmutableSet.of(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES);
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak PredefinedAuthorizationConfiguration (Oak Exercises)")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Ranking",
+                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+        int configurationRanking() default 400;
+    }
 
     @NotNull
     @Override

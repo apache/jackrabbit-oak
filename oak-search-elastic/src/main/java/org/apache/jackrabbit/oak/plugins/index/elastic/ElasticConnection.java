@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -117,6 +118,15 @@ public class ElasticConnection implements Closeable {
 
     public String getIndexPrefix() {
         return indexPrefix;
+    }
+
+    /**
+     * Checks if elastic server is available for connection.
+     * @return true if available, false otherwise.
+     * @throws IOException if some connection exception occurs.
+     */
+    public boolean isAvailable() throws IOException {
+        return this.getClient().ping(RequestOptions.DEFAULT);
     }
 
     @Override
@@ -239,7 +249,7 @@ public class ElasticConnection implements Closeable {
             @Override
             public ElasticConnection build() {
                 return new ElasticConnection(
-                        Objects.requireNonNull(indexPrefix, "indexPrefix must be not null"),
+                        Objects.requireNonNull(ElasticIndexNameHelper.getElasticSafeName(indexPrefix), "indexPrefix must be not null"),
                         Objects.requireNonNull(scheme, "scheme must be not null"),
                         Objects.requireNonNull(host, "host must be not null"),
                         Objects.requireNonNull(port, "port must be not null"),

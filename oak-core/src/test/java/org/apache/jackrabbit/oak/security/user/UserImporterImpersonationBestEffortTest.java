@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -28,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 
 public class UserImporterImpersonationBestEffortTest extends UserImporterImpersonationIgnoreTest {
 
+    @NotNull
     @Override
     String getImportBehavior() {
         return ImportBehavior.NAME_BESTEFFORT;

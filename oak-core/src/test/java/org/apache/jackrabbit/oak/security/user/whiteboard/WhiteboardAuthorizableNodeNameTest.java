@@ -53,13 +53,7 @@ public class WhiteboardAuthorizableNodeNameTest {
     public void testRegisteredImplementation() {
         authorizableNodeName.start(whiteboard);
 
-        AuthorizableNodeName registered = new AuthorizableNodeName() {
-            @NotNull
-            @Override
-            public String generateNodeName(@NotNull String authorizableId) {
-                return "generated";
-            }
-        };
+        AuthorizableNodeName registered = authorizableId -> "generated";
         whiteboard.register(AuthorizableNodeName.class, registered, ImmutableMap.of());
         assertEquals(registered.generateNodeName(TEST_ID), authorizableNodeName.generateNodeName(TEST_ID));
     }

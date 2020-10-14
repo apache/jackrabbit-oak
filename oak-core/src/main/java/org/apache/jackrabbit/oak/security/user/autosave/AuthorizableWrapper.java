@@ -41,10 +41,10 @@ final class AuthorizableWrapper<T extends Authorizable> implements Function<T, T
     }
 
     static Iterator<Authorizable> createIterator(Iterator<Authorizable> dlgs, AutoSaveEnabledManager mgr) {
-        return Iterators.transform(dlgs, new AuthorizableWrapper<Authorizable>(mgr));
+        return Iterators.transform(dlgs, new AuthorizableWrapper<>(mgr));
     }
 
     static Iterator<Group> createGroupIterator(Iterator<Group> dlgs, AutoSaveEnabledManager mgr) {
-        return Iterators.transform(dlgs, new AuthorizableWrapper<Group>(mgr));
+        return Iterators.transform(dlgs, new AuthorizableWrapper<>(mgr));
     }
 }

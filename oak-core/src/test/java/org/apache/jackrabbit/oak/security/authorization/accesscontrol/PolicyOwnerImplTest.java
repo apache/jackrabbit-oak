@@ -67,7 +67,7 @@ public class PolicyOwnerImplTest extends AbstractAccessControlTest {
     }
 
     @Test
-    public void testDefinesDifferentPolicy() throws Exception {
+    public void testDefinesDifferentPolicy() {
         assertFalse(acMgr.defines(TEST_PATH, new AccessControlPolicy() {}));
     }
 

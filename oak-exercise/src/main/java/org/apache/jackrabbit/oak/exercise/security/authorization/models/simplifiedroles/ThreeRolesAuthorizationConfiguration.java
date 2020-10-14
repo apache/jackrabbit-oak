@@ -16,21 +16,7 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles;
 
-import java.io.ByteArrayInputStream;
-import java.security.Principal;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlManager;
-
 import com.google.common.collect.ImmutableList;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -49,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -63,39 +48,59 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlManager;
+import java.io.ByteArrayInputStream;
+import java.security.Principal;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 
-@Component(metatype = true, immediate = true, policy = org.apache.felix.scr.annotations.ConfigurationPolicy.REQUIRE)
-@Service({AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class})
-@Properties({
-        @Property(name = "supportedPath",
-                label = "Supported Path"),
-        @Property(name = CompositeConfiguration.PARAM_RANKING,
-                label = "Ranking",
-                description = "Ranking of this configuration in a setup with multiple authorization configurations.",
-                intValue = 10),
-        @Property(name = OAK_SECURITY_NAME,
-                propertyPrivate = true,
-                value = "org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles.ThreeRolesAuthorizationConfiguration")
-})
+@Component(service = {AuthorizationConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class},
+        property = OAK_SECURITY_NAME + "=org.apache.jackrabbit.oak.exercise.security.authorization.models.simplifiedroles.ThreeRolesAuthorizationConfiguration",
+        immediate = true,
+        configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = ThreeRolesAuthorizationConfiguration.Configuration.class)
 public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase implements AuthorizationConfiguration, ThreeRolesConstants {
 
-    private static final Logger log = LoggerFactory.getLogger(ThreeRolesAuthorizationConfiguration.class);
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak ThreeRolesAuthorizationConfiguration (Oak Exercises)")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Supported Paths", description = "Define paths where this simplified authorization model is supported.")
+        int supportedPath();
 
+        @AttributeDefinition(
+                name = "Ranking",
+                description = "Ranking of this configuration in a setup with multiple authorization configurations.")
+        int configurationRanking() default 10;
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(ThreeRolesAuthorizationConfiguration.class);
+    private static final String PARAM_SUPPORTED_PATHS = "supportedPath";
 
     private String supportedPath;
 
-    @org.apache.felix.scr.annotations.Activate
+    @Activate
     private void activate(Map<String, Object> properties) {
-        supportedPath = PropertiesUtil.toString(properties.get("supportedPath"), (String) null);
+        supportedPath = PropertiesUtil.toString(properties.get(PARAM_SUPPORTED_PATHS), (String) null);
     }
 
     @Modified
     private void modified(Map<String, Object> properties) {
-        supportedPath = PropertiesUtil.toString(properties.get("supportedPath"), (String) null);
+        supportedPath = PropertiesUtil.toString(properties.get(PARAM_SUPPORTED_PATHS), (String) null);
     }
 
     @Deactivate
@@ -141,8 +146,6 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
                      "  - "+REP_READERS +" (STRING) multiple protected IGNORE\n" +
                      "  - "+REP_EDITORS+" (STRING) multiple protected IGNORE\n" +
                      "  - "+REP_OWNERS+" (STRING) multiple protected IGNORE";
-        System.out.println(cnd);
-
         return builder -> {
             NodeState base = builder.getNodeState();
             NodeStore store = new MemoryNodeStore(base);
@@ -228,6 +231,6 @@ public class ThreeRolesAuthorizationConfiguration extends ConfigurationBase impl
     @Override
     public void setParameters(@NotNull ConfigurationParameters config) {
         super.setParameters(config);
-        supportedPath = config.getConfigValue("supportedPath", null, String.class);
+        supportedPath = config.getConfigValue(PARAM_SUPPORTED_PATHS, null, String.class);
     }
 }

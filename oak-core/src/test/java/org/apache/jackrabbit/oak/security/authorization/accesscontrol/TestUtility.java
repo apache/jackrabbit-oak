@@ -34,9 +34,7 @@ import java.util.Map;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 
 final class TestUtility {
-
-    private static final Logger log = LoggerFactory.getLogger(TestUtility.class);
-
+    
     private TestUtility() {}
 
     @NotNull

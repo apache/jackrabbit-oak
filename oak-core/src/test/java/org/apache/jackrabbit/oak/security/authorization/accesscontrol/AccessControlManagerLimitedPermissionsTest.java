@@ -44,17 +44,14 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_POLICY;
@@ -128,10 +125,9 @@ public class AccessControlManagerLimitedPermissionsTest extends AbstractSecurity
         assertEquals(expectedSize, policies.length);
     }
 
-    @NotNull
-    private ACL setupPolicy(@Nullable String path, @Nullable Privilege... privileges) throws RepositoryException {
+    private void setupPolicy(@Nullable String path, @Nullable Privilege... privileges) throws RepositoryException {
         Privilege[] privs = (privileges == null || privileges.length == 0) ? testPrivileges : privileges;
-        return TestUtility.setupPolicy(getAccessControlManager(root), path, testPrincipal, privs, true, TestUtility.getGlobRestriction("*", getValueFactory(root)), null);
+        TestUtility.setupPolicy(getAccessControlManager(root), path, testPrincipal, privs, true, TestUtility.getGlobRestriction("*", getValueFactory(root)), null);
     }
 
     @NotNull

@@ -41,7 +41,7 @@ public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
     static final String ADMINISTRATORS_PRINCIPAL_NAME = "administrators";
 
     AccessControlList acl;
-    Principal administrativePrincipal;
+    private Principal administrativePrincipal;
 
     @Override
     public void before() throws Exception {
@@ -96,12 +96,7 @@ public abstract class AdminPrincipalsBaseTest extends AbstractSecurityTest {
     @Test
     public void testAdminPrincipal() throws Exception {
         try {
-            boolean success = acl.addAccessControlEntry(new AdminPrincipal() {
-                @Override
-                public String getName() {
-                    return "admin";
-                }
-            }, privilegesFromNames(PrivilegeConstants.JCR_READ));
+            boolean success = acl.addAccessControlEntry((AdminPrincipal) () -> "admin", privilegesFromNames(PrivilegeConstants.JCR_READ));
             assertResult(success);
         } catch (AccessControlException e) {
             assertException();

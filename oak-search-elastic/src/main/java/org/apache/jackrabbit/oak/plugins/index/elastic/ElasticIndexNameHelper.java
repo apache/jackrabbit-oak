@@ -16,8 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -38,6 +43,25 @@ public class ElasticIndexNameHelper {
     public static String getIndexAlias(String indexPrefix, String indexPath) {
         // TODO: implement advanced remote index name strategy that takes into account multiple tenants and re-index process
         return getElasticSafeIndexName(indexPrefix + "." + indexPath);
+    }
+
+    public static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
+        PropertyState nodeTypeProp = indexNode.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        if (nodeTypeProp == null || !IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(nodeTypeProp.getValue(Type.STRING))) {
+            throw new IllegalArgumentException("Not an index definition node state");
+        }
+        PropertyState type = indexNode.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
+        String typeValue = type != null ? type.getValue(Type.STRING) : "";
+        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(typeValue)) {
+            throw new IllegalArgumentException("Not an elastic index node");
+        }
+        PropertyState seedProp = indexNode.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
+        if (seedProp == null) {
+            return null;
+        }
+        long seed = seedProp.getValue(Type.LONG);
+        String indexAlias = getIndexAlias(indexPrefix, indexPath);
+        return getRemoteIndexName(indexAlias, seed);
     }
 
     /**
@@ -87,7 +111,11 @@ public class ElasticIndexNameHelper {
      * Convert {@code e} to Elasticsearch safe index name.
      * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
-    private static String getElasticSafeName(String suggestedIndexName) {
+    static String getElasticSafeName(String suggestedIndexName) {
         return suggestedIndexName.replaceAll(INVALID_CHARS_REGEX, "").toLowerCase();
+    }
+
+    private static String getRemoteIndexName(String indexAlias, long seed) {
+        return getElasticSafeIndexName(indexAlias + "-" + Long.toHexString(seed));
     }
 }
