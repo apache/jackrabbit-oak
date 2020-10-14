@@ -40,7 +40,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedE
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeCommitRoot;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removeRevision;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setDeletedOnce;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
 
 /**
  * The {@code NodeDocumentSweeper} is responsible for removing uncommitted
@@ -55,6 +55,9 @@ final class NodeDocumentSweeper {
     private static final int INVALIDATE_BATCH_SIZE = 100;
 
     private static final long LOGINTERVALMS = TimeUnit.MINUTES.toMillis(1);
+
+    /** holds the Predicate actually used in sweepOne. This is modifiable ONLY FOR TESTING PURPOSE */
+    static Predicate<String> SWEEP_ONE_PREDICATE = PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS;
 
     private final RevisionContext context;
 
@@ -178,7 +181,12 @@ final class NodeDocumentSweeper {
 
     private UpdateOp sweepOne(NodeDocument doc) throws DocumentStoreException {
         UpdateOp op = createUpdateOp(doc);
-        for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
+        // go through PROPERTY_OR_DELETED_OR_COMMITROOT_OR_REVISIONS, whereas :
+        // - PROPERTY : for content changes
+        // - DELETED : for new node (this)
+        // - COMMITROOT : for new child (parent)
+        // - REVISIONS : for commit roots (root for branch commits)
+        for (String property : filter(doc.keySet(), SWEEP_ONE_PREDICATE)) {
             Map<Revision, String> valueMap = doc.getLocalMap(property);
             for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
                 Revision rev = entry.getKey();
