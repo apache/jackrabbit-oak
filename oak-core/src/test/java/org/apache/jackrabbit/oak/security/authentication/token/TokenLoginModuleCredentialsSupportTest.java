@@ -75,7 +75,7 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
                 AppConfigurationEntry tokenEntry = new AppConfigurationEntry(
                         TokenLoginModule.class.getName(),
                         AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                        Collections.<String, Object>emptyMap());
+                        Collections.emptyMap());
 
                 AppConfigurationEntry testEntry = new AppConfigurationEntry(
                         TestLoginModule.class.getName(),
@@ -85,7 +85,7 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
                 AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
                         LoginModuleImpl.class.getName(),
                         AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        Collections.<String, Object>emptyMap());
+                        Collections.emptyMap());
 
                 return new AppConfigurationEntry[] {tokenEntry, testEntry, defaultEntry};
             }
@@ -95,7 +95,7 @@ public class TokenLoginModuleCredentialsSupportTest extends AbstractSecurityTest
     @Test
     public void testCustomCredentials() throws Exception {
         TestCredentialsSupport.Creds credentials = new TestCredentialsSupport.Creds();
-        String token = null;
+        String token;
         try (ContentSession cs = login(credentials)) {
             assertEquals(userId, cs.getAuthInfo().getUserID());
 

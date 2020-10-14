@@ -40,7 +40,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
 
     private final CompiledPermissions all = AllPermissions.getInstance();
 
-    private List<String> paths = new ArrayList<String>();
+    private List<String> paths = new ArrayList<>();
 
     @Override
     @Before

@@ -24,6 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Constructor;
+
 import static org.apache.jackrabbit.oak.security.authorization.permission.ReadStatus.ALLOW_ALL;
 import static org.apache.jackrabbit.oak.security.authorization.permission.ReadStatus.DENY_ALL;
 import static org.apache.jackrabbit.oak.security.authorization.permission.ReadStatus.DENY_THIS;
@@ -173,5 +175,29 @@ public class ReadStatusTest extends AbstractSecurityTest  {
 
         assertDenied(rs);
         assertSame(DENY_ALL, rs);
+    }
+
+    // additional tests for isolated read-status flags
+
+    @Test
+    public void testProperties() throws Exception  {
+        ReadStatus rs = create(2);
+        assertFalse(rs.allowsThis());
+        assertFalse(rs.allowsAll());
+        assertTrue(rs.allowsProperties());
+    }
+
+    @Test
+    public void testChildNodes() throws Exception {
+        ReadStatus rs = create(4);
+        assertFalse(rs.allowsThis());
+        assertFalse(rs.allowsAll());
+        assertFalse(rs.allowsProperties());
+    }
+
+    private static ReadStatus create(int status) throws Exception {
+        Constructor c = ReadStatus.class.getDeclaredConstructor(int.class, boolean.class);
+        c.setAccessible(true);
+        return (ReadStatus) c.newInstance(status, true);
     }
 }

@@ -126,7 +126,7 @@ public class CugUtilTest extends AbstractCugTest {
 
     @Test
     public void testIsSupportedPath() {
-        Set<String> configuredPaths = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.<String>of());
+        Set<String> configuredPaths = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
         assertFalse(CugUtil.isSupportedPath(null, configuredPaths));
         assertFalse(CugUtil.isSupportedPath(UNSUPPORTED_PATH, configuredPaths));
 
@@ -138,13 +138,13 @@ public class CugUtilTest extends AbstractCugTest {
 
     @Test
     public void testGetSupportedPathsDefaultMountInfoProvider() {
-        Set<String> expected = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.<String>of());
+        Set<String> expected = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
         assertEquals(expected, CugUtil.getSupportedPaths(CUG_CONFIG, Mounts.defaultMountInfoProvider()));
     }
 
     @Test
     public void testGetSupportedPathsWithDifferentMounts() {
-        Set<String> expected = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.<String>of());
+        Set<String> expected = CUG_CONFIG.getConfigValue(PARAM_CUG_SUPPORTED_PATHS, ImmutableSet.of());
         MountInfoProvider mip = Mounts.newBuilder().mount("private", "/libs", "/apps", "/nonCugPath").build();
         assertNotSame(expected, CugUtil.getSupportedPaths(CUG_CONFIG, mip));
         assertEquals(expected, CugUtil.getSupportedPaths(CUG_CONFIG, mip));

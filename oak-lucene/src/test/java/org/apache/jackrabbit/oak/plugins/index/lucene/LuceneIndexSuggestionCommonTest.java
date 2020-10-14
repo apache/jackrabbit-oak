@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexSuggestionCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
@@ -43,4 +44,10 @@ public class LuceneIndexSuggestionCommonTest extends IndexSuggestionCommonTest {
         Repository repository = jcr.createRepository();
         return repository;
     }
+
+    @After
+    public void shutdownExecutor() {
+        executorService.shutdown();
+    }
+
 }

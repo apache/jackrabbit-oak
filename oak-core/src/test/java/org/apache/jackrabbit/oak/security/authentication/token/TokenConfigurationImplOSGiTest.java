@@ -65,7 +65,7 @@ public class TokenConfigurationImplOSGiTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testDefaultCredentialsSupport() throws Exception {
+    public void testDefaultCredentialsSupport() {
         TokenProvider tp = tokenConfiguration.getTokenProvider(root);
         assertTrue(tp.doCreateToken(sc));
     }

@@ -130,15 +130,15 @@ Consequently the examples below need to be adjusted for the root node in order t
 
 | rep:glob      | Result                                                   |
 |---------------|----------------------------------------------------------|
-| null          | i.e. no restriction: matches /foo and all children       |
-| ""            | matches node /foo only                                   |
+| null          | i.e. no restriction: matches /foo and all descendants    |
+| ""            | matches node /foo only (no descendants, not even properties) |
 
 Examples including wildcard char:
 
 | rep:glob      | Result                                                   |
 |---------------|----------------------------------------------------------|
 | \*            | foo, siblings of foo and their descendants               |
-| /\*cat        | all child items of /foo whose paths end with 'cat'       |
+| /\*cat        | all descendants of /foo whose paths end with 'cat'       |
 | \*cat         | all siblings and descendants of foo that have a name ending with 'cat' |
 | /\*/cat       | all non-direct descendants of /foo named 'cat'           |
 | /cat\*        | all descendant of /foo that have the direct foo-descendant segment starting with 'cat' |
@@ -151,12 +151,12 @@ Examples without wildcard char:
 
 | rep:glob      | Result                                                   |
 |---------------|----------------------------------------------------------|
-| /cat          |   the node /foo/cat and all it's child items             |
-| /cat/         |   the descendants of the node /foo/cat                   |
-| cat           |   the node /foocat and all it's child items              |
-| cat/          |   all descendants of the node /foocat                    |
+| /cat          | '/foo/cat' and all it's descendants                      |
+| /cat/         | all descendants of '/foo/cat'                            |
+| cat           | '/foocat' and all it's descendants                       |
+| cat/          | all descendants of '/foocat'                             |
 
-See also [GlobPattern] for implementation details.
+See also [GlobPattern] for implementation details and the [GlobRestrictionTest] in the _oak-exercise_ module for training material.
 
 <a name="representation"></a>
 ### Representation in the Repository
@@ -194,6 +194,7 @@ implementation:
 
 - implement `RestrictionProvider` interface exposing your custom restriction(s).
 - make the provider implementation an OSGi service and make it available to the Oak repository.
+- make sure the `RestrictionProvider` is listed as required service with the `SecurityProvider` (see also [Introduction](../introduction.html#configuration]))
 
 Please make sure to consider the following recommendations when implementing a custom `RestrictionProvider`:
 - restrictions are part of the overall permission evaluation and thus may heavily impact overall read/write performance
@@ -302,6 +303,7 @@ The time-based `RestrictionPattern` used by the example provider above.
 
 <!-- hidden references -->
 [GlobPattern]: http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/restriction/GlobPattern.java?view=markup
+[GlobRestrictionTest]: http://svn.apache.org/viewvc/jackrabbit/oak/trunk/oak-exercise/src/test/java/org/apache/jackrabbit/oak/exercise/security/authorization/accesscontrol/L8_GlobRestrictionTest.java?view=markup
 [Restriction]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/Restriction.html
 [RestrictionDefinition]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionDefinition.html
 [RestrictionPattern]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/RestrictionPattern.html

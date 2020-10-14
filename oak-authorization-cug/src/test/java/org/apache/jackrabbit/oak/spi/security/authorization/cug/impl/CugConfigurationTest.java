@@ -54,9 +54,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.calls;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class CugConfigurationTest extends AbstractCugTest {
 
@@ -111,7 +112,7 @@ public class CugConfigurationTest extends AbstractCugTest {
     public void testGetPermissionProviderDisabled() {
         CugConfiguration cc = createConfiguration(ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, false));
 
-        PermissionProvider pp = cc.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
@@ -121,7 +122,7 @@ public class CugConfigurationTest extends AbstractCugTest {
                 CugConstants.PARAM_CUG_ENABLED, false,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
         CugConfiguration cc = createConfiguration(params);
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
@@ -129,7 +130,7 @@ public class CugConfigurationTest extends AbstractCugTest {
     public void testGetPermissionProviderDisabled3() {
         CugConfiguration cc = createConfiguration(ConfigurationParameters.EMPTY);
 
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
@@ -138,7 +139,7 @@ public class CugConfigurationTest extends AbstractCugTest {
         // enabled but no supported paths specified
         CugConfiguration cc = createConfiguration(ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, true));
 
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
@@ -149,7 +150,7 @@ public class CugConfigurationTest extends AbstractCugTest {
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
         CugConfiguration cc = createConfiguration(params);
 
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof CugPermissionProvider);
     }
 
@@ -261,6 +262,6 @@ public class CugConfigurationTest extends AbstractCugTest {
         NodeBuilder rootBuilder = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
         ri.initialize(rootBuilder);
 
-        calls(1);
+        verify(rootBuilder, times(1)).getNodeState();
     }
 }

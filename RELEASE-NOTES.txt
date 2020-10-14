@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.32.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.34.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.32.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.34.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,51 +15,59 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.32.0
+Changes in Oak 1.34.0
 ---------------------
 
 Bug
 
-    [OAK-9064] - Build failure: The forked VM terminated without properly saying goodbye
-    [OAK-9086] - Flaky test SegmentWriteQueueTest#testThreadInterruptedWhileAddigToQueue
-    [OAK-9089] - oak-search-elastic: remove remote index in eleastic benchmarks cleanup
-    [OAK-9095] - MapRecord corruption when adding more than MapRecord.MAX_SIZE entries in branch record
-    [OAK-9096] - RDBDocumentStore: Update error code for MSSQL 2019
-    [OAK-9102] - AwsJournalFileConcurrencyIT writes log messages to stdout
+    [OAK-9130] - DocumentDiscoveryLiteService.hasBacklog logging regression (inverted version check)
+    [OAK-9146] - Elastic indexes - Updates get lost if connection is not available
+    [OAK-9162] - Elastic indexes - Index creation fails if multiple suggest fields are present
+    [OAK-9163] - ElasticIndexTracker should never use stored index definitions
+    [OAK-9166] - Elastic indexes - Fulltext query requires more rules than expected
+    [OAK-9178] - PasswordHistory.updatePasswordHistory may return false status
 
 New Feature
 
-    [OAK-9127] - Introduce Similarity Search (Text) support in oak-search-elastic
-    [OAK-9132] - Feature toggles
+    [OAK-7744] - Persistent cache for the Segment Node Store
+    [OAK-9131] - oak-run tool for scanning for references to nt:frozenNode
 
 Improvement
 
-    [OAK-9087] - oak-search-elastic: class / package names refactoring
-    [OAK-9092] - Exception root cause message is swallowed
-    [OAK-9093] - Reindexing using --doc-traversal-mode may log too much
-    [OAK-9099] - Improve segment write resiliency for remote segment store 
-    [OAK-9108] - Change default timeout to mark indexes corrupt
-    [OAK-9113] - Make the segment migrator more resilient to timeouts
-    [OAK-9121] - Oak-run indexing: add a cache to flatfile/PersistedLinkedList
-    [OAK-9122] - Bring IndexDefinitionBuilder's implementation in oak-search at par with the one in oak-lucene and remove the oak-lucene implementation
-    [OAK-9126] - TestFramework: create tests for both lucene and elastic
-    [OAK-9128] - Support s3 regions apart from default AWS regions
+    [OAK-9106] - Support spellchecking in Oak ES
+    [OAK-9134] - Remove mix:referenceable from nt:frozenNode definition
+    [OAK-9136] - Allow elasticsearch port to be read from secrets
+    [OAK-9139] - Log message on frozen node lookup by identifier
+    [OAK-9142] - AzureDataStore should use concurrent request count for all API calls
+    [OAK-9144] - Indexing: dynamic boost is not robust
+    [OAK-9147] - Config option for NRT queue timeout
+    [OAK-9151] - Support term suggestion in Oak ES
+    [OAK-9156] - Port lucene tests
+    [OAK-9165] - Lucene: unique sync property index don't work properly
+    [OAK-9170] - Make loading segment disk cache fail safe in case when write operation is interrupted by failure
+    [OAK-9173] - Oak-run indexing fails with "This map is closed"
+    [OAK-9180] - Optimise synchronisation between threads when writing to 3rd level segment cache 
+    [OAK-9184] - Very slow, potential endless loop in LucenePropertyIndex.loadDocs()
+    [OAK-9194] - oak-search-elastic: propertyIndex with nodeScopeIndex should be stored in :fulltext only
 
 Task
 
-    [OAK-9090] - Upgrade to Elasticsearch 7.7.0
-    [OAK-9097] - Add Facet tests to oak-benchmarks
-    [OAK-9098] - Write a perf test class in oak-search elastic module
-    [OAK-9101] - Monitoring for maximum number of entries in biggest map record
-    [OAK-9105] - Update Oak trunk and 1.22 to Jackrabbit 2.20.1
+    [OAK-9138] - Have a mechanism to track failed docs in ES
+    [OAK-9140] - Don't use stored index definition in elastic indexes
+    [OAK-9143] - Use seed instead of reindexCount for elastic index suffix
+    [OAK-9148] - Use IndexTracker in oak-search-elastic
+    [OAK-9152] - Implement factor 2 writes
+    [OAK-9164] - oak-search-elastic: expose relevant metrics
+    [OAK-9167] - Expose last indexed time as a metric
+    [OAK-9169] - Remove remote elastic indexes when index definition is removed
+    [OAK-9179] - Documentation (and comments) about rep:glob patterns in ACE restriction is confusing
+    [OAK-9188] - Upgrade to Elasticsearch 7.9.0
 
 Technical task
 
-    [OAK-9069] - Remove unnecessary (un)boxing in oak-auth-external
-    [OAK-9071] - Remove unnecessary (un)boxing in oak-benchmarks
-    [OAK-9074] - Remove unnecessary (un)boxing in oak-core
-    [OAK-9075] - Remove unnecessary (un)boxing in oak-exercise
-    [OAK-9079] - Remove unnecessary (un)boxing in oak-security-spi
+    [OAK-9070] - Remove unnecessary (un)boxing in oak-authorization-principalbased
+    [OAK-9186] - Create Benchmark(s)
+    [OAK-9189] - Benchmark Results - Status Quo
 
 
 In addition to the above-mentioned changes, this release contains all

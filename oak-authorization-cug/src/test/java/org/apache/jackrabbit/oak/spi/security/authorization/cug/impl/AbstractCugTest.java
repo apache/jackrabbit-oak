@@ -66,7 +66,7 @@ import static org.junit.Assert.assertTrue;
  * to expose the CUG specific implementations of {@code AccessControlManager}
  * and {@code PermissionProvider}.
  */
-public class AbstractCugTest extends AbstractSecurityTest implements CugConstants, NodeTypeConstants {
+public abstract class AbstractCugTest extends AbstractSecurityTest implements CugConstants, NodeTypeConstants {
 
     static final String SUPPORTED_PATH = "/content";
     static final String SUPPORTED_PATH2 = "/content2";
@@ -87,7 +87,7 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
     public void before() throws Exception {
         super.before();
 
-        /**
+        /*
          * Create tree structure:
          *
          * + root
@@ -102,10 +102,10 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
          */
         Tree rootNode = root.getTree("/");
 
-        createTrees(rootNode, NT_OAK_UNSTRUCTURED, "content", "subtree");
-        createTrees(rootNode, NT_OAK_UNSTRUCTURED, "content2");
-        createTrees(rootNode, NT_OAK_UNSTRUCTURED, "some", "content", "tree");
-        createTrees(rootNode, NT_OAK_UNSTRUCTURED, "testNode", "child");
+        createTrees(rootNode, "content", "subtree");
+        createTrees(rootNode, "content2");
+        createTrees(rootNode, "some", "content", "tree");
+        createTrees(rootNode, "testNode", "child");
         root.commit();
     }
 
@@ -153,10 +153,10 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
         return new CugPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.copyOf(principals), supportedPaths, getConfig(AuthorizationConfiguration.class).getContext(), getRootProvider(), getTreeProvider());
     }
 
-    void createTrees(@NotNull Tree tree, @NotNull String ntName, @NotNull String... names) throws AccessDeniedException {
+    void createTrees(@NotNull Tree tree, @NotNull String... names) throws AccessDeniedException {
         Tree parent = tree;
         for (String n : names) {
-            parent = TreeUtil.addChild(parent, n, ntName);
+            parent = TreeUtil.addChild(parent, n, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         }
     }
 
@@ -172,8 +172,8 @@ public class AbstractCugTest extends AbstractSecurityTest implements CugConstant
 
         // add more child nodes
         Tree n = root.getTree(SUPPORTED_PATH);
-        createTrees(n, NT_OAK_UNSTRUCTURED, "a", "b", "c");
-        createTrees(n, NT_OAK_UNSTRUCTURED, "aa", "bb", "cc");
+        createTrees(n, "a", "b", "c");
+        createTrees(n, "aa", "bb", "cc");
 
         // create cugs
         // - /content/a     : allow testGroup, deny everyone

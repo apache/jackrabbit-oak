@@ -53,7 +53,7 @@ public class MembershipTest extends MembershipBaseTest {
 
     @Test
     public void testManyMemberships() throws Exception {
-        Set<String> memberships = new HashSet<String>();
+        Set<String> memberships = new HashSet<>();
         User usr = createUser();
         for (int i = 0; i < MANY_USERS; i++) {
             Group grp = createGroup();
@@ -72,8 +72,8 @@ public class MembershipTest extends MembershipBaseTest {
 
     @Test
     public void testNestedMembers() throws Exception {
-        Set<String> members = new HashSet<String>();
-        Set<String> declaredMembers = new HashSet<String>();
+        Set<String> members = new HashSet<>();
+        Set<String> declaredMembers = new HashSet<>();
         Group grp = createGroup();
         for (int i = 0; i < 10; i++) {
             Group g1 = createGroup();
@@ -105,7 +105,7 @@ public class MembershipTest extends MembershipBaseTest {
 
     @Test
     public void testNestedMemberships() throws Exception {
-        Set<String> memberships = new HashSet<String>();
+        Set<String> memberships = new HashSet<>();
         User user = createUser();
         Group grp = createGroup();
         memberships.add(grp.getID());
@@ -132,7 +132,7 @@ public class MembershipTest extends MembershipBaseTest {
 
     @Test
     public void testAddMembersAgain() throws Exception {
-        Set<String> members = new HashSet<String>();
+        Set<String> members = new HashSet<>();
         Group grp = createGroup();
         for (int i = 0; i < MANY_USERS; i++) {
             User usr = createUser();

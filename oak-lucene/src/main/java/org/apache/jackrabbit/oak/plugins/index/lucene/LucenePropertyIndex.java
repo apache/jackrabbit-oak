@@ -192,6 +192,8 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
 public class LucenePropertyIndex extends FulltextIndex {
 
 
+    private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
+    private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
     private static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
     public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
     private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
@@ -345,7 +347,18 @@ public class LucenePropertyIndex extends FulltextIndex {
 
                         TopDocs docs;
                         long start = PERF_LOGGER.start();
-                        while (true) {
+                        long startLoop = System.currentTimeMillis();
+                        for (int repeated = 0;; repeated++) {
+                            if (repeated > 0) {
+                                long now = System.currentTimeMillis();
+                                if (now > startLoop + LOAD_DOCS_WARN) {
+                                    LOG.warn("loadDocs lastDoc {} repeated {} times for query {}", lastDoc, repeated, query);
+                                    if (repeated > 1 && now > startLoop + LOAD_DOCS_STOP) {
+                                        LOG.error("loadDocs stops", new Exception());
+                                        break;
+                                    }
+                                }
+                            }
                             if (lastDoc != null) {
                                 LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
                                 if (sort == null) {

@@ -119,9 +119,9 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
 
         // add more child nodes
         Tree n = root.getTree(SUPPORTED_PATH);
-        createTrees(n, NT_OAK_UNSTRUCTURED, "a", "b", "c");
-        createTrees(n, NT_OAK_UNSTRUCTURED, "aa", "bb", "cc");
-        createTrees(n, NT_OAK_UNSTRUCTURED, "no", "cug", "in", "subtree");
+        createTrees(n, "a", "b", "c");
+        createTrees(n, "aa", "bb", "cc");
+        createTrees(n, "no", "cug", "in", "subtree");
 
         createCug("/content/a", testGroupPrincipal);
         createCug("/content/a/b/c", EveryonePrincipal.getInstance());
@@ -391,12 +391,11 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
      */
     @Test
     public void testIsGrantedNonExistingLocation() throws Exception {
-        ContentSession anonymous = login(new GuestCredentials());
-        try {
+        try (ContentSession anonymous = login(new GuestCredentials())) {
             // additionally create a root that doesn't have access to the root node
             Root anonymousRoot = anonymous.getLatestRoot();
 
-            for (Root r : new Root[] {anonymousRoot, root}) {
+            for (Root r : new Root[]{anonymousRoot, root}) {
                 TreeLocation location = TreeLocation.create(r, "/path/to/non/existing/tree");
                 assertFalse(cugPermProvider.isGranted(location, Permissions.READ));
                 assertFalse(cugPermProvider.isGranted(location, Permissions.READ_NODE));
@@ -406,8 +405,6 @@ public class CugPermissionProviderTest extends AbstractCugTest implements NodeTy
                 assertFalse(cugPermProvider.isGranted(location, Permissions.ADD_NODE));
                 assertFalse(cugPermProvider.isGranted(location, Permissions.READ_ACCESS_CONTROL));
             }
-        } finally {
-            anonymous.close();
         }
     }
 

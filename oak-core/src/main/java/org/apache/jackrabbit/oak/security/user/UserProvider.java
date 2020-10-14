@@ -290,8 +290,8 @@ class UserProvider extends AuthorizableBaseProvider {
      * @throws RepositoryException If an error occurs
      */
     private Tree createFolderNodes(@NotNull String nodeName,
-                                       boolean isGroup,
-                                       @Nullable String intermediatePath) throws RepositoryException {
+                                   boolean isGroup,
+                                   @Nullable String intermediatePath) throws RepositoryException {
         String authRoot = (isGroup) ? groupPath : userPath;
         String folderPath = new StringBuilder()
                 .append(authRoot)

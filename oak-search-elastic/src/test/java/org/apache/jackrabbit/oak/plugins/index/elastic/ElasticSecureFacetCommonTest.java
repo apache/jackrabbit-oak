@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.ElasticTestRepositoryBuilder;
-import org.apache.jackrabbit.oak.plugins.index.FacetCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.SecureFacetCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.TestUtils;
 import org.junit.After;
 import org.junit.ClassRule;
@@ -27,7 +26,7 @@ import org.junit.ClassRule;
 import javax.jcr.Repository;
 import java.io.IOException;
 
-public class ElasticFacetCommonTest extends FacetCommonTest {
+public class ElasticSecureFacetCommonTest extends SecureFacetCommonTest {
 
     // Set this connection string as
     // <scheme>://<hostname>:<port>?key_id=<>,key_secret=<>
@@ -37,7 +36,7 @@ public class ElasticFacetCommonTest extends FacetCommonTest {
     private static String elasticConnectionString = System.getProperty("elasticConnectionString");
     @ClassRule
     public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
-    
+
     /*
     Close the ES connection after every test method execution
      */
@@ -51,8 +50,7 @@ public class ElasticFacetCommonTest extends FacetCommonTest {
         repositoryOptionsUtil = new ElasticTestRepositoryBuilder(elasticRule).build();
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
-        Repository repository = jcr.createRepository();
-        return repository;
+        return jcr.createRepository();
     }
 
     protected void assertEventually(Runnable r) {

@@ -23,17 +23,13 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A custom login module for test purposes.
  *
- * EXERCISE: complete the implemenation
+ * EXERCISE: complete the implementation
  */
 public class CustomLoginModule implements LoginModule {
-
-    private static final Logger log = LoggerFactory.getLogger(CustomLoginModule.class);
 
     private ConfigurationParameters config;
 

@@ -61,6 +61,8 @@ public class PropertyDefinition {
      */
     public final String name;
 
+    public final String nodeName;
+
     private final int propertyType;
 
     /**
@@ -133,6 +135,7 @@ public class PropertyDefinition {
     public final boolean similarityTags;
 
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
+        this.nodeName = nodeName;
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);

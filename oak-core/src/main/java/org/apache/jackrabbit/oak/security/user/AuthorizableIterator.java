@@ -16,18 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.Iterator;
-import javax.jcr.RangeIterator;
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RangeIterator;
+import javax.jcr.RepositoryException;
+import java.util.Iterator;
+import java.util.function.Predicate;
 
 /**
  * AuthorizableIterator...
@@ -97,7 +98,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
         public Authorizable apply(String oakPath) {
             try {
                 Authorizable a = userManager.getAuthorizableByOakPath(oakPath);
-                if (predicate.apply(a)) {
+                if (predicate.test(a)) {
                     return a;
                 }
             } catch (RepositoryException e) {
@@ -111,12 +112,12 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
 
         private final AuthorizableType authorizableType;
 
-        AuthorizableTypePredicate(AuthorizableType authorizableType) {
+        AuthorizableTypePredicate(@NotNull AuthorizableType authorizableType) {
             this.authorizableType = authorizableType;
         }
 
         @Override
-        public boolean apply(Authorizable authorizable) {
+        public boolean test(Authorizable authorizable) {
             return authorizableType.isType(authorizable);
         }
     }

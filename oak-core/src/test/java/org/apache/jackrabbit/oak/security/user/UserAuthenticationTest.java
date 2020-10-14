@@ -16,19 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.AccountLockedException;
-import javax.security.auth.login.AccountNotFoundException;
-import javax.security.auth.login.FailedLoginException;
-import javax.security.auth.login.LoginException;
-
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -46,6 +33,17 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.internal.stubbing.answers.ThrowsException;
+
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.RepositoryException;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.AccountLockedException;
+import javax.security.auth.login.AccountNotFoundException;
+import javax.security.auth.login.FailedLoginException;
+import javax.security.auth.login.LoginException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -80,7 +78,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticateInvalidCredentials() throws Exception {
-        List<Credentials> invalid = new ArrayList<Credentials>();
+        List<Credentials> invalid = new ArrayList<>();
         invalid.add(new TokenCredentials("token"));
         invalid.add(new Credentials() {});
 
@@ -132,7 +130,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticateInvalidSimpleCredentials() {
-        List<Credentials> invalid = new ArrayList<Credentials>();
+        List<Credentials> invalid = new ArrayList<>();
         invalid.add(new SimpleCredentials(userId, "wrongPw".toCharArray()));
         invalid.add(new SimpleCredentials(userId, "".toCharArray()));
         invalid.add(new SimpleCredentials("unknownUser", "pw".toCharArray()));
@@ -160,11 +158,11 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticateInvalidImpersonationCredentials() {
-       List<Credentials> invalid = new ArrayList<Credentials>();
+       List<Credentials> invalid = new ArrayList<>();
         invalid.add(new ImpersonationCredentials(new GuestCredentials(), adminSession.getAuthInfo()));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials(adminSession.getAuthInfo().getUserID(), new char[0]), new TestAuthInfo()));
+        invalid.add(new ImpersonationCredentials(new SimpleCredentials(adminSession.getAuthInfo().getUserID(), new char[0]), mockAuthInfo(userId)));
         invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), adminSession.getAuthInfo()));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), new TestAuthInfo()));
+        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), mockAuthInfo(userId)));
 
         for (Credentials creds : invalid) {
             try {
@@ -186,7 +184,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @Test
     public void testAuthenticateImpersonationCredentials2() throws Exception {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
-        assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, new TestAuthInfo())));
+        assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, mockAuthInfo(userId))));
     }
 
     @Test
@@ -244,25 +242,10 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     //--------------------------------------------------------------------------
 
-    private final class TestAuthInfo implements AuthInfo {
-
-        @Override
-            public String getUserID() {
-                return userId;
-            }
-            @NotNull
-            @Override
-            public String[] getAttributeNames() {
-                return new String[0];
-            }
-            @Override
-            public Object getAttribute(String attributeName) {
-                return null;
-            }
-            @NotNull
-            @Override
-            public Set<Principal> getPrincipals() {
-                return null;
-            }
+    private static AuthInfo mockAuthInfo(@NotNull String uid) {
+        AuthInfo ai = mock(AuthInfo.class);
+        when(ai.getUserID()).thenReturn(uid);
+        when(ai.getAttributeNames()).thenReturn(new String[0]);
+        return ai;
     }
 }

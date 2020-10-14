@@ -135,16 +135,12 @@ class ElasticIndexHelper {
                 .field("analyzer", "oak_analyzer")
                 .endObject();
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
-        // when the specific features will be implemented
-//                mappingBuilder.startObject(FieldNames.SUGGEST)
-//                        .field("type", "completion")
-//                        .endObject();
-//                mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
-//                        .field("type", "keyword")
-//                        .endObject();
-//                mappingBuilder.startObject(FieldNames.NULL_PROPS)
-//                        .field("type", "keyword")
-//                        .endObject();
+        // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
+        //  .field("type", "keyword")
+        //  .endObject();
+        // mappingBuilder.startObject(FieldNames.NULL_PROPS)
+        // .field("type", "keyword")
+        // .endObject();
     }
 
     private static void mapIndexRules(ElasticIndexDefinition indexDefinition, XContentBuilder mappingBuilder) throws IOException {
@@ -214,9 +210,29 @@ class ElasticIndexHelper {
                 mappingBuilder.field("type", "nested");
                 mappingBuilder.startObject("properties");
                 {
-                    mappingBuilder.startObject("suggestion")
+                    // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
+                    mappingBuilder.startObject("value")
                             .field("type", "text")
                             .field("analyzer", "oak_analyzer")
+                            .endObject();
+                }
+                mappingBuilder.endObject();
+            }
+            mappingBuilder.endObject();
+        }
+
+        for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
+            mappingBuilder.startObject(pd.nodeName);
+            {
+                mappingBuilder.field("type", "nested");
+                mappingBuilder.startObject("properties");
+                {
+                    mappingBuilder.startObject("value")
+                            .field("type", "text")
+                            .field("analyzer", "oak_analyzer")
+                            .endObject();
+                    mappingBuilder.startObject("boost")
+                            .field("type", "double")
                             .endObject();
                 }
                 mappingBuilder.endObject();

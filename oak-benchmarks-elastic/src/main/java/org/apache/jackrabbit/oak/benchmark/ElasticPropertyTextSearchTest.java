@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import javax.jcr.Repository;
 import javax.jcr.query.Query;
@@ -75,7 +77,8 @@ public class ElasticPropertyTextSearchTest extends SearchTest {
                 public Jcr customize(Oak oak) {
                     ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
                             new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-                    ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate);
+                    ElasticIndexProvider indexProvider = new ElasticIndexProvider(coordinate,
+                            new ElasticMetricHandler(StatisticsProvider.NOOP));
                     oak.with(editorProvider)
                             .with((Observer) indexProvider)
                             .with((QueryIndexProvider) indexProvider)

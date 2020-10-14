@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +54,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_CREATEDBY;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.MIX_CREATED;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.REP_VERSIONSTORAGE;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 import static org.junit.Assert.assertEquals;
@@ -97,11 +97,11 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
         }
     }
 
-    private void grant(@Nullable String path, @NotNull String... privilegeNames) throws Exception {
+    private void grant(@NotNull String... privilegeNames) throws Exception {
         AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, TEST_ROOT_PATH);
         acl.addEntry(testPrincipal, AccessControlUtils.privilegesFromNames(acMgr, privilegeNames), true);
-        acMgr.setPolicy(path, acl);
+        acMgr.setPolicy(TEST_ROOT_PATH, acl);
         root.commit();
     }
 
@@ -130,7 +130,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
     @Test(expected = CommitFailedException.class)
     public void testLockPermissions() throws Exception {
         // grant the test session the ability to read/write that node but don't allow jcr:lockManagement
-        grant(TEST_ROOT_PATH, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+        grant(PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
 
         try (ContentSession testSession = createTestSession()) {
             Root testRoot = testSession.getLatestRoot();
@@ -238,7 +238,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
     public void testChangePrimaryTypeToPolicyNode() throws Exception {
         // grant the test session the ability to read/write at test node but don't
         // allow to modify access control content
-        grant(TEST_ROOT_PATH, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_WRITE);
+        grant(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_WRITE);
 
         // create a rep:policy node that is not detected as access control content
         TreeUtil.addChild(root.getTree(TEST_CHILD_PATH), AccessControlConstants.REP_POLICY, NT_UNSTRUCTURED);
@@ -265,7 +265,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
     public void testAddImmutablePropertyWithDeclaringMixin() throws Exception {
         // grant the test session the ability to read/write at test node but don't
         // allow to modify access control content
-        grant(TEST_ROOT_PATH, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
+        grant(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
 
         try (ContentSession testSession = createTestSession()) {
             Root testRoot = testSession.getLatestRoot();
@@ -282,7 +282,7 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
     public void testAddImmutablePropertyWithoutDeclaringMixin() throws Exception {
         // grant the test session the ability to read/write at test node but don't
         // allow to modify access control content
-        grant(TEST_ROOT_PATH, PrivilegeConstants.JCR_READ);
+        grant(PrivilegeConstants.JCR_READ);
 
         try (ContentSession testSession = createTestSession()) {
             Root testRoot = testSession.getLatestRoot();
@@ -292,6 +292,25 @@ public class PermissionValidatorTest extends AbstractSecurityTest {
             Tree testTree = testRoot.getTree(TEST_ROOT_PATH);
             testTree.setProperty(PropertyStates.createProperty(JCR_CREATED, "mixCreatedIsMissing", Type.DATE));
             testTree.setProperty(PropertyStates.createProperty(JCR_CREATEDBY, "mixCreatedIsMissing", Type.STRING));
+            testRoot.commit();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isAccessViolation());
+            assertEquals(0, e.getCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testChangeImmutableProperty() throws Exception {
+        TreeUtil.addMixin(root.getTree(TEST_ROOT_PATH), MIX_CREATED, root.getTree(NODE_TYPES_PATH), "uid");
+        // grant the test session the ability to read and write properties at test node but
+        // not to add/remove nodes
+        grant(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_MODIFY_PROPERTIES);
+
+        try (ContentSession testSession = createTestSession()) {
+            Root testRoot = testSession.getLatestRoot();
+            Tree testTree = testRoot.getTree(TEST_ROOT_PATH);
+            testTree.setProperty(PropertyStates.createProperty(JCR_CREATEDBY, "anotherUid", Type.STRING));
             testRoot.commit();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessViolation());

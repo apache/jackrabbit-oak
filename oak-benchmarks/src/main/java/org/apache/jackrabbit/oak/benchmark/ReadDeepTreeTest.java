@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import java.io.InputStream;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Item;
@@ -31,12 +32,13 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
-
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.apache.jackrabbit.util.Text;
-import org.jetbrains.annotations.NotNull;
+import java.io.InputStream;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Randomly read 1000 items from the deep tree.
@@ -59,6 +61,7 @@ public class ReadDeepTreeTest extends AbstractTest {
     protected Session testSession;
 
     protected List<String> allPaths = new ArrayList<String>();
+    protected List<String> nodePaths = new ArrayList<>();
 
     protected ReadDeepTreeTest(boolean runAsAdmin, int itemsToRead, boolean doReport) {
         this(runAsAdmin, itemsToRead, doReport, true);
@@ -124,7 +127,11 @@ public class ReadDeepTreeTest extends AbstractTest {
     }
 
     protected void visitingNode(Node node, int i) throws RepositoryException {
-        allPaths.add(node.getPath());
+        String path = node.getPath();
+        allPaths.add(path);
+        if (!path.contains(AccessControlConstants.REP_POLICY)) {
+            nodePaths.add(path);
+        }
     }
 
     protected void visitingProperty(Property property, int i) throws RepositoryException {

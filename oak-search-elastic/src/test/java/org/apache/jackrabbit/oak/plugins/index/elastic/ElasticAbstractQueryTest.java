@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.core.CountRequest;
 import org.elasticsearch.client.indices.GetIndexRequest;
@@ -49,12 +50,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
+import static org.junit.Assert.assertEquals;
 
 public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 
@@ -66,7 +69,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     // needs authentication
     // Do not set this if docker is running and you want to run the tests on docker instead.
     private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
-    private ElasticConnection esConnection;
+    protected ElasticConnection esConnection;
 
     // This is instantiated during repo creation but not hooked up to the async indexing lane
     // This can be used by the extending classes to trigger the async index update as per need (not having to wait for async indexing cycle)
@@ -140,7 +143,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
         ElasticIndexEditorProvider editorProvider = getElasticIndexEditorProvider(esConnection);
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(esConnection);
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(esConnection,
+                new ElasticMetricHandler(StatisticsProvider.NOOP));
 
         nodeStore = getNodeStore();
 
@@ -174,13 +178,19 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     }
 
     protected IndexDefinitionBuilder createIndex(String... propNames) {
+        return createIndex(true, "nt:base", propNames);
+    }
+
+    protected IndexDefinitionBuilder createIndex(boolean isPropertyIndex, String nodeType, String... propNames) {
         IndexDefinitionBuilder builder = new ElasticIndexDefinitionBuilder();
         if (!useAsyncIndexing()) {
             builder = builder.noAsync();
         }
-        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("nt:base");
-        for (String propName : propNames) {
-            indexRule.property(propName).propertyIndex();
+        IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(nodeType);
+        if (isPropertyIndex) {
+            for (String propName : propNames) {
+                indexRule.property(propName).propertyIndex();
+            }
         }
         return builder;
     }
@@ -233,6 +243,11 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
                 nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(index.getName()),
                 index.getPath(),
                 esConnection.getIndexPrefix());
+    }
+
+    protected void assertOrderedQuery(String sql, List<String> paths) {
+        List<String> result = executeQuery(sql, AbstractQueryTest.SQL2, true, true);
+        assertEquals(paths, result);
     }
 
 }

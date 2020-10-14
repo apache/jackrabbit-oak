@@ -75,6 +75,9 @@ class IndexDocumentBuilderCustomizer implements DocumentBuilderCustomizer {
             );
         }
 
+        // enable caching of empty commit value
+        builder.setCacheEmptyCommitValue(true);
+
         // usage of this DocumentNodeStore is single threaded. Reduce the
         // number of cache segments to a minimum. This allows for caching
         // bigger entries that would otherwise be evicted immediately

@@ -193,7 +193,7 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
 
     @Test
     public void testModifyCache() throws Exception {
-        List<PropertyState> props = new ArrayList();
+        List<PropertyState> props = new ArrayList<>();
         props.add(PropertyStates.createProperty(CacheConstants.REP_EXPIRATION, 25));
         props.add(PropertyStates.createProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
         props.add(PropertyStates.createProperty(JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME));
@@ -310,5 +310,5 @@ public class CacheValidatorProviderTest extends AbstractSecurityTest {
         CacheValidatorProvider provider = new CacheValidatorProvider(root.getContentSession().getAuthInfo().getPrincipals(), getTreeProvider());
         NodeState nodeState = getTreeProvider().asNodeState(rootTree);
         return provider.getRootValidator(nodeState, nodeState, new CommitInfo("sid", "uid"));
-    };
+    }
 }

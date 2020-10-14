@@ -17,9 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.index.ElasticTestRepositoryBuilder;
 import org.apache.jackrabbit.oak.plugins.index.PropertyIndexCommonTest;
+import org.junit.After;
 import org.junit.ClassRule;
+
+import java.io.IOException;
 
 public class ElasticPropertyIndexCommonTest extends PropertyIndexCommonTest {
 
@@ -45,5 +47,13 @@ public class ElasticPropertyIndexCommonTest extends PropertyIndexCommonTest {
     @Override
     protected void createTestIndexNode() {
         setTraversalEnabled(false);
+    }
+
+    /*
+    Close the ES connection after every test method execution
+     */
+    @After
+    public void cleanup() throws IOException {
+        elasticRule.closeElasticConnection();
     }
 }

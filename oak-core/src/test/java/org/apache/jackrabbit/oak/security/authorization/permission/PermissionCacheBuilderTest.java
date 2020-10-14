@@ -20,10 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Set;
@@ -33,37 +29,15 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class PermissionCacheBuilderTest {
-
-    private static final int MAX_PATH_SIZE = 10;
-
-    private static final String EMPTY_CLASS_NAME = "org.apache.jackrabbit.oak.security.authorization.permission.PermissionCacheBuilder$EmptyCache";
-    private static final String SIMPLE_CLASS_NAME = "org.apache.jackrabbit.oak.security.authorization.permission.PermissionCacheBuilder$PathEntryMapCache";
-    private static final String DEFAULT_CLASS_NAME = "org.apache.jackrabbit.oak.security.authorization.permission.PermissionCacheBuilder$DefaultPermissionCache";
-
-    private PermissionStore store;
-    private PermissionCacheBuilder permissionCacheBuilder;
-
-    @Before
-    public void before() {
-        store = mock(PermissionStore.class);
-        permissionCacheBuilder = new PermissionCacheBuilder(store);
-    }
-
-    @NotNull
-    private static PrincipalPermissionEntries generatedPermissionEntries(@NotNull String path, boolean isAllow, int index, @NotNull String privilegeName) {
-        PrincipalPermissionEntries ppe = new PrincipalPermissionEntries(1);
-        ppe.putEntriesByPath(path, ImmutableSet.of(new PermissionEntry(path, isAllow, index, PrivilegeBits.BUILT_IN.get(privilegeName), RestrictionPattern.EMPTY)));
-        return ppe;
-    }
+public class PermissionCacheBuilderTest extends AbstractCacheTest {
 
     @Test(expected = IllegalStateException.class)
     public void testBuildBeforeInitialized() {
@@ -72,7 +46,7 @@ public class PermissionCacheBuilderTest {
 
     @Test
     public void testBuildForEmptyPrincipals() {
-        assertTrue(permissionCacheBuilder.init(ImmutableSet.of(), Long.MAX_VALUE));
+        assertTrue(permissionCacheBuilder.init(ImmutableSet.of(), createStrategy(Long.MAX_VALUE, 2, false)));
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
 
@@ -88,7 +62,7 @@ public class PermissionCacheBuilderTest {
 
         Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
 
-        assertTrue(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
+        assertTrue(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
@@ -111,10 +85,10 @@ public class PermissionCacheBuilderTest {
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
+        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, true)));
 
         PermissionCache cache = permissionCacheBuilder.build();
-        assertEquals(SIMPLE_CLASS_NAME, cache.getClass().getName());
+        assertEquals(ENTRYMAP_CLASS_NAME, cache.getClass().getName());
 
         verify(store, times(2)).getNumEntries(anyString(), anyLong());
         verify(store, times(2)).load(anyString());
@@ -128,10 +102,10 @@ public class PermissionCacheBuilderTest {
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
+        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
-        assertEquals(SIMPLE_CLASS_NAME, cache.getClass().getName());
+        assertEquals(ENTRYMAP_CLASS_NAME, cache.getClass().getName());
 
         verify(store, times(2)).getNumEntries(anyString(), anyLong());
         verify(store, times(2)).load(anyString());
@@ -145,10 +119,10 @@ public class PermissionCacheBuilderTest {
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, false));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
+        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, 10, true)));
 
         PermissionCache cache = permissionCacheBuilder.build();
-        assertEquals(SIMPLE_CLASS_NAME, cache.getClass().getName());
+        assertEquals(ENTRYMAP_CLASS_NAME, cache.getClass().getName());
 
         verify(store, times(2)).getNumEntries(anyString(), anyLong());
         verify(store, times(2)).load(anyString());
@@ -157,11 +131,12 @@ public class PermissionCacheBuilderTest {
 
     @Test
     public void testBuildPathEntryMapResultsInEmptyCache() {
+        long maxPaths = 10;
         when(store.load(anyString())).thenReturn(new PrincipalPermissionEntries());
-        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(MAX_PATH_SIZE+1, false));
+        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(maxPaths+1, false));
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
-        assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
+        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(Long.MAX_VALUE, maxPaths, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
         assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
@@ -172,7 +147,7 @@ public class PermissionCacheBuilderTest {
     }
 
     @Test
-    public void testBuildMaxEntriesReached() throws Exception {
+    public void testBuildMaxEntriesReachedAllFullyLoaded() {
         PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1",false, 0, REP_READ_NODES);
         PrincipalPermissionEntries ppeB = generatedPermissionEntries("/path2",false, 0, REP_READ_NODES);
 
@@ -182,10 +157,10 @@ public class PermissionCacheBuilderTest {
 
         Set<String> principalNames = Sets.newHashSet("a", "b");
         long maxSize = 1;
-        assertFalse(permissionCacheBuilder.init(principalNames, maxSize));
+        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(maxSize, 10, false)));
 
         PermissionCache cache = permissionCacheBuilder.build();
-        assertEquals(DEFAULT_CLASS_NAME, cache.getClass().getName());
+        assertEquals(ENTRYMAP_CLASS_NAME, cache.getClass().getName());
 
         verify(store, times(2)).getNumEntries(anyString(), anyLong());
         verify(store, times(2)).load(anyString());
@@ -193,10 +168,59 @@ public class PermissionCacheBuilderTest {
     }
 
     @Test
-    public void testInitNumEntriesExceedMaxPathExact() {
-        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(MAX_PATH_SIZE+1, true));
+    public void testBuildMaxEntriesReachedPartiallyFullyLoaded() {
+        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1",false, 0, REP_READ_NODES);
 
-        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), Long.MAX_VALUE));
+        long maxSize = 1;
+        long maxPaths = 10;
+
+        when(store.load("a")).thenReturn(ppeA);
+        when(store.getNumEntries("a", maxSize)).thenReturn(NumEntries.valueOf(1, true));
+        when(store.getNumEntries("b", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, true));
+
+        Set<String> principalNames = Sets.newLinkedHashSet(ImmutableSet.of("a", "b"));
+        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(maxSize, maxPaths, false)));
+
+        PermissionCache cache = permissionCacheBuilder.build();
+        assertEquals(DEFAULT_CLASS_NAME, cache.getClass().getName());
+
+        verify(store, times(2)).getNumEntries(anyString(), anyLong());
+        verify(store, times(1)).load(anyString());
+        verify(store, never()).load(anyString(), anyString());
+
+        cache.getEntries("/path");
+        verify(store, never()).load("a", "/path");
+        verify(store, times(1)).load("b", "/path");
+    }
+
+    @Test
+    public void testBuildLazilyLoaded() {
+        PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1",false, 0, REP_READ_NODES);
+
+        long maxSize = 1;
+        long maxPaths = 0;
+
+        when(store.load("a")).thenReturn(ppeA);
+        when(store.getNumEntries("a", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, true));
+        when(store.getNumEntries("b", maxSize)).thenReturn(NumEntries.valueOf(maxPaths+1, false));
+
+        Set<String> principalNames = Sets.newLinkedHashSet(ImmutableSet.of("a", "b"));
+        assertFalse(permissionCacheBuilder.init(principalNames, createStrategy(maxSize, maxPaths, false)));
+
+        PermissionCache cache = permissionCacheBuilder.build();
+        assertEquals(DEFAULT_CLASS_NAME, cache.getClass().getName());
+
+        verify(store, times(2)).getNumEntries(anyString(), anyLong());
+        verify(store, never()).load(anyString());
+        verify(store, never()).load(anyString(), anyString());
+    }
+
+    @Test
+    public void testInitNumEntriesExceedMaxPathExact() {
+        long maxPaths = 2;
+        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(maxPaths+1, true));
+
+        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), createStrategy(Long.MAX_VALUE, maxPaths, false)));
 
         verify(store, times(3)).getNumEntries(anyString(), anyLong());
         verify(store, never()).load(anyString());
@@ -205,9 +229,10 @@ public class PermissionCacheBuilderTest {
 
     @Test
     public void testInitNumEntriesExceedMaxPathNotExact() {
-        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(MAX_PATH_SIZE+1, false));
+        long maxPaths = 5;
+        when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(maxPaths+1, false));
 
-        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), Long.MAX_VALUE));
+        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), createStrategy(Long.MAX_VALUE, maxPaths, false)));
 
         verify(store, times(3)).getNumEntries(anyString(), anyLong());
         verify(store, never()).load(anyString());
@@ -218,7 +243,7 @@ public class PermissionCacheBuilderTest {
     public void testInitNumEntriesExceedsMaxLong() {
         when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(Long.MAX_VALUE, false));
 
-        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), Long.MAX_VALUE));
+        assertFalse(permissionCacheBuilder.init(ImmutableSet.of("a", "b", "c"), createStrategy(Long.MAX_VALUE, 25, false)));
 
         verify(store, times(3)).getNumEntries(anyString(), anyLong());
         verify(store, never()).load(anyString());

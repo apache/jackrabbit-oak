@@ -54,11 +54,6 @@ public class PermissionEntryCacheTest {
 
     }
 
-    private PrincipalPermissionEntries getPrincipalPermissionEntries(boolean fullyLoaded) {
-        ppe.setFullyLoaded(fullyLoaded);
-        return ppe;
-    }
-
     @Test
     public void testMissingInit() throws Exception {
         Map<String, PrincipalPermissionEntries> entries = inspectEntries(cache);
@@ -101,12 +96,11 @@ public class PermissionEntryCacheTest {
     }
 
     @Test
-    public void testLoadMissingInit() throws Exception {
-        PrincipalPermissionEntries ppeA = getPrincipalPermissionEntries(true);
+    public void testLoadMissingInit() {
+        ppe.setFullyLoaded(true);
+        when(store.load("a")).thenReturn(ppe);
 
-        when(store.load("a")).thenReturn(ppeA);
-
-        Collection<PermissionEntry> result = new TreeSet();
+        Collection<PermissionEntry> result = new TreeSet<>();
         cache.load(store, result, "a", "/path");
 
         assertTrue(result.isEmpty());
@@ -230,20 +224,19 @@ public class PermissionEntryCacheTest {
 
     @Test
     public void testGetFullyLoadedEntries() throws Exception {
-        PrincipalPermissionEntries ppeA = getPrincipalPermissionEntries(true);
-
-        when(store.load("a")).thenReturn(ppeA);
+        ppe.setFullyLoaded(true);
+        when(store.load("a")).thenReturn(ppe);
 
         PrincipalPermissionEntries entries = cache.getFullyLoadedEntries(store, "a");
-        assertSame(ppeA, entries);
+        assertSame(ppe, entries);
 
         PrincipalPermissionEntries inspectedEntries = inspectEntries(cache, "a");
-        assertSame(ppeA, inspectedEntries);
+        assertSame(ppe, inspectedEntries);
 
         // requesting the entries again must NOT hit the store
         when(store.load("a")).thenThrow(IllegalStateException.class);
         entries = cache.getFullyLoadedEntries(store, "a");
-        assertSame(ppeA, entries);
+        assertSame(ppe, entries);
     }
 
     private static PrincipalPermissionEntries inspectEntries(@NotNull PermissionEntryCache cache, @NotNull String principalName) throws Exception {

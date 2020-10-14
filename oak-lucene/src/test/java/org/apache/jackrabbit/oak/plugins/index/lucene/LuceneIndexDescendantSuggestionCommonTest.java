@@ -18,24 +18,25 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.plugins.index.FacetCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.IndexDescendantSuggestionCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
-import org.apache.jackrabbit.oak.plugins.index.TestUtils;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
 import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class LuceneFacetCommonTest extends FacetCommonTest {
-
+public class LuceneIndexDescendantSuggestionCommonTest extends IndexDescendantSuggestionCommonTest {
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
-    protected Repository createJcrRepository() {
+    @Override
+    protected Repository createJcrRepository() throws RepositoryException {
         indexOptions = new LuceneIndexOptions();
         repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
         Oak oak = repositoryOptionsUtil.getOak();
@@ -44,8 +45,9 @@ public class LuceneFacetCommonTest extends FacetCommonTest {
         return repository;
     }
 
-    protected void assertEventually(Runnable r) {
-        TestUtils.assertEventually(r, (repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) * 5);
+    @After
+    public void shutdownExecutor() {
+        executorService.shutdown();
     }
 
 }

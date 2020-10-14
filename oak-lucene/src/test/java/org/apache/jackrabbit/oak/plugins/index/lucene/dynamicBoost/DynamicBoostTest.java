@@ -60,9 +60,9 @@ public class DynamicBoostTest extends AbstractQueryTest {
 
     public static final String ASSET_NODE_TYPE =
             "[dam:Asset]\n" +
-            " - * (UNDEFINED) multiple\n" +
-            " - * (UNDEFINED)\n" +
-            " + * (nt:base) = oak:TestNode VERSION";
+                    " - * (UNDEFINED) multiple\n" +
+                    " - * (UNDEFINED)\n" +
+                    " + * (nt:base) = oak:TestNode VERSION";
 
     private static final String UNSTRUCTURED = "nt:unstructured";
 
@@ -77,16 +77,16 @@ public class DynamicBoostTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         IndexTracker tracker = new IndexTracker();
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null,
-            new ExtractedTextCache(0, 0),
-            factory, Mounts.defaultMountInfoProvider());
+                new ExtractedTextCache(0, 0),
+                factory, Mounts.defaultMountInfoProvider());
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker,
-            factory);
+                factory);
         return new Oak()
-            .with(new OpenSecurityProvider())
-            .with((QueryIndexProvider) provider)
-            .with((Observer) provider)
-            .with(editorProvider)
-            .createContentRepository();
+                .with(new OpenSecurityProvider())
+                .with((QueryIndexProvider) provider)
+                .with((Observer) provider)
+                .with(editorProvider)
+                .createContentRepository();
     }
 
     @Test public void withFieldProvider() throws Exception {
@@ -98,8 +98,8 @@ public class DynamicBoostTest extends AbstractQueryTest {
         String log = runTest(IndexFieldProviderImpl.class, true);
         assertEquals(
                 "[" +
-                "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0" +
-                "]", log);
+                        "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0" +
+                        "]", log);
     }
 
     @Test public void withDynamicBoost() throws Exception {
@@ -115,17 +115,17 @@ public class DynamicBoostTest extends AbstractQueryTest {
         String log = runTest(LuceneDocumentMaker.class, true);
         assertEquals(
                 "[" +
-                "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, " +
-                "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " +
-                "confidence is not finite: jcr:content/metadata/predictedTags, " +
-                "confidence is not finite: jcr:content/metadata/predictedTags, " +
-                "confidence parsing failed: jcr:content/metadata/predictedTags, " +
-                "confidence parsing failed: jcr:content/metadata/predictedTags, " +
-                "confidence is an array: jcr:content/metadata/predictedTags, " +
-                "confidence is an array: jcr:content/metadata/predictedTags, " +
-                "name is an array: jcr:content/metadata/predictedTags, " +
-                "name is an array: jcr:content/metadata/predictedTags" +
-                "]", log);
+                        "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 10.0, " +
+                        "Added augmented fields: jcr:content/metadata/predictedTags/[my, a, my:a], 30.0, " +
+                        "confidence is not finite: jcr:content/metadata/predictedTags, " +
+                        "confidence is not finite: jcr:content/metadata/predictedTags, " +
+                        "confidence parsing failed: jcr:content/metadata/predictedTags, " +
+                        "confidence parsing failed: jcr:content/metadata/predictedTags, " +
+                        "confidence is an array: jcr:content/metadata/predictedTags, " +
+                        "confidence is an array: jcr:content/metadata/predictedTags, " +
+                        "name is an array: jcr:content/metadata/predictedTags, " +
+                        "name is an array: jcr:content/metadata/predictedTags" +
+                        "]", log);
     }
 
     @Test public void withDynamicBoostMissingProperty() throws Exception {
@@ -152,10 +152,10 @@ public class DynamicBoostTest extends AbstractQueryTest {
             Tree node = createNodeWithType(test, "item", "dam:Asset");
             Tree predicted =
                     createNodeWithType(
-                    createNodeWithType(
-                    createNodeWithType(node, JcrConstants.JCR_CONTENT, UNSTRUCTURED),
-                    "metadata", UNSTRUCTURED),
-                    "predictedTags", UNSTRUCTURED);
+                            createNodeWithType(
+                                    createNodeWithType(node, JcrConstants.JCR_CONTENT, UNSTRUCTURED),
+                                    "metadata", UNSTRUCTURED),
+                            "predictedTags", UNSTRUCTURED);
             Tree t = createNodeWithType(predicted, "a", UNSTRUCTURED);
             if (nameProperty) {
                 t.setProperty("name", "my:a");

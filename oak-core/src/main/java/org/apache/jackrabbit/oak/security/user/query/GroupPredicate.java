@@ -16,20 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
 
@@ -37,8 +35,6 @@ import static org.apache.jackrabbit.oak.security.user.query.QueryUtil.getID;
  * Predicate used to filter authorizables based on their group membership.
  */
 class GroupPredicate implements Predicate<Authorizable> {
-
-    private static final Logger log = LoggerFactory.getLogger(GroupPredicate.class);
 
     private final Iterator<Authorizable> membersIterator;
     private final Set<String> memberIds = new HashSet<>();

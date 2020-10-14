@@ -17,37 +17,47 @@
 package org.apache.jackrabbit.oak.exercise.security.principal;
 
 import java.util.Map;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Modified;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.jetbrains.annotations.NotNull;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Custom principal configuration that is disabled by default.
  */
-@Component(metatype = true, policy = ConfigurationPolicy.REQUIRE)
-@Service({PrincipalConfiguration.class, org.apache.jackrabbit.oak.spi.security.SecurityConfiguration.class})
+@Component(service = {PrincipalConfiguration.class, SecurityConfiguration.class}, configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = CustomPrincipalConfiguration.Configuration.class)
 public class CustomPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak CustomPrincipalConfiguration (Oak Exercises)")
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "knownPrincipals", description = "Hardcoded list of known principal names.", cardinality = 100)
+        int knownPrincipals();
+    }
 
     private static final Logger log = LoggerFactory.getLogger(CustomPrincipalConfiguration.class);
 
+    private static final String PARAM_KNOWN_PRINCIPALS = "knownPrincipals";
+
     // EXERCISE define sensible properties (e.g. configuration parameters for principal lookup on a third party system)
-    @Property(name = "knownPrincipals", value = {}, cardinality = 100)
     private String[] knownPrincipals = new String[0];
 
     @NotNull
@@ -73,15 +83,15 @@ public class CustomPrincipalConfiguration extends ConfigurationBase implements P
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
-        knownPrincipals = PropertiesUtil.toStringArray(properties.get("knownPrincipals"), new String[0]);
-        log.info("CustomPrincipalConfiguration.activate: " + knownPrincipals);
+        knownPrincipals = PropertiesUtil.toStringArray(properties.get(PARAM_KNOWN_PRINCIPALS), new String[0]);
+        log.info("CustomPrincipalConfiguration.activate: {}", knownPrincipals);
     }
 
     @SuppressWarnings("UnusedDeclaration")
     @Modified
     private void modified(Map<String, Object> properties) {
-        knownPrincipals = PropertiesUtil.toStringArray(properties.get("knownPrincipals"), new String[0]);
-        log.info("CustomPrincipalConfiguration.modified: " + knownPrincipals);
+        knownPrincipals = PropertiesUtil.toStringArray(properties.get(PARAM_KNOWN_PRINCIPALS), new String[0]);
+        log.info("CustomPrincipalConfiguration.modified: {}", knownPrincipals);
     }
 
     @SuppressWarnings("UnusedDeclaration")
@@ -94,6 +104,6 @@ public class CustomPrincipalConfiguration extends ConfigurationBase implements P
     @Override
     public void setParameters(@NotNull ConfigurationParameters config) {
         super.setParameters(config);
-        knownPrincipals = config.getConfigValue("knownPrincipals", new String[0]);
+        knownPrincipals = config.getConfigValue(PARAM_KNOWN_PRINCIPALS, new String[0]);
     }
 }

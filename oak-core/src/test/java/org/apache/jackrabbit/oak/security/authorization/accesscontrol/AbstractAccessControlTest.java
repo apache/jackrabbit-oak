@@ -51,7 +51,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest imp
 
     static final String TEST_PATH = "/testPath";
 
-    PrivilegeManager privilegeManager;
+    private PrivilegeManager privilegeManager;
     PrincipalManager principalManager;
 
     ACL acl;

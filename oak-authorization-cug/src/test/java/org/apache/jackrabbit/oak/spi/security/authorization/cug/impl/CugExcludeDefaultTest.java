@@ -49,24 +49,24 @@ public class CugExcludeDefaultTest {
 
     @Test
     public void testEmptyPrincipalSet() {
-        assertTrue(exclude.isExcluded(ImmutableSet.<Principal>of()));
+        assertTrue(exclude.isExcluded(ImmutableSet.of()));
     }
 
     @Test
     public void testSystemPrincipal() {
-        Set<Principal> principals = ImmutableSet.<Principal>of(SystemPrincipal.INSTANCE);
+        Set<Principal> principals = ImmutableSet.of(SystemPrincipal.INSTANCE);
         assertTrue(exclude.isExcluded(principals));
     }
 
     @Test
     public void testAdminPrincipal() {
-        Set<Principal> principals = ImmutableSet.<Principal>of((AdminPrincipal) () -> "admin");
+        Set<Principal> principals = ImmutableSet.of((AdminPrincipal) () -> "admin");
         assertTrue(exclude.isExcluded(principals));
     }
 
     @Test
     public void testSystemUserPrincipal() {
-        Set<Principal> principals = ImmutableSet.<Principal>of((SystemUserPrincipal) () -> "test");
+        Set<Principal> principals = ImmutableSet.of((SystemUserPrincipal) () -> "test");
         assertTrue(exclude.isExcluded(principals));
     }
 

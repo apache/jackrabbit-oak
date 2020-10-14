@@ -44,7 +44,7 @@ public class AdminPrincipalsIgnoreTest extends AdminPrincipalsBaseTest {
     }
 
     @Override
-    void assertException() throws Exception {
+    void assertException() {
         fail("Adding entry for administrative principal should be ignored without throwing an exception");
     }
 }

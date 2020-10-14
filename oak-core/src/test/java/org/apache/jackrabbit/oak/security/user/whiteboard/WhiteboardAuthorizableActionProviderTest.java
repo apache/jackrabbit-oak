@@ -64,13 +64,7 @@ public class WhiteboardAuthorizableActionProviderTest {
     public void testRegisteredImplementation() {
         actionProvider.start(whiteboard);
 
-        AuthorizableActionProvider registered = new AuthorizableActionProvider() {
-            @NotNull
-            @Override
-            public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
-                return ImmutableList.of(new TestAction());
-            }
-        };
+        AuthorizableActionProvider registered = securityProvider -> ImmutableList.of(new TestAction());
         whiteboard.register(AuthorizableActionProvider.class, registered, ImmutableMap.of());
 
         List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(Mockito.mock(SecurityProvider.class));

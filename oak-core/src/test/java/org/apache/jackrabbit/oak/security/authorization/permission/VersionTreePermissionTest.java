@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.lang.reflect.Field;
-import java.security.Principal;
 
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
@@ -40,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermi
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -67,9 +65,11 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
     public void before() throws Exception {
         super.before();
 
-        NodeUtil testNode = new NodeUtil(root.getTree("/")).addChild("test", NT_OAK_UNSTRUCTURED);
-        testNode.addChild("a", NT_OAK_UNSTRUCTURED).addChild("b", NT_OAK_UNSTRUCTURED).addChild("c", NT_OAK_UNSTRUCTURED);
-        TreeUtil.addMixin(testNode.getTree(), MIX_VERSIONABLE, root.getTree(NODE_TYPES_PATH), null);
+        testTree = TreeUtil.addChild(root.getTree("/"),"test", NT_OAK_UNSTRUCTURED);
+        Tree a = TreeUtil.addChild(testTree, "a", NT_OAK_UNSTRUCTURED);
+        Tree b = TreeUtil.addChild(a, "b", NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(b, "c", NT_OAK_UNSTRUCTURED);
+        TreeUtil.addMixin(testTree, MIX_VERSIONABLE, root.getTree(NODE_TYPES_PATH), null);
 
         AccessControlManager acMgr = getAccessControlManager(root);
         AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/test");
@@ -78,14 +78,13 @@ public class VersionTreePermissionTest extends AbstractSecurityTest implements N
         root.commit();
 
         // create a structure in the version storage
-        testNode.setBoolean(JCR_ISCHECKEDOUT, false);
+        testTree.setProperty(JCR_ISCHECKEDOUT, false);
         root.commit();
-        testNode.setBoolean(JCR_ISCHECKEDOUT, true);
+        testTree.setProperty(JCR_ISCHECKEDOUT, true);
         root.commit();
 
-        testTree = testNode.getTree();
         vMgr = ReadOnlyVersionManager.getInstance(root, NamePathMapper.DEFAULT);
-        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        pp = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
 
         assertTrue(pp instanceof PermissionProviderImpl);
 
