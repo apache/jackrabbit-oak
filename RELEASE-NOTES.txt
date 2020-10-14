@@ -49,6 +49,8 @@ Improvement
     [OAK-9180] - Optimise synchronisation between threads when writing to 3rd level segment cache 
     [OAK-9184] - Very slow, potential endless loop in LucenePropertyIndex.loadDocs()
     [OAK-9194] - oak-search-elastic: propertyIndex with nodeScopeIndex should be stored in :fulltext only
+    [OAK-9176] - Fix for sweep missing _bc (branch commit) entries in some cases - plus sweep2 introduced to clean up repository accordingly.
+                 PS: use -Doak.documentMK.disableSweep2=true to disable sweep2 in case it should be skipped explicitly
 
 Task
 
