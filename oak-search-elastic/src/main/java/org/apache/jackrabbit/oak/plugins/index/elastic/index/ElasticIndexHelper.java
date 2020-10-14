@@ -220,6 +220,25 @@ class ElasticIndexHelper {
             }
             mappingBuilder.endObject();
         }
+
+        for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
+            mappingBuilder.startObject(pd.nodeName);
+            {
+                mappingBuilder.field("type", "nested");
+                mappingBuilder.startObject("properties");
+                {
+                    mappingBuilder.startObject("value")
+                            .field("type", "text")
+                            .field("analyzer", "oak_analyzer")
+                            .endObject();
+                    mappingBuilder.startObject("boost")
+                            .field("type", "double")
+                            .endObject();
+                }
+                mappingBuilder.endObject();
+            }
+            mappingBuilder.endObject();
+        }
     }
 
     // we need to check if in the defined rules there are properties with the same name and different types

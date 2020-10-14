@@ -41,6 +41,7 @@ class ElasticDocument {
     private final List<String> notNullProps;
     private final List<String> nullProps;
     private final Map<String, Object> properties;
+    private final Map<String, Map<String, Double>> dynamicBoostFields;
 
     ElasticDocument(String path) {
         this.path = path;
@@ -49,6 +50,7 @@ class ElasticDocument {
         this.notNullProps = new ArrayList<>();
         this.nullProps = new ArrayList<>();
         this.properties = new HashMap<>();
+        this.dynamicBoostFields = new HashMap<>();
     }
 
     void addFulltext(String value) {
@@ -87,6 +89,11 @@ class ElasticDocument {
         addProperty(FieldNames.PATH_DEPTH, depth);
     }
 
+    void addDynamicBoostField(String propName, String value, double boost) {
+        dynamicBoostFields.computeIfAbsent(propName, s -> new HashMap<>())
+                .putIfAbsent(value, boost);
+    }
+
     public String build() {
         String ret;
         try {
@@ -99,7 +106,7 @@ class ElasticDocument {
                 }
                 if (suggest.size() > 0) {
                     builder.startArray(FieldNames.SUGGEST);
-                    for(String val: suggest) {
+                    for (String val : suggest) {
                         builder.startObject().field("value", val).endObject();
                     }
                     builder.endArray();
@@ -112,6 +119,16 @@ class ElasticDocument {
                 }
                 for (Map.Entry<String, Object> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue());
+                }
+                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
+                    builder.startArray(f.getKey());
+                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
+                        builder.startObject();
+                        builder.field("value", v.getKey());
+                        builder.field("boost", v.getValue());
+                        builder.endObject();
+                    }
+                    builder.endArray();
                 }
             }
             builder.endObject();
