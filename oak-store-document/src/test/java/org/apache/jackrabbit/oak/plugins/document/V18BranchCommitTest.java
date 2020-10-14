@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,6 +42,16 @@ public class V18BranchCommitTest {
     public void setup() {
         ns = builderProvider.newBuilder().setUpdateLimit(10)
                 .setAsyncDelay(0).getNodeStore();
+    }
+
+    /**
+     * This test piggybacks on all the other tests with the idea that they
+     * leave the repository with some useful "_bc" seeds, which the test
+     * is keen on testing by simulating a pre 1.8 upgrade.
+     */
+    @After
+    public void tearDownPiggybackTest() {
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test

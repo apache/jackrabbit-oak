@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 
+import java.util.LinkedList;
+
 /**
  * Wraps a document store and can be instructed to fail operations.
  */
@@ -42,6 +44,8 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     private AtomicLong numFailures = new AtomicLong(0);
 
     private Type exceptionType = Type.GENERIC;
+
+    private List<Collection<? extends Document>> collectionIncludeList;
 
     class Fail {
 
@@ -65,6 +69,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
             numFailures.set(0);
             failAfter.set(Long.MAX_VALUE);
             exceptionType = Type.GENERIC;
+            collectionIncludeList = null;
         }
 
         void once() {
@@ -77,6 +82,14 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
         Fail randomly(double probability) {
             p = probability;
+            return this;
+        }
+
+        Fail on(Collection<? extends Document> collectionInclude) {
+            if (collectionIncludeList == null) {
+                collectionIncludeList = new LinkedList<>();
+            }
+            collectionIncludeList.add(collectionInclude);
             return this;
         }
     }
@@ -101,7 +114,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     @Override
     public <T extends Document> void remove(Collection<T> collection,
                                             String key) {
-        maybeFail();
+        maybeFail(collection);
         super.remove(collection, key);
     }
 
@@ -120,7 +133,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
         int num = 0;
         // remove individually
         for (Map.Entry<String, Long> rm : toRemove.entrySet()) {
-            maybeFail();
+            maybeFail(collection);
             num += super.remove(collection, singletonMap(rm.getKey(), rm.getValue()));
         }
         return num;
@@ -132,7 +145,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
                                            long startValue,
                                            long endValue)
             throws DocumentStoreException {
-        maybeFail();
+        maybeFail(collection);
         return super.remove(collection, indexedProperty, startValue, endValue);
     }
 
@@ -141,7 +154,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
                                                List<UpdateOp> updateOps) {
         // create individually
         for (UpdateOp op : updateOps) {
-            maybeFail();
+            maybeFail(collection);
             if (!super.create(collection, singletonList(op))) {
                 return false;
             }
@@ -152,7 +165,7 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
                                                  UpdateOp update) {
-        maybeFail();
+        maybeFail(collection);
         return super.createOrUpdate(collection, update);
     }
 
@@ -170,12 +183,13 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                 UpdateOp update) {
-        maybeFail();
+        maybeFail(collection);
         return super.findAndUpdate(collection, update);
     }
 
-    private void maybeFail() {
-        if (random.nextFloat() < p || failAfter.getAndDecrement() <= 0) {
+    private <T extends Document> void maybeFail(Collection<T> collection) {
+        if ((collectionIncludeList == null || collectionIncludeList.contains(collection)) &&
+                (random.nextFloat() < p || failAfter.getAndDecrement() <= 0)) {
             if (numFailures.getAndDecrement() > 0) {
                 throw new DocumentStoreException("write operation failed", null, exceptionType);
             }

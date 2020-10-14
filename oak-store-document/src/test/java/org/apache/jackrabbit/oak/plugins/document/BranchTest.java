@@ -24,6 +24,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -31,13 +32,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.asDocumentState;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.persistToBranch;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -88,6 +92,135 @@ public class BranchTest {
     }
 
     @Test
+    public void rootBranchCommitChildTest() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setClusterId(1)
+                .setDocumentStore(store).build();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a");
+        persistToBranch(builder);
+
+        merge(ns, builder);
+
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+    }
+
+    @Test
+    public void childBranchCommitChildTest() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setClusterId(1)
+                .setDocumentStore(store).build();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a");
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        builder.child("a").child("b");
+        persistToBranch(builder);
+
+        merge(ns, builder);
+
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+    }
+
+    @Test
+    public void manyBranchCommitsDepthTest() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setClusterId(1)
+                .setDocumentStore(store).build();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a");
+        persistToBranch(builder);
+
+        builder.getChildNode("a").child("b");
+        persistToBranch(builder);
+
+        builder.getChildNode("a").getChildNode("b").child("c");
+        persistToBranch(builder);
+
+        builder.getChildNode("a").getChildNode("b").getChildNode("c").child("d");
+        persistToBranch(builder);
+
+        builder.getChildNode("a").getChildNode("b").getChildNode("c").getChildNode("d").child("e");
+        persistToBranch(builder);
+
+        merge(ns, builder);
+
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+    }
+
+    @Test
+    public void manyBranchCommitsWidthTest() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setClusterId(1)
+                .setDocumentStore(store).build();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a");
+        persistToBranch(builder);
+
+        builder.child("b");
+        persistToBranch(builder);
+
+        builder.child("c");
+        persistToBranch(builder);
+
+        builder.child("d");
+        persistToBranch(builder);
+
+        builder.child("e");
+        persistToBranch(builder);
+
+        merge(ns, builder);
+
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+    }
+
+    @Test
+    public void mixedPre18BranchTest() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        DocumentNodeStore ns = builderProvider.newBuilder()
+                .setClusterId(1)
+                .setDocumentStore(store).build();
+        // step 1 : create an initial structure /a/b/c
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("a").child("b").child("c").setProperty("commit", "1");
+        merge(ns, builder);
+
+        // step 2 : create a branch commit incl. with a child under an existing node, ie /a/b/c/d..
+        builder = ns.getRoot().builder();
+        builder.child("a").setProperty("commit", "2");
+        builder.child("a").child("b").child("c").child("d").child("e").setProperty("commit", "2");
+        persistToBranch(builder);
+        merge(ns, builder);
+
+        // step 3 : verify that "_bc" are set correctly : on all except /a/b (where nothing was changed)
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/")).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a")).get("_bc"));
+        assertNull(store.find(NODES, Utils.getIdFromPath("/a/b")).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c")).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c/d")).get("_bc"));
+        assertNotNull(store.find(NODES, Utils.getIdFromPath("/a/b/c/d/e")).get("_bc"));
+
+        // step 4 : verify the "_bc" are set correctly by backgroundSweep()/forceBackgroundSweep()
+
+        // step 4b: /a/b/c did not get a "_bc" because it only contained "_commitRoot" but no other changes, and
+        //          https://github.com/apache/jackrabbit-oak/blob/d35346d4d446908c7019e931cb54d88824c1a637/oak-store-document/src/main/java/org/apache/jackrabbit/oak/plugins/document/NodeDocumentSweeper.java#L179
+        //          only went through document that had changes in properties in PROPERTY_OR_DELETED
+
+        // step 4c: / also failed with a similar reason as the above, except the root
+        //          only has changes in "_revisions" (not "_commitRoot")
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
+    }
+
+    @Test
     public void orphanedBranchTest() {
         MemoryDocumentStore store = new MemoryDocumentStore();
         DocumentNodeStore ns = builderProvider.newBuilder()
@@ -101,6 +234,8 @@ public class BranchTest {
         ns = builderProvider.newBuilder()
                 .setDocumentStore(store).build();
         assertFalse(ns.getRoot().hasProperty("p"));
+
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     @Test
@@ -136,6 +271,8 @@ public class BranchTest {
         DocumentNodeState state = root.getNodeAtRevision(ns, br, null);
         assertNotNull(state);
         assertEquals("a", state.getString("p"));
+
+        Sweep2TestHelper.testPre18UpgradeSimulations(ns, builderProvider);
     }
 
     private void assertModifiedPaths(Iterable<Path> actual, String... expected) {
