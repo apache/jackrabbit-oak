@@ -34,6 +34,7 @@ import java.util.Set;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.Property;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -945,6 +946,30 @@ public class QueryTest extends AbstractRepositoryTest {
             // expected
         }
         
+        session.logout();
+    }
+
+    @Test
+    public void emptyMixin() throws RepositoryException {
+        Session session = createAdminSession();
+        Node p = session.getRootNode().addNode("etc");
+        Node r = p.addNode("r", "nt:unstructured");
+        r.addMixin("mix:referenceable");
+        session.save();
+        r.removeMixin("mix:referenceable");
+        session.save();
+        assertTrue(r.hasProperty("jcr:mixinTypes"));
+        Property mix = r.getProperty("jcr:mixinTypes");
+        assertTrue(mix.isMultiple());
+        assertEquals(0, mix.getValues().length);
+        session.save();
+        Query q = session.getWorkspace().getQueryManager().createQuery(
+                "select * from [nt:base] where isdescendantnode('/etc') " +
+                "and [jcr:mixinTypes] = 'mix:referenceable' " +
+                "option(index name [x])", Query.JCR_SQL2);
+        QueryResult qr = q.execute();
+        NodeIterator ni = qr.getNodes();
+        assertFalse(ni.hasNext());
         session.logout();
     }
 
