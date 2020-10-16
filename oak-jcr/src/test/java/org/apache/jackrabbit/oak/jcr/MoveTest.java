@@ -22,6 +22,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Test;
 
@@ -151,5 +152,25 @@ public class MoveTest extends AbstractJCRTest {
 
         superuser.save();
         assertEquals(destPath, node1.getPath());
+    }
+
+    @Test
+    public void testMoveReferenceableGetByIdentifier() throws Exception {
+        Node referenceable = testRootNode.addNode(nodeName1);
+        referenceable.addMixin(JcrConstants.MIX_REFERENCEABLE);
+        Node node2 = testRootNode.addNode(nodeName2);
+        superuser.save();
+
+        String id = referenceable.getIdentifier();
+        assertTrue(UUIDUtils.isValidUUID(id));
+
+        String destPath = node2.getPath() + '/' + nodeName1;
+        move(referenceable.getPath(), destPath, true);
+
+        Node moved = superuser.getNode(destPath);
+        assertEquals(id, moved.getIdentifier());
+
+        Node n = superuser.getNodeByIdentifier(id);
+        assertEquals(destPath, n.getPath());
     }
 }
