@@ -326,6 +326,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testCompositeRepExcerpt() throws Exception {
         String sqlQuery = "select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a " +
                 "where (contains([jcr:content/*], 'square') or contains([jcr:content/jcr:title], 'square')" +
@@ -519,6 +520,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testOrderByJcrScore() throws Exception {
         Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
         assertTrue(index.exists());

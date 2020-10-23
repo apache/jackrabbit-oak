@@ -286,7 +286,7 @@
                     <artifactId>commons-fileupload</artifactId>
                 </exclusion>
             </exclusions>
-            <scope>provided</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.solr</groupId>
