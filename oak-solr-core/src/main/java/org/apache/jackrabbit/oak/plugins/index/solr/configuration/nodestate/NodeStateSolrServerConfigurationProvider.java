@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
@@ -67,10 +66,10 @@ public class NodeStateSolrServerConfigurationProvider implements SolrServerConfi
             Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, "0"));
 
             if (context != null && httpPort > 0) {
-                return (SolrServerConfiguration) new EmbeddedSolrServerConfiguration(solrHomePath, coreName)
+                return createEmbeddedSolrServerConfiguration(solrHomePath, coreName)
                         .withHttpConfiguration(context, httpPort);
             } else {
-                return (SolrServerConfiguration) new EmbeddedSolrServerConfiguration(solrHomePath, coreName);
+                return createEmbeddedSolrServerConfiguration(solrHomePath, coreName);
             }
         } else if ("remote".equalsIgnoreCase(type)) {
             String solrZkHost = getStringValueFor(Properties.ZK_HOST, null);
@@ -87,6 +86,16 @@ public class NodeStateSolrServerConfigurationProvider implements SolrServerConfi
                     solrReplicationFactor, solrConfDir, socketTimeout, connectionTimeout, solrHttpUrls);
         } else {
             throw new RuntimeException("unexpected Solr server type: " + type);
+        }
+    }
+
+    @SuppressWarnings({"unchecked" })
+    private static SolrServerConfiguration<SolrServerProvider> createEmbeddedSolrServerConfiguration(String solrHomePath, String coreName) {
+        try {
+            Class<?> c = Class.forName("org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration");
+            return (SolrServerConfiguration<SolrServerProvider>) c.getConstructor(String.class, String.class).newInstance(solrHomePath, coreName);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -70,7 +70,10 @@ public class QueryJcrTest extends TestCase {
         suite.addTestSuite(SQL2OffsetLimitTest.class);
         suite.addTestSuite(LimitAndOffsetTest.class);
         suite.addTestSuite(OrderByTest.class);
-        suite.addTestSuite(ExcerptTest.class);
+
+        // OAK-9261: can't run this test with embedded Solr
+        // suite.addTestSuite(ExcerptTest.class);
+
         suite.addTestSuite(QueryResultTest.class);
         suite.addTestSuite(ParentNodeTest.class);
         suite.addTestSuite(SimilarQueryTest.class);

@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.Arrays;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -104,8 +106,10 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
 
-                CoreContainer coreContainer = new CoreContainer(solrHomePath);
+                CoreContainer coreContainer = null;
                 try {
+                    Path path = FileSystems.getDefault().getPath(solrHomePath);
+                    coreContainer = CoreContainer.createAndLoad(path);
                     if (!coreContainer.isLoaded(coreName)) {
                         coreContainer.load();
                     }
@@ -249,7 +253,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         private final JettySolrRunner jettySolrRunner;
 
         public HttpWithJettySolrServer(String s, JettySolrRunner jettySolrRunner) {
-            super(s);
+            super(new HttpSolrClient.Builder(s));
             this.jettySolrRunner = jettySolrRunner;
         }
 
