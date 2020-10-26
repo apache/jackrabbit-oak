@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
@@ -36,7 +37,6 @@ import com.microsoft.azure.storage.blob.BlobListingDetails;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
-
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
@@ -80,6 +80,10 @@ public final class AzureUtilities {
             blob.download(new ByteBufferOutputStream(buffer));
             buffer.flip();
         } catch (StorageException e) {
+            if (e.getHttpStatusCode() == 404) {
+                log.error("Blob not found in the remote repository: {}", blob.getName());
+                throw new FileNotFoundException("Blob not found in the remote repository: " + blob.getName());
+            }
             throw new RepositoryNotReachableException(e);
         }
     }

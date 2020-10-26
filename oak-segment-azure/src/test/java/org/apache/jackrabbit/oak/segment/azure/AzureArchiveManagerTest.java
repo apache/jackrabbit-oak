@@ -21,15 +21,20 @@ import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStoreBuilders;
+import org.apache.jackrabbit.oak.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -40,6 +45,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
@@ -51,8 +57,10 @@ import java.util.UUID;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AzureArchiveManagerTest {
 
@@ -256,5 +264,61 @@ public class AzureArchiveManagerTest {
         writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
         writer.flush();
         Assert.assertTrue(manager.exists("data00000a.tar"));
+    }
+
+    @Test(expected = FileNotFoundException.class)
+    public void testSegmentDeletedAfterCreatingReader() throws IOException, URISyntaxException, StorageException, InvalidFileStoreVersionException {
+
+        AzurePersistence azurePersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveWriter writer = manager.create("data00000a.tar");
+
+        Assert.assertFalse(manager.exists("data00000a.tar"));
+        UUID u = UUID.randomUUID();
+        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
+
+        SegmentArchiveReader reader = manager.open("data00000a.tar");
+        Buffer segment = reader.readSegment(u.getMostSignificantBits(), u.getLeastSignificantBits());
+        assertNotNull(segment);
+
+        ListBlobItem segment0000 = container.listBlobs("oak/data00000a.tar/0000.").iterator().next();
+        ((CloudBlob) segment0000).delete();
+
+        try {
+            // FileNotFoundException should be thrown here
+            reader.readSegment(u.getMostSignificantBits(), u.getLeastSignificantBits());
+            fail();
+        } catch (RepositoryNotReachableException e) {
+            fail();
+        }
+    }
+
+    @Test(expected = SegmentNotFoundException.class)
+    public void testMissngSegmentDetectedInFileStore() throws IOException, StorageException, URISyntaxException, InvalidFileStoreVersionException {
+
+        AzurePersistence azurePersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        FileStore fileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(azurePersistence).build();
+
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveWriter writer = manager.create("data00000a.tar");
+
+        //Assert.assertFalse(manager.exists("data00000a.tar"));
+        UUID u = UUID.randomUUID();
+        writer.writeSegment(u.getMostSignificantBits(), u.getLeastSignificantBits(), new byte[10], 0, 10, 0, 0, false);
+        writer.flush();
+        writer.close();
+
+        SegmentArchiveReader reader = manager.open("data00000a.tar");
+        Buffer segment = reader.readSegment(u.getMostSignificantBits(), u.getLeastSignificantBits());
+        assertNotNull(segment);
+
+        ListBlobItem segment0000 = container.listBlobs("oak/data00000a.tar/0000.").iterator().next();
+        ((CloudBlob) segment0000).delete();
+
+        // SegmentNotFoundException should be thrown here
+        fileStore.readSegment(new SegmentId(fileStore, u.getMostSignificantBits(), u.getLeastSignificantBits()));
     }
 }
