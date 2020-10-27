@@ -60,7 +60,6 @@
                             OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrQueryIndexProviderService.xml,
                             OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrServerProviderService.xml,
                             OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrIndexEditorProviderService.xml,
-                            OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.EmbeddedSolrServerConfigurationProvider.xml,
                             OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.RemoteSolrServerConfigurationProvider.xml,
                             OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.OakSolrConfigurationProviderService.xml,
                             OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.NodeStateSolrServersObserverService.xml
@@ -102,20 +101,8 @@
         <!-- Solr -->
         <dependency>
             <groupId>org.apache.solr</groupId>
-            <artifactId>solr-core</artifactId>
-            <version>${lucene.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-jdk14</artifactId>
-                </exclusion>
-            </exclusions>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.solr</groupId>
             <artifactId>solr-solrj</artifactId>
-            <version>${lucene.version}</version>
+            <version>${solr.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -124,15 +111,7 @@
             <version>0.5</version>
             <scope>runtime</scope>
         </dependency>
-        <dependency>
-            <groupId>com.carrotsearch</groupId>
-            <artifactId>hppc</artifactId>
-            <version>0.5.2</version>
-            <scope>runtime</scope>
-        </dependency>
 
-
-        <!-- Lucene -->
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
@@ -238,6 +217,12 @@
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
             <version>3.4.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6.1</version>
             <scope>runtime</scope>
         </dependency>
     </dependencies>

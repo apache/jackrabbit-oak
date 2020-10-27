@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.DefaultSolrServerProv
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -78,6 +79,7 @@ public class SubtreeSolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void test() throws Exception {
 
         Tree content = root.getTree("/").getChild(SUBTREE);

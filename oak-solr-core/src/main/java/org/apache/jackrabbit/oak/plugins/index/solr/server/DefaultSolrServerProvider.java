@@ -20,36 +20,42 @@ import java.io.IOException;
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
-import org.apache.solr.client.solrj.SolrServer;
-import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrServer;
-import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrClient;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
 
 public class DefaultSolrServerProvider implements SolrServerProvider {
 
-    private SolrServer solrServer;
-    private SolrServer indexingSolrServer;
+    private SolrClient solrServer;
+    private SolrClient indexingSolrServer;
 
     @CheckForNull
     @Override
-    public SolrServer getSolrServer() throws Exception {
+    public SolrClient getSolrServer() throws Exception {
         if (solrServer == null) {
-            solrServer = new HttpSolrServer(getUrl());
+            solrServer = new HttpSolrClient.Builder()
+                    .withBaseSolrUrl(SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
+                            SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT)
+                    .build();
         }
         return solrServer;
     }
 
     @CheckForNull
     @Override
-    public SolrServer getIndexingSolrServer() throws Exception {
+    public SolrClient getIndexingSolrServer() throws Exception {
         if (indexingSolrServer == null) {
-            indexingSolrServer = new ConcurrentUpdateSolrServer(getUrl(), 1000, 4);
+            indexingSolrServer = new ConcurrentUpdateSolrClient.Builder(
+                    SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
+                    SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT)
+                    .withQueueSize(1000).withThreadCount(4).build();
         }
         return indexingSolrServer;
     }
 
     @CheckForNull
     @Override
-    public SolrServer getSearchingSolrServer() throws Exception {
+    public SolrClient getSearchingSolrServer() throws Exception {
         return getSolrServer();
     }
 
@@ -60,23 +66,23 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         try {
-            SolrServer solrServer = getSolrServer();
+            SolrClient solrServer = getSolrServer();
             if (solrServer != null) {
-                solrServer.shutdown();
+                solrServer.close();
             }
         } catch (Exception e) {
             // do nothing
         } try {
-            SolrServer indexingSolrServer = getIndexingSolrServer();
+            SolrClient indexingSolrServer = getIndexingSolrServer();
             if (indexingSolrServer != null) {
-                indexingSolrServer.shutdown();
+                indexingSolrServer.close();
             }
         } catch (Exception e) {
             // do nothing
         } try {
-            getSearchingSolrServer().shutdown();
+            getSearchingSolrServer().close();
         } catch (Exception e) {
             // do nothing
         }

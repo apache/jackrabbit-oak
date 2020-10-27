@@ -32,6 +32,7 @@ import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
 import org.apache.lucene.analysis.reverse.ReverseStringFilter;
 import org.apache.lucene.util.Version;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.lucene.analysis.BaseTokenStreamTestCase.assertAnalyzesTo;
@@ -192,6 +193,7 @@ public class DefaultAnalyzersConfigurationTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testAllChildrenPathMatching() throws Exception {
         String nodePath = "/jcr:a/jcr:b/c";
         String descendantPath = nodePath + "/d/jcr:e";
@@ -206,6 +208,7 @@ public class DefaultAnalyzersConfigurationTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testAllChildrenPathMatchingOnRootNode() throws Exception {
         String nodePath = "/";
         String descendantPath = nodePath + "jcr:a/jcr:b";
@@ -213,6 +216,7 @@ public class DefaultAnalyzersConfigurationTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testDirectChildrenPathMatching() throws Exception {
         String nodePath = "/a/b/c";
         String childPath = nodePath + "/d";
@@ -234,6 +238,7 @@ public class DefaultAnalyzersConfigurationTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testParentPathMatching() throws Exception {
         String parentPath = "/a/b";
         String nodePath = parentPath + "/jcr:c";

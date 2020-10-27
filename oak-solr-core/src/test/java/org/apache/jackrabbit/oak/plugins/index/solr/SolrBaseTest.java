@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrClient;
 import org.junit.After;
 import org.junit.Before;
 
@@ -44,7 +44,7 @@ public abstract class SolrBaseTest {
 
     protected NodeStore store;
     protected TestUtils provider;
-    protected SolrServer server;
+    protected SolrClient server;
     protected OakSolrConfiguration configuration;
     protected EditorHook hook;
     private ContentRepository repository;

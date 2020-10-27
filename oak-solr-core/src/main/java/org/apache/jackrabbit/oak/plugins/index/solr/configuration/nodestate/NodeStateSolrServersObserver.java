@@ -16,25 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
+import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DiffObserver;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.solr.client.solrj.SolrServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * An {@link org.apache.jackrabbit.oak.spi.commit.Observer} looking for changes on persisted Solr server configuration nodes.
- * If any change is done there, the related {@link org.apache.solr.client.solrj.SolrServer}s are shutdown and unregistered
+ * If any change is done there, the related {@link org.apache.solr.client.solrj.SolrClient}s are shutdown and unregistered
  * from the {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerRegistry}
  */
 public class NodeStateSolrServersObserver extends DiffObserver {
@@ -50,7 +45,7 @@ public class NodeStateSolrServersObserver extends DiffObserver {
         log.debug("shutting down persisted Solr server");
         NodeStateSolrServerConfigurationProvider nodeStateSolrServerConfigurationProvider = new NodeStateSolrServerConfigurationProvider(nodeState);
         OakSolrServer oakSolrServer = new OakSolrServer(nodeStateSolrServerConfigurationProvider);
-        oakSolrServer.shutdown();
+        oakSolrServer.close();
         log.info("persisted Solr server has been shutdown");
     }
 
@@ -122,7 +117,6 @@ public class NodeStateSolrServersObserver extends DiffObserver {
         }
 
         private boolean isSolrServerNode(String name, NodeState nodeState) {
-            log.info("checking {} in {}", name, nodeState);
             return "server".equals(name) && nodeState.hasProperty("solrServerType");
         }
 

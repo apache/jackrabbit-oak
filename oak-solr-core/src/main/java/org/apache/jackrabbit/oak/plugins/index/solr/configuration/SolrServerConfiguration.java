@@ -39,6 +39,10 @@ public abstract class SolrServerConfiguration<S extends SolrServerProvider> {
         this.type = ((ParameterizedType) superclass).getActualTypeArguments()[0];
     }
 
+    public SolrServerConfiguration<S> withHttpConfiguration(String context, Integer httpPort) {
+        return this;
+    }
+
     public Type getType() {
         return this.type;
     }
