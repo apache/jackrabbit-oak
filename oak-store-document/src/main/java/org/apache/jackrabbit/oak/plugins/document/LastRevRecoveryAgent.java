@@ -42,7 +42,6 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
@@ -313,7 +312,7 @@ public class LastRevRecoveryAgent {
         for (NodeDocument doc : suspects) {
         	
         	//Should skip previous documents
-        	if(!doc.getPath().toString().startsWith(PathUtils.ROOT_PATH)) {
+        	if(!doc.getPath().isAbsolute()) {
         		continue;
         	}
         	
