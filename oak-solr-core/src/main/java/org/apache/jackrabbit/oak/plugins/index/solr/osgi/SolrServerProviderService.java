@@ -93,7 +93,7 @@ public class SolrServerProviderService implements SolrServerProvider {
     public void close() throws IOException {
         if (cachedSolrServer != null) {
             try {
-                cachedSolrServer.shutdown();
+                cachedSolrServer.close();
             } catch (Exception e) {
                 log.error("could not correctly shutdown Solr {} server {}", serverType, cachedSolrServer);
             } finally {

@@ -47,6 +47,7 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.SolrParams;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -119,6 +120,7 @@ public class SolrQueryIndexTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testPlanWithPropertyAndPathRestrictionsEnabled() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
@@ -152,6 +154,7 @@ public class SolrQueryIndexTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testPlanWithPropertyRestrictionsEnabled() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
@@ -183,6 +186,7 @@ public class SolrQueryIndexTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testNoPlanWithOnlyPrimaryTypeRestrictionsEnabled() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr").setProperty("primaryTypes", true);
@@ -200,6 +204,7 @@ public class SolrQueryIndexTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testPlanWithPropertyAndPrimaryTypeRestrictionsEnabled() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
@@ -258,6 +263,7 @@ public class SolrQueryIndexTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testPlanWithPropertyRestrictionsEnabledAndUsedProperty() throws Exception {
         NodeBuilder builder = nodeState.builder();
         builder.child("oak:index").child("solr")
@@ -432,7 +438,7 @@ public class SolrQueryIndexTest {
             assertTrue(c >= 0);
         }
     }
-    
+
     private static SelectorImpl newSelector(NodeState root, String name) {
         NodeTypeInfoProvider types = new NodeStateNodeTypeInfoProvider(root);
         NodeTypeInfo type = types.getNodeTypeInfo("nt:base");
@@ -462,5 +468,5 @@ public class SolrQueryIndexTest {
             return counter;
         }
     }
-    
+
 }

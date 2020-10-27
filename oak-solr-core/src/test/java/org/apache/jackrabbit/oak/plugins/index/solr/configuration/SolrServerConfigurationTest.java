@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider;
 import org.junit.Test;
 
@@ -35,10 +34,4 @@ public class SolrServerConfigurationTest {
         assertNotNull(remoteSolrServerProvider);
     }
 
-    @Test
-    public void testCreteEmbeddedServerFromConfig() throws Exception {
-        SolrServerConfiguration<EmbeddedSolrServerProvider> embeddedSolrServerSolrServerConfiguration = new EmbeddedSolrServerConfiguration(null, null);
-        EmbeddedSolrServerProvider embeddedSolrServerProvider = embeddedSolrServerSolrServerConfiguration.getProvider();
-        assertNotNull(embeddedSolrServerProvider);
-    }
 }

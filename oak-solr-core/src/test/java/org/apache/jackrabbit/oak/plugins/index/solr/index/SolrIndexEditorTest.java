@@ -33,8 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -47,6 +47,7 @@ import static org.mockito.Mockito.when;
 public class SolrIndexEditorTest {
 
     @Test
+    @Ignore("OAK-9261")
     public void testIndexedProperties() throws Exception {
         SolrClient solrServer = TestUtils.createSolrServer();
         OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
@@ -67,6 +68,7 @@ public class SolrIndexEditorTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testIgnoredPropertiesNotIndexed() throws Exception {
         NodeBuilder builder = mock(NodeBuilder.class);
         SolrClient solrServer = TestUtils.createSolrServer();

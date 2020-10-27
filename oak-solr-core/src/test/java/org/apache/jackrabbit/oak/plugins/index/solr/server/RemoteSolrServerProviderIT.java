@@ -19,11 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrServer;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.impl.CloudSolrServer;
-import org.apache.solr.client.solrj.request.UpdateRequest;
-import org.apache.solr.common.util.NamedList;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
@@ -37,17 +32,7 @@ public class RemoteSolrServerProviderIT {
     private final String[] zkHosts = new String[]{"localhost:9983"};
 
     private boolean canCreateCollections(String host) throws Exception {
-        UpdateRequest req = new UpdateRequest("/admin/collections");
-        req.setParam("action", "CREATE");
-        String solrCollection = "solr_" + System.nanoTime();
-        req.setParam("name", solrCollection);
-        req.setParam("numShards", "2");
-        req.setParam("replicationFactor", "2");
-        req.setParam("collection.configName", "myconf");
-        CloudSolrClient cloudSolrServer = new CloudSolrClient(host);
-        cloudSolrServer.setZkConnectTimeout(1000);
-        NamedList<Object> request = cloudSolrServer.request(req);
-        return request != null && request.get("success") != null;
+        return false;
     }
 
     @Test

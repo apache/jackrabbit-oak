@@ -18,22 +18,18 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrRequest;
-import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.common.SolrException;
 import org.apache.solr.common.util.NamedList;
 
 /**
- * An Oak {@link org.apache.solr.client.solrj.SolrServer}, caching a {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider}
- * for dispatching requests to indexing or searching specialized {@link org.apache.solr.client.solrj.SolrServer}s.
+ * An Oak {@link org.apache.solr.client.solrj.SolrClient}, caching a {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider}
+ * for dispatching requests to indexing or searching specialized {@link org.apache.solr.client.solrj.SolrClient}s.
  */
-public class OakSolrServer extends SolrServer {
+public class OakSolrServer extends SolrClient {
 
     private final SolrServerConfiguration solrServerConfiguration;
     private final SolrServerProvider solrServerProvider;
@@ -64,7 +60,7 @@ public class OakSolrServer extends SolrServer {
         SolrServerRegistry.Strategy strategy = isIndex ? SolrServerRegistry.Strategy.INDEXING : SolrServerRegistry.Strategy.SEARCHING;
         SolrClient solrServer = SolrServerRegistry.get(solrServerConfiguration, strategy);
         if (solrServer == null) {
-            if (solrServerConfiguration instanceof EmbeddedSolrServerConfiguration) {
+            if (solrServerConfiguration.getClass().getName().indexOf("EmbeddedSolrServerConfiguration") >= 0) {
                 solrServer = solrServerProvider.getSolrServer();
                 // the same Solr server has to be used for both
                 SolrServerRegistry.register(solrServerConfiguration, solrServer, SolrServerRegistry.Strategy.INDEXING);
@@ -78,7 +74,15 @@ public class OakSolrServer extends SolrServer {
     }
 
     @Override
-    public void shutdown() {
+    public String toString() {
+        return "OakSolrServer{" +
+            "solrServerConfiguration=" + solrServerConfiguration +
+            ", solrServerProvider=" + solrServerProvider +
+            '}';
+    }
+
+    @Override
+    public void close() {
         try {
             solrServerProvider.close();
             SolrServerRegistry.unregister(solrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
@@ -86,13 +90,5 @@ public class OakSolrServer extends SolrServer {
         } catch (IOException e) {
             // do nothing
         }
-    }
-
-    @Override
-    public String toString() {
-        return "OakSolrServer{" +
-            "solrServerConfiguration=" + solrServerConfiguration +
-            ", solrServerProvider=" + solrServerProvider +
-            '}';
     }
 }

@@ -23,7 +23,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrServer;
 
 /**
  * A registry for {@link org.apache.solr.client.solrj.SolrServer}s
@@ -70,7 +69,7 @@ public class SolrServerRegistry {
                 synchronized (indexingServerRegistry) {
                     SolrClient removed = indexingServerRegistry.remove(configuration.toString());
                     try {
-                        removed.shutdown();
+                        removed.close();
                     } catch (Exception e) {
                         // ignore
                     }
@@ -80,7 +79,7 @@ public class SolrServerRegistry {
                 synchronized (searchingServerRegistry) {
                     SolrClient removed = searchingServerRegistry.remove(configuration.toString());
                     try {
-                        removed.shutdown();
+                        removed.close();
                     } catch (Exception e) {
                         // ignore
                     }

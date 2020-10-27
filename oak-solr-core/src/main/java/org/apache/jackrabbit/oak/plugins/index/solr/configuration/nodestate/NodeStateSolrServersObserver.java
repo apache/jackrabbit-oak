@@ -45,7 +45,7 @@ public class NodeStateSolrServersObserver extends DiffObserver {
         log.debug("shutting down persisted Solr server");
         NodeStateSolrServerConfigurationProvider nodeStateSolrServerConfigurationProvider = new NodeStateSolrServerConfigurationProvider(nodeState);
         OakSolrServer oakSolrServer = new OakSolrServer(nodeStateSolrServerConfigurationProvider);
-        oakSolrServer.shutdown();
+        oakSolrServer.close();
         log.info("persisted Solr server has been shutdown");
     }
 

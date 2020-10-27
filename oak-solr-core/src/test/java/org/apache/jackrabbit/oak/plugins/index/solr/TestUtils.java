@@ -22,10 +22,8 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.solr.client.solrj.SolrClient;
 
@@ -40,16 +38,7 @@ public class TestUtils
     static final String SOLR_HOME_PATH = "/solr";
 
     public static SolrClient createSolrServer() {
-        try {
-            File file = new File(TestUtils.class.getResource(SOLR_HOME_PATH).toURI());
-            EmbeddedSolrServerConfiguration configuration = new EmbeddedSolrServerConfiguration(
-                    file.getAbsolutePath(), "oak");
-            EmbeddedSolrServerProvider provider = new EmbeddedSolrServerProvider(configuration);
-
-            return provider.getSolrServer();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        throw new UnsupportedOperationException();
     }
 
     public static void cleanDataDir() {

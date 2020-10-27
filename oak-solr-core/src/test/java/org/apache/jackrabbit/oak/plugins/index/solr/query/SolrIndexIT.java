@@ -92,6 +92,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void sql2FullText() throws Exception {
         test("sql2-fulltext.txt");
     }
@@ -184,6 +185,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testNativeSolrQuery() throws Exception {
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'name:(Hello OR World)')";
 
@@ -203,6 +205,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testNativeSolrFunctionQuery() throws Exception {
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'path_child:\\/test  _val_:\"recip(rord(name),1,2,3)\"')";
 
@@ -222,6 +225,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testNativeSolrLocalParams() throws Exception {
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', '_query_:\"{!dismax qf=catch_all q.op=OR}hello world\"')";
 
@@ -241,6 +245,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testNativeMLTQuery() throws Exception {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
@@ -263,6 +268,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testNativeMLTQueryWithStream() throws Exception {
         // TODO: OAK-1819
         assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
@@ -285,6 +291,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testRepSimilarXPathQuery() throws Exception {
         String query = "//element(*, nt:base)[rep:similar(., '/test/a')]";
         Tree test = root.getTree("/").addChild("test");
@@ -318,11 +325,13 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void nativeSolr() throws Exception {
         test("native_solr.txt");
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testTokenizeCN() throws Exception {
         Tree t = root.getTree("/").addChild("containsCN");
         Tree one = t.addChild("one");
@@ -332,6 +341,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testCompositeRepExcerpt() throws Exception {
         String sqlQuery = "select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a " +
                 "where (contains([jcr:content/*], 'square') or contains([jcr:content/jcr:title], 'square')" +
@@ -355,6 +365,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void contains() throws Exception {
         String h = "Hello" + System.currentTimeMillis();
         String w = "World" + System.currentTimeMillis();
@@ -396,6 +407,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void multiPhraseQuery() throws Exception {
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("dc:format", "type:application/pdf");
@@ -408,6 +420,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testFulltextOperators() throws Exception {
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("text", "the lazy fox jumped over the brown dog");
@@ -432,6 +445,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void containsPath() throws Exception {
 
         Tree test = root.getTree("/").addChild("test");
@@ -443,6 +457,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void containsPathNum() throws Exception {
 
         Tree test = root.getTree("/").addChild("test");
@@ -458,6 +473,7 @@ public class SolrIndexIT extends AbstractQueryTest {
      * OAK-1208 property existence constraints break queries
      */
     @Test
+    @Ignore("OAK-9261")
     public void testOAK1208() throws Exception {
         Tree t = root.getTree("/").addChild("containsWithMultipleOr");
         Tree one = t.addChild("one");
@@ -525,6 +541,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testOrderByJcrScore() throws Exception {
         Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
         assertTrue(index.exists());
@@ -552,6 +569,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testOrderByMVProperty() throws Exception {
         Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
         assertTrue(index.exists());
@@ -617,6 +635,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testCollapsedJcrContentNodeDescandants() throws Exception {
 
         Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
@@ -647,6 +666,7 @@ public class SolrIndexIT extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-9261")
     public void testNotNullAndNative() throws Exception {
         Tree index = root.getTree("/oak:index/" + TEST_INDEX_NAME);
         assertTrue(index.exists());
