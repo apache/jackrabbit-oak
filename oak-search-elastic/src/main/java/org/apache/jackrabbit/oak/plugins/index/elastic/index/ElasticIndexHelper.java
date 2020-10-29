@@ -34,6 +34,9 @@ import java.util.stream.Collectors;
  */
 class ElasticIndexHelper {
 
+    private static final String ES_DENSE_VECTOR_TYPE = "dense_vector";
+    private static final String ES_DENSE_VECTOR_DIM_PROP = "dims";
+
     public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
         final CreateIndexRequest request = new CreateIndexRequest(remoteIndexName);
 
@@ -152,6 +155,8 @@ class ElasticIndexHelper {
 
             Type<?> type = null;
             boolean useInSpellCheck = false;
+            boolean useInSimilarity = false;
+            int denseVectorSize = -1;
             for (PropertyDefinition pd : propertyDefinitions) {
                 type = Type.fromTag(pd.getType(), false);
                 if (pd.useInSpellcheck) {
@@ -159,6 +164,10 @@ class ElasticIndexHelper {
                 }
                 if (pd.useInSuggest) {
                     useInSuggest = true;
+                }
+                if (pd.useInSimilarity) {
+                    useInSimilarity = true;
+                    denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
                 }
             }
 
@@ -202,6 +211,13 @@ class ElasticIndexHelper {
                 }
             }
             mappingBuilder.endObject();
+
+            if (useInSimilarity) {
+                mappingBuilder.startObject(FieldNames.createSimilarityFieldName(name));
+                mappingBuilder.field("type", ES_DENSE_VECTOR_TYPE);
+                mappingBuilder.field(ES_DENSE_VECTOR_DIM_PROP, denseVectorSize);
+                mappingBuilder.endObject();
+            }
         }
 
         if (useInSuggest) {

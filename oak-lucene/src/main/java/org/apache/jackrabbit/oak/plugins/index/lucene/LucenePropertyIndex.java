@@ -776,7 +776,7 @@ public class LucenePropertyIndex extends FulltextIndex {
     }
 
     @Override
-    protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode) {
+    protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState root) {
         return getLuceneRequest(plan, augmentorFactory, null).toString();
     }
 
