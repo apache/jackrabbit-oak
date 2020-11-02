@@ -311,8 +311,8 @@ public class LastRevRecoveryAgent {
 
         for (NodeDocument doc : suspects) {
         	
-        	//Should skip previous documents
-        	if(!doc.getPath().isAbsolute()) {
+        	//Should skip previous/split documents
+        	if(doc.isSplitDocument()) {
         		continue;
         	}
         	
