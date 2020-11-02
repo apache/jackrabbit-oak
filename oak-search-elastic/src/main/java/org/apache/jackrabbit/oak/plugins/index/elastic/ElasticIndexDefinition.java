@@ -57,6 +57,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String PROP_INDEX_NAME_SEED = ":nameSeed";
 
     /**
+     * Hidden property to store similarity tags
+     */
+    public static final String SIMILARITY_TAGS = ":simTags";
+
+    /**
      * Node name under which various analyzers are configured
      */
     private static final String ANALYZERS = "analyzers";

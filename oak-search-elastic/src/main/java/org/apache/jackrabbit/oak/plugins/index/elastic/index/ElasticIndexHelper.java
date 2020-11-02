@@ -255,6 +255,11 @@ class ElasticIndexHelper {
             }
             mappingBuilder.endObject();
         }
+
+        mappingBuilder.startObject(ElasticIndexDefinition.SIMILARITY_TAGS)
+                .field("type", "text")
+                .field("analyzer", "oak_analyzer")
+                .endObject();
     }
 
     // we need to check if in the defined rules there are properties with the same name and different types

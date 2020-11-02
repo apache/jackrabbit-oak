@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import com.google.common.collect.Iterables;
@@ -385,6 +384,11 @@ public class IndexDefinitionBuilder {
         public PropertyRule useInSimilarity(boolean rerank) {
             propTree.setProperty(FulltextIndexConstants.PROP_USE_IN_SIMILARITY, true);
             propTree.setProperty(FulltextIndexConstants.PROP_SIMILARITY_RERANK, rerank);
+            return this;
+        }
+
+        public PropertyRule similarityTags(boolean rerank) {
+            propTree.setProperty(FulltextIndexConstants.PROP_SIMILARITY_TAGS, rerank);
             return this;
         }
 
