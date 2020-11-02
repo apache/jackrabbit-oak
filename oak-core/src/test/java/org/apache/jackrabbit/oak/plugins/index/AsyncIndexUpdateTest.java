@@ -110,17 +110,8 @@ public class AsyncIndexUpdateTest {
     private MetricStatisticsProvider statsProvider =
             new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(),executor);
 
-    private Properties systemProperties;
-
-    @Before
-    public void setup(){
-        systemProperties =(Properties) System.getProperties().clone();
-        System.setProperty("oak.async.traverseNodesIfLaneNotPresentInIndex", "true");
-    }
-
     @After
     public void shutDown(){
-        System.setProperties(systemProperties);
         statsProvider.close();
         new ExecutorCloser(executor).close();
     }

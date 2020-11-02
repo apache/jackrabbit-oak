@@ -198,10 +198,10 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
 
     /**
      * Setting this to true lead to lane execution (node traversal) even if there
-     * is no index assigned to this lane under /oak:index.
+     * is no index assigned to this lane under /oak:index. (Default value is true).
      */
     private final boolean traverseNodesIfLaneNotPresentInIndex
-            = Boolean.getBoolean("oak.async.traverseNodesIfLaneNotPresentInIndex");
+            = !Boolean.getBoolean("oak.async.traverseNodesIfLaneNotPresentInIndex");
 
     /**
      * The time in minutes since the epoch when the last checkpoint cleanup ran.
