@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import com.google.common.collect.Iterables;
@@ -52,6 +51,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEPRECATED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_TAGS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -387,6 +387,11 @@ public class IndexDefinitionBuilder {
             return this;
         }
 
+        public PropertyRule similarityTags(boolean rerank) {
+            propTree.setProperty(FulltextIndexConstants.PROP_SIMILARITY_TAGS, rerank);
+            return this;
+        }
+
         public PropertyRule type(String type) {
             //This would throw an IAE if type is invalid
             PropertyType.valueFromName(type);
@@ -457,6 +462,11 @@ public class IndexDefinitionBuilder {
 
         public PropertyRule boost(float boost) {
             propTree.setProperty(FIELD_BOOST, (double) boost, Type.DOUBLE);
+            return this;
+        }
+
+        public PropertyRule similaritySearchDenseVectorSize(int size) {
+            propTree.setProperty(PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE, size);
             return this;
         }
 

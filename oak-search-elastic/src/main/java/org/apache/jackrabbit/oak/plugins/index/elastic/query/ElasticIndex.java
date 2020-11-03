@@ -96,8 +96,8 @@ class ElasticIndex extends FulltextIndex {
     }
 
     @Override
-    protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode) {
-        return Strings.toString(new ElasticRequestHandler(plan, getPlanResult(plan)).baseQuery());
+    protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
+        return Strings.toString(new ElasticRequestHandler(plan, getPlanResult(plan), rootState).baseQuery());
     }
 
     @Override
@@ -105,7 +105,7 @@ class ElasticIndex extends FulltextIndex {
         final Filter filter = plan.getFilter();
         final FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
 
-        final ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult);
+        final ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState);
         final ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
 
         final Iterator<FulltextResultRow> itr;

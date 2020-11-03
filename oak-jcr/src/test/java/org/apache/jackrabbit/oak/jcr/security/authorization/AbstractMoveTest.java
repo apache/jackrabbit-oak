@@ -138,6 +138,31 @@ public abstract class AbstractMoveTest extends AbstractEvaluationTest {
     }
 
     @Test
+    public void testMoveMissingNtManagement() throws Exception {
+        // not granting jcr:nodeTypeManagement
+        allow(path, privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_REMOVE_CHILD_NODES,
+                Privilege.JCR_REMOVE_NODE}));
+        try {
+            move(childNPath, destPath);
+            fail("Move requires jcr:nodeTypeManagement privilege at destination.");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+    }
+
+    @Test
+    public void testMoveMissingPrivilegesInSubtree() throws Exception {
+        // grant privileges required to move 'childNPath' to 'destPath'
+        allow(path, privilegesFromName(PrivilegeConstants.REP_WRITE));
+        // revoke privileges such that only 'childNPath' can be removed and added
+        deny(childNPath, modifyChildCollection);
+        deny(nodePath3, privilegesFromNames(new String[] {Privilege.JCR_REMOVE_NODE}));
+        move(childNPath, destPath);
+    }
+
+    @Test
     public void testMissingJcrAddChildNodesAtDestParent() throws Exception {
         allow(path, privilegesFromNames(new String[] {
                 Privilege.JCR_ADD_CHILD_NODES,

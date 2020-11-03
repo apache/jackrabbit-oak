@@ -172,15 +172,19 @@ class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
     @Override
     protected boolean indexSimilarityTag(ElasticDocument doc, PropertyState property) {
-        // TODO : not implemented
+        String val = property.getValue(Type.STRING);
+        if (val.length() > 0) {
+            doc.addSimilarityTag(val);
+            return true;
+        }
         return false;
     }
 
     @Override
     protected void indexSimilarityBinaries(ElasticDocument doc, PropertyDefinition pd, Blob blob) throws IOException {
-        // TODO : not implemented
         // see https://www.elastic.co/blog/text-similarity-search-with-vectors-in-elasticsearch
         // see https://www.elastic.co/guide/en/elasticsearch/reference/current/dense-vector.html
+        doc.addSimilarityField(pd.name, blob);
     }
 
     @Override

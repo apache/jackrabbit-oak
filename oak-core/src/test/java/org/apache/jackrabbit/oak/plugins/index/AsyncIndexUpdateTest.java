@@ -41,8 +41,10 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -94,6 +96,7 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import ch.qos.logback.classic.Level;
@@ -107,8 +110,17 @@ public class AsyncIndexUpdateTest {
     private MetricStatisticsProvider statsProvider =
             new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(),executor);
 
+    private Properties systemProperties;
+
+    @Before
+    public void setup(){
+        systemProperties =(Properties) System.getProperties().clone();
+        System.setProperty("oak.async.traverseNodesIfLaneNotPresentInIndex", "true");
+    }
+
     @After
     public void shutDown(){
+        System.setProperties(systemProperties);
         statsProvider.close();
         new ExecutorCloser(executor).close();
     }
@@ -503,7 +515,6 @@ public class AsyncIndexUpdateTest {
                 checkpoints.size() == 1);
         assertEquals(store.getRoot().getChildNode(ASYNC)
                 .getString("async"), checkpoints.iterator().next());
-
         async.run();
         assertEquals("Expecting no checkpoint changes",
                 checkpoints, store.listCheckpoints());

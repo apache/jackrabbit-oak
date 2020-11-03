@@ -63,11 +63,11 @@ public class RepositoryCallback implements Callback {
         this.securityProvider = securityProvider;
     }
 
+    @Nullable
     public LoginModuleMonitor getLoginModuleMonitor() {
         return loginModuleMonitor;
     }
 
-    @Nullable
     public void setLoginModuleMonitor(LoginModuleMonitor loginModuleMonitor) {
         this.loginModuleMonitor = loginModuleMonitor;
     }

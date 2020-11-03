@@ -121,9 +121,6 @@ abstract class AstElement {
     }
     
     protected PropertyValue convertValueToType(PropertyValue v, PropertyValue targetType) {
-        if (targetType.count() == 0) {
-            return v;
-        }
         int type = targetType.getType().tag();
         if (v.getType().tag() == type) {
             return v;
