@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.UUID;
 
 class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocument> {
 
@@ -61,7 +62,10 @@ class ElasticIndexEditorContext extends FulltextIndexEditorContext<ElasticDocume
         // Now, that index definition _might_ have been migrated by super call, it would be ok to
         // get writer and provision index settings and mappings
         try {
-            getWriter().provisionIndex();
+            long seed = UUID.randomUUID().getMostSignificantBits();
+            // merge gets called on node store later in the indexing flow
+            definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
+            getWriter().provisionIndex(seed);
         } catch (IOException e) {
             throw new IllegalStateException("Unable to provision index", e);
         }

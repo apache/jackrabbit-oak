@@ -41,7 +41,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
         return new WhiteboardUserAuthenticationFactory(defaultFactory) {
             @Override
             protected List<UserAuthenticationFactory> getServices() {
-                List<UserAuthenticationFactory> factories = new ArrayList<UserAuthenticationFactory>(userIds.length);
+                List<UserAuthenticationFactory> factories = new ArrayList<>(userIds.length);
                 for (String uid : userIds) {
                     factories.add(new TestUserAuthenticationFactory(uid));
                 }
@@ -62,7 +62,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
     }
 
     @Test
-    public void testSingleService() throws Exception {
+    public void testSingleService() {
         WhiteboardUserAuthenticationFactory factory = createFactory(null, "test");
 
         assertNotNull(factory.getAuthentication(getUserConfiguration(), root, "test"));
@@ -70,7 +70,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
     }
 
     @Test
-    public void testMultipleService() throws Exception {
+    public void testMultipleService() {
         WhiteboardUserAuthenticationFactory factory = createFactory(null, "test", "test2");
 
         assertNotNull(factory.getAuthentication(getUserConfiguration(), root, "test"));
@@ -79,7 +79,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
     }
 
     @Test
-    public void testDefault() throws Exception {
+    public void testDefault() {
         WhiteboardUserAuthenticationFactory factory = createFactory(new TestUserAuthenticationFactory("abc"));
 
         assertNotNull(factory.getAuthentication(getUserConfiguration(), root, "abc"));
@@ -89,7 +89,7 @@ public class WhiteboardUserAuthenticationFactoryTest {
     }
 
     @Test
-    public void testMultipleServiceAndDefault() throws Exception {
+    public void testMultipleServiceAndDefault() {
         WhiteboardUserAuthenticationFactory factory = createFactory(new TestUserAuthenticationFactory("abc"), "test", "test2");
 
         assertNull(factory.getAuthentication(getUserConfiguration(), root, "abc"));

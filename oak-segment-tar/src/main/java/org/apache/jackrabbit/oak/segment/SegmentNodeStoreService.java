@@ -38,13 +38,12 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.SIZE
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.DEFAULT_MAX_FILE_SIZE;
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.ONLY_STANDALONE_TARGET;
 
-import java.io.File;
-import java.io.IOException;
-
 import com.google.common.io.Closer;
+
 import org.apache.jackrabbit.oak.osgi.OsgiUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.persistentcache.PersistentCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -63,6 +62,9 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * An OSGi wrapper for the segment node store.
@@ -252,6 +254,12 @@ public class SegmentNodeStoreService {
         boolean splitPersistence() default false;
 
         @AttributeDefinition(
+                name = "Cache persistence",
+                description = "Boolean value indicating that the persisted cache should be used for the custom segment store"
+        )
+        boolean cachePersistence() default false;
+
+        @AttributeDefinition(
             name = "Backup directory",
             description = "Directory (relative to current working directory) for storing repository backups. " +
                 "Defaults to 'repository.home/segmentstore-backup'."
@@ -295,6 +303,13 @@ public class SegmentNodeStoreService {
     )
     private volatile SegmentNodeStorePersistence segmentStore;
 
+    @Reference(
+        cardinality = ReferenceCardinality.OPTIONAL,
+        policy = ReferencePolicy.STATIC,
+        policyOption = ReferencePolicyOption.GREEDY
+    )
+    private volatile PersistentCache persistentCache;
+
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
@@ -303,7 +318,7 @@ public class SegmentNodeStoreService {
     @Activate
     public void activate(ComponentContext context, Configuration configuration) throws IOException {
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
-        registerSegmentStore(context, configuration, blobStore, segmentStore, statisticsProvider, closer, whiteboard, log);
+        registerSegmentStore(context, configuration, blobStore, segmentStore, persistentCache, statisticsProvider, closer, whiteboard, log);
     }
 
     private static SegmentNodeStore registerSegmentStore(
@@ -311,6 +326,7 @@ public class SegmentNodeStoreService {
         Configuration configuration,
         BlobStore blobStore,
         SegmentNodeStorePersistence segmentStore,
+        PersistentCache persistentCache,
         StatisticsProvider statisticsProvider,
         Closer closer,
         Whiteboard whiteboard,
@@ -489,6 +505,11 @@ public class SegmentNodeStoreService {
             }
 
             @Override
+            public boolean hasCachePersistence() {
+                return configuration.cachePersistence();
+            }
+
+            @Override
             public boolean registerDescriptors() {
                 return true;
             }
@@ -554,6 +575,11 @@ public class SegmentNodeStoreService {
             @Override
             public SegmentNodeStorePersistence getSegmentNodeStorePersistence() {
                 return segmentStore;
+            }
+
+            @Override
+            public PersistentCache getPersistentCache() {
+                return persistentCache;
             }
 
             @Override

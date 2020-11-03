@@ -342,6 +342,11 @@ public interface FulltextIndexConstants {
     int STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT = 1000;
 
     /**
+     * Property name to specify the size of vectors used for similarity search.
+     */
+    String PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE = "similaritySearchDenseVectorSize";
+
+    /**
      * Optional (index definition) property indicating max number of facets that will be retrieved
      * in query
      * Default is {@link IndexDefinition#DEFAULT_FACET_COUNT}

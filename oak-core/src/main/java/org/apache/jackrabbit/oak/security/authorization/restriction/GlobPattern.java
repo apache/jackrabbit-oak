@@ -42,8 +42,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <pre>
  * NodePath     |   Restriction   |   Matches
  * -----------------------------------------------------------------------------
- * /foo         |   null          |   matches /foo and all children of /foo
- * /foo         |   ""            |   matches /foo only
+ * /foo         |   null          |   matches /foo and all descendants of /foo
+ * /foo         |   ""            |   matches /foo only (no descendants, not even properties)
  * </pre>
  * </p>
  *
@@ -53,10 +53,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * NodePath = "/foo"
  * Restriction   |   Matches
  * -----------------------------------------------------------------------------
- * /cat          |   the node /foo/cat and all it's children
- * /cat/         |   the descendants of the node /foo/cat
- * cat           |   the node /foocat and all it's children
- * cat/          |   all descendants of the node /foocat
+ * /cat          |   '/foo/cat' and all it's descendants
+ * /cat/         |   all descendants of '/foo/cat'
+ * cat           |   '/foocat' and all it's descendants
+ * cat/          |   all descendants of '/foocat'
  * </pre>
  * </p>
  *
@@ -67,7 +67,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Restriction   |   Matches
  * -----------------------------------------------------------------------------
  * &#42;         |   foo, all siblings of foo and their descendants
- * /&#42;cat     |   all children of /foo whose path ends with "cat"
+ * /&#42;cat     |   all descendants of /foo whose path ends with "cat"
  * /&#42;/cat    |   all non-direct descendants of /foo named "cat"
  * /cat&#42;     |   all descendant path of /foo that have the direct foo-descendant segment starting with "cat"
  * &#42;cat      |   all siblings and descendants of foo that have a name ending with cat
@@ -175,14 +175,14 @@ final class GlobPattern implements RestrictionPattern {
     /**
      * Base for PathPattern and WildcardPattern
      */
-    private abstract class Pattern {
-        abstract boolean matches(@NotNull String toMatch);
+    private interface Pattern {
+        boolean matches(@NotNull String toMatch);
     }
 
     /**
      * Path pattern: The restriction is missing or doesn't contain any wildcard character.
      */
-    private final class PathPattern extends Pattern {
+    private final class PathPattern implements Pattern {
 
         private final String patternStr;
 
@@ -191,7 +191,7 @@ final class GlobPattern implements RestrictionPattern {
         }
 
         @Override
-        boolean matches(@NotNull String toMatch) {
+        public boolean matches(@NotNull String toMatch) {
             if (patternStr.isEmpty()) {
                 return path.equals(toMatch);
             } else {
@@ -205,7 +205,7 @@ final class GlobPattern implements RestrictionPattern {
     /**
      * Wildcard pattern: The specified restriction contains one or more wildcard character(s).
      */
-    private final class WildcardPattern extends Pattern {
+    private final class WildcardPattern implements Pattern {
 
         private final String patternEnd;
         private final char[] patternChars;
@@ -216,7 +216,7 @@ final class GlobPattern implements RestrictionPattern {
         }
 
         @Override
-        boolean matches(@NotNull String toMatch) {
+        public boolean matches(@NotNull String toMatch) {
             if (patternEnd != null && !toMatch.endsWith(patternEnd)) {
                 // shortcut: verify if end of pattern matches end of toMatch
                 return false;
@@ -276,10 +276,10 @@ final class GlobPattern implements RestrictionPattern {
                     }
                 }
 
-                // not yet reached end of patter nor string and not wildcard character.
+                // not yet reached end string and not wildcard character.
                 // the 2 strings don't match in case the characters at the current
                 // position are not the same.
-                if (pOff < pLength && sOff < sLength) {
+                if (sOff < sLength) {
                     if (pattern[pOff] != s[sOff]) {
                         return false;
                     }

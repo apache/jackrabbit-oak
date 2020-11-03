@@ -89,7 +89,7 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetValidators() {
-        List<? extends ValidatorProvider> validators = tc.getValidators(root.getContentSession().getWorkspaceName(), ImmutableSet.<Principal>of(), new MoveTracker());
+        List<? extends ValidatorProvider> validators = tc.getValidators(root.getContentSession().getWorkspaceName(), ImmutableSet.of(), new MoveTracker());
         assertNotNull(validators);
         assertEquals(1, validators.size());
         assertTrue(validators.get(0) instanceof TokenValidatorProvider);

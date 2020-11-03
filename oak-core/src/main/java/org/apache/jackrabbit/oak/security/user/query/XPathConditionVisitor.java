@@ -25,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * XPATH based condition visitor.
@@ -35,8 +36,8 @@ class XPathConditionVisitor implements ConditionVisitor {
     private final NamePathMapper namePathMapper;
     private final UserManager userMgr;
 
-    XPathConditionVisitor(StringBuilder statement, NamePathMapper namePathMapper,
-                          UserManager userMgr) {
+    XPathConditionVisitor(@NotNull StringBuilder statement, @NotNull NamePathMapper namePathMapper,
+                          @NotNull UserManager userMgr) {
         this.statement = statement;
         this.namePathMapper = namePathMapper;
         this.userMgr = userMgr;
@@ -44,7 +45,7 @@ class XPathConditionVisitor implements ConditionVisitor {
 
     //---------------------------------------------------< ConditionVisitor >---
     @Override
-    public void visit(Condition.Node condition) {
+    public void visit(@NotNull Condition.Node condition) {
         statement.append('(')
                 .append("jcr:like(@")
                 .append(QueryUtil.escapeForQuery(UserConstants.REP_AUTHORIZABLE_ID, namePathMapper))
@@ -65,25 +66,28 @@ class XPathConditionVisitor implements ConditionVisitor {
     }
 
     @Override
-    public void visit(Condition.Property condition) throws RepositoryException {
-        RelationOp relOp = condition.getOp();
-        if (relOp == RelationOp.EX) {
-            statement.append(QueryUtil.escapeForQuery(condition.getRelPath()));
-        } else if (relOp == RelationOp.LIKE) {
-            statement.append("jcr:like(")
-                    .append(QueryUtil.escapeForQuery(condition.getRelPath()))
-                    .append(",'")
-                    .append(QueryUtil.escapeForQuery(condition.getPattern()))
-                    .append("')");
-        } else {
-            statement.append(QueryUtil.escapeForQuery(condition.getRelPath()))
-                    .append(condition.getOp().getOp())
-                    .append(QueryUtil.format(condition.getValue()));
-        }
+    public void visit(@NotNull Condition.PropertyValue condition) throws RepositoryException {
+        statement.append(QueryUtil.escapeForQuery(condition.getRelPath()))
+                .append(condition.getOp().getOp())
+                .append(QueryUtil.format(condition.getValue()));
     }
 
     @Override
-    public void visit(Condition.Contains condition) {
+    public void visit(Condition.@NotNull PropertyLike condition) {
+        statement.append("jcr:like(")
+                .append(QueryUtil.escapeForQuery(condition.getRelPath()))
+                .append(",'")
+                .append(QueryUtil.escapeForQuery(condition.getPattern()))
+                .append("')");
+    }
+
+    @Override
+    public void visit(Condition.@NotNull PropertyExists condition) {
+        statement.append(QueryUtil.escapeForQuery(condition.getRelPath()));
+    }
+
+    @Override
+    public void visit(@NotNull Condition.Contains condition) {
         statement.append("jcr:contains(")
                 .append(QueryUtil.escapeForQuery(condition.getRelPath()))
                 .append(",'")
@@ -92,7 +96,7 @@ class XPathConditionVisitor implements ConditionVisitor {
     }
 
     @Override
-    public void visit(Condition.Impersonation condition) {
+    public void visit(@NotNull Condition.Impersonation condition) {
         String principalName = condition.getName();
         boolean isAdmin = false;
         try {
@@ -117,14 +121,14 @@ class XPathConditionVisitor implements ConditionVisitor {
     }
 
     @Override
-    public void visit(Condition.Not condition) throws RepositoryException {
+    public void visit(@NotNull Condition.Not condition) throws RepositoryException {
         statement.append("not(");
         condition.getCondition().accept(this);
         statement.append(')');
     }
 
     @Override
-    public void visit(Condition.And condition) throws RepositoryException {
+    public void visit(@NotNull Condition.And condition) throws RepositoryException {
         int count = 0;
         for (Condition c : condition) {
             statement.append(count++ > 0 ? " and " : "");
@@ -133,7 +137,7 @@ class XPathConditionVisitor implements ConditionVisitor {
     }
 
     @Override
-    public void visit(Condition.Or condition) throws RepositoryException {
+    public void visit(@NotNull Condition.Or condition) throws RepositoryException {
         int pos = statement.length();
 
         int count = 0;

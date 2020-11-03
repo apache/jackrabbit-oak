@@ -261,39 +261,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
             if (Strings.isNullOrEmpty(memberId)) {
                 throw new ConstraintViolationException("MemberId must not be null or empty.");
             }
-            if (getID().equals(memberId)) {
-                String msg = "Attempt to add or remove a group as member of itself (" + getID() + ").";
-                log.debug(msg);
-                continue;
+            if (isValidMemberId(memberId, importBehavior)) {
+                // memberId can be processed -> remove from failedIds and generate contentID
+                failedIds.remove(memberId);
+                updateMap.put(mp.getContentID(memberId), memberId);
             }
-
-            if (ImportBehavior.BESTEFFORT != importBehavior) {
-                Authorizable member = getUserManager().getAuthorizable(memberId);
-                String msg = null;
-                if (member == null) {
-                    msg = "Attempt to add or remove a non-existing member '" + memberId + "' with ImportBehavior = " + ImportBehavior.nameFromValue(importBehavior);
-                } else if (member.isGroup()) {
-                    if (((AuthorizableImpl) member).isEveryone()) {
-                        log.debug("Attempt to add everyone group as member.");
-                        continue;
-                    } else if (isCyclicMembership((Group) member)) {
-                        msg = "Cyclic group membership detected for group " + getID() + " and member " + member.getID();
-                    }
-                }
-                if (msg != null) {
-                    if (ImportBehavior.ABORT == importBehavior) {
-                        throw new ConstraintViolationException(msg);
-                    } else {
-                        // ImportBehavior.IGNORE is default in UserUtil.getImportBehavior
-                        log.debug(msg);
-                        continue;
-                    }
-                }
-            }
-
-            // memberId can be processed -> remove from failedIds and generate contentID
-            failedIds.remove(memberId);
-            updateMap.put(mp.getContentID(memberId), memberId);
         }
 
         Set<String> processedIds = Sets.newHashSet(updateMap.values());
@@ -310,6 +282,38 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
         getUserManager().onGroupUpdate(this, isRemove, false, processedIds, failedIds);
         return failedIds;
+    }
+
+    private boolean isValidMemberId(@NotNull String memberId, int importBehavior) throws RepositoryException {
+        if (getID().equals(memberId)) {
+            log.debug("Attempt to add or remove a group as member of itself ({}).", getID());
+            return false;
+        }
+
+        if (ImportBehavior.BESTEFFORT != importBehavior) {
+            Authorizable member = getUserManager().getAuthorizable(memberId);
+            String msg = null;
+            if (member == null) {
+                msg = "Attempt to add or remove a non-existing member '" + memberId + "' with ImportBehavior = " + ImportBehavior.nameFromValue(importBehavior);
+            } else if (member.isGroup()) {
+                if (((AuthorizableImpl) member).isEveryone()) {
+                    log.debug("Attempt to add everyone group as member.");
+                    return false;
+                } else if (isCyclicMembership((Group) member)) {
+                    msg = "Cyclic group membership detected for group " + getID() + " and member " + member.getID();
+                }
+            }
+            if (msg != null) {
+                if (ImportBehavior.ABORT == importBehavior) {
+                    throw new ConstraintViolationException(msg);
+                } else {
+                    // ImportBehavior.IGNORE is default in UserUtil.getImportBehavior
+                    log.debug(msg);
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private boolean isCyclicMembership(@NotNull Group member) throws RepositoryException {

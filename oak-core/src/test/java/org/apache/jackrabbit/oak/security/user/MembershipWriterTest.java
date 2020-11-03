@@ -60,7 +60,7 @@ public class MembershipWriterTest extends MembershipBaseTest {
         writer.setMembershipSizeThreshold(SIZE_TH);
     }
 
-    private static void assertContentStructure(@NotNull Tree groupTree, int memberCnt) {
+    private static void assertContentStructure(@NotNull Tree groupTree) {
         assertEquals(
                 "rep:members property must have correct number of references",
                 SIZE_TH,
@@ -81,7 +81,7 @@ public class MembershipWriterTest extends MembershipBaseTest {
 
         assertEquals(
                 "rep:memberList must have correct number of child nodes.",
-                (memberCnt / SIZE_TH) - 1,
+                (MembershipBaseTest.NUM_USERS / SIZE_TH) - 1,
                 membersList.getChildrenCount(Long.MAX_VALUE)
         );
     }
@@ -95,18 +95,18 @@ public class MembershipWriterTest extends MembershipBaseTest {
         root.commit();
 
         // check storage structure
-        assertContentStructure(getTree(grp), NUM_USERS);
+        assertContentStructure(getTree(grp));
     }
 
     @Test
     public void testAddMembersExceedThreshold() throws Exception {
         Group grp = createGroup();
-        Map idMap = createIdMap(0, NUM_USERS);
+        Map<String, String> idMap = createIdMap(0, NUM_USERS);
         writer.addMembers(getTree(grp), idMap);
         root.commit();
 
         // check storage structure
-        assertContentStructure(getTree(grp), NUM_USERS);
+        assertContentStructure(getTree(grp));
     }
 
     @Test
@@ -179,7 +179,7 @@ public class MembershipWriterTest extends MembershipBaseTest {
         List<String> memberPaths = createMembers(grp, NUM_USERS);
         root.commit();
 
-        Map<String, String> m = new HashMap();
+        Map<String, String> m = new HashMap<>();
         for (String path : memberPaths) {
             Tree memberTree = root.getTree(path);
             String memberId = TreeUtil.getString(memberTree, REP_AUTHORIZABLE_ID);

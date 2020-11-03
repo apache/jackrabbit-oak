@@ -28,7 +28,10 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefiniti
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -98,12 +101,14 @@ public class ElasticSpellcheckTest {
                 elasticRule.getElasticConnectionFromString();
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(connection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(connection);
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(connection,
+                new ElasticMetricHandler(StatisticsProvider.NOOP));
 
         NodeStore nodeStore = new MemoryNodeStore(INITIAL_CONTENT);
         Oak oak = new Oak(nodeStore)
                 .with(editorProvider)
-                .with(indexProvider);
+                .with((Observer) indexProvider)
+                .with((QueryIndexProvider) indexProvider);
 
         Jcr jcr = new Jcr(oak);
         Repository repository = jcr.createRepository();

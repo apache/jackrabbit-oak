@@ -21,6 +21,27 @@ of Oak to simply run on data written by an older version of Oak. In some cases
 additional manual steps are needed or recommended to ensure performance and
 reduce downtime of a system to a minimum.
 
+## Upgrade to OAK-9176
+
+OAK-9176 introduces a fix to the sweep functionality. The original sweep
+prior to this fix had cases where it could missing setting the branch commit
+("_bc") properties appropriately. OAK-9176 fixes this for any new sweep.
+However, documents that went through a sweep prior to OAK-9176 might have
+missing "_bc" entries. In order to resolve this, OAK-9176 introduces 
+a one-time sweep2.
+
+Sweep2 automatically runs at startup once Oak is upgraded and detects
+whether or not it needs to run. If it needs to run, it will do so
+in the background, occupying only 50% of CPU max - however, it has to
+travers the repository and does therefore take some time. 
+When sweep2 finished (or determined it is not necessary), it stores 
+this information in the settings collection. Subsequent startups
+will therefore from then on skip sweep2.
+
+If sweep2 should be disabled explicitly for one reason or another,
+eg if it causes problems, it can be done so via a System Property:
+-Doak.documentMK.disableSweep2=true.
+
 ## <a name="1.8"></a>Upgrade to 1.8
 
 Oak 1.8 introduced some changes in the DocumentNodeStore that require an

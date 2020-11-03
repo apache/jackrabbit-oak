@@ -59,6 +59,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -87,6 +89,19 @@ public class IndexImporterTest {
 
     private NodeStore store = new MemoryNodeStore();
     private IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    private Properties systemProperties;
+
+    @Before
+    public void setup(){
+        systemProperties =(Properties) System.getProperties().clone();
+        System.setProperty("oak.async.traverseNodesIfLaneNotPresentInIndex", "true");
+    }
+
+    @After
+    public void shutDown(){
+        System.setProperties(systemProperties);
+    }
+
 
     @Test(expected = IllegalArgumentException.class)
     public void importIndex_NoMeta() throws Exception{

@@ -100,7 +100,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
             validateAuthorizable(parentAfter, UserUtil.getType(after.getValue(Type.STRING)));
         }
 
-        if (isUser(parentBefore) && REP_PASSWORD.equals(name) && PasswordUtil.isPlainTextPassword(after.getValue(Type.STRING))) {
+        boolean isUser = authorizableType == AuthorizableType.USER;
+        if (isUser && REP_PASSWORD.equals(name) && PasswordUtil.isPlainTextPassword(after.getValue(Type.STRING))) {
             String msg = "Password may not be plain text.";
             throw constraintViolation(24, msg);
         }
@@ -200,8 +201,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
         return id != null && uuid.equals(provider.getMembershipProvider().getContentID(id));
     }
 
-    private static boolean isUser(@Nullable Tree tree) {
-        return tree != null && NT_REP_USER.equals(TreeUtil.getPrimaryTypeName(tree));
+    private static boolean isUser(@NotNull Tree tree) {
+        return NT_REP_USER.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     /**

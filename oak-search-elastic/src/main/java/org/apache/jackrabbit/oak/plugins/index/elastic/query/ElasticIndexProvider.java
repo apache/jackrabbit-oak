@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -25,16 +28,21 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.List;
 
-public class ElasticIndexProvider implements QueryIndexProvider {
-    private final ElasticConnection elasticConnection;
+public class ElasticIndexProvider implements QueryIndexProvider, Observer {
 
-    public ElasticIndexProvider(ElasticConnection elasticConnection) {
-        this.elasticConnection = elasticConnection;
+    private final ElasticIndexTracker elasticIndexTracker;
+
+    public ElasticIndexProvider(ElasticConnection elasticConnection, ElasticMetricHandler elasticMetricHandler) {
+        this.elasticIndexTracker = new ElasticIndexTracker(elasticConnection, elasticMetricHandler);
     }
 
     @Override
     public @NotNull List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return Collections.singletonList(new ElasticIndex(elasticConnection, nodeState));
+        return Collections.singletonList(new ElasticIndex(elasticIndexTracker));
     }
 
+    @Override
+    public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+        elasticIndexTracker.update(root);
+    }
 }

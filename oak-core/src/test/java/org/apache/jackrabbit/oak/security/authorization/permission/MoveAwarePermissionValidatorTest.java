@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -49,7 +50,12 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -255,6 +261,26 @@ public class MoveAwarePermissionValidatorTest extends AbstractSecurityTest {
             verify(pp, times(1)).isGranted(t.getChild("dest"), null, Permissions.ADD_NODE|Permissions.NODE_TYPE_MANAGEMENT);
             assertTrue(e.isAccessViolation());
             assertEquals(0, e.getCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testDiffThrowsException() throws Exception {
+        MoveTracker mv = new MoveTracker();
+        mv.addMove("/src", "/dest");
+        mv.addMove("/dest", "/otherPath");
+
+        CommitFailedException exp = new CommitFailedException("error", 0, CommitFailedException.OAK);
+
+        MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), mv));
+        doReturn(maValidator).when(maValidator).createValidator(any(Tree.class), any(Tree.class), eq(TreePermission.ALL), eq(maValidator));
+        doThrow(exp).when(maValidator).enter(any(NodeState.class), any(NodeState.class));
+
+        try {
+            maValidator.childNodeAdded("dest", mock(NodeState.class));
+        } catch (CommitFailedException e){
+            assertSame(exp, e);
             throw e;
         }
     }

@@ -92,6 +92,11 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
         return adminUser.getPrincipal();
     }
 
+    @NotNull
+    static Subject createSubject(@NotNull Principal... principals) {
+        return new Subject(true, ImmutableSet.copyOf(principals), ImmutableSet.of(), ImmutableSet.of());
+    }
+
     @Test
     public void testGetImpersonators() throws Exception {
         assertFalse(impersonation.getImpersonators().hasNext());
@@ -116,12 +121,7 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
 
     @Test
     public void testGrantAdminPrincipal() throws Exception {
-        assertFalse(impersonation.grantImpersonation(new AdminPrincipal() {
-            @Override
-            public String getName() {
-                return "name";
-            }
-        }));
+        assertFalse(impersonation.grantImpersonation((AdminPrincipal) () -> "name"));
     }
 
     @Test
@@ -205,6 +205,11 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testAllowsAdminPrincipal3() throws Exception {
+        assertTrue(impersonation.allows(createSubject(new PrincipalImpl(getAdminPrincipal().getName()))));
+    }
+
+    @Test
     public void testAllowsSystemPrincipal() {
         assertFalse(impersonation.allows(createSubject(SystemPrincipal.INSTANCE)));
     }
@@ -212,10 +217,5 @@ public class ImpersonationImplEmptyTest extends AbstractSecurityTest {
     @Test
     public void testAllowsNonExistingPrincipal() {
         assertFalse(impersonation.allows(createSubject(new PrincipalImpl("nonExisting"))));
-    }
-
-    @NotNull
-    private static Subject createSubject(@NotNull Principal... principals) {
-        return new Subject(true, ImmutableSet.copyOf(principals), ImmutableSet.of(), ImmutableSet.of());
     }
 }

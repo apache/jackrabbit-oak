@@ -160,7 +160,7 @@ public class UtilTest extends AbstractSecurityTest {
 
     private final class TestAce extends ACE {
 
-        public TestAce(boolean isAllow) throws AccessControlException {
+        TestAce(boolean isAllow) throws AccessControlException {
             super(EveryonePrincipal.getInstance(), bitsProvider.getBits(PrivilegeConstants.JCR_READ), isAllow, null, NamePathMapper.DEFAULT);
         }
 

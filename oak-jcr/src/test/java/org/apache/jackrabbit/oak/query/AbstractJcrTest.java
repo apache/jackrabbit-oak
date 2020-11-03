@@ -50,6 +50,7 @@ public abstract class AbstractJcrTest {
         anonymousSession.refresh(true);
         anonymousSession.save();
         qm = anonymousSession.getWorkspace().getQueryManager();
+        initialize();
     }
 
     @After
@@ -60,4 +61,8 @@ public abstract class AbstractJcrTest {
     }
 
     abstract protected Repository createJcrRepository() throws RepositoryException;
+    /*
+        Use this method to initialize variables/execute something after repository creation
+     */
+    protected void initialize(){ }
 }

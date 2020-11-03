@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.StrictPathRestriction;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.TestRepository;
 import org.apache.jackrabbit.oak.plugins.index.TestRepositoryBuilder;
@@ -57,9 +56,7 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
 
         resultCountingIndexProvider = new ResultCountingIndexProvider(indexProvider);
         queryEngineSettings = new QueryEngineSettings();
-        queryEngineSettings.setStrictPathRestriction(StrictPathRestriction.ENABLE.name());
         optionalEditorProvider = new TestUtil.OptionalEditorProvider();
-
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
 

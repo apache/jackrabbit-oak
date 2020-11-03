@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -27,26 +30,36 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
 
 class ElasticDocument {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocument.class);
 
     private final String path;
-    private final List<String> fulltext;
-    private final List<String> suggest;
+    private final Set<String> fulltext;
+    private final Set<String> suggest;
     private final List<String> notNullProps;
     private final List<String> nullProps;
     private final Map<String, Object> properties;
+    private final Map<String, Object> similarityFields;
+    private final Map<String, Map<String, Double>> dynamicBoostFields;
+    private final Set<String> similarityTags;
 
     ElasticDocument(String path) {
         this.path = path;
-        this.fulltext = new ArrayList<>();
-        this.suggest = new ArrayList<>();
+        this.fulltext = new LinkedHashSet<>();
+        this.suggest = new LinkedHashSet<>();
         this.notNullProps = new ArrayList<>();
         this.nullProps = new ArrayList<>();
         this.properties = new HashMap<>();
+        this.similarityFields = new HashMap<>();
+        this.dynamicBoostFields = new HashMap<>();
+        this.similarityTags = new LinkedHashSet<>();
     }
 
     void addFulltext(String value) {
@@ -77,12 +90,26 @@ class ElasticDocument {
         properties.put(fieldName, value);
     }
 
+    void addSimilarityField(String name, Blob value) throws IOException{
+        byte[] bytes = new BlobByteSource(value).read();
+        similarityFields.put(FieldNames.createSimilarityFieldName(name), toDoubles(bytes));
+    }
+
     void indexAncestors(String path) {
         String parPath = PathUtils.getParentPath(path);
         int depth = PathUtils.getDepth(path);
 
         addProperty(FieldNames.ANCESTORS, parPath);
         addProperty(FieldNames.PATH_DEPTH, depth);
+    }
+
+    void addDynamicBoostField(String propName, String value, double boost) {
+        dynamicBoostFields.computeIfAbsent(propName, s -> new HashMap<>())
+                .putIfAbsent(value, boost);
+    }
+
+    void addSimilarityTag(String value) {
+        similarityTags.add(value);
     }
 
     public String build() {
@@ -95,17 +122,37 @@ class ElasticDocument {
                 if (fulltext.size() > 0) {
                     builder.field(FieldNames.FULLTEXT, fulltext);
                 }
-            if (suggest.size() > 0) {
-                builder.startObject(FieldNames.SUGGEST).field("input", suggest).endObject();
-            }
-            if (notNullProps.size() > 0) {
-                builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
-            }
-            if (nullProps.size() > 0) {
-                builder.field(FieldNames.NULL_PROPS, nullProps);
-            }
+                if (suggest.size() > 0) {
+                    builder.startArray(FieldNames.SUGGEST);
+                    for (String val : suggest) {
+                        builder.startObject().field("value", val).endObject();
+                    }
+                    builder.endArray();
+                }
+                if (notNullProps.size() > 0) {
+                    builder.field(FieldNames.NOT_NULL_PROPS, notNullProps);
+                }
+                if (nullProps.size() > 0) {
+                    builder.field(FieldNames.NULL_PROPS, nullProps);
+                }
+                for (Map.Entry<String, Object> simProp: similarityFields.entrySet()) {
+                    builder.field(simProp.getKey(), simProp.getValue());
+                }
                 for (Map.Entry<String, Object> prop : properties.entrySet()) {
                     builder.field(prop.getKey(), prop.getValue());
+                }
+                for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
+                    builder.startArray(f.getKey());
+                    for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
+                        builder.startObject();
+                        builder.field("value", v.getKey());
+                        builder.field("boost", v.getValue());
+                        builder.endObject();
+                    }
+                    builder.endArray();
+                }
+                if (!similarityTags.isEmpty()) {
+                    builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);
                 }
             }
             builder.endObject();
@@ -125,4 +172,5 @@ class ElasticDocument {
     public String toString() {
         return build();
     }
+
 }

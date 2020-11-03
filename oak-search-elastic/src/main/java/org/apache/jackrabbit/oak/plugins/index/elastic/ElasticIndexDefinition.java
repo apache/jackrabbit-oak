@@ -52,6 +52,16 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final long BULK_RETRIES_BACKOFF_DEFAULT = 200;
 
     /**
+     * Hidden property for storing a seed value to be used as suffix in remote index name.
+     */
+    public static final String PROP_INDEX_NAME_SEED = ":nameSeed";
+
+    /**
+     * Hidden property to store similarity tags
+     */
+    public static final String SIMILARITY_TAGS = ":simTags";
+
+    /**
      * Node name under which various analyzers are configured
      */
     private static final String ANALYZERS = "analyzers";
@@ -71,8 +81,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
         isAnalyzable = type -> Arrays.binarySearch(NOT_ANALYZED_TYPES, type) < 0;
     }
 
-    private final String remoteIndexName;
-
     public final int bulkActions;
     public final long bulkSizeBytes;
     public final long bulkFlushIntervalMs;
@@ -81,12 +89,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private final String remoteAlias;
 
     private final Map<String, List<PropertyDefinition>> propertiesByName;
+    private final List<PropertyDefinition> dynamicBoostProperties;
 
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
-        String indexSuffix = "-" + getReindexCount();
         this.remoteAlias = ElasticIndexNameHelper.getIndexAlias(indexPrefix != null ? indexPrefix : "", getIndexPath());
-        this.remoteIndexName = ElasticIndexNameHelper.getElasticSafeIndexName(this.remoteAlias + indexSuffix);
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
@@ -98,6 +105,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .flatMap(rule -> StreamSupport.stream(rule.getProperties().spliterator(), false))
                 .filter(pd -> pd.index) // keep only properties that can be indexed
                 .collect(Collectors.groupingBy(pd -> pd.name));
+
+        this.dynamicBoostProperties = getDefinedRules()
+                .stream()
+                .flatMap(IndexingRule::getNamePatternsProperties)
+                .filter(pd -> pd.dynamicBoost)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -109,18 +122,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
         return remoteAlias;
     }
 
-    /**
-     * Returns the index identifier on the Elasticsearch cluster. Notice this can be different from the value returned
-     * from {@code getIndexName}. The index name shouldn't be used for index read or updates. Alias obtained from {@link #getRemoteIndexAlias()}
-     * should be used for such purposes.
-     * @return the Elasticsearch index identifier
-     */
-    public String getRemoteIndexName() {
-        return remoteIndexName;
-    }
-
     public Map<String, List<PropertyDefinition>> getPropertiesByName() {
         return propertiesByName;
+    }
+
+    public List<PropertyDefinition> getDynamicBoostProperties() {
+        return dynamicBoostProperties;
     }
 
     /**
@@ -145,7 +152,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     }
 
     public boolean isAnalyzed(List<PropertyDefinition> propertyDefinitions) {
-        return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed || pd.fulltextEnabled());
+        return propertyDefinitions.stream().anyMatch(pd -> pd.analyzed);
     }
 
     @Override

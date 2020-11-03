@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.SpellcheckCommonTest;
+import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
@@ -45,4 +46,10 @@ public class LuceneSpellcheckCommonTest extends SpellcheckCommonTest {
         Repository repository = jcr.createRepository();
         return repository;
     }
+
+    @After
+    public void shutdownExecutor() {
+        executorService.shutdown();
+    }
+
 }

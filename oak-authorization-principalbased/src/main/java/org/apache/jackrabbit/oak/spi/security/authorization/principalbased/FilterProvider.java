@@ -38,7 +38,7 @@ public interface FilterProvider {
     boolean handlesPath(@NotNull String oakPath);
 
     /**
-     * Returns the root path of handled by the filer. In case multiple paths are supported this method returns the common
+     * Returns the root path handled by the filer. In case multiple paths are supported this method returns the common
      * ancestor path.
      *
      * @return An absolute oak path.
@@ -47,7 +47,7 @@ public interface FilterProvider {
     String getFilterRoot();
 
     /**
-     * Returns the {@link Filter} associated with this provider implementation.
+     * Returns a {@link Filter} for the given parameters.
      *
      * @param securityProvider The security provider.
      * @param root The reading/editing root.

@@ -59,7 +59,7 @@ public class AccessControlTest extends AbstractCugTest {
 
         setupCugsAndAcls();
 
-        /**
+        /*
          * regular acl at
          *   - /content
          *

@@ -64,7 +64,7 @@ public class TokenAuthenticationTest extends AbstractTokenTest {
 
     @Test
     public void testAuthenticateWithInvalidCredentials() throws Exception {
-        List<Credentials> invalid = new ArrayList<Credentials>();
+        List<Credentials> invalid = new ArrayList<>();
         invalid.add(new GuestCredentials());
         invalid.add(new SimpleCredentials(userId, new char[0]));
 

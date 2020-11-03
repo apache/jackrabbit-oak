@@ -163,8 +163,8 @@ looking up effective policies by principal.
  
 If a given set of principals is supported by the configured `FilterProvider/Filter` implementation, the principal-based 
 authorization model will contribute an implementation of `AggregatedPermissionProvider` to the composite. Whether or not 
-access will be granted depends on the aggregated providers and their ranking, the composition type and whether or not an 
-`AggregationFilter` is defined for the setup (see also section [Combining Multiple Authorization Models](composite.html) for details). 
+access will be granted depends on the aggregated providers and their ranking, the composition type and the presence of an 
+`AggregationFilter` (see also section [Combining Multiple Authorization Models](composite.html) for details). 
 
 If the set of principals is not supported an `EmptyPermissionProvider` will be returned and the model will be ignored 
 altogether. It follows that in this case permission evaluation delegated to other authorization modules configured in the 
@@ -192,7 +192,7 @@ The inheritance model only takes the item hierarchy into account. In other words
 start at the target item and search up the item hierarchy for a matching entry. An entry is considered matching if it is 
 defined for any of the principals in the given set, applies to the target item and grants the specified permissions.  
 
-##### Allowed if Granted
+##### Evaluation Shortcut
 
 As soon as an entry matches the target item and grants the requested permission the evaluation will stop. As this 
 model only supports allowing entries there exists no particular requirement to maintain and handle the order of 
@@ -230,7 +230,7 @@ limit the scope of the principal-based authorization according to the following 
 - the set of principals must not be empty and must only contain `SystemUserPrincipal`s
 - each `SystemUserPrincipal` must be associated with a location in the repository (i.e. must be `ItemBasedPrincipal` when 
   obtained through principal management API).
-- all principals must additionally be located below the path configured with `FilterProviderImpl` (see [below](#configuration)
+- all principals must additionally be located below the path configured with `FilterProviderImpl` (see section [Configuration](#configuration))
 
 So, if this implementation is enabled the principal-based authorization will only take effect for `SystemUserPrincipal`s 
 that are created below the configured path. As soon as a given `Subject` or set of principals contains principals that 
@@ -245,6 +245,12 @@ In addition principal-based authorization provides a implementation of the [Aggr
 interface that stops the aggregation of `PermissionProvider`s and effective policies as soon as the 
 `PrincipalBasedPermissionProvider` takes effect (i.e. the mandatory `FilterProvider` will handle a given set of principals).
 The `AggregationFilter` can be enabled by setting the corresponding flag with the module [configuration](#configuration). 
+
+<a name="details_examples"></a>
+#### Examples
+
+See [Permission Evaluation with Principal-Based Authorization](principalbased_evaluation.html) for examples illustrating  
+an authorization setup including principal-based authorization and how it handles different principals.
 
 <a name="representation"></a>
 ### Representation in the Repository

@@ -44,14 +44,13 @@ public class XPathQueryBuilderTest extends AbstractSecurityTest {
     private final String relPath = "re/l/path";
 
     private void assertPropertyCondition(@NotNull Condition condition, @NotNull RelationOp expectedOp) {
-        assertTrue(condition instanceof Condition.Property);
-        Condition.Property cp = (Condition.Property) condition;
+        assertTrue(condition instanceof Condition.PropertyValue);
+        Condition.PropertyValue cp = (Condition.PropertyValue) condition;
 
         assertSame(expectedOp, cp.getOp());
 
         assertEquals(relPath, cp.getRelPath());
         assertEquals(v, cp.getValue());
-        assertNull(cp.getPattern());
 
         assertNull(builder.getCondition());
     }
@@ -230,27 +229,24 @@ public class XPathQueryBuilderTest extends AbstractSecurityTest {
     public void testExists() {
         Condition c = builder.exists(relPath);
 
-        assertTrue(c instanceof Condition.Property);
-        Condition.Property cp = (Condition.Property) c;
+        assertTrue(c instanceof Condition.PropertyExists);
+        Condition.PropertyExists cp = (Condition.PropertyExists) c;
 
         assertSame(RelationOp.EX, cp.getOp());
 
         assertEquals(relPath, cp.getRelPath());
-        assertNull(cp.getValue());
-        assertNull(cp.getPattern());
     }
 
     @Test
     public void testLike() {
         Condition c = builder.like(relPath, "pattern");
 
-        assertTrue(c instanceof Condition.Property);
-        Condition.Property cp = (Condition.Property) c;
+        assertTrue(c instanceof Condition.PropertyLike);
+        Condition.PropertyLike cp = (Condition.PropertyLike) c;
 
         assertSame(RelationOp.LIKE, cp.getOp());
 
         assertEquals(relPath, cp.getRelPath());
-        assertNull(cp.getValue());
         assertEquals("pattern", cp.getPattern());
     }
 

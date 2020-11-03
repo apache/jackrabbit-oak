@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
  * Dummy permission provider implementation that grants read access to all trees
  * that have a name that isn't equal to {@link #NAME_NON_ACCESSIBLE}.
  */
-final class TestPermissionProvider implements PermissionProvider {
+class TestPermissionProvider implements PermissionProvider {
 
     static final String NAME_ACCESSIBLE = "accessible";
     static final String NAME_NON_ACCESSIBLE = "notAccessible";

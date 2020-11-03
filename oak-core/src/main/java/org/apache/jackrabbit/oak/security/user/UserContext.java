@@ -77,8 +77,8 @@ final class UserContext implements Context, UserConstants {
             // group node (missing node type information on non-existing location)
             return USER_PROPERTY_NAMES.contains(name)
                     || GROUP_PROPERTY_NAMES.contains(name)
-                    || path.contains(REP_MEMBERS)
                     || path.contains(REP_MEMBERS_LIST)
+                    || path.contains(REP_MEMBERS)
                     || path.contains(REP_PWD);
         }
     }

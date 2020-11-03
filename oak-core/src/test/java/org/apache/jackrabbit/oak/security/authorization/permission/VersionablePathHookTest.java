@@ -91,7 +91,7 @@ public class VersionablePathHookTest extends AbstractSecurityTest  {
 
             @Override
             public @NotNull Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
             }
 
             @Override

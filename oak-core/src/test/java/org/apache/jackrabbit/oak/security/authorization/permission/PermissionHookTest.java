@@ -50,7 +50,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.JcrAllUtil;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
@@ -91,7 +90,6 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
     protected String childPath = "/testPath/childNode";
 
     protected Principal testPrincipal;
-    protected PrivilegeBitsProvider bitsProvider;
     protected List<Principal> principals = new ArrayList<>();
 
     @Override
@@ -100,15 +98,15 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         super.before();
 
         testPrincipal = getTestUser().getPrincipal();
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"), namePathMapper);
-        NodeUtil testNode = rootNode.addChild("testPath", JcrConstants.NT_UNSTRUCTURED);
-        testNode.addChild("childNode", JcrConstants.NT_UNSTRUCTURED);
+        Tree rootNode = root.getTree("/");
+        Tree testNode = TreeUtil.addChild(rootNode, "testPath", JcrConstants.NT_UNSTRUCTURED);
+        TreeUtil.addChild(testNode, "childNode", JcrConstants.NT_UNSTRUCTURED);
 
         addACE(testPath, testPrincipal, JCR_ADD_CHILD_NODES);
         addACE(testPath, EveryonePrincipal.getInstance(), JCR_READ);
         root.commit();
 
-        bitsProvider = new PrivilegeBitsProvider(root);
+        PrivilegeBitsProvider bitsProvider = new PrivilegeBitsProvider(root);
     }
 
     @Override
@@ -141,11 +139,11 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         acMgr.setPolicy(path, acl);
     }
 
-    protected Tree getPrincipalRoot(@NotNull Principal principal) {
+    private Tree getPrincipalRoot(@NotNull Principal principal) {
         return root.getTree(PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(principal.getName());
     }
 
-    protected Tree getEntry(@NotNull Principal principal, String accessControlledPath, long index) throws Exception {
+    private Tree getEntry(@NotNull Principal principal, String accessControlledPath, long index) throws Exception {
         Tree principalRoot = getPrincipalRoot(principal);
         Tree parent = principalRoot.getChild(PermissionUtil.getEntryName(accessControlledPath));
         Tree entry = parent.getChild(String.valueOf(index));
@@ -155,7 +153,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         return entry;
     }
 
-    protected long cntEntries(Tree parent) {
+    private long cntEntries(Tree parent) {
         long cnt = parent.getChildrenCount(Long.MAX_VALUE);
         for (Tree child : parent.getChildren()) {
             cnt += cntEntries(child);
@@ -163,7 +161,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         return cnt;
     }
 
-    protected void createPrincipals() throws Exception {
+    private void createPrincipals() throws Exception {
         if (principals.isEmpty()) {
             for (int i = 0; i < 10; i++) {
                 Group gr = getUserManager(root).createGroup("testGroup" + i);
@@ -173,7 +171,7 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         }
     }
 
-    static protected void assertIndex(int expected, Tree entry) {
+    private static void assertIndex(int expected, Tree entry) {
         assertEquals(expected, Integer.parseInt(entry.getName()));
     }
 
@@ -216,10 +214,9 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         assertEquals(testPrincipal.getName(), testAce.getProperty(REP_PRINCIPAL_NAME).getValue(Type.STRING));
 
         // add a new restriction node through the OAK API instead of access control manager
-        NodeUtil node = new NodeUtil(testAce);
-        NodeUtil restrictions = node.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
-        restrictions.setString(REP_GLOB, "*");
-        String restrictionsPath = restrictions.getTree().getPath();
+        Tree restrictions = TreeUtil.addChild(testAce, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+        restrictions.setProperty(REP_GLOB, "*");
+        String restrictionsPath = restrictions.getPath();
         root.commit();
 
         Tree principalRoot = getPrincipalRoot(testPrincipal);
@@ -271,9 +268,9 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         aclTree.getChildren().iterator().next().orderBefore(null);
 
         // add a new entry
-        NodeUtil ace = new NodeUtil(aclTree).addChild("denyEveryoneLockMgt", NT_REP_DENY_ACE);
-        ace.setString(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
-        ace.setNames(AccessControlConstants.REP_PRIVILEGES, JCR_LOCK_MANAGEMENT);
+        Tree ace = TreeUtil.addChild(aclTree, "denyEveryoneLockMgt", NT_REP_DENY_ACE);
+        ace.setProperty(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, Collections.singleton(JCR_LOCK_MANAGEMENT), Type.NAMES);
         root.commit();
 
         entry = getEntry(testPrincipal, testPath, 1);
@@ -297,12 +294,12 @@ public class PermissionHookTest extends AbstractSecurityTest implements AccessCo
         String name = aceIt.next().getName();
 
         // add a new entry
-        NodeUtil ace = new NodeUtil(aclTree).addChild("denyEveryoneLockMgt", NT_REP_DENY_ACE);
-        ace.setString(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
-        ace.setNames(AccessControlConstants.REP_PRIVILEGES, JCR_LOCK_MANAGEMENT);
+        Tree ace = TreeUtil.addChild(aclTree, "denyEveryoneLockMgt", NT_REP_DENY_ACE);
+        ace.setProperty(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
+        ace.setProperty(AccessControlConstants.REP_PRIVILEGES, Collections.singleton(JCR_LOCK_MANAGEMENT), Type.NAMES);
 
         // reorder the new entry before the remaining existing entry
-        ace.getTree().orderBefore(name);
+        ace.orderBefore(name);
 
         root.commit();
 

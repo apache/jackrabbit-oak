@@ -28,11 +28,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Objects.ToStringHelper;
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !! THIS UTILITY CLASS IS A COPY FROM APACHE SLING !!
@@ -252,13 +249,14 @@ public final class PropertiesUtil {
      * @param validate Flag to validate the configured bean property names against
      *                 the configured bean class
      */
-    @SuppressWarnings("unchecked")
-    public static void populate(Object instance, Map<String,?> config, boolean validate){
+    public static void populate(Object instance, Map<String,?> config, boolean validate) {
         Class<?> objectClass = instance.getClass();
 
         // Set all configured bean properties
         Map<String, Method> setters = getSetters(objectClass);
-        ToStringHelper toStringHelper = Objects.toStringHelper(instance);
+        StringBuilder buff = new StringBuilder();
+        buff.append(objectClass.getSimpleName()).append('{');
+        int count = 0;
         for(Map.Entry<String,?> e : config.entrySet()) {
             String name = e.getKey();
             Method setter = setters.get(name);
@@ -269,15 +267,18 @@ public final class PropertiesUtil {
                 }
                 Object value = e.getValue();
                 setProperty(instance, name, setter, value);
-                toStringHelper.add(name,value);
+                if (count++ > 0) {
+                    buff.append(", ");
+                }
+                buff.append(name).append('=').append(value);
             } else if (validate) {
                 throw new IllegalArgumentException(
                         "Configured class " + objectClass.getName()
                                 + " does not contain a property named " + name);
             }
         }
-
-        log.debug("Configured object with properties {}", toStringHelper);
+        buff.append('}');
+        log.debug("Configured object with properties {}", buff.toString());
     }
 
     private static Map<String, Method> getSetters(Class<?> klass) {

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.index.PropertyIndexCommonTest;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
@@ -42,6 +43,11 @@ public class LucenePropertyIndexCommonTest extends PropertyIndexCommonTest {
     @Override
     protected void createTestIndexNode() {
         setTraversalEnabled(false);
+    }
+
+    @After
+    public void shutdownExecutor() {
+        executorService.shutdown();
     }
 
 }

@@ -24,21 +24,28 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.security.Principal;
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,7 +55,14 @@ import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_U
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_PRINCIPAL_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
 
@@ -283,5 +297,17 @@ public class UserPrincipalProviderTest extends AbstractPrincipalProviderTest {
                     SEARCH_TYPE_GROUP, 0, limit);
             assertTrue(Iterators.elementsEqual(i1, i2));
         }
+    }
+
+    @Test
+    public void testFindPrincipalsQueryFails() throws ParseException {
+        QueryEngine qe = mock(QueryEngine.class);
+        when(qe.executeQuery(anyString(), anyString(), anyLong(), anyLong(), any(Map.class), any(Map.class))).thenThrow(new ParseException("err",0));
+
+        Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
+        UserPrincipalProvider upp = new UserPrincipalProvider(r, getUserConfiguration(), NamePathMapper.DEFAULT);
+        Iterator<? extends Principal> it = upp.findPrincipals("a", false, PrincipalManager.SEARCH_TYPE_ALL, -1, -1);
+        assertNotNull(it);
+        assertFalse(it.hasNext());
     }
 }

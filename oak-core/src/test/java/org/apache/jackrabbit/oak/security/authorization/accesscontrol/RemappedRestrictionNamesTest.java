@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
@@ -33,6 +32,7 @@ import javax.jcr.security.Privilege;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_GLOB;
 import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.REP_ITEM_NAMES;
@@ -68,7 +68,7 @@ public class RemappedRestrictionNamesTest extends AbstractAccessControlTest {
     }
 
     protected Privilege[] privilegesFromNames(@NotNull String... privilegeNames) throws RepositoryException {
-        Iterable<String> jcrNames = Iterables.transform(Arrays.asList(privilegeNames), s -> getNamePathMapper().getJcrName(s));
+        Iterable<String> jcrNames = Arrays.stream(privilegeNames).map(s -> getNamePathMapper().getJcrName(s)).collect(Collectors.toList());
         return super.privilegesFromNames(jcrNames);
     }
 

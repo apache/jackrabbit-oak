@@ -101,9 +101,9 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
             root.refresh();
             String[] rm = new String[] { groupId, groupId2, groupId3 };
             for (String id : rm) {
-                Group gr = getUserManager(root).getAuthorizable(id, Group.class);
-                if (gr != null) {
-                    gr.remove();
+                Authorizable a = getUserManager(root).getAuthorizable(id);
+                if (a != null) {
+                    a.remove();
                     root.commit();
                 }
             }
@@ -345,18 +345,17 @@ public abstract class AbstractPrincipalProviderTest extends AbstractSecurityTest
         tests.put(PrincipalManager.SEARCH_TYPE_GROUP, Boolean.TRUE);
         tests.put(PrincipalManager.SEARCH_TYPE_NOT_GROUP, Boolean.FALSE);
 
-        for (Integer searchType : tests.keySet()) {
+        tests.forEach((key, value) -> {
             boolean found = false;
-            Iterator<? extends Principal> it = principalProvider.findPrincipals(EveryonePrincipal.NAME, searchType);
+            Iterator<? extends Principal> it = principalProvider.findPrincipals(EveryonePrincipal.NAME, key);
             while (it.hasNext()) {
                 Principal p = it.next();
                 if (p.getName().equals(EveryonePrincipal.NAME)) {
                     found = true;
                 }
             }
-            Boolean expected = tests.get(searchType);
-            assertEquals(expected, found);
-        }
+            assertEquals(value, found);
+        });
     }
 
     @Test

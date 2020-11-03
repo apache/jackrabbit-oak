@@ -16,63 +16,53 @@
  */
 package org.apache.jackrabbit.oak.exercise.security.authentication;
 
-import javax.security.auth.spi.LoginModule;
-
 import org.apache.felix.jaas.LoginModuleFactory;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
 import org.osgi.service.component.ComponentContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
+import javax.security.auth.spi.LoginModule;
 
 /**
  * Implements a LoginModuleFactory that creates {@link CustomLoginModule}s
  * and allows to configure login modules via OSGi config.
  */
-@Component(
-        label = "Custom Test Login Module (Oak Exercise Module)",
-        metatype = true,
-        policy = ConfigurationPolicy.REQUIRE,
-        configurationFactory = true
-)
-@Service
+@Component(service = LoginModuleFactory.class, configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(ocd = CustomLoginModuleFactory.Configuration.class, factory=true)
 public class CustomLoginModuleFactory implements LoginModuleFactory {
 
-    private static final Logger log = LoggerFactory.getLogger(CustomLoginModuleFactory.class);
+    @ObjectClassDefinition(name = "Apache Jackrabbit Oak Custom Test Login Module (Oak Exercises)")
+    @interface Configuration {
 
-    @SuppressWarnings("UnusedDeclaration")
-    @Property(
-            intValue = 500,
-            label = "JAAS Ranking",
-            description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
-                    "in a descending order (i.e. higher value ranked configurations come first)."
-    )
-    public static final String JAAS_RANKING = LoginModuleFactory.JAAS_RANKING;
+        @AttributeDefinition(
+                name = "JAAS Ranking",
+                description = "Specifying the ranking (i.e. sort order) of this login module entry. The entries are sorted " +
+                        "in a descending order (i.e. higher value ranked configurations come first)."
+        )
+        int jaas_ranking() default 500;
 
-    @SuppressWarnings("UnusedDeclaration")
-    @Property(
-            value = "OPTIONAL",
-            label = "JAAS Control Flag",
-            description = "Property specifying whether or not a LoginModule is REQUIRED, REQUISITE, SUFFICIENT or " +
-                    "OPTIONAL. Refer to the JAAS configuration documentation for more details around the meaning of " +
-                    "these flags."
-    )
-    public static final String JAAS_CONTROL_FLAG = LoginModuleFactory.JAAS_CONTROL_FLAG;
+        @AttributeDefinition(
+                name = "JAAS Control Flag",
+                description = "Property specifying whether or not a LoginModule is REQUIRED, REQUISITE, SUFFICIENT or " +
+                        "OPTIONAL. Refer to the JAAS configuration documentation for more details around the meaning of " +
+                        "these flags."
+        )
+        String jaas_controlFlag() default "OPTIONAL";
 
-    @SuppressWarnings("UnusedDeclaration")
-    @Property(
-            label = "JAAS Realm",
-            description = "The realm name (or application name) against which the LoginModule  is be registered. If no " +
-                    "realm name is provided then LoginModule is registered with a default realm as configured in " +
-                    "the Felix JAAS configuration."
-    )
-    public static final String JAAS_REALM_NAME = LoginModuleFactory.JAAS_REALM_NAME;
+        @AttributeDefinition(
+                name = "JAAS Realm",
+                description = "The realm name (or application name) against which the LoginModule  is be registered. If no " +
+                        "realm name is provided then LoginModule is registered with a default realm as configured in " +
+                        "the Felix JAAS configuration."
+        )
+        String jaas_realmName();
+    }
 
     // configuration parameters for the login module instances
     private ConfigurationParameters osgiConfig;
@@ -94,9 +84,7 @@ public class CustomLoginModuleFactory implements LoginModuleFactory {
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * @return a new {@link ExternalLoginModule} instance.
+     * @return a new {@link CustomLoginModule} instance.
      */
     @Override
     public LoginModule createLoginModule() {

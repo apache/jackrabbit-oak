@@ -160,7 +160,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
      */
     @Test
     public void testAdminConfiguration() throws Exception {
-        Map<String,Object> userParams = new HashMap();
+        Map<String,Object> userParams = new HashMap<>();
         userParams.put(UserConstants.PARAM_ADMIN_ID, "admin");
         userParams.put(UserConstants.PARAM_OMIT_ADMIN_PW, true);
 
@@ -173,13 +173,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 .with(sp)
                 .createContentRepository();
 
-        ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-            @Override
-            public ContentSession run() throws Exception {
-                return repo.login(null, null);
-            }
-        });
-        try {
+        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
@@ -189,21 +183,13 @@ public class UserInitializerTest extends AbstractSecurityTest {
             Tree adminTree = root.getTree(adminUser.getPath());
             assertTrue(adminTree.exists());
             assertNull(adminTree.getProperty(UserConstants.REP_PASSWORD));
-        } finally {
-            cs.close();
         }
 
         // login as admin should fail
-        ContentSession adminSession = null;
-        try {
-            adminSession = repo.login(new SimpleCredentials("admin", new char[0]), null);
+        try (ContentSession adminSession = repo.login(new SimpleCredentials("admin", new char[0]), null)) {
             fail();
         } catch (LoginException e) {
             //success
-        } finally {
-            if (adminSession != null) {
-                adminSession.close();
-            }
         }
     }
 
@@ -212,7 +198,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
      */
     @Test
     public void testAnonymousConfiguration() throws Exception {
-        Map<String,Object> userParams = new HashMap();
+        Map<String,Object> userParams = new HashMap<>();
         userParams.put(UserConstants.PARAM_ANONYMOUS_ID, "");
 
         ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
@@ -224,33 +210,19 @@ public class UserInitializerTest extends AbstractSecurityTest {
                 .with(sp)
                 .createContentRepository();
 
-        ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
-            @Override
-            public ContentSession run() throws Exception {
-                return repo.login(null, null);
-            }
-        });
-        try {
+        try (ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> repo.login(null, null))) {
             Root root = cs.getLatestRoot();
             UserConfiguration uc = sp.getConfiguration(UserConfiguration.class);
             UserManager umgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
             Authorizable anonymous = umgr.getAuthorizable(UserConstants.DEFAULT_ANONYMOUS_ID);
             assertNull(anonymous);
-        } finally {
-            cs.close();
         }
 
         // login as admin should fail
-        ContentSession anonymousSession = null;
-        try {
-            anonymousSession = repo.login(new GuestCredentials(), null);
+        try (ContentSession anonymousSession = repo.login(new GuestCredentials(), null)) {
             fail();
         } catch (LoginException e) {
             //success
-        } finally {
-            if (anonymousSession != null) {
-                anonymousSession.close();
-            }
         }
     }
 

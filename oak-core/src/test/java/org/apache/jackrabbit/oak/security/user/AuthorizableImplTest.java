@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 
 /**
  * Implementation specific tests for {@code AuthorizableImpl} and subclasses.
@@ -79,7 +80,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         Authorizable user = userMgr.getAuthorizable(testUser.getID());
         Authorizable group = userMgr.getAuthorizable(testGroup.getID());
 
-        Map<Authorizable, Authorizable> equalAuthorizables = new HashMap();
+        Map<Authorizable, Authorizable> equalAuthorizables = new HashMap<>();
         equalAuthorizables.put(testUser, testUser);
         equalAuthorizables.put(testGroup, testGroup);
         equalAuthorizables.put(user, user);
@@ -104,7 +105,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
 
         User differentId = userMgr.createUser(user.getID()+"_", null);
 
-        Map<Authorizable, Authorizable> notEqual = new HashMap();
+        Map<Authorizable, Authorizable> notEqual = new HashMap<>();
         notEqual.put(testUser, testGroup);
         notEqual.put(user, group);
         notEqual.put(testUser, user);
@@ -112,8 +113,8 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         notEqual.put(testUser, differentId);
 
         for (Map.Entry entry : notEqual.entrySet()) {
-            assertFalse(entry.getKey().equals(entry.getValue()));
-            assertFalse(entry.getValue().equals(entry.getKey()));
+            assertNotEquals(entry.getKey(), entry.getValue());
+            assertNotEquals(entry.getValue(), entry.getKey());
         }
     }
 
@@ -125,7 +126,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         Authorizable user = userMgr.getAuthorizable(testUser.getID());
         Authorizable group = userMgr.getAuthorizable(testGroup.getID());
 
-        Map<Authorizable, Authorizable> sameHashCode = new HashMap();
+        Map<Authorizable, Authorizable> sameHashCode = new HashMap<>();
         sameHashCode.put(testUser, testUser);
         sameHashCode.put(testGroup, testGroup);
         sameHashCode.put(user, user);
@@ -141,14 +142,14 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         user = otherUserManager.getAuthorizable(testUser.getID());
         group = otherUserManager.getAuthorizable(testGroup.getID());
 
-        Map<Authorizable, Authorizable> notSameHashCode = new HashMap();
+        Map<Authorizable, Authorizable> notSameHashCode = new HashMap<>();
         notSameHashCode.put(testUser, testGroup);
         notSameHashCode.put(user, group);
         notSameHashCode.put(testUser, user);
         notSameHashCode.put(testGroup, group);
 
         for (Map.Entry entry : notSameHashCode.entrySet()) {
-            assertFalse(entry.getKey().hashCode() == entry.getValue().hashCode());
+            assertNotEquals(entry.getKey().hashCode(), entry.getValue().hashCode());
         }
     }
 

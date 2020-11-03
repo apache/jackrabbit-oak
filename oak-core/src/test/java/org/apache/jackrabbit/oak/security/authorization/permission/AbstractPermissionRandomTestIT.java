@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_READ;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertArrayEquals;
 
@@ -75,10 +76,10 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
 
     private List<String> paths = new ArrayList<>();
 
-    protected final Set<String> allowU = Sets.newHashSet();
-    protected final Set<String> denyU = Sets.newHashSet();
-    protected final Set<String> allowG = Sets.newHashSet();
-    protected final Set<String> denyG = Sets.newHashSet();
+    final Set<String> allowU = Sets.newHashSet();
+    private final Set<String> denyU = Sets.newHashSet();
+    private final Set<String> allowG = Sets.newHashSet();
+    private final Set<String> denyG = Sets.newHashSet();
 
     private ContentSession testSession;
     private final String groupId = "gr" + UUID.randomUUID();
@@ -184,21 +185,21 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
             Arrays.sort(privs1);
 
             if (isSetImpl) {
-                assertTrue("Unexpected #hasPrivileges on [" + path + "] expecting " + hasPrivileges1 + " got "
-                        + hasPrivileges0 + ", seed " + seed, hasPrivileges1 == hasPrivileges0);
-                assertTrue("Unexpected #isGranted on [" + path + "] expecting " + isGrantedA1 + " got " + isGrantedA0
-                        + ", seed " + seed, isGrantedA1 == isGrantedA0);
-                assertTrue("Unexpected #isGranted on [" + path + "] expecting " + isGrantedP1 + " got " + isGrantedP0
-                        + ", seed " + seed, isGrantedP1 == isGrantedP0);
+                assertEquals("Unexpected #hasPrivileges on [" + path + "] expecting " + hasPrivileges1 + " got "
+                        + hasPrivileges0 + ", seed " + seed, hasPrivileges1, hasPrivileges0);
+                assertEquals("Unexpected #isGranted on [" + path + "] expecting " + isGrantedA1 + " got " + isGrantedA0
+                        + ", seed " + seed, isGrantedA1, isGrantedA0);
+                assertEquals("Unexpected #isGranted on [" + path + "] expecting " + isGrantedP1 + " got " + isGrantedP0
+                        + ", seed " + seed, isGrantedP1, isGrantedP0);
                 assertArrayEquals(privs1, privs0);
 
             } else {
-                assertTrue("Unexpected #hasPrivileges on [" + path + "] expecting " + hasPrivileges0 + " got "
-                        + hasPrivileges1 + ", seed " + seed, hasPrivileges1 == hasPrivileges0);
-                assertTrue("Unexpected #isGranted on [" + path + "] expecting " + isGrantedA0 + " got " + isGrantedA1
-                        + ", seed " + seed, isGrantedA1 == isGrantedA0);
-                assertTrue("Unexpected #isGranted on [" + path + "] expecting " + isGrantedP0 + " got " + isGrantedP1
-                        + ", seed " + seed, isGrantedP1 == isGrantedP0);
+                assertEquals("Unexpected #hasPrivileges on [" + path + "] expecting " + hasPrivileges0 + " got "
+                        + hasPrivileges1 + ", seed " + seed, hasPrivileges1, hasPrivileges0);
+                assertEquals("Unexpected #isGranted on [" + path + "] expecting " + isGrantedA0 + " got " + isGrantedA1
+                        + ", seed " + seed, isGrantedA1, isGrantedA0);
+                assertEquals("Unexpected #isGranted on [" + path + "] expecting " + isGrantedP0 + " got " + isGrantedP1
+                        + ", seed " + seed, isGrantedP1, isGrantedP0);
                 assertArrayEquals(privs0, privs1);
             }
 
@@ -228,17 +229,17 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
 
     private static class SetsPP implements PermissionProvider {
 
-        public SetsPP(Set<String> allowU, Set<String> denyU, Set<String> allowG, Set<String> denyG) {
+        SetsPP(Set<String> allowU, Set<String> denyU, Set<String> allowG, Set<String> denyG) {
             this.allowU = allowU;
             this.denyU = denyU;
             this.allowG = allowG;
             this.denyG = denyG;
         }
 
-        protected final Set<String> allowU;
-        protected final Set<String> denyU;
-        protected final Set<String> allowG;
-        protected final Set<String> denyG;
+        final Set<String> allowU;
+        final Set<String> denyU;
+        final Set<String> allowG;
+        final Set<String> denyG;
 
         @Override
         public void refresh() {
@@ -282,7 +283,7 @@ public abstract class AbstractPermissionRandomTestIT extends AbstractSecurityTes
 
         @Override
         public boolean isGranted(@NotNull String oakPath, @NotNull String jcrActions) {
-            assertTrue("Implemened only for Session.ACTION_READ", jcrActions.equals(Session.ACTION_READ));
+            assertEquals("Implemened only for Session.ACTION_READ", Session.ACTION_READ, jcrActions);
             return canRead(oakPath);
         }
 

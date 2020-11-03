@@ -53,7 +53,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-public abstract class FacetCommonTest extends AbstractJcrTest {
+public abstract class SecureFacetCommonTest extends AbstractJcrTest {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJcrTest.class);
     private static final PerfLogger LOG_PERF = new PerfLogger(LOG);
     protected TestRepository repositoryOptionsUtil;

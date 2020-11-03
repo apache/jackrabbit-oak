@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
@@ -28,6 +29,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.aggregations.Aggregations;
@@ -184,12 +186,15 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private int scannedRows = 0;
         private boolean firstRequest = true;
         private boolean fullScan = false;
+        private long searchStartTime;
 
         // reference to the last document sort values for search_after queries
         private Object[] lastHitSortValues;
 
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
+
+        private final ElasticMetricHandler elasticMetricHandler = indexNode.getElasticMetricHandler();
 
         ElasticQueryScanner(ElasticRequestHandler requestHandler,
                             List<ElasticResponseListener> listeners) {
@@ -235,7 +240,10 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
             LOG.trace("Kicking initial search for query {}", searchSourceBuilder);
             semaphore.tryAcquire();
+
+            searchStartTime = System.currentTimeMillis();
             indexNode.getConnection().getClient().searchAsync(searchRequest, RequestOptions.DEFAULT, this);
+            elasticMetricHandler.markQuery(true);
         }
 
         /**
@@ -247,13 +255,16 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
          */
         @Override
         public void onResponse(SearchResponse searchResponse) {
-            final SearchHit[] searchHits = searchResponse.getHits().getHits();
-            if (searchHits != null && searchHits.length > 0) {
+            long searchTotalTime = System.currentTimeMillis() - searchStartTime;
+            SearchHit[] searchHits = searchResponse.getHits().getHits();
+            int hitsSize = searchHits != null ? searchHits.length : 0;
+            TimeValue responseTook = searchResponse.getTook();
+            elasticMetricHandler.measureQuery(hitsSize, responseTook.getMillis(), searchTotalTime, searchResponse.isTimedOut());
+            if (hitsSize > 0) {
                 long totalHits = searchResponse.getHits().getTotalHits().value;
-                LOG.debug("Processing search response that took {} to read {}/{} docs",
-                        searchResponse.getTook(), searchHits.length, totalHits);
-                lastHitSortValues = searchHits[searchHits.length - 1].getSortValues();
-                scannedRows += searchHits.length;
+                LOG.debug("Processing search response that took {} to read {}/{} docs", responseTook, hitsSize, totalHits);
+                lastHitSortValues = searchHits[hitsSize - 1].getSortValues();
+                scannedRows += hitsSize;
                 anyDataLeft.set(totalHits > scannedRows);
                 estimator.update(indexPlan.getFilter(), totalHits);
 
@@ -297,6 +308,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
         @Override
         public void onFailure(Exception e) {
+            elasticMetricHandler.measureFailedQuery(System.currentTimeMillis() - searchStartTime);
             LOG.error("Error retrieving data from Elastic: closing scanner, notifying listeners", e);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
@@ -319,7 +331,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .source(searchSourceBuilder);
                 LOG.trace("Kicking new search after query {}", searchRequest.source());
 
+                searchStartTime = System.currentTimeMillis();
                 indexNode.getConnection().getClient().searchAsync(searchRequest, RequestOptions.DEFAULT, this);
+                elasticMetricHandler.markQuery(false);
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");
             }

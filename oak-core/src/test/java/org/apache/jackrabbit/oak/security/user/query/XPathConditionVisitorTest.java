@@ -89,7 +89,7 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
                 continue;
             }
 
-            visitor.visit(new Condition.Property(REL_PATH, op, v));
+            visitor.visit(new Condition.PropertyValue(REL_PATH, op, v));
 
             String s = statement.toString();
             String expected = QueryUtils.escapeForQuery(REL_PATH) + op.getOp() + QueryUtil.format(v);
@@ -102,15 +102,15 @@ public class XPathConditionVisitorTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testVisitPropertyExists() throws Exception {
-        visitor.visit((Condition.Property) new XPathQueryBuilder().exists(REL_PATH));
+    public void testVisitPropertyExists() {
+        visitor.visit((Condition.PropertyExists) new XPathQueryBuilder().exists(REL_PATH));
 
         assertEquals(QueryUtils.escapeForQuery(REL_PATH), statement.toString());
     }
 
     @Test
-    public void testVisitPropertyLike() throws Exception {
-        visitor.visit((Condition.Property) new XPathQueryBuilder().like(REL_PATH, SERACH_EXPR));
+    public void testVisitPropertyLike() {
+        visitor.visit((Condition.PropertyLike) new XPathQueryBuilder().like(REL_PATH, SERACH_EXPR));
 
         String s = statement.toString();
         assertTrue(s.startsWith("jcr:like("));

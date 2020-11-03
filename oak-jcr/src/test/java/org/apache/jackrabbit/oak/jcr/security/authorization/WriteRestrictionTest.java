@@ -18,13 +18,18 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.test.api.util.Text;
 import org.junit.Before;
 import org.junit.Test;
+
+import static javax.jcr.security.Privilege.JCR_ADD_CHILD_NODES;
+import static javax.jcr.security.Privilege.JCR_REMOVE_CHILD_NODES;
+import static javax.jcr.security.Privilege.JCR_REMOVE_NODE;
 
 /**
  * WriteRestrictionTest: tests add and remove node in combination with glob restrictions.
@@ -68,8 +73,8 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
     @Test
     public void testGlobRestriction2() throws Exception {
 
-        Privilege[] addNode = privilegesFromName(Privilege.JCR_ADD_CHILD_NODES);
-        Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+        Privilege[] addNode = privilegesFromName(JCR_ADD_CHILD_NODES);
+        Privilege[] rmNode = privilegesFromName(JCR_REMOVE_NODE);
 
         // permissions defined @ path
         // restriction: grants write-priv to nodeName3 grand-children but not direct nodeName3 children.
@@ -84,7 +89,7 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
 
     @Test
     public void testGlobRestriction3() throws Exception {
-        Privilege[] addNode = privilegesFromName(Privilege.JCR_ADD_CHILD_NODES);
+        Privilege[] addNode = privilegesFromName(JCR_ADD_CHILD_NODES);
 
         // permissions defined @ path
         // restriction: allows write to nodeName3 children
@@ -104,7 +109,7 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
 
     @Test
     public void testGlobRestriction4() throws Exception {
-        Privilege[] addNode = privilegesFromName(Privilege.JCR_ADD_CHILD_NODES);
+        Privilege[] addNode = privilegesFromName(JCR_ADD_CHILD_NODES);
 
         allow(path, repWritePrivileges, createGlobRestriction("/*"+nodeName3));
         deny(childNPath2, addNode);
@@ -122,7 +127,7 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny REMOVE_NODE privileges at subtree. */
-        deny(path, privilegesFromName(PrivilegeConstants.JCR_REMOVE_NODE), createGlobRestriction("*/" + nodeName3));
+        deny(path, privilegesFromName(JCR_REMOVE_NODE), createGlobRestriction("*/" + nodeName3));
 
         testSession.getNode(childNPath).getNode(nodeName3).remove();
         try {
@@ -138,7 +143,7 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny REMOVE_NODE privileges at subtree. */
-        deny(path, privilegesFromName(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), createGlobRestriction("*/" + Text.getName(childNPath)));
+        deny(path, privilegesFromName(JCR_REMOVE_CHILD_NODES), createGlobRestriction("*/" + Text.getName(childNPath)));
 
         testSession.getNode(childNPath).getNode(nodeName3).remove();
         try {
@@ -154,7 +159,7 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
         /* allow READ/WRITE privilege for testUser at 'path' */
         allow(path, testUser.getPrincipal(), readWritePrivileges);
         /* deny ADD_CHILD_NODES privileges at subtree. */
-        deny(path, privilegesFromName(PrivilegeConstants.JCR_ADD_CHILD_NODES), createGlobRestriction("*/"+nodeName3));
+        deny(path, privilegesFromName(JCR_ADD_CHILD_NODES), createGlobRestriction("*/"+nodeName3));
 
         Node node4 = testSession.getNode(nodePath3).addNode(nodeName4);
         try {
@@ -163,5 +168,44 @@ public class WriteRestrictionTest extends AbstractEvaluationTest {
         } catch (AccessDeniedException e) {
             // success
         }
+    }
+
+    /**
+     * OAK-9179
+     */
+    @Test
+    public void testGlobTrailingSlash() throws Exception {
+        Node grandchild = superuser.getNode(childNPath).addNode("child");
+        String ccPath = grandchild.getPath();
+
+        // allow ADD_CHILD_NODES privileges at '/cat/' -> matches descendants of childNPath
+        allow(path, privilegesFromName(JCR_ADD_CHILD_NODES), createGlobRestriction("/"+PathUtils.getName(childNPath) + "/"));
+        assertGlobTrailingSlashEffect(ccPath);
+    }
+
+    /**
+     * OAK-9179
+     */
+    @Test
+    public void testGlobTrailingSlashWildcard() throws Exception {
+        Node grandchild = superuser.getNode(childNPath).addNode("grandchild");
+        String ccPath = grandchild.getPath();
+
+        // allow ADD_CHILD_NODES privileges at '/cat/*' -> matches descendants of childNPath
+        allow(path, privilegesFromName(JCR_ADD_CHILD_NODES), createGlobRestriction("/"+PathUtils.getName(childNPath) + "/*"));
+        assertGlobTrailingSlashEffect(ccPath);
+    }
+
+    private void assertGlobTrailingSlashEffect(String ccPath) throws RepositoryException {
+        assertFalse(testSession.hasPermission(path, Session.ACTION_ADD_NODE));
+        assertFalse(testSession.hasPermission(childNPath, Session.ACTION_ADD_NODE));
+        assertFalse(testSession.hasPermission(childNPath+"/", Session.ACTION_ADD_NODE));
+        assertFalse(testSession.hasPermission(ccPath, Session.ACTION_ADD_NODE));
+        assertFalse(testSession.hasPermission(ccPath+"/", Session.ACTION_ADD_NODE));
+        assertTrue(testSession.hasPermission(ccPath+"/greatgrandchild", Session.ACTION_ADD_NODE));
+        assertTrue(testSession.hasPermission(ccPath+"/greatgrandchild/", Session.ACTION_ADD_NODE));
+        assertTrue(testSession.hasPermission(ccPath+"/greatgrandchild/descendant", Session.ACTION_ADD_NODE));
+        testSession.getNode(ccPath).addNode("greatgrandchild").addNode("descendant");
+        testSession.save();
     }
 }

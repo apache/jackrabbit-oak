@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authentication.token;
 
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
 
@@ -176,7 +175,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
         TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         Tree tree = TreeUtil.addChild(userTree, "testNode", JcrConstants.NT_UNSTRUCTURED);
         try {
             replaceTokenTree(info, tree, TOKEN_NT_NAME);
@@ -196,7 +195,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
         TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         Tree tree = TreeUtil.addChild(userTree, TOKENS_NODE_NAME, TOKENS_NT_NAME);
         try {
             tree = TreeUtil.addChild(tree, "invalid", JcrConstants.NT_UNSTRUCTURED);
@@ -217,7 +216,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
         TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         try {
             // create a valid token node using the test root
             replaceTokenTree(info, userTree.getChild(TOKENS_NODE_NAME), TOKEN_NT_NAME);
@@ -237,7 +236,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
         TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         Tree t = null;
         try {
             t = replaceTokenTree(info, userTree.getChild(TOKENS_NODE_NAME), JcrConstants.NT_UNSTRUCTURED);
@@ -263,7 +262,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
     @Test
     public void testInvalidTokenParentNode() throws Exception {
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         Tree node = TreeUtil.addChild(userTree, "testNode", JcrConstants.NT_UNSTRUCTURED);
         try {
             // Invalid node type of '.tokens' node
@@ -281,14 +280,14 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
     @Test
     public void testManuallyCreateTokenParent() throws Exception {
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         TreeUtil.addChild(userTree, TOKENS_NODE_NAME, TOKENS_NT_NAME);
         root.commit();
     }
 
     @Test
     public void testManuallyCreateTokenParentWithNtUnstructured() throws Exception {
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
 
         TreeUtil.addChild(userTree, TOKENS_NODE_NAME, JcrConstants.NT_UNSTRUCTURED);
         root.commit();
@@ -316,7 +315,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
     @Test
     public void testTokensNodeAtInvalidPathBelowUser() throws Exception {
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         Tree n = null;
         try {
             // Invalid node type of '.tokens' node
@@ -337,7 +336,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
     @Test
     public void testChangeTokenParentPrimaryTypeToRepUnstructured() throws Exception {
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
 
         Tree node = TreeUtil.addChild(userTree, TOKENS_NODE_NAME, JcrConstants.NT_UNSTRUCTURED);
         root.commit();
@@ -365,7 +364,7 @@ public class TokenValidatorTest extends AbstractTokenTest {
 
     @Test
     public void testChangeRegularRepUnstructuredPrimaryType() throws Exception {
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         Tree n = TreeUtil.getOrAddChild(userTree,"test", NodeTypeConstants.NT_REP_UNSTRUCTURED);
         root.commit();
 

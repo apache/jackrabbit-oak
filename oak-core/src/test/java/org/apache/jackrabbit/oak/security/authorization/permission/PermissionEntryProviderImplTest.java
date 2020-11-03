@@ -23,6 +23,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,6 +32,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class PermissionEntryProviderImplTest {
 
@@ -57,7 +59,7 @@ public class PermissionEntryProviderImplTest {
 
         // test that PermissionEntryProviderImpl.noExistingNames nevertheless is
         // properly set
-        assertFalse(getNoExistingNames(provider));
+        assertFalse(getBooleanField(provider, "noExistingNames"));
         assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(EntryPredicate.create()));
     }
 
@@ -77,7 +79,7 @@ public class PermissionEntryProviderImplTest {
         Long.MAX_VALUE
         */
         PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
-        assertFalse(getNoExistingNames(provider));
+        assertFalse(getBooleanField(provider, "noExistingNames"));
 
         assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(EntryPredicate.create()));
     }
@@ -94,7 +96,7 @@ public class PermissionEntryProviderImplTest {
         same as before but principal-set contains a name for which not entries exist
         */
         PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
-        assertFalse(getNoExistingNames(provider));
+        assertFalse(getBooleanField(provider, "noExistingNames"));
     }
 
     @Test
@@ -103,23 +105,41 @@ public class PermissionEntryProviderImplTest {
         Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
 
         PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+        assertFalse(getBooleanField(provider, "noExistingNames"));
 
-        assertTrue(getNoExistingNames(provider));
+        // force init
+        provider.getEntryIterator(EntryPredicate.create());
+        assertTrue(getBooleanField(provider, "noExistingNames"));
+    }
+    
+    @Test
+    public void testInit() throws Exception {
+        MockPermissionStore store = new MockPermissionStore();
+        Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
+
+        PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+        assertFalse(getBooleanField(provider, "initialized"));
+
+        provider.getEntryIterator(EntryPredicate.create());
+        assertTrue(getBooleanField(provider, "initialized"));
+
+        provider.flush();
+        assertFalse(getBooleanField(provider, "initialized"));
+
+        provider.getEntries(mock(Tree.class));
+        assertTrue(getBooleanField(provider, "initialized"));
     }
 
     /**
-     * Use reflection to access the private "existingNames" field storing the
-     * names of those principals associated with the entry provider for which
-     * any permission entries exist.
+     * Use reflection to access a private boolean field
      *
      * @param provider The permission entry provider
-     * @return the existingNames set.
-     * @throws Exception
+     * @return the value of the boolean field
      */
-    private static boolean getNoExistingNames(@NotNull PermissionEntryProviderImpl provider) throws Exception {
-        Field noExistingNamesField = provider.getClass().getDeclaredField("noExistingNames");
-        noExistingNamesField.setAccessible(true);
-        return (boolean) noExistingNamesField.get(provider);
+    private static boolean getBooleanField(@NotNull PermissionEntryProviderImpl provider, @NotNull String name) throws Exception {
+        Field f = provider.getClass().getDeclaredField(name);
+        f.setAccessible(true);
+        return (boolean) f.get(provider);
     }
 
     // Inner Classes

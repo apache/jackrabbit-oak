@@ -210,20 +210,16 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         assertNotNull(prop);
         assertEquals(Type.DATE, prop.getType());
 
-        for (String key : reserved.keySet()) {
+        reserved.forEach((key, value) -> {
             PropertyState p = tokenTree.getProperty(key);
             if (p != null) {
-                assertNotEquals(reserved.get(key), p.getValue(Type.STRING));
+                assertNotEquals(value, p.getValue(Type.STRING));
             }
-        }
+        });
 
-        for (String key : privateAttributes.keySet()) {
-            assertEquals(privateAttributes.get(key), tokenTree.getProperty(key).getValue(Type.STRING));
-        }
+        privateAttributes.forEach((key, value) -> assertEquals(value, tokenTree.getProperty(key).getValue(Type.STRING)));
 
-        for (String key : publicAttributes.keySet()) {
-            assertEquals(publicAttributes.get(key), tokenTree.getProperty(key).getValue(Type.STRING));
-        }
+        publicAttributes.forEach((key, value) -> assertEquals(value, tokenTree.getProperty(key).getValue(Type.STRING)));
     }
 
     @Test
@@ -299,7 +295,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         Tree node = TreeUtil.addChild(userTree, "testNode", JcrConstants.NT_UNSTRUCTURED);
         try {
             replaceTokenTree(info, node, TOKEN_NT_NAME);
@@ -315,7 +311,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         TokenInfo info = createTokenInfo(tokenProvider, userId);
         assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
 
-        Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+        Tree userTree = getUserTree(userId);
         try {
             replaceTokenTree(info, userTree.getChild(TOKENS_NODE_NAME), JcrConstants.NT_UNSTRUCTURED);
 
@@ -334,7 +330,8 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
         TokenInfo info2 = null;
         try {
-            Tree adminTree = root.getTree(getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID()).getPath());
+            String uid = adminSession.getAuthInfo().getUserID();
+            Tree adminTree = getUserTree(uid);
             Tree node = TreeUtil.getOrAddChild(adminTree, TOKENS_NODE_NAME, JcrConstants.NT_UNSTRUCTURED);
             assertTrue(root.move(tokenTree.getPath(), node.getPath() + '/' + tokenTree.getName()));
 

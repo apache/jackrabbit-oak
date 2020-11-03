@@ -22,6 +22,7 @@ import com.google.common.base.Supplier;
 import com.google.common.cache.Cache;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,11 +39,52 @@ final class CachingCommitValueResolver implements CommitValueResolver {
 
     private final Cache<Revision, String> commitValueCache;
 
+    private final int cacheSize;
+
     private final Supplier<RevisionVector> sweepRevisions;
 
     CachingCommitValueResolver(int cacheSize, Supplier<RevisionVector> sweepRevisions) {
         this.commitValueCache = newBuilder().maximumSize(cacheSize).build();
+        this.cacheSize = cacheSize;
         this.sweepRevisions = sweepRevisions;
+    }
+
+    CommitValueResolver withEmptyCommitValueCache(boolean enable,
+                                                  Clock clock,
+                                                  long maxAgeMillis) {
+        if (enable) {
+            return new CommitValueResolver() {
+
+                private final Cache<Revision, String> emptyCommitValueCache
+                        = newBuilder().maximumSize(cacheSize).build();
+
+                @Override
+                public String resolve(@NotNull Revision changeRevision,
+                                      @NotNull NodeDocument doc) {
+                    // check cache first
+                    String value = commitValueCache.getIfPresent(changeRevision);
+                    if (value != null) {
+                        return value;
+                    }
+                    // check negative cache
+                    if (emptyCommitValueCache.getIfPresent(changeRevision) != null) {
+                        return null;
+                    }
+                    value = CachingCommitValueResolver.this.resolve(changeRevision, doc);
+                    if (value == null && isOld(changeRevision, clock, maxAgeMillis)) {
+                        // remember
+                        emptyCommitValueCache.put(changeRevision, "");
+                    }
+                    return value;
+                }
+
+                private boolean isOld(Revision r, Clock c, long maxAgeMillis) {
+                    return r.getTimestamp() + maxAgeMillis < c.getTime();
+                }
+            };
+        } else {
+            return this;
+        }
     }
 
     @Override

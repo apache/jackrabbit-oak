@@ -16,21 +16,27 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.jcr.RepositoryException;
 
 interface ConditionVisitor {
 
-    void visit(Condition.Node node);
+    void visit(@NotNull Condition.Node node);
 
-    void visit(Condition.Property condition) throws RepositoryException;
+    void visit(@NotNull Condition.PropertyValue condition) throws RepositoryException;
 
-    void visit(Condition.Contains condition);
+    void visit(@NotNull Condition.PropertyLike condition) throws RepositoryException;
 
-    void visit(Condition.Impersonation condition);
+    void visit(@NotNull Condition.PropertyExists condition) throws RepositoryException;
 
-    void visit(Condition.Not condition) throws RepositoryException;
+    void visit(@NotNull Condition.Contains condition);
 
-    void visit(Condition.And condition) throws RepositoryException;
+    void visit(@NotNull Condition.Impersonation condition);
 
-    void visit(Condition.Or condition) throws RepositoryException;
+    void visit(@NotNull Condition.Not condition) throws RepositoryException;
+
+    void visit(@NotNull Condition.And condition) throws RepositoryException;
+
+    void visit(@NotNull Condition.Or condition) throws RepositoryException;
 }

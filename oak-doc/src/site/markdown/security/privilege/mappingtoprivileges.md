@@ -107,7 +107,7 @@ of the special index definition.
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
-| `Session.move`                               | `jcr:removeChildNodes` (source parent) and `jcr:addChildNodes` (target parent) |
+| `Session.move`                               | same privileges as if the node to move would be removed and created using regular API calls (items in the subtree are not checked) |
 | `Session.importXml`                          | same privileges as if items would be created using regular API calls |
 
 ##### Access Control Management
@@ -182,7 +182,7 @@ of the special index definition.
 
 | API Call                                     | Privilege(s)                   |
 |----------------------------------------------|--------------------------------|
-| `Workspace.move`                             | `jcr:removeChildNodes` (source parent) and `jcr:addChildNodes` (target parent) |
+| `Workspace.move`                             | same privileges as if the node to move would be removed and created using regular API calls (items in the subtree are not checked) |
 | `Workspace.copy`                             | same privileges as if items would be created using regular API calls |
 | `Workspace.importXml`                        | same privileges as if items would be created using regular API calls |
 

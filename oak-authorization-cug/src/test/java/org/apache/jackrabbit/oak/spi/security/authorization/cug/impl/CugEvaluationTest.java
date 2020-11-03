@@ -127,13 +127,10 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testReadAcl2() throws Exception {
-        ContentSession cs = createTestSession2();
-        try {
+        try (ContentSession cs = createTestSession2()) {
             Root r = cs.getLatestRoot();
 
             assertTrue(r.getTree("/content/rep:policy").exists());
-        } finally {
-            cs.close();
         }
     }
 
@@ -149,14 +146,11 @@ public class CugEvaluationTest extends AbstractCugTest implements NodeTypeConsta
 
     @Test
     public void testReadCug2() throws Exception {
-        ContentSession cs = createTestSession2();
-        try {
+        try (ContentSession cs = createTestSession2()) {
             Root r = cs.getLatestRoot();
 
             assertTrue(r.getTree("/content/a/rep:cugPolicy").exists());
             assertFalse(r.getTree("/content2/rep:cugPolicy").exists());
-        } finally {
-            cs.close();
         }
     }
 

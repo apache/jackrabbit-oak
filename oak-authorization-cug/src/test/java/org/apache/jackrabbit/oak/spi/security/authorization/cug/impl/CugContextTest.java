@@ -57,8 +57,8 @@ public class CugContextTest extends AbstractCugTest implements NodeTypeConstants
 
         // add more child nodes
         Tree n = root.getTree(SUPPORTED_PATH);
-        createTrees(n, NT_OAK_UNSTRUCTURED, "a", "b", "c");
-        createTrees(n, NT_OAK_UNSTRUCTURED, "aa", "bb", "cc");
+        createTrees(n, "a", "b", "c");
+        createTrees(n, "aa", "bb", "cc");
 
         // create cugs
         createCug("/content/a", getTestUser().getPrincipal());

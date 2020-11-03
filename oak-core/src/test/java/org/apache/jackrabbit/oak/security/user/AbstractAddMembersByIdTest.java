@@ -113,9 +113,7 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
         }
 
         String userId = getTestUser().getID();
-        ContentSession testSession = null;
-        try {
-            testSession = login(new SimpleCredentials(userId, userId.toCharArray()));
+        try (ContentSession testSession = login(new SimpleCredentials(userId, userId.toCharArray()))) {
             Root testRoot = testSession.getLatestRoot();
 
             assertFalse(testRoot.getTree(memberGroup.getPath()).exists());
@@ -124,10 +122,6 @@ public abstract class AbstractAddMembersByIdTest extends AbstractSecurityTest {
             Set<String> failed = gr.addMembers(memberGroup.getID());
             testRoot.commit();
             return failed;
-        } finally {
-            if (testSession != null) {
-                testSession.close();
-            }
         }
     }
 

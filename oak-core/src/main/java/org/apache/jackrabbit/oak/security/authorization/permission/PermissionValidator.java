@@ -113,8 +113,7 @@ class PermissionValidator extends DefaultValidator {
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         String name = after.getName();
         if (TreeConstants.OAK_CHILD_ORDER.equals(name)) {
-            String childName = ChildOrderDiff.firstReordered(before, after);
-            if (childName != null) {
+            if (ChildOrderDiff.isReordered(before, after)) {
                 checkPermissions(parentAfter, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
             } // else: no re-order but only internal update
         } else if (isImmutableProperty(name, parentAfter)) {

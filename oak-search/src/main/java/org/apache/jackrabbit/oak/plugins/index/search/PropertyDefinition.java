@@ -40,6 +40,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_IS_REGEX;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_WEIGHT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
 
@@ -53,6 +54,8 @@ public class PropertyDefinition {
      */
     static final float DEFAULT_BOOST = 1.0f;
 
+    static final int SIMILARITY_SEARCH_DENSE_VECTOR_SIZE_DEFAULT = 1024;
+
     /**
      * Property name. By default derived from the NodeState name which has the
      * property definition. However in case property name is a pattern, relative
@@ -60,6 +63,8 @@ public class PropertyDefinition {
      * In such case NodeState name can be set to anything
      */
     public final String name;
+
+    public final String nodeName;
 
     private final int propertyType;
 
@@ -131,8 +136,10 @@ public class PropertyDefinition {
 
     public final boolean similarityRerank;
     public final boolean similarityTags;
+    private final int similaritySearchDVS;
 
     public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
+        this.nodeName = nodeName;
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, nodeName);
         this.relative = isRelativeProperty(name);
@@ -167,6 +174,8 @@ public class PropertyDefinition {
         this.nullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, false);
         this.notNullCheckEnabled = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, false);
         this.excludeFromAggregate = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, false);
+        this.similaritySearchDVS = getOptionalValue(defn, PROP_SIMILARITY_SEARCH_DENSE_VECTOR_SIZE,
+                SIMILARITY_SEARCH_DENSE_VECTOR_SIZE_DEFAULT);
         this.nonRelativeName = determineNonRelativeName();
         this.ancestors = computeAncestors(name);
         this.facet = getOptionalValueIfIndexed(defn, FulltextIndexConstants.PROP_FACETS, false);
@@ -211,6 +220,15 @@ public class PropertyDefinition {
     public boolean isTypeDefined(){
         return propertyType != PropertyType.UNDEFINED;
     }
+
+    /**
+     * Returns size of dense vector used for similarity search using this index.
+     * @return dense vector size
+     */
+    public int getSimilaritySearchDenseVectorSize() {
+        return similaritySearchDVS;
+    }
+
 
     /**
      * Returns the property type. If no explicit type is defined the default is assumed

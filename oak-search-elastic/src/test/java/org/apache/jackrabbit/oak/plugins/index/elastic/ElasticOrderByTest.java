@@ -18,16 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
-import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
 
 import javax.jcr.PropertyType;
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
 
 public class ElasticOrderByTest extends ElasticAbstractQueryTest {
 
@@ -166,10 +163,5 @@ public class ElasticOrderByTest extends ElasticAbstractQueryTest {
 
         assertOrderedQuery("select [jcr:path] from [nt:base] order by @bar DESC, @foo DESC",
                 asList("/test/b", "/test/a2", "/test/a1"));
-    }
-
-    private void assertOrderedQuery(String sql, List<String> paths) {
-        List<String> result = executeQuery(sql, AbstractQueryTest.SQL2, true, true);
-        assertEquals(paths, result);
     }
 }

@@ -1,7 +1,7 @@
 Oak Benchmark Jar
 =================
 
-This jar is runnable and contains test related run modes. 
+This jar is runnable and contains test related run modes.
 
 The following runmodes are currently available:
 
@@ -20,6 +20,14 @@ be invoked like this:
 
 The following benchmark options (with default values) are currently supported:
 
+    --azure                - Azure Connection String (default:
+                               DefaultEndpointsProtocol=http;
+                               AccountName=devstoreaccount1;
+                               AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;
+                                           BlobEndpoint=http://127.0.0.1:
+                                           10000/devstoreaccount1;)
+    --azureContainerName   - Azure container name (default: oak)
+    --azureRootPath        - Azure root path (default: /oak)
     --host localhost       - MongoDB host
     --port 27101           - MongoDB port
     --db <name>            - MongoDB database (default is a generated name)
@@ -40,6 +48,8 @@ The following benchmark options (with default values) are currently supported:
     --rdbjdbcpasswd        - JDBC password (defaults to "")
     --rdbjdbctableprefix   - for RDB persistence: prefix for table names (defaults to "")
     --vgcMaxAge            - Continuous DocumentNodeStore VersionGC max age in sec (RDB only)
+
+Please run `--help` to list all options.
 
 These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the
@@ -84,21 +94,26 @@ that we used to produce earlier.
 
 Finally the benchmark runner supports the following repository fixtures:
 
-| Fixture             | Description                                                    |
-|---------------------|----------------------------------------------------------------|
-| Jackrabbit          | Jackrabbit with the default embedded Derby  bundle PM          |
-| Oak-Memory          | Oak with default in-memory storage                             |
-| Oak-MemoryNS        | Oak with default in-memory NodeStore                           |
-| Oak-Mongo           | Oak with the default Mongo backend                             |
-| Oak-Mongo-DS        | Oak with the default Mongo backend and DataStore               |
-| Oak-MongoNS         | Oak with the Mongo NodeStore                                   |
-| Oak-Segment-Tar     | Oak with the Segment Tar backend                               |
-| Oak-Segment-Tar-DS  | Oak with the Segment Tar backend and DataStore                 |
-| Oak-RDB             | Oak with the DocumentMK/RDB persistence                        |
-| Oak-RDB-DS          | Oak with the DocumentMK/RDB persistence and DataStore          |
+| Fixture                      | Description                                                    |
+|------------------------------|----------------------------------------------------------------|
+| Jackrabbit                   | Jackrabbit with the default embedded Derby  bundle PM          |
+| Oak-Memory                   | Oak with default in-memory storage                             |
+| Oak-MemoryNS                 | Oak with default in-memory NodeStore                           |
+| Oak-Mongo                    | Oak with the default Mongo backend                             |
+| Oak-Mongo-DS                 | Oak with the default Mongo backend and DataStore               |
+| Oak-MongoNS                  | Oak with the Mongo NodeStore                                   |
+| Oak-Segment-Tar              | Oak with the Segment Tar backend                               |
+| Oak-Segment-Tar-DS           | Oak with the Segment Tar backend and DataStore                 |
+| Oak-Segment-Azure            | Oak with the Azure Segment backend                             |
+| Oak-RDB                      | Oak with the DocumentMK/RDB persistence                        |
+| Oak-RDB-DS                   | Oak with the DocumentMK/RDB persistence and DataStore          |
+| Oak-Composite-Store          | Oak with the Composite Node store with Segment Tar backend     |
+| Oak-Composite-Memory-Store   | Oak with the Composite Node store with in-memory NodeStore     |
+| Oak-Composite-Mongo-Store    | Oak with the Composite Node store with Mongo backend           |
+
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
-into oak-run, or be specified separately in the class path. Furthermore, 
+into oak-run, or be specified separately in the class path. Furthermore,
 dropDBAfterTest is interpreted to drop the *tables*, not the database
 itself, if and only if they have been auto-created)
 
@@ -213,7 +228,7 @@ are done, before the `afterSuite()` method is called.
 Scalability mode
 --------------
 
-The scalability mode is used for executing various scalability suites to test the 
+The scalability mode is used for executing various scalability suites to test the
 performance of various associated tests. It can be invoked like this:
 
     $ java -jar oak-benchmarks-*.jar scalability [options] [suites] [fixtures]
@@ -247,16 +262,16 @@ java.hprof.txt` to produce a somewhat easier-to-read top-down and
 bottom-up summaries of how the execution time is distributed across
 the benchmarked codebase.
 
-The scalability suite creates the relevant repository load before starting the tests. 
+The scalability suite creates the relevant repository load before starting the tests.
 Each test case tries to benchmark and profile a specific aspect of the repository.
 
-Each scalability suite is configured to run a number of related tests which require the 
+Each scalability suite is configured to run a number of related tests which require the
 same base load to be available in the repository.
-Either the entire suite can be executed or individual tests within the suite can be run. 
-If the suite names are specified like `ScalabilityBlobSearchSuite` then all the tests 
-configured for the suite are executed. To execute particular tests in the 
-suite, suite names appended with tests of the form `suite:test1,test2` must be specified like 
-`ScalabilityBlobSearchSuite:FormatSearcher,NodeTypeSearcher`. You can specify one or more 
+Either the entire suite can be executed or individual tests within the suite can be run.
+If the suite names are specified like `ScalabilityBlobSearchSuite` then all the tests
+configured for the suite are executed. To execute particular tests in the
+suite, suite names appended with tests of the form `suite:test1,test2` must be specified like
+`ScalabilityBlobSearchSuite:FormatSearcher,NodeTypeSearcher`. You can specify one or more
 suites in the scalability command line, and oak-run will execute each suite in sequence.
 
 Finally the scalability runner supports the following repository fixtures:
@@ -276,11 +291,11 @@ Finally the scalability runner supports the following repository fixtures:
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
 into oak-run, or be specified separately in the class path.)
 
-Once started, the scalability runner will execute each listed suite against all the listed 
-repository fixtures. After starting up the repository and preparing the test environment, 
-the scalability suite executes all the configured tests to warm up caches before measurements 
-are started. Then each configured test within the suite are run and the number of 
-milliseconds used by each execution is recorded. Once done, the following statistics are 
+Once started, the scalability runner will execute each listed suite against all the listed
+repository fixtures. After starting up the repository and preparing the test environment,
+the scalability suite executes all the configured tests to warm up caches before measurements
+are started. Then each configured test within the suite are run and the number of
+milliseconds used by each execution is recorded. Once done, the following statistics are
 computed and reported:
 
 | Column      | Description                                           |
@@ -298,22 +313,22 @@ Also, for each test, the execution times are reported for each iteration/load co
 |-------------|-------------------------------------------------------|
 | Load        | time (in ms) taken by a test run              |
 
-The latter is more useful of these numbers as it shows how the individual execution 
+The latter is more useful of these numbers as it shows how the individual execution
 times are scaling for each load.
 
 How to add a new scalability suite
 --------------------------
 The scalability code is
 located under `org.apache.jackrabbit.oak.scalabiity` in the oak-run
-component. 
+component.
 
 To add a new scalability suite, you'll need to implement
 the `ScalabilitySuite` interface and add an instance of the new suite to the
 `allSuites` array in the `ScalabilityRunner` class, along with the test benchmarks,
 in the `org.apache.jackrabbit.oak.scalability` package.
-To implement the test benchmarks, it is required to extend the `ScalabilityBenchmark` 
+To implement the test benchmarks, it is required to extend the `ScalabilityBenchmark`
 abstract class and implement the `execute()` method.
-In addition, the methods `beforeExecute()` and `afterExecute()` can overridden to do processing 
+In addition, the methods `beforeExecute()` and `afterExecute()` can overridden to do processing
 before and after the benchmark executes.
 
 The best way to implement the `ScalabilitySuite` interface is to extend the
@@ -328,7 +343,7 @@ details. The outline of such a suite is:
         }
         @Override
         protected void beforeIteration(ExecutionContext) throws Exception {
-            // optional, Typically, this can be configured to create additional 
+            // optional, Typically, this can be configured to create additional
             // loads for each iteration.
             // This method will be called before each test iteration begins
         }
@@ -338,7 +353,7 @@ details. The outline of such a suite is:
             ExecutionContext context) throws Exception {
             // required, executes the specified benchmark
         }
-        
+
         @Override
         protected void afterIteration() throws Exception {
             // optional, executed after runIteration(),
@@ -363,11 +378,11 @@ The rough outline of how the individual suite will be run is:
         }
         test.afterIteration();
     }
-    test.afterSuite(); 
+    test.afterSuite();
 
-You can specify any context information to the test benchmarks using the ExecutionContext 
+You can specify any context information to the test benchmarks using the ExecutionContext
 object passed as parameter to the `beforeIteration()` and the `executeBenchmark()` methods.
-`ExecutionBenchmark` exposes two methods `getMap()` and `setMap()` which can be used to 
+`ExecutionBenchmark` exposes two methods `getMap()` and `setMap()` which can be used to
 pass context information.
 
 You can use the `loginWriter()` and `loginReader()` methods to create admin
@@ -388,12 +403,12 @@ As you can see, the `run()` method of the background task gets invoked
 repeatedly. Such threads will automatically close once all test iterations
 are done, before the `afterSuite()` method is called.
 
-`ScalabilityAbstractSuite` defines some system properties which are used to control the 
+`ScalabilityAbstractSuite` defines some system properties which are used to control the
 suites extending from it :
 
     -Dincrements=10,100,1000,1000     - defines the varying loads for each test iteration
     -Dprofile=true                    - to collect and print profiling data
-    -Ddebug=true                      - to output any intermediate results during the suite 
+    -Ddebug=true                      - to output any intermediate results during the suite
                                         run
 
 License

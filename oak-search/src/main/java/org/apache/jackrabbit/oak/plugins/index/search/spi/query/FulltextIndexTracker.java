@@ -16,14 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -46,18 +47,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.filterKeys;
 import static com.google.common.collect.Maps.filterValues;
-import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.STATUS_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
-public abstract class FulltextIndexTracker {
+public abstract class FulltextIndexTracker<I extends IndexNodeManager<?>> {
 
-    private static final Logger log = LoggerFactory.getLogger(FulltextIndexTracker.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FulltextIndexTracker.class);
     private static final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(FulltextIndexTracker.class.getName() + ".perf"));
 
@@ -67,22 +66,18 @@ public abstract class FulltextIndexTracker {
 
     private AsyncIndexInfoService asyncIndexInfoService;
 
-    private volatile Map<String, IndexNodeManager> indices = emptyMap();
+    private volatile Map<String, I> indices = emptyMap();
 
     private volatile boolean refresh;
 
-    protected abstract IndexNodeManager openIndex(String path, NodeState root, NodeState node);
+    protected abstract I openIndex(String path, NodeState root, NodeState node);
 
     synchronized void close() {
-        Map<String, IndexNodeManager> indices = this.indices;
+        Map<String, I> indices = this.indices;
         this.indices = emptyMap();
 
-        for (Map.Entry<String, IndexNodeManager> entry : indices.entrySet()) {
-            try {
-                entry.getValue().close();
-            } catch (IOException e) {
-                log.error("Failed to close the Lucene index at " + entry.getKey(), e);
-            }
+        for (Map.Entry<String, I> entry : indices.entrySet()) {
+            entry.getValue().close();
         }
     }
 
@@ -91,10 +86,22 @@ public abstract class FulltextIndexTracker {
             this.root = root;
             close();
             refresh = false;
-            log.info("Refreshed the opened indexes");
+            LOG.info("Refreshed the opened indexes");
         } else {
             diffAndUpdate(root);
         }
+    }
+
+    /**
+     * Receives the before and after state to decide when to reload the {@link IndexNode}.
+     * By default it checks for changes of the :status node and the index definition.
+     *
+     * @param before before state, non-existent if this node was added
+     * @param after after state, non-existent if this node was removed
+     * @return true if the {@link IndexNode} need to be opened and updated
+     */
+    public boolean isUpdateNeeded(NodeState before, NodeState after) {
+        return isStatusChanged(before, after) || isIndexDefinitionChanged(before, after);
     }
 
     public void setAsyncIndexInfoService(AsyncIndexInfoService asyncIndexInfoService) {
@@ -107,27 +114,27 @@ public abstract class FulltextIndexTracker {
 
     private synchronized void diffAndUpdate(final NodeState root) {
         if (asyncIndexInfoService != null && !asyncIndexInfoService.hasIndexerUpdatedForAnyLane(this.root, root)) {
-            log.trace("No changed detected in async indexer state. Skipping further diff");
+            LOG.trace("No changed detected in async indexer state. Skipping further diff");
             this.root = root;
             return;
         }
 
-        Map<String, IndexNodeManager> original = indices;
-        final Map<String, IndexNodeManager> updates = newHashMap();
+        Map<String, I> original = indices;
+        final Map<String, I> updates = new HashMap<>();
 
-        Set<String> indexPaths = Sets.newHashSet();
+        Set<String> indexPaths = new HashSet<>();
         indexPaths.addAll(original.keySet());
         indexPaths.addAll(badIndexTracker.getIndexPaths());
 
-        List<Editor> editors = newArrayListWithCapacity(indexPaths.size());
+        List<Editor> editors = new ArrayList<>(indexPaths.size());
         for (final String path : indexPaths) {
             editors.add(new SubtreeEditor(new DefaultEditor() {
                 @Override
                 public void leave(NodeState before, NodeState after) {
                     try {
-                        if (isStatusChanged(before, after) || isIndexDefinitionChanged(before, after)) {
+                        if (isUpdateNeeded(before, after)) {
                             long start = PERF_LOGGER.start();
-                            IndexNodeManager index = openIndex(path, root, after);
+                            I index = openIndex(path, root, after);
                             PERF_LOGGER.end(start, -1, "[{}] Index found to be updated. Reopening the IndexNode", path);
                             updates.put(path, index); // index can be null
                         }
@@ -142,7 +149,7 @@ public abstract class FulltextIndexTracker {
         this.root = root;
 
         if (!updates.isEmpty()) {
-            indices = ImmutableMap.<String, IndexNodeManager>builder()
+            indices = ImmutableMap.<String, I>builder()
                     .putAll(filterKeys(original, not(in(updates.keySet()))))
                     .putAll(filterValues(updates, notNull()))
                     .build();
@@ -154,25 +161,21 @@ public abstract class FulltextIndexTracker {
             //Given that Tracker is now invoked from a BackgroundObserver
             //not a high concern
             for (String path : updates.keySet()) {
-                IndexNodeManager index = original.get(path);
-                try {
-                    if (index != null) {
-                        index.close();
-                    }
-                } catch (IOException e) {
-                    log.error("Failed to close Lucene index at " + path, e);
+                I index = original.get(path);
+                if (index != null) {
+                    index.close();
                 }
             }
         }
     }
 
     void refresh() {
-        log.info("Marked tracker to refresh upon next cycle");
+        LOG.info("Marked tracker to refresh upon next cycle");
         refresh = true;
     }
 
     public IndexNode acquireIndexNode(String path, String type) {
-        IndexNodeManager index = indices.get(path);
+        I index = indices.get(path);
         IndexNode indexNode = index != null ? index.acquire() : null;
         if (indexNode != null) {
             return indexNode;
@@ -183,7 +186,7 @@ public abstract class FulltextIndexTracker {
 
     @Nullable
     public IndexDefinition getIndexDefinition(String indexPath){
-        IndexNodeManager node = indices.get(indexPath);
+        I node = indices.get(indexPath);
         if (node != null){
             //Accessing the definition should not require
             //locking as its immutable state
@@ -208,7 +211,7 @@ public abstract class FulltextIndexTracker {
         // Retry the lookup from acquireIndexNode now that we're
         // synchronized. The acquire() call is guaranteed to succeed
         // since the close() method is also synchronized.
-        IndexNodeManager index = indices.get(path);
+        I index = indices.get(path);
         if (index != null) {
             IndexNode indexNode = index.acquire();
             return checkNotNull(indexNode);
@@ -229,7 +232,7 @@ public abstract class FulltextIndexTracker {
                 if (index != null) {
                     IndexNode indexNode = index.acquire();
                     checkNotNull(indexNode);
-                    indices = ImmutableMap.<String, IndexNodeManager>builder()
+                    indices = ImmutableMap.<String, I>builder()
                             .putAll(indices)
                             .put(path, index)
                             .build();
@@ -237,7 +240,7 @@ public abstract class FulltextIndexTracker {
                     return indexNode;
                 }
             } else if (node.exists()) {
-                log.warn("Cannot open Index at path {} as the index is not of type {}", path, type);
+                LOG.warn("Cannot open Index at path {} as the index is not of type {}", path, type);
             }
         } catch (Throwable e) {
             badIndexTracker.markBadIndexForRead(path, e);
@@ -251,7 +254,7 @@ public abstract class FulltextIndexTracker {
         return !EqualsDiff.equals(before.getChildNode(STATUS_NODE), after.getChildNode(STATUS_NODE));
     }
 
-    private static boolean isIndexDefinitionChanged(NodeState before, NodeState after) {
+    protected static boolean isIndexDefinitionChanged(NodeState before, NodeState after) {
         return !EqualsDiff.equals(before.getChildNode(INDEX_DEFINITION_NODE), after.getChildNode(INDEX_DEFINITION_NODE));
     }
 }

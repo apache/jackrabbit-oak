@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -39,6 +45,45 @@ public class ElasticIndexNameHelper {
         return getElasticSafeIndexName(indexPrefix + "." + indexPath);
     }
 
+    public static @Nullable String getRemoteIndexName(String indexPrefix, NodeState indexNode, String indexPath) {
+        PropertyState nodeTypeProp = indexNode.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        if (nodeTypeProp == null || !IndexConstants.INDEX_DEFINITIONS_NODE_TYPE.equals(nodeTypeProp.getValue(Type.STRING))) {
+            throw new IllegalArgumentException("Not an index definition node state");
+        }
+        PropertyState type = indexNode.getProperty(IndexConstants.TYPE_PROPERTY_NAME);
+        String typeValue = type != null ? type.getValue(Type.STRING) : "";
+        if (!ElasticIndexDefinition.TYPE_ELASTICSEARCH.equals(typeValue) && !"disabled".equals(typeValue)) {
+            throw new IllegalArgumentException("Not an elastic index node");
+        }
+        PropertyState seedProp = indexNode.getProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED);
+        if (seedProp == null) {
+            return null;
+        }
+        long seed = seedProp.getValue(Type.LONG);
+        String indexAlias = getIndexAlias(indexPrefix, indexPath);
+        return getRemoteIndexName(indexAlias, seed);
+    }
+
+    /**
+     * Create a name for remote elastic index from given index definition and seed.
+     * @param indexDefinition elastic index definition to use
+     * @param seed seed to use
+     * @return remote elastic index name
+     */
+    public static String getRemoteIndexName(ElasticIndexDefinition indexDefinition, long seed) {
+        return getElasticSafeIndexName(
+                indexDefinition.getRemoteIndexAlias() + "-" + Long.toHexString(seed));
+    }
+
+    /**
+     * Create a name for remote elastic index from given index definition and a randomly generated seed.
+     * @param indexDefinition elastic index definition to use
+     * @return remote elastic index name
+     */
+    public static String getRemoteIndexName(ElasticIndexDefinition indexDefinition) {
+        return getRemoteIndexName(indexDefinition, UUID.randomUUID().getMostSignificantBits());
+    }
+
     /**
      * <ul>
      *     <li>abc -> abc</li>
@@ -48,7 +93,7 @@ public class ElasticIndexNameHelper {
      * <p>
      * The resulting file name would be truncated to MAX_NAME_LENGTH
      */
-    public static String getElasticSafeIndexName(String indexPath) {
+    private static String getElasticSafeIndexName(String indexPath) {
         String name = StreamSupport
                 .stream(PathUtils.elements(indexPath).spliterator(), false)
                 .limit(3) //Max 3 nodeNames including oak:index which is the immediate parent for any indexPath
@@ -66,7 +111,11 @@ public class ElasticIndexNameHelper {
      * Convert {@code e} to Elasticsearch safe index name.
      * Ref: https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html
      */
-    private static String getElasticSafeName(String suggestedIndexName) {
+    static String getElasticSafeName(String suggestedIndexName) {
         return suggestedIndexName.replaceAll(INVALID_CHARS_REGEX, "").toLowerCase();
+    }
+
+    private static String getRemoteIndexName(String indexAlias, long seed) {
+        return getElasticSafeIndexName(indexAlias + "-" + Long.toHexString(seed));
     }
 }

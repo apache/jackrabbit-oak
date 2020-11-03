@@ -22,11 +22,12 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -63,10 +64,9 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Group member2 = createGroup();
         gr.addMembers(member.getID(), member2.getID());
 
-        Map m = Maps.newHashMap();
+        Map<String, String> m = Maps.newHashMap();
         m.put(getContentID(member.getID()), member.getID());
         m.put(getContentID(member2.getID()), member2.getID());
-
 
         Set<String> failed = mp.removeMembers(getTree(gr), m);
         assertTrue(failed.isEmpty());
@@ -106,7 +106,7 @@ public class MembershipProviderTest extends MembershipBaseTest {
         List<String> memberPaths = createMembers(grp, NUM_USERS);
         root.commit();
 
-        Map<String, String> m = new HashMap();
+        Map<String, String> m = new HashMap<>();
         for (String path : memberPaths) {
             Tree memberTree = root.getTree(path);
             String memberId = TreeUtil.getString(memberTree, REP_AUTHORIZABLE_ID);
@@ -167,8 +167,8 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Tree grTree = getTree(createGroup());
         Tree memberTree = getTree(createUser());
 
-        NodeUtil memberList = new NodeUtil(grTree).addChild(REP_MEMBERS_LIST, NT_REP_MEMBER_REFERENCES_LIST);
-        memberList.addChild("member1", NT_REP_MEMBER_REFERENCES).setStrings(REP_MEMBERS, getContentID(memberTree));
+        Tree memberList = TreeUtil.addChild(grTree, REP_MEMBERS_LIST, NT_REP_MEMBER_REFERENCES_LIST);
+        TreeUtil.addChild(memberList, "member1", NT_REP_MEMBER_REFERENCES).setProperty(REP_MEMBERS, Collections.singleton(getContentID(memberTree)), Type.STRINGS);
 
         assertTrue(mp.isDeclaredMember(grTree, memberTree));
     }
@@ -178,8 +178,8 @@ public class MembershipProviderTest extends MembershipBaseTest {
         Tree grTree = getTree(createGroup());
         Tree memberTree = getTree(createUser());
 
-        NodeUtil memberList = new NodeUtil(grTree).addChild(REP_MEMBERS_LIST, NT_REP_MEMBER_REFERENCES_LIST);
-        memberList.addChild("member1", NT_REP_MEMBER_REFERENCES).setStrings(REP_MEMBERS, getContentID("another"));
+        Tree memberList = TreeUtil.addChild(grTree, REP_MEMBERS_LIST, NT_REP_MEMBER_REFERENCES_LIST);
+        TreeUtil.addChild(memberList, "member1", NT_REP_MEMBER_REFERENCES).setProperty(REP_MEMBERS, Collections.singleton(getContentID("another")), Type.STRINGS);
 
         assertFalse(mp.isDeclaredMember(grTree, memberTree));
     }

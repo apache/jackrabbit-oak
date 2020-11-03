@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNameHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -93,25 +94,25 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     @Override
-    public boolean close(long timestamp) {
+    public boolean close(long timestamp) throws IOException {
         return bulkProcessorHandler.close();
     }
 
-    protected void provisionIndex() throws IOException {
+    protected void provisionIndex(long seed) throws IOException {
         // check if index already exists
+        final String indexName = ElasticIndexNameHelper.getRemoteIndexName(indexDefinition, seed);
         boolean exists = elasticConnection.getClient().indices().exists(
-                new GetIndexRequest(indexDefinition.getRemoteIndexName()), RequestOptions.DEFAULT
+                new GetIndexRequest(indexName), RequestOptions.DEFAULT
         );
         if (exists) {
-            LOG.info("Index {} already exists. Skip index provision", indexDefinition.getRemoteIndexName());
+            LOG.info("Index {} already exists. Skip index provision", indexName);
             return;
         }
 
         final IndicesClient indicesClient = elasticConnection.getClient().indices();
-        final String indexName = indexDefinition.getRemoteIndexName();
 
         // create the new index
-        final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexDefinition);
+        final CreateIndexRequest request = ElasticIndexHelper.createIndexRequest(indexName, indexDefinition);
         try {
             if (LOG.isDebugEnabled()) {
                 final String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
@@ -119,7 +120,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             }
             CreateIndexResponse response = indicesClient.create(request, RequestOptions.DEFAULT);
             LOG.info("Updated settings for index {}. Response acknowledged: {}",
-                    indexDefinition.getRemoteIndexName(), response.isAcknowledged());
+                    indexName, response.isAcknowledged());
             checkResponseAcknowledgement(response, "Create index call not acknowledged for index " + indexName);
         } catch (ElasticsearchStatusException ese) {
             // We already check index existence as first thing in this method, if we get here it means we have got into

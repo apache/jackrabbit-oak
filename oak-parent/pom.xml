@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.33-SNAPSHOT</version>
+  <version>1.35-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -53,7 +53,7 @@
     <mongo.version>3.6</mongo.version>
     <segment.db>SegmentMK</segment.db>
     <lucene.version>4.7.1</lucene.version>
-    <solr.version>6.6.6</solr.version>
+    <solr.version>8.6.3</solr.version>
     <mongo.driver.version>3.8.2</mongo.driver.version>
     <slf4j.api.version>1.7.30</slf4j.api.version>
     <slf4j.version>1.7.30</slf4j.version> <!-- sync with logback version -->
@@ -329,6 +329,13 @@
           <artifactId>spotbugs-maven-plugin</artifactId>
           <version>3.1.11</version>
         </plugin>
+        
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>2.7</version>
+        </plugin>
+        
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
         <plugin>
@@ -552,7 +559,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.12</version>
+        <version>4.13.1</version>
       </dependency>
       <dependency>
         <groupId>org.mongodb</groupId>
@@ -1078,7 +1085,7 @@
         <dependency>
           <groupId>org.postgresql</groupId>
           <artifactId>postgresql</artifactId>
-          <version>42.2.12</version>
+          <version>42.2.18</version>
         </dependency>
       </dependencies>
     </profile>
