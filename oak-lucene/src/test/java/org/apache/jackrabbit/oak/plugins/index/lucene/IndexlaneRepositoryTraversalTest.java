@@ -81,7 +81,7 @@ public class IndexlaneRepositoryTraversalTest {
     @Before
     public void before() throws Exception {
         systemProperties =(Properties) System.getProperties().clone();
-        System.setProperty("oak.async.traverseNodesIfLaneNotPresentInIndex", "true");
+        System.setProperty("oak.async.traverseNodesIfLanePresentInIndex", "true");
         ContentSession session = createRepository().login(null, null);
         root = session.getLatestRoot();
         customLogger = LogCustomizer

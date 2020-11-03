@@ -201,7 +201,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
      * is no index assigned to this lane under /oak:index. (Default value is true).
      */
     private final boolean traverseNodesIfLaneNotPresentInIndex
-            = !Boolean.getBoolean("oak.async.traverseNodesIfLaneNotPresentInIndex");
+            = !Boolean.getBoolean("oak.async.traverseNodesIfLanePresentInIndex");
 
     /**
      * The time in minutes since the epoch when the last checkpoint cleanup ran.
