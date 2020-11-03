@@ -89,19 +89,6 @@ public class IndexImporterTest {
 
     private NodeStore store = new MemoryNodeStore();
     private IndexEditorProvider provider = new PropertyIndexEditorProvider();
-    private Properties systemProperties;
-
-    @Before
-    public void setup(){
-        systemProperties =(Properties) System.getProperties().clone();
-        System.setProperty("oak.async.traverseNodesIfLaneNotPresentInIndex", "true");
-    }
-
-    @After
-    public void shutDown(){
-        System.setProperties(systemProperties);
-    }
-
 
     @Test(expected = IllegalArgumentException.class)
     public void importIndex_NoMeta() throws Exception{
