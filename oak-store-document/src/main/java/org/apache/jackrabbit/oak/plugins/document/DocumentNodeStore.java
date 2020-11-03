@@ -2454,7 +2454,28 @@ public final class DocumentNodeStore
         Set<Path> invalidatedPaths = new HashSet<>();
         Set<Path> pathsToInvalidate = new HashSet<>();
         RevisionVector head = getHeadRevision();
-        List<UpdateOp> splitOps = new LinkedList<>();
+        // OAK-9149 : With backgroundSplit being done in batches, the
+        // updateOps must be executed in "phases".
+        // Reason being that the (DocumentStore) batch calls
+        // are not atomic. That means they could potentially
+        // be partially executed only - without any guarantees on
+        // which part is executed and which not.
+        // The split algorithm, however, requires that
+        // a part of the operations, namely intermediate/garbage/split ops,
+        // are executed *before* the main document is updated.
+        // In order to reflect this necessity in the batch variant,
+        // all those intermediate/garbage/split updateOps are grouped
+        // into a first phase - and the main document updateOps in a second phase.
+        // That way, if the first phase fails, partially, the main documents
+        // are not yet touched.
+        // TODO but if the split fails, we create actual garbage that cannot
+        // be cleaned up later, since there is no "pointer" to it. That's
+        // something to look at/consider at some point.
+
+        // phase1 therefore only contains intermediate/garbage/split updateOps
+        List<UpdateOp> splitOpsPhase1 = new LinkedList<>();
+        // phase2 contains main document updateOps.
+        List<UpdateOp> splitOpsPhase2 = new LinkedList<>();
         List<String> removeCandidates = new LinkedList<>();
         for (String id : splitCandidates.keySet()) {
             NodeDocument doc = store.find(Collection.NODES, id);
@@ -2462,7 +2483,9 @@ public final class DocumentNodeStore
                 continue;
             }
             cleanCollisions(doc, collisionGarbageBatchSize);
-            for (UpdateOp op : doc.split(this, head, binarySize)) {
+            Iterator<UpdateOp> it = doc.split(this, head, binarySize).iterator();
+            while(it.hasNext()) {
+                UpdateOp op = it.next();
                 Path path = doc.getPath();
                 // add an invalidation journal entry, unless the path
                 // already has a pending _lastRev update or an invalidation
@@ -2470,43 +2493,64 @@ public final class DocumentNodeStore
                 if (unsavedLastRevisions.get(path) == null && !invalidatedPaths.contains(path)) {
                     pathsToInvalidate.add(path);
                 }
-                splitOps.add(op);
+                // the last entry is the main document update
+                // (as per updated NodeDocument.split documentation).
+                if (it.hasNext()) {
+                    splitOpsPhase1.add(op);
+                } else {
+                    splitOpsPhase2.add(op);
+                }
             }
             removeCandidates.add(id);
-            if (splitOps.size() >= getCreateOrUpdateBatchSize()) {
-                batchSplit(splitOps, pathsToInvalidate);
-                splitOps.clear();
+            if (splitOpsPhase1.size() >= getCreateOrUpdateBatchSize()
+                    || splitOpsPhase2.size() >= getCreateOrUpdateBatchSize()) {
+                invalidatePaths(pathsToInvalidate);
+                batchSplit(splitOpsPhase1);
+                batchSplit(splitOpsPhase2);
                 invalidatedPaths.addAll(pathsToInvalidate);
                 pathsToInvalidate.clear();
+                splitOpsPhase1.clear();
+                splitOpsPhase2.clear();
                 splitCandidates.keySet().removeAll(removeCandidates);
                 removeCandidates.clear();
             }
         }
 
-        if (splitOps.size() > 0) {
-            batchSplit(splitOps, pathsToInvalidate);
+        if (splitOpsPhase1.size() + splitOpsPhase2.size() > 0) {
+            invalidatePaths(pathsToInvalidate);
+            batchSplit(splitOpsPhase1);
+            batchSplit(splitOpsPhase2);
             splitCandidates.keySet().removeAll(removeCandidates);
         }
     }
 
-    private void batchSplit(List<UpdateOp> splitOps, Set<Path> pathsToInvalidate) {
-        if (!pathsToInvalidate.isEmpty()) {
-            // create journal entry for cache invalidation
-            JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
-            entry.modified(pathsToInvalidate);
-            Revision r = newRevision().asBranchRevision();
-            UpdateOp journalOp = entry.asUpdateOp(r);
-            if (store.create(JOURNAL, singletonList(journalOp))) {
-                changes.invalidate(singletonList(r));
-                LOG.debug("Journal entry {} created for split of document(s) {}",
-                        journalOp.getId(), pathsToInvalidate);
-            } else {
-                String msg = "Unable to create journal entry " +
-                        journalOp.getId() + " for document invalidation. " +
-                        "Will be retried with next background split " +
-                        "operation.";
-                throw new DocumentStoreException(msg);
-            }
+    private void invalidatePaths(@NotNull Set<Path> pathsToInvalidate) {
+        if (pathsToInvalidate.isEmpty()) {
+            // nothing to do
+            return;
+        }
+        // create journal entry for cache invalidation
+        JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
+        entry.modified(pathsToInvalidate);
+        Revision r = newRevision().asBranchRevision();
+        UpdateOp journalOp = entry.asUpdateOp(r);
+        if (store.create(JOURNAL, singletonList(journalOp))) {
+            changes.invalidate(singletonList(r));
+            LOG.debug("Journal entry {} created for split of document(s) {}",
+                    journalOp.getId(), pathsToInvalidate);
+        } else {
+            String msg = "Unable to create journal entry " +
+                    journalOp.getId() + " for document invalidation. " +
+                    "Will be retried with next background split " +
+                    "operation.";
+            throw new DocumentStoreException(msg);
+        }
+    }
+
+    private void batchSplit(@NotNull List<UpdateOp> splitOps) {
+        if (splitOps.isEmpty()) {
+            // nothing to do
+            return;
         }
         // apply the split operations
         List<NodeDocument> beforeList = store.createOrUpdate(Collection.NODES, splitOps);

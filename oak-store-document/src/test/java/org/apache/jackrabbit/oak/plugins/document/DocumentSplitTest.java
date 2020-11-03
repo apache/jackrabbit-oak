@@ -123,7 +123,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
 
     @Test
     public void smallBatchSplitTest() throws Exception {
-        batchSplitTest(1, 1000);
+        batchSplitTest(2, 1000);
     }
 
     private void batchSplitTest(int batchSize, int splitDocCnt) throws Exception {
