@@ -2451,8 +2451,9 @@ public final class DocumentNodeStore
     }
 
     private void backgroundSplit() {
-        Set<Path> invalidatedPaths = new HashSet<>(getCreateOrUpdateBatchSize() + 4);
-        Set<Path> pathsToInvalidate = new HashSet<>(getCreateOrUpdateBatchSize() + 4);
+        final int initialCapacity = getCreateOrUpdateBatchSize() + 4;
+        Set<Path> invalidatedPaths = new HashSet<>(initialCapacity);
+        Set<Path> pathsToInvalidate = new HashSet<>(initialCapacity);
         RevisionVector head = getHeadRevision();
         // OAK-9149 : With backgroundSplit being done in batches, the
         // updateOps must be executed in "phases".
@@ -2473,10 +2474,10 @@ public final class DocumentNodeStore
         // something to look at/consider at some point.
 
         // phase1 therefore only contains intermediate/garbage/split updateOps
-        List<UpdateOp> splitOpsPhase1 = new ArrayList<>(getCreateOrUpdateBatchSize() + 4);
+        List<UpdateOp> splitOpsPhase1 = new ArrayList<>(initialCapacity);
         // phase2 contains main document updateOps.
-        List<UpdateOp> splitOpsPhase2 = new ArrayList<>(getCreateOrUpdateBatchSize() + 4);
-        List<String> removeCandidates = new ArrayList<>(getCreateOrUpdateBatchSize() + 4);
+        List<UpdateOp> splitOpsPhase2 = new ArrayList<>(initialCapacity);
+        List<String> removeCandidates = new ArrayList<>(initialCapacity);
         for (String id : splitCandidates.keySet()) {
             NodeDocument doc = store.find(Collection.NODES, id);
             if (doc == null) {
