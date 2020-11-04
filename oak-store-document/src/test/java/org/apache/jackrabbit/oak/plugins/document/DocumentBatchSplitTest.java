@@ -42,6 +42,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+
 /**
  * Check correct splitting of documents (OAK-926 & OAK-1342).
  */
@@ -129,6 +132,13 @@ public class DocumentBatchSplitTest {
     @Test
     public void noBatchSplit() throws Exception {
         batchSplitTest(1, 1000);
+    }
+
+    /** Make sure we have a test that has log level set to DEBUG */
+    @Test
+    public void debugLogLevelBatchSplit() throws Exception {
+        enableLevel("org", Level.DEBUG);
+        batchSplitTest(50, 1000);
     }
 
     private void batchSplitTest(int batchSize, int splitDocCnt) throws Exception {
@@ -222,5 +232,13 @@ public class DocumentBatchSplitTest {
         byte[] data = new byte[num];
         random.nextBytes(data);
         return data;
+    }
+
+    // TODO: from DocumentStoreStatsTest
+    // but there are various places such as RevisionsCommand, BroadcastTest that have similar code.
+    // we might want to move this to a new common util/helper
+    private static void enableLevel(String logName, Level level){
+        ((LoggerContext)LoggerFactory.getILoggerFactory())
+                .getLogger(logName).setLevel(level);
     }
 }
