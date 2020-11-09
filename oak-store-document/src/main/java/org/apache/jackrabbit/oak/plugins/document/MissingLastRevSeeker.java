@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
@@ -86,7 +87,8 @@ public class MissingLastRevSeeker {
             @Override
             public boolean apply(NodeDocument input) {
                 Long modified = (Long) input.get(MODIFIED_IN_SECS);
-                return (modified != null && (modified >= getModifiedInSecs(startTime)));
+                Long sdType = (Long) input.get(SD_TYPE);
+                return (modified != null && (modified >= getModifiedInSecs(startTime)) && sdType == null);
             }
         });
     }
