@@ -310,12 +310,6 @@ public class LastRevRecoveryAgent {
         long lastLog = startOfScan;
 
         for (NodeDocument doc : suspects) {
-        	
-        	//Should skip previous/split documents
-        	if(doc.isSplitDocument()) {
-        		continue;
-        	}
-        	
             totalCount++;
             lastCount++;
 
