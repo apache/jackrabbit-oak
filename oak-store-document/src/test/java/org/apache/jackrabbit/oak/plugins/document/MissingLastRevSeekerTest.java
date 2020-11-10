@@ -223,9 +223,8 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     
     @Test
     public void getNonSplitDocs() throws Exception {
-        String nodeName = "foo";
-        DocumentNodeStore dns = getBuilder().setAsyncDelay(0)
-                .setDocumentStore(store).setClusterId(1).getNodeStore();
+        String nodeName = this.getClass().getName() + "-foo";
+        DocumentNodeStore dns = getBuilder().setDocumentStore(store).getNodeStore();
         NodeBuilder b1 = dns.getRoot().builder();
         b1.child(nodeName);
         dns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);

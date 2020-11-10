@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.After;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +53,18 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     public BasicDocumentStoreTest(DocumentStoreFixture dsf) {
         super(dsf);
+    }
+
+    @After
+    public void tearDown() {
+        Revision.resetClockToDefault();
+        markDocumentsForCleanup();
+    }
+
+    private void markDocumentsForCleanup() {
+        for (NodeDocument doc : Utils.getAllDocuments(ds)) {
+            removeMe.add(doc.getId());
+        }
     }
 
     @Test
