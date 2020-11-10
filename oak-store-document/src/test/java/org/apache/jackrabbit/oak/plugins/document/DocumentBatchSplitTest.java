@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -158,8 +159,8 @@ public class DocumentBatchSplitTest {
 
         DocumentMK.Builder mkBuilder = new DocumentMK.Builder();
         DocumentStore delegateStore = fixture.createDocumentStore();
-        MeasuringDocumentStore measuringStore = new MeasuringDocumentStore(delegateStore);
-        CountingDocumentStore store = new CountingDocumentStore(measuringStore);
+        TimingDocumentStoreWrapper timingStore = new TimingDocumentStoreWrapper(delegateStore);
+        CountingDocumentStore store = new CountingDocumentStore(timingStore);
         mkBuilder.setDocumentStore(store);
         // disable automatic background operations
         mkBuilder.setAsyncDelay(0);
@@ -181,12 +182,12 @@ public class DocumentBatchSplitTest {
             }
             ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
-        measuringStore.resetMeasurement();
+        timingStore.reset();
         store.resetCounters();
         final long start = System.currentTimeMillis();
         ns.runBackgroundUpdateOperations();
         int createOrUpdateCalls = store.getNumCreateOrUpdateCalls(NODES);
-        final long remoteCallMeasurement = measuringStore.getAndResetMeasurement();
+        final long remoteCallMeasurement = timingStore.getAndResetOverallTime();
         final long totalSplitDuration = (System.currentTimeMillis() - start);
         final long localSplitPart = totalSplitDuration - remoteCallMeasurement;
         LOG.info("batchSplitTest: batchSize = " + batchSize +

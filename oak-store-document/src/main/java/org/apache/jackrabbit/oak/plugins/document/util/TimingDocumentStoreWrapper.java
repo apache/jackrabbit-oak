@@ -81,6 +81,28 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         lastLogTime = now();
     }
 
+    public void reset() {
+        startTime = 0;
+        counts.clear();
+        lastLogTime = 0;
+        totalLogTime = 0;
+        slowCalls.clear();
+    }
+
+    public long getOverallTime() {
+        long overallTime = 0;
+        for (Count count : counts.values()) {
+            overallTime += count.total;
+        }
+        return overallTime;
+    }
+
+    public long getAndResetOverallTime() {
+        final long result = getOverallTime();
+        reset();
+        return result;
+    }
+
     private boolean logCommonCall() {
         return callCount % 10 == 0;
     }
