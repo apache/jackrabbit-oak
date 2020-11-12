@@ -25,7 +25,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,57 +50,32 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUs
 import org.apache.jackrabbit.util.Text;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class LdapProviderTest {
 
-    protected static final InternalLdapServer LDAP_SERVER = new InternalLdapServer();
-
-    //initialize LDAP server only once (fast, but might turn out to be not sufficiently flexible in the future)
-    protected static final boolean USE_COMMON_LDAP_FIXTURE = false;
+    //loaded by a separate ClassLoader unavailable to the client (needed because the server is using old libraries)
+    protected LdapServerClassLoader.Proxy proxy;
 
     private static final String TUTORIAL_LDIF = "apache-ds-tutorial.ldif";
-
     private static final String ERRONEOUS_LDIF = "erroneous.ldif";
-
     public static final String IDP_NAME = "ldap";
 
     protected LdapIdentityProvider idp;
-
     protected LdapProviderConfig providerConfig;
-
-    @BeforeClass
-    public static void beforeClass() throws Exception {
-        if (USE_COMMON_LDAP_FIXTURE) {
-            LDAP_SERVER.setUp();
-            initLdapFixture(LDAP_SERVER);
-        }
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        if (USE_COMMON_LDAP_FIXTURE) {
-            LDAP_SERVER.tearDown();
-        }
-    }
 
     @Before
     public void before() throws Exception {
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            LDAP_SERVER.setUp();
-            initLdapFixture(LDAP_SERVER);
-        }
+        LdapServerClassLoader serverClassLoader = LdapServerClassLoader.createServerClassLoader();
+        proxy = serverClassLoader.createAndSetupServer();
+        proxy.loadLdif(getClass().getResourceAsStream(TUTORIAL_LDIF));
         idp = createIDP();
     }
 
     @After
     public void after() throws Exception {
-        if (!USE_COMMON_LDAP_FIXTURE) {
-            LDAP_SERVER.tearDown();
-        }
+        proxy.tearDown();
         if (idp != null) {
             idp.close();
             idp = null;
@@ -117,7 +91,7 @@ public class LdapProviderTest {
         providerConfig = new LdapProviderConfig()
                 .setName(IDP_NAME)
                 .setHostname("127.0.0.1")
-                .setPort(LDAP_SERVER.getPort())
+                .setPort(proxy.port)
                 .setBindDN(ServerDNConstants.ADMIN_SYSTEM_DN)
                 .setBindPassword(InternalLdapServer.ADMIN_PW)
                 .setGroupMemberAttribute("uniquemember")
@@ -133,11 +107,6 @@ public class LdapProviderTest {
         providerConfig.getAdminPoolConfig().setMaxActive(0);
         providerConfig.getUserPoolConfig().setMaxActive(0);
         return new LdapIdentityProvider(providerConfig);
-    }
-
-    protected static void initLdapFixture(InternalLdapServer server) throws Exception {
-        InputStream tutorialLDIF = LdapProviderTest.class.getResourceAsStream(TUTORIAL_LDIF);
-        server.loadLdif(tutorialLDIF);
     }
 
     public static final String TEST_USER0_DN = "cn=Rat Ratterson,ou=users,ou=system";
@@ -192,9 +161,10 @@ public class LdapProviderTest {
     @Test
     public void testListUsersWithMissingUid() throws Exception {
         // the ERRONEOUS_LDIF contains an entry without uid
-        InputStream erroneousDIF = LdapProviderTest.class.getResourceAsStream(ERRONEOUS_LDIF);
-        LDAP_SERVER.loadLdif(erroneousDIF);
+        proxy.loadLdif(getClass().getResourceAsStream(ERRONEOUS_LDIF));
         Iterator<ExternalUser> users = idp.listUsers();
+        // make sure we got a result
+        assertTrue(users.hasNext());
         // without the LdapInvalidAttributeValueException a NPE would result here:
         while(users.hasNext()) {
             ExternalUser user = users.next();
