@@ -145,9 +145,9 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
         return suggestions;
     }
 
-    private void validateSpellchecks(String query, Set<String> expected) throws Exception {
+    private void validateSpellchecks(String query, Set<String> expected) {
         assertEventually(() -> {
-            Set<String> suggestions = null;
+            Set<String> suggestions;
             try {
                 suggestions = getSpellchecks(query);
             } catch (Exception e) {
@@ -160,7 +160,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
     @Ignore
     //TODO ES Failing
     @Test
-    public void noDescendantSuggestsAll() throws Exception {
+    public void noDescendantSuggestsAll() {
         validateSpellchecks(
                 createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", null),
                 newHashSet("test1", "test2", "test3", "test4", "test5", "test6"));
@@ -168,14 +168,14 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
 
     //OAK-3994
     @Test
-    public void rootIndexWithDescendantConstraint() throws Exception {
+    public void rootIndexWithDescendantConstraint() {
         validateSpellchecks(
                 createSpellcheckQuery(NT_OAK_UNSTRUCTURED, "taste", "/content1"),
                 newHashSet("test2", "test3"));
     }
 
     @Ignore
-    //TODO ES Failing: if path restriction is not enabled, all ruggestions should be returned
+    //TODO ES Failing: if path restriction is not enabled, all suggestions should be returned
     //OAK-3994
     @Test
     public void descendantSuggestionRequirePathRestrictionIndex() throws Exception {
@@ -194,7 +194,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
     //TODO ES Failing
     //OAK-3994
     @Test
-    public void unambiguousSubtreeIndexWithDescendantConstraint() throws Exception {
+    public void unambiguousSubtreeIndexWithDescendantConstraint() {
         validateSpellchecks(
                 createSpellcheckQuery(NT_BASE, "taste", "/content3"),
                 newHashSet("test5", "test6"));
@@ -202,7 +202,7 @@ public abstract class IndexDescendantSpellcheckCommonTest extends AbstractJcrTes
 
     //OAK-3994
     @Test
-    public void unambiguousSubtreeIndexWithSubDescendantConstraint() throws Exception {
+    public void unambiguousSubtreeIndexWithSubDescendantConstraint() {
         validateSpellchecks(
                 createSpellcheckQuery(NT_BASE, "taste", "/content3/sC"),
                 newHashSet("test6"));

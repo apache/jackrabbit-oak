@@ -130,7 +130,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         String nativeQueryStringWithStopWords = "select [jcr:path] from [nt:base] where " +
                 "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.stopwords=Hello,bye')";
 
-        String nativeQueryStringWithouStopWords =  "select [jcr:path] from [nt:base] where " +
+        String nativeQueryStringWithoutStopWords =  "select [jcr:path] from [nt:base] where " +
                 "native('elastic-sim', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0&mlt.minshouldmatch=20%')";
 
         Tree test = root.getTree("/").addChild("test");
@@ -147,7 +147,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         assertEventually(() -> assertQuery(nativeQueryStringWithStopWords,
                 Arrays.asList("/test/e", "/test/f")));
 
-        assertEventually(() -> assertQuery(nativeQueryStringWithouStopWords,
+        assertEventually(() -> assertQuery(nativeQueryStringWithoutStopWords,
                 Arrays.asList("/test/b", "/test/c", "/test/d", "/test/e", "/test/f")));
     }
 
@@ -168,7 +168,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         root.commit();
 
         // Matches because of term Hello should be ignored since wl <6 (so /test/ should NOT be in the match list)
-        // /test/d should be in match list (becuase of Worlds term)
+        // /test/d should be in match list (because of Worlds term)
         assertEventually(() -> assertQuery(nativeQueryStringWithMinWordLength,
                 Arrays.asList("/test/c", "/test/d")));
 
@@ -195,7 +195,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
         test.addChild("h").setProperty("text", "Hello");
         root.commit();
 
-        String query = "select [jcr:path] from [nt:base] where similar(., '"+longPath.getPath()+"')";
+        String query = "select [jcr:path] from [nt:base] where similar(., '" + longPath.getPath() + "')";
 
         assertEventually(() -> assertQuery(query,
                 Arrays.asList("/test/b", "/test/c", "/test/d", "/test/f", "/test/g", "/test/h")));

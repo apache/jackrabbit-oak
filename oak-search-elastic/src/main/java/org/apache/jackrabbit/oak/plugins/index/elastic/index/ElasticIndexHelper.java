@@ -63,6 +63,8 @@ class ElasticIndexHelper {
     private static XContentBuilder loadSettings(ElasticIndexDefinition indexDefinition) throws IOException {
         final XContentBuilder settingsBuilder = XContentFactory.jsonBuilder();
         settingsBuilder.startObject();
+        settingsBuilder.field("number_of_shards", indexDefinition.numberOfShards);
+        settingsBuilder.field("number_of_replicas", indexDefinition.numberOfReplicas);
         {
             settingsBuilder.startObject("analysis");
             {
