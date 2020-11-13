@@ -149,7 +149,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
 
             String finalStr = clusterViewObj.getProperties().get("final");
 
-            return Boolean.valueOf(finalStr);
+            return Boolean.parseBoolean(finalStr);
         }
 
         boolean isInvisible() {

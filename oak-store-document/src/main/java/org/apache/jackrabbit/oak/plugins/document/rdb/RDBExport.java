@@ -214,8 +214,8 @@ public class RDBExport {
                     lobfile = lobfile.substring(0, lastdot);
 
                     System.err.println("lastdot: " + lastdot + "; length: " + length + "; lobfile: " + lobfile + "; lastdot: " + lastdot + "; startpos: " + startpos);
-                    int s = Integer.valueOf(startpos);
-                    int l = Integer.valueOf(length);
+                    int s = Integer.parseInt(startpos);
+                    int l = Integer.parseInt(length);
                     File lf = new File(lobDirectory, lobfile);
                     InputStream is = new FileInputStream(lf);
                     bytes = new byte[l];
@@ -360,13 +360,13 @@ public class RDBExport {
     @Nullable
     private static Boolean readBooleanOrNullFromResultSet(ResultSet res, String field) throws SQLException {
         long v = res.getLong(field);
-        return res.wasNull() ? null : Boolean.valueOf(v != 0);
+        return res.wasNull() ? null : v != 0;
     }
 
     @Nullable
     private static Long readLongOrNullFromResultSet(ResultSet res, String field) throws SQLException {
         long v = res.getLong(field);
-        return res.wasNull() ? null : Long.valueOf(v);
+        return res.wasNull() ? null : v;
     }
 
     @NotNull
