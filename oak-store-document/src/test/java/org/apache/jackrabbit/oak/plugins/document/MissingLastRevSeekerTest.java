@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBMissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -73,6 +74,12 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     public void after() {
         ClusterNodeInfo.resetClockToDefault();
         Revision.resetClockToDefault();
+    }
+    
+    private void markDocumentsForCleanup() {
+        for (NodeDocument doc : Utils.getAllDocuments(ds)) {
+            removeMe.add(doc.getId());
+        }
     }
 
     @Test
@@ -224,7 +231,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     @Test
     public void getNonSplitDocs() throws Exception {
         String nodeName = this.getClass().getName() + "-foo";
-        DocumentNodeStore dns = getBuilder().setDocumentStore(store).getNodeStore();
+        DocumentNodeStore dns = getBuilder().clock(clock).setAsyncDelay(0).setDocumentStore(store).getNodeStore();
         NodeBuilder b1 = dns.getRoot().builder();
         b1.child(nodeName);
         dns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -235,11 +242,9 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
             dns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
         dns.runBackgroundOperations();
-        int docs = 0;
         //seeker should return only non split documents
-        for(Document doc : seeker.getCandidates(0)) {
-        	docs++;
-        }
+        int docs = Iterables.size(seeker.getCandidates(0));
         assertEquals(2, docs);
+        markDocumentsForCleanup();
     }
 }
