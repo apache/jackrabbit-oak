@@ -83,6 +83,8 @@ public class DocumentBatchSplitTest {
             mk = null;
         }
         fixture.dispose();
+        // reset log level to default
+        enableLevel("org", null);
     }
 
     @Before
