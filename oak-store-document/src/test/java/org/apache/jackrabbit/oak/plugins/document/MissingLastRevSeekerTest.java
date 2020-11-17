@@ -231,7 +231,13 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     @Test
     public void getNonSplitDocs() throws Exception {
         String nodeName = this.getClass().getName() + "-foo";
-        DocumentNodeStore dns = getBuilder().clock(clock).setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+        DocumentNodeStore dns = getBuilder().clock(clock).setAsyncDelay(0).setDocumentStore(new DocumentStoreWrapper(store) {
+        	@Override
+            public void dispose() {
+                // do not close underlying store, otherwise cleanup
+                // cannot remove documents after the test
+            }
+        }).getNodeStore();
         NodeBuilder b1 = dns.getRoot().builder();
         b1.child(nodeName);
         dns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -246,5 +252,6 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         int docs = Iterables.size(seeker.getCandidates(0));
         assertEquals(2, docs);
         markDocumentsForCleanup();
+        dns.dispose();
     }
 }
