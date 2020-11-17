@@ -83,9 +83,6 @@ public class DocumentBatchSplitTest {
             mk = null;
         }
         fixture.dispose();
-        if (fixture.getName().equals("MongoDB")) {
-            MongoUtils.dropCollections(MongoUtils.DB);
-        }
     }
 
     @Before
