@@ -2451,58 +2451,126 @@ public final class DocumentNodeStore
     }
 
     private void backgroundSplit() {
-        Set<Path> invalidatedPaths = new HashSet<>();
+        final int initialCapacity = getCreateOrUpdateBatchSize() + 4;
+        Set<Path> invalidatedPaths = new HashSet<>(initialCapacity);
+        Set<Path> pathsToInvalidate = new HashSet<>(initialCapacity);
         RevisionVector head = getHeadRevision();
-        for (Iterator<String> it = splitCandidates.keySet().iterator(); it.hasNext();) {
-            String id = it.next();
+        // OAK-9149 : With backgroundSplit being done in batches, the
+        // updateOps must be executed in "phases".
+        // Reason being that the (DocumentStore) batch calls
+        // are not atomic. That means they could potentially
+        // be partially executed only - without any guarantees on
+        // which part is executed and which not.
+        // The split algorithm, however, requires that
+        // a part of the operations, namely intermediate/garbage/split ops,
+        // are executed *before* the main document is updated.
+        // In order to reflect this necessity in the batch variant,
+        // all those intermediate/garbage/split updateOps are grouped
+        // into a first phase - and the main document updateOps in a second phase.
+        // That way, if the first phase fails, partially, the main documents
+        // are not yet touched.
+        // TODO but if the split fails, we create actual garbage that cannot
+        // be cleaned up later, since there is no "pointer" to it. That's
+        // something to look at/consider at some point.
+
+        // phase1 therefore only contains intermediate/garbage/split updateOps
+        List<UpdateOp> splitOpsPhase1 = new ArrayList<>(initialCapacity);
+        // phase2 contains main document updateOps.
+        List<UpdateOp> splitOpsPhase2 = new ArrayList<>(initialCapacity);
+        List<String> removeCandidates = new ArrayList<>(initialCapacity);
+        for (String id : splitCandidates.keySet()) {
             NodeDocument doc = store.find(Collection.NODES, id);
             if (doc == null) {
                 continue;
             }
             cleanCollisions(doc, collisionGarbageBatchSize);
-            for (UpdateOp op : doc.split(this, head, binarySize)) {
+            Iterator<UpdateOp> it = doc.split(this, head, binarySize).iterator();
+            while(it.hasNext()) {
+                UpdateOp op = it.next();
                 Path path = doc.getPath();
                 // add an invalidation journal entry, unless the path
                 // already has a pending _lastRev update or an invalidation
                 // entry was already added in this backgroundSplit() call
-                if (unsavedLastRevisions.get(path) == null
-                        && invalidatedPaths.add(path)) {
-                    // create journal entry for cache invalidation
-                    JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
-                    entry.modified(path);
-                    Revision r = newRevision().asBranchRevision();
-                    UpdateOp journalOp = entry.asUpdateOp(r);
-                    if (store.create(JOURNAL, singletonList(journalOp))) {
-                        changes.invalidate(singletonList(r));
-                        LOG.debug("Journal entry {} created for split of document {}",
-                                journalOp.getId(), path);
-                    } else {
-                        String msg = "Unable to create journal entry " +
-                                journalOp.getId() + " for document invalidation. " +
-                                "Will be retried with next background split " +
-                                "operation.";
-                        throw new DocumentStoreException(msg);
-                    }
+                if (unsavedLastRevisions.get(path) == null && !invalidatedPaths.contains(path)) {
+                    pathsToInvalidate.add(path);
                 }
-                // apply the split operations
-                NodeDocument before = null;
-                if (!op.isNew() ||
-                        !store.create(Collection.NODES, Collections.singletonList(op))) {
-                    before = store.createOrUpdate(Collection.NODES, op);
+                // the last entry is the main document update
+                // (as per updated NodeDocument.split documentation).
+                if (it.hasNext()) {
+                    splitOpsPhase1.add(op);
+                } else {
+                    splitOpsPhase2.add(op);
                 }
+            }
+            removeCandidates.add(id);
+            if (splitOpsPhase1.size() >= getCreateOrUpdateBatchSize()
+                    || splitOpsPhase2.size() >= getCreateOrUpdateBatchSize()) {
+                invalidatePaths(pathsToInvalidate);
+                batchSplit(splitOpsPhase1);
+                batchSplit(splitOpsPhase2);
+                invalidatedPaths.addAll(pathsToInvalidate);
+                pathsToInvalidate.clear();
+                splitOpsPhase1.clear();
+                splitOpsPhase2.clear();
+                splitCandidates.keySet().removeAll(removeCandidates);
+                removeCandidates.clear();
+            }
+        }
+
+        if (splitOpsPhase1.size() + splitOpsPhase2.size() > 0) {
+            invalidatePaths(pathsToInvalidate);
+            batchSplit(splitOpsPhase1);
+            batchSplit(splitOpsPhase2);
+            splitCandidates.keySet().removeAll(removeCandidates);
+        }
+    }
+
+    private void invalidatePaths(@NotNull Set<Path> pathsToInvalidate) {
+        if (pathsToInvalidate.isEmpty()) {
+            // nothing to do
+            return;
+        }
+        // create journal entry for cache invalidation
+        JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
+        entry.modified(pathsToInvalidate);
+        Revision r = newRevision().asBranchRevision();
+        UpdateOp journalOp = entry.asUpdateOp(r);
+        if (store.create(JOURNAL, singletonList(journalOp))) {
+            changes.invalidate(singletonList(r));
+            LOG.debug("Journal entry {} created for split of document(s) {}",
+                    journalOp.getId(), pathsToInvalidate);
+        } else {
+            String msg = "Unable to create journal entry " +
+                    journalOp.getId() + " for document invalidation. " +
+                    "Will be retried with next background split " +
+                    "operation.";
+            throw new DocumentStoreException(msg);
+        }
+    }
+
+    private void batchSplit(@NotNull List<UpdateOp> splitOps) {
+        if (splitOps.isEmpty()) {
+            // nothing to do
+            return;
+        }
+        // apply the split operations
+        List<NodeDocument> beforeList = store.createOrUpdate(Collection.NODES, splitOps);
+        if (LOG.isDebugEnabled()) {
+            // this is rather expensive - but given we were doing log.debug before
+            // the batchSplit mechanism, so this somewhat negates the batch improvement indeed
+            for (int i = 0; i < splitOps.size(); i++) {
+                UpdateOp op = splitOps.get(i);
+                NodeDocument before = beforeList.size() > i ? beforeList.get(i) : null;
                 if (before != null) {
-                    if (LOG.isDebugEnabled()) {
-                        NodeDocument after = store.find(Collection.NODES, op.getId());
-                        if (after != null) {
-                            LOG.debug("Split operation on {}. Size before: {}, after: {}",
-                                    id, before.getMemory(), after.getMemory());
-                        }
+                    NodeDocument after = store.find(Collection.NODES, op.getId());
+                    if (after != null) {
+                        LOG.debug("Split operation on {}. Size before: {}, after: {}",
+                                op.getId(), before.getMemory(), after.getMemory());
                     }
                 } else {
                     LOG.debug("Split operation created {}", op.getId());
                 }
             }
-            it.remove();
         }
     }
 
