@@ -54,7 +54,9 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     @Override
     @NotNull
     public CloseableIterable<NodeDocument> getCandidates(final long startTime) {
-        Bson query = Filters.gte(NodeDocument.MODIFIED_IN_SECS, NodeDocument.getModifiedInSecs(startTime));
+        Bson query = Filters.and(
+                Filters.gte(NodeDocument.MODIFIED_IN_SECS, NodeDocument.getModifiedInSecs(startTime)),
+                Filters.exists(NodeDocument.SD_TYPE, false));
         Bson sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, 1);
 
         FindIterable<BasicDBObject> cursor = getNodeCollection()

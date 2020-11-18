@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -63,8 +64,9 @@ public class RDBMissingLastRevSeeker extends MissingLastRevSeeker {
         if (MODE == 1) {
             return super.getCandidates(startTime);
         } else {
-            List<QueryCondition> conditions = Collections.singletonList(
-                    new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=", NodeDocument.getModifiedInSecs(startTime)));
+            List<QueryCondition> conditions = new ArrayList<>();
+            conditions.add(new QueryCondition(NodeDocument.MODIFIED_IN_SECS, ">=", NodeDocument.getModifiedInSecs(startTime)));
+            conditions.add(new QueryCondition(NodeDocument.SD_TYPE, "is null"));
             return store.queryAsIterable(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions,
                     Integer.MAX_VALUE, null);
         }

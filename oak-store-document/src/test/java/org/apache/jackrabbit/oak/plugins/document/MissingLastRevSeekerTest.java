@@ -24,12 +24,17 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBMissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.RecoveryHandler.NOOP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -69,6 +74,12 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     public void after() {
         ClusterNodeInfo.resetClockToDefault();
         Revision.resetClockToDefault();
+    }
+    
+    private void markDocumentsForCleanup() {
+        for (NodeDocument doc : Utils.getAllDocuments(ds)) {
+            removeMe.add(doc.getId());
+        }
     }
 
     @Test
@@ -215,5 +226,32 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     private ClusterNodeInfoDocument getClusterNodeInfo(int clusterId) {
         return seeker.getClusterNodeInfo(clusterId);
+    }
+    
+    @Test
+    public void getNonSplitDocs() throws Exception {
+        String nodeName = this.getClass().getName() + "-foo";
+        DocumentNodeStore dns = getBuilder().clock(clock).setAsyncDelay(0).setDocumentStore(new DocumentStoreWrapper(store) {
+            @Override
+            public void dispose() {
+                // do not close underlying store, otherwise cleanup
+                // cannot remove documents after the test
+            }
+        }).getNodeStore();
+        NodeBuilder b1 = dns.getRoot().builder();
+        b1.child(nodeName);
+        dns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        //Modify and commit changes on this node 100 times to create a split document
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            b1 = dns.getRoot().builder();
+            b1.child(nodeName).setProperty("prop",i);
+            dns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        dns.runBackgroundOperations();
+        //seeker should return only non split documents
+        int docs = Iterables.size(seeker.getCandidates(0));
+        assertEquals(2, docs);
+        markDocumentsForCleanup();
+        dns.dispose();
     }
 }
