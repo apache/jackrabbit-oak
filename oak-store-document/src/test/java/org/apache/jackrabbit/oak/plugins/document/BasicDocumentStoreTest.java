@@ -1142,7 +1142,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void removeInvalidatesCache() throws Exception {
-    	String path = "/foo";
+        String path = "/foo";
         String id = Utils.getIdFromPath(path);
         long modified = 1;
         removeMe.add(id);

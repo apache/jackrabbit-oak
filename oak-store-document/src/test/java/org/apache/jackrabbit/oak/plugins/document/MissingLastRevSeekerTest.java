@@ -232,7 +232,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
     public void getNonSplitDocs() throws Exception {
         String nodeName = this.getClass().getName() + "-foo";
         DocumentNodeStore dns = getBuilder().clock(clock).setAsyncDelay(0).setDocumentStore(new DocumentStoreWrapper(store) {
-        	@Override
+            @Override
             public void dispose() {
                 // do not close underlying store, otherwise cleanup
                 // cannot remove documents after the test
