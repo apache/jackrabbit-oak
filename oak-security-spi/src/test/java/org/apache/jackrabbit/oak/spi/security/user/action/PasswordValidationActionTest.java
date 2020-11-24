@@ -29,11 +29,11 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class PasswordValidationActionTest {
 
@@ -55,26 +55,31 @@ public class PasswordValidationActionTest {
     @Test
     public void testOnCreateNullPw() throws Exception {
         pwAction.onCreate(user, null, root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testOnCreateInvalidPw() throws Exception {
         pwAction.onCreate(user, "pw", root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test(expected = ConstraintViolationException.class)
     public void testOnCreateEmptyPw() throws Exception {
         pwAction.onCreate(user, "", root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test
     public void testOnCreateValidPw() throws Exception {
         pwAction.onCreate(user, "abCDefGH", root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test
     public void testOnCreateHashedInvalidPw() throws Exception {
         pwAction.onCreate(user, PasswordUtil.buildPasswordHash("pw1"), root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test
@@ -108,6 +113,7 @@ public class PasswordValidationActionTest {
         for (String pw : valid) {
             pwAction.onPasswordChange(user, pw, root, namePathMapper);
         }
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test(expected = ConstraintViolationException.class)
@@ -122,6 +128,7 @@ public class PasswordValidationActionTest {
     public void testOnPasswordChangeNullPw() throws Exception {
         pwAction.init(securityProvider, ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "abc"));
         pwAction.onPasswordChange(user, null, root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test
@@ -138,5 +145,6 @@ public class PasswordValidationActionTest {
         // no pattern gets evaluated
         action.onCreate(user, null, root, namePathMapper);
         action.onPasswordChange(user, "]", root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 }

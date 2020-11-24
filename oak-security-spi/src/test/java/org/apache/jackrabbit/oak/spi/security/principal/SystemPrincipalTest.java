@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
-import java.security.Principal;
-
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 import org.junit.Test;
 
+import java.security.Principal;
+
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 public class SystemPrincipalTest {
 
@@ -47,7 +45,7 @@ public class SystemPrincipalTest {
 
     @Test
     public void testHashCode() {
-        assertTrue(SystemPrincipal.INSTANCE.hashCode() == SystemPrincipal.INSTANCE.hashCode());
+        assertEquals(SystemPrincipal.INSTANCE.hashCode(), SystemPrincipal.INSTANCE.hashCode());
     }
 
     @Test
@@ -57,13 +55,13 @@ public class SystemPrincipalTest {
                 return SystemPrincipal.INSTANCE.getName();
             }
         };
-        assertFalse(SystemPrincipal.INSTANCE.equals(another));
+        assertNotEquals(SystemPrincipal.INSTANCE, another);
     }
 
     @Test
     public void testEqualsOtherJackrabbitPrincipal() {
         Principal another = new OtherSystem();
-        assertFalse(SystemPrincipal.INSTANCE.equals(another));
+        assertNotEquals(SystemPrincipal.INSTANCE, another);
     }
 
     @Test
@@ -74,7 +72,7 @@ public class SystemPrincipalTest {
 
     //--------------------------------------------------------------------------
 
-    private class OtherSystem implements JackrabbitPrincipal {
+    private static class OtherSystem implements JackrabbitPrincipal {
         public String getName() {
             return SystemPrincipal.INSTANCE.getName();
         }

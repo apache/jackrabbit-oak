@@ -32,7 +32,7 @@ public class AbstractCredentialsTest {
 
     private static final String USER_ID = "userId";
 
-    private AbstractCredentials credentials = new AbstractCredentials(USER_ID) {
+    private final AbstractCredentials credentials = new AbstractCredentials(USER_ID) {
     };
 
     @Test

@@ -31,7 +31,7 @@ import org.junit.Test;
 
 public class PrincipalProviderTest {
 
-    private PrincipalProvider pp = new PrincipalProvider() {
+    private final PrincipalProvider pp = new PrincipalProvider() {
         @Override
         public @Nullable Principal getPrincipal(@NotNull String principalName) {
             throw new RuntimeException();

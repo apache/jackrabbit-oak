@@ -62,9 +62,7 @@ public class SimpleCredentialsSupportTest {
         assertTrue(attributes.isEmpty());
 
         Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
-        for (Map.Entry<String, ?> entry : expected.entrySet()) {
-            sc.setAttribute(entry.getKey(), entry.getValue());
-        }
+        expected.forEach((key, value) -> sc.setAttribute(key, value));
 
         attributes = credentialsSupport.getAttributes(sc);
         assertNotNull(attributes);
@@ -83,9 +81,7 @@ public class SimpleCredentialsSupportTest {
         Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
         credentialsSupport.setAttributes(sc, expected);
 
-        for (Map.Entry<String, ?> entry : expected.entrySet()) {
-            assertEquals(entry.getValue(), sc.getAttribute(entry.getKey()));
-        }
+        expected.forEach((key, value) -> assertEquals(value, sc.getAttribute(key)));
 
         attributes = credentialsSupport.getAttributes(sc);
         assertNotNull(attributes);

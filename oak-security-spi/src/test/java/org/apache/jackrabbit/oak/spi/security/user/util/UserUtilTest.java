@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
-import java.util.List;
-import java.util.Map;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
@@ -36,15 +34,22 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-import org.mockito.Mockito;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class UserUtilTest {
+
+    private final User u = mock(User.class);
+    private final Group g = mock(Group.class);
 
     @NotNull
     private static Tree createTree(@Nullable String ntName) {
@@ -58,7 +63,7 @@ public class UserUtilTest {
 
     @NotNull
     private static Tree createTree(@Nullable String ntName, @Nullable String id, @Nullable String nodeName) {
-        Tree t = Mockito.mock(Tree.class);
+        Tree t = mock(Tree.class);
         if (ntName != null) {
             when(t.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, ntName, Type.NAME));
         }
@@ -118,9 +123,7 @@ public class UserUtilTest {
                 JcrConstants.NT_FILE, false
         );
 
-        for (String key : test.keySet()) {
-            assertEquals(test.get(key), UserUtil.isType(createTree(key), AuthorizableType.GROUP));
-        }
+        test.forEach((key, value) -> assertEquals(value, UserUtil.isType(createTree(key), AuthorizableType.GROUP)));
     }
 
     @Test
@@ -133,10 +136,10 @@ public class UserUtilTest {
                 JcrConstants.NT_FILE, false
         );
 
-        for (String ntName : test.keySet()) {
-            boolean expected = test.get(ntName);
+        test.forEach((ntName, value) -> {
+            boolean expected = value;
             assertEquals(ntName, expected, UserUtil.isType(createTree(ntName), AuthorizableType.USER));
-        }
+        });
     }
 
     @Test
@@ -149,10 +152,10 @@ public class UserUtilTest {
                 JcrConstants.NT_FILE, false
         );
 
-        for (String ntName : test.keySet()) {
-            boolean expected = test.get(ntName);
+        test.forEach((ntName, value) -> {
+            boolean expected = value;
             assertEquals(ntName, expected, UserUtil.isType(createTree(ntName), AuthorizableType.AUTHORIZABLE));
-        }
+        });
     }
 
     @Test
@@ -163,10 +166,7 @@ public class UserUtilTest {
                 UserConstants.NT_REP_SYSTEM_USER, AuthorizableType.USER
         );
 
-        for (String ntName : test.keySet()) {
-            AuthorizableType expected = test.get(ntName);
-            assertEquals(ntName, expected, UserUtil.getType(createTree(ntName)));
-        }
+        test.forEach((ntName, expected) -> assertEquals(ntName, expected, UserUtil.getType(createTree(ntName))));
     }
 
     @Test
@@ -216,10 +216,10 @@ public class UserUtilTest {
                 JcrConstants.NT_FILE, false
         );
 
-        for (String ntName : test.keySet()) {
-            boolean expected = test.get(ntName);
+        test.forEach((ntName, value) -> {
+            boolean expected = value;
             assertEquals(ntName, expected, UserUtil.isSystemUser(createTree(ntName)));
-        }
+        });
     }
 
     @Test
@@ -282,11 +282,11 @@ public class UserUtilTest {
                 put(AuthorizableType.AUTHORIZABLE, new String[] {UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP}).
                 put(AuthorizableType.GROUP, new String[] {UserConstants.NT_REP_GROUP}).build();
 
-        for (AuthorizableType type : test.keySet()) {
-            for (String ntName : test.get(type)) {
-                assertEquals("id", UserUtil.getAuthorizableId(createTree(ntName, "id"), type));
+        test.forEach((key, value) -> {
+            for (String ntName : value) {
+                assertEquals("id", UserUtil.getAuthorizableId(createTree(ntName, "id"), key));
             }
-        }
+        });
     }
 
     @Test
@@ -296,11 +296,11 @@ public class UserUtilTest {
                 put(AuthorizableType.AUTHORIZABLE, new String[]{UserConstants.NT_REP_USER, UserConstants.NT_REP_SYSTEM_USER, UserConstants.NT_REP_GROUP}).
                 put(AuthorizableType.GROUP, new String[]{UserConstants.NT_REP_GROUP}).build();
 
-        for (AuthorizableType type : test.keySet()) {
-            for (String ntName : test.get(type)) {
-                assertEquals("nodeName", UserUtil.getAuthorizableId(createTree(ntName, null, "nodeName"), type));
+        test.forEach((key, value) -> {
+            for (String ntName : value) {
+                assertEquals("nodeName", UserUtil.getAuthorizableId(createTree(ntName, null, "nodeName"), key));
             }
-        }
+        });
     }
 
     @Test(expected=IllegalArgumentException.class)
@@ -332,47 +332,51 @@ public class UserUtilTest {
 
     @Test(expected = AuthorizableTypeException.class)
     public void testCastNullClass() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(User.class), null);
+        UserUtil.castAuthorizable(u, null);
     }
 
     @Test(expected = AuthorizableTypeException.class)
     public void testCastUserToGroup() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(User.class), Group.class);
+        UserUtil.castAuthorizable(u, Group.class);
     }
 
     @Test(expected = AuthorizableTypeException.class)
     public void testCastGroupToUser() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(Group.class), User.class);
+        UserUtil.castAuthorizable(g, User.class);
     }
 
     @Test(expected = AuthorizableTypeException.class)
     public void testCastAuthorizableToUser() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(Authorizable.class), User.class);
+        UserUtil.castAuthorizable(mock(Authorizable.class), User.class);
     }
 
     @Test(expected = AuthorizableTypeException.class)
     public void testCastAuthorizableToGroup() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(Authorizable.class), Group.class);
+        UserUtil.castAuthorizable(mock(Authorizable.class), Group.class);
     }
 
     @Test
     public void testCastUserToUser() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(User.class), User.class);
+        UserUtil.castAuthorizable(u, User.class);
+        verifyNoInteractions(u);
     }
 
     @Test
     public void testCastUserToAuthorizable() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(User.class), Authorizable.class);
+        UserUtil.castAuthorizable(u, Authorizable.class);
+        verifyNoInteractions(u);
     }
 
     @Test
     public void testCastGroupToGroup() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(Group.class), Group.class);
+        UserUtil.castAuthorizable(g, Group.class);
+        verifyNoInteractions(g);
     }
 
     @Test
     public void testCastGroupToAuthorizable() throws Exception {
-        UserUtil.castAuthorizable(Mockito.mock(Group.class), Authorizable.class);
+        UserUtil.castAuthorizable(g, Authorizable.class);
+        verifyNoInteractions(g);
     }
 
     @Test
@@ -384,8 +388,6 @@ public class UserUtilTest {
                 ConfigurationParameters.of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT), ImportBehavior.BESTEFFORT
         );
 
-        for (Map.Entry<ConfigurationParameters, Integer> entry : testMap.entrySet()) {
-            assertEquals(entry.getValue().intValue(), UserUtil.getImportBehavior(entry.getKey()));
-        }
+        testMap.forEach((key, value) -> assertEquals(value.intValue(), UserUtil.getImportBehavior(key)));
     }
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Root;

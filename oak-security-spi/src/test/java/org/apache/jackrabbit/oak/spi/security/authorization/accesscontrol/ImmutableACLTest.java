@@ -40,6 +40,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -163,8 +164,8 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
 
         assertEquals(acl, createEmptyACL());
         ACE entry = createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
-        assertFalse(acl.equals(createACL(entry)));
-        assertFalse(acl.equals(new TestACL(getTestPath(), getRestrictionProvider(), getNamePathMapper(), Collections.<JackrabbitAccessControlEntry>emptyList())));
+        assertNotEquals(acl, createACL(entry));
+        assertNotEquals(acl, new TestACL(getTestPath(), getRestrictionProvider(), getNamePathMapper(), Collections.<JackrabbitAccessControlEntry>emptyList()));
     }
 
     @Test
@@ -187,14 +188,14 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
 
         assertEquals(repoAcl, createACL((String) null, ace1, ace2b));
 
-        assertFalse(acl.equals(createACL(ace2, ace1)));
-        assertFalse(acl.equals(repoAcl));
-        assertFalse(acl.equals(createEmptyACL()));
-        assertFalse(acl.equals(createACL("/anotherPath", ace1, ace2)));
-        assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2)));
-        assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2)));
-        assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper())));
-        assertFalse(acl.equals(new TestACL(getTestPath(), rp, getNamePathMapper(), ace1, ace2)));
+        assertNotEquals(acl, createACL(ace2, ace1));
+        assertNotEquals(acl, repoAcl);
+        assertNotEquals(acl, createEmptyACL());
+        assertNotEquals(acl, createACL("/anotherPath", ace1, ace2));
+        assertNotEquals(acl, new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2));
+        assertNotEquals(acl, new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2));
+        assertNotEquals(acl, new TestACL("/anotherPath", rp, getNamePathMapper()));
+        assertNotEquals(acl, new TestACL(getTestPath(), rp, getNamePathMapper(), ace1, ace2));
     }
 
     @Test
@@ -208,19 +209,19 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         JackrabbitAccessControlList repoAcl = createACL((String) null, ace1, ace2);
 
         int hc = acl.hashCode();
-        assertTrue(hc == createACL(ace1, ace2).hashCode());
-        assertTrue(hc == createACL(ace1, ace2b).hashCode());
+        assertEquals(hc, createACL(ace1, ace2).hashCode());
+        assertEquals(hc, createACL(ace1, ace2b).hashCode());
 
-        assertTrue(repoAcl.hashCode() == createACL((String) null, ace1, ace2b).hashCode());
+        assertEquals(repoAcl.hashCode(), createACL((String) null, ace1, ace2b).hashCode());
 
-        assertFalse(hc == createACL(ace2, ace1).hashCode());
-        assertFalse(hc == repoAcl.hashCode());
-        assertFalse(hc == createEmptyACL().hashCode());
-        assertFalse(hc == createACL("/anotherPath", ace1, ace2).hashCode());
-        assertFalse(hc == new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2).hashCode());
-        assertFalse(hc == new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2).hashCode());
-        assertFalse(hc == new TestACL("/anotherPath", rp, getNamePathMapper()).hashCode());
-        assertFalse(hc == new TestACL(getTestPath(), rp, getNamePathMapper(), ace1, ace2).hashCode());
+        assertNotEquals(hc, createACL(ace2, ace1).hashCode());
+        assertNotEquals(hc, repoAcl.hashCode());
+        assertNotEquals(hc, createEmptyACL().hashCode());
+        assertNotEquals(hc, createACL("/anotherPath", ace1, ace2).hashCode());
+        assertNotEquals(hc, new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2).hashCode());
+        assertNotEquals(hc, new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2).hashCode());
+        assertNotEquals(hc, new TestACL("/anotherPath", rp, getNamePathMapper()).hashCode());
+        assertNotEquals(hc, new TestACL(getTestPath(), rp, getNamePathMapper(), ace1, ace2).hashCode());
     }
 
     @Test

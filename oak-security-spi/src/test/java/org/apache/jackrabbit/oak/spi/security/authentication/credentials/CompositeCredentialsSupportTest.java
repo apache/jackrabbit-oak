@@ -73,9 +73,7 @@ public class CompositeCredentialsSupportTest {
         assertTrue(attributes.isEmpty());
 
         Map<String, ?> expected = ImmutableMap.of("a", "a", "b", Boolean.TRUE, "c", new TestCredentials());
-        for (Map.Entry<String, ?> entry : expected.entrySet()) {
-            sc.setAttribute(entry.getKey(), entry.getValue());
-        }
+        expected.forEach((key, value) -> sc.setAttribute(key, value));
 
         attributes = credentialsSupport.getAttributes(sc);
         assertNotNull(attributes);

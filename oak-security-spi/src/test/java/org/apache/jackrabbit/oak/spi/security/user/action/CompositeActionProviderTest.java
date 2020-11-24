@@ -59,7 +59,7 @@ public class CompositeActionProviderTest {
     }
 
 
-    private final class TestAuthorizableActionProvider implements AuthorizableActionProvider {
+    private static final class TestAuthorizableActionProvider implements AuthorizableActionProvider {
 
         @NotNull
         @Override
@@ -69,7 +69,6 @@ public class CompositeActionProviderTest {
     }
 
     private static final class TestAction extends AbstractAuthorizableAction {
-
         private static final AuthorizableAction INSTANCE = new TestAction();
     }
 }

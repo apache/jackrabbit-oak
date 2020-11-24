@@ -16,26 +16,27 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
-import java.util.List;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.nodetype.PropertyDefinition;
-
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.nodetype.PropertyDefinition;
+import java.util.List;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PropInfoTest {
@@ -81,8 +82,10 @@ public class PropInfoTest {
 
     @Test
     public void testDisposeMultiple() throws Exception {
-        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, ImmutableList.of(mockTextValue("value", PropertyType.STRING, false)));
+        TextValue tv = mockTextValue("value", PropertyType.STRING, false);
+        PropInfo propInfo = new PropInfo("string", PropertyType.STRING, ImmutableList.of(tv));
         propInfo.dispose();
+        verify(tv, times(1)).dispose();
     }
 
     @Test
@@ -289,9 +292,9 @@ public class PropInfoTest {
     public void testMultipleStatus() {
         assertEquals(PropInfo.MultipleStatus.UNKNOWN, PropInfo.MultipleStatus.valueOf("UNKNOWN"));
         assertEquals(PropInfo.MultipleStatus.MULTIPLE, PropInfo.MultipleStatus.valueOf("MULTIPLE"));
-        assertEquals(new PropInfo.MultipleStatus[]{
+        assertArrayEquals(new PropInfo.MultipleStatus[]{
                 PropInfo.MultipleStatus.UNKNOWN, PropInfo.MultipleStatus.MULTIPLE}, PropInfo.MultipleStatus.values());
     }
 
-    private class DisposeException extends RuntimeException {}
+    private static class DisposeException extends RuntimeException {}
 }

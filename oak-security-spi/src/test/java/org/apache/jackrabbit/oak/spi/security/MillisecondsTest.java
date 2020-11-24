@@ -22,7 +22,6 @@ import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.Mil
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.Milliseconds.NEVER;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.Milliseconds.NULL;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -97,8 +96,8 @@ public class MillisecondsTest {
         assertNotEquals(milliseconds, FOREVER);
         assertNotEquals(milliseconds, ConfigurationParameters.Milliseconds.of("1h", NULL));
 
-        assertFalse(NEVER.equals(null));
-        assertFalse(NULL.equals(NULL.value));
+        assertNotEquals(null, NEVER);
+        assertNotEquals(NULL, NULL.value);
     }
 
     @Test

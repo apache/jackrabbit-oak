@@ -27,9 +27,8 @@ import org.junit.Test;
 
 public class EmptyPrincipalProviderTest {
 
-    private PrincipalProvider principalProvider = EmptyPrincipalProvider.INSTANCE;
-    private Principal testPrincipal = new PrincipalImpl("testUser");
-
+    private final PrincipalProvider principalProvider = EmptyPrincipalProvider.INSTANCE;
+    private final Principal testPrincipal = new PrincipalImpl("testUser");
 
     @Test
     public void testGetPrincipal() {

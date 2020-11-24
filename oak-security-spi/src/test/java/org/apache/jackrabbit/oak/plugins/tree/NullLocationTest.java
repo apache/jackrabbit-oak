@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
 

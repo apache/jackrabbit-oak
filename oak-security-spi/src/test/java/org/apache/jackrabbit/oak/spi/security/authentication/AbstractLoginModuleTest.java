@@ -907,7 +907,7 @@ public class AbstractLoginModuleTest {
 
     //--------------------------------------------------------------------------
 
-    private class TestCredentials implements Credentials {}
+    private static class TestCredentials implements Credentials {}
 
     private static final class TestLoginModule extends AbstractLoginModule {
 
@@ -949,7 +949,7 @@ public class AbstractLoginModuleTest {
         }
     }
 
-    private final class TestCallbackHandler implements CallbackHandler {
+    private static final class TestCallbackHandler implements CallbackHandler {
 
         private Whiteboard whiteboard = null;
         private UserManager userManager = null;

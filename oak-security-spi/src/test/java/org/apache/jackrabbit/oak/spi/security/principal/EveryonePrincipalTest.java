@@ -100,7 +100,7 @@ public class EveryonePrincipalTest  {
 
     //--------------------------------------------------------------------------
 
-    private class OtherEveryone implements JackrabbitPrincipal {
+    private static class OtherEveryone implements JackrabbitPrincipal {
         public String getName() {
             return EveryonePrincipal.NAME;
         }
@@ -117,7 +117,7 @@ public class EveryonePrincipalTest  {
         }
     }
 
-    private class OtherEveryoneGroup extends OtherEveryone implements GroupPrincipal {
+    private static class OtherEveryoneGroup extends OtherEveryone implements GroupPrincipal {
 
         @Override
         public boolean isMember(@NotNull Principal principal) {

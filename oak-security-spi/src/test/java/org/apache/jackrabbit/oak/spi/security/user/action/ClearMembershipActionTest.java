@@ -39,6 +39,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class ClearMembershipActionTest {
@@ -63,11 +64,13 @@ public class ClearMembershipActionTest {
     public void testOnRemoveUserNoMembership() throws Exception {
         when(user.declaredMemberOf()).thenReturn(Collections.emptyIterator());
         action.onRemove(user, root, NamePathMapper.DEFAULT);
+        verifyNoInteractions(root);
     }
 
     @Test
     public void testOnRemoveGroupNoMembership() throws Exception {
         action.onRemove(gr, root, NamePathMapper.DEFAULT);
+        verifyNoInteractions(root);
     }
 
     @Test

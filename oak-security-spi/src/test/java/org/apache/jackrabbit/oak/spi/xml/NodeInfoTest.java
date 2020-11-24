@@ -24,7 +24,7 @@ import static org.junit.Assert.assertFalse;
 
 public class NodeInfoTest {
 
-    private NodeInfo nodeInfo = new NodeInfo("name", "primaryType", ImmutableList.of("mixin1", "mixin2"), "uuid");
+    private final NodeInfo nodeInfo = new NodeInfo("name", "primaryType", ImmutableList.of("mixin1", "mixin2"), "uuid");
 
     @Test
     public void testGetName() {

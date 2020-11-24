@@ -233,10 +233,10 @@ public class ConfigurationParametersTest {
         assertEquals(testObject, options.getConfigValue("TEST", testObject));
         assertEquals("t", options.getConfigValue("TEST", "defaultString"));
 
-        assertTrue(1000 == options.getConfigValue("String", 10, int.class));
-        assertTrue(1000 == options.getConfigValue("String", 10));
+        assertEquals(1000, (int) options.getConfigValue("String", 10, int.class));
+        assertEquals(1000, (int) options.getConfigValue("String", 10));
         assertEquals(int1000, options.getConfigValue("String", 10));
-        assertEquals(new Long(1000), options.getConfigValue("String", 10l));
+        assertEquals(Long.valueOf(1000), options.getConfigValue("String", 10l));
         assertEquals("1000", options.getConfigValue("String", "10"));
 
         assertEquals(int1000, options.getConfigValue("Int2", 10));
@@ -279,8 +279,8 @@ public class ConfigurationParametersTest {
         assertEquals(int1000, options.getConfigValue("String", 10, null));
         assertEquals(int1000, options.getConfigValue("String", 10, Integer.class));
 
-        assertEquals(new Long(1000), options.getConfigValue("String", 10l, null));
-        assertEquals(new Long(1000), options.getConfigValue("String", 10l, Long.class));
+        assertEquals(Long.valueOf(1000), options.getConfigValue("String", 10l, null));
+        assertEquals(Long.valueOf(1000), options.getConfigValue("String", 10l, Long.class));
 
         assertEquals("1000", options.getConfigValue("String", "10", null));
         assertEquals("1000", options.getConfigValue("String", "10", String.class));
@@ -310,14 +310,14 @@ public class ConfigurationParametersTest {
         impossible.put("int", TestObject.class);
         impossible.put("int", Calendar.class);
 
-        for (String key : impossible.keySet()) {
+        impossible.forEach((key, value) -> {
             try {
-                options.getConfigValue(key, null, impossible.get(key));
-                fail("Impossible conversion for " + key + " to " + impossible.get(key));
+                options.getConfigValue(key, null, value);
+                fail("Impossible conversion for " + key + " to " + value);
             } catch (IllegalArgumentException e) {
                 // success
             }
-        }
+        });
     }
 
     @Test
@@ -344,7 +344,7 @@ public class ConfigurationParametersTest {
         Set<String> defaultStrings = ImmutableSet.of("abc", "def", "ghi");
         Set<TestObject> defaultObjects = ImmutableSet.of(new TestObject("abc"), new TestObject("def"));
 
-        for (Object value : configValues.keySet()) {
+        configValues.forEach((value, expected) -> {
             ConfigurationParameters config;
             if (value instanceof ConfigurationParameters) {
                 config = ConfigurationParameters.of((ConfigurationParameters) value);
@@ -352,7 +352,6 @@ public class ConfigurationParametersTest {
                 config = ConfigurationParameters.of("key", value);
             }
 
-            Set<?> expected = configValues.get(value);
             assertEquals(expected, config.getConfigValue("key", Collections.emptySet()));
             assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet()));
             assertEquals(expected, config.getConfigValue("key", ImmutableSet.of()));
@@ -365,7 +364,7 @@ public class ConfigurationParametersTest {
             if (!config.containsKey("key")) {
                 assertEquals(defaultStrings, config.getConfigValue("key", defaultStrings, Set.class));
                 assertEquals(defaultObjects, config.getConfigValue("key", defaultObjects, Set.class));
-                assertEquals(null, config.getConfigValue("key", null, Set.class));
+                assertNull(config.getConfigValue("key", null, Set.class));
                 assertEquals(defaultStrings, config.getConfigValue("key", defaultStrings));
                 assertEquals(defaultObjects, config.getConfigValue("key", defaultObjects));
             } else {
@@ -381,7 +380,7 @@ public class ConfigurationParametersTest {
             assertEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings, Set.class));
             assertEquals(defaultObjects, config.getConfigValue("nonexisting", defaultObjects));
             assertEquals(defaultObjects, config.getConfigValue("nonexisting", defaultObjects, Set.class));
-        }
+        });
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -486,14 +485,13 @@ public class ConfigurationParametersTest {
         configValues.put(new ArrayList<>(), new String[0]);
         configValues.put(ConfigurationParameters.EMPTY, new String[0]);
 
-        for (Object value : configValues.keySet()) {
+        configValues.forEach((value, expected) -> {
             ConfigurationParameters config;
             if (value instanceof ConfigurationParameters) {
                 config = ConfigurationParameters.of((ConfigurationParameters) value);
             } else {
                 config = ConfigurationParameters.of("key", value);
             }
-            Object[] expected = configValues.get(value);
 
             assertArrayEquals(expected, config.getConfigValue("key", new String[0]));
             assertArrayEquals(expected, config.getConfigValue("key", new String[0], String[].class));
@@ -512,7 +510,7 @@ public class ConfigurationParametersTest {
             // non existing kez with default values
             assertArrayEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings));
             assertArrayEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings, String[].class));
-        }
+        });
     }
 
     @Test
@@ -606,7 +604,7 @@ public class ConfigurationParametersTest {
         options.clear();
     }
 
-    private class TestObject {
+    private static class TestObject {
 
         private final String name;
 

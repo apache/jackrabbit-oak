@@ -32,6 +32,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil.DEFAULT_ALGORITHM;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
@@ -65,7 +66,7 @@ public class PasswordUtilTest {
     public void testBuildPasswordHash() throws Exception {
         for (String pw : plainPasswords) {
             String pwHash = PasswordUtil.buildPasswordHash(pw);
-            assertFalse(pw.equals(pwHash));
+            assertNotEquals(pw, pwHash);
         }
 
         List<Integer[]> l = new ArrayList<>();
@@ -80,7 +81,7 @@ public class PasswordUtilTest {
                 int iterations = params[1];
 
                 String pwHash = PasswordUtil.buildPasswordHash(pw, DEFAULT_ALGORITHM, saltsize, iterations);
-                assertFalse(pw.equals(pwHash));
+                assertNotEquals(pw, pwHash);
             }
         }
     }
@@ -161,10 +162,7 @@ public class PasswordUtilTest {
 
     @Test
     public void testIsSame() throws Exception {
-        for (String pw : hashedPasswords.keySet()) {
-            String pwHash = hashedPasswords.get(pw);
-            assertTrue("Not the same " + pw + ", " + pwHash, PasswordUtil.isSame(pwHash, pw));
-        }
+        hashedPasswords.forEach((pw, pwHash) -> assertTrue("Not the same " + pw + ", " + pwHash, PasswordUtil.isSame(pwHash, pw)));
 
         String pw = "password";
         String pwHash = PasswordUtil.buildPasswordHash(pw, "SHA-1", 4, 50);

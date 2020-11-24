@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ReferenceChangeTrackerTest {
 
-    private ReferenceChangeTracker rct = new ReferenceChangeTracker();
+    private final ReferenceChangeTracker rct = new ReferenceChangeTracker();
 
     @Test
     public void testGet() {

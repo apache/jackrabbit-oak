@@ -44,7 +44,7 @@ import static org.mockito.Mockito.withSettings;
 
 public class PermissionAwareTest extends AbstractAccessControlTest {
 
-    private PermissionProvider permissionProvider = mock(PermissionProvider.class);
+    private final PermissionProvider permissionProvider = mock(PermissionProvider.class);
 
     private Root awareRoot;
     private Root unawareRoot;

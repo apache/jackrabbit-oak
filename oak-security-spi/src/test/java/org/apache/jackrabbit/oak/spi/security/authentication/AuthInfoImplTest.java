@@ -59,9 +59,7 @@ public class AuthInfoImplTest {
 
     @Test
     public void testGetAttribute() {
-        for (String attrName : ATTRIBUTES.keySet()) {
-            assertEquals(ATTRIBUTES.get(attrName), authInfo.getAttribute(attrName));
-        }
+        ATTRIBUTES.forEach((key, value) -> assertEquals(value, authInfo.getAttribute(key)));
     }
 
     @Test

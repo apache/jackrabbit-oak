@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import org.junit.Test;
 
-import javax.jcr.RepositoryException;
-
 import static org.junit.Assert.assertEquals;
 
 public class ReadPolicyTest {

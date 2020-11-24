@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 
 public class ImmutablePrivilegeDefinitionTest {
 
-    private ImmutablePrivilegeDefinition def = new ImmutablePrivilegeDefinition("name", true, ImmutableList.of("aggrName"));
+    private final ImmutablePrivilegeDefinition def = new ImmutablePrivilegeDefinition("name", true, ImmutableList.of("aggrName"));
 
     @Test
     public void testGetName() {
@@ -82,6 +82,6 @@ public class ImmutablePrivilegeDefinitionTest {
     public void testToString() {
         assertEquals(def.toString(), def.toString());
         assertEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), def.getDeclaredAggregateNames()).toString());
-        assertNotEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), ImmutableList.of()));
+        assertEquals(def.toString(), new ImmutablePrivilegeDefinition(def.getName(), def.isAbstract(), ImmutableList.of()).toString());
     }
 }

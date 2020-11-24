@@ -150,10 +150,10 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         paths.put("/jr:testPath", "/jr:testPath");
         paths.put("/{http://jackrabbit.apache.org}testPath", "/jr:testPath");
 
-        for (String path : paths.keySet()) {
-            AbstractAccessControlList acl = createACL(path, Collections.<JackrabbitAccessControlEntry>emptyList(), npMapper);
-            assertEquals(paths.get(path), acl.getPath());
-        }
+        paths.forEach((key, value) -> {
+            AbstractAccessControlList acl = createACL(key, Collections.<JackrabbitAccessControlEntry>emptyList(), npMapper);
+            assertEquals(value, acl.getPath());
+        });
     }
 
     @Test
@@ -170,10 +170,10 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         paths.put("/{http://jackrabbit.apache.org}testPath", oakPath);
 
         // test if oak-path is properly set.
-        for (String path : paths.keySet()) {
-            AbstractAccessControlList acl = createACL(path, Collections.<JackrabbitAccessControlEntry>emptyList(), npMapper);
-            assertEquals(paths.get(path), acl.getOakPath());
-        }
+        paths.forEach((key, value) -> {
+            AbstractAccessControlList acl = createACL(key, Collections.<JackrabbitAccessControlEntry>emptyList(), npMapper);
+            assertEquals(value, acl.getOakPath());
+        });
     }
 
     private static NamePathMapper mockNamePathMapper(String testPath) {
@@ -198,7 +198,7 @@ public class AbstractAccessControlListTest extends AbstractAccessControlTest {
         assertNotNull(acl.getAccessControlEntries());
         assertNotNull(acl.getEntries());
 
-        assertTrue(acl.getAccessControlEntries().length == 0);
+        assertEquals(0, acl.getAccessControlEntries().length);
         assertEquals(acl.getAccessControlEntries().length, acl.getEntries().size());
         assertEquals(0, acl.size());
         assertTrue(acl.isEmpty());

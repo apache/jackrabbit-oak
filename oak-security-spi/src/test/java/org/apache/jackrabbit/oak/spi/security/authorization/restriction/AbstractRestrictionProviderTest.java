@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.PropertyType;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlException;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
@@ -41,21 +32,30 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.jcr.PropertyType;
+import javax.jcr.Value;
+import javax.jcr.security.AccessControlException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class AbstractRestrictionProviderTest implements AccessControlConstants {
 
-    private String unsupportedPath = null;
-    private String testPath = "/testRoot";
+    private final String unsupportedPath = null;
+    private final String testPath = "/testRoot";
 
     private Value globValue;
     private Value[] nameValues;
@@ -261,6 +261,9 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
     @Test
     public void testCreatedUndefinedType() throws Exception {
         Restriction r = restrictionProvider.createRestriction(testPath, "undefined", valueFactory.createValue(23));
+        assertNotNull(r);
+        assertEquals(Type.UNDEFINED, r.getDefinition().getRequiredType());
+        assertEquals(Type.LONG, r.getProperty().getType());
     }
 
     @Test(expected = AccessControlException.class)
@@ -345,7 +348,9 @@ public class AbstractRestrictionProviderTest implements AccessControlConstants {
 
     @Test
     public void testWriteEmptyRestrictions() throws Exception {
-        restrictionProvider.writeRestrictions(null, getAceTree(), Collections.emptySet());
+        Tree aceTree = getAceTree();
+        restrictionProvider.writeRestrictions(null, aceTree, Collections.emptySet());
+        verifyNoInteractions(aceTree);
     }
 
     @Test
