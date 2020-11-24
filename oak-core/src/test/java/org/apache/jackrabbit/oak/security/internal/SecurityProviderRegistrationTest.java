@@ -115,7 +115,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
     @Rule
     public final OsgiContext context = new OsgiContext();
 
-    private SecurityProviderRegistration registration = new SecurityProviderRegistration();
+    private final SecurityProviderRegistration registration = new SecurityProviderRegistration();
 
     private static void assertContext(@NotNull Context context, int expectedSize, @NotNull Tree tree, boolean isDefined) throws Exception {
         Class<?> c = context.getClass();
@@ -210,6 +210,17 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         SecurityProvider service = context.getService(SecurityProvider.class);
         assertNotNull(service);
         assertEquals(6, Iterables.size(Iterables.filter(service.getConfigurations(), Predicates.notNull())));
+    }
+
+
+    @Test
+    public void testActivateWhileRegistering() throws Exception {
+        Field f = registration.getClass().getDeclaredField("registering");
+        f.setAccessible(true);
+        f.set(registration, true);
+
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds());
+        assertNull(context.getService(SecurityProvider.class));
     }
 
     @Test
@@ -1081,6 +1092,5 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         assertEquals(1, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
         verify(filter1, never()).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
         verify(filter2, times(1)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
-
     }
 }
