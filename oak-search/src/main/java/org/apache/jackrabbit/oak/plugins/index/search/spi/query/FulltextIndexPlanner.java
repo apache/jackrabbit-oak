@@ -412,29 +412,26 @@ public class FulltextIndexPlanner {
 
     private IndexPlan.Builder getNativeFunctionPlanBuilder(String indexingRuleBaseNodeType) {
         boolean canHandleNativeFunction = true;
-
         PropertyValue pv = filter.getPropertyRestriction(definition.getFunctionName()).first;
         String query = pv.getValue(Type.STRING);
-
+        // Suggestion and SpellCheck use virtual paths which are same for all results
+        // so we must disable later filtering of unique paths
         if (query.startsWith("suggest?term=")) {
             if (definition.isSuggestEnabled()) {
                 canHandleNativeFunction = indexingRuleBaseNodeType.equals(filter.getNodeType());
+                result.disableUniquePaths();
             } else {
                 canHandleNativeFunction = false;
             }
         } else if (query.startsWith("spellcheck?term=")) {
             if (definition.isSpellcheckEnabled()) {
                 canHandleNativeFunction = indexingRuleBaseNodeType.equals(filter.getNodeType());
+                result.disableUniquePaths();
             } else {
                 canHandleNativeFunction = false;
             }
         }
-
-        //Suggestion and SpellCheck use virtual paths which is same for all results
-        if (canHandleNativeFunction) {
-            result.disableUniquePaths();
-        }
-
+        
         if (!canHandleNativeFunction) {
             return null;
         }

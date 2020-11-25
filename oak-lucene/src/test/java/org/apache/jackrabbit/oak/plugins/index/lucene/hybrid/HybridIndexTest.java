@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -213,6 +214,32 @@ public class HybridIndexTest extends AbstractQueryTest {
         //Post async index it should still be upto date
         runAsyncIndex();
         assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar'", of("/a", "/b", "/c"));
+    }
+
+    @Test
+    public void testSimilarityQuery() throws Exception {
+        String idxName = "hybridtest";
+        Tree idx = createFulltextIndex(root.getTree("/"), idxName);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.NRT);
+        root.commit();
+        String query = "select [jcr:path] from [nt:base] where similar(., '/test/a')";
+
+        //Get initial indexing done as local indexing only work
+        //for incremental indexing
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("text", "Hello World Hello World");
+        root.commit();
+        runAsyncIndex();
+        test = root.getTree("/").addChild("test");
+        test.addChild("b").setProperty("text", "Hello World");
+        test.addChild("c").setProperty("text", "World");
+        test.addChild("d").setProperty("text", "Hello");
+        root.commit();
+
+        //Now let some time elapse such that readers can be refreshed
+        clock.waitUntil(clock.getTime() + refreshDelta + 1);
+        List<String> result = executeQuery(query, "JCR-SQL2");
+        assertEquals(4, result.size());
     }
 
     @Test
