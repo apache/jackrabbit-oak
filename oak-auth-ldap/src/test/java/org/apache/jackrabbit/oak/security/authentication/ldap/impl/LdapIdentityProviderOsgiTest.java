@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 import javax.jcr.GuestCredentials;
 
-import org.apache.jackrabbit.oak.security.authentication.ldap.LdapProviderTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
@@ -29,6 +28,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class LdapIdentityProviderOsgiTest {
 
@@ -63,7 +63,7 @@ public class LdapIdentityProviderOsgiTest {
     }
 
     @Test
-    public void testGetIdentityForeingRef() throws Exception {
+    public void testGetIdentityForeignRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("id", "anotherName");
         assertNull(provider.getIdentity(ref));
     }
@@ -71,13 +71,13 @@ public class LdapIdentityProviderOsgiTest {
     @Test
     public void testGetDeclaredGroupRefsForeignRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("id", "anotherName");
-        assertTrue(provider.getDeclaredGroupRefs(ref, LdapProviderTest.TEST_USER1_DN).isEmpty());
+        assertTrue(provider.getDeclaredGroupRefs(ref, AbstractLdapIdentityProviderTest.TEST_USER1_DN).isEmpty());
     }
 
     @Test
     public void testGetDeclaredMemberRefsForeignRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("id", "anotherName");
-        assertTrue(provider.getDeclaredMemberRefs(ref, LdapProviderTest.TEST_GROUP1_DN).isEmpty());
+        assertTrue(provider.getDeclaredMemberRefs(ref, AbstractLdapIdentityProviderTest.TEST_GROUP1_DN).isEmpty());
     }
 
     @Test(expected = ExternalIdentityException.class)
@@ -98,5 +98,15 @@ public class LdapIdentityProviderOsgiTest {
     @Test(expected = ExternalIdentityException.class)
     public void testListUsersMissingConnections() throws Exception {
         provider.listUsers().hasNext();
+    }
+
+    @Test
+    public void testDuplicateInit() {
+        try {
+            context.registerInjectActivateService(provider);
+            fail();
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof IllegalStateException);
+        }
     }
 }

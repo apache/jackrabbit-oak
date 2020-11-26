@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 public class LdapIdentityPropertiesTest {
 
-    private LdapIdentityProperties properties = new LdapIdentityProperties();
+    private final LdapIdentityProperties properties = new LdapIdentityProperties();
 
     @Before
     public void before() {
