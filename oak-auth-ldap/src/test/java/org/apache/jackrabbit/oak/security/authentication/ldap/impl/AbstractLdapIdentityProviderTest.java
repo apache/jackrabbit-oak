@@ -70,7 +70,6 @@ public abstract class AbstractLdapIdentityProviderTest {
     protected LdapServerClassLoader.Proxy proxy;
 
     private static final String TUTORIAL_LDIF = "apache-ds-tutorial.ldif";
-    public static final String ERRONEOUS_LDIF = "erroneous.ldif";
     public static final String IDP_NAME = "ldap";
 
     public static final String[] DEFAULT_USER_PROPERTIES = new String[] { "objectclass", "uid", "givenname", "description", "sn", "cn"};
@@ -146,7 +145,7 @@ public abstract class AbstractLdapIdentityProviderTest {
     }
 
     public static void assertIfEquals(String message, String[] expected, Iterable<ExternalIdentityRef> result) {
-        List<String> dns = new LinkedList<String>();
+        List<String> dns = new LinkedList<>();
         for (ExternalIdentityRef ref: result) {
             dns.add(ref.getId());
         }

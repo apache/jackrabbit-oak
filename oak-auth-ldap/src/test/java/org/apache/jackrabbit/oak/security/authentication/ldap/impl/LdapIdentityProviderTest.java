@@ -15,15 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.security.authentication.ldap;
+package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import org.apache.directory.api.util.Strings;
-import org.apache.jackrabbit.oak.security.authentication.ldap.impl.AbstractLdapIdentityProviderTest;
-import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentity;
-import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
-import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapUser;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
@@ -39,6 +37,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_USER_EXTRA_FILTER_DEFAULT;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -47,7 +46,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class LdapProviderTest extends AbstractLdapIdentityProviderTest {
+public class LdapIdentityProviderTest extends AbstractLdapIdentityProviderTest {
+
+    private static final String ERRONEOUS_LDIF = "erroneous.ldif";
 
     @Test
     public void testGetUserByRef() throws Exception {
@@ -55,15 +56,27 @@ public class LdapProviderTest extends AbstractLdapIdentityProviderTest {
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("User instance", id instanceof ExternalUser);
         assertEquals("User ID", TEST_USER1_UID, id.getId());
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        ref = new ExternalIdentityRef(TEST_USER1_UID, IDP_NAME);
-        id = idp.getIdentity(ref);
-        assertTrue("User instance", id instanceof ExternalUser);
-        assertEquals("User ID", TEST_USER1_UID, id.getId());
     }
-    
+
+    @Test
+    public void testListUsers() throws Exception {
+        Iterator<ExternalUser> users = idp.listUsers();
+        Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
+
+        Set<String> expectedIds = ImmutableSet.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
+        assertEquals(expectedIds, ImmutableSet.copyOf(ids));
+    }
+
+    @Test
+    public void testListUsersWithExtraFilter() throws Exception {
+        providerConfig.getUserConfig().setExtraFilter(PARAM_USER_EXTRA_FILTER_DEFAULT);
+        Iterator<ExternalUser> users = idp.listUsers();
+        Iterator<String> ids = Iterators.transform(users, externalUser -> externalUser.getId());
+
+        Set<String> expectedIds = ImmutableSet.of(TEST_USER0_UID, TEST_USER1_UID, TEST_USER5_UID, "hnelson", "thardy", "tquist", "fchristi", "wbush", "cbuckley", "jhallett", "mchrysta", "wbligh", "jfryer");
+        assertEquals(expectedIds, ImmutableSet.copyOf(ids));
+    }
+
     /**
      * Test case to reproduce OAK-3396 where an ldap user entry
      * without a uid caused a NullpointerException in LdapIdentityProvider.createUser
@@ -112,83 +125,6 @@ public class LdapProviderTest extends AbstractLdapIdentityProviderTest {
     @Test
     public void testAuthenticate() throws Exception {
         authenticateInternal(idp, TEST_USER1_DN);
-
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateInternal(idp, TEST_USER1_UID);
-    }
-
-    @Test
-    public void testAuthenticateValidateFalseFalse() throws Exception {
-        providerConfig.getAdminPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(false);
-        providerConfig.getUserPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(false);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateValidateInternal(idp, TEST_USER1_DN);
-
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateValidateInternal(idp, TEST_USER1_UID);
-    }
-
-    @Test
-    public void testAuthenticateValidateFalseTrue() throws Exception {
-        providerConfig.getAdminPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(false);
-        providerConfig.getUserPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateValidateInternal(idp, TEST_USER1_DN);
-
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateValidateInternal(idp, TEST_USER1_UID);
-    }
-
-    @Test
-    public void testAuthenticateValidateTrueFalse() throws Exception {
-        providerConfig.getAdminPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(true);
-        providerConfig.getUserPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(false);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateValidateInternal(idp, TEST_USER1_DN);
-
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateValidateInternal(idp, TEST_USER1_UID);
-    }
-
-    @Test
-    public void testAuthenticateValidateTrueTrue() throws Exception {
-        providerConfig.getAdminPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(true);
-        providerConfig.getUserPoolConfig()
-                .setMaxActive(2)
-                .setLookupOnValidate(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateValidateInternal(idp, TEST_USER1_DN);
-
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        authenticateValidateInternal(idp, TEST_USER1_UID);
     }
 
     @Test
@@ -198,14 +134,6 @@ public class LdapProviderTest extends AbstractLdapIdentityProviderTest {
         assertNotNull("User 1 must authenticate", user);
         assertEquals("User Ref", TEST_USER1_DN, ((LdapUser)user).getEntry().getDn().getName());
         assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
-
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        user = idp.authenticate(creds);
-        assertNotNull("User 1 must authenticate", user);
-        assertEquals("User Ref", TEST_USER1_DN, ((LdapUser)user).getEntry().getDn().getName());
-        assertEquals("User Ref", TEST_USER1_UID.toUpperCase(), user.getExternalId().getId());
     }
 
     @Test
@@ -231,23 +159,12 @@ public class LdapProviderTest extends AbstractLdapIdentityProviderTest {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_USER1_DN, "foobar");
         ExternalIdentity id = idp.getIdentity(ref);
         assertNull("Foreign ref must be null", id);
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        ref = new ExternalIdentityRef(TEST_USER1_UID, "foobar");
-        id = idp.getIdentity(ref);
-        assertNull("Foreign ref must be null", id);
     }
 
     @Test
     public void testGetUnknownUserByRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef("bla=foo," + TEST_USER1_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
-        assertNull("Unknown user must return null", id);
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        id = idp.getIdentity(ref);
         assertNull("Unknown user must return null", id);
     }
 
@@ -256,12 +173,6 @@ public class LdapProviderTest extends AbstractLdapIdentityProviderTest {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_GROUP1_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("Group instance", id instanceof ExternalGroup);
-        assertEquals("Group Name", TEST_GROUP1_NAME, id.getId());
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        ref = new ExternalIdentityRef(TEST_GROUP1_NAME, IDP_NAME);
-        id = idp.getIdentity(ref);
         assertEquals("Group Name", TEST_GROUP1_NAME, id.getId());
     }
 
@@ -279,53 +190,58 @@ public class LdapProviderTest extends AbstractLdapIdentityProviderTest {
     }
 
     @Test
-    public void testGetMembers() throws Exception {
+    public void testGetDeclaredMembersByRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_GROUP1_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("Group instance", id instanceof ExternalGroup);
         ExternalGroup grp = (ExternalGroup) id;
         assertIfEquals("Group members", TEST_GROUP1_MEMBERS, grp.getDeclaredMembers());
+    }
 
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        ref = new ExternalIdentityRef(TEST_GROUP1_NAME, IDP_NAME);
-        id = idp.getIdentity(ref);
-        assertTrue("Group instance", id instanceof ExternalGroup);
-        grp = (ExternalGroup) id;
-        assertIfEquals("Group members", TEST_GROUP1_MEMBERS, grp.getDeclaredMembers());
+
+    @Test
+    public void testGetDeclaredMembers() throws Exception {
+        ExternalGroup gr = idp.getGroup(TEST_GROUP1_NAME);
+        Iterable<ExternalIdentityRef> memberrefs = gr.getDeclaredMembers();
+        Iterable<String> memberIds = Iterables.transform(memberrefs, externalIdentityRef -> externalIdentityRef.getId());
+
+        Set<String> expected = ImmutableSet.copyOf(TEST_GROUP1_MEMBERS);
+        assertEquals(expected, ImmutableSet.copyOf(memberIds));
     }
 
     @Test
-    public void testGetGroups() throws Exception {
+    public void testGetDeclaredMembersInvalidMemberAttribute() throws Exception {
+        providerConfig.setGroupMemberAttribute("invalid");
+
+        ExternalGroup gr = idp.getGroup(TEST_GROUP1_NAME);
+        Iterable<ExternalIdentityRef> memberrefs = gr.getDeclaredMembers();
+        assertTrue(Iterables.isEmpty(memberrefs));
+    }
+
+    @Test
+    public void testGetDeclaredGroupsByRef() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_USER1_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("User instance", id instanceof ExternalUser);
         assertIfEquals("Groups", TEST_USER1_GROUPS, id.getDeclaredGroups());
-
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        ref = new ExternalIdentityRef(TEST_USER1_UID, IDP_NAME);
-        id = idp.getIdentity(ref);
-        assertTrue("User instance", id instanceof ExternalUser);
-        assertIfEquals("Groups", TEST_USER1_GROUPS, id.getDeclaredGroups());
     }
 
     @Test
-    public void testGetGroups2() throws Exception {
+    public void testGetDeclaredGroupsByRef2() throws Exception {
         ExternalIdentityRef ref = new ExternalIdentityRef(TEST_USER0_DN, IDP_NAME);
         ExternalIdentity id = idp.getIdentity(ref);
         assertTrue("User instance", id instanceof ExternalUser);
         assertIfEquals("Groups", TEST_USER0_GROUPS, id.getDeclaredGroups());
+    }
 
-        providerConfig.setUseUidForExtId(true);
-        idp.close();
-        idp = new LdapIdentityProvider(providerConfig);
-        ref = new ExternalIdentityRef(TEST_USER0_UID, IDP_NAME);
-        id = idp.getIdentity(ref);
-        assertTrue("User instance", id instanceof ExternalUser);
-        assertIfEquals("Groups", TEST_USER0_GROUPS, id.getDeclaredGroups());
+    @Test
+    public void testGetDeclaredGroupMissingIdAttribute() throws Exception {
+        providerConfig.getGroupConfig().setIdAttribute(null);
+
+        ExternalUser user = idp.getUser(TEST_USER1_UID);
+        Iterable<ExternalIdentityRef> groupRefs = user.getDeclaredGroups();
+        Iterable<String> groupIds = Iterables.transform(groupRefs, externalIdentityRef -> externalIdentityRef.getId());
+        assertEquals(ImmutableSet.copyOf(TEST_USER1_GROUPS), ImmutableSet.copyOf(groupIds));
     }
 
     @Test
@@ -380,6 +296,17 @@ public class LdapProviderTest extends AbstractLdapIdentityProviderTest {
 
     @Test
     public void testListGroups() throws Exception {
+        Iterator<ExternalGroup> groups = idp.listGroups();
+        Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
+
+        Set<String> expectedIds = ImmutableSet.of(TEST_GROUP1_NAME, TEST_GROUP2_NAME, TEST_GROUP3_NAME, "Administrators");
+        assertEquals(expectedIds, ImmutableSet.copyOf(ids));
+    }
+
+    @Test
+    public void testListGroupsWithEmptyExtraFilter() throws Exception {
+        providerConfig.getGroupConfig().setExtraFilter("");
+
         Iterator<ExternalGroup> groups = idp.listGroups();
         Iterator<String> ids = Iterators.transform(groups, externalGroup -> externalGroup.getId());
 
