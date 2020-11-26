@@ -90,7 +90,7 @@ class ElasticDocument {
         properties.put(fieldName, value);
     }
 
-    void addSimilarityField(String name, Blob value) throws IOException{
+    void addSimilarityField(String name, Blob value) throws IOException {
         byte[] bytes = new BlobByteSource(value).read();
         similarityFields.put(FieldNames.createSimilarityFieldName(name), toDoubles(bytes));
     }

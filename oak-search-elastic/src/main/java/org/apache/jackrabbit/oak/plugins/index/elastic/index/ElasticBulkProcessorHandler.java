@@ -111,8 +111,6 @@ class ElasticBulkProcessorHandler {
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
 
         if (async != null) {
-            Iterable<String> opt = async.getValue(Type.STRINGS);
-
             // Check if this indexing call is a part of async cycle or a commit hook
             // In case it's from async cycle - commit info will have a indexingCheckpointTime key.
             // Otherwise it's part of commit hook based indexing due to async property having a value nrt
