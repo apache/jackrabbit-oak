@@ -1203,7 +1203,6 @@ public class LdapProviderConfig {
      *
      * @return true iff the value of the user id (resp. group name) attribute will be used to create external identifiers
      */
-    @NotNull
     public boolean getUseUidForExtId() {
         return useUidForExtId;
     }
