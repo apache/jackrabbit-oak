@@ -243,9 +243,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                 log.warn("referenced identity is neither user or group: {}", ref.getString());
                 return null;
             }
-        } catch (LdapException e) {
-            throw lookupFailedException(e, null);
-        } catch (CursorException e) {
+        } catch (LdapException | CursorException e) {
             throw lookupFailedException(e, null);
         } finally {
             disconnect(connection);
@@ -335,7 +333,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider, Principal
                         try {
                             return createGroup(iter.next(), null);
                         } catch (LdapInvalidAttributeValueException e) {
-                            log.warn("Error while creating external user object", e);
+                            log.warn("Error while creating external group object", e);
                         }
                     }
                     return null;
