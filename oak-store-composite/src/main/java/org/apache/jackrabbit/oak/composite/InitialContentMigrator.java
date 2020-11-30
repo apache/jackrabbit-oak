@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.migration.FilteringNodeState;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
+import org.apache.jackrabbit.oak.plugins.version.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -58,6 +59,8 @@ public class InitialContentMigrator {
 
     private final NodeStore targetNodeStore;
 
+    private final boolean targetHasReferenceableFrozenNode;
+
     private final NodeStore seedNodeStore;
 
     private final Mount seedMount;
@@ -72,6 +75,7 @@ public class InitialContentMigrator {
 
     public InitialContentMigrator(NodeStore targetNodeStore, NodeStore seedNodeStore, Mount seedMount) {
         this.targetNodeStore = targetNodeStore;
+        this.targetHasReferenceableFrozenNode = Utils.isFrozenNodeReferenceable(targetNodeStore.getRoot());
         this.seedNodeStore = seedNodeStore;
         this.seedMount = seedMount;
 
@@ -208,7 +212,7 @@ public class InitialContentMigrator {
 
     private NodeState wrapNodeState(NodeState nodeState, boolean logPaths) {
         NodeState wrapped = nodeState;
-        wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, fragmentPaths, excludeFragments);
+        wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, fragmentPaths, excludeFragments, targetHasReferenceableFrozenNode);
         if (logPaths) {
             wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));
         }

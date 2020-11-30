@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
-import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
-
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 import org.apache.jackrabbit.oak.plugins.migration.DescendantsIterator;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.version.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -39,19 +38,16 @@ import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistory
  */
 public class VersionCopier {
 
-    private final TypePredicate isVersion;
-
     private final NodeState sourceVersionStorage;
 
     private final NodeBuilder targetVersionStorage;
 
-    private final NodeBuilder targetRoot;
+    private final Supplier<Boolean> frozenNodeIsReferenceable;
 
     public VersionCopier(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage) {
-        this.isVersion = new TypePredicate(targetRoot.getNodeState(), NT_VERSION);
         this.sourceVersionStorage = sourceVersionStorage;
         this.targetVersionStorage = targetVersionStorage;
-        this.targetRoot = targetRoot;
+        this.frozenNodeIsReferenceable = new IsFrozenNodeReferenceable(targetRoot.getNodeState());
     }
 
     public static void copyVersionStorage(NodeBuilder targetRoot, NodeState sourceVersionStorage, NodeBuilder targetVersionStorage, VersionCopyConfiguration config) {
@@ -85,10 +81,29 @@ public class VersionCopier {
             NodeStateCopier.builder()
                     .include(versionHistoryPath)
                     .merge(VERSION_STORE_PATH)
+                    .withReferenceableFrozenNodes(frozenNodeIsReferenceable.get())
                     .copy(sourceVersionStorage, targetVersionStorage);
             return true;
         }
         return false;
     }
 
+    private static final class IsFrozenNodeReferenceable implements Supplier<Boolean> {
+
+        private final NodeState root;
+
+        private Boolean isReferenceable;
+
+        public IsFrozenNodeReferenceable(NodeState root) {
+            this.root = root;
+        }
+
+        @Override
+        public Boolean get() {
+            if (isReferenceable == null) {
+                isReferenceable = Utils.isFrozenNodeReferenceable(root);
+            }
+            return isReferenceable;
+        }
+    }
 }
