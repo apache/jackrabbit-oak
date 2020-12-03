@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.8.23
+Release Notes -- Apache Jackrabbit Oak -- Version 1.8.24
 
 Introduction
 ------------
@@ -7,27 +7,28 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.8.23 is a patch release that contains fixes and
+Jackrabbit Oak 1.8.24 is a patch release that contains fixes and
 improvements over Oak 1.8. Jackrabbit Oak 1.8.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.8.23
+Changes in Oak 1.8.24
 ---------------------
 
-Bug
-	[OAK-9095] - MapRecord corruption when adding more than MapRecord.MAX_SIZE entries in branch record
+Technical task
+        [OAK-7553] - Extract interface from CommitValueResolver
 
+Bug
+        [OAK-9229] - CountingDocumentStore returns documents with incorrect store reference
 
 Improvement
-	[OAK-9065] - JMX feature to remove large disabled indexes (recursive delete)
-	[OAK-9092] - Exception root cause message is swallowed
-	[OAK-9125] - Oak-run indexing with MongoDB logs errors in a background thread
 
-Task
-	[OAK-9101] - Monitoring for maximum number of entries in biggest map record
+        [OAK-9184] - Very slow, potential endless loop in LucenePropertyIndex.loadDocs()
+        [OAK-9230] - CachingCommitValueResolver with negative cache
+        [OAK-9231] - Enable negative cache of commit value resolver for oak-run index command
+        [OAK-9261] - Upgrade Apache Solr to 8.6.3 and remove Embedded Solr Server
 
 
 
