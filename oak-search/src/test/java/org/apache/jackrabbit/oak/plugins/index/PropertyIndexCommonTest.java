@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
@@ -24,6 +26,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import static java.util.Collections.singletonList;
+import static javax.jcr.PropertyType.TYPENAME_DATE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -166,6 +169,37 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         root.commit();
         assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where propa is not null",
                 Arrays.asList("/test/a", "/test/b")));
+    }
+
+    @Test
+    public void dateQuery() throws Exception {
+        Tree index = root.getTree("/");
+        Tree indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
+        TestUtil.useV2(indexDefn);
+
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
+        Tree prop = TestUtil.enablePropertyIndex(props, "date", false);
+        prop.setProperty(FulltextIndexConstants.PROP_TYPE, TYPENAME_DATE);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        Tree b = test.addChild("b");
+        Tree c = test.addChild("c");
+        Tree d = test.addChild("d");
+        a.setProperty("date", "2020-12-07T11:45:48.119Z", Type.DATE);
+        b.setProperty("date", "2020-12-07T17:23:33.933Z", Type.DATE);
+        c.setProperty("date", "2020-12-07T22:23:33.933Z", Type.DATE);
+        d.setProperty("date", "2020-12-07T10:23:33.933-09:00", Type.DATE);
+        root.commit();
+
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where date > CAST('2020-12-06T12:32:35.886Z' AS DATE)",
+                Arrays.asList("/test/a", "/test/b", "/test/c", "/test/d")));
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where date > CAST('2020-12-07T12:32:35.886Z' AS DATE) " +
+                        "and date < CAST('2020-12-07T20:32:35.886Z' AS DATE)",
+                Arrays.asList("/test/b", "/test/d")));
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where date < CAST('2020-12-07T11:23:33.933-09:00' AS DATE)",
+                Arrays.asList("/test/a", "/test/b", "/test/d")));
     }
 
     private String explain(String query) {
