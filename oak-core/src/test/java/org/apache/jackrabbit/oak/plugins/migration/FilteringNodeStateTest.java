@@ -46,7 +46,6 @@ import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.com
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.createNodeStoreWithContent;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.getNodeState;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
-import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.getBoolean;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

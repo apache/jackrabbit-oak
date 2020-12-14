@@ -26,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
+
 /**
  * NodeState implementation that decorates another node-state instance
  * in order to hide subtrees or partial subtrees from the consumer of
@@ -66,8 +67,6 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
 
     public static final Set<String> NONE = ImmutableSet.of();
 
-    private static final Set<String> JCR_SYSTEM_PATH_PREFIX = ImmutableSet.of("/", "/" + JcrConstants.JCR_SYSTEM);
-
     private final String path;
 
     private final Set<String> includedPaths;
@@ -107,7 +106,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
         final Set<String> excludes = defaultIfEmpty(excludePaths, NONE);
         final Set<String> safeFragmentPaths = defaultIfEmpty(fragmentPaths, NONE);
         final Set<String> safeExcludedFragments = defaultIfEmpty(excludedFragments, NONE);
-        if (hasHiddenDescendants(path, includes, excludes, safeFragmentPaths, safeExcludedFragments, referenceableFrozenNodes)) {
+        if (!referenceableFrozenNodes || hasHiddenDescendants(path, includes, excludes, safeFragmentPaths, safeExcludedFragments)) {
             return new FilteringNodeState(path, delegate, includes, excludes, fragmentPaths, safeExcludedFragments, referenceableFrozenNodes);
         }
         return delegate;
@@ -197,7 +196,6 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param includePaths Include paths
      * @param excludePaths Exclude paths
      * @param excludedFragments Exclude fragments
-     * @param referenceableFrozenNodes Whether frozen nodes are referenceable.
      * @return Whether the {@code path} or any of its descendants are hidden or not.
      */
     private static boolean hasHiddenDescendants(
@@ -205,37 +203,14 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
             @NotNull final Set<String> includePaths,
             @NotNull final Set<String> excludePaths,
             @NotNull final Set<String> fragmentPaths,
-            @NotNull final Set<String> excludedFragments,
-            boolean referenceableFrozenNodes
+            @NotNull final Set<String> excludedFragments
     ) {
         return isHidden(path, includePaths, excludePaths, excludedFragments)
                 || isAncestorOfAnyPath(path, fragmentPaths)
                 || isDescendantOfAnyPath(path, fragmentPaths)
                 || fragmentPaths.contains(path)
                 || isAncestorOfAnyPath(path, excludePaths)
-                || isAncestorOfAnyPath(path, includePaths)
-                || hidesUUIDOfFrozenNodes(path, referenceableFrozenNodes);
-    }
-
-    /**
-     * Utility method to check whether {@code jcr:uuid} properties may be hidden
-     * below the given {@code path}. The check also takes the parameter
-     * {@code referenceableFrozenNodes} into account, which indicates whether
-     * the filtered (frozen) node states should look like they are referenceable.
-     *
-     * @param path the path to check.
-     * @param referenceableFrozenNodes whether frozen nodes are considered
-     *      referenceable.
-     * @return {@code true} if {@code jcr:uuid} properties of frozen node may
-     *      need hiding.
-     */
-    private static boolean hidesUUIDOfFrozenNodes(String path,
-                                                  boolean referenceableFrozenNodes) {
-        if (referenceableFrozenNodes) {
-            // nothing to hide
-            return false;
-        }
-        return PathUtils.denotesRoot(path) || isDescendantOfAnyPath(path, JCR_SYSTEM_PATH_PREFIX);
+                || isAncestorOfAnyPath(path, includePaths);
     }
 
     /**
