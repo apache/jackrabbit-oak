@@ -24,6 +24,7 @@ import com.google.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.cache.AbstractCacheStats;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +85,11 @@ public abstract class AbstractPersistentCache implements PersistentCache, Closea
             }
 
             return segment;
+        } catch (RepositoryNotReachableException e) {
+            recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
+
+            // rethrow exception so that this condition can be distinguished from other types of errors (see OAK-9303)
+            throw e;
         } catch (Exception t) {
             logger.error("Exception while loading segment {} from remote store or linked cache", new UUID(msb, lsb), t);
             recordCacheLoadTimeInternal(stopwatch.elapsed(TimeUnit.NANOSECONDS), false);
