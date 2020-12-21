@@ -224,7 +224,7 @@ Example code to show how this work (where `test` is a common word in the index):
     QueryResult result = query.execute();
     long size = result.getRows().getSize();
 
-This is best configured via OSGi configuration (since Oak 1.6.x),
+This is best configured via OSGi configuration `fastQuerySize` of `org.apache.jackrabbit.oak.query.QueryEngineSettingsService` (since Oak 1.6.x),
 or as described in OAK-2977, since Oak 1.3.x:
 When using Apache Sling, add the following line to the file `conf/sling.properties`,
 and then restart the application:
