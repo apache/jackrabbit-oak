@@ -498,7 +498,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                                 writer.endObject();
                                 return PropertyValues.newString(writer.toString());
                             }
-                        } catch (Exception e) {
+                        } catch (IOException | RuntimeException e) {
+                            LOG.warn(e.getMessage());
+                            LOG.debug(e.getMessage(), e);
                             throw new RuntimeException(e);
                         }
                     }
