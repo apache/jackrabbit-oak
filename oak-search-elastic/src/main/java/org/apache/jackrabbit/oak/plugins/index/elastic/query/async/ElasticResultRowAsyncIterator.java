@@ -169,8 +169,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     class ElasticQueryScanner implements ActionListener<SearchResponse> {
 
         private static final int SMALL_RESULT_SET_SIZE = 10;
-        private static final int MEDIUM_RESULT_SET_SIZE = 100;
-        private static final int LARGE_RESULT_SET_SIZE = 1000;
 
         private final Set<ElasticResponseListener> allListeners = new HashSet<>();
         private final List<SearchHitListener> searchHitListeners = new ArrayList<>();
@@ -183,9 +181,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         // concurrent data structures to coordinate chunks loading
         private final AtomicBoolean anyDataLeft = new AtomicBoolean(false);
 
-        private int scannedRows = 0;
-        private boolean firstRequest = true;
-        private boolean fullScan = false;
+        private int scannedRows;
+        private int requests;
+        private boolean fullScan;
         private long searchStartTime;
 
         // reference to the last document sort values for search_after queries
@@ -224,9 +222,9 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
 
             final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
                     .query(query)
-                    // use a smaller size when the client asks for facets. This improves performance
+                    // use a smaller size when the query contains aggregations. This improves performance
                     // when the client is only interested in insecure facets
-                    .size(needsAggregations.get() ? SMALL_RESULT_SET_SIZE : MEDIUM_RESULT_SET_SIZE)
+                    .size(needsAggregations.get() ? Math.min(SMALL_RESULT_SET_SIZE, getFetchSize(requests)) : getFetchSize(requests))
                     .fetchSource(sourceFields, null);
 
             this.sorts.forEach(searchSourceBuilder::sort);
@@ -242,6 +240,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             semaphore.tryAcquire();
 
             searchStartTime = System.currentTimeMillis();
+            requests++;
             indexNode.getConnection().getClient().searchAsync(searchRequest, RequestOptions.DEFAULT, this);
             elasticMetricHandler.markQuery(true);
         }
@@ -271,7 +270,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 // now that we got the last hit we can release the semaphore to potentially unlock other requests
                 semaphore.release();
 
-                if (firstRequest) {
+                if (requests == 1) {
                     for (SearchHitListener l : searchHitListeners) {
                         l.startData(totalHits);
                     }
@@ -283,8 +282,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                             l.on(aggregations);
                         }
                     }
-
-                    firstRequest = false;
                 }
 
                 LOG.trace("Emitting {} search hits, for a total of {} scanned results", searchHits.length, scannedRows);
@@ -321,7 +318,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             if (semaphore.tryAcquire() && anyDataLeft.get()) {
                 final SearchSourceBuilder searchSourceBuilder = SearchSourceBuilder.searchSource()
                         .query(query)
-                        .size(LARGE_RESULT_SET_SIZE)
+                        .size(getFetchSize(requests++))
                         .fetchSource(sourceFields, null)
                         .searchAfter(lastHitSortValues);
 
@@ -337,6 +334,13 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             } else {
                 LOG.trace("Scanner is closing or still processing data from the previous scan");
             }
+        }
+
+        /* picks the size in the fetch array at index=requests or the last if out of bound */
+        private int getFetchSize(int requestId) {
+            int[] queryFetchSizes = indexNode.getDefinition().queryFetchSizes;
+            return queryFetchSizes.length > requestId ?
+                    queryFetchSizes[requestId] : queryFetchSizes[queryFetchSizes.length -1];
         }
 
         // close all listeners

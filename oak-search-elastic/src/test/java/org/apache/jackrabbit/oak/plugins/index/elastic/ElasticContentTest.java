@@ -17,19 +17,38 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.stream.IntStream;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticTestUtils.randomString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class ElasticContentTest extends ElasticAbstractQueryTest {
+
+    private final ElasticMetricHandler spyMetricHandler = spy(new ElasticMetricHandler(StatisticsProvider.NOOP));
+
+    @Override
+    protected ElasticMetricHandler getMetricHandler() {
+        return spyMetricHandler;
+    }
 
     @Test
     public void indexWithAnalyzedProperty() throws Exception {
@@ -115,7 +134,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         assertTrue(exists(index));
 
         builder = createIndex("a").noAsync();
-        index = setIndex(testId, builder);
+        setIndex(testId, builder);
         root.commit();
     }
 
@@ -134,5 +153,44 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertThat(countDocuments(index), equalTo(1L)));
+    }
+
+    @Test
+    public void indexWithCustomFetchSizes() throws Exception {
+        BiConsumer<String, Iterable<Long>> buildIndex = (p, fetchSizes) -> {
+            IndexDefinitionBuilder builder = createIndex(p).noAsync();
+            builder.getBuilderTree().setProperty("queryFetchSizes", fetchSizes, Type.LONGS);
+            builder.indexRule("nt:base").property(p).propertyIndex();
+            setIndex(UUID.randomUUID().toString(), builder);
+        };
+
+        buildIndex.accept("a", Collections.singletonList(1L));
+        buildIndex.accept("b", Arrays.asList(1L, 2L));
+        buildIndex.accept("c", Arrays.asList(3L, 100L));
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        IntStream.range(0, 3).forEach(n -> {
+                    Tree child = content.addChild("child_" + n);
+                    child.setProperty("a", "text");
+                    child.setProperty("b", "text");
+                    child.setProperty("c", "text");
+                }
+        );
+        root.commit(Collections.singletonMap("sync-mode", "rt"));
+
+        List<String> results = Arrays.asList("/content/child_0", "/content/child_1", "/content/child_2");
+
+        reset(spyMetricHandler);
+        assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results);
+        verify(spyMetricHandler, times(3)).markQuery(anyBoolean());
+
+        reset(spyMetricHandler);
+        assertQuery("select [jcr:path] from [nt:base] where [b] = 'text'", results);
+        verify(spyMetricHandler, times(2)).markQuery(anyBoolean());
+
+        reset(spyMetricHandler);
+        assertQuery("select [jcr:path] from [nt:base] where [c] = 'text'", results);
+        verify(spyMetricHandler, times(1)).markQuery(anyBoolean());
     }
 }
