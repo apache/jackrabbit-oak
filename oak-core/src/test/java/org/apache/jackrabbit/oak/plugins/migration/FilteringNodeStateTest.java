@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.migration;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,6 +32,7 @@ import org.junit.Test;
 import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.util.Set;
+import java.util.UUID;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Lists.newArrayList;
@@ -72,6 +75,9 @@ public class FilteringNodeStateTest {
         final PropertyState childOrder = createProperty(OAK_CHILD_ORDER, asList("foo", "football"), Type.NAMES);
         final NodeBuilder builder = nodeStore.getRoot().builder();
         create(builder, "/content", childOrder);
+        final PropertyState uuid = createProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString(), Type.STRING);
+        final PropertyState ntFrozenNode = createProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FROZENNODE, Type.NAME);
+        create(builder, "/" + JcrConstants.JCR_SYSTEM + "/" + JcrConstants.JCR_VERSIONSTORAGE + "/dummy/frozen", ntFrozenNode, uuid);
         commit(nodeStore, builder);
 
         rootNodeState = nodeStore.getRoot();
@@ -79,46 +85,46 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldNotDecorateForNullArgs() {
-        final NodeState decorated = wrap("/", rootNodeState, null, null, null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, null, null, null, true);
         assertSame("root should be identical to decorated", rootNodeState, decorated);
     }
 
     @Test
     public void shouldNotDecorateForDefaultIncludes() {
-        final NodeState decorated = wrap("/", rootNodeState, DEFAULT_INCLUDES, null, null, null);
+        final NodeState decorated = wrap("/", rootNodeState, DEFAULT_INCLUDES, null, null, null, true);
         assertSame("root should be identical to decorated", rootNodeState, decorated);
     }
 
     @Test
     public void shouldNotDecorateForDefaultExcludes() {
-        final NodeState decorated = wrap("/", rootNodeState, null, DEFAULT_EXCLUDES, null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, DEFAULT_EXCLUDES, null, null, true);
         assertSame("root should be identical to decorated", rootNodeState, decorated);
     }
 
     @Test
     public void shouldNotDecorateForDefaultIncludesAndExcludes() {
-        final NodeState decorated = wrap("/", rootNodeState, DEFAULT_INCLUDES, DEFAULT_EXCLUDES, null, null);
+        final NodeState decorated = wrap("/", rootNodeState, DEFAULT_INCLUDES, DEFAULT_EXCLUDES, null, null, true);
         assertSame("root should be identical to decorated", rootNodeState, decorated);
     }
 
     @Test
     public void shouldNotDecorateIncludedPath() {
         final NodeState content = getNodeState(rootNodeState, "/content");
-        final NodeState decorated = wrap("/content", content, of("/content"), null, null, null);
+        final NodeState decorated = wrap("/content", content, of("/content"), null, null, null, true);
         assertSame("content should be identical to decorated", content, decorated);
     }
 
     @Test
     public void shouldNotDecorateIncludedDescendants() {
         final NodeState foo = getNodeState(rootNodeState, "/content/foo");
-        final NodeState decorated = wrap("/content/foo", foo, of("/content"), null, null, null);
+        final NodeState decorated = wrap("/content/foo", foo, of("/content"), null, null, null, true);
         assertSame("foo should be identical to decorated", foo, decorated);
     }
 
     @Test
     public void shouldDecorateAncestorOfExcludedDescendants() {
         final NodeState foo = getNodeState(rootNodeState, "/content/foo");
-        final NodeState decorated = wrap("/content/foo", foo, of("/content"), of("/content/foo/de"), null, null);
+        final NodeState decorated = wrap("/content/foo", foo, of("/content"), of("/content/foo/de"), null, null, true);
         assertNotSame("foo should not be identical to decorated", foo, decorated);
 
         assertMissing(decorated, "de");
@@ -134,7 +140,7 @@ public class FilteringNodeStateTest {
     @Test
     public void shouldHaveCorrectChildOrderProperty() throws CommitFailedException {
         final NodeState content = rootNodeState.getChildNode("content");
-        final NodeState decorated = wrap("/content", content, null, of("/content/foo"), null, null);
+        final NodeState decorated = wrap("/content", content, null, of("/content/foo"), null, null, true);
 
         assertTrue(decorated.hasProperty(OAK_CHILD_ORDER));
 
@@ -159,7 +165,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldDecorateExcludedNode() {
-        final NodeState decoratedRoot = wrap("/", rootNodeState, of("/content"), of("/content/foo/de"), null, null);
+        final NodeState decoratedRoot = wrap("/", rootNodeState, of("/content"), of("/content/foo/de"), null, null, true);
         final NodeState de = getNodeState(rootNodeState, "/content/foo/de");
         final NodeState decorated = getNodeState(decoratedRoot, "/content/foo/de");
         assertFalse("de should not be equal to decorated", de.equals(decorated));
@@ -169,14 +175,14 @@ public class FilteringNodeStateTest {
     @Test
     public void shouldDecorateImplicitlyExcludedNode() {
         final NodeState content = getNodeState(rootNodeState, "/content");
-        final NodeState decorated = wrap("/content", content, of("/apps"), null, null, null);
+        final NodeState decorated = wrap("/content", content, of("/apps"), null, null, null, true);
         assertNotSame("content should not be identical to decorated", content, decorated);
     }
 
 
     @Test
     public void shouldHideExcludedPathsViaExists() {
-        final NodeState decorated = wrap("/", rootNodeState, null, of("/apps", "/libs"), null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/apps", "/libs"), null, null, true);
         assertMissing(decorated, "apps");
         assertMissing(decorated, "libs/foo/install");
 
@@ -186,7 +192,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldHideExcludedPathsViaHasChildNode() {
-        final NodeState decorated = wrap("/", rootNodeState, null, of("/apps", "/libs"), null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/apps", "/libs"), null, null, true);
 
         assertExistingHasChildNode(decorated, "content");
         assertMissingHasChildNode(decorated, "apps");
@@ -195,7 +201,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldHideExcludedPathsViaGetChildNodeNames() {
-        final NodeState decorated = wrap("/", rootNodeState, null, of("/apps", "/libs"), null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/apps", "/libs"), null, null, true);
 
         assertExistingChildNodeName(decorated, "content");
         assertMissingChildNodeName(decorated, "apps");
@@ -204,7 +210,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldHideMissingIncludedPathsViaExists() {
-        final NodeState decorated = wrap("/", rootNodeState, of("/content"), null, null, null);
+        final NodeState decorated = wrap("/", rootNodeState, of("/content"), null, null, null, true);
         assertMissing(decorated, "apps");
         assertMissing(decorated, "libs/foo/install");
 
@@ -214,7 +220,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldHideMissingIncludedPathsViaHasChildNode() {
-        final NodeState decorated = wrap("/", rootNodeState, of("/content"), null, null, null);
+        final NodeState decorated = wrap("/", rootNodeState, of("/content"), null, null, null, true);
 
         assertExistingHasChildNode(decorated, "content");
         assertMissingHasChildNode(decorated, "apps");
@@ -223,7 +229,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldHideMissingIncludedPathsViaGetChildNodeNames() {
-        final NodeState decorated = wrap("/", rootNodeState, of("/content"), null, null, null);
+        final NodeState decorated = wrap("/", rootNodeState, of("/content"), null, null, null, true);
 
         assertExistingChildNodeName(decorated, "content");
         assertMissingChildNodeName(decorated, "apps");
@@ -232,15 +238,15 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldGivePrecedenceForExcludesOverIncludes() {
-        final NodeState conflictingRules = wrap("/", rootNodeState, of("/content"), of("/content"), null, null);
+        final NodeState conflictingRules = wrap("/", rootNodeState, of("/content"), of("/content"), null, null, true);
         assertMissingChildNodeName(conflictingRules, "content");
 
-        final NodeState overlappingRules = wrap("/", rootNodeState, of("/content"), of("/content/foo"), null, null);
+        final NodeState overlappingRules = wrap("/", rootNodeState, of("/content"), of("/content/foo"), null, null, true);
         assertExistingChildNodeName(overlappingRules, "content");
         assertMissingChildNodeName(overlappingRules.getChildNode("content"), "foo");
 
 
-        final NodeState overlappingRules2 = wrap("/", rootNodeState, of("/content/foo"), of("/content"), null, null);
+        final NodeState overlappingRules2 = wrap("/", rootNodeState, of("/content/foo"), of("/content"), null, null, true);
         assertMissingChildNodeName(overlappingRules2, "content");
         assertMissingChildNodeName(overlappingRules2.getChildNode("content"), "foo");
 
@@ -248,7 +254,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldRespectPathBoundariesForIncludes() {
-        final NodeState decorated = wrap("/", rootNodeState, of("/content/foo"), null, null, null);
+        final NodeState decorated = wrap("/", rootNodeState, of("/content/foo"), null, null, null, true);
 
         assertExistingChildNodeName(decorated, "content");
         assertExistingChildNodeName(decorated.getChildNode("content"), "foo");
@@ -257,7 +263,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldRespectPathBoundariesForExcludes() {
-        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo"), null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo"), null, null, true);
 
         assertExistingChildNodeName(decorated, "content");
         assertMissingChildNodeName(decorated.getChildNode("content"), "foo");
@@ -266,7 +272,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldDelegatePropertyCount() {
-        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo/de"), null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo/de"), null, null, true);
 
         assertEquals(1, getNodeState(decorated, "/content").getPropertyCount());
         assertEquals(0, getNodeState(decorated, "/content/foo").getPropertyCount());
@@ -275,7 +281,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldDelegateGetProperty() {
-        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo"), null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo"), null, null, true);
         final NodeState content = getNodeState(decorated, "/content");
 
         assertNotNull(content.getProperty(OAK_CHILD_ORDER));
@@ -285,7 +291,7 @@ public class FilteringNodeStateTest {
 
     @Test
     public void shouldDelegateHasProperty() {
-        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo/de"), null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo/de"), null, null, true);
 
         assertTrue(getNodeState(decorated, "/content").hasProperty(OAK_CHILD_ORDER));
         assertFalse(getNodeState(decorated, "/content").hasProperty("foo"));
@@ -294,12 +300,25 @@ public class FilteringNodeStateTest {
 
     @Test
     public void exists() {
-        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo"), null, null);
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo"), null, null, true);
         assertTrue("/content should exist and be visible", getNodeState(decorated, "/content").exists());
         assertFalse("/content/foo should be hidden", getNodeState(decorated, "/content/foo").exists());
         assertFalse("/nonexisting should not exist", getNodeState(decorated, "/nonexisting").exists());
     }
 
+    @Test
+    public void withoutReferenceableFrozenNode() {
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo"), null, null, false);
+        final NodeState frozenNode = getNodeState(decorated, "/" + JcrConstants.JCR_SYSTEM + "/" + JcrConstants.JCR_VERSIONSTORAGE + "/dummy/frozen");
+        assertNull(frozenNode.getProperty(JcrConstants.JCR_UUID));
+    }
+
+    @Test
+    public void withReferenceableFrozenNode() {
+        final NodeState decorated = wrap("/", rootNodeState, null, of("/content/foo"), null, null, true);
+        final NodeState frozenNode = getNodeState(decorated, "/" + JcrConstants.JCR_SYSTEM + "/" + JcrConstants.JCR_VERSIONSTORAGE + "/dummy/frozen");
+        assertNotNull(frozenNode.getProperty(JcrConstants.JCR_UUID));
+    }
 
     private void assertExistingHasChildNode(NodeState decorated, String name) {
         assertTrue("should have child \"" + name + "\"", decorated.hasChildNode(name));

@@ -564,7 +564,8 @@ public class RepositoryUpgrade {
 
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
-        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
+        boolean frozenNodeReferenceable = org.apache.jackrabbit.oak.plugins.version.Utils.isFrozenNodeReferenceable(root);
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE, frozenNodeReferenceable);
         NodeState versionStorage = getVersionStorage(root);
         List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, versionStorage, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {

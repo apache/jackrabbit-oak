@@ -85,12 +85,20 @@ public class NodeStateCopier {
 
     private final Set<String> mergePaths;
 
-    private NodeStateCopier(Set<String> includePaths, Set<String> excludePaths, Set<String> fragmentPaths, Set<String> excludeFragments, Set<String> mergePaths) {
+    private final boolean referenceableFrozenNodes;
+
+    private NodeStateCopier(Set<String> includePaths,
+                            Set<String> excludePaths,
+                            Set<String> fragmentPaths,
+                            Set<String> excludeFragments,
+                            Set<String> mergePaths,
+                            boolean referenceableFrozenNodes) {
         this.includePaths = includePaths;
         this.excludePaths = excludePaths;
         this.fragmentPaths = fragmentPaths;
         this.excludeFragments = excludeFragments;
         this.mergePaths = mergePaths;
+        this.referenceableFrozenNodes = referenceableFrozenNodes;
     }
 
     /**
@@ -149,7 +157,7 @@ public class NodeStateCopier {
     }
 
     private boolean copyNodeState(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
-        final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths, this.excludePaths, this.fragmentPaths, this.excludeFragments);
+        final NodeState wrappedSource = FilteringNodeState.wrap("/", sourceRoot, this.includePaths, this.excludePaths, this.fragmentPaths, this.excludeFragments, this.referenceableFrozenNodes);
         boolean hasChanges = false;
         for (String includePath : this.includePaths) {
             hasChanges = copyMissingAncestors(sourceRoot, targetRoot, includePath) || hasChanges;
@@ -308,6 +316,8 @@ public class NodeStateCopier {
 
         private Set<String> mergePaths = emptySet();
 
+        private boolean referenceableFrozenNodes = true;
+
         private Builder() {}
 
 
@@ -316,7 +326,7 @@ public class NodeStateCopier {
          *
          * @param paths include paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder include(@NotNull Set<String> paths) {
@@ -331,7 +341,7 @@ public class NodeStateCopier {
          *
          * @param paths include paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder include(@NotNull String... paths) {
@@ -343,7 +353,7 @@ public class NodeStateCopier {
          *
          * @param paths exclude paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder exclude(@NotNull Set<String> paths) {
@@ -358,7 +368,7 @@ public class NodeStateCopier {
          *
          * @param paths exclude paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder exclude(@NotNull String... paths) {
@@ -370,7 +380,7 @@ public class NodeStateCopier {
          *
          * @param paths fragment paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder supportFragment(@NotNull Set<String> paths) {
@@ -385,7 +395,7 @@ public class NodeStateCopier {
          *
          * @param paths fragment paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder supportFragment(@NotNull String... paths) {
@@ -397,7 +407,7 @@ public class NodeStateCopier {
          *
          * @param fragments exclude fragments
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder excludeFragments(@NotNull Set<String> fragments) {
@@ -412,7 +422,7 @@ public class NodeStateCopier {
          *
          * @param fragments exclude fragments
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder excludeFragments(@NotNull String... fragments) {
@@ -424,7 +434,7 @@ public class NodeStateCopier {
          *
          * @param paths merge paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder merge(@NotNull Set<String> paths) {
@@ -439,11 +449,17 @@ public class NodeStateCopier {
          *
          * @param paths merge paths
          * @return this Builder instance
-         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set)
+         * @see NodeStateCopier#NodeStateCopier(Set, Set, Set, Set, Set, boolean)
          */
         @NotNull
         public Builder merge(@NotNull String... paths) {
             return merge(copyOf(checkNotNull(paths)));
+        }
+
+        @NotNull
+        public Builder withReferenceableFrozenNodes(boolean isReferenceable) {
+            this.referenceableFrozenNodes = isReferenceable;
+            return this;
         }
 
         /**
@@ -460,7 +476,7 @@ public class NodeStateCopier {
          *         the same content
          */
         public boolean copy(@NotNull final NodeState sourceRoot, @NotNull final NodeBuilder targetRoot) {
-            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths, excludeFragments, mergePaths);
+            final NodeStateCopier copier = new NodeStateCopier(includePaths, excludePaths, fragmentPaths, excludeFragments, mergePaths, referenceableFrozenNodes);
             return copier.copyNodeState(checkNotNull(sourceRoot), checkNotNull(targetRoot));
         }
 
