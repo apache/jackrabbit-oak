@@ -180,6 +180,8 @@ public class BenchmarkRunner {
                         new ReadPropertyTest(),
             GetNodeTest.withAdmin(),
             GetNodeTest.withAnonymous(),
+            GetParentNodeTest.withNodeAPI(),
+            GetParentNodeTest.withSessionAPI(),
             new GetMixinNodeTypesTest(),
             new GetDeepNodeTest(),
             new SetPropertyTest(),
