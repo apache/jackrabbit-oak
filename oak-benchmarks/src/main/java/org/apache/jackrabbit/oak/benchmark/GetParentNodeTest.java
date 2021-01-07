@@ -40,29 +40,80 @@ public abstract class GetParentNodeTest extends AbstractTest {
     protected String parentNodePath;
     private String childNodePath;
 
-    public static Benchmark withNodeAPI() {
-        return new GetParentNodeTest("GetParentNodeWithNodeAPI") {
+    private boolean runAsAdmin;
+
+    public static Benchmark withNodeAPIAndParentVisible(boolean runAsAdmin) {
+        return new GetParentNodeTest("GetParentVisibleNodeAPI", runAsAdmin) {
             @Override
             protected Node getParentNode(Node childNode) throws RepositoryException {
                 return childNode.getParent();
             }
-        };
-    }
 
-    public static Benchmark withSessionAPI() {
-        return new GetParentNodeTest("GetParentNodeWithSessionAPI") {
             @Override
-            protected Node getParentNode(Node childNode) throws RepositoryException {
-                return childNode.getSession().getNode(parentNodePath);
+            protected boolean isParentNodeVisible() {
+                return true;
             }
         };
     }
 
-    protected GetParentNodeTest(String name) {
+    public static Benchmark withSessionAPIAndParentVisible(boolean runAsAdmin) {
+        return new GetParentNodeTest("GetParentVisibleSessionAPI", runAsAdmin) {
+            @Override
+            protected Node getParentNode(Node childNode) throws RepositoryException {
+                return childNode.getSession().getNode(parentNodePath);
+            }
+
+            @Override
+            protected boolean isParentNodeVisible() {
+                return true;
+            }
+        };
+    }
+
+    public static Benchmark withNodeAPIAndParentNotVisible(boolean runAsAdmin) {
+        return new GetParentNodeTest("GetParentNotVisibleNodeAPI", runAsAdmin) {
+            @Override
+            protected Node getParentNode(Node childNode) throws RepositoryException {
+                return childNode.getParent();
+            }
+
+            @Override
+            protected boolean isParentNodeVisible() {
+                return false;
+            }
+        };
+    }
+
+    public static Benchmark withSessionAPIAndParentNotVisible(boolean runAsAdmin) {
+        return new GetParentNodeTest("GetParentNotVisibleSessionAPI", runAsAdmin) {
+            @Override
+            protected Node getParentNode(Node childNode) throws RepositoryException {
+                return childNode.getSession().getNode(parentNodePath);
+            }
+
+            @Override
+            protected boolean isParentNodeVisible() {
+                return false;
+            }
+        };
+    }
+
+    protected GetParentNodeTest(String name, boolean runAsAdmin) {
         this.name = name;
+        this.runAsAdmin = runAsAdmin;
     }
 
     protected abstract Node getParentNode(Node childNode) throws RepositoryException;
+
+    protected Session login() {
+        if (runAsAdmin) {
+            return loginAdministrative();
+        } else {
+            return loginAnonymous();
+        }
+    }
+
+    protected abstract boolean isParentNodeVisible();
 
     @Override
     public String toString() {
@@ -82,6 +133,13 @@ public abstract class GetParentNodeTest extends AbstractTest {
 
         addAccessControlEntry(session, testRoot.getPath(), EveryonePrincipal.getInstance(),
                 new String[] {JCR_READ}, true);
+
+        if (!isParentNodeVisible()) {
+            addAccessControlEntry(session, parentNodePath, EveryonePrincipal.getInstance(),
+                    new String[]{JCR_READ}, false);
+            addAccessControlEntry(session, childNodePath, EveryonePrincipal.getInstance(),
+                    new String[]{JCR_READ}, true);
+        }
         session.save();
 
         session.logout();
@@ -89,10 +147,15 @@ public abstract class GetParentNodeTest extends AbstractTest {
 
     @Override
     protected void runTest() throws Exception {
-        Session session = loginAnonymous();
+        Session session = login();
         Node child = session.getNode(childNodePath);
         for (int i = 0; i < 10000; i++) {
-            getParentNode(child);
+            try {
+                getParentNode(child);
+            } catch (RepositoryException e){
+                //If parent node is not visible
+            }
+
         }
         session.logout();
     }
