@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import java.security.Principal;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import org.jetbrains.annotations.NotNull;
-import org.osgi.annotation.versioning.ProviderType;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
@@ -30,6 +23,15 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
+
+import java.security.Principal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Base interface for all security related configurations.
@@ -119,6 +121,11 @@ public interface SecurityConfiguration {
      */
     @NotNull
     Context getContext();
+
+    @NotNull
+    default Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
+        return Collections.emptySet();
+    }
 
     /**
      * Default implementation that provides empty initializers, validators,

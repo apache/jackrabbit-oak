@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
+import java.util.Collections;
+import java.util.Map;
+
 @ProviderType
-public interface LoginModuleMonitor {
+public interface LoginModuleMonitor extends Monitor<LoginModuleMonitor> {
 
     LoginModuleMonitor NOOP = new LoginModuleMonitor() {
 
@@ -36,4 +41,13 @@ public interface LoginModuleMonitor {
      */
     void loginError();
 
+    @Override
+    default @NotNull Class<LoginModuleMonitor> getMonitorClass() {
+        return LoginModuleMonitor.class;
+    }
+
+    @Override
+    default @NotNull Map<Object, Object> getMonitorProperties() {
+        return Collections.emptyMap();
+    }
 }

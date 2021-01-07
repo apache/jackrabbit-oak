@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMBean;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
@@ -69,6 +70,8 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
@@ -81,6 +84,7 @@ import javax.jcr.security.AccessControlPolicy;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -326,6 +330,7 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         
         // register AuthenticationConfiguration to trigger MBean registration 
         AuthenticationConfigurationImpl mockAc = mock(AuthenticationConfigurationImpl.class);
+        when(mockAc.getMonitors(any(StatisticsProvider.class))).thenReturn(Collections.singleton(new LoginModuleStats(StatisticsProvider.NOOP)));
         registration.bindAuthenticationConfiguration(mockAc);
 
         // register required service
@@ -502,7 +507,8 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         // trigger maybeRegister
         registration.bindAuthorizationConfiguration(mockConfiguration(AuthorizationConfiguration.class), ConfigurationParameters.of(OAK_SECURITY_NAME, "authorizationId"));
 
-        verify(((LoginModuleStatsCollector) ac), times(1)).setLoginModuleMonitor(any(LoginModuleMonitor.class));
+        verify(((LoginModuleStatsCollector) ac), never()).setLoginModuleMonitor(any(LoginModuleMonitor.class));
+        verify(ac, times(1)).getMonitors(any(StatisticsProvider.class));
     }
 
     @Test
@@ -1092,5 +1098,33 @@ public class SecurityProviderRegistrationTest extends AbstractSecurityTest {
         assertEquals(1, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
         verify(filter1, never()).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
         verify(filter2, times(1)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+    }
+
+    @Test
+    public void testRegisterWithMonitors() {
+        registration.activate(context.bundleContext(), configWithRequiredServiceIds("customAuthorizationConfig"));
+        assertNull(context.getService(SecurityProvider.class));
+
+        AuthorizationConfiguration mockConfiguration = mockConfiguration(AuthorizationConfiguration.class);
+        when(mockConfiguration.getMonitors(any(StatisticsProvider.class))).thenReturn(ImmutableList.of(new TestMonitor()));
+
+        registration.bindAuthorizationConfiguration(mockConfiguration, Collections.singletonMap(SERVICE_PID, "customAuthorizationConfig"));
+        SecurityProvider service = context.getService(SecurityProvider.class);
+        assertNotNull(service);
+
+        verify(mockConfiguration, times(1)).getMonitors(any(StatisticsProvider.class));
+    }
+
+    private static final class TestMonitor implements Monitor<TestMonitor> {
+
+        @Override
+        public @NotNull Class<TestMonitor> getMonitorClass() {
+            return TestMonitor.class;
+        }
+
+        @Override
+        public @NotNull Map<Object, Object> getMonitorProperties() {
+            return Collections.emptyMap();
+        }
     }
 }
