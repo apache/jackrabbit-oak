@@ -243,7 +243,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      * Runs an Oak query searching for {@link #REP_EXTERNAL_PRINCIPAL_NAMES} properties
      * that match the given name or name hint.
      *
-     * NOTE: ignore any principals listed in the {@link DefaultSyncConfig.User#autoMembership}
+     * NOTE: ignore any principals listed in the {@link DefaultSyncConfig.User#getAutoMembership()}
      * because they are expected to exist in the system and thus will be found
      * by another principal provider instance.
      *
@@ -344,7 +344,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             if (result != null) {
                 return Iterators.asEnumeration(new MemberIterator(result));
             } else {
-                return Iterators.asEnumeration(Collections.<Principal>emptyIterator());
+                return Iterators.asEnumeration(Collections.emptyIterator());
             }
         }
     }
