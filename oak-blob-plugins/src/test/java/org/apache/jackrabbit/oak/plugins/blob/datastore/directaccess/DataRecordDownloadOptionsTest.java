@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.junit.Test;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -261,13 +262,18 @@ public class DataRecordDownloadOptionsTest {
 
     @Test
     public void testGetContentDispositionWithSpecialCharacterFilenames() {
+        String umlautFilename = "Uml\u00e4utfile.jpg";
+        String umlautFilename_ISO_8859_1 = new String(
+                Charsets.ISO_8859_1.encode(umlautFilename).array(),
+                Charsets.ISO_8859_1
+        );
         List<String> filenames = Lists.newArrayList(
                 "image.png",
                 "text.txt",
                 "filename with spaces.jpg",
                 "\"filename-with-double-quotes\".jpg",
                 "filename-with-one\"double-quote.jpg",
-                "Umläutfile.jpg"
+                umlautFilename
         );
         List<String> iso_8859_1_filenames = Lists.newArrayList(
                 "image.png",
@@ -275,7 +281,7 @@ public class DataRecordDownloadOptionsTest {
                 "filename with spaces.jpg",
                 "\\\"filename-with-double-quotes\\\".jpg",
                 "filename-with-one\\\"double-quote.jpg",
-                "Umla?utfile.jpg"
+                umlautFilename_ISO_8859_1
         );
         List<String> rfc8187_filenames = Lists.newArrayList(
                 "image.png",
@@ -283,7 +289,7 @@ public class DataRecordDownloadOptionsTest {
                 "filename%20with%20spaces.jpg",
                 "%22filename-with-double-quotes%22.jpg",
                 "filename-with-one%22double-quote.jpg",
-                "Umla%CC%88utfile.jpg"
+                "Uml%C3%A4utfile.jpg"
         );
 
         for (String dispositionType : Lists.newArrayList(DISPOSITION_TYPE_INLINE, DISPOSITION_TYPE_ATTACHMENT)) {
