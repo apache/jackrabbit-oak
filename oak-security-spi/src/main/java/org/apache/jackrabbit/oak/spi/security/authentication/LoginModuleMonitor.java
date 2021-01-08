@@ -34,7 +34,7 @@ public interface LoginModuleMonitor extends Monitor<LoginModuleMonitor> {
     };
 
     /**
-     * Event to be called in the case there is an erorr in the login chain. This
+     * Event to be called in the case there is an error in the login chain. This
      * is not covering failed logins, but actual operational errors that
      * probably need to be investigated. Any triggered even should have a
      * corresponding error logged to make this investigation possible.
