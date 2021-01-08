@@ -24,6 +24,10 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
 
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
@@ -36,9 +40,6 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.StringUtils;
 import com.google.common.collect.Maps;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Amazon S3 utilities.
@@ -55,6 +56,11 @@ public final class Utils {
      * The default value AWS bucket region.
      */
     public static final String DEFAULT_AWS_BUCKET_REGION = "us-standard";
+
+    /**
+     * The value for the us-east-1 region.
+     */
+    public static final String US_EAST_1_AWS_BUCKET_REGION = "us-east-1";
 
     /**
      * constants to define endpoint to various AWS region

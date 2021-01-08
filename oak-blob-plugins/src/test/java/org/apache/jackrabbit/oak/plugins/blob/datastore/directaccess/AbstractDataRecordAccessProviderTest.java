@@ -18,15 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
-import static com.google.common.io.ByteStreams.toByteArray;
-import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -35,14 +26,12 @@ import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -54,6 +43,20 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import static com.google.common.io.ByteStreams.toByteArray;
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public abstract class AbstractDataRecordAccessProviderTest {
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractDataRecordAccessProviderTest.class);
@@ -174,42 +177,72 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
+        String umlautFilename = "Uml\u00e4utfile.png";
+        String umlautFilename_ISO_8859_1 = new String(
+                Charsets.ISO_8859_1.encode(umlautFilename).array(),
+                Charsets.ISO_8859_1
+        );
+        List<String> fileNames = Lists.newArrayList(
+                "image.png",
+                "beautiful landscape.png",
+                "\"filename-with-double-quotes\".png",
+                "filename-with-one\"double-quote.jpg",
+                umlautFilename
+                );
+        List<String> iso_8859_1_fileNames = Lists.newArrayList(
+                "image.png",
+                "beautiful landscape.png",
+                "\\\"filename-with-double-quotes\\\".png",
+                "filename-with-one\\\"double-quote.jpg",
+                umlautFilename_ISO_8859_1
+        );
+        List<String> rfc8187_fileNames = Lists.newArrayList(
+                "image.png",
+                "beautiful%20landscape.png",
+                "%22filename-with-double-quotes%22.png",
+                "filename-with-one%22double-quote.jpg",
+                "Uml%C3%A4utfile.png"
+        );
+
         DataRecord record = null;
         DataRecordAccessProvider dataStore = getDataStore();
         try {
             InputStream testStream = randomStream(0, 256);
             record = doSynchronousAddRecord((DataStore) dataStore, testStream);
             String mimeType = "image/png";
-            String fileName = "album cover.png";
-            String encodedFileName = "album%20cover.png";
             String dispositionType = "inline";
-            DataRecordDownloadOptions downloadOptions =
-                    DataRecordDownloadOptions.fromBlobDownloadOptions(
-                            new BlobDownloadOptions(
-                                    mimeType,
-                                    null,
-                                    fileName,
-                                    dispositionType
-                            )
-                    );
-            URI uri = dataStore.getDownloadURI(record.getIdentifier(),
-                    downloadOptions);
+            for (int i=0; i<fileNames.size(); i++) {
+                String fileName = fileNames.get(i);
+                String iso_8859_1_fileName = iso_8859_1_fileNames.get(i);
+                String encodedFileName = rfc8187_fileNames.get(i);
+                DataRecordDownloadOptions downloadOptions =
+                        DataRecordDownloadOptions.fromBlobDownloadOptions(
+                                new BlobDownloadOptions(
+                                        mimeType,
+                                        null,
+                                        fileName,
+                                        dispositionType
+                                )
+                        );
+                URI uri = dataStore.getDownloadURI(record.getIdentifier(),
+                        downloadOptions
+                );
 
-            HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
-            conn.setRequestMethod("GET");
-            assertEquals(200, conn.getResponseCode());
+                HttpsURLConnection conn = (HttpsURLConnection) uri.toURL().openConnection();
+                conn.setRequestMethod("GET");
+                assertEquals(200, conn.getResponseCode());
 
-            assertEquals(mimeType, conn.getHeaderField("Content-Type"));
-            assertEquals(
-                    String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
-                            dispositionType, fileName,
-                            encodedFileName
-                    ),
-                    conn.getHeaderField("Content-Disposition")
-            );
+                assertEquals(mimeType, conn.getHeaderField("Content-Type"));
+                assertEquals(
+                        String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
+                                dispositionType, iso_8859_1_fileName, encodedFileName
+                        ),
+                        conn.getHeaderField("Content-Disposition")
+                );
 
-            testStream.reset();
-            assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+                testStream.reset();
+                assertTrue(Arrays.equals(toByteArray(testStream), toByteArray(conn.getInputStream())));
+            }
         }
         finally {
             if (null != record) {
