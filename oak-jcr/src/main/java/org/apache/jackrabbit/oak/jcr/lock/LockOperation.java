@@ -42,16 +42,9 @@ public abstract class LockOperation<T> extends SessionOperation<T> {
         this.path = context.getOakPathOrThrowNotFound(absPath);
     }
 
-    @Override
-    public boolean isRefresh() {
-        return true;
-    }
-
     @NotNull
     @Override
     public T perform() throws RepositoryException {
-        session.refresh(true);
-
         NodeDelegate node = session.getNode(path);
         if (node != null) {
             return perform(node);
@@ -62,8 +55,6 @@ public abstract class LockOperation<T> extends SessionOperation<T> {
 
     @Override
     public void performVoid() throws RepositoryException {
-        session.refresh(true);
-
         NodeDelegate node = session.getNode(path);
         if (node != null) {
             performVoid(node);
