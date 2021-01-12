@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.Random;
-import java.util.UUID;
 import java.util.function.Supplier;
 
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
@@ -68,7 +67,7 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
         builder.indexRule("nt:base").property(PROP_3).analyzed();
         builder.indexRule("nt:base").property(PROP_1).analyzed();
 
-        this.index = setIndex(UUID.randomUUID().toString(), builder);
+        this.index = setIndex("" + System.currentTimeMillis(), builder);
         root.commit();
     }
 
@@ -140,7 +139,7 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
     }
 
     private void createTestData(Supplier<String> extraContentSupplier) throws Exception {
-        long start = LOG_PERF.start("Starting data indexing");
+        long start = LOG_PERF.startForInfoLog("Starting data indexing");
         Tree content = root.getTree("/").addChild("content");
 
         for (int i = 0; i < NUM_SUB_CONTENT; i++) {
@@ -163,20 +162,20 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
         assertEventually(() ->
                 assertThat(countDocuments(index), equalTo((long) ((NUM_SUB_CONTENT * NUM_NODES) + NUM_SUB_CONTENT)))
         );
-        LOG_PERF.end(start, -1, "{} documents indexed", countDocuments(index));
+        LOG_PERF.end(start, -1,-1, "{} documents indexed", countDocuments(index));
     }
 
     private void testQuery(String query, String language) throws Exception {
         Result result = executeQuery(query, language, NO_BINDINGS);
         Iterable<ResultRow> it = (Iterable<ResultRow>) result.getRows();
         Iterator<ResultRow> iterator = it.iterator();
-        long start = LOG_PERF.start("Getting result rows");
+        long start = LOG_PERF.startForInfoLog("Getting result rows");
         int i = 0;
         while (iterator.hasNext()) {
             ResultRow row = iterator.next();
             i++;
         }
-        LOG_PERF.end(start, -1, "{} Results fetched", i);
+        LOG_PERF.end(start, -1,-1, "{} Results fetched", i);
     }
 
 }

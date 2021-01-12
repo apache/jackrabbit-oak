@@ -67,24 +67,18 @@ public class ElasticResponseHandler {
 
     public String getPath(SearchHit hit) {
         Map<String, Object> sourceMap = hit.getSourceAsMap();
-        return  transformPath((String) sourceMap.get(FieldNames.PATH));
+        return transformPath((String) sourceMap.get(FieldNames.PATH));
     }
 
     private String transformPath(String path) {
-        if ("".equals(path)) {
-            path = "/";
-        }
-        if (planResult.isPathTransformed()) {
-            String originalPath = path;
-            path = planResult.transformPath(path);
+        String transformedPath = planResult.transformPath(("".equals(path)) ? "/" : path);
 
-            if (path == null) {
-                LOG.trace("Ignoring path {} : Transformation returned null", originalPath);
-                return null;
-            }
+        if (transformedPath == null) {
+            LOG.trace("Ignoring path {} : Transformation returned null", path);
+            return null;
         }
 
-        return path;
+        return transformedPath;
     }
 
     public boolean isAccessible(String path) {
