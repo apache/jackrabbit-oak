@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonFactoryBuilder;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -42,7 +44,12 @@ public class ElasticResponseHandler {
 
     private static final ObjectMapper JSON_MAPPER;
     static {
-        JSON_MAPPER = new ObjectMapper();
+        // disable String.intern
+        // https://github.com/elastic/elasticsearch/issues/39890
+        // https://github.com/FasterXML/jackson-core/issues/332
+        JsonFactoryBuilder factoryBuilder = new JsonFactoryBuilder();
+        factoryBuilder.disable(JsonFactory.Feature.INTERN_FIELD_NAMES);
+        JSON_MAPPER = new ObjectMapper(factoryBuilder.build());
         JSON_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
