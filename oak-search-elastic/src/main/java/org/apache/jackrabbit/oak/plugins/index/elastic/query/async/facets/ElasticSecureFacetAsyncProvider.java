@@ -20,7 +20,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandl
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
-import org.elasticsearch.search.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,12 +69,11 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     }
 
     @Override
-    public void on(SearchHit searchHit) {
+    public void on(ElasticResponseHandler.SearchResponseHit searchHit) {
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
-            Map<String, Object> sourceMap = searchHit.getSourceAsMap();
             for (String field: facetFields) {
-                Object value = sourceMap.get(field);
+                Object value = searchHit.source.get(field);
                 if (value != null) {
                     facetsMap.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {

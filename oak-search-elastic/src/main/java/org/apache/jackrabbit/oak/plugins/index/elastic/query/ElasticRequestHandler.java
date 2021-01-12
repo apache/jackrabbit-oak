@@ -44,6 +44,8 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.join.ScoreMode;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.InnerHitBuilder;
 import org.elasticsearch.index.query.MatchBoolPrefixQueryBuilder;
@@ -61,6 +63,7 @@ import org.elasticsearch.script.Script;
 import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.FieldSortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
@@ -106,6 +109,8 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.util.TermQueryBuil
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_SCORE;
 import static org.apache.jackrabbit.util.ISO8601.parse;
+import static org.elasticsearch.common.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.MoreLikeThisQueryBuilder.Item;
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
 import static org.elasticsearch.index.query.QueryBuilders.existsQuery;
@@ -255,6 +260,26 @@ public class ElasticRequestHandler {
         }
 
         return list;
+    }
+
+    /**
+     * Receives a {@link SearchSourceBuilder} as input and converts it to a low level {@link Request} reducing the response
+     * in order to reduce size and improve speed.
+     * https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#common-options-response-filtering
+     * @param searchSourceBuilder the search request
+     * @param indexName the index to query
+     * @return a low level {@link Request} instance
+     */
+    public Request createLowLevelRequest(SearchSourceBuilder searchSourceBuilder, String indexName) {
+        String endpoint = "/" + indexName
+                + "/_search?filter_path=took,timed_out,hits.total.value,hits.hits._score,hits.hits.sort,,hits.hits._source,aggregations";
+        Request request = new Request("POST", endpoint);
+        try {
+            request.setJsonEntity(Strings.toString(searchSourceBuilder.toXContent(jsonBuilder(), EMPTY_PARAMS)));
+        } catch (IOException e) {
+            throw new IllegalStateException("Error creating request entity", e);
+        }
+        return request;
     }
 
     public String getPropertyRestrictionQuery() {

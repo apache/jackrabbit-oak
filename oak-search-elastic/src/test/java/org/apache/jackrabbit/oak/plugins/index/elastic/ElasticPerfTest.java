@@ -77,48 +77,48 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
     public void testFullTextSingleQuery() throws Exception {
         createTestData();
         String query = "//*[jcr:contains(@text, 'elit" + (NUM_NODES / 2) + "')] ";
-        long startTest = LOG_PERF.start("Starting test executions");
+        long startTest = LOG_PERF.startForInfoLog("Starting test executions");
         for (int j = 0; j < NUM_ITERATIONS; j++) {
             testQuery(query, XPATH);
         }
-        LOG_PERF.end(startTest, -1, "{} iterations of tests completed", NUM_ITERATIONS);
+        LOG_PERF.end(startTest, -1,-1, "{} iterations of tests completed", NUM_ITERATIONS);
     }
 
     // Executes different queries each time
     @Test
     public void testFullTextMultiQuery() throws Exception {
         createTestData();
-        long startTest = LOG_PERF.start("Starting test executions");
+        long startTest = LOG_PERF.startForInfoLog("Starting test executions");
         Random rndm = new Random(42);
         for (int j = 0; j < NUM_ITERATIONS; j++) {
             String query = "//*[jcr:contains(@text, 'elit" + rndm.nextInt(NUM_NODES) + "')] ";
             testQuery(query, XPATH);
         }
-        LOG_PERF.end(startTest, -1, "{} iterations of tests completed", NUM_ITERATIONS);
+        LOG_PERF.end(startTest, -1,-1, "{} iterations of tests completed", NUM_ITERATIONS);
     }
 
     @Test
     public void testFullTextMultiQueryWithExtraText() throws Exception {
         Random randomText = new Random(42);
         createTestData(() -> ElasticTestUtils.randomString(randomText, 1000));
-        long startTest = LOG_PERF.start("Starting test executions");
+        long startTest = LOG_PERF.startForInfoLog("Starting test executions");
         Random rndm = new Random(42);
         for (int j = 0; j < NUM_ITERATIONS; j++) {
             String query = "//*[jcr:contains(@text, 'elit" + rndm.nextInt(NUM_NODES) + "')] ";
             testQuery(query, XPATH);
         }
-        LOG_PERF.end(startTest, -1, "{} iterations of tests completed", NUM_ITERATIONS);
+        LOG_PERF.end(startTest, -1, -1, "{} iterations of tests completed", NUM_ITERATIONS);
     }
 
     @Test
     public void testPropertySingleQuery() throws Exception {
         createTestData();
         String query = "select [jcr:path] from [nt:base] where [title] = 'Title for node0'";
-        long startTest = LOG_PERF.start("Starting test executions");
+        long startTest = LOG_PERF.startForInfoLog("Starting test executions");
         for (int j = 0; j < NUM_ITERATIONS; j++) {
             testQuery(query, SQL2);
         }
-        LOG_PERF.end(startTest, -1, "{} iterations of tests completed", NUM_ITERATIONS);
+        LOG_PERF.end(startTest, -1,-1, "{} iterations of tests completed", NUM_ITERATIONS);
 
     }
 
@@ -126,13 +126,13 @@ public class ElasticPerfTest extends ElasticAbstractQueryTest {
     @Test
     public void testPropertyMultiQuery() throws Exception {
         createTestData();
-        long startTest = LOG_PERF.start("Starting test executions");
+        long startTest = LOG_PERF.startForInfoLog("Starting test executions");
         Random rndm = new Random(42);
         for (int j = 0; j < NUM_ITERATIONS; j++) {
             String query = "select [jcr:path] from [nt:base] where [title] = 'Title for node" + rndm.nextInt(NUM_NODES) + "'";
             testQuery(query, SQL2);
         }
-        LOG_PERF.end(startTest, -1, "{} iterations of tests completed", NUM_ITERATIONS);
+        LOG_PERF.end(startTest, -1, -1, "{} iterations of tests completed", NUM_ITERATIONS);
     }
 
     private void createTestData() throws Exception {
