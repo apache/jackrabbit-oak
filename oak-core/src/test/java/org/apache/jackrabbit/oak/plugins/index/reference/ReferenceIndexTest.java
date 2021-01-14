@@ -145,7 +145,7 @@ public class ReferenceIndexTest {
         builder.getChildNode("a").remove();
 
         thrown.expect(CommitFailedException.class);
-        thrown.expectMessage("OakIntegrity0001: Unable to delete referenced node");
+        thrown.expectMessage("OakIntegrity0001: Unable to delete referenced node: u1");
         hook.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
     }
 
