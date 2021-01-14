@@ -19,6 +19,7 @@ Changes in Oak 1.22.6
 
 Bug
 
+    [OAK-9130] - DocumentDiscoveryLiteService.hasBacklog logging regression (inverted version check)
     [OAK-9304] - Filename with special characters in direct download URI Content-Disposition are causing HTTP 400 errors from Azure
 
 Improvement
@@ -30,6 +31,10 @@ Task
     [OAK-8769] - oak-auth-ldap pom needs maintenance
     [OAK-9270] - Update Oak trunk and 1.22 to Jackrabbit 2.20.2
     [OAK-9299] - Update Tika dependency to 1.24.1 (backport)
+
+Technical task
+
+    [OAK-9007] - RDB*Store: update postgresql jdbc driver reference to 42.2.12
 
 
 In addition to the above-mentioned changes, this release contains
