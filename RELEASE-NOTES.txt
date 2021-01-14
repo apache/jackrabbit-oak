@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.6
 
 Introduction
 ------------
@@ -7,33 +7,29 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.5 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.6 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.22.5
+Changes in Oak 1.22.6
 ---------------------
 
 Bug
 
-
-    [OAK-9200] - Oak BlobAccessProvider reference in UserConfigurationImpl fails and leads to performance issue
-    [OAK-9218] - Fix OSGi wiring after netty update to 4.1.52.Final
-    [OAK-9229] - CountingDocumentStore returns documents with incorrect store reference
+    [OAK-9304] - Filename with special characters in direct download URI Content-Disposition are causing HTTP 400 errors from Azure
 
 Improvement
 
-    [OAK-9184] - Very slow, potential endless loop in LucenePropertyIndex.loadDocs()
-    [OAK-9230] - CachingCommitValueResolver with negative cache
-    [OAK-9231] - Enable negative cache of commit value resolver for oak-run index command
+    [OAK-9261] - Upgrade Apache Solr to 8.6.3 and remove Embedded Solr Server
 
 Task
 
-    [OAK-9205] - Bump htmlunit from 2.35.0 to 2.43.0
-    [OAK-9210] - Bump netty dependency from 4.1.17.Final to 4.1.52.Final
+    [OAK-8769] - oak-auth-ldap pom needs maintenance
+    [OAK-9270] - Update Oak trunk and 1.22 to Jackrabbit 2.20.2
+    [OAK-9299] - Update Tika dependency to 1.24.1 (backport)
 
 
 In addition to the above-mentioned changes, this release contains
