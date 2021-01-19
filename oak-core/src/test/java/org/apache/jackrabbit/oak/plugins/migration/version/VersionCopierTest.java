@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.migration.version;
 
+import java.util.Iterator;
 import java.util.UUID;
 
 import javax.jcr.RepositoryException;
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.migration.DescendantsIterator;
 import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadWriteVersionManager;
@@ -47,6 +49,8 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT_FROZEN_NODE_REFERENCEABLE;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateTestUtils.commit;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryBuilder;
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryNodeState;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -98,19 +102,72 @@ public class VersionCopierTest {
         assertVersionReferenceable(target.getRoot(), path);
     }
 
+    @Test
+    public void copyVersionSourceRemovingTargetVersionHistory() throws Exception {
+        String path = "/foo";
+        NodeStore source = createVersionFor(path, createStore(false));
+        NodeStore target = createVersionFor(path, createStore(false));
+
+        // Copy source to target as starting point to duplicate.
+        copyVersionStorage(source, target);
+
+        // Add a test property to the nodes of the target version history.
+        addVersionHistoryTestProperty(source, target);
+
+        // Copy again, this time setting the remove target version history flag.
+        copyVersionStorage(source, target, true);
+
+        // Verify the test properties no longer exist in the target version history.
+        assertVersionHistoryTestPropertyRemoved(source, target);
+    }
+
+    private void addVersionHistoryTestProperty(NodeStore source, NodeStore target) throws CommitFailedException {
+        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(source.getRoot());
+        final NodeBuilder targetRootBuilder = target.getRoot().builder();
+        final NodeBuilder targetVersionStorage = VersionHistoryUtil.getVersionStorage(targetRootBuilder);
+
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(sourceVersionStorage, 3);
+        final NodeState versionHistoryBucket = versionStorageIterator.next();
+        for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
+            getVersionHistoryBuilder(targetVersionStorage, versionHistory).setProperty("jcr:test", "test");
+        }
+        commit(target, targetRootBuilder);
+    }
+
+    private void assertVersionHistoryTestPropertyRemoved(NodeStore source, NodeStore target) {
+        final NodeState sourceVersionStorage = VersionHistoryUtil.getVersionStorage(source.getRoot());
+        final NodeState targetVersionStorage = VersionHistoryUtil.getVersionStorage(target.getRoot());
+
+        final Iterator<NodeState> versionStorageIterator = new DescendantsIterator(sourceVersionStorage, 3);
+        final NodeState versionHistoryBucket = versionStorageIterator.next();
+        for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
+            assertFalse(getVersionHistoryNodeState(targetVersionStorage, versionHistory).hasProperty("jcr:test"));
+        }
+    }
+
     private void copyContent(NodeStore source, NodeStore target, String path)
             throws CommitFailedException {
         NodeStateCopier.builder().include(path).copy(source, target);
     }
 
     private void copyVersionStorage(NodeStore source, NodeStore target)
+        throws CommitFailedException {
+
+        copyVersionStorage(source, target, false);
+    }
+
+    private void copyVersionStorage(NodeStore source, NodeStore target, boolean removeTargetVersionHistory)
             throws CommitFailedException {
+
+        VersionCopyConfiguration config = new VersionCopyConfiguration();
+        config.setRemoveTargetVersionHistory(removeTargetVersionHistory);
+
         NodeBuilder targetRootBuilder = target.getRoot().builder();
         VersionCopier.copyVersionStorage(
                 targetRootBuilder,
                 VersionHistoryUtil.getVersionStorage(source.getRoot()),
                 VersionHistoryUtil.getVersionStorage(targetRootBuilder),
-                new VersionCopyConfiguration()
+                config
         );
         commit(target, targetRootBuilder);
     }
