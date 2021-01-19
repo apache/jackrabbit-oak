@@ -340,7 +340,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
             for (String id : idsOfRemovedNodes) {
                 if (hasReferences(store, root, definition, REF_NAME, id)) {
                     throw new CommitFailedException(INTEGRITY, 1,
-                            "Unable to delete referenced node");
+                            "Unable to delete referenced node: " + id);
                 }
             }
         }
