@@ -24,10 +24,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
-class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<ElasticDocument> {
+public class ElasticIndexWriterFactory implements FulltextIndexWriterFactory<ElasticDocument> {
     private final ElasticConnection elasticConnection;
 
-    ElasticIndexWriterFactory(@NotNull ElasticConnection elasticConnection) {
+    public ElasticIndexWriterFactory(@NotNull ElasticConnection elasticConnection) {
         this.elasticConnection = elasticConnection;
     }
 

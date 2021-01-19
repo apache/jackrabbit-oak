@@ -62,7 +62,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 public class DocumentStoreIndexer implements Closeable{
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Logger traversalLog = LoggerFactory.getLogger(DocumentStoreIndexer.class.getName()+".traversal");
-    private final Closer closer = Closer.create();
+    protected final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
     private final List<NodeStateIndexerProvider> indexerProviders;
     private final IndexerSupport indexerSupport;
@@ -204,7 +204,7 @@ public class DocumentStoreIndexer implements Closeable{
         return new CompositeIndexer(indexers);
     }
 
-    private List<NodeStateIndexerProvider> createProviders() throws IOException {
+    protected List<NodeStateIndexerProvider> createProviders() throws IOException {
         List<NodeStateIndexerProvider> providers = ImmutableList.of(
           createLuceneIndexProvider()
         );

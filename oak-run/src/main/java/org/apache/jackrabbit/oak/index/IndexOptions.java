@@ -53,8 +53,8 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> importIndex;
     private final OptionSpec<Void> docTraversal;
     private final OptionSpec<Integer> consistencyCheck;
-    private OptionSet options;
-    private final Set<OptionSpec> actionOpts;
+    protected OptionSet options;
+    protected final Set<OptionSpec> actionOpts;
     private final OptionSpec<String> indexPaths;
     private final OptionSpec<String> checkpoint;
     private final Set<String> operationNames;
