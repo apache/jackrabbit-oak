@@ -69,6 +69,5 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
 
     @Override
     public void close() throws IOException {
-
     }
 }

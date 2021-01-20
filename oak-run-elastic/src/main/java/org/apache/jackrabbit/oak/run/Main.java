@@ -34,7 +34,7 @@ public final class Main {
         // Prevent instantiation.
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String... args) throws Exception {
         Utils.printProductInfo(
                 args,
                 Main.class.getResourceAsStream("/META-INF/maven/org.apache.jackrabbit/oak-run-elastic/pom.properties"));

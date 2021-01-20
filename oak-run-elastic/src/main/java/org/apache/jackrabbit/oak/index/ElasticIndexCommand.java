@@ -92,7 +92,6 @@ public class ElasticIndexCommand implements Command {
             success = true;
         } catch (Throwable e) {
             log.error("Error occurred while performing index tasks", e);
-            e.printStackTrace(System.err);
             if (disableExitOnError) {
                 throw e;
             }
@@ -101,6 +100,7 @@ public class ElasticIndexCommand implements Command {
         }
 
         if (!success) {
+            //Needed for changes after OAK-6409
             System.exit(1);
         }
     }
@@ -171,7 +171,7 @@ public class ElasticIndexCommand implements Command {
                 // TODO : See if this can be handled in a better manner
                 Thread.sleep(ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT * 2);
             } catch (InterruptedException e) {
-                //
+                log.debug("Exception while waiting for Elastic connection to close", e);
             }
         } else {
             try (ElasticOutOfBandIndexer indexer = new ElasticOutOfBandIndexer(indexHelper, indexerSupport, indexOpts.getIndexPrefix(),
@@ -183,7 +183,7 @@ public class ElasticIndexCommand implements Command {
                 // to make sure the client is not closed before the last flush
                 Thread.sleep(ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT * 2);
             } catch (InterruptedException e) {
-                //
+                log.debug("Exception while waiting for Elastic connection to close", e);
             }
         }
         indexerSupport.writeMetaInfo(checkpoint);

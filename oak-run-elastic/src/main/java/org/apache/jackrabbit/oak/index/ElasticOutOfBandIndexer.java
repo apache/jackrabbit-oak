@@ -56,7 +56,6 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexer {
     @Override
     protected IndexEditorProvider createIndexEditorProvider() {
         IndexEditorProvider elastic = createElasticEditorProvider();
-
         return CompositeIndexEditorProvider.compose(asList(elastic));
     }
 
@@ -77,7 +76,6 @@ public class ElasticOutOfBandIndexer extends OutOfBandIndexer {
         closer.register(coordinate);
         ElasticIndexEditorProvider editorProvider = new ElasticIndexEditorProvider(coordinate,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
-
         return editorProvider;
     }
 }
