@@ -4,6 +4,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticDocument;
 import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticIndexWriterFactory;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
@@ -42,7 +43,7 @@ public class ElasticIndexerProvider implements NodeStateIndexerProvider {
         ElasticIndexDefinition idxDefinition = (ElasticIndexDefinition) new ElasticIndexDefinition.Builder(coordinate.getIndexPrefix()).
                 root(root).indexPath(indexPath).defn(definition.getNodeState()).reindex().build();
 
-        FulltextIndexWriter indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, CommitInfo.EMPTY, true);
+        FulltextIndexWriter <ElasticDocument> indexWriter = indexWriterFactory.newInstance(idxDefinition, definition, CommitInfo.EMPTY, true);
         FulltextBinaryTextExtractor textExtractor = new FulltextBinaryTextExtractor(textCache, idxDefinition, true);
         return new ElasticIndexer(idxDefinition, textExtractor, definition, progressReporter, indexWriter);
     }

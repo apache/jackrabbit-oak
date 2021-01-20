@@ -37,20 +37,6 @@
     </properties>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/groovy</directory>
-                <includes>
-                    <include>**/*.properties</include>
-                </includes>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-                <includes>
-                    <include>**/*.*</include>
-                </includes>
-            </resource>
-        </resources>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
@@ -70,78 +56,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-                            <mainClass>org.apache.jackrabbit.oak.run.Main</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>create-oak</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <attach>false</attach>
-                            <descriptors>
-                                <descriptor>src/main/assembly/oak-run.xml</descriptor>
-                            </descriptors>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.8</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <configuration>
-                            <target>
-                                <!--
-                                Replace the default oak-run with the one created in assembly so
-                                as to ensure default artifact oak-run is the one which has all jars
-                                embedded
-                                -->
-                                <copy file="${project.build.directory}/${project.build.finalName}-oak.jar" tofile="${project.build.directory}/${project.build.finalName}.jar" />
-                                <delete file="${project.build.directory}/${project.build.finalName}-oak.jar" />
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.phasebash.jsdoc</groupId>
-                <artifactId>jsdoc3-maven-plugin</artifactId>
-                <version>1.2.0</version>
-                <executions>
-                    <execution>
-                        <id>generate-jsdoc</id>
-                        <phase>site</phase>
-                        <goals>
-                            <goal>jsdoc3</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <outputDirectory>../oak-doc/target/site/oak-mongo-js</outputDirectory>
-                    <sourceFiles>
-                        <sourceFile>src/main/js/oak-mongo.js</sourceFile>
-                    </sourceFiles>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import static java.util.Arrays.asList;
 
 public class ElasticOutOfBandIndexer extends OutOfBandIndexer {
-    private final Logger log = LoggerFactory.getLogger(this.getClass());
     private final String indexPrefix;
     private final String scheme;
     private final String host;

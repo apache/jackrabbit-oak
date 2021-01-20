@@ -20,12 +20,11 @@ public class ElasticIndexer implements NodeStateIndexer {
     private final FulltextBinaryTextExtractor binaryTextExtractor;
     private final NodeBuilder definitionBuilder;
     private final IndexingProgressReporter progressReporter;
-    //private final ElasticIndexEditorProvider elasticIndexEditorProvider;
-    private final FulltextIndexWriter indexWriter;
+    private final FulltextIndexWriter <ElasticDocument> indexWriter;
 
     public ElasticIndexer(IndexDefinition definition, FulltextBinaryTextExtractor binaryTextExtractor,
                           NodeBuilder definitionBuilder, IndexingProgressReporter progressReporter,
-                          FulltextIndexWriter indexWriter) {
+                          FulltextIndexWriter <ElasticDocument> indexWriter) {
         this.definition = definition;
         this.binaryTextExtractor = binaryTextExtractor;
         this.definitionBuilder = definitionBuilder;

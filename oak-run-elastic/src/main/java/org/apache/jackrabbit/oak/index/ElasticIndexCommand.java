@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class ElasticIndexCommand implements Command {
     private static final Logger log = LoggerFactory.getLogger(ElasticIndexCommand.class);
@@ -165,6 +166,8 @@ public class ElasticIndexCommand implements Command {
             }
         }
         indexerSupport.writeMetaInfo(checkpoint);
+        log.info("Indexing completed for indexes {} in {} ({} ms)",
+                indexHelper.getIndexPaths(), w, w.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private IndexerSupport createIndexerSupport(IndexHelper indexHelper, String checkpoint) {
