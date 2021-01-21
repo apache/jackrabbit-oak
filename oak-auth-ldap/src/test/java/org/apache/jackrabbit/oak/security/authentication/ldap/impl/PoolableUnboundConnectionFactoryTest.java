@@ -24,6 +24,7 @@ import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.ldap.client.api.LookupLdapConnectionValidator;
 import org.apache.jackrabbit.oak.security.authentication.ldap.LdapServerClassLoader;
 import org.jetbrains.annotations.NotNull;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -48,6 +49,11 @@ public class PoolableUnboundConnectionFactoryTest {
     public static void beforeClass() throws Exception {
         LdapServerClassLoader serverClassLoader = LdapServerClassLoader.createServerClassLoader();
         PROXY = serverClassLoader.createAndSetupServer();
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        PROXY.tearDown();
     }
 
     @Test
