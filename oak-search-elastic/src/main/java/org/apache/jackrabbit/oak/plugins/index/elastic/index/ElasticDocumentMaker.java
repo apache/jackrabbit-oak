@@ -34,9 +34,9 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
+public class ElasticDocumentMaker extends FulltextDocumentMaker<ElasticDocument> {
 
-    ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
+    public ElasticDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                          @NotNull IndexDefinition definition,
                          IndexDefinition.IndexingRule indexingRule, @NotNull String path) {
         super(textExtractor, definition, indexingRule, path);

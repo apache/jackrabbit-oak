@@ -66,7 +66,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
      */
     public static final String LOCAL_INDEX_ROOT_DIR = "indexes";
 
-    private final Closer closer = Closer.create();
+    protected final Closer closer = Closer.create();
     private final IndexHelper indexHelper;
     private NodeStore copyOnWriteStore;
     private IndexerSupport indexerSupport;
@@ -145,7 +145,7 @@ public class OutOfBandIndexer implements Closeable, IndexUpdateCallback, NodeTra
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private IndexEditorProvider createIndexEditorProvider() throws IOException {
+    protected IndexEditorProvider createIndexEditorProvider() throws IOException {
         IndexEditorProvider lucene = createLuceneEditorProvider();
         IndexEditorProvider property = createPropertyEditorProvider();
 
