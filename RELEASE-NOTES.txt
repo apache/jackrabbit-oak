@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.36.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.38.0
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.36.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.38.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
@@ -15,101 +15,54 @@ production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.36.0
+Changes in Oak 1.38.0
 ---------------------
 
 Bug
 
-    [OAK-9176] - sweep upgrade of pre 1.8 branch commits not always sets "_bc" for parents/root
-    [OAK-9200] - Oak BlobAccessProvider reference in UserConfigurationImpl fails and leads to performance issue
-    [OAK-9201] - PersistentRedisCache: failure to write segment is not an error
-    [OAK-9216] - Duplicate writes to Redis in the persistent cache if segment is loaded from Azure
-    [OAK-9218] - Fix OSGi wiring after netty update to 4.1.52.Final
-    [OAK-9219] - oak-search-elastic: suggestion can return wrong results
-    [OAK-9225] - Elastic index cleaner removes remote elastic index for disabled indexes
-    [OAK-9229] - CountingDocumentStore returns documents with incorrect store reference
-    [OAK-9235] - GlobPattern: fix sonar findings
-    [OAK-9236] - AccessControlManagerImpl, AccessControlImporter: fix sonar findings
-    [OAK-9241] - Build failure: unapproved licenses
-    [OAK-9245] - UserValidator.propertyChanged may miss plaintext password
-    [OAK-9248] - TopLevelPaths.contains: missing 'else'
-    [OAK-9251] - Error when generating javadoc for classes AzureSegmentStoreExplorerBackend and NonDefaultMountWriteReportingObserver
-    [OAK-9256] - Missing segment not detected in AzureSegmentArchiveReader
-    [OAK-9259] - RepositoryCallback: nullable annotation with void return value on setLoginModuleMonitor
-
-
-New Feature
-
-    [OAK-9213] - Support feature vector similarity / image similarity in Oak ES
+    [OAK-9037] - bundle:manifest fails on Java 15
+    [OAK-9265] - Oak-run tool recovery function scans for previous documents too
+    [OAK-9275] - restore test coverage of oak-auth-ldap
+    [OAK-9277] - UserProvider: misleading exception message if 'systemRelativePath' is not default
+    [OAK-9281] - NRT Index - duplicate results with similarity search
+    [OAK-9284] - LdapIdentityProvider.listGroups logs misleading warning
+    [OAK-9285] - LdapProviderConfig#getUseUidForExtId has invalid notnull annotation
+    [OAK-9298] - Date Range queries not working in elastic search index
+    [OAK-9304] - Filename with special characters in direct download URI Content-Disposition are causing HTTP 400 errors from Azure
+    [OAK-9306] - Faceting: IllegalArgumentException: dimension ... was not indexed
+    [OAK-9313] - Test failure: LoginModuleMonitorTest
+    [OAK-9314] - Broken javadoc link with ExternalGroupPrincipalProvider#findPrincipals
 
 
 Improvement
 
-    [OAK-9183] - verify 'Mapping API Calls to Privileges' wrt to move operations
-    [OAK-9185] - AbstractAccessControlManager: improve refresh strategy of PermissionProvider
-    [OAK-9203] - PermissionProvider.refresh: create dedicated benchmarks and evaluate potential improvements
-    [OAK-9208] - Log unexpected writes to the paths designated as part of a non-default mount
-    [OAK-9214] - oak-search-elastic: remove duplications in :suggest
-    [OAK-9223] - oak-search-elastic: remove duplications in :fulltext
-    [OAK-9230] - CachingCommitValueResolver with negative cache
-    [OAK-9231] - Enable negative cache of commit value resolver for oak-run index command
-    [OAK-9232] - Improvements to tests in o.a.j.oak.security.authorization.permission
-    [OAK-9233] - Simplify ChildOrderDiff
-    [OAK-9234] - CompiledPermissionImpl: minor improvements
-    [OAK-9237] - Improve tests in o.a.j.oak.security.authorization.accesscontrol
-    [OAK-9238] - oak-run explore should support Azure Segment Store
-    [OAK-9242] - Improvements to tests in o.a.j.oak.security.user
-    [OAK-9243] - avoid potential NPE with Condition.Property
-    [OAK-9247] - Sonar findings and minor improvements in o.a.j.oak.security.user
-    [OAK-9249] - Improve tests in o.a.j.oak.spi.security.authorization.cug
-    [OAK-9250] - 3rd level segment cache: perform direct memory allocation based on the value of the system property
-    [OAK-9252] - Query: multi-valued property condition can fail with "Type must be an array type"
-    [OAK-9266] - FilterProvider: typo in javadoc
-
-Test
-
-    [OAK-9161] - Reenable PredefinedNodeTypeTest#testFrozenNode once jackrabbit is updated
+    [OAK-9149] - Use batch calls in backgroundSplit
+    [OAK-9187] - LockOperation always calls SessionDelegate.refresh before executing operations
+    [OAK-9246] - Avoid hardcoding stats classes in SecurityProviderRegistration
+    [OAK-9261] - Upgrade Apache Solr to 8.6.3 and remove Embedded Solr Server
+    [OAK-9279] - Add PermissionValidator#checkIsGranted
+    [OAK-9280] - Missing assertions/verification with tests
+    [OAK-9282] - SecurityProviderRegistration: missing test for concurrent activation
+    [OAK-9288] - Simplify LdapIdentityProvider
+    [OAK-9290] - Respect nt:frozenNode definition on upgrade and migration
+    [OAK-9291] - Refactor check for referenceable nt:frozenNode definition
+    [OAK-9293] - SegmentStoreMigrator appendMode should recopy the last archive
+    [OAK-9301] - Automatically pick a merged index
+    [OAK-9303] - AbstractPersistentCache#readSegment should propagate exception RepositoryNotReachableException
+    [OAK-9311] - oak-search-elastic: use low-level client for critical operations
+    [OAK-9316] - Reduce complexity in ExternalGroupPrincipalProvider
+    [OAK-9322] - Add reference node id to integrity exception message
 
 
 Task
 
-    [OAK-9199] - Upgrade to Elasticsearch 7.9.1
-    [OAK-9205] - Bump htmlunit from 2.35.0 to 2.43.0
-    [OAK-9209] - Index lane elastic-async traverses repository
-    [OAK-9210] - Bump netty dependency from 4.1.17.Final to 4.1.52.Final
-    [OAK-9211] - oak-search-elastic: implement dynamic boost
-    [OAK-9227] - Improvements to token authentication tests
-    [OAK-9255] - update junit to 4.13.1
-    [OAK-9258] - Upgrade to Elasticsearch 7.9.2
-    [OAK-9264] - oak-search-elastic: add support for similarityTags
-    [OAK-9268] - change default back to traversal of nodes even if no index with indexing lane is present
-    [OAK-9270] - Update Oak trunk and 1.22 to Jackrabbit 2.20.2
-    [OAK-9271] - Upgrade to Elasticsearch 7.9.3
+    [OAK-9276] - oak-search-elastic: make shards/replicas configurable
+    [OAK-9287] - Upgrade to Elasticsearch 7.10.0
+    [OAK-9302] - oak-search-elastic: make fetch query parameters configurable
+    [OAK-9308] - Upgrade to Elasticsearch 7.10.1
+    [OAK-9312] - Modify oak-run to support creating indexes of type Elasticsearch
+    [OAK-9329] - upgrade to mockito-core 3.7.7
 
-
-Technical task
-
-    [OAK-6758] - Convert oak-authorization-cug to OSGi R6 annotations
-    [OAK-6764] - Convert oak-exercise to OSGi R6 annotations
-    [OAK-9190] - Benchmark Results - Improvement(s)
-    [OAK-9191] - Investigate Improvement(s)
-    [OAK-9220] - create benchmarks
-    [OAK-9221] - results status quo
-    [OAK-9222] - results potential improvements
-    [OAK-9263] - Remove (Guava) com.google.common.base.Objects.ToStringHelper
-    [OAK-9269] - RDB*Store: update postgresql jdbc driver reference to 42.2.18
-
-
-Story
-
-    [OAK-9224] - Create a protected property importer for handling user tokens
-
-
-Documentation
-
-    [OAK-5214] - Create FAQ for External Authentication
-    [OAK-9051] - Enhance oak-exercise for Principal base authorization
-    [OAK-9239] - Update oak-benchmarks readme to include azure fixture
 
 In addition to the above-mentioned changes, this release contains all
 changes up to the previous release.
