@@ -25,6 +25,8 @@ public interface LoginModuleMBean {
 
     String TYPE = "LoginModuleStats";
 
+    String NAME = "LoginModule statistics";
+
     long getLoginErrors();
 
     CompositeData getLoginErrorsHistory();

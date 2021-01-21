@@ -20,9 +20,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandl
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.aggregations.Aggregations;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,7 +67,7 @@ public class ElasticStatisticalFacetAsyncProvider
     }
 
     @Override
-    public void on(SearchHit searchHit) {
+    public void on(ElasticResponseHandler.SearchResponseHit searchHit) {
         if (totalHits < sampleSize) {
             super.on(searchHit);
         } else {
@@ -91,13 +88,13 @@ public class ElasticStatisticalFacetAsyncProvider
     }
 
     @Override
-    public void on(Aggregations aggregations) {
+    public void on(Map<String, ElasticResponseHandler.AggregationBuckets> aggregations) {
         for (String field: facetFields) {
-            Terms terms = aggregations.get(field);
-            List<? extends Terms.Bucket> buckets = terms.getBuckets();
-            final List<FulltextIndex.Facet> facetList = new ArrayList<>();
-            for (Terms.Bucket bucket : buckets) {
-                facetList.add(new FulltextIndex.Facet(bucket.getKeyAsString(), (int) bucket.getDocCount()));
+            ElasticResponseHandler.AggregationBuckets terms = aggregations.get(field);
+            ElasticResponseHandler.AggregationBucket[] buckets = terms.buckets;
+            final List<FulltextIndex.Facet> facetList = new ArrayList<>(buckets.length);
+            for (ElasticResponseHandler.AggregationBucket bucket : buckets) {
+                facetList.add(new FulltextIndex.Facet(bucket.key.toString(), bucket.count));
             }
             facetMap.put(field, facetList);
         }

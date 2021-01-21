@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
@@ -157,7 +158,11 @@ public class DataRecordDownloadOptions {
     private String formatContentDispositionHeader(@NotNull final String dispositionType,
                                                   @NotNull final String fileName,
                                                   @Nullable final String rfc8187EncodedFileName) {
-        String iso_8859_1_fileName = new String(Charsets.ISO_8859_1.encode(fileName).array()).replace("\"", "\\\"");
+        Charset ISO_8859_1 = Charsets.ISO_8859_1;
+        String iso_8859_1_fileName = new String(
+                ISO_8859_1.encode(fileName).array(),
+                ISO_8859_1
+        ).replace("\"", "\\\"");
         return null != rfc8187EncodedFileName ?
                 String.format("%s; filename=\"%s\"; filename*=UTF-8''%s",
                         dispositionType, iso_8859_1_fileName, rfc8187EncodedFileName) :

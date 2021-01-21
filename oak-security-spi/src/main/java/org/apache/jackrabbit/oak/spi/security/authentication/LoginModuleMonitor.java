@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
+import java.util.Collections;
+import java.util.Map;
+
 @ProviderType
-public interface LoginModuleMonitor {
+public interface LoginModuleMonitor extends Monitor<LoginModuleMonitor> {
 
     LoginModuleMonitor NOOP = new LoginModuleMonitor() {
 
@@ -29,11 +34,20 @@ public interface LoginModuleMonitor {
     };
 
     /**
-     * Event to be called in the case there is an erorr in the login chain. This
+     * Event to be called in the case there is an error in the login chain. This
      * is not covering failed logins, but actual operational errors that
      * probably need to be investigated. Any triggered even should have a
      * corresponding error logged to make this investigation possible.
      */
     void loginError();
 
+    @Override
+    default @NotNull Class<LoginModuleMonitor> getMonitorClass() {
+        return LoginModuleMonitor.class;
+    }
+
+    @Override
+    default @NotNull Map<Object, Object> getMonitorProperties() {
+        return Collections.emptyMap();
+    }
 }

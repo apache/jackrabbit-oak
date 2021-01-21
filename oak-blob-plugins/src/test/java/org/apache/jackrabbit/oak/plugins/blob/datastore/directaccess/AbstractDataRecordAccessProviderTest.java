@@ -44,6 +44,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -176,26 +177,31 @@ public abstract class AbstractDataRecordAccessProviderTest {
 
     @Test
     public void testGetDownloadURIWithCustomHeadersIT() throws DataStoreException, IOException {
+        String umlautFilename = "Uml\u00e4utfile.png";
+        String umlautFilename_ISO_8859_1 = new String(
+                Charsets.ISO_8859_1.encode(umlautFilename).array(),
+                Charsets.ISO_8859_1
+        );
         List<String> fileNames = Lists.newArrayList(
                 "image.png",
                 "beautiful landscape.png",
                 "\"filename-with-double-quotes\".png",
                 "filename-with-one\"double-quote.jpg",
-                "Umläutfile.png"
+                umlautFilename
                 );
         List<String> iso_8859_1_fileNames = Lists.newArrayList(
                 "image.png",
                 "beautiful landscape.png",
                 "\\\"filename-with-double-quotes\\\".png",
                 "filename-with-one\\\"double-quote.jpg",
-                "Umla?utfile.png"
+                umlautFilename_ISO_8859_1
         );
         List<String> rfc8187_fileNames = Lists.newArrayList(
                 "image.png",
                 "beautiful%20landscape.png",
                 "%22filename-with-double-quotes%22.png",
                 "filename-with-one%22double-quote.jpg",
-                "Umla%CC%88utfile.png"
+                "Uml%C3%A4utfile.png"
         );
 
         DataRecord record = null;
