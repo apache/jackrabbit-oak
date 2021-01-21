@@ -12,6 +12,9 @@ on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
+While Oak 1.38.0 compiles and tests successfully on Java 15, Javadocs
+generation fails on Java 15 (but works as expected on Java 8).
+
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
