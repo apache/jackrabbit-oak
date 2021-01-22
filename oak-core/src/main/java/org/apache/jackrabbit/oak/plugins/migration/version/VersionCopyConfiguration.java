@@ -23,6 +23,9 @@ import java.util.Calendar;
  */
 public class VersionCopyConfiguration {
 
+    // Provide option to remove the target version history before it is copied from another source.
+    private boolean removeTargetVersionHistory = false;
+
     private Calendar copyVersions;
 
     private Calendar copyOrphanedVersions;
@@ -42,6 +45,10 @@ public class VersionCopyConfiguration {
         this.copyOrphanedVersions = copyOrphanedVersions;
     }
 
+    public void setRemoveTargetVersionHistory(boolean removeTargetVersionHistory) {
+        this.removeTargetVersionHistory = removeTargetVersionHistory;
+    }
+
     public Calendar getVersionsMinDate() {
         return copyVersions;
     }
@@ -54,6 +61,10 @@ public class VersionCopyConfiguration {
         } else {
             return copyOrphanedVersions;
         }
+    }
+
+    public boolean removeTargetVersionHistory() {
+        return removeTargetVersionHistory;
     }
 
     public boolean isCopyVersions() {

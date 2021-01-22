@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.version.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getVersionHistoryBuilder;
 import static org.apache.jackrabbit.oak.spi.version.VersionConstants.VERSION_STORE_PATH;
 
 import static org.apache.jackrabbit.oak.plugins.migration.version.VersionHistoryUtil.getRelativeVersionHistoryPath;
@@ -57,6 +58,9 @@ public class VersionCopier {
         while (versionStorageIterator.hasNext()) {
             final NodeState versionHistoryBucket = versionStorageIterator.next();
             for (String versionHistory : versionHistoryBucket.getChildNodeNames()) {
+                if (config.removeTargetVersionHistory()) {
+                    getVersionHistoryBuilder(targetVersionStorage, versionHistory).remove();
+                }
                 versionCopier.copyVersionHistory(versionHistory, config.getOrphanedMinDate());
             }
         }
