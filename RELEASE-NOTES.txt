@@ -35,6 +35,7 @@ Bug
     [OAK-9306] - Faceting: IllegalArgumentException: dimension ... was not indexed
     [OAK-9313] - Test failure: LoginModuleMonitorTest
     [OAK-9314] - Broken javadoc link with ExternalGroupPrincipalProvider#findPrincipals
+    [OAK-9324] - oak-auth-ldap (UseUidForExtIdTest) tests fail (likely specific to Windows)
 
 
 Improvement
@@ -55,7 +56,7 @@ Improvement
     [OAK-9311] - oak-search-elastic: use low-level client for critical operations
     [OAK-9316] - Reduce complexity in ExternalGroupPrincipalProvider
     [OAK-9322] - Add reference node id to integrity exception message
-
+    [OAK-9333] - Javadoc for PrincipalProvider.getPrincipalProvider is outdated
 
 Task
 
