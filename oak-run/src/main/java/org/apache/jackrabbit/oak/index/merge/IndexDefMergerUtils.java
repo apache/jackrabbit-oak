@@ -39,6 +39,10 @@ public class IndexDefMergerUtils {
 
     private static HashSet<String> IGNORE_LEVEL_0 = new HashSet<>(Arrays.asList(
             "reindex", "refresh", "seed", "reindexCount"));
+    private static HashSet<String> USE_PRODUCT_PROPERTY = new HashSet<>(Arrays.asList(
+            "jcr:created", "jcr:lastModified", "jcr:uuid"));
+    private static HashSet<String> USE_PRODUCT_CHILD_LEVEL_0 = new HashSet<>(Arrays.asList(
+            "tika"));
 
     /**
      * Merge index definition changes.
@@ -126,6 +130,9 @@ public class IndexDefMergerUtils {
 
     private static String mergeProperty(String property, JsonObject ancestor, JsonObject custom, JsonObject product,
             ArrayList<String> conflicts) {
+        if (USE_PRODUCT_PROPERTY.contains(property)) {
+            return product.getProperties().get(property);
+        }
         String ap = ancestor.getProperties().get(property);
         String cp = custom.getProperties().get(property);
         String pp = product.getProperties().get(property);
@@ -145,6 +152,9 @@ public class IndexDefMergerUtils {
         JsonObject a = ancestor.getChildren().get(child);
         JsonObject c = custom.getChildren().get(child);
         JsonObject p = product.getChildren().get(child);
+        if (level == 0 && USE_PRODUCT_CHILD_LEVEL_0.contains(child)) {
+            return p;
+        }
         if (isSameJson(a, p) || isSameJson(c, p)) {
             return c;
         } else if (isSameJson(a, c)) {
@@ -200,8 +210,12 @@ public class IndexDefMergerUtils {
                     JsonObject latestCustomized = allIndexes.getChildren().get(latest.getNodeName());
                     JsonObject latestAncestor = allIndexes.getChildren().get(ancestor.getNodeName());
                     JsonObject newProduct = newIndexes.getChildren().get(n.getNodeName());
-                    JsonObject merged = merge(latestAncestor, latestCustomized, newProduct);
-                    mergedMap.put(n.nextCustomizedName(), merged);
+                    try {
+                        JsonObject merged = merge(latestAncestor, latestCustomized, newProduct);
+                        mergedMap.put(n.nextCustomizedName(), merged);
+                    } catch (UnsupportedOperationException e) {
+                        throw new UnsupportedOperationException("Index: " + n.getNodeName() + ": " + e.getMessage(), e);
+                    }
                 }
             }
         }

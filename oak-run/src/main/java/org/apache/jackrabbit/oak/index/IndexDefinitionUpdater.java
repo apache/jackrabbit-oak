@@ -77,7 +77,7 @@ public class IndexDefinitionUpdater {
 
         Preconditions.checkArgument(optionSet.has("initializer"), "initializer class must be provided");
         String initializerClassName = optionSet.valueOf("initializer").toString();
-        Class repoInitClazz = Class.forName(initializerClassName);
+        Class<?> repoInitClazz = Class.forName(initializerClassName);
         Object obj = repoInitClazz.newInstance();
         Preconditions.checkArgument(obj instanceof RepositoryInitializer, repoInitClazz + " is not a RepositoryInitializer");
 
