@@ -56,6 +56,7 @@ Improvement
     [OAK-9311] - oak-search-elastic: use low-level client for critical operations
     [OAK-9316] - Reduce complexity in ExternalGroupPrincipalProvider
     [OAK-9322] - Add reference node id to integrity exception message
+    [OAK-9326] - Provide option to remove target version history from VersionCopier.copyVersionStorage
     [OAK-9333] - Javadoc for PrincipalProvider.getPrincipalProvider is outdated
 
 Task
