@@ -71,8 +71,8 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
     AdvanceFulltextQueryIndex {
 
-    private final Logger LOG = LoggerFactory
-            .getLogger(getClass());
+    private static final Logger LOG = LoggerFactory.getLogger(FulltextIndex.class);
+
     private final PerfLogger PERF_LOGGER =
             new PerfLogger(LoggerFactory.getLogger(getClass() + ".perf"));
 
@@ -491,7 +491,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                                 writer.endObject();
                                 return PropertyValues.newString(writer.toString());
                             }
-                        } catch (Exception e) {
+                        } catch (IOException | RuntimeException e) {
+                            LOG.warn(e.getMessage());
+                            LOG.debug(e.getMessage(), e);
                             throw new RuntimeException(e);
                         }
                     }
