@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 public class AbstractAuthorizableActionTest {
 
@@ -43,12 +44,24 @@ public class AbstractAuthorizableActionTest {
     }
 
     @Test
-    public void testOnCreate() throws Exception {
+    public void testOnCreateGroup() throws Exception {
         Group gr = mock(Group.class);
         action.onCreate(gr, root, namePathMapper);
+        verifyNoInteractions(gr, root, namePathMapper);
+    }
+
+    @Test
+    public void testOnCreateUser() throws Exception {
         User user = mock(User.class);
         action.onCreate(user, null, root, namePathMapper);
-        verifyNoInteractions(user, gr, root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
+    }
+
+    @Test
+    public void testOnCreateSystemUser() throws Exception {
+        User user = when(mock(User.class).isSystemUser()).thenReturn(true).getMock();
+        action.onCreate(user, root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test

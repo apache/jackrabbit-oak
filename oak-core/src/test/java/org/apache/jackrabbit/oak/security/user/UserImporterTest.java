@@ -478,7 +478,8 @@ public class UserImporterTest extends UserImporterBaseTest implements UserConsta
         init(true);
         importer.propertiesCompleted(createSystemUserTree());
         // create-actions must not be called for system users
-        verifyNoInteractions(testAction);
+        verify(testAction).onCreate(any(User.class), any(Root.class), any(NamePathMapper.class));
+        verify(testAction, never()).onCreate(any(User.class), nullable(String.class), any(Root.class), any(NamePathMapper.class));
     }
 
     @Test

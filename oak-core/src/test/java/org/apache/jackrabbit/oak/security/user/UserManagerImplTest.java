@@ -16,13 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
-import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -32,19 +29,13 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.UUIDUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.impl.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
-import org.apache.jackrabbit.oak.spi.security.user.action.GroupAction;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -55,23 +46,17 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -415,27 +400,5 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     public void testCreateGroupWithExistingPrincipal() throws Exception {
         User u = getTestUser();
         userMgr.createGroup(u.getPrincipal());
-    }
-
-    @Test
-    public void testOnMembersAddedByContentId() throws Exception {
-        GroupAction groupAction = mock(GroupAction.class);
-        List actions = ImmutableList.of(groupAction);
-        AuthorizableActionProvider actionProvider = mock(AuthorizableActionProvider.class);
-        when(actionProvider.getAuthorizableActions(any(SecurityProvider.class))).thenReturn(actions);
-        ConfigurationParameters params = ConfigurationParameters.of(PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
-
-        UserConfiguration uc = when(mock(UserConfiguration.class).getParameters()).thenReturn(params).getMock();
-        SecurityProvider sp = mock(SecurityProvider.class);
-        when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
-
-        UserManagerImpl um = new UserManagerImpl(root, new PartialValueFactory(getNamePathMapper()), sp);
-
-        Group testGroup = mock(Group.class);
-        Set<String> membersIds = ImmutableSet.of(UUIDUtils.generateUUID());
-
-        um.onGroupUpdate(testGroup, false, true, membersIds, Collections.emptySet());
-        verify(groupAction, times(1)).onMembersAddedContentId(testGroup, membersIds, Collections.emptySet(), root, getNamePathMapper());
-
     }
 }

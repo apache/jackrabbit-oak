@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * The {@code AuthorizableAction} interface provide an implementation
@@ -88,6 +89,22 @@ public interface AuthorizableAction {
      * @throws RepositoryException If an error occurs.
      */
     void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+
+    /**
+     * Allows to add application specific modifications or validation associated
+     * with the creation of a new <strong>system</strong>system. Note, that this method is called
+     * <strong>before</strong> any {@code Root#commit()} call.
+     *
+     *
+     * @param user The new system user that has not yet been persisted;
+     * e.g. the associated tree is still 'NEW'.
+     * @param root The root associated with the user manager.
+     * @param namePathMapper The {@code NamePathMapper} present with the editing session.
+     * @throws RepositoryException If an error occurs.
+     */
+    default void onCreate(@NotNull User systemUser, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
+        // nop
+    }
 
     /**
      * Allows to add application specific behavior associated with the removal
