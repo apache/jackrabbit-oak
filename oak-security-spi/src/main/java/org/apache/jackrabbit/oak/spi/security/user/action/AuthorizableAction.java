@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The {@code AuthorizableAction} interface provide an implementation
@@ -56,10 +57,10 @@ public interface AuthorizableAction {
     /**
      * Initialize this action with the specified security provider and configuration.
      *
-     * @param securityProvider
-     * @param config
+     * @param securityProvider The security provider present with the repository
+     * @param config The configuration parameters for this action.
      */
-    void init(SecurityProvider securityProvider, ConfigurationParameters config);
+    void init(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config);
 
     /**
      * Allows to add application specific modifications or validation associated
@@ -73,7 +74,7 @@ public interface AuthorizableAction {
      * @param namePathMapper
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
-    void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onCreate(@NotNull Group group, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
      * Allows to add application specific modifications or validation associated
@@ -88,7 +89,7 @@ public interface AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
      * Allows to add application specific modifications or validation associated
@@ -118,7 +119,7 @@ public interface AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an error occurs.
      */
-    void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onRemove(@NotNull Authorizable authorizable, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 
     /**
      * Allows to add application specific action or validation associated with
@@ -132,5 +133,5 @@ public interface AuthorizableAction {
      * @param namePathMapper
      * @throws RepositoryException If an exception or error occurs.
      */
-    void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException;
+    void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException;
 }

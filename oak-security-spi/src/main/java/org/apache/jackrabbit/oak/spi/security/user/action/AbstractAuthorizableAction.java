@@ -40,7 +40,7 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
      * Doesn't perform any action.
      */
     @Override
-    public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+    public void init(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config) {
         // nothing to do
     }
 

@@ -59,7 +59,7 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+    public void init(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config) {
         String constraint = config.getConfigValue(CONSTRAINT, null, String.class);
         if (constraint != null) {
             setConstraint(constraint);
