@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.merge;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,6 +45,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
  */
 public class IndexDiff {
 
+    private static final String OAK_INDEX = "/oak:index/";
+
     static JsonObject extract(String extractFile, String indexName) {
         JsonObject indexDefs = parseIndexDefinitions(extractFile);
         JsonObject index = indexDefs.getChildren().get(indexName);
@@ -60,7 +63,7 @@ public class IndexDiff {
         for (String child : indexDefs.getChildren().keySet()) {
             JsonObject index = indexDefs.getChildren().get(child);
             simplifyForDisplay(index);
-            String fileName = child.replaceAll("/oak:index/", "");
+            String fileName = child.replaceAll(OAK_INDEX, "");
             fileName = fileName.replace(':', '-');
             Path p = Paths.get(extractTargetDirectory, fileName + ".json");
             try {
@@ -172,18 +175,13 @@ public class IndexDiff {
         // keep only new indexes that are not superseded
         Map<String, JsonObject> indexMap = indexeDefinitions.getChildren();
         for (String superseded : supersededKeys) {
-            if (indexMap.containsKey(superseded)) {
-                indexMap.remove(superseded);
-            }
+            indexMap.remove(superseded);
         }
         Set<String> indexKeys = indexeDefinitions.getChildren().keySet();
         try {
             IndexDefMergerUtils.merge(newIndexes, indexeDefinitions);
             Set<String> newIndexKeys =  new HashSet<>(newIndexes.getChildren().keySet());
             newIndexKeys.removeAll(indexKeys);
-            if (newIndexKeys.isEmpty()) {
-                // No indexes to merge
-            }
             for (String newIndexKey : newIndexKeys) {
                 JsonObject merged = newIndexes.getChildren().get(newIndexKey);
                 if (merged != null) {
@@ -214,8 +212,8 @@ public class IndexDiff {
         removeUninterestingIndexProperties(indexDefinitions);
         removeUnusedIndexes(indexDefinitions);
         for(String k : indexDefinitions.getChildren().keySet()) {
-            if (!k.startsWith("/oak:index/")) {
-                targetFile.getProperties().put(k, JsopBuilder.encode("WARNING: Index not under /oak:index/"));
+            if (!k.startsWith(OAK_INDEX)) {
+                targetFile.getProperties().put(k, JsopBuilder.encode("WARNING: Index not under " + OAK_INDEX));
                 continue;
             }
             if (!k.contains("-custom-")) {
@@ -238,17 +236,17 @@ public class IndexDiff {
 
     private static void listNewAndCustomizedIndexes(JsonObject indexDefinitions, String indexNodeName, JsonObject target) {
         JsonObject index = indexDefinitions.getChildren().get(indexNodeName);
-        String nodeName = indexNodeName.substring("/oak:index/".length());
+        String nodeName = indexNodeName.substring(OAK_INDEX.length());
         IndexName indexName = IndexName.parse(nodeName);
         String ootb = indexName.getBaseName();
         if (indexName.getProductVersion() > 1) {
             ootb += "-" + indexName.getProductVersion();
         }
         simplifyForDisplay(indexDefinitions);
-        JsonObject ootbIndex = indexDefinitions.getChildren().get("/oak:index/" + ootb);
+        JsonObject ootbIndex = indexDefinitions.getChildren().get(OAK_INDEX + ootb);
         if (ootbIndex != null) {
             JsonObject targetCustom = new JsonObject(true);
-            targetCustom.getProperties().put("customizes", JsopBuilder.encode("/oak:index/" + ootb));
+            targetCustom.getProperties().put("customizes", JsopBuilder.encode(OAK_INDEX + ootb));
             target.getChildren().put(indexNodeName, targetCustom);
             compareIndexes("", ootbIndex, index, targetCustom);
         } else {
@@ -410,13 +408,9 @@ public class IndexDiff {
                     child.getProperties().put(p, v);
                 } else if (v.startsWith("\":blobId:")) {
                     String base64 = v.substring(9, v.length() - 1);
-                    try {
-                        String clear = new String(java.util.Base64.getDecoder().decode(base64), "UTF-8");
-                        v = JsopBuilder.encode(clear);
-                        child.getProperties().put(p, v);
-                    } catch (UnsupportedEncodingException e) {
-                        throw new IllegalArgumentException(e);
-                    }
+                    String clear = new String(java.util.Base64.getDecoder().decode(base64), StandardCharsets.UTF_8);
+                    v = JsopBuilder.encode(clear);
+                    child.getProperties().put(p, v);
                 }
             }
         }
