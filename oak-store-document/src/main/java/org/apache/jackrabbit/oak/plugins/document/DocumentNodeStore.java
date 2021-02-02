@@ -2018,12 +2018,14 @@ public final class DocumentNodeStore
     @NotNull
     @Override
     public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
+        checkOpen();
         return checkpoints.create(lifetime, properties).toString();
     }
 
     @NotNull
     @Override
     public String checkpoint(long lifetime) {
+        checkOpen();
         Map<String, String> empty = Collections.emptyMap();
         return checkpoint(lifetime, empty);
     }
@@ -2031,6 +2033,7 @@ public final class DocumentNodeStore
     @NotNull
     @Override
     public Map<String, String> checkpointInfo(@NotNull String checkpoint) {
+        checkOpen();
         Revision r = Revision.fromString(checkpoint);
         Checkpoints.Info info = checkpoints.getCheckpoints().get(r);
         if (info == null) {
@@ -2044,6 +2047,7 @@ public final class DocumentNodeStore
     @NotNull
     @Override
     public Iterable<String> checkpoints() {
+        checkOpen();
         final long now = clock.getTime();
         return Iterables.transform(Iterables.filter(checkpoints.getCheckpoints().entrySet(),
                 new Predicate<Map.Entry<Revision,Checkpoints.Info>>() {
@@ -2062,6 +2066,7 @@ public final class DocumentNodeStore
     @Nullable
     @Override
     public NodeState retrieve(@NotNull String checkpoint) {
+        checkOpen();
         RevisionVector rv = getCheckpoints().retrieve(checkpoint);
         if (rv == null) {
             return null;
@@ -2073,6 +2078,7 @@ public final class DocumentNodeStore
 
     @Override
     public boolean release(@NotNull String checkpoint) {
+        checkOpen();
         checkpoints.release(checkpoint);
         return true;
     }
