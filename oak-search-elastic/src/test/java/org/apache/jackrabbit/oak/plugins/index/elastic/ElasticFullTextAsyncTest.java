@@ -70,6 +70,32 @@ public class ElasticFullTextAsyncTest extends ElasticAbstractQueryTest {
         });
     }
 
+    // OAK-9145
+    @Test
+    public void camelCase() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("propa");
+        builder.async("async");
+        builder.indexRule("nt:base").property("propa").analyzed();
+
+        String indexId = UUID.randomUUID().toString();
+        setIndex(indexId, builder);
+        root.commit();
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "savingsAccount");
+        test.addChild("b").setProperty("propa", "savings account");
+        root.commit();
+
+        String query = "//*[jcr:contains(@propa, 'savings account')] ";
+
+        assertEventually(() -> {
+            assertThat(explain(query, XPATH), containsString("elasticsearch:" + indexId));
+            assertQuery(query, XPATH, Arrays.asList("/test/a", "/test/b"));
+        });
+    }
+
     @Test
     public void noStoredIndexDefinition() throws Exception {
         IndexDefinitionBuilder builder = createIndex("propa");

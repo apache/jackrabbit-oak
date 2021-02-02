@@ -60,14 +60,15 @@ public class OakAnalyzer extends Analyzer {
 
     @Override
     protected TokenStreamComponents createComponents(final String fieldName,
-            final Reader reader) {
+                                                     final Reader reader) {
         StandardTokenizer src = new StandardTokenizer(matchVersion, reader);
-        TokenStream tok = new LowerCaseFilter(matchVersion, src);
-        tok = new WordDelimiterFilter(tok,
+        TokenStream tok = new WordDelimiterFilter(src,
                 WordDelimiterFilter.GENERATE_WORD_PARTS
+                        | WordDelimiterFilter.SPLIT_ON_CASE_CHANGE
                         | WordDelimiterFilter.STEM_ENGLISH_POSSESSIVE
                         | this.INDEX_ORIGINAL_TERM
                         | WordDelimiterFilter.GENERATE_NUMBER_PARTS, null);
+        tok = new LowerCaseFilter(matchVersion, tok);
         return new TokenStreamComponents(src, tok);
     }
 }

@@ -95,7 +95,7 @@ class ElasticIndexHelper {
                     {
                         settingsBuilder.field("type", "custom");
                         settingsBuilder.field("tokenizer", "standard");
-                        settingsBuilder.field("filter", new String[]{"lowercase", "oak_word_delimiter_graph_filter"});
+                        settingsBuilder.field("filter", new String[]{"oak_word_delimiter_graph_filter", "lowercase"});
                     }
                     settingsBuilder.endObject();
                     // https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-pathhierarchy-tokenizer.html

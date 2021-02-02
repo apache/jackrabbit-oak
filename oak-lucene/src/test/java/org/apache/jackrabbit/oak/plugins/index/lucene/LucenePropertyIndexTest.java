@@ -2055,6 +2055,25 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void camelCase() throws Exception{
+        Tree idx = root.getTree("/").addChild(INDEX_DEFINITIONS_NAME).addChild("test-index");
+        IndexDefinitionBuilder builder = new LuceneIndexDefinitionBuilder();
+        builder.evaluatePathRestrictions();
+        builder.indexRule("nt:base")
+                .property("foo").analyzed().propertyIndex().nodeScopeIndex();
+        builder.build(idx);
+        idx.removeProperty("async");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("foo", "savingsAccount");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS('foo', 'savings')", asList("/test"));
+        assertQuery("select * from [nt:base] where CONTAINS('foo', 'account')", asList("/test"));
+    }
+
+    @Test
     public void maxFieldLengthCheck() throws Exception{
         Tree idx = createFulltextIndex(root.getTree("/"), "test");
         TestUtil.useV2(idx);
