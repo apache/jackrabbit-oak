@@ -42,7 +42,7 @@ public class GetReferencesResponseEncoder extends MessageToByteEncoder<GetRefere
         out.writeBytes(data);
     }
 
-    private static String serialize(String segmentId, Iterable<String> references) {
+    private static String serializeReferences(String segmentId, Iterable<String> references) {
         return segmentId + ":" + Joiner.on(",").join(references);
     }
 
