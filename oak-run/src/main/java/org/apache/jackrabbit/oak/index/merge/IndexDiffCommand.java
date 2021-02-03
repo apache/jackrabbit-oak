@@ -39,9 +39,9 @@ public class IndexDiffCommand implements Command {
                 .accepts("extract", "File from where to extract (an) index definition(s) (.json). " +
                         "This will extract index1, or all indexes").withOptionalArg()
                 .defaultsTo("");
-        OptionSpec<String> extractTargetDirectoryOption = parser
-                .accepts("extract-target", "Target directory where to extract all index definitions. " +
-                        "This will all indexes to the target directory").withOptionalArg()
+        OptionSpec<String> targetDirectoryOption = parser
+                .accepts("target", "Target directory where to store results.")
+                .withOptionalArg()
                 .defaultsTo("");
 
         OptionSpec<?> helpSpec = parser.acceptsAll(
@@ -52,7 +52,7 @@ public class IndexDiffCommand implements Command {
         String mergeDirectory = mergeDirectoryOption.value(options);
         String compareDirectory = compareDirectoryOption.value(options);
         String extractFile = extractFileOption.value(options);
-        String extractTargetDirectory = extractTargetDirectoryOption.value(options);
+        String targetDirectory = targetDirectoryOption.value(options);
         if (options.has(helpSpec) || (customDir.isEmpty() &&
                 mergeDirectory.isEmpty() &&
                 compareDirectory.isEmpty() &&
@@ -71,11 +71,19 @@ public class IndexDiffCommand implements Command {
                 parser.printHelpOn(System.out);
                 return;
             }
-            System.out.println("Merging indexes " +
-                    "for directory \"" +
-                    mergeDirectory +
-                    "\" with \"" + mergeAdd + "\"");
-            System.out.println(IndexDiff.mergeIndexes(mergeDirectory, mergeAdd));
+            if (targetDirectory.isEmpty()) {
+                System.out.println("Merging indexes " +
+                        "for directory \"" +
+                        mergeDirectory +
+                        "\" with \"" + mergeAdd + "\"");
+                System.out.println(IndexDiff.mergeIndexes(mergeDirectory, mergeAdd));
+            } else {
+                System.out.println("Merging index " +
+                        "for \"" +
+                        mergeDirectory +
+                        "\" with \"" + mergeAdd + "\"");
+                IndexDiff.mergeIndex(mergeDirectory, mergeAdd, targetDirectory);
+            }
         }
         if (!compareDirectory.isEmpty()) {
             String index1 = index1Option.value(options);
@@ -95,10 +103,10 @@ public class IndexDiffCommand implements Command {
                 System.out.println("Extracting index " + index1 + " from \"" +
                         extractFile + "\"");
                 System.out.println(IndexDiff.extract(extractFile, index1));
-            } else if (!extractTargetDirectory.isEmpty()) {
-                System.out.println("Extracting indexes to \"" + extractTargetDirectory + "\" from \"" +
+            } else if (!targetDirectory.isEmpty()) {
+                System.out.println("Extracting indexes to \"" + targetDirectory + "\" from \"" +
                         extractFile + "\"");
-                IndexDiff.extractAll(extractFile, extractTargetDirectory);
+                IndexDiff.extractAll(extractFile, targetDirectory);
             }
         }
     }

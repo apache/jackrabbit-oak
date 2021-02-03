@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index.merge;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,8 +33,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
@@ -66,11 +67,15 @@ public class IndexDiff {
             String fileName = child.replaceAll(OAK_INDEX, "");
             fileName = fileName.replace(':', '-');
             Path p = Paths.get(extractTargetDirectory, fileName + ".json");
-            try {
-                Files.write(p, index.toString().getBytes());
-            } catch (IOException e) {
-                throw new IllegalStateException("Error writing file: " + p, e);
-            }
+            writeFile(p, index);
+        }
+    }
+
+    private static void writeFile(Path p, JsonObject json) {
+        try {
+            Files.write(p, json.toString().getBytes());
+        } catch (IOException e) {
+            throw new IllegalStateException("Error writing file: " + p, e);
         }
     }
 
@@ -89,7 +94,85 @@ public class IndexDiff {
         Path indexPath = Paths.get(directory);
         JsonObject target = new JsonObject(true);
         mergeIndexesInDirectory(indexPath, newIndex, target);
+        for(String key : target.getChildren().keySet()) {
+            JsonObject c = target.getChildren().get(key);
+            removeUninterestingIndexProperties(c);
+            sortPropertiesByName(c);
+            simplifyForDisplay(c);
+            target.getChildren().put(key, c);
+        }
         return target;
+    }
+
+    static void mergeIndex(String oldIndexFile, String newIndexFile, String targetDirectory) {
+        JsonObject oldIndexes = parseIndexDefinitions(oldIndexFile);
+        removeUninterestingIndexProperties(oldIndexes);
+        sortPropertiesByName(oldIndexes);
+        simplifyForDisplay(oldIndexes);
+
+        JsonObject newIndexes = parseIndexDefinitions(newIndexFile);
+        removeUninterestingIndexProperties(newIndexes);
+        sortPropertiesByName(newIndexes);
+        simplifyForDisplay(newIndexes);
+
+        List<IndexName> newNames = newIndexes.getChildren().keySet().stream().map(s -> IndexName.parse(s))
+                .collect(Collectors.toList());
+        List<IndexName> allNames = oldIndexes.getChildren().keySet().stream().map(s -> IndexName.parse(s))
+                .collect(Collectors.toList());
+
+        for (IndexName n : newNames) {
+            if (n.getCustomerVersion() == 0) {
+                IndexName latest = n.getLatestCustomized(allNames);
+                IndexName ancestor = n.getLatestProduct(allNames);
+                if (latest != null && ancestor != null) {
+                    if (n.compareTo(latest) <= 0 || n.compareTo(ancestor) <= 0) {
+                        // ignore older versions of indexes
+                        continue;
+                    }
+                    JsonObject latestCustomized = oldIndexes.getChildren().get(latest.getNodeName());
+                    String fileName = PathUtils.getName(latest.getNodeName());
+                    writeFile(Paths.get(targetDirectory, fileName + ".json"), latestCustomized);
+
+                    JsonObject latestAncestor = oldIndexes.getChildren().get(ancestor.getNodeName());
+                    fileName = PathUtils.getName(ancestor.getNodeName());
+                    writeFile(Paths.get(targetDirectory, fileName + ".json"), latestAncestor);
+
+                    JsonObject newProduct = newIndexes.getChildren().get(n.getNodeName());
+                    fileName = PathUtils.getName(n.getNodeName());
+                    writeFile(Paths.get(targetDirectory, fileName + ".json"), newProduct);
+
+                    JsonObject oldCustomizations = new JsonObject(true);
+                    compareIndexes("", latestAncestor, latestCustomized, oldCustomizations);
+                    // the old product index might be disabled
+                    oldCustomizations.getChildren().remove("type");
+                    writeFile(Paths.get(targetDirectory, "oldCustomizations.json"), oldCustomizations);
+
+                    JsonObject productChanges = new JsonObject(true);
+                    compareIndexes("", latestAncestor, newProduct, productChanges);
+                    writeFile(Paths.get(targetDirectory, "productChanges.json"), productChanges);
+
+                    try {
+                        JsonObject merged = IndexDefMergerUtils.merge(
+                                ancestor.getNodeName(), latestAncestor,
+                                latest.getNodeName(), latestCustomized,
+                                newProduct);
+                        fileName = PathUtils.getName(n.nextCustomizedName());
+                        writeFile(Paths.get(targetDirectory, fileName + ".json"), merged);
+
+                        JsonObject newCustomizations = new JsonObject(true);
+                        compareIndexes("", newProduct, merged, newCustomizations);
+                        writeFile(Paths.get(targetDirectory, "newCustomizations.json"), newCustomizations);
+
+                        JsonObject changes = new JsonObject(true);
+                        compareIndexes("", oldCustomizations, newCustomizations, changes);
+                        writeFile(Paths.get(targetDirectory, "changes.json"), changes);
+
+                    } catch (UnsupportedOperationException e) {
+                        throw new UnsupportedOperationException("Index: " + n.getNodeName() + ": " + e.getMessage(), e);
+                    }
+                }
+            }
+        }
     }
 
     static JsonObject compareIndexes(String directory, String index1, String index2) {
@@ -332,10 +415,10 @@ public class IndexDiff {
         }
         if (!bothSortedByOotb.toString().equals(bothSortedByCustom.toString())) {
             JsonObject change = new JsonObject(true);
-            change.getProperties().put("warning", JsopBuilder.encode("WARNING: order is different"));
+            change.getProperties().put("warning", JsopBuilder.encode("WARNING: Order is different"));
             change.getProperties().put("ootb", JsopBuilder.encode(bothSortedByOotb.toString()));
             change.getProperties().put("custom", JsopBuilder.encode(bothSortedByCustom.toString()));
-            target.getChildren().put(path, change);
+            target.getChildren().put(path + "<order>", change);
         }
     }
 

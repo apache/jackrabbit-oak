@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
 
 /**
@@ -47,17 +48,22 @@ public class IndexDefMergerUtils {
     /**
      * Merge index definition changes.
      *
+     * @param ancestorName the name of the node of the ancestor index (e.g. /oak:index/lucene-1)
      * @param ancestor the common ancestor (the old product index, e.g. lucene)
-     * @param custom the latest customized version (e.g. lucene-custom-1)
+     * @param customName the name of the node of the customized index (e.g. /oak:index/lucene-1-custom-1)
+     * @param custom the latest customized version (e.g. lucene-1-custom-1)
      * @param product the latest product index (e.g. lucene-2)
      * @return the merged index definition (e.g. lucene-2-custom-1)
      */
-    public static JsonObject merge(JsonObject ancestor, JsonObject custom, JsonObject product) {
+    public static JsonObject merge(String ancestorName, JsonObject ancestor, String customName, JsonObject custom, JsonObject product) {
         ArrayList<String> conflicts = new ArrayList<>();
         JsonObject merged = merge(0, ancestor, custom, product, conflicts);
         if (!conflicts.isEmpty()) {
             throw new UnsupportedOperationException("Conflicts detected: " + conflicts);
         }
+        merged.getProperties().put("merges", "[" +
+                JsopBuilder.encode(ancestorName) + ", " +
+                JsopBuilder.encode(customName) + "]");
         return merged;
     }
 
@@ -99,9 +105,10 @@ public class IndexDefMergerUtils {
             }
         }
         LinkedHashMap<String, Boolean> children = new LinkedHashMap<>();
+        // first the (new) product index - to ensure the order of children matches the new product index
+        addAllChildren(product, children);
         addAllChildren(ancestor, children);
         addAllChildren(custom, children);
-        addAllChildren(product, children);
         for (String k : children.keySet()) {
             if (k.startsWith(":")) {
                 // ignore hidden nodes
@@ -211,7 +218,10 @@ public class IndexDefMergerUtils {
                     JsonObject latestAncestor = allIndexes.getChildren().get(ancestor.getNodeName());
                     JsonObject newProduct = newIndexes.getChildren().get(n.getNodeName());
                     try {
-                        JsonObject merged = merge(latestAncestor, latestCustomized, newProduct);
+                        JsonObject merged = merge(
+                                ancestor.getNodeName(), latestAncestor,
+                                latest.getNodeName(), latestCustomized,
+                                newProduct);
                         mergedMap.put(n.nextCustomizedName(), merged);
                     } catch (UnsupportedOperationException e) {
                         throw new UnsupportedOperationException("Index: " + n.getNodeName() + ": " + e.getMessage(), e);
