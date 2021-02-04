@@ -60,56 +60,56 @@ public class DefaultThreeWayConflictHandler implements ThreeWayConflictHandler {
 
     @NotNull
     @Override
-    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
         return resolution;
     }
 
     @NotNull
     @Override
-    public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours, PropertyState base) {
+    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
         return resolution;
     }
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
-            PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
+                                            @NotNull PropertyState base) {
         return resolution;
     }
 
     @NotNull
     @Override
-    public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState base) {
+    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
         return resolution;
     }
 
     @NotNull
     @Override
-    public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs, PropertyState base) {
+    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs, @NotNull PropertyState base) {
         return resolution;
     }
 
     @NotNull
     @Override
-    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
+    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState theirs) {
         return resolution;
     }
 
     @NotNull
     @Override
-    public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours, NodeState base) {
+    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState base) {
         return resolution;
     }
 
     @NotNull
     @Override
-    public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs, NodeState base) {
+    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs, @NotNull NodeState base) {
         return resolution;
     }
 
     @NotNull
     @Override
-    public Resolution deleteDeletedNode(NodeBuilder parent, String name, NodeState base) {
+    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
         return resolution;
     }
 

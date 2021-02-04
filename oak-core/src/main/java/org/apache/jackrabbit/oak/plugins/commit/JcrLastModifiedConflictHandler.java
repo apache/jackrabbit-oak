@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Conflict Handler that merges concurrent updates to
@@ -45,7 +46,7 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
 
     @NotNull
     @Override
-    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
         if (isModifiedOrCreated(ours.getName())) {
             merge(parent, ours, theirs);
             return Resolution.MERGED;
@@ -55,8 +56,8 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
-            PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
+                                            @NotNull PropertyState base) {
         if (isModifiedOrCreated(ours.getName())) {
             merge(parent, ours, theirs);
             return Resolution.MERGED;
@@ -64,7 +65,7 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
         return Resolution.IGNORED;
     }
 
-    private static void merge(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    private static void merge(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
         Calendar o = parse(ours.getValue(Type.DATE));
         Calendar t = parse(theirs.getValue(Type.DATE));
         if (JCR_CREATED.equals(ours.getName())) {
@@ -82,7 +83,7 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
         }
     }
 
-    private static boolean isModifiedOrCreated(String name) {
+    private static boolean isModifiedOrCreated(@NotNull String name) {
         return JCR_LASTMODIFIED.equals(name) || JCR_CREATED.equals(name);
     }
 }
