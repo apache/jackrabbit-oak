@@ -52,18 +52,18 @@ public class IndexDiff {
         JsonObject indexDefs = parseIndexDefinitions(extractFile);
         JsonObject index = indexDefs.getChildren().get(indexName);
         removeUninterestingIndexProperties(indexDefs);
-        simplifyForDisplay(index);
+        simplify(index);
         return index;
     }
 
-    public static void extractAll(String extractFile, String extractTargetDirectory) {
+    static void extractAll(String extractFile, String extractTargetDirectory) {
         new File(extractTargetDirectory).mkdirs();
         JsonObject indexDefs = parseIndexDefinitions(extractFile);
         removeUninterestingIndexProperties(indexDefs);
         sortPropertiesByName(indexDefs);
         for (String child : indexDefs.getChildren().keySet()) {
             JsonObject index = indexDefs.getChildren().get(child);
-            simplifyForDisplay(index);
+            simplify(index);
             String fileName = child.replaceAll(OAK_INDEX, "");
             fileName = fileName.replace(':', '-');
             Path p = Paths.get(extractTargetDirectory, fileName + ".json");
@@ -98,7 +98,7 @@ public class IndexDiff {
             JsonObject c = target.getChildren().get(key);
             removeUninterestingIndexProperties(c);
             sortPropertiesByName(c);
-            simplifyForDisplay(c);
+            simplify(c);
             target.getChildren().put(key, c);
         }
         return target;
@@ -108,12 +108,12 @@ public class IndexDiff {
         JsonObject oldIndexes = parseIndexDefinitions(oldIndexFile);
         removeUninterestingIndexProperties(oldIndexes);
         sortPropertiesByName(oldIndexes);
-        simplifyForDisplay(oldIndexes);
+        simplify(oldIndexes);
 
         JsonObject newIndexes = parseIndexDefinitions(newIndexFile);
         removeUninterestingIndexProperties(newIndexes);
         sortPropertiesByName(newIndexes);
-        simplifyForDisplay(newIndexes);
+        simplify(newIndexes);
 
         List<IndexName> newNames = newIndexes.getChildren().keySet().stream().map(s -> IndexName.parse(s))
                 .collect(Collectors.toList());
@@ -131,25 +131,30 @@ public class IndexDiff {
                     }
                     JsonObject latestCustomized = oldIndexes.getChildren().get(latest.getNodeName());
                     String fileName = PathUtils.getName(latest.getNodeName());
-                    writeFile(Paths.get(targetDirectory, fileName + ".json"), latestCustomized);
+                    writeFile(Paths.get(targetDirectory, fileName + ".json"),
+                            addParent(latest.getNodeName(), latestCustomized));
 
                     JsonObject latestAncestor = oldIndexes.getChildren().get(ancestor.getNodeName());
                     fileName = PathUtils.getName(ancestor.getNodeName());
-                    writeFile(Paths.get(targetDirectory, fileName + ".json"), latestAncestor);
+                    writeFile(Paths.get(targetDirectory, fileName + ".json"),
+                            addParent(ancestor.getNodeName(), latestAncestor));
 
                     JsonObject newProduct = newIndexes.getChildren().get(n.getNodeName());
                     fileName = PathUtils.getName(n.getNodeName());
-                    writeFile(Paths.get(targetDirectory, fileName + ".json"), newProduct);
+                    writeFile(Paths.get(targetDirectory, fileName + ".json"),
+                            addParent(n.getNodeName(), newProduct));
 
                     JsonObject oldCustomizations = new JsonObject(true);
                     compareIndexes("", latestAncestor, latestCustomized, oldCustomizations);
                     // the old product index might be disabled
                     oldCustomizations.getChildren().remove("type");
-                    writeFile(Paths.get(targetDirectory, "oldCustomizations.json"), oldCustomizations);
+                    writeFile(Paths.get(targetDirectory, "oldCustomizations.json"),
+                            oldCustomizations);
 
                     JsonObject productChanges = new JsonObject(true);
                     compareIndexes("", latestAncestor, newProduct, productChanges);
-                    writeFile(Paths.get(targetDirectory, "productChanges.json"), productChanges);
+                    writeFile(Paths.get(targetDirectory, "productChanges.json"),
+                            productChanges);
 
                     try {
                         JsonObject merged = IndexDefMergerUtils.merge(
@@ -157,15 +162,18 @@ public class IndexDiff {
                                 latest.getNodeName(), latestCustomized,
                                 newProduct);
                         fileName = PathUtils.getName(n.nextCustomizedName());
-                        writeFile(Paths.get(targetDirectory, fileName + ".json"), merged);
+                        writeFile(Paths.get(targetDirectory, fileName + ".json"),
+                                addParent(n.nextCustomizedName(), merged));
 
                         JsonObject newCustomizations = new JsonObject(true);
                         compareIndexes("", newProduct, merged, newCustomizations);
-                        writeFile(Paths.get(targetDirectory, "newCustomizations.json"), newCustomizations);
+                        writeFile(Paths.get(targetDirectory, "newCustomizations.json"),
+                                newCustomizations);
 
                         JsonObject changes = new JsonObject(true);
                         compareIndexes("", oldCustomizations, newCustomizations, changes);
-                        writeFile(Paths.get(targetDirectory, "changes.json"), changes);
+                        writeFile(Paths.get(targetDirectory, "changes.json"),
+                                changes);
 
                     } catch (UnsupportedOperationException e) {
                         throw new UnsupportedOperationException("Index: " + n.getNodeName() + ": " + e.getMessage(), e);
@@ -173,6 +181,12 @@ public class IndexDiff {
                 }
             }
         }
+    }
+
+    private static JsonObject addParent(String key, JsonObject obj) {
+        JsonObject result = new JsonObject(true);
+        result.getChildren().put(key, obj);
+        return result;
     }
 
     static JsonObject compareIndexes(String directory, String index1, String index2) {
@@ -325,7 +339,7 @@ public class IndexDiff {
         if (indexName.getProductVersion() > 1) {
             ootb += "-" + indexName.getProductVersion();
         }
-        simplifyForDisplay(indexDefinitions);
+        simplify(indexDefinitions);
         JsonObject ootbIndex = indexDefinitions.getChildren().get(OAK_INDEX + ootb);
         if (ootbIndex != null) {
             JsonObject targetCustom = new JsonObject(true);
@@ -471,14 +485,19 @@ public class IndexDiff {
         }
     }
 
-    private static void simplifyForDisplay(JsonObject json) {
+    private static void simplify(JsonObject json) {
         for(String k : json.getChildren().keySet()) {
             JsonObject child = json.getChildren().get(k);
-            simplifyForDisplay(child);
-            child.getProperties().remove("jcr:primaryType");
-            child.getProperties().remove("jcr:created");
-            child.getProperties().remove("jcr:createdBy");
-            child.getProperties().remove("jcr:lastModified");
+            simplify(child);
+
+            // the following properties are not strictly needed for display,
+            // but we keep them to avoid issues with validation
+            // child.getProperties().remove("jcr:created");
+            // child.getProperties().remove("jcr:createdBy");
+            // child.getProperties().remove("jcr:lastModified");
+            // child.getProperties().remove("jcr:lastModifiedBy");
+
+            // the UUID we remove, because duplicate UUIDs are not allowed
             child.getProperties().remove("jcr:uuid");
             for(String p : child.getProperties().keySet()) {
                 String v = child.getProperties().get(p);
@@ -493,7 +512,9 @@ public class IndexDiff {
                     String base64 = v.substring(9, v.length() - 1);
                     String clear = new String(java.util.Base64.getDecoder().decode(base64), StandardCharsets.UTF_8);
                     v = JsopBuilder.encode(clear);
-                    child.getProperties().put(p, v);
+                    // we don't update the property, otherwise importing the index
+                    // would change the type
+                    // child.getProperties().put(p, v);
                 }
             }
         }
