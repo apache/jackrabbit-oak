@@ -270,7 +270,7 @@ public final class JournalEntry extends Document {
      *          instances fails with an exception.
      */
     static int fillExternalChanges(@NotNull StringSort externalChanges,
-                                   @NotNull StringSort invalidate,
+                                   @Nullable StringSort invalidate,
                                    @NotNull Path path,
                                    @NotNull Revision from,
                                    @NotNull Revision to,
@@ -343,7 +343,7 @@ public final class JournalEntry extends Document {
     }
 
     private static void fillFromJournalEntry(@NotNull StringSort externalChanges,
-                                             @NotNull StringSort invalidate,
+                                             @Nullable StringSort invalidate,
                                              @NotNull Path path,
                                              @Nullable ChangeSetBuilder changeSetBuilder,
                                              @Nullable JournalPropertyHandler journalPropertyHandler,
@@ -351,7 +351,9 @@ public final class JournalEntry extends Document {
                                              @NotNull Consumer<JournalEntry> journalEntryConsumer)
             throws IOException {
         d.addTo(externalChanges, path);
-        d.addInvalidateOnlyTo(invalidate);
+        if (invalidate != null) {
+            d.addInvalidateOnlyTo(invalidate);
+        }
         if (changeSetBuilder != null) {
             d.addTo(changeSetBuilder);
         }
