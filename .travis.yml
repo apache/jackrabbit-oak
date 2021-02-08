@@ -38,7 +38,7 @@ install:  mvn --batch-mode -DskipTests install -pl :${MODULE} -am
 script:   mvn --batch-mode clean verify -PintegrationTesting -Dnsfixtures=DOCUMENT_NS -pl :${MODULE}
 language: java
 jdk:
-  - openjdk7
+  - openjdk8
 cache:
   directories:
     - $HOME/.m2
