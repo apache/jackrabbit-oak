@@ -59,8 +59,8 @@
     <findbugs.version>3.0.5</findbugs.version>
     <derby.version>10.12.1.1</derby.version>
     <jackson.version>2.9.10</jackson.version>
-    <java.version>1.7</java.version>
-    <java.version.signature>java17</java.version.signature>
+    <java.version>1.8</java.version>
+    <java.version.signature>java18</java.version.signature>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
