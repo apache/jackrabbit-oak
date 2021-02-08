@@ -17,6 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import com.github.dockerjava.api.DockerClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.client.RequestOptions;
@@ -27,10 +32,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
+import org.testcontainers.utility.MountableFile;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import static org.junit.Assume.assumeNotNull;
 
@@ -43,6 +55,7 @@ public class ElasticConnectionRule extends ExternalResource {
     private ElasticConnection elasticConnection;
     private final String elasticConnectionString;
     private static final String INDEX_PREFIX = "ElasticTest_";
+    private static final String PLUGIN_DIGEST = "c4451aa794641dd3c9b0fdc64b553b71ca2f9a44689a7784b51669b5e557046d";
     private static boolean useDocker = false;
 
     public ElasticConnectionRule(String elasticConnectionString) {
@@ -68,10 +81,16 @@ public class ElasticConnectionRule extends ExternalResource {
     public Statement apply(Statement base, Description description) {
         Statement s = super.apply(base, description);
         // see if docker is to be used or not... initialize docker rule only if that's the case.
-
+        final String pluginVersion = "7.10.1.0";
+        final String pluginFileName = "elastiknn-" + pluginVersion + ".zip";
+        final String localPluginPath = "target/" + pluginFileName;
+        downloadSimilaritySearchPluginIfNotExists(localPluginPath, pluginVersion);
         if (elasticConnectionString == null || getElasticConnectionFromString() == null) {
             checkIfDockerClientAvailable();
-            elastic = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT);
+            elastic = new ElasticsearchContainer("docker.elastic.co/elasticsearch/elasticsearch:" + Version.CURRENT)
+                .withCopyFileToContainer(MountableFile.forHostPath(localPluginPath), "/tmp/plugins/" + pluginFileName)
+                    .withCopyFileToContainer(MountableFile.forClasspathResource("elasticstartscript.sh"), "/tmp/elasticstartscript.sh")
+                .withCommand("bash /tmp/elasticstartscript.sh");
             s = elastic.apply(s, description);
             setUseDocker(true);
         }
@@ -81,6 +100,38 @@ public class ElasticConnectionRule extends ExternalResource {
     @Override
     protected void after() {
         //TODO: See if something needs to be cleaned up at test class level ??
+    }
+
+    private void downloadSimilaritySearchPluginIfNotExists(String localPluginPath, String pluginVersion) {
+        File pluginFile = new File(localPluginPath);
+        if (!pluginFile.exists()) {
+            LOG.info("Plugin file {} doesn't exist. Trying to download.", localPluginPath);
+            try (CloseableHttpClient client = HttpClients.createDefault()) {
+                HttpGet get = new HttpGet("https://github.com/alexklibisz/elastiknn/releases/download/" + pluginVersion
+                        +"/elastiknn-" + pluginVersion +".zip");
+                CloseableHttpResponse response = client.execute(get);
+                InputStream inputStream = response.getEntity().getContent();
+                MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+                DigestInputStream dis = new DigestInputStream(inputStream, messageDigest);
+                FileOutputStream outputStream = new FileOutputStream(pluginFile);
+                IOUtils.copy(dis, outputStream);
+                messageDigest = dis.getMessageDigest();
+                // bytes to hex
+                StringBuilder result = new StringBuilder();
+                for (byte b : messageDigest.digest()) {
+                    result.append(String.format("%02x", b));
+                }
+                if (!PLUGIN_DIGEST.equals(result.toString())) {
+                    String deleteString = "Downloaded plugin file deleted.";
+                    if (!pluginFile.delete()) {
+                        deleteString = "Could not delete downloaded plugin file.";
+                    }
+                    throw new RuntimeException("Plugin digest unequal. Found " + result.toString() + ". Expected " + PLUGIN_DIGEST + ". " + deleteString);
+                }
+            } catch (IOException|NoSuchAlgorithmException e) {
+                throw new RuntimeException("Could not download similarity search plugin", e);
+            }
+        }
     }
 
     public ElasticConnection getElasticConnectionFromString() {

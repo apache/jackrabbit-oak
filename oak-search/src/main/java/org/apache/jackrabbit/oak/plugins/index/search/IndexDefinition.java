@@ -1211,13 +1211,13 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                 String propName = prop.getName();
                 NodeState propDefnNode = propNode.getChildNode(propName);
                 if (propDefnNode.exists() && !propDefns.containsKey(propName)) {
-                    PropertyDefinition pd = new PropertyDefinition(this, propName, propDefnNode);
+                    PropertyDefinition pd = createPropertyDefinition(this, propName, propDefnNode);
                     if (pd.function != null) {
                         functionRestrictions.add(pd);
                         String[] properties = FunctionIndexProcessor.getProperties(pd.functionCode);
                         for (String p : properties) {
                             if (PathUtils.getDepth(p) > 1) {
-                                PropertyDefinition pd2 = new PropertyDefinition(this, p, propDefnNode);
+                                PropertyDefinition pd2 = createPropertyDefinition(this, p, propDefnNode);
                                 propAggregate.add(new Aggregate.FunctionInclude(pd2));
                             }
                         }
@@ -1814,6 +1814,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return storedState.exists() ? storedState : defn;
     }
 
+    protected PropertyDefinition createPropertyDefinition(IndexingRule rule, String name, NodeState nodeState) {
+        return new PropertyDefinition(rule, name, nodeState);
+    }
+
     private static Map<String, String> buildMimeTypeMap(NodeState node) {
         ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
         for (ChildNodeEntry child : node.getChildNodeEntries()) {
@@ -1830,7 +1834,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return map.build();
     }
 
-    private static PropertyDefinition createNodeTypeDefinition(IndexingRule rule, String name, boolean sync) {
+    private PropertyDefinition createNodeTypeDefinition(IndexingRule rule, String name, boolean sync) {
         NodeBuilder builder = EMPTY_NODE.builder();
         //A nodetype index just required propertyIndex and sync flags to be set
         builder.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
@@ -1838,7 +1842,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             builder.setProperty(FulltextIndexConstants.PROP_SYNC, sync);
         }
         builder.setProperty(FulltextIndexConstants.PROP_NAME, name);
-        return new PropertyDefinition(rule, name, builder.getNodeState());
+        return createPropertyDefinition(rule, name, builder.getNodeState());
     }
 
     public static class SecureFacetConfiguration {

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.elasticsearch.client.indices.CreateIndexRequest;
@@ -33,8 +34,7 @@ import java.util.stream.Collectors;
  * Provides utility functions around Elasticsearch indexing
  */
 class ElasticIndexHelper {
-
-    private static final String ES_DENSE_VECTOR_TYPE = "dense_vector";
+    
     private static final String ES_DENSE_VECTOR_DIM_PROP = "dims";
 
     public static CreateIndexRequest createIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) throws IOException {
@@ -63,6 +63,9 @@ class ElasticIndexHelper {
     private static XContentBuilder loadSettings(ElasticIndexDefinition indexDefinition) throws IOException {
         final XContentBuilder settingsBuilder = XContentFactory.jsonBuilder();
         settingsBuilder.startObject();
+        if (indexDefinition.getSimilarityProperties().size() > 0) {
+            settingsBuilder.field("elastiknn", true);
+        }
         settingsBuilder.field("number_of_shards", indexDefinition.numberOfShards);
         settingsBuilder.field("number_of_replicas", indexDefinition.numberOfReplicas);
         {
@@ -154,11 +157,8 @@ class ElasticIndexHelper {
         for (Map.Entry<String, List<PropertyDefinition>> entry : indexDefinition.getPropertiesByName().entrySet()) {
             final String name = entry.getKey();
             final List<PropertyDefinition> propertyDefinitions = entry.getValue();
-
             Type<?> type = null;
             boolean useInSpellCheck = false;
-            boolean useInSimilarity = false;
-            int denseVectorSize = -1;
             for (PropertyDefinition pd : propertyDefinitions) {
                 type = Type.fromTag(pd.getType(), false);
                 if (pd.useInSpellcheck) {
@@ -166,10 +166,6 @@ class ElasticIndexHelper {
                 }
                 if (pd.useInSuggest) {
                     useInSuggest = true;
-                }
-                if (pd.useInSimilarity) {
-                    useInSimilarity = true;
-                    denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
                 }
             }
 
@@ -213,13 +209,6 @@ class ElasticIndexHelper {
                 }
             }
             mappingBuilder.endObject();
-
-            if (useInSimilarity) {
-                mappingBuilder.startObject(FieldNames.createSimilarityFieldName(name));
-                mappingBuilder.field("type", ES_DENSE_VECTOR_TYPE);
-                mappingBuilder.field(ES_DENSE_VECTOR_DIM_PROP, denseVectorSize);
-                mappingBuilder.endObject();
-            }
         }
 
         if (useInSuggest) {
@@ -252,6 +241,26 @@ class ElasticIndexHelper {
                     mappingBuilder.startObject("boost")
                             .field("type", "double")
                             .endObject();
+                }
+                mappingBuilder.endObject();
+            }
+            mappingBuilder.endObject();
+        }
+
+        for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
+            ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
+            int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
+            mappingBuilder.startObject(FieldNames.createSimilarityFieldName(pd.name));
+            {
+                mappingBuilder.field("type", "elastiknn_dense_float_vector");
+                mappingBuilder.startObject("elastiknn");
+                {
+                    mappingBuilder.field(ES_DENSE_VECTOR_DIM_PROP, denseVectorSize);
+                    mappingBuilder.field("model", "lsh");
+                    mappingBuilder.field("similarity", pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction());
+                    mappingBuilder.field("L", pd.getSimilaritySearchParameters().getL());
+                    mappingBuilder.field("k", pd.getSimilaritySearchParameters().getK());
+                    mappingBuilder.field("w", pd.getSimilaritySearchParameters().getW());
                 }
                 mappingBuilder.endObject();
             }

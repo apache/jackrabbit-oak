@@ -33,13 +33,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -224,35 +229,34 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void vectorSimilarityCustomVectorSize() throws Exception {
+    public void vectorSimilarityElastiknnIndexConfiguration() throws Exception {
         final String indexName = "test1";
         final String fieldName1 = "fv1";
-        final String fieldName2 = "fv2";
         final String similarityFieldName1 = FieldNames.createSimilarityFieldName(fieldName1);
-        final String similarityFieldName2 = FieldNames.createSimilarityFieldName(fieldName2);
-        IndexDefinitionBuilder builder = createIndex(fieldName1, fieldName2);
-        builder.indexRule("nt:base").property(fieldName1).useInSimilarity(true).nodeScopeIndex()
-                .similaritySearchDenseVectorSize(10);
-        builder.indexRule("nt:base").property(fieldName2).useInSimilarity(true).nodeScopeIndex()
-                .similaritySearchDenseVectorSize(20);
+        IndexDefinitionBuilder builder = createIndex(fieldName1);
+        Tree tree = builder.indexRule("nt:base").property(fieldName1).useInSimilarity(true).nodeScopeIndex()
+                .similaritySearchDenseVectorSize(2048).getBuilderTree();
+        tree.setProperty(ElasticPropertyDefinition.PROP_INDEX_SIMILARITY, "angular");
+        tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_TABLES, 10);
+        tree.setProperty(ElasticPropertyDefinition.PROP_NUMBER_OF_HASH_FUNCTIONS, 12);
+
         setIndex(indexName, builder);
         root.commit();
         String alias =  ElasticIndexNameHelper.getIndexAlias(esConnection.getIndexPrefix(), "/oak:index/" + indexName);
         GetFieldMappingsRequest fieldMappingsRequest = new GetFieldMappingsRequest();
-        fieldMappingsRequest.indices(alias).fields(similarityFieldName1, similarityFieldName2);
+        fieldMappingsRequest.indices(alias).fields(similarityFieldName1);
         GetFieldMappingsResponse mappingsResponse = esConnection.getClient().indices().
                 getFieldMapping(fieldMappingsRequest, RequestOptions.DEFAULT);
         final Map<String, Map<String, GetFieldMappingsResponse.FieldMappingMetadata>> mappings =
                 mappingsResponse.mappings();
         assertEquals("More than one index found", 1, mappings.keySet().size());
         @SuppressWarnings("unchecked")
-        Map<String, Integer> map1 = (Map<String, Integer>)mappings.entrySet().iterator().next().getValue().
-                get(similarityFieldName1).sourceAsMap().get(similarityFieldName1);
-        assertEquals("Dense vector size doesn't match", 10, map1.get("dims").intValue());
-        @SuppressWarnings("unchecked")
-        Map<String, Integer> map2 = (Map<String, Integer>)mappings.entrySet().iterator().next().getValue().
-                get(similarityFieldName2).sourceAsMap().get(similarityFieldName2);
-        assertEquals("Dense vector size doesn't match", 20, map2.get("dims").intValue());
+        Map<String, Object> map1 = (Map<String, Object>)(((Map<String, Object>)mappings.entrySet().iterator().next().getValue().
+                get(similarityFieldName1).sourceAsMap().get(similarityFieldName1)).get("elastiknn"));
+        assertEquals("Dense vector size doesn't match", 2048, (int)map1.get("dims"));
+        assertEquals("Similarity doesn't match", "angular", map1.get("similarity"));
+        assertEquals("Similarity doesn't match", 10, map1.get("L"));
+        assertEquals("Similarity doesn't match", 12, map1.get("k"));
     }
 
 
@@ -300,6 +304,101 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
             baseline.clear();
             baseline.addAll(current);
         }
+    }
+
+    private void createNodeWithFV(String imageName, String fv, Tree test) throws Exception {
+        String[] split = fv.split(",");
+        List<Double> values = Arrays.stream(split).map(Double::parseDouble).collect(Collectors.toList());
+        byte[] bytes = toByteArray(values);
+        List<Double> actual = toDoubles(bytes);
+        assertEquals(values, actual);
+        Blob blob = root.createBlob(new ByteArrayInputStream(bytes));
+        Tree child = test.addChild(imageName);
+        child.setProperty("fv", blob, Type.BINARY);
+    }
+
+    private void indexEntry(Scanner scanner, Tree test, Map<String, List<String>> expectedResults, int similarResultCount) throws Exception {
+        String lineRead = "";
+        List<String> similarities = new ArrayList<>();
+        //skip empty lines at the beginning
+        while (scanner.hasNextLine()) {
+            lineRead = scanner.nextLine();
+            if (!"".equals(lineRead)) {
+                break;
+            }
+        }
+        if ("".equals(lineRead)) {
+            // complete file read
+            return;
+        }
+        String imageName = lineRead;
+        expectedResults.put(lineRead, similarities);
+        String fv = scanner.nextLine();
+        createNodeWithFV(imageName, fv, test);
+        int resultCount = 0;
+        while (scanner.hasNextLine() && resultCount < similarResultCount) {
+            imageName = scanner.nextLine();
+            if ("".equals(imageName)) {
+                continue;
+            }
+            resultCount++;
+            fv = scanner.nextLine();
+            createNodeWithFV(imageName, fv, test);
+            similarities.add(imageName);
+        }
+    }
+
+    private void verifyLSHResults(Map<String, List<String>> expectedResults) {
+        for (String similarPath : expectedResults.keySet()) {
+            String query = "select [jcr:path] from [nt:base] where similar(., '" + "/test/" + similarPath + "')";
+            assertEventually(() -> {
+                Iterator<String> result = executeQuery(query, "JCR-SQL2", false, true).iterator();
+                List<String> expectedList = expectedResults.get(similarPath.substring(similarPath.lastIndexOf("/") + 1));
+                Set<String> found = new HashSet<>();
+                int resultNum = 0;
+                // Verify that the expected results are present in the top 10 results
+                while (resultNum < expectedList.size()) {
+                    String next = result.next();
+                    next = next.substring(next.lastIndexOf("/") + 1);
+                    found.add(next);
+                    resultNum++;
+                }
+                double per = (expectedList.stream().filter(found::contains).count() * 100.0)/expectedList.size();
+                assertEquals(100.0, per, 0.0);
+            });
+        }
+    }
+
+    @Test
+    public void vectorSimilarityLargeData() throws Exception {
+        final int similarImageCount = 10;
+        IndexDefinitionBuilder builder = createIndex("fv");
+        builder.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex();
+        setIndex("test1", builder);
+        root.commit();
+        Tree test = root.getTree("/").addChild("test");
+        /*
+        Image names and their feature vectors are written in this file with the image name first and its feature vector
+        in the line below.
+        This file contains test data in form of blocks and each block has following format -
+         Line 1: Query_Image_Name
+         Line 2: Feature Vector of Query_Image
+         Line 3: EMPTY_LINE
+         Lines 4-23: 10 Result images and their feature vectors
+         Line 24: EMPTY_LINE
+        Then this pattern repeats again with next Query Image name in line 25.
+         */
+        URI uri = getClass().getResource("/org/apache/jackrabbit/oak/query/imagedata.txt").toURI();
+        File inputFile = new File(uri);
+        Map<String, List<String>> expectedResults = new HashMap<>();
+
+        Scanner scanner = new Scanner(inputFile);
+        while (scanner.hasNextLine()) {
+            indexEntry(scanner, test, expectedResults, similarImageCount);
+        }
+        root.commit();
+
+        verifyLSHResults(expectedResults);
     }
 
     private void createIndex(boolean nativeQuery) throws Exception {
