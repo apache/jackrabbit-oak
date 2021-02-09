@@ -286,6 +286,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             if (protectedParent.getStatus() == Tree.Status.NEW) {
                 if (a.isGroup()) {
                     userManager.onCreate((Group) a);
+                } else if (((User) a).isSystemUser()) {
+                    userManager.onCreate((User) a);
                 } else {
                     userManager.onCreate((User) a, currentPw);
                 }

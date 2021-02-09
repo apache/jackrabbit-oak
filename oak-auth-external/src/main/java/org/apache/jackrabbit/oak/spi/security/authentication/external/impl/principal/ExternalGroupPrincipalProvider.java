@@ -16,34 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import java.security.Principal;
-import java.text.ParseException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.query.Query;
-
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -73,6 +51,26 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.query.Query;
+import java.security.Principal;
+import java.text.ParseException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Implementation of the {@code PrincipalProvider} interface that exposes
@@ -243,7 +241,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
      * Runs an Oak query searching for {@link #REP_EXTERNAL_PRINCIPAL_NAMES} properties
      * that match the given name or name hint.
      *
-     * NOTE: ignore any principals listed in the {@link DefaultSyncConfig.User#autoMembership}
+     * NOTE: ignore any principals listed in the {@link DefaultSyncConfig.User#getAutoMembership()}
      * because they are expected to exist in the system and thus will be found
      * by another principal provider instance.
      *
@@ -311,28 +309,36 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 return false;
             }
             try {
-                String name = getName();
-                if (member instanceof ItemBasedPrincipal) {
-                    Tree tree = root.getTree(((ItemBasedPrincipal) member).getPath());
-                    if (UserUtil.isType(tree, AuthorizableType.USER)) {
-                        PropertyState ps = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
-                        return (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), name));
-                    }
-                } else {
-                    Authorizable a = userManager.getAuthorizable(member);
-                    if (a != null && !a.isGroup()) {
-                        Value[] vs = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
-                        if (vs != null) {
-                            for (Value v : vs) {
-                                if (name.equals(v.getString())) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
+                return isContainedInExternalPrincipalNames(member);
             } catch (RepositoryException e) {
                 log.debug(e.getMessage());
+                return false;
+            }
+        }
+
+        private boolean isContainedInExternalPrincipalNames(@NotNull Principal member) throws RepositoryException {
+            String name = getName();
+            if (member instanceof ItemBasedPrincipal) {
+                Tree tree = root.getTree(((ItemBasedPrincipal) member).getPath());
+                if (UserUtil.isType(tree, AuthorizableType.USER)) {
+                    PropertyState ps = tree.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+                    return (ps != null && Iterables.contains(ps.getValue(Type.STRINGS), name));
+                }
+            } else {
+                Authorizable a = userManager.getAuthorizable(member);
+                if (a == null || a.isGroup()) {
+                    return false;
+                }
+
+                Value[] vs = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+                if (vs == null) {
+                    return false;
+                }
+                for (Value v : vs) {
+                    if (name.equals(v.getString())) {
+                        return true;
+                    }
+                }
             }
             return false;
         }
@@ -344,7 +350,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             if (result != null) {
                 return Iterators.asEnumeration(new MemberIterator(result));
             } else {
-                return Iterators.asEnumeration(Collections.<Principal>emptyIterator());
+                return Iterators.asEnumeration(Collections.emptyIterator());
             }
         }
     }
@@ -464,35 +470,40 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
             Set<Principal> principals;
             if (!principalMap.containsKey(idpName)) {
-                String[] vs = autoMembershipMapping.get(idpName);
-                if (vs == null) {
-                    principals = ImmutableSet.of();
-                } else {
-                    ImmutableSet.Builder<Principal> builder = ImmutableSet.builder();
-                    for (String groupId : autoMembershipMapping.get(idpName)) {
-                        try {
-                            Authorizable gr = userManager.getAuthorizable(groupId);
-                            if (gr != null && gr.isGroup()) {
-                                Principal grPrincipal = gr.getPrincipal();
-                                if (GroupPrincipals.isGroup(grPrincipal)) {
-                                    builder.add(grPrincipal);
-                                } else {
-                                    log.warn("Principal of group {} is not of group type -> Ignoring", groupId);
-                                }
-                            } else {
-                                log.warn("Configured auto-membership group {} does not exist -> Ignoring", groupId);
-                            }
-                        } catch (RepositoryException e) {
-                            log.debug("Failed to retrieved 'auto-membership' group with id {}", groupId, e);
-                        }
-                    }
-                    principals = builder.build();
-                }
+                principals = collectAutomembershipPrincipals(idpName);
                 principalMap.put(idpName, principals);
             } else {
                 principals = principalMap.get(idpName);
             }
             return principals;
+        }
+
+        @NotNull
+        private Set<Principal> collectAutomembershipPrincipals(@NotNull String idpName) {
+            String[] vs = autoMembershipMapping.get(idpName);
+            if (vs == null) {
+                return ImmutableSet.of();
+            }
+
+            ImmutableSet.Builder<Principal> builder = ImmutableSet.builder();
+            for (String groupId : vs) {
+                try {
+                    Authorizable gr = userManager.getAuthorizable(groupId);
+                    if (gr != null && gr.isGroup()) {
+                        Principal grPrincipal = gr.getPrincipal();
+                        if (GroupPrincipals.isGroup(grPrincipal)) {
+                            builder.add(grPrincipal);
+                        } else {
+                            log.warn("Principal of group {} is not of group type -> Ignoring", groupId);
+                        }
+                    } else {
+                        log.warn("Configured auto-membership group {} does not exist -> Ignoring", groupId);
+                    }
+                } catch (RepositoryException e) {
+                    log.debug("Failed to retrieved 'auto-membership' group with id {}", groupId, e);
+                }
+            }
+            return builder.build();
         }
     }
 }

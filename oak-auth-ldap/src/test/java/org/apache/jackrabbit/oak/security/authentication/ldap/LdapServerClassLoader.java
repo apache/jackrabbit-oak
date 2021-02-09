@@ -105,6 +105,7 @@ public class LdapServerClassLoader extends URLClassLoader {
         public static Class serverClass;
         public Object server;
         public int port;
+        public String host = "127.0.0.1";
 
         public void tearDown() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
             serverClass.getMethod("tearDown", new Class[0]).invoke(server);

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier;
 import org.apache.jackrabbit.oak.plugins.migration.report.LoggingReporter;
 import org.apache.jackrabbit.oak.plugins.migration.report.ReportingNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.version.Utils;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
@@ -99,6 +100,8 @@ public class RepositorySidegrade {
     private final NodeStore target;
 
     private final FileStore targetFileStore;
+
+    private final boolean targetHasReferenceableFrozenNode;
 
     private final NodeStore source;
 
@@ -179,6 +182,7 @@ public class RepositorySidegrade {
     public RepositorySidegrade(NodeStore source, NodeStore target) {
         this.source = source;
         this.target = target;
+        this.targetHasReferenceableFrozenNode = Utils.isFrozenNodeReferenceable(target.getRoot());
 
         FileStore fs = null;
         if (target instanceof FileStoreUtils.NodeStoreWithFileStore) {
@@ -446,7 +450,7 @@ public class RepositorySidegrade {
 
     private void removeVersions() throws CommitFailedException {
         NodeState root = target.getRoot();
-        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
+        NodeState wrappedRoot = FilteringNodeState.wrap(PathUtils.ROOT_PATH, root, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE, targetHasReferenceableFrozenNode);
         NodeState versionStorage = getVersionStorage(root);
         List<String> versionablesToStrip = VersionHistoryUtil.getVersionableNodes(wrappedRoot, versionStorage, new TypePredicate(root, JcrConstants.MIX_VERSIONABLE), versionCopyConfiguration.getVersionsMinDate());
         if (!versionablesToStrip.isEmpty()) {
@@ -536,7 +540,7 @@ public class RepositorySidegrade {
             wrapped = MetadataExposingNodeState.wrap(wrapped);
         }
         if (!isCompleteMigration() && filterPaths) {
-            wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE);
+            wrapped = FilteringNodeState.wrap("/", wrapped, includePaths, excludePaths, FilteringNodeState.NONE, FilteringNodeState.NONE, targetHasReferenceableFrozenNode);
         }
         if (tracePaths) {
             wrapped = ReportingNodeState.wrap(wrapped, new LoggingReporter(LOG, "Copying", LOG_NODE_COPY, -1));

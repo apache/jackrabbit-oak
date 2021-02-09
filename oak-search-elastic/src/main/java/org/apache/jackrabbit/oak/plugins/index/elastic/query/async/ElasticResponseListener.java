@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.aggregations.Aggregations;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -45,7 +45,7 @@ public interface ElasticResponseListener {
     void endData();
 
     /**
-     * {@link ElasticResponseListener} extension to subscribe on {@link SearchHit} events
+     * {@link ElasticResponseListener} extension to subscribe on response hit events
      */
     interface SearchHitListener extends ElasticResponseListener {
 
@@ -64,20 +64,20 @@ public interface ElasticResponseListener {
         default void startData(long totalHits) { /*empty*/ }
 
         /**
-         * This method is called for each {@link SearchHit} retrieved
+         * This method is called for each {@link ElasticResponseHandler.SearchResponseHit} retrieved
          */
-        void on(SearchHit searchHit);
+        void on(ElasticResponseHandler.SearchResponseHit searchHit);
     }
 
     /**
-     * {@link ElasticResponseListener} extension to subscribe on {@link Aggregations} events
+     * {@link ElasticResponseListener} extension to subscribe on aggregations events
      */
     interface AggregationListener extends ElasticResponseListener {
 
         /**
-         * This method is called once when the {@link Aggregations} are retrieved
-         * @param aggregations the {@link Aggregations} or {@code null} if there are no results
+         * This method is called once when the aggregations are retrieved
+         * @param aggregations the {@link Map} with aggregations or {@code null} if there are no results
          */
-        void on(Aggregations aggregations);
+        void on(Map<String, ElasticResponseHandler.AggregationBuckets> aggregations);
     }
 }

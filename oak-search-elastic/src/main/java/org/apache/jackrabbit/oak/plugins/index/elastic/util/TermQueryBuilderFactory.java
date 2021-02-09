@@ -55,17 +55,6 @@ public class TermQueryBuilderFactory {
         return QueryBuilders.existsQuery(field);
     }
 
-    private static TermQueryBuilder newFulltextQuery(String ft) {
-        return termQuery(FieldNames.FULLTEXT, ft);
-    }
-
-    private static TermQueryBuilder newFulltextQuery(String ft, String field) {
-        if (field == null || "*".equals(field)) {
-            return newFulltextQuery(ft);
-        }
-        return termQuery(field, ft);
-    }
-
     public static PrefixQueryBuilder newPrefixQuery(String field, @NotNull String value) {
         return prefixQuery(field, value);
     }

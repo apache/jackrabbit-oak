@@ -153,6 +153,13 @@ public class AwsSegmentStoreMigrator implements Closeable  {
         SegmentArchiveManager targetManager = target.createArchiveManager(false, false, new IOMonitorAdapter(),
                 new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         List<String> targetArchives = targetManager.listArchives();
+
+        if (appendMode && !targetArchives.isEmpty()) {
+            //last archive can be updated since last copy and needs to be recopied
+            String lastArchive = targetArchives.get(targetArchives.size() - 1);
+            targetArchives.remove(lastArchive);
+        }
+
         for (String archiveName : sourceManager.listArchives()) {
             log.info("{}/{} -> {}", sourceName, archiveName, targetName);
             if (appendMode && targetArchives.contains(archiveName)) {

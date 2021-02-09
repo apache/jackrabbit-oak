@@ -31,7 +31,7 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
-public class AbstractTreeTest {
+public abstract class AbstractTreeTest {
 
     static final String NON_EXISTING_PATH = "/nonExisting";
     static final String CHILD_PATH = "/z/child";

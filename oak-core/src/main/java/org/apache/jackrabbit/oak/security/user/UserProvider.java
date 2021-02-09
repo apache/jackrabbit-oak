@@ -196,7 +196,7 @@ class UserProvider extends AuthorizableBaseProvider {
         } else {
             if (!(intermediateJcrPath.startsWith(relSysPath) ||
                 intermediateJcrPath.startsWith(userPath + '/' + relSysPath))) {
-                throw new ConstraintViolationException("System users must be located in the 'system' subtree of the user root.");
+                throw new ConstraintViolationException("System users must be located in the '"+relSysPath+"' subtree of the user root.");
             }
             relPath = intermediateJcrPath;
         }

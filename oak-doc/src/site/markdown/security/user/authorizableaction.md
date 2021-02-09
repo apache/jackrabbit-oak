@@ -91,6 +91,7 @@ implementation:
 
 - implement `AuthorizableActionProvider` interface exposing your custom action(s).
 - make the provider implementation an OSGi service and make it available to the Oak repository.
+- make sure the `AuthorizableActionProvider` is listed as required service with the `SecurityProvider` (see also [Introduction](../introduction.html#configuration]))
 
 ##### Examples
 

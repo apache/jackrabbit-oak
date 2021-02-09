@@ -60,7 +60,9 @@ public class RemotePersistentCacheService {
     public void activate(ComponentContext context, Configuration config) throws IOException {
         osgiWhiteboard = new OsgiWhiteboard(context.getBundleContext());
         persistentCache = createPersistentCache(config, closer);
-        registration = context.getBundleContext().registerService(PersistentCache.class.getName(), persistentCache, new Properties());
+        if (persistentCache != null) {
+            registration = context.getBundleContext().registerService(PersistentCache.class.getName(), persistentCache, new Properties());
+        }
     }
 
     @Deactivate

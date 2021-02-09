@@ -37,7 +37,7 @@ import java.util.Set;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
 
-class ElasticDocument {
+public class ElasticDocument {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticDocument.class);
 
     private final String path;
@@ -90,7 +90,7 @@ class ElasticDocument {
         properties.put(fieldName, value);
     }
 
-    void addSimilarityField(String name, Blob value) throws IOException{
+    void addSimilarityField(String name, Blob value) throws IOException {
         byte[] bytes = new BlobByteSource(value).read();
         similarityFields.put(FieldNames.createSimilarityFieldName(name), toDoubles(bytes));
     }

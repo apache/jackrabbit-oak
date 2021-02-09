@@ -110,12 +110,12 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+    public void init(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config) {
         this.securityProvider = securityProvider;
         userPrivilegeNames = privilegeNames(config, USER_PRIVILEGE_NAMES);
         groupPrivilegeNames = privilegeNames(config, GROUP_PRIVILEGE_NAMES);
 
-        administrativePrincipals = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.EMPTY_SET);
+        administrativePrincipals = securityProvider.getConfiguration(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.emptySet());
     }
 
     @Override
@@ -137,7 +137,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
      * @return a valid string array containing the privilege names.
      */
     @NotNull
-    private static String[] privilegeNames(ConfigurationParameters config, String paramName) {
+    private static String[] privilegeNames(@NotNull ConfigurationParameters config, @NotNull String paramName) {
         String[] privilegeNames = config.getConfigValue(paramName, null, String[].class);
         if (privilegeNames != null && privilegeNames.length > 0) {
             return privilegeNames;

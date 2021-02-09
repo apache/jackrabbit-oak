@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.mockito.Mockito.verifyNoInteractions;
+
 public class AbstractGroupActionTest {
 
     private final GroupAction groupAction = new AbstractGroupAction() {};
@@ -37,25 +39,30 @@ public class AbstractGroupActionTest {
     @Test
     public void testMemberAdded() throws Exception {
         groupAction.onMemberAdded(group, user, root, namePathMapper);
+        verifyNoInteractions(group, user, root, namePathMapper);
     }
 
     @Test
     public void testMemberRemoved() throws Exception {
         groupAction.onMemberRemoved(group, user, root, namePathMapper);
+        verifyNoInteractions(group, user, root, namePathMapper);
     }
 
     @Test
     public void testMembersAdded() throws Exception {
         groupAction.onMembersAdded(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        verifyNoInteractions(group, user, root, namePathMapper);
     }
 
     @Test
     public void testMembersAddedContentId() throws Exception {
         groupAction.onMembersAddedContentId(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        verifyNoInteractions(group, user, root, namePathMapper);
     }
 
     @Test
     public void testMembersRemoved() throws Exception {
         groupAction.onMembersRemoved(group, ImmutableSet.of("user1", "user2"), ImmutableSet.<String>of(), root, namePathMapper);
+        verifyNoInteractions(group, user, root, namePathMapper);
     }
 }

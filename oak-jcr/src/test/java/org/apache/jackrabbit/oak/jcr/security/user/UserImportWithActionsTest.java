@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -89,8 +90,8 @@ public class UserImportWithActionsTest extends AbstractImportTest {
                 "</sv:node>";
 
         doImport(USERPATH, xml);
-        assertEquals(testAction.id, "t");
-        assertEquals(testAction.pw, "pw");
+        assertEquals("t",testAction.id);
+        assertEquals("pw", testAction.pw);
     }
 
     @Test
@@ -107,7 +108,7 @@ public class UserImportWithActionsTest extends AbstractImportTest {
                 "</sv:node>";
 
         doImport(GROUPPATH, xml);
-        assertEquals(testAction.id, "g");
+        assertEquals("g", testAction.id);
         assertNull(testAction.pw);
     }
 
@@ -231,7 +232,7 @@ public class UserImportWithActionsTest extends AbstractImportTest {
         assertEquals(0, policies.length);
     }
 
-    private final class TestActionProvider implements AuthorizableActionProvider {
+    private static final class TestActionProvider implements AuthorizableActionProvider {
 
         private final List<AuthorizableAction> actions = new ArrayList();
 
@@ -245,32 +246,32 @@ public class UserImportWithActionsTest extends AbstractImportTest {
         }
     }
 
-    private final class TestAction implements AuthorizableAction {
+    private static final class TestAction implements AuthorizableAction {
         private String id;
         private String pw;
 
         @Override
-        public void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+        public void init(@NotNull SecurityProvider securityProvider, @NotNull ConfigurationParameters config) {
         }
 
         @Override
-        public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onCreate(@NotNull Group group, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             id = group.getID();
         }
 
         @Override
-        public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        public void onCreate(@NotNull User user, @Nullable String password, @NotNull Root root, @NotNull NamePathMapper namePathMapper) throws RepositoryException {
             id = user.getID();
             pw = password;
         }
 
         @Override
-        public void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) {
+        public void onRemove(@NotNull Authorizable authorizable, @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
             // ignore
         }
 
         @Override
-        public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) {
+        public void onPasswordChange(@NotNull User user, @Nullable String newPassword, @NotNull Root root, @NotNull NamePathMapper namePathMapper) {
             pw = newPassword;
         }
     }

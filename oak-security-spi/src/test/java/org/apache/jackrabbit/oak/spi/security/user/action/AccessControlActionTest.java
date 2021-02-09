@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.Privilege;
-
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -41,13 +35,19 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-import org.mockito.Mockito;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.Privilege;
 import java.security.Principal;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -158,6 +158,9 @@ public class AccessControlActionTest implements UserConstants {
             // throw upon getPrincipal as onCreate for builtin users must not reach that statement
             User user = mockUser(id, null, null);
             action.onCreate(user, null, root, NamePathMapper.DEFAULT);
+            verify(user, times(2)).getID();
+            verify(user, never()).getPrincipal();
+            verify(user, never()).getPath();
         }
     }
 
@@ -169,6 +172,9 @@ public class AccessControlActionTest implements UserConstants {
         // the check for built-in user must ignore groups
         Group gr = mockGroup("adminIdIsUsedByGroup", null, null);
         action.onCreate(gr, root, NamePathMapper.DEFAULT);
+        verify(gr).getID();
+        verify(gr, never()).getPrincipal();
+        verify(gr, never()).getPath();
     }
 
     @Test
@@ -179,7 +185,8 @@ public class AccessControlActionTest implements UserConstants {
         // throw upon getPrincipal as onCreate without configured privileges call must not reach that statement
         User user = mockUser("id", null, null);
         action.onCreate(user, null, root, NamePathMapper.DEFAULT);
-    }
+        verify(user).isGroup();
+        verifyNoMoreInteractions(user);    }
 
     @Test
     public void testOnCreateGroupEmptyPrivs() throws Exception {
@@ -189,6 +196,8 @@ public class AccessControlActionTest implements UserConstants {
         // throw upon getPrincipal as onCreate without configured privileges call must not reach that statement
         Group gr = mockGroup("id", null, null);
         action.onCreate(gr, root, NamePathMapper.DEFAULT);
+        verify(gr).isGroup();
+        verifyNoMoreInteractions(gr);
     }
 
     @Test
@@ -199,6 +208,9 @@ public class AccessControlActionTest implements UserConstants {
         // throw upon getPath as onCreate for administrative principal call must not reach that statement
         User user = mockUser("id", "administrativePrincipal", null);
         action.onCreate(user, null, root, NamePathMapper.DEFAULT);
+        verify(user).getID();
+        verify(user).getPrincipal();
+        verify(user, never()).getPath();
     }
 
     @Test
@@ -209,6 +221,10 @@ public class AccessControlActionTest implements UserConstants {
         // throw upon getPath as onCreate for administrative principal call must not reach that statement
         Group gr = mockGroup("id", "administrativePrincipal", null);
         action.onCreate(gr, root, NamePathMapper.DEFAULT);
+        verify(gr).isGroup();
+        verify(gr).getPrincipal();
+        verify(gr, never()).getID();
+        verify(gr, never()).getPath();
     }
 
 
@@ -237,7 +253,9 @@ public class AccessControlActionTest implements UserConstants {
         initSecurityProvider(mockAccessControlManager(false), DEFAULT_ADMIN_ID, DEFAULT_ANONYMOUS_ID);
         AccessControlAction action = createAction(PrivilegeConstants.JCR_READ);
 
-        action.onCreate(mockUser("userId", "pName", "/none"), "pw", root, NamePathMapper.DEFAULT);
+        User user = mockUser("userId", "pName", "/none");
+        action.onCreate(user, "pw", root, NamePathMapper.DEFAULT);
+        verifyInvokations(user, false);
     }
 
     @Test
@@ -245,7 +263,9 @@ public class AccessControlActionTest implements UserConstants {
         initSecurityProvider(mockAccessControlManager(false), DEFAULT_ADMIN_ID, DEFAULT_ANONYMOUS_ID);
         AccessControlAction action = createAction(PrivilegeConstants.JCR_READ);
 
-        action.onCreate(mockGroup("grId", "pName", "/nonACL"), root, NamePathMapper.DEFAULT);
+        Group gr = mockGroup("grId", "pName", "/nonACL");
+        action.onCreate(gr, root, NamePathMapper.DEFAULT);
+        verifyInvokations(gr, false);
     }
 
     @Test
@@ -253,7 +273,9 @@ public class AccessControlActionTest implements UserConstants {
         initSecurityProvider(mockAccessControlManager(false), DEFAULT_ADMIN_ID, DEFAULT_ANONYMOUS_ID);
         AccessControlAction action = createAction(PrivilegeConstants.JCR_READ);
 
-        action.onCreate(mockGroup("grId", "pName", "/acl"), root, NamePathMapper.DEFAULT);
+        Group gr = mockGroup("grId", "pName", "/acl");
+        action.onCreate(gr, root, NamePathMapper.DEFAULT);
+        verifyInvokations(gr, true);
     }
 
     @Test
@@ -261,6 +283,14 @@ public class AccessControlActionTest implements UserConstants {
         initSecurityProvider(mockAccessControlManager(true), DEFAULT_ADMIN_ID, DEFAULT_ANONYMOUS_ID);
         AccessControlAction action = createAction(PrivilegeConstants.JCR_READ);
 
-        action.onCreate(mockUser("userId", "pName", "/acl"), "pw", root, NamePathMapper.DEFAULT);
+        User user = mockUser("userId", "pName", "/acl");
+        action.onCreate(user, "pw", root, NamePathMapper.DEFAULT);
+        verifyInvokations(user, true);
+    }
+
+    private static void verifyInvokations(@NotNull Authorizable a, boolean hasApplicable) throws RepositoryException {
+        verify(a).getPath();
+        int cnt = (hasApplicable) ? 2 : 1;
+        verify(a, times(cnt)).getPrincipal();
     }
 }

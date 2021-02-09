@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import java.util.Map;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -25,9 +24,11 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
+import org.apache.jackrabbit.oak.stats.Monitor;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -36,6 +37,9 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
+import java.util.Map;
 
 /**
  * Default implementation of the {@code AuthenticationConfiguration} with the
@@ -51,7 +55,7 @@ import org.slf4j.LoggerFactory;
  */
 @Component(service = {AuthenticationConfiguration.class, SecurityConfiguration.class})
 @Designate(ocd = AuthenticationConfigurationImpl.Configuration.class)
-public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration, LoginModuleStatsCollector {
+public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration {
 
     @ObjectClassDefinition(name = "Apache Jackrabbit Oak AuthenticationConfiguration")
     @interface Configuration {
@@ -106,6 +110,13 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
         return NAME;
     }
 
+    @NotNull
+    @Override
+    public Iterable<Monitor<?>> getMonitors(@NotNull StatisticsProvider statisticsProvider) {
+        lmMonitor = new LoginModuleStats(statisticsProvider);
+        return Collections.singleton(lmMonitor);
+    }
+
     //----------------------------------------< AuthenticationConfiguration >---
     /**
      * Create a {@code LoginContextProvider} using standard
@@ -143,10 +154,5 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
             log.warn("Unable to obtain whiteboard from SecurityProvider");
         }
         return new LoginContextProviderImpl(appName, getParameters(), contentRepository, provider, whiteboard, lmMonitor);
-    }
-
-    @Override
-    public void setLoginModuleMonitor(@NotNull LoginModuleMonitor lmMonitor) {
-        this.lmMonitor = lmMonitor;
     }
 }

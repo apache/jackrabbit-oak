@@ -16,30 +16,65 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Test;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 public class AbstractAuthorizableActionTest {
 
-    private AuthorizableAction action = new AbstractAuthorizableAction() {};
+    private final AuthorizableAction action = new AbstractAuthorizableAction() {};
+
+    private final Root root = mock(Root.class);
+    private final NamePathMapper namePathMapper = mock(NamePathMapper.class);
 
     @Test
     public void testInit() {
-        action.init(null, null);
+        SecurityProvider securityProvider = mock(SecurityProvider.class);
+        action.init(securityProvider, ConfigurationParameters.EMPTY);
+        verifyNoInteractions(securityProvider);
     }
 
     @Test
-    public void testOnCreate() throws Exception {
-        action.onCreate(null, null, null);
-        action.onCreate(null, null, null, null);
+    public void testOnCreateGroup() throws Exception {
+        Group gr = mock(Group.class);
+        action.onCreate(gr, root, namePathMapper);
+        verifyNoInteractions(gr, root, namePathMapper);
+    }
+
+    @Test
+    public void testOnCreateUser() throws Exception {
+        User user = mock(User.class);
+        action.onCreate(user, null, root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
+    }
+
+    @Test
+    public void testOnCreateSystemUser() throws Exception {
+        User user = when(mock(User.class).isSystemUser()).thenReturn(true).getMock();
+        action.onCreate(user, root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 
     @Test
     public void testOnRemove() throws Exception {
-        action.onRemove(null, null, null);
+        Authorizable authorizable = mock(Authorizable.class);
+        action.onRemove(authorizable, root, namePathMapper);
+        verifyNoInteractions(authorizable, root, namePathMapper);
     }
 
     @Test
     public void testOnPasswordChange() throws Exception {
-        action.onPasswordChange(null, null, null, null);
+        User user = mock(User.class);
+        action.onPasswordChange(user, null, root, namePathMapper);
+        verifyNoInteractions(user, root, namePathMapper);
     }
 }

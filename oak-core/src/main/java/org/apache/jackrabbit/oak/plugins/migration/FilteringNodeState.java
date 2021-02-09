@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.migration;
 
 import com.google.common.collect.ImmutableSet;
+
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -24,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
+
 /**
  * NodeState implementation that decorates another node-state instance
  * in order to hide subtrees or partial subtrees from the consumer of
@@ -47,6 +50,10 @@ import java.util.Set;
  *     <li>{@link #hasChildNode(String)}</li>
  *     <li>{@link #getChildNodeEntries()}</li>
  * </ul>
+ * When <b>referenceableFrozenNodes</b> is set to {@code false}, then the
+ * implementation will hide the {@code jcr:uuid} property on
+ * {@code nt:frozenNode} nodes (see also OAK-9134).
+ * <br>
  * Additionally, hidden node-state names are removed from the property
  * {@code :childOrder} in the following two methods:
  * <ul>
@@ -70,6 +77,8 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
 
     private final Set<String> excludedFragments;
 
+    private final boolean referenceableFrozenNodes;
+
     /**
      * Factory method that conditionally decorates the given node-state
      * iff the node-state is (a) hidden itself or (b) has hidden descendants.
@@ -80,6 +89,7 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
      * @param excludePaths A Set of paths that should be hidden. Empty if {@code null}.
      * @param fragmentPaths A Set of paths that should support the fragments (see below). Empty if {@code null}.
      * @param excludedFragments A Set of name fragments that should be hidden. Empty if {@code null}.
+     * @param referenceableFrozenNodes Whether nt:frozenNode are referenceable on the target.
      * @return The decorated node-state if required, the original node-state if decoration is unnecessary.
      */
     @NotNull
@@ -89,39 +99,40 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
             @Nullable final Set<String> includePaths,
             @Nullable final Set<String> excludePaths,
             @Nullable final Set<String> fragmentPaths,
-            @Nullable final Set<String> excludedFragments
+            @Nullable final Set<String> excludedFragments,
+            boolean referenceableFrozenNodes
     ) {
         final Set<String> includes = defaultIfEmpty(includePaths, ALL);
         final Set<String> excludes = defaultIfEmpty(excludePaths, NONE);
         final Set<String> safeFragmentPaths = defaultIfEmpty(fragmentPaths, NONE);
         final Set<String> safeExcludedFragments = defaultIfEmpty(excludedFragments, NONE);
-        if (hasHiddenDescendants(path, includes, excludes, safeFragmentPaths, safeExcludedFragments)) {
-            return new FilteringNodeState(path, delegate, includes, excludes, fragmentPaths, safeExcludedFragments);
+        if (!referenceableFrozenNodes || hasHiddenDescendants(path, includes, excludes, safeFragmentPaths, safeExcludedFragments)) {
+            return new FilteringNodeState(path, delegate, includes, excludes, fragmentPaths, safeExcludedFragments, referenceableFrozenNodes);
         }
         return delegate;
     }
 
-    private FilteringNodeState(
-            @NotNull final String path,
-            @NotNull final NodeState delegate,
-            @NotNull final Set<String> includedPaths,
-            @NotNull final Set<String> excludedPaths,
-            @NotNull final Set<String> fragmentPaths,
-            @NotNull final Set<String> excludedFragments
-    ) {
+    private FilteringNodeState(@NotNull final String path,
+                               @NotNull final NodeState delegate,
+                               @NotNull final Set<String> includedPaths,
+                               @NotNull final Set<String> excludedPaths,
+                               @NotNull final Set<String> fragmentPaths,
+                               @NotNull final Set<String> excludedFragments,
+                               boolean referenceableFrozenNodes) {
         super(delegate, false);
         this.path = path;
         this.includedPaths = includedPaths;
         this.excludedPaths = excludedPaths;
         this.fragmentPaths = fragmentPaths;
         this.excludedFragments = excludedFragments;
+        this.referenceableFrozenNodes = referenceableFrozenNodes;
     }
 
     @NotNull
     @Override
     protected NodeState decorateChild(@NotNull final String name, @NotNull final NodeState child) {
         final String childPath = PathUtils.concat(path, name);
-        return wrap(childPath, child, includedPaths, excludedPaths, fragmentPaths, excludedFragments);
+        return wrap(childPath, child, includedPaths, excludedPaths, fragmentPaths, excludedFragments, referenceableFrozenNodes);
     }
 
     @Override
@@ -131,7 +142,31 @@ public class FilteringNodeState extends AbstractDecoratedNodeState {
 
     @Override
     protected PropertyState decorateProperty(@NotNull final PropertyState propertyState) {
+        if (!referenceableFrozenNodes && isFrozenNodeUUIDProperty(propertyState)) {
+            return null;
+        }
         return fixChildOrderPropertyState(this, propertyState);
+    }
+
+    /**
+     * Returns {@code true} if the given property state is the {@code jcr:uuid}
+     * property of a {@code nt:frozenNode}; {@code false} otherwise.
+     *
+     * @param propertyState the property to check.
+     * @return whether the given property state is the {@code jcr:uuid} property
+     *          of a {@code nt:frozenNode}.
+     */
+    private boolean isFrozenNodeUUIDProperty(PropertyState propertyState) {
+        return propertyState.getName().equals(JcrConstants.JCR_UUID)
+                && isFrozenNode();
+    }
+
+    /**
+     * @return {@code true} if this node state has a nt:frozenNode;
+     *          {@code false} otherwise.
+     */
+    private boolean isFrozenNode() {
+        return JcrConstants.NT_FROZENNODE.equals(delegate.getName(JcrConstants.JCR_PRIMARYTYPE));
     }
 
     /**

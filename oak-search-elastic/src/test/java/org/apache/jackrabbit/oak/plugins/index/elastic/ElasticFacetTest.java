@@ -330,8 +330,6 @@ public class ElasticFacetTest {
         assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
 
         for (Map.Entry<String, Integer> facet : actualAclLabelCount.entrySet()) {
-
-
             String facetLabel = facet.getKey();
             int facetCount = getFacets().get(facetLabel);
             float ratio = ((float) facetCount) / facet.getValue();
@@ -365,7 +363,6 @@ public class ElasticFacetTest {
         assertEquals("Unexpected number of facets", actualLabelCount.size(), facets.size());
 
         for (Map.Entry<String, Integer> facet : actualLabelCount.entrySet()) {
-
             String facetLabel = facet.getKey();
             int facetCount = getFacets().get(facetLabel);
             float ratio = ((float) facetCount) / facet.getValue();

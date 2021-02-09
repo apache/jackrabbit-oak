@@ -16,10 +16,23 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
-import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
-import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 
+import javax.jcr.LoginException;
+import javax.jcr.Session;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -29,26 +42,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import javax.jcr.LoginException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
-
-import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
-import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.jetbrains.annotations.NotNull;
-
-import com.google.common.collect.ImmutableMap;
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL;
+import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Login against the {@link ExternalLoginModule} with a randomly selected user.
@@ -63,19 +59,19 @@ public class ExternalLoginTest extends AbstractExternalTest {
     private final int numberOfUsers;
     private final int numberOfGroups;
     private final Reporter reporter;
-    private final LoginModuleStats lmStats;
+    StatisticsProvider statisticsProvider;
     private final List<String> auto;
 
     private Set<String> uniques;
     private AtomicLong err;
 
     public ExternalLoginTest(int numberOfUsers, int numberOfGroups, long expTime, boolean dynamicMembership,
-            @NotNull List<String> autoMembership, boolean report, StatisticsProvider statsProvider) {
+            @NotNull List<String> autoMembership, boolean report, @NotNull StatisticsProvider statsProvider) {
         super(numberOfUsers, numberOfGroups, expTime, dynamicMembership, autoMembership);
         this.numberOfUsers = numberOfUsers;
         this.numberOfGroups = numberOfGroups;
         this.reporter = new Reporter(report);
-        this.lmStats = new LoginModuleStats(statsProvider);
+        this.statisticsProvider = statsProvider;
         this.auto = autoMembership;
     }
 
@@ -87,9 +83,7 @@ public class ExternalLoginTest extends AbstractExternalTest {
         err = new AtomicLong();
         AuthenticationConfiguration authenticationConfiguration = getSecurityProvider()
                 .getConfiguration(AuthenticationConfiguration.class);
-        if (authenticationConfiguration instanceof LoginModuleStatsCollector) {
-            ((LoginModuleStatsCollector) authenticationConfiguration).setLoginModuleMonitor(lmStats);
-        }
+        authenticationConfiguration.getMonitors(statisticsProvider);
     }
 
     @Override

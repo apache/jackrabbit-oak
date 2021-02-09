@@ -16,18 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.internal;
 
-import java.io.Closeable;
-import java.security.Principal;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-
+import com.google.common.collect.Iterables;
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -45,9 +35,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMBean;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleMonitor;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStats;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleStatsCollector;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.CompositeTokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -65,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.stats.Monitor;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -86,14 +74,22 @@ import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.io.Closer;
-
 import javax.jcr.security.AccessControlManager;
+import java.security.Principal;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 import static org.apache.jackrabbit.oak.spi.security.ConfigurationParameters.EMPTY;
+import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component(immediate=true)
@@ -518,9 +514,10 @@ public class SecurityProviderRegistration {
         properties.put("type", "default");
 
         Whiteboard whiteboard = new OsgiWhiteboard(context);
+        SecurityProvider securityProvider = createSecurityProvider(whiteboard);
         ServiceRegistration registration = context.registerService(
                 SecurityProvider.class.getName(),
-                createSecurityProvider(whiteboard),
+                securityProvider,
                 properties
         );
 
@@ -530,16 +527,15 @@ public class SecurityProviderRegistration {
         }
 
         closer = Closer.create();
-        if (authenticationConfiguration instanceof LoginModuleStatsCollector) {
-            LoginModuleStats lmMonitor = new LoginModuleStats(statisticsProvider);
-            ((LoginModuleStatsCollector) authenticationConfiguration).setLoginModuleMonitor(lmMonitor);
+        Iterable<Iterable<Monitor<?>>> monitors = Iterables.transform(securityProvider.getConfigurations(), sc -> sc.getMonitors(statisticsProvider));
+        for (Monitor monitor : Iterables.concat(monitors)) {
+            Registration reg = whiteboard.register(monitor.getMonitorClass(), monitor, monitor.getMonitorProperties());
+            closer.register(reg::unregister);
 
-            Registration mon = whiteboard.register(LoginModuleMonitor.class, lmMonitor, Collections.emptyMap());
-            closer.register((Closeable) mon::unregister);
-
-            Registration mbean = registerMBean(whiteboard, LoginModuleMBean.class, lmMonitor, LoginModuleMBean.TYPE,
-                    "LoginModule statistics");
-            closer.register((Closeable) mbean::unregister);
+            if (monitor instanceof LoginModuleMBean) {
+                Registration mbean = registerMBean(whiteboard, LoginModuleMBean.class, (LoginModuleMBean) monitor, LoginModuleMBean.TYPE, LoginModuleMBean.NAME);
+                closer.register(mbean::unregister);
+            }
         }
 
         log.info("SecurityProvider instance registered");

@@ -42,9 +42,9 @@ import static org.junit.Assert.assertTrue;
  */
 public class GuestLoginModuleTest {
 
-    private Subject subject = new Subject();
-    private Map<String, ?> sharedState = new HashMap<>();
-    private LoginModule guestLoginModule = new GuestLoginModule();
+    private final Subject subject = new Subject();
+    private final Map<String, ?> sharedState = new HashMap<>();
+    private final LoginModule guestLoginModule = new GuestLoginModule();
 
     @Test
     public void testNullLogin() throws LoginException {
@@ -173,7 +173,7 @@ public class GuestLoginModuleTest {
 
     //--------------------------------------------------------------------------
 
-    private class TestCallbackHandler implements CallbackHandler {
+    private static class TestCallbackHandler implements CallbackHandler {
 
         private final Credentials creds;
 

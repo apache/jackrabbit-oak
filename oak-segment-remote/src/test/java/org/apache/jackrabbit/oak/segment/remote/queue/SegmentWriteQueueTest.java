@@ -18,10 +18,9 @@ package org.apache.jackrabbit.oak.segment.remote.queue;
 
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.FieldSetter;
+import org.mockito.internal.util.reflection.InstanceField;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -38,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -82,7 +80,7 @@ public class SegmentWriteQueueTest {
         });
 
         Mockito.when(queue.offer(any(SegmentWriteAction.class), anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException());
-        FieldSetter.setField(queueBlocked, queueBlocked.getClass().getDeclaredField("queue"), queue);
+        new InstanceField(queueBlocked.getClass().getDeclaredField("queue"), queueBlocked).set(queue);
 
         try {
             queueBlocked.addToQueue(tarEntry(0), EMPTY_DATA, 0, 0);

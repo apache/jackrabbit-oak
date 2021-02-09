@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.ConflictType;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This {@link ThreeWayConflictHandler} implementation resolves conflicts to
@@ -61,71 +62,80 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
 
+    @NotNull
     @Override
-    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, ADD_EXISTING_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
+    @NotNull
     @Override
-    public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours, PropertyState base) {
+    public Resolution changeDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_DELETED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
+    @NotNull
     @Override
-    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
-            PropertyState base) {
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
+                                            @NotNull PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_CHANGED_PROPERTY).setProperty(ours);
         return Resolution.THEIRS;
     }
 
+    @NotNull
     @Override
-    public Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs, PropertyState base) {
+    public Resolution deleteChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState theirs, @NotNull PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, DELETE_CHANGED_PROPERTY).setProperty(theirs);
         return Resolution.THEIRS;
     }
 
+    @NotNull
     @Override
-    public Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState base) {
+    public Resolution deleteDeletedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, DELETE_DELETED_PROPERTY).setProperty(base);
         return Resolution.THEIRS;
     }
 
+    @NotNull
     @Override
-    public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
+    public Resolution addExistingNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, ADD_EXISTING_NODE).setChildNode(name, ours);
         return Resolution.THEIRS;
     }
 
+    @NotNull
     @Override
-    public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours, NodeState base) {
+    public Resolution changeDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState ours, @NotNull NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         createChild(marker, CHANGE_DELETED_NODE).setChildNode(name, ours);
         return Resolution.THEIRS;
     }
 
+    @NotNull
     @Override
-    public Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs, NodeState base) {
+    public Resolution deleteChangedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState theirs, @NotNull NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         markChild(createChild(marker, DELETE_CHANGED_NODE), name);
         return Resolution.THEIRS;
     }
 
+    @NotNull
     @Override
-    public Resolution deleteDeletedNode(NodeBuilder parent, String name, NodeState base) {
+    public Resolution deleteDeletedNode(@NotNull NodeBuilder parent, @NotNull String name, @NotNull NodeState base) {
         NodeBuilder marker = addConflictMarker(parent);
         markChild(createChild(marker, DELETE_DELETED_NODE), name);
         return Resolution.THEIRS;
     }
 
-    private static NodeBuilder addConflictMarker(NodeBuilder parent) {
+    private static NodeBuilder addConflictMarker(@NotNull NodeBuilder parent) {
         List<String> mixins = newArrayList(parent.getNames(JCR_MIXINTYPES));
         if (mixins.add(MIX_REP_MERGE_CONFLICT)) {
             parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
@@ -135,11 +145,12 @@ public class AnnotatingConflictHandler implements ThreeWayConflictHandler {
         return repOurs;
     }
 
-    private static NodeBuilder createChild(NodeBuilder parent, ConflictType ct) {
+    @NotNull
+    private static NodeBuilder createChild(@NotNull NodeBuilder parent, @NotNull ConflictType ct) {
         return parent.child(ct.getName());
     }
 
-    private static void markChild(NodeBuilder parent, String name) {
+    private static void markChild(@NotNull NodeBuilder parent, @NotNull String name) {
         parent.child(name);
     }
 

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;

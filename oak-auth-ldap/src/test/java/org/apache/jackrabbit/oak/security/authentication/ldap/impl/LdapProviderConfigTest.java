@@ -22,8 +22,15 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME;
+import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS;
+import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_SEARCH_TIMEOUT_DEFAULT;
+import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME;
+import static org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig.PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class LdapProviderConfigTest {
 
@@ -47,9 +54,6 @@ public class LdapProviderConfigTest {
 
     @Test
     public void testOfAllConfigurationParameters() {
-
-        Map<String, Object> params = new HashMap<>();
-
         String testName = "testname";
         String testLdapHost = "testhost.org";
         int testLdapPort = LdapProviderConfig.PARAM_LDAP_PORT_DEFAULT + 1;
@@ -64,34 +68,7 @@ public class LdapProviderConfigTest {
         String[] testCustomAttributes = new String[] {"a","b","c"};
         String testGroupMemberAttribute = "testMemberAttr";
 
-        boolean testAdminPoolLookupOnValidate = !LdapProviderConfig.PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT;
-        int testAdminPoolMaxActive = LdapProviderConfig.PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT + 1;
-        String testAdminPoolMinEvictableIdleTime = "2d 2h 2m 2s 2ms";
-        long testAdminPoolMinEvictableIdleTimeMs = 2 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
-        String testAdminPoolTimeBetweenEvictionRuns = "3d 3h 3m 3s 3ms";
-        long testAdminPoolTimeBetweenEvictionRunsMs = 3 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
-        int testAdminPoolNumTestsPerEvictionRun = LdapProviderConfig.PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT + 1;
-
-        boolean testUserPoolLookupOnValidate = !LdapProviderConfig.PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT;
-        int testUserPoolMaxActive = LdapProviderConfig.PARAM_USER_POOL_MAX_ACTIVE_DEFAULT + 2;
-        String testUserPoolMinEvictableIdleTime = "4d 4h 4m 4s 4ms";
-        long testUserPoolMinEvictableIdleTimeMs = 4 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
-        String testUserPoolTimeBetweenEvictionRuns = "5d 5h 5m 5s 5ms";
-        long testUserPoolTimeBetweenEvictionRunsMs = 5 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
-        int testUserPoolNumTestsPerEvictionRun = LdapProviderConfig.PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT + 2;
-
-        String testUserBaseDn = "ou=people,dc=org";
-        String[] testUserObjectClass = new String[] {"inetOrgPerson"};
-        String testUserIdAttribute = "foo";
-        String testUserExtraFilter = "(cn=*)";
-        boolean testUserMakeDnPath = !LdapProviderConfig.PARAM_USER_MAKE_DN_PATH_DEFAULT;
-
-        String testGroupBaseDn = "ou=groups,dc=org";
-        String[] testGroupObjectClass = new String[] {"posixGroup"};
-        String testGroupNameAttribute = "bar";
-        String testGroupExtraFilter = "(ou=*)";
-        boolean testGroupMakeDnPath = !LdapProviderConfig.PARAM_GROUP_MAKE_DN_PATH_DEFAULT;
-
+        Map<String, Object> params = new HashMap<>();
         params.put(LdapProviderConfig.PARAM_NAME, testName);
         params.put(LdapProviderConfig.PARAM_LDAP_HOST, testLdapHost);
         params.put(LdapProviderConfig.PARAM_LDAP_PORT, testLdapPort);
@@ -104,30 +81,6 @@ public class LdapProviderConfigTest {
         params.put(LdapProviderConfig.PARAM_USE_UID_FOR_EXT_ID, testUseUidForExtId);
         params.put(LdapProviderConfig.PARAM_CUSTOM_ATTRIBUTES, testCustomAttributes);
         params.put(LdapProviderConfig.PARAM_GROUP_MEMBER_ATTRIBUTE, testGroupMemberAttribute);
-
-        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE, testAdminPoolLookupOnValidate);
-        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_MAX_ACTIVE, testAdminPoolMaxActive);
-        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME, testAdminPoolMinEvictableIdleTime);
-        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS, testAdminPoolTimeBetweenEvictionRuns);
-        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN, testAdminPoolNumTestsPerEvictionRun);
-
-        params.put(LdapProviderConfig.PARAM_USER_POOL_LOOKUP_ON_VALIDATE, testUserPoolLookupOnValidate);
-        params.put(LdapProviderConfig.PARAM_USER_POOL_MAX_ACTIVE, testUserPoolMaxActive);
-        params.put(LdapProviderConfig.PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME, testUserPoolMinEvictableIdleTime);
-        params.put(LdapProviderConfig.PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS, testUserPoolTimeBetweenEvictionRuns);
-        params.put(LdapProviderConfig.PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN, testUserPoolNumTestsPerEvictionRun);
-
-        params.put(LdapProviderConfig.PARAM_USER_BASE_DN, testUserBaseDn);
-        params.put(LdapProviderConfig.PARAM_USER_OBJECTCLASS, testUserObjectClass);
-        params.put(LdapProviderConfig.PARAM_USER_ID_ATTRIBUTE, testUserIdAttribute);
-        params.put(LdapProviderConfig.PARAM_USER_EXTRA_FILTER, testUserExtraFilter);
-        params.put(LdapProviderConfig.PARAM_USER_MAKE_DN_PATH, testUserMakeDnPath);
-
-        params.put(LdapProviderConfig.PARAM_GROUP_BASE_DN, testGroupBaseDn);
-        params.put(LdapProviderConfig.PARAM_GROUP_OBJECTCLASS, testGroupObjectClass);
-        params.put(LdapProviderConfig.PARAM_GROUP_NAME_ATTRIBUTE, testGroupNameAttribute);
-        params.put(LdapProviderConfig.PARAM_GROUP_EXTRA_FILTER, testGroupExtraFilter);
-        params.put(LdapProviderConfig.PARAM_GROUP_MAKE_DN_PATH, testGroupMakeDnPath);
 
         LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(params));
         assertEquals(testName, config.getName());
@@ -142,28 +95,122 @@ public class LdapProviderConfigTest {
         assertEquals(testUseUidForExtId, config.getUseUidForExtId());
         assertArrayEquals(testCustomAttributes, config.getCustomAttributes());
         assertEquals(testGroupMemberAttribute, config.getGroupMemberAttribute());
+    }
 
+    @Test
+    public void testAdminPoolConfig() {
+        boolean testAdminPoolLookupOnValidate = !LdapProviderConfig.PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE_DEFAULT;
+        int testAdminPoolMaxActive = LdapProviderConfig.PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT + 1;
+        String testAdminPoolMinEvictableIdleTime = "2d 2h 2m 2s 2ms";
+        long testAdminPoolMinEvictableIdleTimeMs = 2 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
+        String testAdminPoolTimeBetweenEvictionRuns = "3d 3h 3m 3s 3ms";
+        long testAdminPoolTimeBetweenEvictionRunsMs = 3 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
+        int testAdminPoolNumTestsPerEvictionRun = LdapProviderConfig.PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT + 1;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_LOOKUP_ON_VALIDATE, testAdminPoolLookupOnValidate);
+        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_MAX_ACTIVE, testAdminPoolMaxActive);
+        params.put(PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME, testAdminPoolMinEvictableIdleTime);
+        params.put(PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS, testAdminPoolTimeBetweenEvictionRuns);
+        params.put(LdapProviderConfig.PARAM_ADMIN_POOL_NUM_TESTS_PER_EVICTION_RUN, testAdminPoolNumTestsPerEvictionRun);
+
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(params));
         LdapProviderConfig.PoolConfig adminPoolConfig = config.getAdminPoolConfig();
         assertEquals(testAdminPoolLookupOnValidate, adminPoolConfig.lookupOnValidate());
         assertEquals(testAdminPoolMaxActive, adminPoolConfig.getMaxActive());
         assertEquals(testAdminPoolMinEvictableIdleTimeMs, adminPoolConfig.getMinEvictableIdleTimeMillis());
         assertEquals(testAdminPoolTimeBetweenEvictionRunsMs, adminPoolConfig.getTimeBetweenEvictionRunsMillis());
         assertEquals(testAdminPoolNumTestsPerEvictionRun, adminPoolConfig.getNumTestsPerEvictionRun());
+    }
 
+    @Test
+    public void testInvalidAdminPoolTime() {
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(
+                PARAM_ADMIN_POOL_MIN_EVICTABLE_IDLE_TIME, "invalid",
+                PARAM_ADMIN_POOL_TIME_BETWEEN_EVICTION_RUNS, "invalid"));
+
+        LdapProviderConfig.PoolConfig adminPoolConfig = config.getAdminPoolConfig();
+        assertEquals(0, adminPoolConfig.getMinEvictableIdleTimeMillis());
+        assertEquals(0, adminPoolConfig.getTimeBetweenEvictionRunsMillis());
+    }
+
+    @Test
+    public void testUserPoolConfig() {
+        boolean testUserPoolLookupOnValidate = !LdapProviderConfig.PARAM_USER_POOL_LOOKUP_ON_VALIDATE_DEFAULT;
+        int testUserPoolMaxActive = LdapProviderConfig.PARAM_USER_POOL_MAX_ACTIVE_DEFAULT + 2;
+        String testUserPoolMinEvictableIdleTime = "4d 4h 4m 4s 4ms";
+        long testUserPoolMinEvictableIdleTimeMs = 4 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
+        String testUserPoolTimeBetweenEvictionRuns = "5d 5h 5m 5s 5ms";
+        long testUserPoolTimeBetweenEvictionRunsMs = 5 * (1 + 1000 * (1 + 60 * (1 + 60 * (1 + 24))));
+        int testUserPoolNumTestsPerEvictionRun = LdapProviderConfig.PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN_DEFAULT + 2;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(LdapProviderConfig.PARAM_USER_POOL_LOOKUP_ON_VALIDATE, testUserPoolLookupOnValidate);
+        params.put(LdapProviderConfig.PARAM_USER_POOL_MAX_ACTIVE, testUserPoolMaxActive);
+        params.put(LdapProviderConfig.PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME, testUserPoolMinEvictableIdleTime);
+        params.put(LdapProviderConfig.PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS, testUserPoolTimeBetweenEvictionRuns);
+        params.put(LdapProviderConfig.PARAM_USER_POOL_NUM_TESTS_PER_EVICTION_RUN, testUserPoolNumTestsPerEvictionRun);
+
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(params));
         LdapProviderConfig.PoolConfig userPoolConfig = config.getUserPoolConfig();
         assertEquals(testUserPoolLookupOnValidate, userPoolConfig.lookupOnValidate());
         assertEquals(testUserPoolMaxActive, userPoolConfig.getMaxActive());
         assertEquals(testUserPoolMinEvictableIdleTimeMs, userPoolConfig.getMinEvictableIdleTimeMillis());
         assertEquals(testUserPoolTimeBetweenEvictionRunsMs, userPoolConfig.getTimeBetweenEvictionRunsMillis());
         assertEquals(testUserPoolNumTestsPerEvictionRun, userPoolConfig.getNumTestsPerEvictionRun());
+    }
 
+    @Test
+    public void testInvalidUserPoolTime() {
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(
+                PARAM_USER_POOL_MIN_EVICTABLE_IDLE_TIME, "invalid",
+                PARAM_USER_POOL_TIME_BETWEEN_EVICTION_RUNS, "invalid"));
+
+        LdapProviderConfig.PoolConfig userPoolConfig = config.getUserPoolConfig();
+        assertEquals(0, userPoolConfig.getMinEvictableIdleTimeMillis());
+        assertEquals(0, userPoolConfig.getTimeBetweenEvictionRunsMillis());
+    }
+
+    @Test
+    public void testUserConfig() {
+        String testUserBaseDn = "ou=people,dc=org";
+        String[] testUserObjectClass = new String[] {"inetOrgPerson"};
+        String testUserIdAttribute = "foo";
+        String testUserExtraFilter = "(cn=*)";
+        boolean testUserMakeDnPath = !LdapProviderConfig.PARAM_USER_MAKE_DN_PATH_DEFAULT;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(LdapProviderConfig.PARAM_USER_BASE_DN, testUserBaseDn);
+        params.put(LdapProviderConfig.PARAM_USER_OBJECTCLASS, testUserObjectClass);
+        params.put(LdapProviderConfig.PARAM_USER_ID_ATTRIBUTE, testUserIdAttribute);
+        params.put(LdapProviderConfig.PARAM_USER_EXTRA_FILTER, testUserExtraFilter);
+        params.put(LdapProviderConfig.PARAM_USER_MAKE_DN_PATH, testUserMakeDnPath);
+
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(params));
         LdapProviderConfig.Identity userConfig = config.getUserConfig();
         assertEquals(testUserBaseDn, userConfig.getBaseDN());
         assertArrayEquals(testUserObjectClass, userConfig.getObjectClasses());
         assertEquals(testUserIdAttribute, userConfig.getIdAttribute());
         assertEquals(testUserExtraFilter, userConfig.getExtraFilter());
         assertEquals(testUserMakeDnPath, userConfig.makeDnPath());
+    }
 
+    @Test
+    public void testGroupConfig() {
+        String testGroupBaseDn = "ou=groups,dc=org";
+        String[] testGroupObjectClass = new String[] {"posixGroup"};
+        String testGroupNameAttribute = "bar";
+        String testGroupExtraFilter = "(ou=*)";
+        boolean testGroupMakeDnPath = !LdapProviderConfig.PARAM_GROUP_MAKE_DN_PATH_DEFAULT;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(LdapProviderConfig.PARAM_GROUP_BASE_DN, testGroupBaseDn);
+        params.put(LdapProviderConfig.PARAM_GROUP_OBJECTCLASS, testGroupObjectClass);
+        params.put(LdapProviderConfig.PARAM_GROUP_NAME_ATTRIBUTE, testGroupNameAttribute);
+        params.put(LdapProviderConfig.PARAM_GROUP_EXTRA_FILTER, testGroupExtraFilter);
+        params.put(LdapProviderConfig.PARAM_GROUP_MAKE_DN_PATH, testGroupMakeDnPath);
+
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(params));
         LdapProviderConfig.Identity groupConfig = config.getGroupConfig();
         assertEquals(testGroupBaseDn, groupConfig.getBaseDN());
         assertArrayEquals(testGroupObjectClass, groupConfig.getObjectClasses());
@@ -173,23 +220,54 @@ public class LdapProviderConfigTest {
     }
 
     @Test
+    public void testIdentityGetSearchFilter() {
+        String extrafilter = "(ou=*)";
+        LdapProviderConfig.Identity identity = LdapProviderConfig.of(ConfigurationParameters.EMPTY).getUserConfig();
+        identity.setExtraFilter(extrafilter);
+        assertTrue(identity.getSearchFilter("id").contains(extrafilter));
+
+        identity.setExtraFilter("");
+        assertFalse(identity.getSearchFilter("id").contains(extrafilter));
+
+        identity.setExtraFilter(null);
+        assertFalse(identity.getSearchFilter("id").contains(extrafilter));
+    }
+
+    @Test
     public void testGetMemberOfSearchFilter() {
-        Map<String, Object> params = new HashMap<>();
-        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(params));
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.EMPTY);
         assertEquals("(&(" + LdapProviderConfig.PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT + "=cn=bar)(objectclass=" + LdapProviderConfig.PARAM_GROUP_OBJECTCLASS_DEFAULT[0] + "))",
                 config.getMemberOfSearchFilter("cn=bar"));
+
+        Map<String, Object> params = new HashMap<>();
         params.put(LdapProviderConfig.PARAM_GROUP_MEMBER_ATTRIBUTE, "foo");
         config = LdapProviderConfig.of(ConfigurationParameters.of(params));
         assertEquals("(&(foo=cn=bar)(objectclass=" + LdapProviderConfig.PARAM_GROUP_OBJECTCLASS_DEFAULT[0] + "))",
                 config.getMemberOfSearchFilter("cn=bar"));
+
         params.put(LdapProviderConfig.PARAM_GROUP_OBJECTCLASS, new String[] {"posixGroup"});
         config = LdapProviderConfig.of(ConfigurationParameters.of(params));
         assertEquals("(&(foo=cn=bar)(objectclass=posixGroup))",
                 config.getMemberOfSearchFilter("cn=bar"));
+
         params.put(LdapProviderConfig.PARAM_GROUP_OBJECTCLASS, new String[] {"posixGroup", "groupOfUniqueNames"});
         config = LdapProviderConfig.of(ConfigurationParameters.of(params));
         assertEquals("(&(foo=cn=bar)(objectclass=posixGroup)(objectclass=groupOfUniqueNames))",
                 config.getMemberOfSearchFilter("cn=bar"));
+    }
+
+    @Test
+    public void testGetMemberOfSearchFilterWithExtrafilter() {
+        String extrafilter = "(ou=*)";
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.EMPTY);
+        config.getGroupConfig().setExtraFilter(extrafilter);
+        assertTrue(config.getMemberOfSearchFilter("dn").contains(extrafilter));
+
+        config.getGroupConfig().setExtraFilter("");
+        assertFalse(config.getMemberOfSearchFilter("dn").contains(extrafilter));
+
+        config.getGroupConfig().setExtraFilter(null);
+        assertFalse(config.getMemberOfSearchFilter("dn").contains(extrafilter));
     }
 
     @Test
@@ -221,5 +299,19 @@ public class LdapProviderConfigTest {
         String value = "\u0000*()\\";
         String encodedValue = "\\00\\2A\\28\\29\\5C";
         assertEquals(encodedValue, LdapProviderConfig.encodeFilterValue(value));
+    }
+
+    @Test
+    public void testMixedEncodeFilterValueEscaped() {
+        //test the encoding of character that need escaping (see RFC4515 chapter 3)
+        String value = "\u0000*()\\abc";
+        String encodedValue = "\\00\\2A\\28\\29\\5Cabc";
+        assertEquals(encodedValue, LdapProviderConfig.encodeFilterValue(value));
+    }
+
+    @Test
+    public void testInvalidSearchTimeout() {
+        LdapProviderConfig config = LdapProviderConfig.of(ConfigurationParameters.of(LdapProviderConfig.PARAM_SEARCH_TIMEOUT, "invalid"));
+        assertEquals(ConfigurationParameters.Milliseconds.of(PARAM_SEARCH_TIMEOUT_DEFAULT).value, config.getSearchTimeout());
     }
 }

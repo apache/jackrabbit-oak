@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 public class SecurityConfigurationTest {
 
-    private SecurityConfiguration configuration = new SecurityConfiguration.Default();
+    private final SecurityConfiguration configuration = new SecurityConfiguration.Default();
 
     @Test
     public void testGetName() {

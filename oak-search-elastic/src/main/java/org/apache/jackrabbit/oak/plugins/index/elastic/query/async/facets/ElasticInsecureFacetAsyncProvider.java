@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
-import org.elasticsearch.search.aggregations.Aggregations;
-import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +37,7 @@ class ElasticInsecureFacetAsyncProvider implements ElasticFacetProvider, Elastic
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticInsecureFacetAsyncProvider.class);
 
-    private Aggregations aggregations;
+    private Map<String, ElasticResponseHandler.AggregationBuckets> aggregations;
 
     private final CountDownLatch latch = new CountDownLatch(1);
 
@@ -49,20 +49,20 @@ class ElasticInsecureFacetAsyncProvider implements ElasticFacetProvider, Elastic
         } catch (InterruptedException e) {
             throw new IllegalStateException("Error while waiting for facets", e);
         }
-        LOG.trace("Reading facets for {} from aggregations {}", columnName, aggregations.asMap());
+        LOG.trace("Reading facets for {} from aggregations {}", columnName, aggregations);
         if (aggregations != null) {
             final String facetProp = FulltextIndex.parseFacetField(columnName);
-            Terms terms = aggregations.get(facetProp);
-            List<FulltextIndex.Facet> facets = new ArrayList<>(terms.getBuckets().size());
-            for (Terms.Bucket bucket : terms.getBuckets()) {
-                facets.add(new FulltextIndex.Facet(bucket.getKeyAsString(), (int) bucket.getDocCount()));
+            ElasticResponseHandler.AggregationBuckets terms = aggregations.get(facetProp);
+            List<FulltextIndex.Facet> facets = new ArrayList<>(terms.buckets.length);
+            for (ElasticResponseHandler.AggregationBucket bucket : terms.buckets) {
+                facets.add(new FulltextIndex.Facet(bucket.key.toString(), bucket.count));
             }
             return facets;
         } else return null;
     }
 
     @Override
-    public void on(Aggregations aggregations) {
+    public void on(Map<String, ElasticResponseHandler.AggregationBuckets> aggregations) {
         this.aggregations = aggregations;
         this.endData();
     }

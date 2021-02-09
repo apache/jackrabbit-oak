@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Conflict Handler that merges concurrent updates to
@@ -45,44 +46,71 @@ public class JcrLastModifiedConflictHandler extends DefaultThreeWayConflictHandl
 
     @NotNull
     @Override
-    public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
-        if (isModifiedOrCreated(ours.getName())) {
-            merge(parent, ours, theirs);
+    public Resolution addExistingProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
+        if (isModifiedOrCreated(ours.getName()) && merge(parent, ours, theirs)) {
             return Resolution.MERGED;
+        } else {
+            return Resolution.IGNORED;
         }
-        return Resolution.IGNORED;
     }
 
     @NotNull
     @Override
-    public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs,
-            PropertyState base) {
-        if (isModifiedOrCreated(ours.getName())) {
-            merge(parent, ours, theirs);
+    public Resolution changeChangedProperty(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
+                                            @NotNull PropertyState base) {
+        if (isModifiedOrCreated(ours.getName()) && merge(parent, ours, theirs)) {
             return Resolution.MERGED;
+        } else {
+            return Resolution.IGNORED;
         }
-        return Resolution.IGNORED;
     }
 
-    private static void merge(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    /**
+     * Tries to merge two properties. The respective property of the parent is
+     * set if merging is successful. The the earlier value is used if
+     * jcr:created is true; the later is used if it is not jcr:created.
+     *
+     * @param parent the parent node
+     * @param ours our value
+     * @param theirs their value
+     * @return if merging is successful
+     */
+    private static boolean merge(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs) {
         Calendar o = parse(ours.getValue(Type.DATE));
         Calendar t = parse(theirs.getValue(Type.DATE));
-        if (JCR_CREATED.equals(ours.getName())) {
-            parent.setProperty(ours.getName(), pick(o, t, true));
+        Calendar value = pick(o, t, JCR_CREATED.equals(ours.getName()));
+        if (value != null) {
+            parent.setProperty(ours.getName(), value);
+            return true;
         } else {
-            parent.setProperty(ours.getName(), pick(o, t, false));
+            return false;
         }
     }
 
-    private static Calendar pick(Calendar a, Calendar b, boolean jcrCreated) {
-        if (a.before(b)) {
-            return jcrCreated ? a : b;
+    /**
+     * Pick "a" or "b", depending on which one is earlier (if jcrCreated = true) or later (if jcrCreated = false).
+     *
+     * @param ours the property state from our change set to have a conflict resolved.
+     * @param theirs the property state from their change set to have a conflict resolved.
+     * @param jcrCreated if true and 'ours' is before 'theirs', 'ours' is returned, otherwise 'theirs'
+     * @return the calendar; either "ours" or "theirs". It will return {@code null} if both are {@code null}
+     */
+    @Nullable
+    private static Calendar pick(@Nullable Calendar ours, @Nullable Calendar theirs, boolean jcrCreated) {
+        if (ours == null) {
+            return theirs;
+        }
+        if (theirs == null) {
+            return ours;
+        }
+        if (ours.before(theirs)) {
+            return jcrCreated ? ours : theirs;
         } else {
-            return jcrCreated ? b : a;
+            return jcrCreated ? theirs : ours;
         }
     }
 
-    private static boolean isModifiedOrCreated(String name) {
+    private static boolean isModifiedOrCreated(@NotNull String name) {
         return JCR_LASTMODIFIED.equals(name) || JCR_CREATED.equals(name);
     }
 }

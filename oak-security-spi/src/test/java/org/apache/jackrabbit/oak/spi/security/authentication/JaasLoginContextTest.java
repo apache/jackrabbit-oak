@@ -29,6 +29,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class JaasLoginContextTest {
 
@@ -77,6 +78,7 @@ public class JaasLoginContextTest {
     public void testNameCallbackHandler() throws Exception {
         CallbackHandler cbh = mock(CallbackHandler.class);
         JaasLoginContext ctx = new JaasLoginContext("name", cbh);
+        verifyNoInteractions(cbh);
     }
 
     @Test(expected = LoginException.class)

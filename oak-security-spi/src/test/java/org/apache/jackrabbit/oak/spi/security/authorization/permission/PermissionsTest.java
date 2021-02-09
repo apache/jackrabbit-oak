@@ -126,13 +126,13 @@ public class PermissionsTest {
                 ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT,Permissions.WORKSPACE_MANAGEMENT,Permissions.NODE_TYPE_DEFINITION_MANAGEMENT,Permissions.PRIVILEGE_MANAGEMENT)
         );
 
-        for (long permissions : test.keySet()) {
+        test.forEach((key, value) -> {
             Set<String> expected = new HashSet<>();
-            for (long p : test.get(permissions)) {
+            for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, Permissions.getNames(permissions));
-        }
+            assertEquals(expected, Permissions.getNames(key));
+        });
     }
 
     @Test
@@ -148,13 +148,13 @@ public class PermissionsTest {
                 ImmutableSet.of(Permissions.WRITE, Permissions.VERSION_MANAGEMENT, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.ADD_NODE, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE)
         );
 
-        for (long permissions : test.keySet()) {
+        test.forEach((key, value) -> {
             Set<String> expected = new HashSet<>();
-            for (long p : test.get(permissions)) {
+            for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, Permissions.getNames(permissions));
-        }
+            assertEquals(expected, Permissions.getNames(key));
+        });
     }
 
     @Test
@@ -179,13 +179,13 @@ public class PermissionsTest {
 
     @Test
     public void testGetStringMultiple() {
-        for (long permissions : TEST.keySet()) {
+        TEST.forEach((key, value) -> {
             Set<String> expected = new HashSet<>();
-            for (long p : TEST.get(permissions)) {
+            for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, Sets.newHashSet(Splitter.on(',').split(Permissions.getString(permissions))));
-        }
+            assertEquals(expected, Sets.newHashSet(Splitter.on(',').split(Permissions.getString(key))));
+        });
     }
 
     @Test
@@ -201,13 +201,13 @@ public class PermissionsTest {
                 ImmutableSet.of(Permissions.WRITE, Permissions.VERSION_MANAGEMENT, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.ADD_NODE, Permissions.REMOVE_PROPERTY, Permissions.SET_PROPERTY, Permissions.REMOVE)
         );
 
-        for (long permissions : test.keySet()) {
+        test.forEach((key, value) -> {
             Set<String> expected = new HashSet<>();
-            for (long p : test.get(permissions)) {
+            for (long p : value) {
                 expected.add(Permissions.PERMISSION_NAMES.get(p));
             }
-            assertEquals(expected, Sets.newHashSet(Splitter.on(',').split(Permissions.getString(permissions))));
-        }
+            assertEquals(expected, Sets.newHashSet(Splitter.on(',').split(Permissions.getString(key))));
+        });
     }
 
     @Test
@@ -234,9 +234,7 @@ public class PermissionsTest {
                 Permissions.SET_PROPERTY, ImmutableSet.of(Permissions.ADD_PROPERTY, Permissions.MODIFY_PROPERTY, Permissions.REMOVE_PROPERTY),
                 Permissions.WRITE, ImmutableSet.of(Permissions.ADD_NODE, Permissions.REMOVE_NODE, Permissions.ADD_PROPERTY, Permissions.REMOVE_PROPERTY,Permissions.MODIFY_PROPERTY)
         );
-        for (long permission : aggregation.keySet()) {
-            assertEquals(aggregation.get(permission), ImmutableSet.copyOf(Permissions.aggregates(permission)));
-        }
+        aggregation.forEach((key, value) -> assertEquals(value, ImmutableSet.copyOf(Permissions.aggregates(key))));
     }
 
     @Test
@@ -348,9 +346,7 @@ public class PermissionsTest {
                 Session.ACTION_READ + "," + Session.ACTION_REMOVE, Permissions.READ_NODE|Permissions.REMOVE_NODE
         );
 
-        for (Map.Entry<String, Long> entry : map.entrySet()) {
-            assertEquals(entry.getValue().longValue(), Permissions.getPermissions(entry.getKey(), tl, false));
-        }
+        map.forEach((key, value) -> assertEquals(value.longValue(), Permissions.getPermissions(key, tl, false)));
     }
 
     @Test
@@ -395,9 +391,7 @@ public class PermissionsTest {
         map.put(JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL, Permissions.MODIFY_ACCESS_CONTROL);
         map.put(JackrabbitSession.ACTION_USER_MANAGEMENT, Permissions.USER_MANAGEMENT);
 
-        for (Map.Entry<String, Long> entry : map.entrySet()) {
-            assertEquals(entry.getValue().longValue(), Permissions.getPermissions(entry.getKey(), tl, false));
-        }
+        map.forEach((key, value) -> assertEquals(value.longValue(), Permissions.getPermissions(key, tl, false)));
     }
 
     @Test
@@ -427,9 +421,7 @@ public class PermissionsTest {
         map.put(JackrabbitSession.ACTION_VERSIONING, Permissions.VERSION_MANAGEMENT);
         map.put(JackrabbitSession.ACTION_USER_MANAGEMENT, Permissions.USER_MANAGEMENT);
 
-        for (Map.Entry<String, Long> entry : map.entrySet()) {
-            assertEquals(entry.getKey(), entry.getValue().longValue(), Permissions.getPermissions(entry.getKey(), tl, true));
-        }
+        map.forEach((key, value) -> assertEquals(key, value.longValue(), Permissions.getPermissions(key, tl, true)));
     }
 
     @Test
@@ -519,22 +511,20 @@ public class PermissionsTest {
 
     @Test
     public void testGetPermissionsSingleName() {
-        for (Map.Entry<Long, String> entry : Permissions.PERMISSION_NAMES.entrySet()) {
-            assertEquals(entry.getKey().longValue(), Permissions.getPermissions(entry.getValue()));
-        }
+        Permissions.PERMISSION_NAMES.forEach((key, value) -> assertEquals(key.longValue(), Permissions.getPermissions(value)));
     }
 
     @Test
     public void testGetPermissionsMultipleNames() {
-        for (Map.Entry<Long, Set<Long>> entry : TEST.entrySet()) {
+        TEST.forEach((key, value) -> {
             Set<String> names = new HashSet<>();
-            for (long p : entry.getValue()) {
+            for (long p : value) {
                 names.add(Permissions.PERMISSION_NAMES.get(p));
             }
             String s = Joiner.on(',').join(names);
 
-            assertEquals(entry.getKey().longValue(), Permissions.getPermissions(s));
-        }
+            assertEquals(key.longValue(), Permissions.getPermissions(s));
+        });
     }
 
     @Test
@@ -551,11 +541,11 @@ public class PermissionsTest {
                 PrivilegeConstants.PRIVILEGES_PATH, Permissions.PRIVILEGE_MANAGEMENT
         );
 
-        for (String path : mapping.keySet()) {
+        mapping.forEach((key, value) -> {
             for (long defaultPermission : Permissions.PERMISSION_NAMES.keySet()) {
-                assertEquals(mapping.get(path).longValue(), Permissions.getPermission(path, defaultPermission));
+                assertEquals(value.longValue(), Permissions.getPermission(key, defaultPermission));
             }
-        }
+        });
     }
 
     @Test

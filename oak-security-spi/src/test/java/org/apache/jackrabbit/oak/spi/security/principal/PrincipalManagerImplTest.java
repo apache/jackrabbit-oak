@@ -47,7 +47,7 @@ public class PrincipalManagerImplTest {
 
     private final TestPrincipalProvider provider = new TestPrincipalProvider();
     private final PrincipalManagerImpl principalMgr = new PrincipalManagerImpl(provider);
-    private Iterable<Principal> testPrincipals = provider.getTestPrincipals();
+    private final Iterable<Principal> testPrincipals = provider.getTestPrincipals();
 
     private static boolean isGroup(Principal p) {
         return p instanceof GroupPrincipal;

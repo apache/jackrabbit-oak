@@ -61,6 +61,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * UserManagerImpl...
  */
@@ -194,6 +196,7 @@ public class UserManagerImpl implements UserManager {
         setPrincipal(userTree, principal);
 
         User user = new SystemUserImpl(userID, userTree, this);
+        onCreate(user);
 
         log.debug("System user created: {}", userID);
         return user;
@@ -274,7 +277,14 @@ public class UserManagerImpl implements UserManager {
                 action.onCreate(user, password, root, namePathMapper);
             }
         } else {
-            log.debug("Omit onCreate action for system users.");
+            log.warn("onCreate(User,String) called for system user. Use onCreate(User) instead.");
+        }
+    }
+
+    void onCreate(@NotNull User systemUser) throws RepositoryException {
+        checkArgument(systemUser.isSystemUser());
+        for (AuthorizableAction action : actionProvider.getAuthorizableActions(securityProvider)) {
+            action.onCreate(systemUser, root, namePathMapper);
         }
     }
 

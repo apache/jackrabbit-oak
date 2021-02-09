@@ -427,10 +427,11 @@ ordered
   would cause indexing to fail.
 
 type
-: JCR Property type. Can be one of `Date`, `Boolean`, `Double` , `String` or `Long`. Mostly
-  inferred from the indexed value. However in some cases where same property
+: JCR Property type. Can be one of `Date`, `Boolean`, `Double` , `String`, `Long`, or `Binary`. 
+  Mostly inferred from the indexed value. However in some cases where same property
   type is not used consistently across various nodes then it would recommended
-   to specify the type explicitly.
+  to specify the type explicitly.
+  A binary is only indexed if there is an associated property `jcr:mimeType`.
 
 propertyIndex
 : Whether the index for this property is used for equality conditions, ordering,
@@ -1049,7 +1050,7 @@ the config file via `tika/config.xml` node in index config.
 
 #### <a name="mime-type-usage"></a>Mime type usage
 
-A binary would only be index if there is an associated property `jcr:mimeType` defined
+A binary is only indexed if there is an associated property `jcr:mimeType` defined
 and that is supported by Tika. By default indexer uses [TypeDetector][OAK-2895]
 instead of default `DefaultDetector` which relies on the `jcr:mimeType` to pick up the
 right parser.

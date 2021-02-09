@@ -123,6 +123,7 @@ import org.hamcrest.number.OrderingComparison;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -4042,6 +4043,54 @@ public class DocumentNodeStoreTest {
             System.clearProperty("oak.documentMK.createOrUpdateBatchSize");
         }
     }
+
+    // Tests for OAK-9300
+    @Test
+    public void createCheckpointAfterDispose() {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.dispose();
+        Assert.assertThrows(IllegalStateException.class, () -> store.checkpoint(60000));
+    }
+
+    @Test
+    public void createCheckpointWithPropertiesAfterDispose() {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        store.dispose();
+        Assert.assertThrows(IllegalStateException.class, () -> store.checkpoint(60000, Collections.emptyMap()));
+    }
+
+    @Test
+    public void retrieveCheckpointInfoAfterDispose() {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        String ref = store.checkpoint(60000);
+        store.dispose();
+        Assert.assertThrows(IllegalStateException.class, () -> store.checkpointInfo(ref));
+    }
+
+    @Test
+    public void getCheckpointsAfterDispose() {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        String ref = store.checkpoint(60000);
+        store.dispose();
+        Assert.assertThrows(IllegalStateException.class, () -> store.checkpoints());
+    }
+
+    @Test
+    public void retrieveCheckpointAfterDispose() {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        String ref = store.checkpoint(60000);
+        store.dispose();
+        Assert.assertThrows(IllegalStateException.class, () -> store.retrieve(ref));
+    }
+
+    @Test
+    public void releaseCheckpointAfterDispose() {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        String ref = store.checkpoint(60000);
+        store.dispose();
+        Assert.assertThrows(IllegalStateException.class, () -> store.release(ref));
+    }
+    // End of tests for OAK-9300
 
     private void getChildNodeCountTest(int numChildren,
                                        Iterable<Long> maxValues,

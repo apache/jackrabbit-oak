@@ -26,7 +26,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
  */
 class ThrowingCallbackHandler implements CallbackHandler {
 
-    private boolean throwIOException;
+    private final boolean throwIOException;
 
     ThrowingCallbackHandler(boolean throwIOException) {
         this.throwIOException = throwIOException;

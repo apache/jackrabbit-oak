@@ -88,8 +88,8 @@ public class CompositePatternTest {
 
     private static final class TestRestrictionPatter implements RestrictionPattern {
 
-        private static RestrictionPattern INSTANCE_TRUE = new TestRestrictionPatter(true);
-        private static RestrictionPattern INSTANCE_FALSE = new TestRestrictionPatter(false);
+        private static final RestrictionPattern INSTANCE_TRUE = new TestRestrictionPatter(true);
+        private static final RestrictionPattern INSTANCE_FALSE = new TestRestrictionPatter(false);
 
         private final boolean matches;
 

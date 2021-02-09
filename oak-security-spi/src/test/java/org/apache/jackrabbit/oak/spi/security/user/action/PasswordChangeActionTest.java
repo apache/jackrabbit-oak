@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import javax.jcr.nodetype.ConstraintViolationException;
-
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -32,6 +30,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.jcr.nodetype.ConstraintViolationException;
+
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class PasswordChangeActionTest {
@@ -77,14 +79,14 @@ public class PasswordChangeActionTest {
     @Test
     public void testPasswordChange() throws Exception {
         pwChangeAction.onPasswordChange(user, "changedPassword", createRoot("pw"), namePathMapper);
+        verify(user).getPath();
+        verifyNoMoreInteractions(user);
     }
 
     @Test
     public void testUserWithoutPassword() throws Exception {
-        try {
-            pwChangeAction.onPasswordChange(user, "changedPassword", createRoot(null), namePathMapper);
-        } finally {
-            user.remove();
-        }
+        pwChangeAction.onPasswordChange(user, "changedPassword", createRoot(null), namePathMapper);
+        verify(user).getPath();
+        verifyNoMoreInteractions(user);
     }
 }

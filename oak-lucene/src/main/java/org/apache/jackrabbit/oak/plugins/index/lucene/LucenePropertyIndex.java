@@ -1610,15 +1610,20 @@ public class LucenePropertyIndex extends FulltextIndex {
                 String facetFieldName = FulltextIndex.parseFacetField(columnName);
                 Facets facets = FacetHelper.getFacets(searcher, query, plan, config);
                 if (facets != null) {
-                    ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
-                    FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
-                    if (topChildren != null) {
-                        for (LabelAndValue lav : topChildren.labelValues) {
-                            res.add(new Facet(
-                                    lav.label, lav.value.intValue()
-                            ));
+                    try {
+                        ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                        FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
+                        if (topChildren != null) {
+                            for (LabelAndValue lav : topChildren.labelValues) {
+                                res.add(new Facet(
+                                        lav.label, lav.value.intValue()
+                                ));
+                            }
+                            return res.build();
                         }
-                        return res.build();
+                    } catch (IllegalArgumentException iae) {
+                        LOG.debug(iae.getMessage(), iae);
+                        LOG.warn("facets for {} not yet indexed: " + iae, facetFieldName);
                     }
                 }
                 return null;
@@ -1641,17 +1646,20 @@ public class LucenePropertyIndex extends FulltextIndex {
             String facetFieldName = FulltextIndex.parseFacetField(columnName);
 
             if (facets != null) {
-                ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
-                FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
-
-                if (topChildren != null) {
-                    for (LabelAndValue lav : topChildren.labelValues) {
-                        res.add(new Facet(
-                            lav.label, lav.value.intValue()
-                        ));
+                try {
+                    ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                    FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
+                    if (topChildren != null) {
+                        for (LabelAndValue lav : topChildren.labelValues) {
+                            res.add(new Facet(
+                                lav.label, lav.value.intValue()
+                            ));
+                        }
+                        return res.build();
                     }
-
-                    return res.build();
+                } catch (IllegalArgumentException iae) {
+                    LOG.debug(iae.getMessage(), iae);
+                    LOG.warn("facets for {} not yet indexed: " + iae, facetFieldName);
                 }
             }
 

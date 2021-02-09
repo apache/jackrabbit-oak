@@ -143,8 +143,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         esConnection = elasticRule.useDocker() ? elasticRule.getElasticConnectionForDocker() :
                 elasticRule.getElasticConnectionFromString();
         ElasticIndexEditorProvider editorProvider = getElasticIndexEditorProvider(esConnection);
-        ElasticIndexProvider indexProvider = new ElasticIndexProvider(esConnection,
-                new ElasticMetricHandler(StatisticsProvider.NOOP));
+        ElasticIndexProvider indexProvider = new ElasticIndexProvider(esConnection, getMetricHandler());
 
         nodeStore = getNodeStore();
 
@@ -170,6 +169,10 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
             oak = addAsyncIndexingLanesToOak(oak);
         }
         return oak.createContentRepository();
+    }
+
+    protected ElasticMetricHandler getMetricHandler() {
+        return new ElasticMetricHandler(StatisticsProvider.NOOP);
     }
 
     protected void assertEventually(Runnable r) {

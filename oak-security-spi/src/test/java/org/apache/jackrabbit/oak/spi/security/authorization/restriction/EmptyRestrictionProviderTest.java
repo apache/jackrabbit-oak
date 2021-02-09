@@ -16,17 +16,18 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.junit.Test;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
-import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class EmptyRestrictionProviderTest {
 
@@ -38,13 +39,13 @@ public class EmptyRestrictionProviderTest {
 
     @Test(expected = AccessControlException.class)
     public void testCreateRestrictionSingleValue() throws RepositoryException {
-        Value v = Mockito.mock(Value.class);
+        Value v = mock(Value.class);
         RestrictionProvider.EMPTY.createRestriction(null, "name", v);
     }
 
     @Test(expected = AccessControlException.class)
     public void testCreateRestrictionMvValues() throws RepositoryException {
-        Value v = Mockito.mock(Value.class);
+        Value v = mock(Value.class);
         RestrictionProvider.EMPTY.createRestriction(null, "name", v, v);
     }
 
@@ -55,33 +56,36 @@ public class EmptyRestrictionProviderTest {
 
     @Test
     public void testReadRestrictions() {
-        assertTrue(RestrictionProvider.EMPTY.readRestrictions(null, Mockito.mock(Tree.class)).isEmpty());
-        assertTrue(RestrictionProvider.EMPTY.readRestrictions("/any/path", Mockito.mock(Tree.class)).isEmpty());
+        assertTrue(RestrictionProvider.EMPTY.readRestrictions(null, mock(Tree.class)).isEmpty());
+        assertTrue(RestrictionProvider.EMPTY.readRestrictions("/any/path", mock(Tree.class)).isEmpty());
     }
 
     @Test
     public void testWriteRestrictions() throws Exception {
-        Restriction r = Mockito.mock(Restriction.class);
-        RestrictionProvider.EMPTY.writeRestrictions(null, Mockito.mock(Tree.class), ImmutableSet.of(r));
-        RestrictionProvider.EMPTY.writeRestrictions("/any/path", Mockito.mock(Tree.class), ImmutableSet.of(r));
+        Restriction r = mock(Restriction.class);
+        RestrictionProvider.EMPTY.writeRestrictions(null, mock(Tree.class), ImmutableSet.of(r));
+        RestrictionProvider.EMPTY.writeRestrictions("/any/path", mock(Tree.class), ImmutableSet.of(r));
+        verifyNoInteractions(r);
     }
 
     @Test
     public void testValidateRestrictions() throws Exception {
-        RestrictionProvider.EMPTY.validateRestrictions(null, Mockito.mock(Tree.class));
-        RestrictionProvider.EMPTY.validateRestrictions("/any/path", Mockito.mock(Tree.class));
+        Tree t = mock(Tree.class);
+        RestrictionProvider.EMPTY.validateRestrictions(null, t);
+        RestrictionProvider.EMPTY.validateRestrictions("/any/path", t);
+        verifyNoInteractions(t);
     }
 
     @Test
     public void testGetPattern() {
-        Restriction r = Mockito.mock(Restriction.class);
+        Restriction r = mock(Restriction.class);
         assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern(null, ImmutableSet.of(r)));
         assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern("/any/path", ImmutableSet.of(r)));
     }
 
     @Test
     public void testGetPatternFromTree() {
-        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern(null, Mockito.mock(Tree.class)));
-        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern("/any/path", Mockito.mock(Tree.class)));
+        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern(null, mock(Tree.class)));
+        assertSame(RestrictionPattern.EMPTY, RestrictionProvider.EMPTY.getPattern("/any/path", mock(Tree.class)));
     }
 }

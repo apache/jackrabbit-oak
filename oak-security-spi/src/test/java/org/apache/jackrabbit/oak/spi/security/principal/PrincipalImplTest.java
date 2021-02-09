@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
+import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.junit.Test;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
-import org.junit.Test;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class PrincipalImplTest {
 
-    private Principal principal = new PrincipalImpl("name");
+    private final Principal principal = new PrincipalImpl("name");
 
     @Test
     public void testGetName() {
@@ -42,7 +42,7 @@ public class PrincipalImplTest {
 
     @Test
     public void testEqualsSame() {
-        assertTrue(principal.equals(principal));
+        assertEquals(principal, principal);
     }
 
     @Test
@@ -50,12 +50,7 @@ public class PrincipalImplTest {
         List<Principal> principals = new ArrayList<>();
         principals.add(new PrincipalImpl("name"));
         principals.add(new TestPrincipal("name"));
-        principals.add(new JackrabbitPrincipal() {
-            @Override
-            public String getName() {
-                return "name";
-            }
-        });
+        principals.add((JackrabbitPrincipal) () -> "name");
 
         for (Principal p : principals) {
             assertEquals(principal, p);
@@ -74,7 +69,7 @@ public class PrincipalImplTest {
         });
 
         for (Principal p : principals) {
-            assertFalse(principal.equals(p));
+            assertNotEquals(principal, p);
         }
     }
 
@@ -87,7 +82,7 @@ public class PrincipalImplTest {
 
     //--------------------------------------------------------------------------
 
-    private class TestPrincipal extends PrincipalImpl {
+    private static class TestPrincipal extends PrincipalImpl {
 
         private TestPrincipal(String name) {
             super(name);

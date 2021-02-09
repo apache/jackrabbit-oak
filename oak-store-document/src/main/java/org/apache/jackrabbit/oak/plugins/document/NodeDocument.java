@@ -1170,7 +1170,8 @@ public final class NodeDocument extends Document {
      *                the document store.
      * @param binarySize a function that returns the binary size of the given
      *                   JSON property value String.
-     * @return the split operations.
+     * @return the split operations, whereby the last updateOp is guaranteed to be
+     * the update of the main document (unless the entire list is empty)
      */
     @NotNull
     public Iterable<UpdateOp> split(@NotNull RevisionContext context,

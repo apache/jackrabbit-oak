@@ -54,7 +54,7 @@ public class Sweep2StatusDocument {
 
     /**
      * Acquires the sweep2 lock.
-     * @param documentNodeStore
+     * @param documentStore
      * @param clusterId
      * @param forceSweepingStatus if false uses the default way to set the sweep2-status,
      * if set to true (force-)sets sweep2-status to 'sweeping'.

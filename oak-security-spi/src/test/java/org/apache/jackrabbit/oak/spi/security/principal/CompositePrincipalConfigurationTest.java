@@ -147,16 +147,17 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
         assertSame(sp, cpc.getSecurityProvider());
     }
 
-    private final class TestComposite extends CompositePrincipalConfiguration {
+    private static final class TestComposite extends CompositePrincipalConfiguration {
         TestComposite(@NotNull SecurityProvider securityProvider) {
             super(securityProvider);
         }
+        @NotNull
         public SecurityProvider getSecurityProvider() {
             return super.getSecurityProvider();
         }
     }
 
-    private final class TestPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+    private static final class TestPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
 
         @NotNull
         @Override
@@ -210,7 +211,7 @@ public class CompositePrincipalConfigurationTest extends AbstractCompositeConfig
         }
     }
 
-    private final class TestEmptyConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+    private static final class TestEmptyConfiguration extends ConfigurationBase implements PrincipalConfiguration {
 
         @NotNull
         @Override

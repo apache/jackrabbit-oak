@@ -85,6 +85,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COU
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.*;
 import static org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValue;
+import static org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil.getOptionalValues;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
@@ -362,7 +363,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.definition = defn;
             this.indexPath = checkNotNull(indexPath);
             this.indexName = indexPath;
-            this.indexTags = getOptionalStrings(defn, IndexConstants.INDEX_TAGS);
+            this.indexTags = getOptionalValues(defn, IndexConstants.INDEX_TAGS, Type.STRINGS, String.class);
             this.nodeTypeIndex = getOptionalValue(defn, FulltextIndexConstants.PROP_INDEX_NODE_TYPE, false);
 
             this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
@@ -411,7 +412,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             this.scorerProviderName = getOptionalValue(defn, FulltextIndexConstants.PROP_SCORER_PROVIDER, null);
             this.reindexCount = getOptionalValue(defn, REINDEX_COUNT, 0);
             this.pathFilter = PathFilter.from(new ReadOnlyBuilder(defn));
-            this.queryPaths = getOptionalStrings(defn, IndexConstants.QUERY_PATHS);
+            this.queryPaths = getOptionalValues(defn, IndexConstants.QUERY_PATHS, Type.STRINGS, String.class);
             this.suggestAnalyzed = evaluateSuggestAnalyzed(defn, false);
 
             {
@@ -678,8 +679,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     @Nullable
     public Aggregate getAggregate(String nodeType){
-        Aggregate agg = aggregates.get(nodeType);
-        return agg;
+        return aggregates.get(nodeType);
     }
 
     private Map<String, Aggregate> collectAggregates(NodeState defn) {
@@ -728,8 +728,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         List<IndexingRule> rules = null;
         List<IndexingRule> r = indexRules.get(primaryNodeType);
         if (r != null) {
-            rules = new ArrayList<IndexingRule>();
-            rules.addAll(r);
+            rules = new ArrayList<>(r);
         }
 
         if (rules != null) {
@@ -758,15 +757,14 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         List<IndexingRule> rules = null;
         List<IndexingRule> r = indexRules.get(getPrimaryTypeName(state));
         if (r != null) {
-            rules = new ArrayList<IndexingRule>();
-            rules.addAll(r);
+            rules = new ArrayList<>(r);
         }
 
         for (String name : getMixinTypeNames(state)) {
             r = indexRules.get(name);
             if (r != null) {
                 if (rules == null) {
-                    rules = new ArrayList<IndexingRule>();
+                    rules = new ArrayList<>();
                 }
                 rules.addAll(r);
             }
@@ -819,11 +817,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
             for (String ntName : ntNames) {
                 if (ntReg.isNodeType(ntName, rule.getNodeTypeName())) {
-                    List<IndexingRule> perNtConfig = nt2rules.get(ntName);
-                    if (perNtConfig == null) {
-                        perNtConfig = new ArrayList<IndexingRule>();
-                        nt2rules.put(ntName, perNtConfig);
-                    }
+                    List<IndexingRule> perNtConfig = nt2rules.computeIfAbsent(ntName, k -> new ArrayList<>());
                     log.trace("Registering rule '{}' for name '{}'", rule, ntName);
                     perNtConfig.add(new IndexingRule(rule, ntName));
                 }
@@ -835,11 +829,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         }
 
         return ImmutableMap.copyOf(nt2rules);
-    }
-
-    private boolean areAllTypesIndexed() {
-        IndexingRule ntBaseRule = getApplicableIndexingRule(NT_BASE);
-        return ntBaseRule != null;
     }
 
     private boolean evaluateSuggestionEnabled() {
@@ -1222,13 +1211,13 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
                 String propName = prop.getName();
                 NodeState propDefnNode = propNode.getChildNode(propName);
                 if (propDefnNode.exists() && !propDefns.containsKey(propName)) {
-                    PropertyDefinition pd = new PropertyDefinition(this, propName, propDefnNode);
+                    PropertyDefinition pd = createPropertyDefinition(this, propName, propDefnNode);
                     if (pd.function != null) {
                         functionRestrictions.add(pd);
                         String[] properties = FunctionIndexProcessor.getProperties(pd.functionCode);
                         for (String p : properties) {
                             if (PathUtils.getDepth(p) > 1) {
-                                PropertyDefinition pd2 = new PropertyDefinition(this, p, propDefnNode);
+                                PropertyDefinition pd2 = createPropertyDefinition(this, p, propDefnNode);
                                 propAggregate.add(new Aggregate.FunctionInclude(pd2));
                             }
                         }
@@ -1505,7 +1494,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             }
         }
 
-        List<String> propNames = new ArrayList<String>(propNamesSet);
+        List<String> propNames = new ArrayList<>(propNamesSet);
 
         final String includeAllProp = FulltextIndexConstants.REGEX_ALL_PROPS;
         if (fullTextEnabled
@@ -1616,7 +1605,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
 
     private static Set<String> getMultiProperty(NodeState definition, String propName){
         PropertyState pse = definition.getProperty(propName);
-        return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.<String>emptySet();
+        return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.emptySet();
     }
 
     private static Set<String> toLowerCase(Set<String> values) {
@@ -1784,14 +1773,6 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return result;
     }
 
-    private static String[] getOptionalStrings(NodeState defn, String propertyName) {
-        PropertyState ps = defn.getProperty(propertyName);
-        if (ps != null) {
-            return Iterables.toArray(ps.getValue(Type.STRINGS), String.class);
-        }
-        return null;
-    }
-
     private static IndexFormatVersion versionFrom(PropertyState ps){
         return IndexFormatVersion.getVersion(Ints.checkedCast(ps.getValue(Type.LONG)));
     }
@@ -1833,6 +1814,10 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return storedState.exists() ? storedState : defn;
     }
 
+    protected PropertyDefinition createPropertyDefinition(IndexingRule rule, String name, NodeState nodeState) {
+        return new PropertyDefinition(rule, name, nodeState);
+    }
+
     private static Map<String, String> buildMimeTypeMap(NodeState node) {
         ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
         for (ChildNodeEntry child : node.getChildNodeEntries()) {
@@ -1849,7 +1834,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
         return map.build();
     }
 
-    private static PropertyDefinition createNodeTypeDefinition(IndexingRule rule, String name, boolean sync) {
+    private PropertyDefinition createNodeTypeDefinition(IndexingRule rule, String name, boolean sync) {
         NodeBuilder builder = EMPTY_NODE.builder();
         //A nodetype index just required propertyIndex and sync flags to be set
         builder.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
@@ -1857,7 +1842,7 @@ public class IndexDefinition implements Aggregate.AggregateMapper {
             builder.setProperty(FulltextIndexConstants.PROP_SYNC, sync);
         }
         builder.setProperty(FulltextIndexConstants.PROP_NAME, name);
-        return new PropertyDefinition(rule, name, builder.getNodeState());
+        return createPropertyDefinition(rule, name, builder.getNodeState());
     }
 
     public static class SecureFacetConfiguration {

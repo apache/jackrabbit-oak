@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
-import java.util.Map;
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.SimpleCredentials;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+
+import javax.jcr.Credentials;
+import javax.jcr.GuestCredentials;
+import javax.jcr.SimpleCredentials;
+import java.util.Map;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;

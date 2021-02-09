@@ -16,20 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.security.AccessControlException;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -42,16 +31,28 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-import org.mockito.Mockito;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.jcr.security.AccessControlException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class CompositeRestrictionProviderTest implements AccessControlConstants {
@@ -65,17 +66,17 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
     private static final Restriction LONGS_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty(NAME_LONGS, ImmutableList.of(Long.MAX_VALUE), Type.LONGS), false);
     private static final Restriction UNKNOWN_RESTRICTION = new RestrictionImpl(PropertyStates.createProperty("unknown", "string"), false);
 
-    private RestrictionProvider rp1 = spy(createRestrictionProvider(GLOB_RESTRICTION.getDefinition(), NT_PREFIXES_RESTRICTION.getDefinition()));
-    private RestrictionProvider rp2 = spy(createRestrictionProvider(MANDATORY_BOOLEAN_RESTRICTION.getDefinition(), LONGS_RESTRICTION.getDefinition()));
+    private final RestrictionProvider rp1 = spy(createRestrictionProvider(GLOB_RESTRICTION.getDefinition(), NT_PREFIXES_RESTRICTION.getDefinition()));
+    private final RestrictionProvider rp2 = spy(createRestrictionProvider(MANDATORY_BOOLEAN_RESTRICTION.getDefinition(), LONGS_RESTRICTION.getDefinition()));
 
-    private Set<String> supported = ImmutableSet.of(
+    private final Set<String> supported = ImmutableSet.of(
             MANDATORY_BOOLEAN_RESTRICTION.getDefinition().getName(),
             LONGS_RESTRICTION.getDefinition().getName(),
             REP_PREFIXES,
             REP_GLOB);
-    private RestrictionProvider provider = CompositeRestrictionProvider.newInstance(rp1, rp2);
+    private final RestrictionProvider provider = CompositeRestrictionProvider.newInstance(rp1, rp2);
 
-    private ValueFactory vf = new ValueFactoryImpl(mock(Root.class), NamePathMapper.DEFAULT);
+    private final ValueFactory vf = new ValueFactoryImpl(mock(Root.class), NamePathMapper.DEFAULT);
 
     @NotNull
     private AbstractRestrictionProvider createRestrictionProvider(@NotNull RestrictionDefinition... supportedDefinitions) {
@@ -179,9 +180,11 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
                 NAME_LONGS, vf.createValue(10),
                 REP_GLOB, vf.createValue("*")
         );
-        for (String name : valid.keySet()) {
-            provider.createRestriction("/testPath", name, valid.get(name));
+        for (Map.Entry<String, Value> entry : valid.entrySet()) {
+            provider.createRestriction("/testPath", entry.getKey(), entry.getValue());
         }
+        verify(rp1, times(1)).createRestriction(anyString(), anyString(), any(Value.class));
+        verify(rp2, times(2)).createRestriction(anyString(), anyString(), any(Value.class));
     }
 
     @Test(expected = AccessControlException.class)
@@ -195,9 +198,10 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
                 NAME_BOOLEAN, vf.createValue("wrong_type"),
                 REP_GLOB, vf.createValue(true)
         );
-        for (String name : invalid.keySet()) {
+        for (Map.Entry<String, Value> entry : invalid.entrySet()) {
+            String name = entry.getKey();
             try {
-                provider.createRestriction("/testPath", name, invalid.get(name));
+                provider.createRestriction("/testPath", name, entry.getValue());
                 fail("invalid restriction " + name);
             } catch (AccessControlException e) {
                 // success
@@ -211,9 +215,11 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
                 NAME_LONGS, new Value[] {vf.createValue(100)},
                 REP_PREFIXES, new Value[] {vf.createValue("prefix"), vf.createValue("prefix2")}
         );
-        for (String name : valid.keySet()) {
-            provider.createRestriction("/testPath", name, valid.get(name));
+        for (Map.Entry<String, Value[]> entry : valid.entrySet()) {
+            provider.createRestriction("/testPath", entry.getKey(), entry.getValue());
         }
+        verify(rp1, times(1)).createRestriction("/testPath", REP_PREFIXES, valid.get(REP_PREFIXES));
+        verify(rp2, times(1)).createRestriction("/testPath", NAME_LONGS, valid.get(NAME_LONGS));
     }
 
     @Test(expected = AccessControlException.class)
@@ -228,9 +234,10 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
                 NAME_LONGS, new Value[] {vf.createValue("wrong_type")},
                 REP_PREFIXES, new Value[] {vf.createValue(true)}
         );
-        for (String name : invalid.keySet()) {
+        for (Map.Entry<String, Value[]> entry : invalid.entrySet()) {
+            String name = entry.getKey();
             try {
-                provider.createRestriction("/testPath", name, invalid.get(name));
+                provider.createRestriction("/testPath", name, entry.getValue());
                 fail("invalid restriction " + name);
             } catch (AccessControlException e) {
                 // success
@@ -254,7 +261,9 @@ public class CompositeRestrictionProviderTest implements AccessControlConstants 
 
     @Test
     public void testWriteEmptyRestrictions() throws Exception {
-        provider.writeRestrictions("/test", getAceTree(), Collections.emptySet());
+        Tree acTree = getAceTree();
+        provider.writeRestrictions("/test", acTree, Collections.emptySet());
+        verifyNoInteractions(rp1, rp2);
     }
 
     @Test

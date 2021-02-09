@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link RestrictionDefinitionImpl}.

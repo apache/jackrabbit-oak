@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.35-SNAPSHOT</version>
+    <version>1.39-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -53,13 +53,11 @@
       <!-- Locking : not fully implemented -->
       org.apache.jackrabbit.test.api.lock.LockTest#testNodeLocked <!-- OAK-3482 -->
       org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken <!-- OAK-2149 -->
-
+      org.apache.jackrabbit.test.api.lock.LockTest#testLockTransfer <!-- OAK-9187 -->
+      org.apache.jackrabbit.test.api.lock.LockTest#testOpenScopedLocks <!-- OAK-9187 -->
       org.apache.jackrabbit.test.api.lock.SetValueLockExceptionTest#testSetValueLockException  <!-- OAK-2149 -->
-
       org.apache.jackrabbit.test.api.lock.DeepLockTest#testRemoveLockedChild <!-- OAK-2149 -->
-
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testRemoveLockToken3 <!-- OAK-2149 -->
-
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock2
 
@@ -145,8 +143,6 @@
       org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
       org.apache.jackrabbit.oak.jcr.query.QueryTest#fnNameEncoding                                   <!-- OAK-1000 -->
-
-      org.apache.jackrabbit.test.api.nodetype.PredefinedNodeTypeTest#testFrozenNode                  <!-- OAK-9161 -->
     </known.issues>
   </properties>
 

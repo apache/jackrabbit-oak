@@ -171,9 +171,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         }
 
         private void checkPermissions(@NotNull Tree tree, long permissions) throws CommitFailedException {
-            if (!getPermissionProvider().isGranted(tree, null, permissions)) {
-                throw new CommitFailedException(ACCESS, 0, "Access denied");
-            }
+            checkIsGranted(getPermissionProvider().isGranted(tree, null, permissions));
         }
     }
 }

@@ -47,19 +47,20 @@ public class IndexUtils {
 
     /**
      * Create an index and wait until it is ready.
-     * 
+     *
      * @param p the persistence
      * @param indexName the name of the index
      * @param propertyName the property to index (on nt:base)
      * @param cost the cost per execution (high means the index isn't used if possible)
+     * @return the index definition node
      */
-    public static void createIndex(Persistence p, String indexName, String propertyName, double cost) throws RepositoryException {
+    public static Node createIndex(Persistence p, String indexName, String propertyName, double cost) throws RepositoryException {
         Node indexDef = p.session.getRootNode().getNode("oak:index");
         Node index = indexDef.addNode(indexName, INDEX_DEFINITIONS_NODE_TYPE);
         index.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         index.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
-        index.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, 
+        index.setProperty(IndexConstants.ASYNC_PROPERTY_NAME,
                 new String[] { "async", "nrt" });
         index.setProperty(FulltextIndexConstants.COST_PER_EXECUTION, cost);
         // index.setProperty("excludedPaths", "/jcr:system");
@@ -81,11 +82,12 @@ public class IndexUtils {
                 // ignore
             }
         }
+        return index;
     }
-    
+
     /**
      * Run a query and return which index was used.
-     * 
+     *
      * @param p the persistence
      * @param xpath the xpath query
      * @param expectedIndex the index that is expected to be used
@@ -111,10 +113,10 @@ public class IndexUtils {
         }
         Assert.assertEquals(expectedResult, list.toString());
     }
-    
+
     /**
      * Utility method for debugging.
-     * 
+     *
      * @param node the node to print
      */
     public static void debugPrintProperties(Node node) throws RepositoryException {
@@ -131,7 +133,7 @@ public class IndexUtils {
 
     /**
      * Check if the /libs node is read-only in this repository.
-     * 
+     *
      * @param p the persistence
      */
     public static void checkLibsIsReadOnly(Persistence p) throws RepositoryException {

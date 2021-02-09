@@ -27,6 +27,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class OpenAuthenticationConfigurationTest {
 
@@ -66,12 +68,16 @@ public class OpenAuthenticationConfigurationTest {
     @Test
     public void testLogin() throws LoginException {
         // nop => must not throw
-        lcp.getLoginContext(new Credentials() {}, null).login();
+        Credentials credentials = mock(Credentials.class);
+        lcp.getLoginContext(credentials, null).login();
+        verifyNoInteractions(credentials);
     }
 
     @Test
     public void testLogout() throws LoginException {
         // nop => must not throw
+        Credentials credentials = mock(Credentials.class);
         lcp.getLoginContext(new Credentials() {}, null).logout();
+        verifyNoInteractions(credentials);
     }
 }

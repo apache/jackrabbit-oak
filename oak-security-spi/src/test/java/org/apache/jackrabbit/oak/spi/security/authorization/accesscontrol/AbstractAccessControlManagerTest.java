@@ -443,7 +443,7 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
         assertArrayEquals(new Privilege[0], acMgr.getPrivileges(null, ImmutableSet.<Principal>of()));
     }
 
-    private class TestAcMgr extends AbstractAccessControlManager {
+    private static class TestAcMgr extends AbstractAccessControlManager {
 
         protected TestAcMgr(@NotNull Root root, @NotNull NamePathMapper namePathMapper, @NotNull SecurityProvider securityProvider) {
             super(root, namePathMapper, securityProvider);

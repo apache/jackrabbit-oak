@@ -59,9 +59,9 @@ public interface PrincipalConfiguration extends SecurityConfiguration {
      * <h4>Multiple Sources for Principals</h4>
      * In Jackrabbit 2.x it was possible to configure multiple principal providers.
      * As of OAK there is only one single principal provider implementation
-     * responsible for a given workspace. If principals originate from different
-     * sources it is recommended to use the {@link CompositePrincipalProvider}
-     * to combine the different sources.
+     * responsible for a given configuration. If principals originate from different
+     * sources it is recommended to define a separate {@link PrincipalConfiguration}
+     * for each source.
      *
      * @param root The target {@code Root}.
      * @param namePathMapper The {@code NamePathMapper} to be used.

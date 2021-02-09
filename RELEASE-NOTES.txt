@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.34.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.38.0
 
 Introduction
 ------------
@@ -7,69 +7,66 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.34.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.38.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
+While Oak 1.38.0 compiles and tests successfully on Java 15, Javadocs
+generation fails on Java 15 (but works as expected on Java 8).
+
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.34.0
+Changes in Oak 1.38.0
 ---------------------
 
 Bug
 
-    [OAK-9130] - DocumentDiscoveryLiteService.hasBacklog logging regression (inverted version check)
-    [OAK-9146] - Elastic indexes - Updates get lost if connection is not available
-    [OAK-9162] - Elastic indexes - Index creation fails if multiple suggest fields are present
-    [OAK-9163] - ElasticIndexTracker should never use stored index definitions
-    [OAK-9166] - Elastic indexes - Fulltext query requires more rules than expected
-    [OAK-9178] - PasswordHistory.updatePasswordHistory may return false status
+    [OAK-9037] - bundle:manifest fails on Java 15
+    [OAK-9265] - Oak-run tool recovery function scans for previous documents too
+    [OAK-9275] - restore test coverage of oak-auth-ldap
+    [OAK-9277] - UserProvider: misleading exception message if 'systemRelativePath' is not default
+    [OAK-9281] - NRT Index - duplicate results with similarity search
+    [OAK-9284] - LdapIdentityProvider.listGroups logs misleading warning
+    [OAK-9285] - LdapProviderConfig#getUseUidForExtId has invalid notnull annotation
+    [OAK-9298] - Date Range queries not working in elastic search index
+    [OAK-9304] - Filename with special characters in direct download URI Content-Disposition are causing HTTP 400 errors from Azure
+    [OAK-9306] - Faceting: IllegalArgumentException: dimension ... was not indexed
+    [OAK-9313] - Test failure: LoginModuleMonitorTest
+    [OAK-9314] - Broken javadoc link with ExternalGroupPrincipalProvider#findPrincipals
+    [OAK-9324] - oak-auth-ldap (UseUidForExtIdTest) tests fail (likely specific to Windows)
 
-New Feature
-
-    [OAK-7744] - Persistent cache for the Segment Node Store
-    [OAK-9131] - oak-run tool for scanning for references to nt:frozenNode
 
 Improvement
 
-    [OAK-9106] - Support spellchecking in Oak ES
-    [OAK-9134] - Remove mix:referenceable from nt:frozenNode definition
-    [OAK-9136] - Allow elasticsearch port to be read from secrets
-    [OAK-9139] - Log message on frozen node lookup by identifier
-    [OAK-9142] - AzureDataStore should use concurrent request count for all API calls
-    [OAK-9144] - Indexing: dynamic boost is not robust
-    [OAK-9147] - Config option for NRT queue timeout
-    [OAK-9151] - Support term suggestion in Oak ES
-    [OAK-9156] - Port lucene tests
-    [OAK-9165] - Lucene: unique sync property index don't work properly
-    [OAK-9170] - Make loading segment disk cache fail safe in case when write operation is interrupted by failure
-    [OAK-9173] - Oak-run indexing fails with "This map is closed"
-    [OAK-9180] - Optimise synchronisation between threads when writing to 3rd level segment cache 
-    [OAK-9184] - Very slow, potential endless loop in LucenePropertyIndex.loadDocs()
-    [OAK-9194] - oak-search-elastic: propertyIndex with nodeScopeIndex should be stored in :fulltext only
-    [OAK-9176] - Fix for sweep missing _bc (branch commit) entries in some cases - plus sweep2 introduced to clean up repository accordingly.
-                 PS: use -Doak.documentMK.disableSweep2=true to disable sweep2 in case it should be skipped explicitly
+    [OAK-9149] - Use batch calls in backgroundSplit
+    [OAK-9187] - LockOperation always calls SessionDelegate.refresh before executing operations
+    [OAK-9246] - Avoid hardcoding stats classes in SecurityProviderRegistration
+    [OAK-9261] - Upgrade Apache Solr to 8.6.3 and remove Embedded Solr Server
+    [OAK-9279] - Add PermissionValidator#checkIsGranted
+    [OAK-9280] - Missing assertions/verification with tests
+    [OAK-9282] - SecurityProviderRegistration: missing test for concurrent activation
+    [OAK-9288] - Simplify LdapIdentityProvider
+    [OAK-9290] - Respect nt:frozenNode definition on upgrade and migration
+    [OAK-9291] - Refactor check for referenceable nt:frozenNode definition
+    [OAK-9293] - SegmentStoreMigrator appendMode should recopy the last archive
+    [OAK-9301] - Automatically pick a merged index
+    [OAK-9303] - AbstractPersistentCache#readSegment should propagate exception RepositoryNotReachableException
+    [OAK-9311] - oak-search-elastic: use low-level client for critical operations
+    [OAK-9316] - Reduce complexity in ExternalGroupPrincipalProvider
+    [OAK-9322] - Add reference node id to integrity exception message
+    [OAK-9326] - Provide option to remove target version history from VersionCopier.copyVersionStorage
+    [OAK-9333] - Javadoc for PrincipalProvider.getPrincipalProvider is outdated
 
 Task
 
-    [OAK-9138] - Have a mechanism to track failed docs in ES
-    [OAK-9140] - Don't use stored index definition in elastic indexes
-    [OAK-9143] - Use seed instead of reindexCount for elastic index suffix
-    [OAK-9148] - Use IndexTracker in oak-search-elastic
-    [OAK-9152] - Implement factor 2 writes
-    [OAK-9164] - oak-search-elastic: expose relevant metrics
-    [OAK-9167] - Expose last indexed time as a metric
-    [OAK-9169] - Remove remote elastic indexes when index definition is removed
-    [OAK-9179] - Documentation (and comments) about rep:glob patterns in ACE restriction is confusing
-    [OAK-9188] - Upgrade to Elasticsearch 7.9.0
-
-Technical task
-
-    [OAK-9070] - Remove unnecessary (un)boxing in oak-authorization-principalbased
-    [OAK-9186] - Create Benchmark(s)
-    [OAK-9189] - Benchmark Results - Status Quo
+    [OAK-9276] - oak-search-elastic: make shards/replicas configurable
+    [OAK-9287] - Upgrade to Elasticsearch 7.10.0
+    [OAK-9302] - oak-search-elastic: make fetch query parameters configurable
+    [OAK-9308] - Upgrade to Elasticsearch 7.10.1
+    [OAK-9312] - Modify oak-run to support creating indexes of type Elasticsearch
+    [OAK-9329] - upgrade to mockito-core 3.7.7
 
 
 In addition to the above-mentioned changes, this release contains all
@@ -99,7 +96,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-The Oak effort is a part of the Apache Jackrabbit project. 
+The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 For more information, visit http://jackrabbit.apache.org/oak

@@ -16,9 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication;
 
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
+/**
+ * @deprecated Since Oak 1.38.0 in favor of {@link org.apache.jackrabbit.oak.spi.security.SecurityConfiguration#getMonitors(StatisticsProvider)}
+ */
+@Deprecated
 @ProviderType
 public interface LoginModuleStatsCollector {
 

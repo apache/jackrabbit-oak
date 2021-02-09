@@ -24,7 +24,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,19 +35,19 @@ import org.slf4j.LoggerFactory;
 /**
  * An index name, which possibly contains two version numbers: the product
  * version number, and the customer version number.
- * 
- * The format of an index node name is: 
- * - The name of the index, 
- * - optionally a dash ('-') and the product version number, 
+ *
+ * The format of an index node name is:
+ * - The name of the index,
+ * - optionally a dash ('-') and the product version number,
  * - optionally "-custom-" and the customer version number.
- * 
+ *
  * If the node name doesn't contain version numbers / dashes, then version 0 is
  * assumed (for both the product version number and customer version number).
  */
 public class IndexName implements Comparable<IndexName> {
 
     private final static Logger LOG = LoggerFactory.getLogger(IndexName.class);
-    
+
     // already logged index names
     private static final HashSet<String> LOGGED_WARN = new HashSet<>();
     // when LOGGED_WARN will be cleared
@@ -56,11 +59,11 @@ public class IndexName implements Comparable<IndexName> {
     private final int productVersion;
     private final int customerVersion;
     private final boolean isLegal;
-    
+
     /**
      * Parse the node name. Both node names with version and without version are
      * supported.
-     * 
+     *
      * @param nodeName the node name (starting from root; e.g. "/oak:index/lucene")
      * @return the index name object
      */
@@ -77,7 +80,7 @@ public class IndexName implements Comparable<IndexName> {
             if (!baseName.endsWith("-custom")) {
                 return new IndexName(nodeName, baseName, v1, 0);
             }
-            baseName = baseName.substring(0, 
+            baseName = baseName.substring(0,
                     baseName.length() - "-custom".length());
             index = baseName.lastIndexOf('-');
             if (index < 0) {
@@ -100,7 +103,7 @@ public class IndexName implements Comparable<IndexName> {
             return new IndexName(nodeName, false);
         }
     }
-    
+
     private IndexName(String nodeName, boolean isLegal) {
         // not versioned
         this.nodeName = nodeName;
@@ -120,16 +123,16 @@ public class IndexName implements Comparable<IndexName> {
         this.customerVersion = customerVersion;
         this.isLegal = true;
     }
-    
+
     public String toString() {
-        return nodeName + 
-                " base=" + baseName + 
-                (isVersioned ? " versioned": "") + 
-                " product=" + productVersion + 
+        return nodeName +
+                " base=" + baseName +
+                (isVersioned ? " versioned": "") +
+                " product=" + productVersion +
                 " custom=" + customerVersion +
                 (isLegal ? "" : " illegal");
     }
-    
+
     @Override
     public int compareTo(IndexName o) {
         int comp = baseName.compareTo(o.baseName);
@@ -187,13 +190,13 @@ public class IndexName implements Comparable<IndexName> {
     /**
      * Filter out index that are replaced by another index with the same base
      * name but newer version.
-     * 
+     *
      * Indexes without a version number in the name are always used, except if
      * there is an active index with the same base name but a newer version.
-     * 
+     *
      * Active indexes have a hidden ":oak:mount-" node, which means they are
      * indexed in the read-only node store.
-     * 
+     *
      * @param indexPaths the set of index paths
      * @param rootState the root node state (used to find hidden nodes)
      * @return the filtered list
@@ -228,6 +231,8 @@ public class IndexName implements Comparable<IndexName> {
     }
 
     private static boolean isIndexActive(String indexPath, NodeState rootState) {
+        // An index is active if it has a hidden child node that starts with ":oak:mount-",
+        // OR if it is an active merged index
         NodeState indexNode = rootState;
         for(String e : PathUtils.elements(indexPath)) {
             indexNode = indexNode.getChildNode(e);
@@ -237,7 +242,39 @@ public class IndexName implements Comparable<IndexName> {
                 return true;
             }
         }
-        return false;
+        return isIndexActiveMerged(indexNode, rootState);
+    }
+
+    private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState) {
+        // An index is an active merged index if it has the property "merges",
+        // and that property points to index definitions,
+        // and each of those indexes is either active, disabled, or removed.
+        PropertyState ps = indexNode.getProperty("merges");
+        if (ps == null) {
+            return false;
+        }
+        if (ps.getType() != Type.STRING && ps.getType() != Type.STRINGS) {
+            return false;
+        }
+        for (int i = 0; i < ps.count(); i++) {
+            String merges = ps.getValue(Type.STRING, i);
+            NodeState mergeNode = rootState;
+            for (String e : PathUtils.elements(merges)) {
+                mergeNode = mergeNode.getChildNode(e);
+            }
+            if (!mergeNode.exists()) {
+                continue;
+            }
+            String indexType = mergeNode.getString(IndexConstants.TYPE_PROPERTY_NAME);
+            if (IndexConstants.TYPE_DISABLED.equals(indexType)) {
+                continue;
+            }
+            if (isIndexActive(merges, rootState)) {
+                continue;
+            }
+            return false;
+        }
+        return true;
     }
 
     public String getNodeName() {
@@ -263,5 +300,5 @@ public class IndexName implements Comparable<IndexName> {
     public boolean isLegal() {
         return isLegal;
     }
-    
+
 }

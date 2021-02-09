@@ -29,7 +29,7 @@ import org.junit.Test;
 public class LoginModuleStatsTest {
 
     @Test
-    public void testLoginError() throws Exception {
+    public void testLoginError() {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         StatisticsProvider sp = new DefaultStatisticsProvider(executor);
 

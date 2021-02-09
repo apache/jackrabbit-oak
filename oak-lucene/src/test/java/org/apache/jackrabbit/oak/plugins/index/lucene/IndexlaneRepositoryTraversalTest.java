@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.TrackingCorruptIndexHandler;
@@ -50,6 +51,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -74,9 +76,12 @@ public class IndexlaneRepositoryTraversalTest {
 
     NodeStore nodeStore;
     LogCustomizer customLogger;
+    private Properties systemProperties;
 
     @Before
     public void before() throws Exception {
+        systemProperties =(Properties) System.getProperties().clone();
+        System.setProperty("oak.async.traverseNodesIfLanePresentInIndex", "true");
         ContentSession session = createRepository().login(null, null);
         root = session.getLatestRoot();
         customLogger = LogCustomizer
@@ -88,6 +93,7 @@ public class IndexlaneRepositoryTraversalTest {
     @After
     public void after() {
         customLogger.finished();
+        System.setProperties(systemProperties);
     }
 
     protected ContentRepository createRepository() {
